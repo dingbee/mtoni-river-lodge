@@ -4,8 +4,6 @@ import pool from "@/assets/pool.jpg";
 import aerial from "@/assets/aerial-lodge.jpg";
 import river from "@/assets/hero-river.jpg";
 import dining from "@/assets/dining.jpg";
-import spa from "@/assets/spa.jpg";
-import coffee from "@/assets/coffee.jpg";
 import bonfire from "@/assets/xp-bonfire.jpg";
 import riverWalk from "@/assets/xp-river-walk.jpg";
 import canoe from "@/assets/xp-canoe.jpg";
