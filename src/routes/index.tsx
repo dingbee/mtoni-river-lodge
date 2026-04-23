@@ -11,6 +11,9 @@ import villaImg from "@/assets/villa-exterior.jpg";
 import poolImg from "@/assets/pool.jpg";
 import coffeeImg from "@/assets/coffee.jpg";
 import spaImg from "@/assets/spa.jpg";
+import xpRiverWalk from "@/assets/xp-river-walk.jpg";
+import xpCycling from "@/assets/xp-cycling.jpg";
+import xpBonfire from "@/assets/xp-bonfire.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -158,15 +161,15 @@ function HomePage() {
               Slow mornings.<br/>Wild afternoons.
             </h2>
             <p className="mt-8 max-w-lg text-charcoal/70">
-              Whether you spend the day in a hammock by the river or in the shadow of Mount Meru, every itinerary is shaped by you, and led by people who have walked this land their entire lives.
+              Days unfold at the pace of the river — guided walks at first light, cycling and off-road rides through open country, canoeing on Lake Duluti, and evenings drawn together by live cooking, local markets, and firelight under the sky.
             </p>
           </Reveal>
 
           <div className="grid gap-8 md:grid-cols-12">
             {[
-              { img: guideImg, eyebrow: "Walking", title: "Maasai bush walk", note: "Three hours · Sunrise" },
-              { img: coffeeImg, eyebrow: "Tasting", title: "Arabica plantations", note: "Half day · Estate visit" },
-              { img: villaImg, eyebrow: "After dark", title: "Riverbank dinner", note: "By lantern · Chef's table" },
+              { img: xpRiverWalk, eyebrow: "On foot", title: "Guided river walks", note: "At first light" },
+              { img: xpCycling, eyebrow: "On two wheels", title: "Cycling the foothills", note: "Open country · Local paths" },
+              { img: xpBonfire, eyebrow: "After dark", title: "Bonfire under the sky", note: "By firelight · Evenings" },
             ].map((e, i) => (
               <Reveal key={e.title} delay={i*150} className={i===1 ? "md:col-span-4 md:mt-24" : "md:col-span-4"}>
                 <Link to="/experiences" className="group block">
