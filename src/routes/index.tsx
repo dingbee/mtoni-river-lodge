@@ -63,7 +63,6 @@ function HomePage() {
 
         <div className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 text-ivory/70">
           <div className="flex flex-col items-center gap-2 text-[0.6rem] uppercase tracking-[0.4em]">
-            <span>Scroll</span>
             <span className="h-12 w-px animate-pulse bg-ivory/50" />
           </div>
         </div>
