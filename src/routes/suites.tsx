@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { WHATSAPP_NOTE } from "@/lib/contact";
-import { SUITES } from "@/lib/suites";
+import { SUITES, type Suite } from "@/lib/suites";
 import suiteImg from "@/assets/suite-interior.jpg";
 
 export const Route = createFileRoute("/suites")({
@@ -38,71 +39,95 @@ function SuitesPage() {
       <section className="px-6 py-24 lg:px-12 lg:py-40">
         <div className="mx-auto max-w-[1400px] space-y-32 lg:space-y-48">
           {SUITES.map((s, i) => (
-            <Reveal key={s.no}>
-              <div id={s.slug} className={`scroll-mt-24 grid items-center gap-12 lg:grid-cols-12 ${i%2 ? "lg:[direction:rtl]" : ""}`}>
-                <div className="lg:col-span-7 lg:[direction:ltr]">
-                  <Link to="/suites/$slug" params={{ slug: s.slug }} className="block aspect-[4/3] overflow-hidden group">
-                    <img src={s.img} alt={s.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" loading="lazy" />
-                  </Link>
-                </div>
-                <div className="lg:col-span-4 lg:[direction:ltr]">
-                  <p className="eyebrow">No. {s.no}</p>
-                  <h2 className="mt-3 font-display text-4xl lg:text-5xl">{s.name}</h2>
-                  <div className="mt-6 flex gap-6 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                    <span>{s.size}</span><span>·</span><span>{s.view}</span>
-                  </div>
-                  <p className="mt-6 leading-relaxed text-charcoal/75">{s.shortDesc}</p>
-                  <div className="mt-8 flex flex-wrap items-center gap-6">
-                    <Link
-                      to="/suites/$slug"
-                      params={{ slug: s.slug }}
-                      className="group inline-flex items-center gap-3 border border-charcoal px-6 py-3 text-[0.72rem] uppercase tracking-[0.28em] transition-colors hover:bg-charcoal hover:text-ivory"
-                    >
-                      <span>Explore Suite</span>
-                      <span className="transition-transform group-hover:translate-x-1">→</span>
-                    </Link>
-                    <Link
-                      to="/plan"
-                      hash="booking-form"
-                      className="inline-flex items-center gap-3 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]"
-                    >
-                      Check Availability →
-                    </Link>
-                  </div>
-                  <p className="mt-3 max-w-sm text-xs leading-relaxed text-charcoal/55">
-                    {WHATSAPP_NOTE}
-                  </p>
-
-                  {/* Suite-specific details */}
-                  <div className="mt-10 space-y-6 border-t border-border pt-8">
-                    <p className="font-display text-xl italic text-charcoal/85">{s.heroLine}</p>
-                    <div className="space-y-4 text-sm leading-relaxed text-charcoal/75">
-                      {s.description.map((p, idx) => (
-                        <p key={idx}>{p}</p>
-                      ))}
-                    </div>
-                    <div>
-                      <p className="eyebrow">Key Details</p>
-                      <ul className="mt-4 space-y-2 text-sm text-charcoal/80">
-                        {s.details.map((d) => (
-                          <li key={d.label} className="flex gap-3">
-                            <span aria-hidden className="mt-2 h-1 w-1 shrink-0 rounded-full bg-charcoal/60" />
-                            <span>
-                              <span className="text-charcoal/55">{d.label}:</span> {d.value}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <p className="font-display text-lg italic text-charcoal/80">{s.ctaLine}</p>
-                  </div>
-                </div>
-              </div>
-            </Reveal>
+            <SuiteRow key={s.no} suite={s} reverse={i % 2 === 1} />
           ))}
         </div>
       </section>
       <SiteFooter />
     </div>
+  );
+}
+
+function SuiteRow({ suite: s, reverse }: { suite: Suite; reverse: boolean }) {
+  const [open, setOpen] = useState(false);
+  const panelId = `suite-details-${s.slug}`;
+  return (
+    <Reveal>
+      <div id={s.slug} className={`scroll-mt-24 grid items-center gap-12 lg:grid-cols-12 ${reverse ? "lg:[direction:rtl]" : ""}`}>
+        <div className="lg:col-span-7 lg:[direction:ltr]">
+          <Link to="/suites/$slug" params={{ slug: s.slug }} className="block aspect-[4/3] overflow-hidden group">
+            <img src={s.img} alt={s.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" loading="lazy" />
+          </Link>
+        </div>
+        <div className="lg:col-span-4 lg:[direction:ltr]">
+          <p className="eyebrow">No. {s.no}</p>
+          <h2 className="mt-3 font-display text-4xl lg:text-5xl">{s.name}</h2>
+          <div className="mt-6 flex gap-6 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            <span>{s.size}</span><span>·</span><span>{s.view}</span>
+          </div>
+          <p className="mt-6 leading-relaxed text-charcoal/75">{s.shortDesc}</p>
+          <div className="mt-8 flex flex-wrap items-center gap-6">
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              aria-expanded={open}
+              aria-controls={panelId}
+              className="group inline-flex items-center gap-3 border border-charcoal px-6 py-3 text-[0.72rem] uppercase tracking-[0.28em] transition-colors hover:bg-charcoal hover:text-ivory"
+            >
+              <span>{open ? "Hide details" : "Explore Suite"}</span>
+              <span className={`transition-transform ${open ? "rotate-90" : "group-hover:translate-x-1"}`}>→</span>
+            </button>
+            <Link
+              to="/plan"
+              hash="booking-form"
+              className="inline-flex items-center gap-3 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]"
+            >
+              Check Availability →
+            </Link>
+          </div>
+          <p className="mt-3 max-w-sm text-xs leading-relaxed text-charcoal/55">
+            {WHATSAPP_NOTE}
+          </p>
+
+          {/* Collapsible suite-specific details */}
+          <div
+            id={panelId}
+            className={`grid overflow-hidden transition-all duration-500 ease-out ${open ? "mt-10 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"}`}
+          >
+            <div className="min-h-0">
+              <div className="space-y-6 border-t border-border pt-8">
+                <p className="font-display text-xl italic text-charcoal/85">{s.heroLine}</p>
+                <div className="space-y-4 text-sm leading-relaxed text-charcoal/75">
+                  {s.description.map((p, idx) => (
+                    <p key={idx}>{p}</p>
+                  ))}
+                </div>
+                <div>
+                  <p className="eyebrow">Key Details</p>
+                  <ul className="mt-4 space-y-2 text-sm text-charcoal/80">
+                    {s.details.map((d) => (
+                      <li key={d.label} className="flex gap-3">
+                        <span aria-hidden className="mt-2 h-1 w-1 shrink-0 rounded-full bg-charcoal/60" />
+                        <span>
+                          <span className="text-charcoal/55">{d.label}:</span> {d.value}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <p className="font-display text-lg italic text-charcoal/80">{s.ctaLine}</p>
+                <Link
+                  to="/suites/$slug"
+                  params={{ slug: s.slug }}
+                  className="inline-flex items-center gap-2 border-b border-charcoal pb-1 text-[0.7rem] uppercase tracking-[0.28em]"
+                >
+                  Open full suite page →
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Reveal>
   );
 }
