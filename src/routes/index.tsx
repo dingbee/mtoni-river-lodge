@@ -94,13 +94,13 @@ function HomePage() {
             <p className="mt-8 max-w-lg text-base leading-relaxed text-charcoal/70">
               Here, architecture does not compete with the landscape; it follows it. Walls carry the warmth of earth, timber frames the light, and every threshold opens toward the rhythm of the river. The day unfolds without urgency — mornings in stillness, afternoons in shade, evenings gathered under the sky as lanterns glow and the sound of water carries through the night.
             </p>
-            <div className="mt-12 grid grid-cols-3 gap-8 border-t border-border pt-8">
+            <div className="mt-12 grid grid-cols-3 gap-8 border-t border-border pt-8 text-center">
               {[
                 { Icon: Home, label: "Maasai Boma Suites" },
                 { Icon: Leaf, label: "Eco Lodge" },
                 { Icon: Sun, label: "Eco Powered" },
               ].map(({ Icon, label }) => (
-                <div key={label} className="flex flex-col items-start">
+                <div key={label} className="flex flex-col items-center">
                   <Icon className="h-9 w-9 text-primary" strokeWidth={1.4} aria-hidden />
                   <p className="mt-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
                 </div>
