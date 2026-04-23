@@ -35,9 +35,9 @@ export function SiteFooter() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={label}
-                className="inline-flex h-10 w-10 items-center justify-center text-ivory/70 transition-colors hover:text-gold"
+                className="inline-flex h-12 w-12 items-center justify-center text-ivory/70 transition-colors hover:text-gold"
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-6 w-6" />
               </a>
             </li>
           ))}
