@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
-import { Bird, PawPrint, Footprints, Flower2 } from "lucide-react";
+import { Mountain, PawPrint, Footprints, Flower2 } from "lucide-react";
 import aerial from "@/assets/aerial-lodge.jpg";
 import villa from "@/assets/villa-exterior.jpg";
 import detail from "@/assets/detail-coffee.jpg";
@@ -77,7 +77,7 @@ function LodgePage() {
       <section className="px-6 py-32 lg:px-12 lg:py-48">
         <div className="mx-auto grid max-w-[1300px] gap-12 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { Icon: Bird, label: "Bird Watching" },
+            { Icon: Mountain, label: "Mt Kilimanjaro View" },
             { Icon: PawPrint, label: "Friendly Wildlife" },
             { Icon: Footprints, label: "Stone Pathways" },
             { Icon: Flower2, label: "Natural Garden" },
