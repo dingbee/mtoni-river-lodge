@@ -39,7 +39,7 @@ function SuitesPage() {
         <div className="mx-auto max-w-[1400px] space-y-32 lg:space-y-48">
           {SUITES.map((s, i) => (
             <Reveal key={s.no}>
-              <div className={`grid items-center gap-12 lg:grid-cols-12 ${i%2 ? "lg:[direction:rtl]" : ""}`}>
+              <div id={s.slug} className={`scroll-mt-24 grid items-center gap-12 lg:grid-cols-12 ${i%2 ? "lg:[direction:rtl]" : ""}`}>
                 <div className="lg:col-span-7 lg:[direction:ltr]">
                   <Link to="/suites/$slug" params={{ slug: s.slug }} className="block aspect-[4/3] overflow-hidden group">
                     <img src={s.img} alt={s.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" loading="lazy" />
