@@ -47,7 +47,6 @@ export const Route = createFileRoute("/plan")({
 });
 
 function PlanPage() {
-  const [sent, setSent] = useState(false);
   const [form, setForm] = useState({
     name: "",
     arrival: "",
@@ -61,10 +60,16 @@ function PlanPage() {
   const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
   const waUrl = buildWhatsAppUrl(form);
+  const canSubmit = Boolean(form.arrival && form.departure && form.guests && form.suite);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+  };
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader />
-      <section className="grid min-h-[100svh] lg:grid-cols-2 pt-20 lg:pt-28 scroll-mt-32">
+      <section id="booking-form" className="grid min-h-[100svh] lg:grid-cols-2 pt-20 lg:pt-28 scroll-mt-32">
         <div className="relative hidden overflow-hidden lg:block">
           <img src={villa} alt="Lodge at twilight" className="ken-burns h-full w-full object-cover" />
           <div className="absolute inset-0 bg-charcoal/30" />
@@ -84,25 +89,14 @@ function PlanPage() {
             <p className="eyebrow lg:hidden">Reserve</p>
             <h2 className="mt-2 font-display text-4xl lg:hidden">Begin the journey.</h2>
 
-            {sent ? (
-              <Reveal>
-                <div className="border border-border p-12 text-center">
-                  <p className="font-display text-3xl">Asante sana.</p>
-                  <p className="mt-4 text-charcoal/70">Your enquiry has reached the riverbank. We will respond within 24 hours.</p>
-                </div>
-              </Reveal>
-            ) : (
-              <form
-                onSubmit={(e)=>{e.preventDefault(); setSent(true);}}
-                className="space-y-8"
-              >
+            <form onSubmit={handleSubmit} className="mt-8 space-y-8">
                 <Field label="Full name" name="name" value={form.name} onChange={update("name")} />
                 <div className="grid grid-cols-2 gap-6">
-                  <Field label="Check-in" name="arrival" type="date" value={form.arrival} onChange={update("arrival")} />
-                  <Field label="Check-out" name="departure" type="date" value={form.departure} onChange={update("departure")} />
+                  <Field label="Check-in" name="arrival" type="date" value={form.arrival} onChange={update("arrival")} required />
+                  <Field label="Check-out" name="departure" type="date" value={form.departure} onChange={update("departure")} required />
                 </div>
                 <div className="grid grid-cols-2 gap-6">
-                  <Field label="Guests" name="guests" type="number" value={form.guests} onChange={update("guests")} />
+                  <Field label="Guests" name="guests" type="number" value={form.guests} onChange={update("guests")} required />
                   <div>
                     <label className="eyebrow block" htmlFor="suite">Select Suite Type</label>
                     <select
@@ -110,6 +104,7 @@ function PlanPage() {
                       name="suite"
                       value={form.suite}
                       onChange={update("suite")}
+                      required
                       className="mt-3 w-full appearance-none border-b border-border bg-transparent pb-2 text-base outline-none transition-colors focus:border-ember"
                     >
                       <option value="" disabled>Choose a suite…</option>
@@ -125,27 +120,30 @@ function PlanPage() {
                   <label className="eyebrow block">A note to our team</label>
                   <textarea name="note" rows={4} value={form.note} onChange={update("note")} className="mt-3 w-full border-b border-border bg-transparent pb-2 text-base outline-none transition-colors focus:border-ember" placeholder="Anniversary, dietary notes, journey ideas…" />
                 </div>
-                <a
-                  href={waUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group inline-flex w-full items-center justify-between border border-charcoal bg-charcoal px-6 py-5 text-[0.72rem] uppercase tracking-[0.32em] text-ivory transition-colors hover:bg-ivory hover:text-charcoal"
+                <button
+                  type="submit"
+                  disabled={!canSubmit}
+                  className="group inline-flex w-full items-center justify-between border border-charcoal bg-charcoal px-6 py-5 text-[0.72rem] uppercase tracking-[0.32em] text-ivory transition-colors hover:bg-ivory hover:text-charcoal disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-charcoal disabled:hover:text-ivory"
                 >
-                  <span>Check availability on WhatsApp</span>
+                  <span>Reserve Your Stay</span>
                   <span className="transition-transform group-hover:translate-x-1">→</span>
-                </a>
+                </button>
                 <p className="text-center text-xs leading-relaxed text-muted-foreground">
                   {WHATSAPP_NOTE}
                 </p>
-                <button type="submit" className="group inline-flex w-full items-center justify-between border border-charcoal px-6 py-5 text-[0.72rem] uppercase tracking-[0.32em] transition-colors hover:bg-charcoal hover:text-ivory">
-                  <span>Or send enquiry by email</span>
+                <a
+                  href={WHATSAPP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex w-full items-center justify-between border border-charcoal px-6 py-5 text-[0.72rem] uppercase tracking-[0.32em] transition-colors hover:bg-charcoal hover:text-ivory"
+                >
+                  <span>Chat on WhatsApp</span>
                   <span className="transition-transform group-hover:translate-x-1">→</span>
-                </button>
+                </a>
                 <p className="pt-2 text-xs text-muted-foreground">
                   Or write directly to <a href="mailto:info@mtoniriverlodge.com" className="underline underline-offset-4">info@mtoniriverlodge.com</a>
                 </p>
-              </form>
-            )}
+            </form>
           </div>
         </div>
       </section>
@@ -154,13 +152,14 @@ function PlanPage() {
   );
 }
 
-function Field({ label, name, type = "text", placeholder, value, onChange }: {
+function Field({ label, name, type = "text", placeholder, value, onChange, required }: {
   label: string;
   name: string;
   type?: string;
   placeholder?: string;
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
+  required?: boolean;
 }) {
   return (
     <div>
@@ -172,6 +171,7 @@ function Field({ label, name, type = "text", placeholder, value, onChange }: {
         placeholder={placeholder}
         value={value}
         onChange={onChange}
+        required={required}
         className="mt-3 w-full border-b border-border bg-transparent pb-2 text-base outline-none transition-colors focus:border-ember"
       />
     </div>
