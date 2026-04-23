@@ -233,9 +233,9 @@ function HomePage() {
               <img src={poolImg} alt="Infinity pool overlooking the river" className="h-full w-full object-cover" loading="lazy" />
             </div>
             <p className="eyebrow mt-8">Stillness</p>
-            <h3 className="mt-3 font-display text-3xl lg:text-4xl">A pool that meets the river</h3>
+            <h3 className="mt-3 font-display text-3xl lg:text-4xl">A pool in conversation with nature</h3>
             <p className="mt-4 max-w-md text-charcoal/70">
-              An infinity edge dissolves into the water below. Stone-cut, sun-warmed, and quiet.
+              At the heart of Mtoni lies a round pool, shaped in quiet dialogue with nature.
             </p>
           </Reveal>
           <Reveal delay={200} className="lg:mt-32">
