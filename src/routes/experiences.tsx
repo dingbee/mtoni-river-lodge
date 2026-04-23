@@ -116,7 +116,7 @@ function ExperiencesPage() {
           <Reveal delay={240}>
             <div className="mt-12">
               <Button asChild size="lg" className="rounded-none px-10 py-6 text-xs uppercase tracking-[0.3em]">
-                <Link to="/plan" hash="booking-form">
+                <Link to="/book">
                   Check Availability
                 </Link>
               </Button>

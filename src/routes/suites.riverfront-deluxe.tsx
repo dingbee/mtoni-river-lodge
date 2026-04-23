@@ -30,8 +30,7 @@ function RiverfrontDeluxePage() {
           </Reveal>
           <Reveal delay={360}>
             <Link
-              to="/plan"
-              hash="booking-form"
+              to="/book"
               className="mt-10 inline-flex items-center gap-3 border border-ivory bg-ivory px-7 py-4 text-[0.72rem] uppercase tracking-[0.28em] text-charcoal transition-colors hover:bg-transparent hover:text-ivory"
             >
               <span>Check Availability</span>
@@ -100,8 +99,7 @@ function RiverfrontDeluxePage() {
             <h2 className="mt-6 font-display text-4xl leading-tight lg:text-6xl">{suite.ctaLine}</h2>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Link
-                to="/plan"
-                hash="booking-form"
+                to="/book"
                 className="group inline-flex items-center gap-3 border border-charcoal bg-charcoal px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-transparent hover:text-charcoal"
               >
                 <span>Check Availability</span>

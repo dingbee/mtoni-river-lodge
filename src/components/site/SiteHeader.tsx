@@ -96,8 +96,7 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
 
         <div className="hidden items-center gap-4 lg:flex">
           <Link
-            to="/plan"
-            hash="booking-form"
+            to="/book"
             className="group inline-flex items-center gap-3 border border-current px-5 py-2.5 text-[0.72rem] font-medium uppercase tracking-[0.28em] transition-all hover:bg-current"
           >
             <span className="transition-colors group-hover:text-ivory">Reserve</span>
@@ -146,8 +145,7 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
         </nav>
         <div className="px-6 pb-10 pt-4">
           <Link
-            to="/plan"
-            hash="booking-form"
+            to="/book"
             onClick={() => setOpen(false)}
             className="block w-full border border-ivory py-4 text-center text-[0.72rem] font-medium uppercase tracking-[0.28em] transition hover:bg-ivory hover:text-charcoal"
           >

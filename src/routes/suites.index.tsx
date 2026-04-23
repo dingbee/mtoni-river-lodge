@@ -78,8 +78,7 @@ function SuiteRow({ suite, reverse }: { suite: Suite; reverse: boolean }) {
               <span className="transition-transform group-hover:translate-x-1">→</span>
             </Link>
             <Link
-              to="/plan"
-              hash="booking-form"
+              to="/book"
               className="inline-flex items-center gap-3 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]"
             >
               Check Availability →
