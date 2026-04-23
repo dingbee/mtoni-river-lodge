@@ -28,9 +28,10 @@ const posts = [
   },
   {
     date: "January 2026",
-    read: "5 min",
-    title: "Reading the sky over Mount Meru",
-    excerpt: "Our head guide on weather, omens, and why the afternoon clouds always come at four.",
+    read: "6 min",
+    title: "Building With the Community",
+    excerpt:
+      "Employment, infrastructure, and shared growth — how Mtoni contributes to the people and ecosystems that surround it.",
     img: guide,
     href: "/journal/reading-the-sky-over-mount-meru" as const,
   },
