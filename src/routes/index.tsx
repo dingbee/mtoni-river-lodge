@@ -57,8 +57,7 @@ function HomePage() {
               </p>
               <div className="flex flex-col items-start gap-3 sm:items-end">
                 <Link
-                  to="/plan"
-                  hash="booking-form"
+                  to="/book"
                   className="group inline-flex items-center gap-4 border border-ivory px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.32em] transition-colors hover:bg-ivory hover:text-charcoal"
                 >
                   Check Availability
@@ -325,8 +324,7 @@ function HomePage() {
             </h2>
             <div className="mt-12 flex flex-col items-center gap-4">
               <Link
-                to="/plan"
-                hash="booking-form"
+                to="/book"
                 className="inline-flex items-center gap-4 border border-ivory px-8 py-5 text-[0.72rem] uppercase tracking-[0.32em] hover:bg-ivory hover:text-charcoal"
               >
                 Reserve Your Stay →

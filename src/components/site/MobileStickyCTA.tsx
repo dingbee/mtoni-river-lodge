@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useRouterState } from "@tanstack/react-router";
-import { WHATSAPP_URL } from "@/lib/contact";
+import { Link, useRouterState } from "@tanstack/react-router";
 
 /**
  * Mobile-only sticky "Reserve Your Stay" CTA.
@@ -63,15 +62,13 @@ export function MobileStickyCTA() {
       }`}
       aria-hidden={!visible}
     >
-      <a
-        href={WHATSAPP_URL}
-        target="_blank"
-        rel="noopener noreferrer"
+      <Link
+        to="/book"
         className="flex w-full items-center justify-center rounded-full px-6 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] shadow-[0_10px_30px_-8px_rgba(0,0,0,0.45)] transition-transform active:scale-[0.98] hover:brightness-105"
         style={{ backgroundColor: "#C0B87A", color: "#1E2D1E" }}
       >
         Check Availability
-      </a>
+      </Link>
     </div>
   );
 }
