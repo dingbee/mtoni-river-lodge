@@ -4,6 +4,13 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { useState } from "react";
 import villa from "@/assets/villa-exterior.jpg";
+import { WHATSAPP_URL, WHATSAPP_NOTE } from "@/lib/contact";
+
+const SUITE_OPTIONS = [
+  "Riverfront Deluxe Suite",
+  "Riverfront Standard Suite",
+  "The Garden & Family Rooms",
+] as const;
 
 export const Route = createFileRoute("/plan")({
   head: () => ({
@@ -60,7 +67,20 @@ function PlanPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-6">
                   <Field label="Guests" name="guests" type="number" defaultValue="2" />
-                  <Field label="Suite preference" name="suite" placeholder="River / Forest / House" />
+                  <div>
+                    <label className="eyebrow block" htmlFor="suite">Select Suite Type</label>
+                    <select
+                      id="suite"
+                      name="suite"
+                      defaultValue=""
+                      className="mt-3 w-full appearance-none border-b border-border bg-transparent pb-2 text-base outline-none transition-colors focus:border-ember"
+                    >
+                      <option value="" disabled>Choose a suite…</option>
+                      {SUITE_OPTIONS.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <Field label="Email" name="email" type="email" />
                 <Field label="Phone" name="phone" type="tel" />
@@ -68,11 +88,23 @@ function PlanPage() {
                   <label className="eyebrow block">A note to our team</label>
                   <textarea name="note" rows={4} className="mt-3 w-full border-b border-border bg-transparent pb-2 text-base outline-none transition-colors focus:border-ember" placeholder="Anniversary, dietary notes, journey ideas…" />
                 </div>
+                <a
+                  href={WHATSAPP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex w-full items-center justify-between border border-charcoal bg-charcoal px-6 py-5 text-[0.72rem] uppercase tracking-[0.32em] text-ivory transition-colors hover:bg-ivory hover:text-charcoal"
+                >
+                  <span>Check availability on WhatsApp</span>
+                  <span className="transition-transform group-hover:translate-x-1">→</span>
+                </a>
+                <p className="text-center text-xs leading-relaxed text-muted-foreground">
+                  {WHATSAPP_NOTE}
+                </p>
                 <button type="submit" className="group inline-flex w-full items-center justify-between border border-charcoal px-6 py-5 text-[0.72rem] uppercase tracking-[0.32em] transition-colors hover:bg-charcoal hover:text-ivory">
-                  <span>Send enquiry</span>
+                  <span>Or send enquiry by email</span>
                   <span className="transition-transform group-hover:translate-x-1">→</span>
                 </button>
-                <p className="pt-4 text-xs text-muted-foreground">
+                <p className="pt-2 text-xs text-muted-foreground">
                   Or write directly to <a href="mailto:info@mtoniriverlodge.com" className="underline underline-offset-4">info@mtoniriverlodge.com</a>
                 </p>
               </form>
