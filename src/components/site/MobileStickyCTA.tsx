@@ -8,7 +8,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
  * - On the /plan route, scrolls to the booking form. Elsewhere, links to /plan#booking-form.
  */
 export function MobileStickyCTA() {
-  const [scrolledEnough, setScrolledEnough] = useState(false);
+  const [nearBottom, setNearBottom] = useState(false);
   const [hiddenByTarget, setHiddenByTarget] = useState(false);
   const observersAttached = useRef(false);
   const { location } = useRouterState();
@@ -16,12 +16,19 @@ export function MobileStickyCTA() {
 
   useEffect(() => {
     const onScroll = () => {
-      const threshold = window.innerHeight * 0.4;
-      setScrolledEnough(window.scrollY > threshold);
+      const doc = document.documentElement;
+      const scrollBottom = window.scrollY + window.innerHeight;
+      const distanceFromBottom = doc.scrollHeight - scrollBottom;
+      // Reveal once the user is within ~80vh of the page bottom.
+      setNearBottom(distanceFromBottom < window.innerHeight * 0.8);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, []);
 
   useEffect(() => {
@@ -57,7 +64,7 @@ export function MobileStickyCTA() {
     if (form) form.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const visible = scrolledEnough && !hiddenByTarget;
+  const visible = nearBottom && !hiddenByTarget;
 
   return (
     <div
