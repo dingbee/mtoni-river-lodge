@@ -17,6 +17,7 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [progress, setProgress] = useState(0); // 0..1 transition state
   const [open, setOpen] = useState(false);
+  const [isLg, setIsLg] = useState(false);
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY;
@@ -26,6 +27,15 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsLg(mql.matches);
+    update();
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
   }, []);
 
   // Lock background scroll when mobile menu open
@@ -43,10 +53,8 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
   // Interpolate header height & logo height for smooth shrink.
   // Mobile gets a more compact header and noticeably smaller logo
   // to prevent any overlap with hero text or page headings.
-  const headerHeight = 80 - 16 * p; // mobile: 80 -> 64
-  const headerHeightLg = 112 - 32 * p; // lg: 112 -> 80
-  const logoHeight = 40 - 8 * p; // mobile: 40 -> 32
-  const logoHeightLg = 64 - 16 * p; // lg: 64 -> 48
+  const headerHeight = isLg ? 112 - 32 * p : 72 - 8 * p; // lg: 112->80, mobile: 72->64
+  const logoHeight = isLg ? 64 - 16 * p : 36 - 4 * p;    // lg: 64->48,  mobile: 36->32
   return (
     <header
       className={`fixed inset-x-0 top-0 z-40 transition-[background-color,color,box-shadow,border-color] duration-500 ease-out will-change-[background-color] ${
@@ -56,17 +64,17 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
             ? "bg-ivory/40 backdrop-blur-sm text-charcoal border-b border-transparent"
             : "bg-transparent text-ivory border-b border-transparent"
       }`}
-      style={{ ["--mh" as any]: `${headerHeight}px`, ["--mh-lg" as any]: `${headerHeightLg}px` }}
     >
       <div
-        className="mx-auto flex max-w-[1500px] items-center justify-between px-5 sm:px-6 lg:px-12 transition-[height] duration-500 ease-out h-[var(--mh)] lg:h-[var(--mh-lg)]"
+        className="mx-auto flex max-w-[1500px] items-center justify-between px-5 sm:px-6 lg:px-12 transition-[height] duration-500 ease-out"
+        style={{ height: `${headerHeight}px` }}
       >
         <Link to="/" className="flex items-center leading-none" aria-label="Mtoni River Lodge">
           <img
             src={logoUrl}
             alt="Mtoni River Lodge"
             className={`w-auto transition-[height,filter] duration-500 ease-out ${solid || p > 0.5 ? "" : "brightness-0 invert"}`}
-            style={{ height: `${logoHeight}px`, ["--lh-lg" as any]: `${logoHeightLg}px` } as React.CSSProperties}
+            style={{ height: `${logoHeight}px` }}
           />
         </Link>
 
