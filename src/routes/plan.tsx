@@ -113,7 +113,6 @@ function PlanPage() {
                     </select>
                   </div>
                 </div>
-                <Field label="Phone" name="phone" type="tel" value={form.phone} onChange={update("phone")} />
                 <div>
                   <label className="eyebrow block">A note to our team</label>
                   <textarea name="note" rows={4} value={form.note} onChange={update("note")} className="mt-3 w-full border-b border-border bg-transparent pb-2 text-base outline-none transition-colors focus:border-ember" placeholder="Anniversary, dietary notes, journey ideas…" />
