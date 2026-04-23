@@ -45,7 +45,7 @@ function RiverfrontDeluxePage() {
         <div className="mx-auto grid max-w-[1200px] gap-16 lg:grid-cols-12">
           <div className="lg:col-span-4">
             <p className="eyebrow">No. {suite.no}</p>
-            <h2 className="mt-4 font-display text-4xl leading-tight lg:text-5xl">A space rooted in calm.</h2>
+            <h2 className="mt-4 font-display text-4xl leading-tight lg:text-5xl">Where the river meets earth and stillness.</h2>
           </div>
           <div className="space-y-6 lg:col-span-7 lg:col-start-6">
             {suite.description.map((paragraph, index) => (
