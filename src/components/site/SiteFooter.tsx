@@ -7,7 +7,7 @@ import { WHATSAPP_URL, WHATSAPP_NOTE } from "@/lib/contact";
 const socials = [
   { label: "Instagram", href: "https://www.instagram.com/mtoni_river_lodge", Icon: Instagram },
   { label: "Facebook", href: "https://www.facebook.com/mtoniriverlodge", Icon: Facebook },
-  { label: "YouTube", href: "https://www.youtube.com/mtoniriverlodge", Icon: Youtube },
+  { label: "YouTube", href: "https://www.youtube.com/@MtoniRiverLodge", Icon: Youtube },
   // Pinterest is not in lucide-react; use inline SVG
   { label: "Pinterest", href: "https://www.pinterest.com/mtoniriverlodge", Icon: PinterestIcon },
 ];
