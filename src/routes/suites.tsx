@@ -72,6 +72,30 @@ function SuitesPage() {
                   <p className="mt-3 max-w-sm text-xs leading-relaxed text-charcoal/55">
                     {WHATSAPP_NOTE}
                   </p>
+
+                  {/* Suite-specific details */}
+                  <div className="mt-10 space-y-6 border-t border-border pt-8">
+                    <p className="font-display text-xl italic text-charcoal/85">{s.heroLine}</p>
+                    <div className="space-y-4 text-sm leading-relaxed text-charcoal/75">
+                      {s.description.map((p, idx) => (
+                        <p key={idx}>{p}</p>
+                      ))}
+                    </div>
+                    <div>
+                      <p className="eyebrow">Key Details</p>
+                      <ul className="mt-4 space-y-2 text-sm text-charcoal/80">
+                        {s.details.map((d) => (
+                          <li key={d.label} className="flex gap-3">
+                            <span aria-hidden className="mt-2 h-1 w-1 shrink-0 rounded-full bg-charcoal/60" />
+                            <span>
+                              <span className="text-charcoal/55">{d.label}:</span> {d.value}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <p className="font-display text-lg italic text-charcoal/80">{s.ctaLine}</p>
+                  </div>
                 </div>
               </div>
             </Reveal>
