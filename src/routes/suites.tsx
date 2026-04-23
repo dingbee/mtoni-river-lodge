@@ -32,7 +32,7 @@ function SuitesPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-charcoal/40 to-charcoal/60" />
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1300px] px-6 pb-20 text-ivory lg:px-12">
           <Reveal><p className="eyebrow !text-ivory/70">Suites</p></Reveal>
-          <Reveal delay={150}><h1 className="mt-6 font-display text-5xl leading-tight lg:text-7xl">Twelve rooms. One river view.</h1></Reveal>
+          <Reveal delay={150}><h1 className="mt-6 font-display text-5xl leading-tight lg:text-7xl">Living spaces. Rooted in nature.</h1></Reveal>
         </div>
       </section>
 
