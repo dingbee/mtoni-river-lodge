@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import logoUrl from "@/assets/mtoni-logo.png";
 import { Link } from "@tanstack/react-router";
+import { MobileStickyCTA } from "@/components/site/MobileStickyCTA";
 
 const links = [
   { to: "/", label: "Home" },
@@ -157,6 +158,7 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
           </p>
         </div>
       </div>
+      <MobileStickyCTA />
     </header>
   );
 }
