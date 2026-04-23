@@ -12,11 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SuitesRouteImport } from './routes/suites'
 import { Route as PlanRouteImport } from './routes/plan'
 import { Route as LodgeRouteImport } from './routes/lodge'
-import { Route as JournalRouteImport } from './routes/journal'
 import { Route as ExperiencesRouteImport } from './routes/experiences'
 import { Route as DiningRouteImport } from './routes/dining'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuitesIndexRouteImport } from './routes/suites.index'
+import { Route as JournalIndexRouteImport } from './routes/journal.index'
 import { Route as SuitesStandardRiverRouteImport } from './routes/suites.standard-river'
 import { Route as SuitesRiverfrontDeluxeRouteImport } from './routes/suites.riverfront-deluxe'
 import { Route as SuitesFamilySuiteRouteImport } from './routes/suites.family-suite'
@@ -35,11 +35,6 @@ const PlanRoute = PlanRouteImport.update({
 const LodgeRoute = LodgeRouteImport.update({
   id: '/lodge',
   path: '/lodge',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JournalRoute = JournalRouteImport.update({
-  id: '/journal',
-  path: '/journal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExperiencesRoute = ExperiencesRouteImport.update({
@@ -62,6 +57,11 @@ const SuitesIndexRoute = SuitesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SuitesRoute,
 } as any)
+const JournalIndexRoute = JournalIndexRouteImport.update({
+  id: '/journal/',
+  path: '/journal/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SuitesStandardRiverRoute = SuitesStandardRiverRouteImport.update({
   id: '/standard-river',
   path: '/standard-river',
@@ -79,16 +79,15 @@ const SuitesFamilySuiteRoute = SuitesFamilySuiteRouteImport.update({
 } as any)
 const JournalWhatTheRiverHasTaughtUsAboutTimeRoute =
   JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport.update({
-    id: '/what-the-river-has-taught-us-about-time',
-    path: '/what-the-river-has-taught-us-about-time',
-    getParentRoute: () => JournalRoute,
+    id: '/journal/what-the-river-has-taught-us-about-time',
+    path: '/journal/what-the-river-has-taught-us-about-time',
+    getParentRoute: () => rootRouteImport,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dining': typeof DiningRoute
   '/experiences': typeof ExperiencesRoute
-  '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/suites': typeof SuitesRouteWithChildren
@@ -96,19 +95,20 @@ export interface FileRoutesByFullPath {
   '/suites/family-suite': typeof SuitesFamilySuiteRoute
   '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
   '/suites/standard-river': typeof SuitesStandardRiverRoute
+  '/journal/': typeof JournalIndexRoute
   '/suites/': typeof SuitesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dining': typeof DiningRoute
   '/experiences': typeof ExperiencesRoute
-  '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/suites/family-suite': typeof SuitesFamilySuiteRoute
   '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
   '/suites/standard-river': typeof SuitesStandardRiverRoute
+  '/journal': typeof JournalIndexRoute
   '/suites': typeof SuitesIndexRoute
 }
 export interface FileRoutesById {
@@ -116,7 +116,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dining': typeof DiningRoute
   '/experiences': typeof ExperiencesRoute
-  '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/suites': typeof SuitesRouteWithChildren
@@ -124,6 +123,7 @@ export interface FileRoutesById {
   '/suites/family-suite': typeof SuitesFamilySuiteRoute
   '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
   '/suites/standard-river': typeof SuitesStandardRiverRoute
+  '/journal/': typeof JournalIndexRoute
   '/suites/': typeof SuitesIndexRoute
 }
 export interface FileRouteTypes {
@@ -132,7 +132,6 @@ export interface FileRouteTypes {
     | '/'
     | '/dining'
     | '/experiences'
-    | '/journal'
     | '/lodge'
     | '/plan'
     | '/suites'
@@ -140,26 +139,26 @@ export interface FileRouteTypes {
     | '/suites/family-suite'
     | '/suites/riverfront-deluxe'
     | '/suites/standard-river'
+    | '/journal/'
     | '/suites/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/dining'
     | '/experiences'
-    | '/journal'
     | '/lodge'
     | '/plan'
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/suites/family-suite'
     | '/suites/riverfront-deluxe'
     | '/suites/standard-river'
+    | '/journal'
     | '/suites'
   id:
     | '__root__'
     | '/'
     | '/dining'
     | '/experiences'
-    | '/journal'
     | '/lodge'
     | '/plan'
     | '/suites'
@@ -167,6 +166,7 @@ export interface FileRouteTypes {
     | '/suites/family-suite'
     | '/suites/riverfront-deluxe'
     | '/suites/standard-river'
+    | '/journal/'
     | '/suites/'
   fileRoutesById: FileRoutesById
 }
@@ -174,10 +174,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DiningRoute: typeof DiningRoute
   ExperiencesRoute: typeof ExperiencesRoute
-  JournalRoute: typeof JournalRouteWithChildren
   LodgeRoute: typeof LodgeRoute
   PlanRoute: typeof PlanRoute
   SuitesRoute: typeof SuitesRouteWithChildren
+  JournalWhatTheRiverHasTaughtUsAboutTimeRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
+  JournalIndexRoute: typeof JournalIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -201,13 +202,6 @@ declare module '@tanstack/react-router' {
       path: '/lodge'
       fullPath: '/lodge'
       preLoaderRoute: typeof LodgeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/journal': {
-      id: '/journal'
-      path: '/journal'
-      fullPath: '/journal'
-      preLoaderRoute: typeof JournalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/experiences': {
@@ -238,6 +232,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuitesIndexRouteImport
       parentRoute: typeof SuitesRoute
     }
+    '/journal/': {
+      id: '/journal/'
+      path: '/journal'
+      fullPath: '/journal/'
+      preLoaderRoute: typeof JournalIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/suites/standard-river': {
       id: '/suites/standard-river'
       path: '/standard-river'
@@ -261,25 +262,13 @@ declare module '@tanstack/react-router' {
     }
     '/journal/what-the-river-has-taught-us-about-time': {
       id: '/journal/what-the-river-has-taught-us-about-time'
-      path: '/what-the-river-has-taught-us-about-time'
+      path: '/journal/what-the-river-has-taught-us-about-time'
       fullPath: '/journal/what-the-river-has-taught-us-about-time'
       preLoaderRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport
-      parentRoute: typeof JournalRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface JournalRouteChildren {
-  JournalWhatTheRiverHasTaughtUsAboutTimeRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
-}
-
-const JournalRouteChildren: JournalRouteChildren = {
-  JournalWhatTheRiverHasTaughtUsAboutTimeRoute:
-    JournalWhatTheRiverHasTaughtUsAboutTimeRoute,
-}
-
-const JournalRouteWithChildren =
-  JournalRoute._addFileChildren(JournalRouteChildren)
 
 interface SuitesRouteChildren {
   SuitesFamilySuiteRoute: typeof SuitesFamilySuiteRoute
@@ -302,10 +291,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DiningRoute: DiningRoute,
   ExperiencesRoute: ExperiencesRoute,
-  JournalRoute: JournalRouteWithChildren,
   LodgeRoute: LodgeRoute,
   PlanRoute: PlanRoute,
   SuitesRoute: SuitesRouteWithChildren,
+  JournalWhatTheRiverHasTaughtUsAboutTimeRoute:
+    JournalWhatTheRiverHasTaughtUsAboutTimeRoute,
+  JournalIndexRoute: JournalIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
