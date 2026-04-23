@@ -16,7 +16,9 @@ import { Route as JournalRouteImport } from './routes/journal'
 import { Route as ExperiencesRouteImport } from './routes/experiences'
 import { Route as DiningRouteImport } from './routes/dining'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as SuitesSlugRouteImport } from './routes/suites.$slug'
+import { Route as SuitesStandardRiverRouteImport } from './routes/suites.standard-river'
+import { Route as SuitesRiverfrontDeluxeRouteImport } from './routes/suites.riverfront-deluxe'
+import { Route as SuitesFamilySuiteRouteImport } from './routes/suites.family-suite'
 
 const SuitesRoute = SuitesRouteImport.update({
   id: '/suites',
@@ -53,9 +55,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SuitesSlugRoute = SuitesSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
+const SuitesStandardRiverRoute = SuitesStandardRiverRouteImport.update({
+  id: '/standard-river',
+  path: '/standard-river',
+  getParentRoute: () => SuitesRoute,
+} as any)
+const SuitesRiverfrontDeluxeRoute = SuitesRiverfrontDeluxeRouteImport.update({
+  id: '/riverfront-deluxe',
+  path: '/riverfront-deluxe',
+  getParentRoute: () => SuitesRoute,
+} as any)
+const SuitesFamilySuiteRoute = SuitesFamilySuiteRouteImport.update({
+  id: '/family-suite',
+  path: '/family-suite',
   getParentRoute: () => SuitesRoute,
 } as any)
 
@@ -67,7 +79,9 @@ export interface FileRoutesByFullPath {
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/suites': typeof SuitesRouteWithChildren
-  '/suites/$slug': typeof SuitesSlugRoute
+  '/suites/family-suite': typeof SuitesFamilySuiteRoute
+  '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
+  '/suites/standard-river': typeof SuitesStandardRiverRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -77,7 +91,9 @@ export interface FileRoutesByTo {
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/suites': typeof SuitesRouteWithChildren
-  '/suites/$slug': typeof SuitesSlugRoute
+  '/suites/family-suite': typeof SuitesFamilySuiteRoute
+  '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
+  '/suites/standard-river': typeof SuitesStandardRiverRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -88,7 +104,9 @@ export interface FileRoutesById {
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/suites': typeof SuitesRouteWithChildren
-  '/suites/$slug': typeof SuitesSlugRoute
+  '/suites/family-suite': typeof SuitesFamilySuiteRoute
+  '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
+  '/suites/standard-river': typeof SuitesStandardRiverRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -100,7 +118,9 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/plan'
     | '/suites'
-    | '/suites/$slug'
+    | '/suites/family-suite'
+    | '/suites/riverfront-deluxe'
+    | '/suites/standard-river'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -110,7 +130,9 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/plan'
     | '/suites'
-    | '/suites/$slug'
+    | '/suites/family-suite'
+    | '/suites/riverfront-deluxe'
+    | '/suites/standard-river'
   id:
     | '__root__'
     | '/'
@@ -120,7 +142,9 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/plan'
     | '/suites'
-    | '/suites/$slug'
+    | '/suites/family-suite'
+    | '/suites/riverfront-deluxe'
+    | '/suites/standard-river'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -184,22 +208,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/suites/$slug': {
-      id: '/suites/$slug'
-      path: '/$slug'
-      fullPath: '/suites/$slug'
-      preLoaderRoute: typeof SuitesSlugRouteImport
+    '/suites/standard-river': {
+      id: '/suites/standard-river'
+      path: '/standard-river'
+      fullPath: '/suites/standard-river'
+      preLoaderRoute: typeof SuitesStandardRiverRouteImport
+      parentRoute: typeof SuitesRoute
+    }
+    '/suites/riverfront-deluxe': {
+      id: '/suites/riverfront-deluxe'
+      path: '/riverfront-deluxe'
+      fullPath: '/suites/riverfront-deluxe'
+      preLoaderRoute: typeof SuitesRiverfrontDeluxeRouteImport
+      parentRoute: typeof SuitesRoute
+    }
+    '/suites/family-suite': {
+      id: '/suites/family-suite'
+      path: '/family-suite'
+      fullPath: '/suites/family-suite'
+      preLoaderRoute: typeof SuitesFamilySuiteRouteImport
       parentRoute: typeof SuitesRoute
     }
   }
 }
 
 interface SuitesRouteChildren {
-  SuitesSlugRoute: typeof SuitesSlugRoute
+  SuitesFamilySuiteRoute: typeof SuitesFamilySuiteRoute
+  SuitesRiverfrontDeluxeRoute: typeof SuitesRiverfrontDeluxeRoute
+  SuitesStandardRiverRoute: typeof SuitesStandardRiverRoute
 }
 
 const SuitesRouteChildren: SuitesRouteChildren = {
-  SuitesSlugRoute: SuitesSlugRoute,
+  SuitesFamilySuiteRoute: SuitesFamilySuiteRoute,
+  SuitesRiverfrontDeluxeRoute: SuitesRiverfrontDeluxeRoute,
+  SuitesStandardRiverRoute: SuitesStandardRiverRoute,
 }
 
 const SuitesRouteWithChildren =

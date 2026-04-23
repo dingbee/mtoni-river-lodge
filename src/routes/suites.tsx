@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { WHATSAPP_NOTE } from "@/lib/contact";
-import { SUITES, type Suite } from "@/lib/suites";
+import { SUITES, getSuitePath, type Suite } from "@/lib/suites";
 import suiteImg from "@/assets/suite-interior.jpg";
 
 export const Route = createFileRoute("/suites")({
@@ -48,11 +48,13 @@ function SuitesPage() {
 }
 
 function SuiteRow({ suite: s, reverse }: { suite: Suite; reverse: boolean }) {
+  const suitePath = getSuitePath(s.slug);
+
   return (
     <Reveal>
-      <div id={s.slug} className={`scroll-mt-24 grid items-center gap-12 lg:grid-cols-12 ${reverse ? "lg:[direction:rtl]" : ""}`}>
+      <div className={`grid items-center gap-12 lg:grid-cols-12 ${reverse ? "lg:[direction:rtl]" : ""}`}>
         <div className="lg:col-span-7 lg:[direction:ltr]">
-          <Link to="/suites/$slug" params={{ slug: s.slug }} className="block aspect-[4/3] overflow-hidden group">
+          <Link to={suitePath} className="block aspect-[4/3] overflow-hidden group">
             <img src={s.img} alt={s.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" loading="lazy" />
           </Link>
         </div>
@@ -65,8 +67,7 @@ function SuiteRow({ suite: s, reverse }: { suite: Suite; reverse: boolean }) {
           <p className="mt-6 leading-relaxed text-charcoal/75">{s.shortDesc}</p>
           <div className="mt-8 flex flex-wrap items-center gap-6">
             <Link
-              to="/suites/$slug"
-              params={{ slug: s.slug }}
+              to={suitePath}
               className="group inline-flex items-center gap-3 border border-charcoal px-6 py-3 text-[0.72rem] uppercase tracking-[0.28em] transition-colors hover:bg-charcoal hover:text-ivory"
             >
               <span>Explore Suite</span>
