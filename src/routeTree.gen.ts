@@ -22,6 +22,7 @@ import { Route as SuitesStandardRiverRouteImport } from './routes/suites.standar
 import { Route as SuitesRiverfrontDeluxeRouteImport } from './routes/suites.riverfront-deluxe'
 import { Route as SuitesFamilySuiteRouteImport } from './routes/suites.family-suite'
 import { Route as JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport } from './routes/journal.what-the-river-has-taught-us-about-time'
+import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './routes/journal.a-morning-with-the-beekeepers-of-gomba'
 
 const SuitesRoute = SuitesRouteImport.update({
   id: '/suites',
@@ -89,6 +90,12 @@ const JournalWhatTheRiverHasTaughtUsAboutTimeRoute =
     path: '/what-the-river-has-taught-us-about-time',
     getParentRoute: () => JournalRoute,
   } as any)
+const JournalAMorningWithTheBeekeepersOfGombaRoute =
+  JournalAMorningWithTheBeekeepersOfGombaRouteImport.update({
+    id: '/a-morning-with-the-beekeepers-of-gomba',
+    path: '/a-morning-with-the-beekeepers-of-gomba',
+    getParentRoute: () => JournalRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/suites': typeof SuitesRouteWithChildren
+  '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/suites/family-suite': typeof SuitesFamilySuiteRoute
   '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
@@ -111,6 +119,7 @@ export interface FileRoutesByTo {
   '/experiences': typeof ExperiencesRoute
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
+  '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/suites/family-suite': typeof SuitesFamilySuiteRoute
   '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
@@ -127,6 +136,7 @@ export interface FileRoutesById {
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/suites': typeof SuitesRouteWithChildren
+  '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/suites/family-suite': typeof SuitesFamilySuiteRoute
   '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/plan'
     | '/suites'
+    | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/suites/family-suite'
     | '/suites/riverfront-deluxe'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/experiences'
     | '/lodge'
     | '/plan'
+    | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/suites/family-suite'
     | '/suites/riverfront-deluxe'
@@ -172,6 +184,7 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/plan'
     | '/suites'
+    | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/suites/family-suite'
     | '/suites/riverfront-deluxe'
@@ -283,15 +296,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport
       parentRoute: typeof JournalRoute
     }
+    '/journal/a-morning-with-the-beekeepers-of-gomba': {
+      id: '/journal/a-morning-with-the-beekeepers-of-gomba'
+      path: '/a-morning-with-the-beekeepers-of-gomba'
+      fullPath: '/journal/a-morning-with-the-beekeepers-of-gomba'
+      preLoaderRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRouteImport
+      parentRoute: typeof JournalRoute
+    }
   }
 }
 
 interface JournalRouteChildren {
+  JournalAMorningWithTheBeekeepersOfGombaRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   JournalWhatTheRiverHasTaughtUsAboutTimeRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   JournalIndexRoute: typeof JournalIndexRoute
 }
 
 const JournalRouteChildren: JournalRouteChildren = {
+  JournalAMorningWithTheBeekeepersOfGombaRoute:
+    JournalAMorningWithTheBeekeepersOfGombaRoute,
   JournalWhatTheRiverHasTaughtUsAboutTimeRoute:
     JournalWhatTheRiverHasTaughtUsAboutTimeRoute,
   JournalIndexRoute: JournalIndexRoute,
