@@ -77,10 +77,10 @@ function HomePage() {
           </Reveal>
           <Reveal delay={150} className="lg:col-span-6 lg:col-start-7">
             <p className="font-display text-2xl leading-[1.45] text-charcoal/80 lg:text-[1.7rem]">
-              Mornings begin with mist rising from the water and the soft call of turacos in the canopy. By midday, the river slows; by dusk, the lanterns are lit and the long table is set beneath the acacias.
+              At first light, a soft veil of mist lifts from the water, and the lodge wakes quietly with it. Paths wind between stone and earth, leading to twenty-four suites set low along the riverbank — each shaped in the spirit of a Maasai boma, where circular forms, natural textures, and open space create a sense of grounding and ease.
             </p>
             <p className="mt-8 max-w-lg text-base leading-relaxed text-charcoal/70">
-              Mtoni is not a hotel in the conventional sense. It is a small, family-run sanctuary — twelve suites, one chef, one river — built quietly into the riverbank so that the land remains the loudest voice.
+              Here, architecture does not compete with the landscape; it follows it. Walls carry the warmth of earth, timber frames the light, and every threshold opens toward the rhythm of the river. The day unfolds without urgency — mornings in stillness, afternoons in shade, evenings gathered under the sky as lanterns glow and the sound of water carries through the night.
             </p>
             <div className="mt-12 grid grid-cols-3 gap-8 border-t border-border pt-8">
               {[["12","Riverfront Suites"],["48","Acres of Forest"],["1","Winding River"]].map(([n,l])=>(
