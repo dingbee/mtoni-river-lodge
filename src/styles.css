@@ -51,35 +51,35 @@
 :root {
   --radius: 4px;
 
-  /* Editorial riverfront palette */
-  --ivory: oklch(0.975 0.008 80);
-  --bone: oklch(0.94 0.012 78);
-  --clay: oklch(0.62 0.08 50);
-  --ember: oklch(0.55 0.14 45);
-  --river: oklch(0.42 0.04 200);
-  --forest: oklch(0.32 0.04 150);
-  --charcoal: oklch(0.18 0.01 80);
-  --gold: oklch(0.72 0.10 78);
+  /* Mtoni earthen palette — exact HEX system */
+  --ivory: #F2E3BB;        /* main background / footer text */
+  --bone: #E6D8A8;         /* alternate sections, card surface */
+  --clay: #C0B87A;         /* accent (CTA / social icons) */
+  --ember: #C0B87A;        /* accent alias */
+  --gold: #C0B87A;         /* accent alias */
+  --river: #5A6B5A;        /* secondary text / muted */
+  --forest: #427A43;       /* secondary green */
+  --charcoal: #005F02;     /* primary deep green (footer / primary) */
 
   --background: var(--ivory);
-  --foreground: var(--charcoal);
-  --card: oklch(1 0 0);
-  --card-foreground: var(--charcoal);
-  --popover: oklch(1 0 0);
-  --popover-foreground: var(--charcoal);
-  --primary: var(--charcoal);
-  --primary-foreground: var(--ivory);
+  --foreground: #1E2D1E;
+  --card: var(--bone);
+  --card-foreground: #1E2D1E;
+  --popover: var(--ivory);
+  --popover-foreground: #1E2D1E;
+  --primary: var(--clay);
+  --primary-foreground: #1E2D1E;
   --secondary: var(--bone);
-  --secondary-foreground: var(--charcoal);
+  --secondary-foreground: #1E2D1E;
   --muted: var(--bone);
-  --muted-foreground: oklch(0.42 0.02 80);
-  --accent: var(--ember);
-  --accent-foreground: var(--ivory);
+  --muted-foreground: #5A6B5A;
+  --accent: var(--clay);
+  --accent-foreground: #1E2D1E;
   --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.86 0.015 80);
-  --input: oklch(0.86 0.015 80);
-  --ring: var(--ember);
+  --destructive-foreground: #F2E3BB;
+  --border: color-mix(in oklab, #427A43 22%, transparent);
+  --input: color-mix(in oklab, #427A43 22%, transparent);
+  --ring: var(--clay);
 }
 
 .dark {
