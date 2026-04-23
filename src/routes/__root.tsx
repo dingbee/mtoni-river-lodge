@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
@@ -68,5 +69,46 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  useEffect(() => {
+    const isModifiedClick = (event: MouseEvent) =>
+      event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+
+    const onDocumentClick = (event: MouseEvent) => {
+      if (isModifiedClick(event)) return;
+
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const anchor = target.closest("a[href]");
+      if (!(anchor instanceof HTMLAnchorElement)) return;
+
+      const rawHref = anchor.getAttribute("href");
+      if (!rawHref || rawHref.startsWith("#") || rawHref.startsWith("mailto:") || rawHref.startsWith("tel:")) return;
+
+      let url: URL;
+      try {
+        url = new URL(anchor.href, window.location.href);
+      } catch {
+        return;
+      }
+
+      const isExternal = url.origin !== window.location.origin;
+      const isAbsoluteHttp = /^https?:\/\//i.test(rawHref);
+      const isWwwStyle = /^www\./i.test(rawHref);
+
+      if (!isExternal && !isAbsoluteHttp && !isWwwStyle) return;
+
+      anchor.target = "_blank";
+      anchor.rel = "noopener noreferrer";
+
+      event.preventDefault();
+      event.stopPropagation();
+      window.open(url.toString(), "_blank", "noopener,noreferrer");
+    };
+
+    document.addEventListener("click", onDocumentClick, true);
+    return () => document.removeEventListener("click", onDocumentClick, true);
+  }, []);
+
   return <Outlet />;
 }
