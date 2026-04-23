@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
+import { Link } from "@tanstack/react-router";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { WHATSAPP_URL } from "@/lib/contact";
@@ -74,14 +75,22 @@ export function ArticleLayout({ eyebrow, title, intro, image, imageAlt, caption,
               </h2>
             </Reveal>
             <Reveal delay={240}>
-              <a
-                href={WHATSAPP_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-2 inline-flex items-center gap-3 bg-charcoal px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-charcoal/85"
-              >
-                Check Availability →
-              </a>
+              <div className="flex flex-wrap items-center gap-4">
+                <Link
+                  to="/book"
+                  className="inline-flex items-center gap-3 bg-charcoal px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-charcoal/85"
+                >
+                  Check Availability →
+                </Link>
+                <a
+                  href={WHATSAPP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-3 border border-charcoal px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] text-charcoal transition-colors hover:bg-charcoal hover:text-ivory"
+                >
+                  WhatsApp →
+                </a>
+              </div>
             </Reveal>
           </div>
         </section>
