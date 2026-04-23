@@ -9,7 +9,7 @@ import pool from "@/assets/pool.jpg";
 const suites = [
   { no: "01", name: "Riverfront Deluxe", size: "62 m²", view: "River-facing private deck", img: suiteImg, desc: "Set along the river’s edge at Mtoni River Lodge, the Riverfront Deluxe Suite offers a calm, immersive escape with uninterrupted water views." },
   { no: "02", name: "Riverfront Standard", size: "78 m²", view: "serene river proximity", img: villa, desc: "Rooted in the circular form of traditional Maasai Boma architecture, the Riverfront Standard offers a spatial experience that feels both cultural and contemporary with serene river proximity." },
-  { no: "03", name: "Mtoni House", size: "140 m²", view: "Two bedrooms · river bend", img: pool, desc: "Our private two-bedroom residence with a dedicated cook, butler, and a stretch of riverbank entirely your own." },
+  { no: "03", name: "The Garden & Family Rooms", size: "140 m²", view: "Family Serenity", img: pool, desc: "Open into a softer, greener side of Mtoni—where plant life, light, and space come together to create a gentle, calming atmosphere perfect for families." },
 ];
 
 export const Route = createFileRoute("/suites")({
