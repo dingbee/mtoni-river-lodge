@@ -38,7 +38,7 @@ function LodgePage() {
           </Reveal>
           <Reveal delay={150} className="lg:col-span-6 lg:col-start-7">
             <p className="font-display text-2xl leading-relaxed text-charcoal/80">
-              Nestled along the pristine banks of the Mtoni River, our lodge is more than just a retreat; it’s a vision brought to life.
+              Nestled along the pristine banks of the Nduruma River, our lodge is more than just a retreat; it’s a vision brought to life.
             </p>
             <p className="mt-6 leading-relaxed text-charcoal/70">
               Every stone, every beam, every linen was chosen with intention. The lodge was designed by Tanzanian architects to disappear into the trees, leaving only the sound of the water and the warmth of lantern-light.
