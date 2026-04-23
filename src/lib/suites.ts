@@ -1,6 +1,14 @@
 import suiteImg from "@/assets/suite-interior.jpg";
 import villa from "@/assets/villa-exterior.jpg";
 import pool from "@/assets/pool.jpg";
+import aerial from "@/assets/aerial-lodge.jpg";
+import river from "@/assets/hero-river.jpg";
+import dining from "@/assets/dining.jpg";
+import spa from "@/assets/spa.jpg";
+import coffee from "@/assets/coffee.jpg";
+import bonfire from "@/assets/xp-bonfire.jpg";
+import riverWalk from "@/assets/xp-river-walk.jpg";
+import canoe from "@/assets/xp-canoe.jpg";
 
 export type Suite = {
   slug: string;
@@ -13,6 +21,7 @@ export type Suite = {
   details: { label: string; value: string }[];
   ctaLine: string;
   img: string;
+  gallery: string[];
   size: string;
   view: string;
 };
@@ -39,6 +48,7 @@ export const SUITES: Suite[] = [
     ],
     ctaLine: "Step into a space where the river sets the pace.",
     img: suiteImg,
+    gallery: [suiteImg, river, riverWalk],
     size: "62 m²",
     view: "River-facing private deck",
   },
@@ -63,6 +73,7 @@ export const SUITES: Suite[] = [
     ],
     ctaLine: "Experience the simplicity of staying close to nature.",
     img: villa,
+    gallery: [villa, aerial, canoe],
     size: "78 m²",
     view: "Serene river proximity",
   },
@@ -87,6 +98,7 @@ export const SUITES: Suite[] = [
     ],
     ctaLine: "Make space for shared experiences, naturally.",
     img: pool,
+    gallery: [pool, dining, bonfire],
     size: "140 m²",
     view: "Garden & family serenity",
   },
