@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import logoUrl from "@/assets/mtoni-logo.png";
 
 export function SiteFooter() {
   return (
@@ -6,8 +7,8 @@ export function SiteFooter() {
       <div className="mx-auto max-w-[1500px] px-6 py-24 lg:px-12">
         <div className="grid gap-16 lg:grid-cols-12">
           <div className="lg:col-span-5">
-            <p className="eyebrow !text-ivory/60">Mtoni River Lodge</p>
-            <h2 className="mt-6 font-display text-5xl leading-[1.05] lg:text-6xl">
+            <img src={logoUrl} alt="Mtoni River Lodge" className="h-20 w-auto brightness-0 invert" />
+            <h2 className="mt-8 font-display text-5xl leading-[1.05] lg:text-6xl">
               Where the river<br/>
               remembers your name.
             </h2>
