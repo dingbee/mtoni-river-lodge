@@ -48,7 +48,7 @@ function HomePage() {
           <Reveal delay={300}>
             <div className="mt-12 flex flex-col items-start gap-8 sm:flex-row sm:items-end sm:justify-between">
               <p className="max-w-md text-pretty text-ivory/80">
-                Twelve riverfront suites tucked into the foothills of Mount Meru — where the days move at the pace of the water, and dinner is set wherever the light is most beautiful.
+               A serene retreat where Africa’s beauty meets authenticity. On the banks of the Mtoni River, we blend traditional Maasai architecture and modern comforts, offering a uniquely African stay.
               </p>
               <Link to="/plan" className="group inline-flex items-center gap-4 border border-ivory px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.32em] transition-colors hover:bg-ivory hover:text-charcoal">
                 Plan your stay
