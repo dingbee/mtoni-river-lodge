@@ -10,6 +10,7 @@ import guideImg from "@/assets/guide.jpg";
 import villaImg from "@/assets/villa-exterior.jpg";
 import poolImg from "@/assets/pool.jpg";
 import coffeeImg from "@/assets/coffee.jpg";
+import spaImg from "@/assets/spa.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -229,7 +230,7 @@ function HomePage() {
           </Reveal>
           <Reveal delay={200} className="lg:mt-32">
             <div className="aspect-[4/5] overflow-hidden">
-              <img src="/src/assets/spa.jpg" alt="Riverside spa pavilion" className="h-full w-full object-cover" loading="lazy" />
+              <img src={spaImg} alt="Riverside spa pavilion" className="h-full w-full object-cover" loading="lazy" />
             </div>
             <p className="eyebrow mt-8">Ritual</p>
             <h3 className="mt-3 font-display text-3xl lg:text-4xl">Spa beneath the thatch</h3>
