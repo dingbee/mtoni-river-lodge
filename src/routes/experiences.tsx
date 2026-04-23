@@ -1,9 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { Button } from "@/components/ui/button";
-import { WHATSAPP_URL, WHATSAPP_NOTE } from "@/lib/contact";
+import { WHATSAPP_NOTE } from "@/lib/contact";
 import cycling from "@/assets/xp-cycling.jpg";
 import riverWalk from "@/assets/xp-river-walk.jpg";
 import motorbike from "@/assets/xp-motorbike.jpg";
@@ -116,13 +116,9 @@ function ExperiencesPage() {
           <Reveal delay={240}>
             <div className="mt-12">
               <Button asChild size="lg" className="rounded-none px-10 py-6 text-xs uppercase tracking-[0.3em]">
-                <a
-                  href={WHATSAPP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <Link to="/plan" hash="booking-form">
                   Check Availability
-                </a>
+                </Link>
               </Button>
               <p className="mx-auto mt-5 max-w-md text-xs leading-relaxed text-charcoal/55">
                 {WHATSAPP_NOTE}

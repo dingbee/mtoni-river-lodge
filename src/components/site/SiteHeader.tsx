@@ -1,8 +1,7 @@
-import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import logoUrl from "@/assets/mtoni-logo.png";
-import { WHATSAPP_URL } from "@/lib/contact";
+import { Link } from "@tanstack/react-router";
 
 const links = [
   { to: "/", label: "Home" },
@@ -95,14 +94,13 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
         </nav>
 
         <div className="hidden items-center gap-4 lg:flex">
-          <a
-            href={WHATSAPP_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            to="/plan"
+            hash="booking-form"
             className="group inline-flex items-center gap-3 border border-current px-5 py-2.5 text-[0.72rem] font-medium uppercase tracking-[0.28em] transition-all hover:bg-current"
           >
             <span className="transition-colors group-hover:text-ivory">Reserve</span>
-          </a>
+          </Link>
         </div>
 
         <button
@@ -146,17 +144,16 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
           ))}
         </nav>
         <div className="px-6 pb-10 pt-4">
-          <a
-            href={WHATSAPP_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            to="/plan"
+            hash="booking-form"
             onClick={() => setOpen(false)}
             className="block w-full border border-ivory py-4 text-center text-[0.72rem] font-medium uppercase tracking-[0.28em] transition hover:bg-ivory hover:text-charcoal"
           >
-            Reserve on WhatsApp
-          </a>
+            Check Availability
+          </Link>
           <p className="mt-3 text-center text-[0.7rem] leading-relaxed text-ivory/60">
-            Speak with our team instantly on WhatsApp for availability and personalized arrangements.
+            Fill in your details and we'll open WhatsApp with your booking request.
           </p>
         </div>
       </div>
