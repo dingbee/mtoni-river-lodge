@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
@@ -116,7 +115,13 @@ function ExperiencesPage() {
           <Reveal delay={240}>
             <div className="mt-12">
               <Button asChild size="lg" className="rounded-none px-10 py-6 text-xs uppercase tracking-[0.3em]">
-                <Link to="/plan">Check Availability</Link>
+                <a
+                  href="https://wa.me/255752441443?text=Hello%20Mtoni%20River%20Lodge%2C%20I%E2%80%99d%20like%20to%20check%20availability%20for%20a%20stay."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Check Availability
+                </a>
               </Button>
             </div>
           </Reveal>
