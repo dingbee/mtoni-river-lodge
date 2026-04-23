@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { Button } from "@/components/ui/button";
+import { WHATSAPP_URL, WHATSAPP_NOTE } from "@/lib/contact";
 import cycling from "@/assets/xp-cycling.jpg";
 import riverWalk from "@/assets/xp-river-walk.jpg";
 import motorbike from "@/assets/xp-motorbike.jpg";
@@ -116,13 +117,16 @@ function ExperiencesPage() {
             <div className="mt-12">
               <Button asChild size="lg" className="rounded-none px-10 py-6 text-xs uppercase tracking-[0.3em]">
                 <a
-                  href="https://wa.me/255752441443?text=Hello%20Mtoni%20River%20Lodge%2C%20I%E2%80%99d%20like%20to%20check%20availability%20for%20a%20stay."
+                  href={WHATSAPP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   Check Availability
                 </a>
               </Button>
+              <p className="mx-auto mt-5 max-w-md text-xs leading-relaxed text-charcoal/55">
+                {WHATSAPP_NOTE}
+              </p>
             </div>
           </Reveal>
         </div>
