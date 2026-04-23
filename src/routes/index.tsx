@@ -263,16 +263,46 @@ function HomePage() {
           </Reveal>
           <div className="grid gap-12 md:grid-cols-3">
             {[
-              { date: "March 2026", title: "What the river taught us about time", read: "6 min" },
-              { date: "February 2026", title: "A morning with the beekeepers of Gomba", read: "4 min" },
-              { date: "January 2026", title: "Reading the sky over Mount Meru", read: "5 min" },
+              {
+                date: "March 2026",
+                read: "6 min",
+                title: "What the River Has Taught Us About Time",
+                excerpt:
+                  "On the slow art of arriving, and why we removed every clock from the lodge.",
+                href: "/journal/what-the-river-has-taught-us-about-time" as const,
+              },
+              {
+                date: "February 2026",
+                read: "5 min",
+                title: "Life Along the Nduruma River",
+                excerpt:
+                  "Where the river branches into quiet irrigation streams, ox-ploughed fields and river-fed gardens shape the green heart of Mtoni.",
+                href: "/journal/a-morning-with-the-beekeepers-of-gomba" as const,
+              },
+              {
+                date: "January 2026",
+                read: "6 min",
+                title: "Building With the Community",
+                excerpt:
+                  "Employment, infrastructure, and shared growth — how Mtoni contributes to the people and ecosystems that surround it.",
+                href: "/journal/reading-the-sky-over-mount-meru" as const,
+              },
             ].map((p, i) => (
-              <Reveal key={p.title} delay={i*120}>
-                <article className="group">
-                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{p.date} · {p.read}</p>
-                  <h3 className="mt-4 font-display text-2xl leading-snug transition-colors group-hover:text-ember">{p.title}</h3>
-                  <span className="mt-6 inline-block border-b border-charcoal/40 pb-1 text-[0.7rem] uppercase tracking-[0.28em]">Read</span>
-                </article>
+              <Reveal key={p.title} delay={i * 120}>
+                <Link to={p.href} className="group flex h-full flex-col">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                    {p.date} · {p.read}
+                  </p>
+                  <h3 className="mt-5 font-display text-2xl leading-snug transition-colors group-hover:text-ember">
+                    {p.title}
+                  </h3>
+                  <p className="mt-4 line-clamp-3 text-[0.95rem] leading-relaxed text-charcoal/65">
+                    {p.excerpt}
+                  </p>
+                  <span className="mt-6 inline-block self-start border-b border-charcoal/40 pb-1 text-[0.7rem] uppercase tracking-[0.28em] transition-colors group-hover:border-charcoal">
+                    Read Article →
+                  </span>
+                </Link>
               </Reveal>
             ))}
           </div>
