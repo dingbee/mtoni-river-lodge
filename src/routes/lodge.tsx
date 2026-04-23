@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
+import { Bird, PawPrint, Footprints } from "lucide-react";
 import aerial from "@/assets/aerial-lodge.jpg";
 import villa from "@/assets/villa-exterior.jpg";
 import detail from "@/assets/detail-coffee.jpg";
@@ -74,12 +75,16 @@ function LodgePage() {
       </section>
 
       <section className="px-6 py-32 lg:px-12 lg:py-48">
-        <div className="mx-auto grid max-w-[1300px] gap-12 sm:grid-cols-2 lg:grid-cols-4">
-          {[["48","Acres of forest"],["12","Riverfront suites"],["1.2km","Of private river"],["100%","Solar by 2026"]].map(([n,l])=>(
-            <Reveal key={l}>
-              <div className="border-t border-border pt-6">
-                <p className="font-display text-5xl">{n}</p>
-                <p className="mt-3 text-xs uppercase tracking-[0.22em] text-muted-foreground">{l}</p>
+        <div className="mx-auto grid max-w-[1300px] gap-12 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            { Icon: Bird, label: "Bird Watching" },
+            { Icon: PawPrint, label: "Friendly Wildlife" },
+            { Icon: Footprints, label: "Stone Pathways" },
+          ].map(({ Icon, label }) => (
+            <Reveal key={label}>
+              <div className="flex flex-col items-center border-t border-border pt-8 text-center">
+                <Icon className="h-10 w-10 text-charcoal/70" strokeWidth={1.25} />
+                <p className="mt-6 font-display text-2xl">{label}</p>
               </div>
             </Reveal>
           ))}
