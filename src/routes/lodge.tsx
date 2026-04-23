@@ -34,11 +34,11 @@ function LodgePage() {
         <div className="mx-auto grid max-w-[1300px] gap-16 lg:grid-cols-12">
           <Reveal className="lg:col-span-5">
             <p className="eyebrow">Our story</p>
-            <h2 className="mt-6 font-display text-5xl leading-tight">A family. A river.<br/>A long conversation.</h2>
+            <h2 className="mt-6 font-display text-5xl leading-tight">A family. A river.{"\n"}A long conversation.</h2>
           </Reveal>
           <Reveal delay={150} className="lg:col-span-6 lg:col-start-7">
             <p className="font-display text-2xl leading-relaxed text-charcoal/80">
-              Mtoni was born from a single act of devotion — a family who returned to the riverbank where they had grown up, and decided to share it with the world, slowly.
+              Nestled along the pristine banks of the Mtoni River, our lodge is more than just a retreat; it’s a vision brought to life.
             </p>
             <p className="mt-6 leading-relaxed text-charcoal/70">
               Every stone, every beam, every linen was chosen with intention. The lodge was designed by Tanzanian architects to disappear into the trees, leaving only the sound of the water and the warmth of lantern-light.
