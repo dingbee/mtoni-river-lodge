@@ -160,7 +160,7 @@ function Field({ label, name, type = "text", placeholder, value, onChange }: {
   type?: string;
   placeholder?: string;
   value?: string;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
 }) {
   return (
     <div>
