@@ -8,8 +8,16 @@ import bonfire from "@/assets/xp-bonfire.jpg";
 import riverWalk from "@/assets/xp-river-walk.jpg";
 import canoe from "@/assets/xp-canoe.jpg";
 
+export const SUITE_PATHS = {
+  "riverfront-deluxe": "/suites/riverfront-deluxe",
+  "standard-river": "/suites/standard-river",
+  "family-suite": "/suites/family-suite",
+} as const;
+
+export type SuiteSlug = keyof typeof SUITE_PATHS;
+
 export type Suite = {
-  slug: string;
+  slug: SuiteSlug;
   no: string;
   name: string;
   shortName: string;
@@ -24,8 +32,7 @@ export type Suite = {
   view: string;
 };
 
-export const SUITES: Suite[] = [
-  {
+export const RIVERFRONT_DELUXE_SUITE: Suite = {
     slug: "riverfront-deluxe",
     no: "01",
     name: "Riverfront Deluxe Suite",
@@ -49,8 +56,9 @@ export const SUITES: Suite[] = [
     gallery: [suiteImg, river, riverWalk],
     size: "62 m²",
     view: "River-facing private deck",
-  },
-  {
+  };
+
+export const STANDARD_RIVER_SUITE: Suite = {
     slug: "standard-river",
     no: "02",
     name: "Standard River Suite",
@@ -74,8 +82,9 @@ export const SUITES: Suite[] = [
     gallery: [villa, aerial, canoe],
     size: "78 m²",
     view: "Serene river proximity",
-  },
-  {
+  };
+
+export const FAMILY_SUITE: Suite = {
     slug: "family-suite",
     no: "03",
     name: "Family / Group Suite",
@@ -99,9 +108,14 @@ export const SUITES: Suite[] = [
     gallery: [pool, dining, bonfire],
     size: "140 m²",
     view: "Garden & family serenity",
-  },
+  };
+
+export const SUITES: Suite[] = [
+  RIVERFRONT_DELUXE_SUITE,
+  STANDARD_RIVER_SUITE,
+  FAMILY_SUITE,
 ];
 
-export function getSuiteBySlug(slug: string): Suite | undefined {
-  return SUITES.find((s) => s.slug === slug);
+export function getSuitePath(slug: SuiteSlug) {
+  return SUITE_PATHS[slug];
 }
