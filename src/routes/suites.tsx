@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
-import { WHATSAPP_URL, WHATSAPP_NOTE } from "@/lib/contact";
+import { WHATSAPP_NOTE } from "@/lib/contact";
 import suiteImg from "@/assets/suite-interior.jpg";
 import villa from "@/assets/villa-exterior.jpg";
 import pool from "@/assets/pool.jpg";
@@ -54,14 +54,13 @@ function SuitesPage() {
                     <span>{s.size}</span><span>·</span><span>{s.view}</span>
                   </div>
                   <p className="mt-6 leading-relaxed text-charcoal/75">{s.desc}</p>
-                  <a
-                    href={WHATSAPP_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    to="/plan"
+                    hash="booking-form"
                     className="mt-8 inline-flex items-center gap-3 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]"
                   >
-                    Enquire on WhatsApp →
-                  </a>
+                    Check Availability →
+                  </Link>
                   <p className="mt-3 max-w-sm text-xs leading-relaxed text-charcoal/55">
                     {WHATSAPP_NOTE}
                   </p>
