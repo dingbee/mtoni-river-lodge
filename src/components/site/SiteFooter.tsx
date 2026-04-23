@@ -24,7 +24,7 @@ export function SiteFooter() {
   const [discoverOpen, setDiscoverOpen] = useState(false);
 
   return (
-    <footer className="relative bg-charcoal text-ivory">
+    <footer id="site-footer" className="relative bg-charcoal text-ivory">
       <div className="mx-auto max-w-[1100px] px-6 py-20 text-center lg:px-12 lg:py-24">
         {/* Social icons */}
         <ul className="flex items-center justify-center gap-8">
