@@ -63,16 +63,16 @@ export const STANDARD_RIVER_SUITE: Suite = {
     no: "02",
     name: "Standard River Suite",
     shortName: "Standard River",
-    heroLine: "Comfort, shaped by nature.",
+    heroLine: "Grounded in simplicity. Guided by nature.",
     shortDesc:
       "A quiet balance between comfort and immersion, set along the riverbank.",
     description: [
-      "The Standard River Suite offers a quiet balance between comfort and immersion. Positioned along the riverbank, it captures the essence of Mtoni — calm, grounded, and intentionally understated.",
-      "Designed with natural materials and inspired by traditional forms, the suite feels both familiar and distinct. Soft light, natural textures, and open air create an environment that encourages rest without distraction.",
+      "The Standard River Suite reflects the same architectural language of earth and thatch, shaped through the circular principles of traditional Maasai boma design. It is modest in scale, but rich in atmosphere — where natural materials define both structure and feeling.",
+      "Set slightly away from the river’s edge, it carries the same sense of calm and connection, allowing light, air, and texture to define the experience.",
       "It is not about excess — it is about presence.",
     ],
     details: [
-      { label: "Orientation", value: "River-facing" },
+      { label: "Orientation", value: "Nature-facing orientation" },
       { label: "Ideal for", value: "Individuals or couples" },
       { label: "Comfort", value: "Natural ventilation & light" },
       { label: "Bathroom", value: "En-suite" },
