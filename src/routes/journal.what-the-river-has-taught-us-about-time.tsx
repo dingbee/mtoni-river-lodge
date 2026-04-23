@@ -33,18 +33,20 @@ function ArticlePage() {
       <SiteHeader />
 
       <article>
-        <header className="px-6 pt-40 pb-16 lg:px-12 lg:pt-48">
+        <div className="px-6 pt-32 lg:px-12 lg:pt-40">
+          <div className="mx-auto max-w-3xl">
+            <Link
+              to="/journal"
+              className="inline-flex items-center gap-2 text-[0.72rem] uppercase tracking-[0.28em] text-charcoal/60 transition-colors hover:text-charcoal"
+            >
+              ← Back to Journal
+            </Link>
+          </div>
+        </div>
+        <header className="px-6 pt-10 pb-16 lg:px-12 lg:pt-14">
           <div className="mx-auto max-w-3xl">
             <Reveal>
-              <Link
-                to="/journal"
-                className="text-[0.72rem] uppercase tracking-[0.28em] text-charcoal/60 hover:text-charcoal"
-              >
-                ← Journal
-              </Link>
-            </Reveal>
-            <Reveal delay={120}>
-              <p className="eyebrow mt-10">March 2026 · 6 min read</p>
+              <p className="eyebrow">March 2026 · 6 min read</p>
             </Reveal>
             <Reveal delay={200}>
               <h1 className="mt-6 font-display text-4xl leading-[1.05] lg:text-6xl">
@@ -52,7 +54,7 @@ function ArticlePage() {
               </h1>
             </Reveal>
             <Reveal delay={320}>
-              <p className="mt-8 text-lg leading-relaxed text-charcoal/70">
+              <p className="mt-8 text-lg leading-[1.7] text-charcoal/70">
                 {DESCRIPTION}
               </p>
             </Reveal>
