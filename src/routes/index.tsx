@@ -1,26 +1,291 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { SiteHeader } from "@/components/site/SiteHeader";
+import { SiteFooter } from "@/components/site/SiteFooter";
+import { Reveal } from "@/components/site/Reveal";
+import heroImg from "@/assets/hero-river.jpg";
+import suiteImg from "@/assets/suite-interior.jpg";
+import diningImg from "@/assets/dining.jpg";
+import aerialImg from "@/assets/aerial-lodge.jpg";
+import guideImg from "@/assets/guide.jpg";
+import villaImg from "@/assets/villa-exterior.jpg";
+import poolImg from "@/assets/pool.jpg";
+import coffeeImg from "@/assets/coffee.jpg";
+import spaImg from "@/assets/spa.jpg";
 
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "Mtoni River Lodge — Riverfront Sanctuary in Arusha, Tanzania" },
+      { name: "description", content: "An intimate luxury eco-lodge on the banks of the Mtoni River. Twelve riverfront suites, fireside dining, and curated journeys into the heart of Tanzania." },
+      { property: "og:image", content: heroImg },
+    ],
+  }),
+  component: HomePage,
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
+function HomePage() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="bg-ivory text-charcoal">
+      <SiteHeader overlay />
+
+      {/* HERO */}
+      <section className="relative h-[100svh] w-full overflow-hidden">
+        <div className="absolute inset-0">
+          <img src={heroImg} alt="Mist over the Mtoni River at dawn with Mount Meru in the distance" className="ken-burns h-full w-full object-cover" width={1920} height={1080} />
+          <div className="absolute inset-0 bg-gradient-to-b from-charcoal/40 via-charcoal/10 to-charcoal/80" />
+        </div>
+
+        <div className="relative z-10 mx-auto flex h-full max-w-[1500px] flex-col justify-end px-6 pb-24 text-ivory lg:px-12 lg:pb-32">
+          <Reveal>
+            <p className="eyebrow !text-ivory/70">Arusha · Tanzania</p>
+          </Reveal>
+          <Reveal delay={150}>
+            <h1 className="mt-6 max-w-5xl font-display text-[3.25rem] leading-[1.02] tracking-tight sm:text-6xl lg:text-[6.5rem]">
+              A river. A whisper.<br/>
+              <em className="font-light italic text-ivory/85">A homecoming.</em>
+            </h1>
+          </Reveal>
+          <Reveal delay={300}>
+            <div className="mt-12 flex flex-col items-start gap-8 sm:flex-row sm:items-end sm:justify-between">
+              <p className="max-w-md text-pretty text-ivory/80">
+                Twelve riverfront suites tucked into the foothills of Mount Meru — where the days move at the pace of the water, and dinner is set wherever the light is most beautiful.
+              </p>
+              <Link to="/plan" className="group inline-flex items-center gap-4 border border-ivory px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.32em] transition-colors hover:bg-ivory hover:text-charcoal">
+                Plan your stay
+                <span className="transition-transform group-hover:translate-x-1">→</span>
+              </Link>
+            </div>
+          </Reveal>
+        </div>
+
+        <div className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 text-ivory/70">
+          <div className="flex flex-col items-center gap-2 text-[0.6rem] uppercase tracking-[0.4em]">
+            <span>Scroll</span>
+            <span className="h-12 w-px animate-pulse bg-ivory/50" />
+          </div>
+        </div>
+      </section>
+
+      {/* INTRO / NARRATIVE */}
+      <section className="relative px-6 py-32 lg:px-12 lg:py-48">
+        <div className="mx-auto grid max-w-[1300px] gap-16 lg:grid-cols-12">
+          <Reveal className="lg:col-span-5">
+            <p className="eyebrow">Chapter One</p>
+            <h2 className="mt-6 font-display text-5xl leading-[1.04] lg:text-6xl">
+              The river<br/>writes the day.
+            </h2>
+          </Reveal>
+          <Reveal delay={150} className="lg:col-span-6 lg:col-start-7">
+            <p className="font-display text-2xl leading-[1.45] text-charcoal/80 lg:text-[1.7rem]">
+              Mornings begin with mist rising from the water and the soft call of turacos in the canopy. By midday, the river slows; by dusk, the lanterns are lit and the long table is set beneath the acacias.
+            </p>
+            <p className="mt-8 max-w-lg text-base leading-relaxed text-charcoal/70">
+              Mtoni is not a hotel in the conventional sense. It is a small, family-run sanctuary — twelve suites, one chef, one river — built quietly into the riverbank so that the land remains the loudest voice.
+            </p>
+            <div className="mt-12 grid grid-cols-3 gap-8 border-t border-border pt-8">
+              {[["12","Riverfront Suites"],["48","Acres of Forest"],["1","Winding River"]].map(([n,l])=>(
+                <div key={l}>
+                  <p className="font-display text-4xl">{n}</p>
+                  <p className="mt-2 text-xs uppercase tracking-[0.2em] text-muted-foreground">{l}</p>
+                </div>
+              ))}
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* AERIAL FULL-BLEED */}
+      <section className="relative h-[80svh] w-full overflow-hidden">
+        <img src={aerialImg} alt="Aerial view of Mtoni River Lodge nestled in the riverbend" className="h-full w-full object-cover" loading="lazy" width={1920} height={1080} />
+        <div className="absolute inset-0 bg-gradient-to-t from-charcoal/70 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1300px] px-6 pb-16 text-ivory lg:px-12 lg:pb-24">
+          <Reveal>
+            <p className="eyebrow !text-ivory/70">A place, found</p>
+            <h2 className="mt-4 max-w-3xl font-display text-4xl leading-tight lg:text-6xl">
+              Built into the riverbend, beneath the trees.
+            </h2>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* SUITES TEASER — editorial split */}
+      <section className="px-6 py-32 lg:px-12 lg:py-48">
+        <div className="mx-auto max-w-[1400px]">
+          <Reveal className="mb-20 flex flex-col items-end justify-between gap-6 lg:flex-row lg:items-end">
+            <div>
+              <p className="eyebrow">The Suites</p>
+              <h2 className="mt-4 font-display text-5xl leading-[1.04] lg:text-7xl">
+                Twelve rooms.<br/>
+                One river view.
+              </h2>
+            </div>
+            <Link to="/suites" className="group inline-flex items-center gap-3 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]">
+              Discover the suites
+              <span className="transition-transform group-hover:translate-x-1">→</span>
+            </Link>
+          </Reveal>
+
+          <div className="grid gap-12 lg:grid-cols-12">
+            <Reveal className="lg:col-span-7">
+              <div className="relative aspect-[4/5] overflow-hidden lg:aspect-[5/6]">
+                <img src={suiteImg} alt="Interior of a Mtoni River Lodge suite at dusk" className="h-full w-full object-cover" loading="lazy" />
+              </div>
+            </Reveal>
+            <Reveal delay={200} className="self-end lg:col-span-4 lg:col-start-9">
+              <p className="eyebrow">No. 01</p>
+              <h3 className="mt-3 font-display text-3xl lg:text-4xl">River Suite</h3>
+              <p className="mt-6 leading-relaxed text-charcoal/70">
+                Hand-finished in dark hardwood and ivory linen, each suite opens onto a private deck cantilevered above the water. A four-poster, a copper soaking tub, and a sound only the river makes.
+              </p>
+              <ul className="mt-8 space-y-3 text-sm text-charcoal/80">
+                {["Private river-facing deck","King four-poster bed","Outdoor copper bathtub","Lantern-lit evenings"].map((f)=>(
+                  <li key={f} className="flex items-baseline gap-3">
+                    <span className="h-px w-6 bg-charcoal/40" />{f}
+                  </li>
+                ))}
+              </ul>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* EXPERIENCES — editorial grid */}
+      <section className="bg-bone px-6 py-32 lg:px-12 lg:py-48">
+        <div className="mx-auto max-w-[1400px]">
+          <Reveal className="mb-20 max-w-3xl">
+            <p className="eyebrow">Days at Mtoni</p>
+            <h2 className="mt-4 font-display text-5xl leading-[1.04] lg:text-7xl">
+              Slow mornings.<br/>Wild afternoons.
+            </h2>
+            <p className="mt-8 max-w-lg text-charcoal/70">
+              Whether you spend the day in a hammock by the river or in the shadow of Mount Meru, every itinerary is shaped by you, and led by people who have walked this land their entire lives.
+            </p>
+          </Reveal>
+
+          <div className="grid gap-8 md:grid-cols-12">
+            {[
+              { img: guideImg, eyebrow: "Walking", title: "Maasai bush walk", note: "Three hours · Sunrise" },
+              { img: coffeeImg, eyebrow: "Tasting", title: "Arabica plantations", note: "Half day · Estate visit" },
+              { img: villaImg, eyebrow: "After dark", title: "Riverbank dinner", note: "By lantern · Chef's table" },
+            ].map((e, i) => (
+              <Reveal key={e.title} delay={i*150} className={i===1 ? "md:col-span-4 md:mt-24" : "md:col-span-4"}>
+                <Link to="/experiences" className="group block">
+                  <div className="relative aspect-[3/4] overflow-hidden">
+                    <img src={e.img} alt={e.title} className="h-full w-full object-cover transition-transform duration-[1500ms] group-hover:scale-105" loading="lazy" />
+                  </div>
+                  <div className="mt-6 flex items-end justify-between">
+                    <div>
+                      <p className="eyebrow">{e.eyebrow}</p>
+                      <h3 className="mt-2 font-display text-2xl">{e.title}</h3>
+                    </div>
+                    <span className="text-xs italic text-muted-foreground">{e.note}</span>
+                  </div>
+                </Link>
+              </Reveal>
+            ))}
+          </div>
+
+          <div className="mt-16 text-center">
+            <Link to="/experiences" className="inline-flex items-center gap-3 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]">
+              All experiences →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* DINING — full bleed quote */}
+      <section className="relative h-[90svh] w-full overflow-hidden">
+        <img src={diningImg} alt="Outdoor riverside dining at twilight" className="h-full w-full object-cover" loading="lazy" />
+        <div className="absolute inset-0 bg-charcoal/40" />
+        <div className="relative z-10 mx-auto flex h-full max-w-[1100px] flex-col items-center justify-center px-6 text-center text-ivory">
+          <Reveal>
+            <p className="eyebrow !text-ivory/60">Dining</p>
+          </Reveal>
+          <Reveal delay={150}>
+            <p className="mt-8 font-display text-3xl italic leading-[1.3] lg:text-5xl">
+              "Dinner is set wherever the light is most beautiful — on the deck, in the orchard, beside the water."
+            </p>
+          </Reveal>
+          <Reveal delay={300}>
+            <p className="mt-10 text-ivory/70">— Chef Amina Mwakikoti</p>
+            <Link to="/dining" className="mt-12 inline-flex items-center gap-3 border border-ivory px-7 py-4 text-[0.72rem] uppercase tracking-[0.32em] hover:bg-ivory hover:text-charcoal">
+              The kitchen
+            </Link>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* TWO-COLUMN: pool + spa story */}
+      <section className="px-6 py-32 lg:px-12 lg:py-48">
+        <div className="mx-auto grid max-w-[1400px] gap-16 lg:grid-cols-2">
+          <Reveal>
+            <div className="aspect-[4/5] overflow-hidden">
+              <img src={poolImg} alt="Infinity pool overlooking the river" className="h-full w-full object-cover" loading="lazy" />
+            </div>
+            <p className="eyebrow mt-8">Stillness</p>
+            <h3 className="mt-3 font-display text-3xl lg:text-4xl">A pool that meets the river</h3>
+            <p className="mt-4 max-w-md text-charcoal/70">
+              An infinity edge dissolves into the water below. Stone-cut, sun-warmed, and quiet.
+            </p>
+          </Reveal>
+          <Reveal delay={200} className="lg:mt-32">
+            <div className="aspect-[4/5] overflow-hidden">
+              <img src={spaImg} alt="Riverside spa pavilion" className="h-full w-full object-cover" loading="lazy" />
+            </div>
+            <p className="eyebrow mt-8">Ritual</p>
+            <h3 className="mt-3 font-display text-3xl lg:text-4xl">Spa beneath the thatch</h3>
+            <p className="mt-4 max-w-md text-charcoal/70">
+              Treatments drawn from East African botanicals — wild ginger, rosehip, baobab — performed to the sound of running water.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* JOURNAL TEASER */}
+      <section className="border-t border-border bg-bone px-6 py-32 lg:px-12">
+        <div className="mx-auto max-w-[1400px]">
+          <Reveal className="mb-16 flex items-end justify-between">
+            <div>
+              <p className="eyebrow">From the Journal</p>
+              <h2 className="mt-4 font-display text-4xl lg:text-6xl">Stories from the riverbank</h2>
+            </div>
+            <Link to="/journal" className="hidden text-[0.72rem] uppercase tracking-[0.28em] underline-offset-8 hover:underline sm:inline">All stories →</Link>
+          </Reveal>
+          <div className="grid gap-12 md:grid-cols-3">
+            {[
+              { date: "March 2026", title: "What the river taught us about time", read: "6 min" },
+              { date: "February 2026", title: "A morning with the beekeepers of Gomba", read: "4 min" },
+              { date: "January 2026", title: "Reading the sky over Mount Meru", read: "5 min" },
+            ].map((p, i) => (
+              <Reveal key={p.title} delay={i*120}>
+                <article className="group">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{p.date} · {p.read}</p>
+                  <h3 className="mt-4 font-display text-2xl leading-snug transition-colors group-hover:text-ember">{p.title}</h3>
+                  <span className="mt-6 inline-block border-b border-charcoal/40 pb-1 text-[0.7rem] uppercase tracking-[0.28em]">Read</span>
+                </article>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CLOSING CTA */}
+      <section className="relative bg-charcoal px-6 py-32 text-ivory lg:px-12 lg:py-48">
+        <div className="mx-auto max-w-[1100px] text-center">
+          <Reveal>
+            <p className="eyebrow !text-ivory/60">Begin the journey</p>
+            <h2 className="mt-8 font-display text-5xl leading-[1.05] lg:text-7xl">
+              The river is waiting.<br/>
+              <em className="italic text-ivory/85">When will you arrive?</em>
+            </h2>
+            <Link to="/plan" className="mt-12 inline-flex items-center gap-4 border border-ivory px-8 py-5 text-[0.72rem] uppercase tracking-[0.32em] hover:bg-ivory hover:text-charcoal">
+              Plan your stay →
+            </Link>
+          </Reveal>
+        </div>
+      </section>
+
+      <SiteFooter />
     </div>
   );
-}
-
-function Index() {
-  return <PlaceholderIndex />;
 }
