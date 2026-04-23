@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
+import logoUrl from "@/assets/mtoni-logo.png";
 
 const links = [
   { to: "/", label: "Home" },
@@ -30,9 +31,12 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
       }`}
     >
       <div className="mx-auto flex h-20 max-w-[1500px] items-center justify-between px-6 lg:px-12">
-        <Link to="/" className="flex items-baseline gap-2 leading-none">
-          <span className="font-display text-2xl tracking-wide">Mtoni</span>
-          <span className="eyebrow !text-current opacity-70">River Lodge</span>
+        <Link to="/" className="flex items-center leading-none" aria-label="Mtoni River Lodge">
+          <img
+            src={logoUrl}
+            alt="Mtoni River Lodge"
+            className={`h-12 w-auto transition-all duration-500 ${solid ? "" : "brightness-0 invert"}`}
+          />
         </Link>
 
         <nav className="hidden items-center gap-8 lg:flex">
@@ -71,7 +75,7 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
       {open && (
         <div className="fixed inset-0 z-50 flex flex-col bg-charcoal text-ivory">
           <div className="flex h-20 items-center justify-between px-6">
-            <span className="font-display text-2xl">Mtoni</span>
+            <img src={logoUrl} alt="Mtoni River Lodge" className="h-10 w-auto brightness-0 invert" />
             <button aria-label="Close menu" onClick={() => setOpen(false)}>
               <X className="h-6 w-6" />
             </button>
