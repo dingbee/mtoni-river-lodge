@@ -148,7 +148,7 @@ function HomePage() {
               <h3 className="mt-3 font-display text-3xl lg:text-4xl">Riverfront Deluxe</h3>
               <p className="mt-6 leading-relaxed text-charcoal/70">Set along the river’s edge at Mtoni River Lodge, the Riverfront Deluxe Suite offers a calm, immersive escape with uninterrupted water views.</p>
               <ul className="mt-8 space-y-3 text-sm text-charcoal/80">
-                {["Private river-facing deck","King four-poster bed","Outdoor copper shower","Indoor bathtub"].map((f)=>(
+                {["Private river-facing deck","Antique king bed","Outdoor copper shower","Indoor bathtub"].map((f)=>(
                   <li key={f} className="flex items-baseline gap-3">
                     <span className="h-px w-6 bg-charcoal/40" />{f}
                   </li>
