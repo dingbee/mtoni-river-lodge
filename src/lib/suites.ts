@@ -41,9 +41,9 @@ export const RIVERFRONT_DELUXE_SUITE: Suite = {
     shortDesc:
       "Closest to the water’s edge — an uninterrupted connection to the river’s quiet presence.",
     description: [
-      "Set closest to the water’s edge, the Riverfront Deluxe Suite offers an uninterrupted connection to the river’s quiet presence. Mornings begin with soft light reflecting off the surface, while evenings settle into a calm carried by the sound of flowing water.",
-      "Built using natural stone, timber, and earth-toned finishes, the suite draws from Maasai boma forms — circular, grounded, and intentionally simple. Large openings invite the outdoors in, creating a space that feels open yet deeply private.",
-      "This is where stillness becomes part of your stay — unforced, unspoken, and constant.",
+      "The Riverfront Deluxe Suite is built from natural earth and thatch, following the circular logic of a Maasai boma — low, grounded, and shaped to exist in quiet harmony with the riverbank.",
+      "Its form is intentional: walls that breathe, textures that carry the warmth of hand-worked materials, and openings that invite light without disrupting privacy. The river remains ever-present, not as decoration, but as a living rhythm just beyond the threshold.",
+      "Here, comfort is not added — it is carved from simplicity.",
     ],
     details: [
       { label: "View", value: "Direct river views" },
