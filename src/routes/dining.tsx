@@ -4,12 +4,13 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import dining from "@/assets/dining.jpg";
 import detail from "@/assets/detail-coffee.jpg";
+import { WHATSAPP_URL } from "@/lib/contact";
 
 export const Route = createFileRoute("/dining")({
   head: () => ({
     meta: [
-      { title: "Dining — Mtoni River Lodge" },
-      { name: "description", content: "A daily-changing menu shaped by the garden, the river, and the season. Long tables set wherever the light is most beautiful." },
+      { title: "Dining by the River — Mtoni River Lodge" },
+      { name: "description", content: "Live cooking over open fire, river-fed gardens, and a menu shaped by what grows here. An immersive farm-to-table experience in Arusha." },
       { property: "og:image", content: dining },
     ],
   }),
@@ -20,60 +21,217 @@ function DiningPage() {
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader overlay />
+
+      {/* HERO */}
       <section className="relative h-[80svh] overflow-hidden">
-        <img src={dining} alt="Riverside dining at twilight" className="ken-burns h-full w-full object-cover" />
+        <img src={dining} alt="Open-fire live cooking by the Nduruma River at Mtoni" className="ken-burns h-full w-full object-cover" />
         <div className="absolute inset-0 bg-charcoal/45" />
         <div className="absolute inset-0 mx-auto flex max-w-[1100px] flex-col items-center justify-center px-6 text-center text-ivory">
           <Reveal><p className="eyebrow !text-ivory/70">Dining</p></Reveal>
-          <Reveal delay={150}><h1 className="mt-6 font-display text-5xl leading-[1.05] lg:text-7xl">A table set to the rhythm of the river.</h1></Reveal>
+          <Reveal delay={150}><h1 className="mt-6 font-display text-5xl leading-[1.05] lg:text-7xl">Dining by the River</h1></Reveal>
+          <Reveal delay={250}>
+            <p className="mx-auto mt-8 max-w-2xl text-base leading-relaxed text-ivory/80 lg:text-lg">
+              At Mtoni River Lodge, dining is not a separate experience — it is part of the landscape. Meals are shaped by river-fed gardens, lodge groves, and the slow craft of open-fire cooking.
+            </p>
+          </Reveal>
         </div>
       </section>
 
-      <section className="px-6 py-32 lg:px-12 lg:py-48">
+      {/* CORE EXPERIENCE — open kitchen */}
+      <section className="px-6 py-28 lg:px-12 lg:py-40">
         <div className="mx-auto grid max-w-[1300px] gap-16 lg:grid-cols-12">
           <Reveal className="lg:col-span-5">
-            <p className="eyebrow">The kitchen</p>
-            <h2 className="mt-6 font-display text-5xl leading-tight">Garden, river,<br/>fire.</h2>
+            <p className="eyebrow">The open kitchen</p>
+            <h2 className="mt-6 font-display text-5xl leading-tight">Where fire,<br/>flavor, and<br/>storytelling<br/>meet.</h2>
           </Reveal>
           <Reveal delay={150} className="lg:col-span-6 lg:col-start-7">
             <p className="font-display text-2xl leading-relaxed text-charcoal/80">
-              Our kitchen is led by Chef Amina Mwakikoti, who returned home to Arusha after years in the kitchens of Cape Town and Lisbon. The menu changes every day, dictated by what the garden, the orchard, and the river offer.
+              The heart of Mtoni dining is live cooking over open fire and traditional preparation methods. Guests are invited to witness food being prepared in real time — slow cooking, grilling, and plating that reflects Tanzanian culinary heritage and seasonal availability.
             </p>
             <p className="mt-8 leading-relaxed text-charcoal/70">
-              Breakfasts are quiet — fresh fruit, just-baked bread, ginger coffee. Lunch is served by the pool. Dinner is the evening's small ceremony: four courses, lantern light, and a long table beneath the trees.
+              This is not restaurant service in the conventional sense. It is an open, living kitchen — not hidden behind a kitchen door, but shared in the open air, where cooking becomes part of the experience.
             </p>
           </Reveal>
         </div>
       </section>
 
+      {/* LOCAL FOOD PHILOSOPHY */}
+      <section className="bg-bone px-6 py-28 lg:px-12 lg:py-36">
+        <div className="mx-auto max-w-[1100px]">
+          <Reveal>
+            <p className="eyebrow">Local food philosophy</p>
+            <h2 className="mt-6 font-display text-4xl leading-tight lg:text-6xl">
+              What grows here,<br/>is what is served here.
+            </h2>
+          </Reveal>
+          <Reveal delay={150}>
+            <p className="mt-10 max-w-2xl leading-relaxed text-charcoal/70">
+              Menus change with the seasons and are shaped by the river-fed ecosystems of Arusha — a quiet conversation between the garden, the market, and the fire.
+            </p>
+          </Reveal>
+          <div className="mt-16 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["Garden", "Fresh vegetables grown in the lodge gardens"],
+              ["Groves", "Bananas and tropical fruits from the riverbanks"],
+              ["Markets", "Local spices and ingredients from Arusha"],
+              ["Tradition", "Tanzanian cooking methods passed down generations"],
+            ].map(([label, body], i) => (
+              <Reveal key={label} delay={100 + i * 80}>
+                <div className="border-t border-border/60 pt-6">
+                  <p className="eyebrow">{label}</p>
+                  <p className="mt-4 font-display text-xl leading-snug text-charcoal/85">{body}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* LIVE COOKING + ATMOSPHERE */}
       <section className="grid lg:grid-cols-2">
         <Reveal>
           <div className="aspect-square overflow-hidden lg:aspect-auto lg:h-full">
-            <img src={detail} alt="Morning coffee at Mtoni" className="h-full w-full object-cover" loading="lazy" />
+            <img src={detail} alt="Traditional pot cooking at Mtoni River Lodge" className="h-full w-full object-cover" loading="lazy" />
           </div>
         </Reveal>
-        <div className="flex items-center bg-bone px-8 py-24 lg:px-20">
+        <div className="flex items-center bg-charcoal px-8 py-24 text-ivory lg:px-20">
           <Reveal>
-            <p className="eyebrow">A sample evening menu</p>
-            <ol className="mt-10 space-y-10">
+            <p className="eyebrow !text-ivory/60">The live cooking experience</p>
+            <h2 className="mt-6 font-display text-4xl leading-tight lg:text-5xl">
+              Cooking, shared in the open air.
+            </h2>
+            <ul className="mt-10 space-y-6">
               {[
-                ["Amuse","Smoked tilapia, river herbs, lime"],
-                ["First","Heirloom tomato, baobab oil, basil seed"],
-                ["Main","Slow lamb shoulder, Arusha coffee jus, charred millet"],
-                ["Dessert","Honey custard, cardamom, wild figs"],
-              ].map(([course,dish],i)=>(
-                <li key={course} className="flex items-baseline gap-6 border-t border-border/60 pt-6">
-                  <span className="font-display text-3xl text-ember">{String(i+1).padStart(2,"0")}</span>
-                  <div>
-                    <p className="eyebrow">{course}</p>
-                    <p className="mt-2 font-display text-xl">{dish}</p>
-                  </div>
+                "Open-fire grilling and roasting",
+                "Traditional pot cooking methods",
+                "Seasonal preparation rituals",
+                "Chef-led storytelling around food origins",
+              ].map((item) => (
+                <li key={item} className="flex items-baseline gap-5 border-t border-ivory/15 pt-5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-ember" />
+                  <p className="font-display text-xl text-ivory/90">{item}</p>
                 </li>
               ))}
-            </ol>
+            </ul>
+            <p className="mt-10 text-sm leading-relaxed text-ivory/65">
+              Set within river-stone architecture and earth-toned materials, surrounded by greenery nourished by the Nduruma River — a setting designed for presence, not rush.
+            </p>
           </Reveal>
         </div>
       </section>
+
+      {/* SAMPLE EVENING MENU — narrative */}
+      <section className="px-6 py-28 lg:px-12 lg:py-40">
+        <div className="mx-auto max-w-[1100px]">
+          <Reveal>
+            <p className="eyebrow">A sample evening menu</p>
+            <h2 className="mt-6 font-display text-4xl leading-tight lg:text-6xl">
+              Evenings unfold slowly —<br/>guided by fire and river.
+            </h2>
+          </Reveal>
+          <Reveal delay={120}>
+            <p className="mt-10 max-w-2xl leading-relaxed text-charcoal/70">
+              This is not a fixed menu, but a reflection of what the land offers each day. Ingredients are drawn from river-fed gardens, nearby farms, and local markets, then prepared in the open through live cooking traditions. Each dish is simple, intentional, and deeply rooted in place.
+            </p>
+          </Reveal>
+
+          <div className="mt-20 space-y-16">
+            {[
+              {
+                eyebrow: "Starters",
+                glyph: "🌿",
+                items: [
+                  "Roasted pumpkin soup finished with coconut and local herbs",
+                  "Charred seasonal vegetables with river salt and lime",
+                  "Fresh avocado and tomato salad with garden greens",
+                ],
+              },
+              {
+                eyebrow: "Main course — live cooking",
+                glyph: "🔥",
+                items: [
+                  "Open-fire grilled free-range chicken with local spice marinade",
+                  "Slow-cooked beef stew prepared in traditional pots",
+                  "Charcoal-roasted plantains with herb butter",
+                  "Steamed rice or ugali served with seasonal vegetable sides",
+                ],
+              },
+              {
+                eyebrow: "Side experience",
+                glyph: "🍌",
+                items: [
+                  "Fresh banana dishes inspired by traditional Tanzanian recipes",
+                  "Light sautéed greens from lodge gardens",
+                ],
+              },
+              {
+                eyebrow: "Dessert",
+                glyph: "🍯",
+                items: [
+                  "Caramelized bananas with honey and toasted coconut",
+                  "Fresh tropical fruits of the season",
+                  "Light tea-infused dessert using local flavors",
+                ],
+              },
+              {
+                eyebrow: "Beverages",
+                glyph: "☕",
+                items: [
+                  "Freshly brewed Tanzanian coffee",
+                  "Herbal teas infused with local leaves",
+                  "Light evening refreshments",
+                ],
+              },
+            ].map((course, i) => (
+              <Reveal key={course.eyebrow} delay={i * 60}>
+                <div className="grid gap-6 border-t border-border/60 pt-8 lg:grid-cols-12">
+                  <div className="lg:col-span-4">
+                    <span className="font-display text-3xl text-ember" aria-hidden>{course.glyph}</span>
+                    <p className="eyebrow mt-3">{course.eyebrow}</p>
+                  </div>
+                  <ul className="space-y-4 lg:col-span-8">
+                    {course.items.map((dish) => (
+                      <li key={dish} className="font-display text-xl leading-relaxed text-charcoal/85">
+                        {dish}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+
+          <Reveal delay={120}>
+            <p className="mt-20 max-w-2xl text-sm italic leading-relaxed text-charcoal/60">
+              Meals are prepared in the open, where guests can observe the process — from fire to plate. Dining is set under soft evening light, with the sound of the river in the background and a bonfire nearby. Menus change daily depending on seasonal availability and local sourcing.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="bg-bone px-6 py-28 text-center lg:py-36">
+        <div className="mx-auto max-w-2xl">
+          <Reveal>
+            <p className="eyebrow">Reserve</p>
+            <h2 className="mt-6 font-display text-4xl leading-tight lg:text-5xl">
+              An evening of live cooking and river-inspired dining.
+            </h2>
+            <p className="mt-8 leading-relaxed text-charcoal/70">
+              Reserve your table or stay via WhatsApp for a fully immersive culinary experience at Mtoni River Lodge.
+            </p>
+            <a
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-10 inline-flex items-center gap-3 border border-charcoal px-6 py-3 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-charcoal transition-colors hover:bg-charcoal hover:text-ivory"
+            >
+              Reserve on WhatsApp
+            </a>
+          </Reveal>
+        </div>
+      </section>
+
       <SiteFooter />
     </div>
   );
