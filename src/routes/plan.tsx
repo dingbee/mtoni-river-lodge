@@ -154,11 +154,26 @@ function PlanPage() {
   );
 }
 
-function Field({ label, name, type="text", placeholder, defaultValue }: { label: string; name: string; type?: string; placeholder?: string; defaultValue?: string }) {
+function Field({ label, name, type = "text", placeholder, value, onChange }: {
+  label: string;
+  name: string;
+  type?: string;
+  placeholder?: string;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
   return (
     <div>
       <label className="eyebrow block" htmlFor={name}>{label}</label>
-      <input id={name} name={name} type={type} placeholder={placeholder} defaultValue={defaultValue} className="mt-3 w-full border-b border-border bg-transparent pb-2 text-base outline-none transition-colors focus:border-ember" />
+      <input
+        id={name}
+        name={name}
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        className="mt-3 w-full border-b border-border bg-transparent pb-2 text-base outline-none transition-colors focus:border-ember"
+      />
     </div>
   );
 }
