@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { WHATSAPP_NOTE } from "@/lib/contact";
-import { SUITES } from "@/lib/suites";
+import { SUITES, type Suite } from "@/lib/suites";
 import suiteImg from "@/assets/suite-interior.jpg";
 
 export const Route = createFileRoute("/suites")({
