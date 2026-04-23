@@ -135,10 +135,8 @@ function HomePage() {
             </Reveal>
             <Reveal delay={200} className="self-end lg:col-span-4 lg:col-start-9">
               <p className="eyebrow">No. 01</p>
-              <h3 className="mt-3 font-display text-3xl lg:text-4xl">River Suite</h3>
-              <p className="mt-6 leading-relaxed text-charcoal/70">
-                Hand-finished in dark hardwood and ivory linen, each suite opens onto a private deck cantilevered above the water. A four-poster, a copper soaking tub, and a sound only the river makes.
-              </p>
+              <h3 className="mt-3 font-display text-3xl lg:text-4xl">Riverfront Deluxe</h3>
+              <p className="mt-6 leading-relaxed text-charcoal/70">Set along the river’s edge at Mtoni River Lodge, the Riverfront Deluxe Suite offers a calm, immersive escape with uninterrupted water views.</p>
               <ul className="mt-8 space-y-3 text-sm text-charcoal/80">
                 {["Private river-facing deck","King four-poster bed","Outdoor copper bathtub","Lantern-lit evenings"].map((f)=>(
                   <li key={f} className="flex items-baseline gap-3">
