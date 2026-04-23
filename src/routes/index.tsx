@@ -102,7 +102,7 @@ function HomePage() {
           <Reveal>
             <p className="eyebrow !text-ivory/70">A place, found</p>
             <h2 className="mt-4 max-w-3xl font-display text-4xl leading-tight lg:text-6xl">
-              Built into the riverbend, beneath the trees.
+              Where the river leads, and everything else follows.
             </h2>
           </Reveal>
         </div>
