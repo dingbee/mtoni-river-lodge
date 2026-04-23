@@ -1,70 +1,32 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { WHATSAPP_NOTE, WHATSAPP_URL } from "@/lib/contact";
-import { SUITES, getSuiteBySlug } from "@/lib/suites";
+import { STANDARD_RIVER_SUITE, SUITES, getSuitePath } from "@/lib/suites";
 
-export const Route = createFileRoute("/suites/$slug")({
-  loader: ({ params }) => {
-    const suite = getSuiteBySlug(params.slug);
-    if (!suite) throw notFound();
-    return { suite };
-  },
-  head: ({ loaderData }) => {
-    const s = loaderData?.suite;
-    if (!s) {
-      return { meta: [{ title: "Suite — Mtoni River Lodge" }] };
-    }
-    const title = `${s.name} — Mtoni River Lodge`;
-    return {
-      meta: [
-        { title },
-        { name: "description", content: s.shortDesc },
-        { property: "og:title", content: title },
-        { property: "og:description", content: s.shortDesc },
-        { property: "og:image", content: s.img },
-        { name: "twitter:card", content: "summary_large_image" },
-        { name: "twitter:image", content: s.img },
-      ],
-    };
-  },
-  notFoundComponent: () => (
-    <div className="flex min-h-[100svh] flex-col items-center justify-center bg-ivory px-6 text-center text-charcoal">
-      <p className="eyebrow">404</p>
-      <h1 className="mt-4 font-display text-4xl">Suite not found</h1>
-      <Link to="/suites" className="mt-8 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]">
-        Back to all suites →
-      </Link>
-    </div>
-  ),
-  component: SuiteMicroPage,
-});
+function StandardRiverPage() {
+  const suite = STANDARD_RIVER_SUITE;
+  const others = SUITES.filter((item) => item.slug !== suite.slug);
 
-function SuiteMicroPage() {
-  const { suite } = Route.useLoaderData();
-  const others = SUITES.filter((s) => s.slug !== suite.slug);
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader overlay />
 
-      {/* Hero */}
       <section className="relative h-[88svh] min-h-[560px] overflow-hidden">
         <img src={suite.img} alt={suite.name} className="ken-burns h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-charcoal/30 via-charcoal/20 to-charcoal/70" />
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1300px] px-6 pb-16 text-ivory lg:px-12 lg:pb-24">
           <Reveal>
-            <Link to="/suites" className="eyebrow !text-ivory/70 inline-flex items-center gap-2">
-              ← Suites
+            <Link to="/suites" className="eyebrow inline-flex items-center gap-2 !text-ivory/70">
+              ← Back to Suites
             </Link>
           </Reveal>
           <Reveal delay={120}>
             <h1 className="mt-6 font-display text-5xl leading-[1.05] lg:text-7xl">{suite.name}</h1>
           </Reveal>
           <Reveal delay={240}>
-            <p className="mt-5 max-w-xl font-display text-2xl italic text-ivory/85 lg:text-3xl">
-              {suite.heroLine}
-            </p>
+            <p className="mt-5 max-w-xl font-display text-2xl italic text-ivory/85 lg:text-3xl">{suite.heroLine}</p>
           </Reveal>
           <Reveal delay={360}>
             <Link
@@ -79,35 +41,58 @@ function SuiteMicroPage() {
         </div>
       </section>
 
-      {/* Description */}
       <section className="px-6 py-24 lg:px-12 lg:py-32">
         <div className="mx-auto grid max-w-[1200px] gap-16 lg:grid-cols-12">
           <div className="lg:col-span-4">
             <p className="eyebrow">No. {suite.no}</p>
-            <h2 className="mt-4 font-display text-4xl leading-tight lg:text-5xl">A space rooted in calm.</h2>
+            <h2 className="mt-4 font-display text-4xl leading-tight lg:text-5xl">Comfort, shaped by nature.</h2>
           </div>
           <div className="space-y-6 lg:col-span-7 lg:col-start-6">
-            {suite.description.map((p, i) => (
-              <p key={i} className="text-lg leading-relaxed text-charcoal/80">{p}</p>
+            {suite.description.map((paragraph, index) => (
+              <p key={index} className="text-lg leading-relaxed text-charcoal/80">
+                {paragraph}
+              </p>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Key Details */}
+      <section className="px-6 pb-24 lg:px-12 lg:pb-32">
+        <div className="mx-auto max-w-[1200px]">
+          <p className="eyebrow">Suite Gallery</p>
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {suite.gallery.map((image, index) => (
+              <div key={image} className="aspect-[4/5] overflow-hidden">
+                <img
+                  src={image}
+                  alt={`${suite.name} gallery image ${index + 1}`}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="border-y border-border bg-bone/40 px-6 py-20 lg:px-12">
         <div className="mx-auto max-w-[1200px]">
           <p className="eyebrow">Key Details</p>
-          <div className="mt-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-            <Detail label="Size" value={suite.size} />
-            {suite.details.map((d) => (
-              <Detail key={d.label} label={d.label} value={d.value} />
+          <div className="mt-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
+            <div>
+              <p className="text-[0.65rem] uppercase tracking-[0.28em] text-charcoal/55">Size</p>
+              <p className="mt-3 font-display text-2xl leading-tight">{suite.size}</p>
+            </div>
+            {suite.details.map((detail) => (
+              <div key={detail.label}>
+                <p className="text-[0.65rem] uppercase tracking-[0.28em] text-charcoal/55">{detail.label}</p>
+                <p className="mt-3 font-display text-2xl leading-tight">{detail.value}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
       <section className="px-6 py-24 lg:px-12 lg:py-32">
         <div className="mx-auto max-w-[900px] text-center">
           <Reveal>
@@ -139,19 +124,23 @@ function SuiteMicroPage() {
         </div>
       </section>
 
-      {/* Other suites */}
       <section className="border-t border-border px-6 py-20 lg:px-12">
         <div className="mx-auto max-w-[1200px]">
           <p className="eyebrow">Discover more</p>
           <h3 className="mt-4 font-display text-3xl lg:text-4xl">Other suites</h3>
           <div className="mt-10 grid gap-10 md:grid-cols-2">
-            {others.map((o) => (
-              <Link key={o.slug} to="/suites/$slug" params={{ slug: o.slug }} className="group block">
+            {others.map((item) => (
+              <Link key={item.slug} to={getSuitePath(item.slug)} className="group block">
                 <div className="aspect-[4/3] overflow-hidden">
-                  <img src={o.img} alt={o.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" loading="lazy" />
+                  <img
+                    src={item.img}
+                    alt={item.name}
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                    loading="lazy"
+                  />
                 </div>
-                <h4 className="mt-5 font-display text-2xl">{o.name}</h4>
-                <p className="mt-2 text-sm text-charcoal/70">{o.shortDesc}</p>
+                <h4 className="mt-5 font-display text-2xl">{item.name}</h4>
+                <p className="mt-2 text-sm text-charcoal/70">{item.shortDesc}</p>
                 <span className="mt-4 inline-block border-b border-charcoal pb-1 text-[0.7rem] uppercase tracking-[0.28em]">
                   Explore Suite →
                 </span>
@@ -166,11 +155,17 @@ function SuiteMicroPage() {
   );
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-[0.65rem] uppercase tracking-[0.28em] text-charcoal/55">{label}</p>
-      <p className="mt-3 font-display text-2xl leading-tight">{value}</p>
-    </div>
-  );
-}
+export const Route = createFileRoute("/suites/standard-river")({
+  head: () => ({
+    meta: [
+      { title: `${STANDARD_RIVER_SUITE.name} — Mtoni River Lodge` },
+      { name: "description", content: STANDARD_RIVER_SUITE.shortDesc },
+      { property: "og:title", content: `${STANDARD_RIVER_SUITE.name} — Mtoni River Lodge` },
+      { property: "og:description", content: STANDARD_RIVER_SUITE.shortDesc },
+      { property: "og:image", content: STANDARD_RIVER_SUITE.img },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: STANDARD_RIVER_SUITE.img },
+    ],
+  }),
+  component: StandardRiverPage,
+});
