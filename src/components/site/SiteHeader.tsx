@@ -53,8 +53,8 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
   // Interpolate header height & logo height for smooth shrink.
   // Mobile gets a more compact header and noticeably smaller logo
   // to prevent any overlap with hero text or page headings.
-  const headerHeight = isLg ? 112 - 32 * p : 72 - 8 * p; // lg: 112->80, mobile: 72->64
-  const logoHeight = isLg ? 64 - 16 * p : 36 - 4 * p;    // lg: 64->48,  mobile: 36->32
+  const headerHeight = isLg ? 144 - 40 * p : 72 - 8 * p; // lg: 144->104, mobile: 72->64
+  const logoHeight = isLg ? 96 - 24 * p : 36 - 4 * p;    // lg: 96->72,  mobile: 36->32
   return (
     <header
       className={`fixed inset-x-0 top-0 z-40 transition-[background-color,color,box-shadow,border-color] duration-500 ease-out will-change-[background-color] ${
