@@ -43,7 +43,10 @@ function JournalPage() {
       <section className="px-6 pb-32 lg:px-12 lg:pb-48">
         <div className="mx-auto max-w-[1300px]">
           <Reveal>
-            <article className="group grid gap-10 border-t border-border pt-12 lg:grid-cols-12">
+            <Link
+              to="/journal/what-the-river-has-taught-us-about-time"
+              className="group grid gap-10 border-t border-border pt-12 lg:grid-cols-12"
+            >
               <div className="lg:col-span-7">
                 <div className="aspect-[16/10] overflow-hidden">
                   <img src={posts[0].img} alt={posts[0].title} className="h-full w-full object-cover transition-transform duration-[1600ms] group-hover:scale-105" loading="lazy" />
@@ -53,9 +56,9 @@ function JournalPage() {
                 <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">{posts[0].date} · {posts[0].read}</p>
                 <h2 className="mt-4 font-display text-4xl leading-tight lg:text-5xl">{posts[0].title}</h2>
                 <p className="mt-6 leading-relaxed text-charcoal/70">{posts[0].excerpt}</p>
-                <span className="mt-8 inline-block border-b border-charcoal/40 pb-1 text-[0.72rem] uppercase tracking-[0.28em]">Read the essay →</span>
+                <span className="mt-8 inline-block border-b border-charcoal/40 pb-1 text-[0.72rem] uppercase tracking-[0.28em] transition-colors group-hover:border-charcoal">Read Article →</span>
               </div>
-            </article>
+            </Link>
           </Reveal>
 
           <div className="mt-32 grid gap-x-10 gap-y-20 md:grid-cols-2">
