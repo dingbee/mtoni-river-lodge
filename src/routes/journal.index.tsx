@@ -36,9 +36,10 @@ const posts = [
   },
   {
     date: "December 2025",
-    read: "7 min",
-    title: "The architecture of disappearing",
-    excerpt: "How the lodge was designed to vanish into the trees — and the local artisans who built it.",
+    read: "6 min",
+    title: "Maasai Boma Architecture at Mtoni",
+    excerpt:
+      "Earth, thatch, and circular spatial logic — how the suites are grounded in a building tradition shaped by climate, culture, and land.",
     img: villa,
     href: "/journal/the-architecture-of-disappearing" as const,
   },
