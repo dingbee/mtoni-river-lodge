@@ -13,8 +13,8 @@ export function SiteFooter() {
               remembers your name.
             </h2>
             <p className="mt-8 max-w-md text-ivory/70">
-              An intimate retreat on the banks of the Mtoni River, Arusha.
-              Twelve suites. One river. A thousand quiet hours.
+              An intimate retreat on the banks of the Nduruma River, Arusha.
+              Twenty four suites. One river. A thousand quiet hours.
             </p>
           </div>
 
