@@ -11,6 +11,9 @@ import villaImg from "@/assets/villa-exterior.jpg";
 import poolImg from "@/assets/pool.jpg";
 import coffeeImg from "@/assets/coffee.jpg";
 import spaImg from "@/assets/spa.jpg";
+import xpRiverWalk from "@/assets/xp-river-walk.jpg";
+import xpCycling from "@/assets/xp-cycling.jpg";
+import xpBonfire from "@/assets/xp-bonfire.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
