@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
@@ -9,7 +10,7 @@ import villa from "@/assets/villa-exterior.jpg";
 import spa from "@/assets/spa.jpg";
 
 const posts = [
-  { date:"March 2026", read:"6 min", title:"What the river taught us about time", excerpt:"On the slow art of arriving, and why we removed every clock from the lodge.", img:river },
+  { date:"March 2026", read:"6 min", title:"What the River Has Taught Us About Time", excerpt:"On the slow art of arriving, and why we removed every clock from the lodge.", img:river, href:"/journal/what-the-river-has-taught-us-about-time" as const },
   { date:"February 2026", read:"4 min", title:"A morning with the beekeepers of Gomba", excerpt:"In the highlands above the lodge, three generations tend the hives that flavour our breakfast honey.", img:coffee },
   { date:"January 2026", read:"5 min", title:"Reading the sky over Mount Meru", excerpt:"Our head guide on weather, omens, and why the afternoon clouds always come at four.", img:guide },
   { date:"December 2025", read:"7 min", title:"The architecture of disappearing", excerpt:"How the lodge was designed to vanish into the trees — and the local artisans who built it.", img:villa },
