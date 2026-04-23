@@ -113,10 +113,12 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
 
       {/* Mobile menu overlay */}
       <div
-        className={`fixed inset-0 z-[60] flex flex-col bg-charcoal text-ivory transition-all duration-500 ease-out lg:hidden ${
+        className={`fixed inset-0 z-[100] flex h-[100svh] w-screen flex-col bg-charcoal text-ivory transition-all duration-500 ease-out lg:hidden ${
           open ? "pointer-events-auto opacity-100 translate-y-0" : "pointer-events-none opacity-0 -translate-y-2"
         }`}
         aria-hidden={!open}
+        role="dialog"
+        aria-modal="true"
       >
         <div className="flex h-20 items-center justify-between px-6">
           <img src={logoUrl} alt="Mtoni River Lodge" className="h-10 w-auto brightness-0 invert" />
