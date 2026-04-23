@@ -1,7 +1,6 @@
 import { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
-import { Link } from "@tanstack/react-router";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { WHATSAPP_URL } from "@/lib/contact";
