@@ -19,9 +19,10 @@ const posts = [
   },
   {
     date: "February 2026",
-    read: "4 min",
-    title: "A morning with the beekeepers of Gomba",
-    excerpt: "In the highlands above the lodge, three generations tend the hives that flavour our breakfast honey.",
+    read: "5 min",
+    title: "Life Along the Nduruma River",
+    excerpt:
+      "Farming traditions, irrigation streams, and the green heart of Mtoni — where ox-ploughed fields and river-fed gardens shape daily life.",
     img: coffee,
     href: "/journal/a-morning-with-the-beekeepers-of-gomba" as const,
   },
