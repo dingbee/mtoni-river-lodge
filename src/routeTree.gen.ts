@@ -21,7 +21,10 @@ import { Route as JournalIndexRouteImport } from './routes/journal.index'
 import { Route as SuitesStandardRiverRouteImport } from './routes/suites.standard-river'
 import { Route as SuitesRiverfrontDeluxeRouteImport } from './routes/suites.riverfront-deluxe'
 import { Route as SuitesFamilySuiteRouteImport } from './routes/suites.family-suite'
+import { Route as JournalWildGingerBaobabRosehipRouteImport } from './routes/journal.wild-ginger-baobab-rosehip'
 import { Route as JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport } from './routes/journal.what-the-river-has-taught-us-about-time'
+import { Route as JournalTheArchitectureOfDisappearingRouteImport } from './routes/journal.the-architecture-of-disappearing'
+import { Route as JournalReadingTheSkyOverMountMeruRouteImport } from './routes/journal.reading-the-sky-over-mount-meru'
 import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './routes/journal.a-morning-with-the-beekeepers-of-gomba'
 
 const SuitesRoute = SuitesRouteImport.update({
@@ -84,10 +87,28 @@ const SuitesFamilySuiteRoute = SuitesFamilySuiteRouteImport.update({
   path: '/family-suite',
   getParentRoute: () => SuitesRoute,
 } as any)
+const JournalWildGingerBaobabRosehipRoute =
+  JournalWildGingerBaobabRosehipRouteImport.update({
+    id: '/wild-ginger-baobab-rosehip',
+    path: '/wild-ginger-baobab-rosehip',
+    getParentRoute: () => JournalRoute,
+  } as any)
 const JournalWhatTheRiverHasTaughtUsAboutTimeRoute =
   JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport.update({
     id: '/what-the-river-has-taught-us-about-time',
     path: '/what-the-river-has-taught-us-about-time',
+    getParentRoute: () => JournalRoute,
+  } as any)
+const JournalTheArchitectureOfDisappearingRoute =
+  JournalTheArchitectureOfDisappearingRouteImport.update({
+    id: '/the-architecture-of-disappearing',
+    path: '/the-architecture-of-disappearing',
+    getParentRoute: () => JournalRoute,
+  } as any)
+const JournalReadingTheSkyOverMountMeruRoute =
+  JournalReadingTheSkyOverMountMeruRouteImport.update({
+    id: '/reading-the-sky-over-mount-meru',
+    path: '/reading-the-sky-over-mount-meru',
     getParentRoute: () => JournalRoute,
   } as any)
 const JournalAMorningWithTheBeekeepersOfGombaRoute =
@@ -106,7 +127,10 @@ export interface FileRoutesByFullPath {
   '/plan': typeof PlanRoute
   '/suites': typeof SuitesRouteWithChildren
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
+  '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
+  '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
+  '/journal/wild-ginger-baobab-rosehip': typeof JournalWildGingerBaobabRosehipRoute
   '/suites/family-suite': typeof SuitesFamilySuiteRoute
   '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
   '/suites/standard-river': typeof SuitesStandardRiverRoute
@@ -120,7 +144,10 @@ export interface FileRoutesByTo {
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
+  '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
+  '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
+  '/journal/wild-ginger-baobab-rosehip': typeof JournalWildGingerBaobabRosehipRoute
   '/suites/family-suite': typeof SuitesFamilySuiteRoute
   '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
   '/suites/standard-river': typeof SuitesStandardRiverRoute
@@ -137,7 +164,10 @@ export interface FileRoutesById {
   '/plan': typeof PlanRoute
   '/suites': typeof SuitesRouteWithChildren
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
+  '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
+  '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
+  '/journal/wild-ginger-baobab-rosehip': typeof JournalWildGingerBaobabRosehipRoute
   '/suites/family-suite': typeof SuitesFamilySuiteRoute
   '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
   '/suites/standard-river': typeof SuitesStandardRiverRoute
@@ -155,7 +185,10 @@ export interface FileRouteTypes {
     | '/plan'
     | '/suites'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
+    | '/journal/reading-the-sky-over-mount-meru'
+    | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
+    | '/journal/wild-ginger-baobab-rosehip'
     | '/suites/family-suite'
     | '/suites/riverfront-deluxe'
     | '/suites/standard-river'
@@ -169,7 +202,10 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/plan'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
+    | '/journal/reading-the-sky-over-mount-meru'
+    | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
+    | '/journal/wild-ginger-baobab-rosehip'
     | '/suites/family-suite'
     | '/suites/riverfront-deluxe'
     | '/suites/standard-river'
@@ -185,7 +221,10 @@ export interface FileRouteTypes {
     | '/plan'
     | '/suites'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
+    | '/journal/reading-the-sky-over-mount-meru'
+    | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
+    | '/journal/wild-ginger-baobab-rosehip'
     | '/suites/family-suite'
     | '/suites/riverfront-deluxe'
     | '/suites/standard-river'
@@ -289,11 +328,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuitesFamilySuiteRouteImport
       parentRoute: typeof SuitesRoute
     }
+    '/journal/wild-ginger-baobab-rosehip': {
+      id: '/journal/wild-ginger-baobab-rosehip'
+      path: '/wild-ginger-baobab-rosehip'
+      fullPath: '/journal/wild-ginger-baobab-rosehip'
+      preLoaderRoute: typeof JournalWildGingerBaobabRosehipRouteImport
+      parentRoute: typeof JournalRoute
+    }
     '/journal/what-the-river-has-taught-us-about-time': {
       id: '/journal/what-the-river-has-taught-us-about-time'
       path: '/what-the-river-has-taught-us-about-time'
       fullPath: '/journal/what-the-river-has-taught-us-about-time'
       preLoaderRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport
+      parentRoute: typeof JournalRoute
+    }
+    '/journal/the-architecture-of-disappearing': {
+      id: '/journal/the-architecture-of-disappearing'
+      path: '/the-architecture-of-disappearing'
+      fullPath: '/journal/the-architecture-of-disappearing'
+      preLoaderRoute: typeof JournalTheArchitectureOfDisappearingRouteImport
+      parentRoute: typeof JournalRoute
+    }
+    '/journal/reading-the-sky-over-mount-meru': {
+      id: '/journal/reading-the-sky-over-mount-meru'
+      path: '/reading-the-sky-over-mount-meru'
+      fullPath: '/journal/reading-the-sky-over-mount-meru'
+      preLoaderRoute: typeof JournalReadingTheSkyOverMountMeruRouteImport
       parentRoute: typeof JournalRoute
     }
     '/journal/a-morning-with-the-beekeepers-of-gomba': {
@@ -308,15 +368,23 @@ declare module '@tanstack/react-router' {
 
 interface JournalRouteChildren {
   JournalAMorningWithTheBeekeepersOfGombaRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRoute
+  JournalReadingTheSkyOverMountMeruRoute: typeof JournalReadingTheSkyOverMountMeruRoute
+  JournalTheArchitectureOfDisappearingRoute: typeof JournalTheArchitectureOfDisappearingRoute
   JournalWhatTheRiverHasTaughtUsAboutTimeRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
+  JournalWildGingerBaobabRosehipRoute: typeof JournalWildGingerBaobabRosehipRoute
   JournalIndexRoute: typeof JournalIndexRoute
 }
 
 const JournalRouteChildren: JournalRouteChildren = {
   JournalAMorningWithTheBeekeepersOfGombaRoute:
     JournalAMorningWithTheBeekeepersOfGombaRoute,
+  JournalReadingTheSkyOverMountMeruRoute:
+    JournalReadingTheSkyOverMountMeruRoute,
+  JournalTheArchitectureOfDisappearingRoute:
+    JournalTheArchitectureOfDisappearingRoute,
   JournalWhatTheRiverHasTaughtUsAboutTimeRoute:
     JournalWhatTheRiverHasTaughtUsAboutTimeRoute,
+  JournalWildGingerBaobabRosehipRoute: JournalWildGingerBaobabRosehipRoute,
   JournalIndexRoute: JournalIndexRoute,
 }
 

@@ -23,6 +23,7 @@ const posts = [
     title: "A morning with the beekeepers of Gomba",
     excerpt: "In the highlands above the lodge, three generations tend the hives that flavour our breakfast honey.",
     img: coffee,
+    href: "/journal/a-morning-with-the-beekeepers-of-gomba" as const,
   },
   {
     date: "January 2026",
@@ -30,6 +31,7 @@ const posts = [
     title: "Reading the sky over Mount Meru",
     excerpt: "Our head guide on weather, omens, and why the afternoon clouds always come at four.",
     img: guide,
+    href: "/journal/reading-the-sky-over-mount-meru" as const,
   },
   {
     date: "December 2025",
@@ -37,6 +39,7 @@ const posts = [
     title: "The architecture of disappearing",
     excerpt: "How the lodge was designed to vanish into the trees — and the local artisans who built it.",
     img: villa,
+    href: "/journal/the-architecture-of-disappearing" as const,
   },
   {
     date: "November 2025",
@@ -44,6 +47,7 @@ const posts = [
     title: "Wild ginger, baobab, rosehip",
     excerpt: "A short note on the East African botanicals at the heart of our spa.",
     img: spa,
+    href: "/journal/wild-ginger-baobab-rosehip" as const,
   },
 ];
 
@@ -129,7 +133,7 @@ function JournalPage() {
                 delay={(index % 2) * 120}
                 className={index % 2 ? "md:mt-20" : ""}
               >
-                <article className="group">
+                <Link to={post.href} className="group block">
                   <div className="aspect-[4/5] overflow-hidden">
                     <img
                       src={post.img}
@@ -143,7 +147,10 @@ function JournalPage() {
                   </p>
                   <h3 className="mt-3 font-display text-2xl leading-snug">{post.title}</h3>
                   <p className="mt-3 max-w-md text-charcoal/70">{post.excerpt}</p>
-                </article>
+                  <span className="mt-6 inline-block border-b border-charcoal/40 pb-1 text-[0.72rem] uppercase tracking-[0.28em] transition-colors group-hover:border-charcoal">
+                    Read Article →
+                  </span>
+                </Link>
               </Reveal>
             ))}
           </div>
