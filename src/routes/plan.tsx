@@ -12,6 +12,29 @@ const SUITE_OPTIONS = [
   "The Garden & Family Rooms",
 ] as const;
 
+const WHATSAPP_PHONE = "255752441443";
+
+function buildWhatsAppUrl(fields: {
+  arrival: string;
+  departure: string;
+  guests: string;
+  suite: string;
+  name?: string;
+  note?: string;
+}) {
+  const lines = [
+    "Hello Mtoni River Lodge, I would like to check availability.",
+    "",
+    `Check-in: ${fields.arrival || "—"}`,
+    `Check-out: ${fields.departure || "—"}`,
+    `Guests: ${fields.guests || "—"}`,
+    `Suite: ${fields.suite || "—"}`,
+  ];
+  if (fields.name) lines.push(`Name: ${fields.name}`);
+  if (fields.note) lines.push("", `Note: ${fields.note}`);
+  return `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(lines.join("\n"))}`;
+}
+
 export const Route = createFileRoute("/plan")({
   head: () => ({
     meta: [
