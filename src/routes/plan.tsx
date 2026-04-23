@@ -90,7 +90,6 @@ function PlanPage() {
             <h2 className="mt-2 font-display text-4xl lg:hidden">Begin the journey.</h2>
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-8">
-                <Field label="Full name" name="name" value={form.name} onChange={update("name")} />
                 <div className="grid grid-cols-2 gap-6">
                   <Field label="Check-in" name="arrival" type="date" value={form.arrival} onChange={update("arrival")} required />
                   <Field label="Check-out" name="departure" type="date" value={form.departure} onChange={update("departure")} required />
@@ -114,7 +113,6 @@ function PlanPage() {
                     </select>
                   </div>
                 </div>
-                <Field label="Email" name="email" type="email" value={form.email} onChange={update("email")} />
                 <Field label="Phone" name="phone" type="tel" value={form.phone} onChange={update("phone")} />
                 <div>
                   <label className="eyebrow block">A note to our team</label>
