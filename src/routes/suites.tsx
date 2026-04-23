@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
@@ -49,8 +48,6 @@ function SuitesPage() {
 }
 
 function SuiteRow({ suite: s, reverse }: { suite: Suite; reverse: boolean }) {
-  const [open, setOpen] = useState(false);
-  const panelId = `suite-details-${s.slug}`;
   return (
     <Reveal>
       <div id={s.slug} className={`scroll-mt-24 grid items-center gap-12 lg:grid-cols-12 ${reverse ? "lg:[direction:rtl]" : ""}`}>
@@ -67,16 +64,14 @@ function SuiteRow({ suite: s, reverse }: { suite: Suite; reverse: boolean }) {
           </div>
           <p className="mt-6 leading-relaxed text-charcoal/75">{s.shortDesc}</p>
           <div className="mt-8 flex flex-wrap items-center gap-6">
-            <button
-              type="button"
-              onClick={() => setOpen((v) => !v)}
-              aria-expanded={open}
-              aria-controls={panelId}
+            <Link
+              to="/suites/$slug"
+              params={{ slug: s.slug }}
               className="group inline-flex items-center gap-3 border border-charcoal px-6 py-3 text-[0.72rem] uppercase tracking-[0.28em] transition-colors hover:bg-charcoal hover:text-ivory"
             >
-              <span>{open ? "Hide details" : "Explore Suite"}</span>
-              <span className={`transition-transform ${open ? "rotate-90" : "group-hover:translate-x-1"}`}>→</span>
-            </button>
+              <span>Explore Suite</span>
+              <span className="transition-transform group-hover:translate-x-1">→</span>
+            </Link>
             <Link
               to="/plan"
               hash="booking-form"
@@ -88,56 +83,6 @@ function SuiteRow({ suite: s, reverse }: { suite: Suite; reverse: boolean }) {
           <p className="mt-3 max-w-sm text-xs leading-relaxed text-charcoal/55">
             {WHATSAPP_NOTE}
           </p>
-
-          {/* Collapsible suite-specific details */}
-          <div
-            id={panelId}
-            className={`grid overflow-hidden transition-all duration-500 ease-out ${open ? "mt-10 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0"}`}
-          >
-            <div className="min-h-0">
-              <div className="space-y-6 border-t border-border pt-8">
-                <p className="font-display text-xl italic text-charcoal/85">{s.heroLine}</p>
-                <div className="space-y-4 text-sm leading-relaxed text-charcoal/75">
-                  {s.description.map((p, idx) => (
-                    <p key={idx}>{p}</p>
-                  ))}
-                </div>
-                <div>
-                  <p className="eyebrow">Key Details</p>
-                  <ul className="mt-4 space-y-2 text-sm text-charcoal/80">
-                    {s.details.map((d) => (
-                      <li key={d.label} className="flex gap-3">
-                        <span aria-hidden className="mt-2 h-1 w-1 shrink-0 rounded-full bg-charcoal/60" />
-                        <span>
-                          <span className="text-charcoal/55">{d.label}:</span> {d.value}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <p className="font-display text-lg italic text-charcoal/80">{s.ctaLine}</p>
-                <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                  {s.gallery.map((src, idx) => (
-                    <div key={idx} className="aspect-square overflow-hidden">
-                      <img
-                        src={src}
-                        alt={`${s.name} — view ${idx + 1}`}
-                        loading="lazy"
-                        className="h-full w-full object-cover transition-transform duration-700 hover:scale-[1.04]"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <Link
-                  to="/suites/$slug"
-                  params={{ slug: s.slug }}
-                  className="inline-flex items-center gap-2 border-b border-charcoal pb-1 text-[0.7rem] uppercase tracking-[0.28em]"
-                >
-                  Open full suite page →
-                </Link>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </Reveal>
