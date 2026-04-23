@@ -12,6 +12,29 @@ const SUITE_OPTIONS = [
   "The Garden & Family Rooms",
 ] as const;
 
+const WHATSAPP_PHONE = "255752441443";
+
+function buildWhatsAppUrl(fields: {
+  arrival: string;
+  departure: string;
+  guests: string;
+  suite: string;
+  name?: string;
+  note?: string;
+}) {
+  const lines = [
+    "Hello Mtoni River Lodge, I would like to check availability.",
+    "",
+    `Check-in: ${fields.arrival || "—"}`,
+    `Check-out: ${fields.departure || "—"}`,
+    `Guests: ${fields.guests || "—"}`,
+    `Suite: ${fields.suite || "—"}`,
+  ];
+  if (fields.name) lines.push(`Name: ${fields.name}`);
+  if (fields.note) lines.push("", `Note: ${fields.note}`);
+  return `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(lines.join("\n"))}`;
+}
+
 export const Route = createFileRoute("/plan")({
   head: () => ({
     meta: [
@@ -25,10 +48,23 @@ export const Route = createFileRoute("/plan")({
 
 function PlanPage() {
   const [sent, setSent] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    arrival: "",
+    departure: "",
+    guests: "2",
+    suite: "",
+    email: "",
+    phone: "",
+    note: "",
+  });
+  const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+  const waUrl = buildWhatsAppUrl(form);
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader />
-      <section className="grid min-h-[100svh] lg:grid-cols-2">
+      <section className="grid min-h-[100svh] lg:grid-cols-2 pt-20 lg:pt-28 scroll-mt-32">
         <div className="relative hidden overflow-hidden lg:block">
           <img src={villa} alt="Lodge at twilight" className="ken-burns h-full w-full object-cover" />
           <div className="absolute inset-0 bg-charcoal/30" />
@@ -60,19 +96,20 @@ function PlanPage() {
                 onSubmit={(e)=>{e.preventDefault(); setSent(true);}}
                 className="space-y-8"
               >
-                <Field label="Full name" name="name" />
+                <Field label="Full name" name="name" value={form.name} onChange={update("name")} />
                 <div className="grid grid-cols-2 gap-6">
-                  <Field label="Arrival" name="arrival" type="date" />
-                  <Field label="Departure" name="departure" type="date" />
+                  <Field label="Check-in" name="arrival" type="date" value={form.arrival} onChange={update("arrival")} />
+                  <Field label="Check-out" name="departure" type="date" value={form.departure} onChange={update("departure")} />
                 </div>
                 <div className="grid grid-cols-2 gap-6">
-                  <Field label="Guests" name="guests" type="number" defaultValue="2" />
+                  <Field label="Guests" name="guests" type="number" value={form.guests} onChange={update("guests")} />
                   <div>
                     <label className="eyebrow block" htmlFor="suite">Select Suite Type</label>
                     <select
                       id="suite"
                       name="suite"
-                      defaultValue=""
+                      value={form.suite}
+                      onChange={update("suite")}
                       className="mt-3 w-full appearance-none border-b border-border bg-transparent pb-2 text-base outline-none transition-colors focus:border-ember"
                     >
                       <option value="" disabled>Choose a suite…</option>
@@ -82,14 +119,14 @@ function PlanPage() {
                     </select>
                   </div>
                 </div>
-                <Field label="Email" name="email" type="email" />
-                <Field label="Phone" name="phone" type="tel" />
+                <Field label="Email" name="email" type="email" value={form.email} onChange={update("email")} />
+                <Field label="Phone" name="phone" type="tel" value={form.phone} onChange={update("phone")} />
                 <div>
                   <label className="eyebrow block">A note to our team</label>
-                  <textarea name="note" rows={4} className="mt-3 w-full border-b border-border bg-transparent pb-2 text-base outline-none transition-colors focus:border-ember" placeholder="Anniversary, dietary notes, journey ideas…" />
+                  <textarea name="note" rows={4} value={form.note} onChange={update("note")} className="mt-3 w-full border-b border-border bg-transparent pb-2 text-base outline-none transition-colors focus:border-ember" placeholder="Anniversary, dietary notes, journey ideas…" />
                 </div>
                 <a
-                  href={WHATSAPP_URL}
+                  href={waUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group inline-flex w-full items-center justify-between border border-charcoal bg-charcoal px-6 py-5 text-[0.72rem] uppercase tracking-[0.32em] text-ivory transition-colors hover:bg-ivory hover:text-charcoal"
@@ -117,11 +154,26 @@ function PlanPage() {
   );
 }
 
-function Field({ label, name, type="text", placeholder, defaultValue }: { label: string; name: string; type?: string; placeholder?: string; defaultValue?: string }) {
+function Field({ label, name, type = "text", placeholder, value, onChange }: {
+  label: string;
+  name: string;
+  type?: string;
+  placeholder?: string;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
+}) {
   return (
     <div>
       <label className="eyebrow block" htmlFor={name}>{label}</label>
-      <input id={name} name={name} type={type} placeholder={placeholder} defaultValue={defaultValue} className="mt-3 w-full border-b border-border bg-transparent pb-2 text-base outline-none transition-colors focus:border-ember" />
+      <input
+        id={name}
+        name={name}
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        className="mt-3 w-full border-b border-border bg-transparent pb-2 text-base outline-none transition-colors focus:border-ember"
+      />
     </div>
   );
 }
