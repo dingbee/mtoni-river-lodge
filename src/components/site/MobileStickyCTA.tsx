@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
+import { WHATSAPP_URL } from "@/lib/contact";
 
 /**
  * Mobile-only sticky "Reserve Your Stay" CTA.
@@ -8,19 +9,15 @@ import { Link, useRouterState } from "@tanstack/react-router";
  * - On the /plan route, scrolls to the booking form. Elsewhere, links to /plan#booking-form.
  */
 export function MobileStickyCTA() {
-  const [nearBottom, setNearBottom] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [hiddenByTarget, setHiddenByTarget] = useState(false);
   const observersAttached = useRef(false);
   const { location } = useRouterState();
-  const isPlan = location.pathname === "/plan";
 
   useEffect(() => {
     const onScroll = () => {
-      const doc = document.documentElement;
-      const scrollBottom = window.scrollY + window.innerHeight;
-      const distanceFromBottom = doc.scrollHeight - scrollBottom;
-      // Reveal once the user is within ~80vh of the page bottom.
-      setNearBottom(distanceFromBottom < window.innerHeight * 0.8);
+      // Reveal after a short scroll (~100px).
+      setScrolled(window.scrollY > 100);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -57,30 +54,24 @@ export function MobileStickyCTA() {
     return () => io.disconnect();
   }, [location.pathname]);
 
-  const handleClick = (e: React.MouseEvent) => {
-    if (!isPlan) return; // let Link navigate to /plan#booking-form
-    e.preventDefault();
-    const form = document.getElementById("booking-form");
-    if (form) form.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  const visible = nearBottom && !hiddenByTarget;
+  const visible = scrolled && !hiddenByTarget;
 
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 z-30 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 lg:hidden transition-all duration-500 ease-out ${
+      className={`fixed inset-x-0 bottom-0 z-[999] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 lg:hidden transition-all duration-500 ease-out ${
         visible ? "translate-y-0 opacity-100 pointer-events-auto" : "translate-y-6 opacity-0 pointer-events-none"
       }`}
       aria-hidden={!visible}
     >
-      <Link
-        to="/plan"
-        hash="booking-form"
-        onClick={handleClick}
-        className="flex w-full items-center justify-center rounded-full bg-charcoal px-6 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-ivory shadow-[0_10px_30px_-8px_rgba(0,0,0,0.45)] transition-transform active:scale-[0.98]"
+      <a
+        href={WHATSAPP_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex w-full items-center justify-center rounded-full px-6 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] shadow-[0_10px_30px_-8px_rgba(0,0,0,0.45)] transition-transform active:scale-[0.98] hover:brightness-105"
+        style={{ backgroundColor: "#C0B87A", color: "#1E2D1E" }}
       >
-        Reserve Your Stay
-      </Link>
+        Check Availability
+      </a>
     </div>
   );
 }
