@@ -85,7 +85,7 @@ function HomePage() {
               Here, architecture does not compete with the landscape; it follows it. Walls carry the warmth of earth, timber frames the light, and every threshold opens toward the rhythm of the river. The day unfolds without urgency — mornings in stillness, afternoons in shade, evenings gathered under the sky as lanterns glow and the sound of water carries through the night.
             </p>
             <div className="mt-12 grid grid-cols-3 gap-8 border-t border-border pt-8">
-              {[["12","Riverfront Suites"],["48","Acres of Forest"],["1","Winding River"]].map(([n,l])=>(
+              {[["24","MAASAI BOMA SUITES"],["48","Acres of Forest"],["1","Winding River"]].map(([n,l])=>(
                 <div key={l}>
                   <p className="font-display text-4xl">{n}</p>
                   <p className="mt-2 text-xs uppercase tracking-[0.2em] text-muted-foreground">{l}</p>
@@ -117,8 +117,8 @@ function HomePage() {
             <div>
               <p className="eyebrow">The Suites</p>
               <h2 className="mt-4 font-display text-5xl leading-[1.04] lg:text-7xl">
-                Twelve rooms.<br/>
-                One river view.
+              Living spaces.<br/>
+              Rooted in nature.
               </h2>
             </div>
             <Link to="/suites" className="group inline-flex items-center gap-3 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]">
