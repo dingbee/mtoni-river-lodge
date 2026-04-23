@@ -116,6 +116,18 @@ function SuiteRow({ suite: s, reverse }: { suite: Suite; reverse: boolean }) {
                   </ul>
                 </div>
                 <p className="font-display text-lg italic text-charcoal/80">{s.ctaLine}</p>
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                  {s.gallery.map((src, idx) => (
+                    <div key={idx} className="aspect-square overflow-hidden">
+                      <img
+                        src={src}
+                        alt={`${s.name} — view ${idx + 1}`}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-700 hover:scale-[1.04]"
+                      />
+                    </div>
+                  ))}
+                </div>
                 <Link
                   to="/suites/$slug"
                   params={{ slug: s.slug }}
