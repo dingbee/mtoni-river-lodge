@@ -17,6 +17,7 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [progress, setProgress] = useState(0); // 0..1 transition state
   const [open, setOpen] = useState(false);
+  const [isLg, setIsLg] = useState(false);
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY;
@@ -26,6 +27,15 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsLg(mql.matches);
+    update();
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
   }, []);
 
   // Lock background scroll when mobile menu open
@@ -40,12 +50,14 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
 
   const solid = !overlay || scrolled;
   const p = !overlay ? 1 : progress;
-  // Interpolate header height & logo height for smooth shrink
-  const headerHeight = 112 - 32 * p; // 112px -> 80px
-  const logoHeight = 64 - 16 * p; // 64px -> 48px
+  // Interpolate header height & logo height for smooth shrink.
+  // Mobile gets a more compact header and noticeably smaller logo
+  // to prevent any overlap with hero text or page headings.
+  const headerHeight = isLg ? 112 - 32 * p : 72 - 8 * p; // lg: 112->80, mobile: 72->64
+  const logoHeight = isLg ? 64 - 16 * p : 36 - 4 * p;    // lg: 64->48,  mobile: 36->32
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 transition-[background-color,color,box-shadow,border-color] duration-500 ease-out will-change-[background-color] ${
+      className={`fixed inset-x-0 top-0 z-40 transition-[background-color,color,box-shadow,border-color] duration-500 ease-out will-change-[background-color] ${
         solid
           ? "bg-ivory/95 backdrop-blur-md text-charcoal border-b border-border shadow-[0_4px_20px_-12px_rgba(0,0,0,0.15)]"
           : p > 0.05
@@ -54,7 +66,7 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
       }`}
     >
       <div
-        className="mx-auto flex max-w-[1500px] items-center justify-between px-6 lg:px-12 transition-[height] duration-500 ease-out"
+        className="mx-auto flex max-w-[1500px] items-center justify-between px-5 sm:px-6 lg:px-12 transition-[height] duration-500 ease-out"
         style={{ height: `${headerHeight}px` }}
       >
         <Link to="/" className="flex items-center leading-none" aria-label="Mtoni River Lodge">
@@ -101,10 +113,12 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
 
       {/* Mobile menu overlay */}
       <div
-        className={`fixed inset-0 z-[60] flex flex-col bg-charcoal text-ivory transition-all duration-500 ease-out lg:hidden ${
+        className={`fixed inset-0 z-[100] flex h-[100svh] w-screen flex-col bg-charcoal text-ivory transition-all duration-500 ease-out lg:hidden ${
           open ? "pointer-events-auto opacity-100 translate-y-0" : "pointer-events-none opacity-0 -translate-y-2"
         }`}
         aria-hidden={!open}
+        role="dialog"
+        aria-modal="true"
       >
         <div className="flex h-20 items-center justify-between px-6">
           <img src={logoUrl} alt="Mtoni River Lodge" className="h-10 w-auto brightness-0 invert" />
