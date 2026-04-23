@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
-import { WHATSAPP_URL, WHATSAPP_NOTE } from "@/lib/contact";
+import { WHATSAPP_NOTE } from "@/lib/contact";
 import heroImg from "@/assets/hero-river.jpg";
 import suiteImg from "@/assets/suite-interior.jpg";
 import diningImg from "@/assets/dining.jpg";
