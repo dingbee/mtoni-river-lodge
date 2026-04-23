@@ -30,12 +30,13 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
         solid ? "bg-ivory/95 backdrop-blur-md text-charcoal border-b border-border" : "bg-transparent text-ivory"
       }`}
     >
-      <div className="mx-auto flex h-20 max-w-[1500px] items-center justify-between px-6 lg:px-12">
+      <div className="mx-auto flex h-28 max-w-[1500px] items-center justify-between px-6 lg:px-12">
         <Link to="/" className="flex items-center leading-none" aria-label="Mtoni River Lodge">
           <img
             src={logoUrl}
             alt="Mtoni River Lodge"
-            className={`h-12 w-auto transition-all duration-500 ${solid ? "" : "brightness-0 invert"}`}
+            className={`h-18 w-auto transition-all duration-500 ${solid ? "" : "brightness-0 invert"}`}
+            style={{ height: "4.5rem" }}
           />
         </Link>
 
