@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
+import { WHATSAPP_URL, WHATSAPP_NOTE } from "@/lib/contact";
 import heroImg from "@/assets/hero-river.jpg";
 import suiteImg from "@/assets/suite-interior.jpg";
 import diningImg from "@/assets/dining.jpg";
@@ -53,10 +54,20 @@ function HomePage() {
               <p className="max-w-md text-pretty text-ivory/80">
                A serene retreat where Africa’s beauty meets authenticity. On the banks of the Mtoni River, we blend traditional Maasai architecture and modern comforts, offering a uniquely African stay.
               </p>
-              <Link to="/plan" className="group inline-flex items-center gap-4 border border-ivory px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.32em] transition-colors hover:bg-ivory hover:text-charcoal">
-                Plan your stay
-                <span className="transition-transform group-hover:translate-x-1">→</span>
-              </Link>
+              <div className="flex flex-col items-start gap-3 sm:items-end">
+                <a
+                  href={WHATSAPP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex items-center gap-4 border border-ivory px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.32em] transition-colors hover:bg-ivory hover:text-charcoal"
+                >
+                  Plan your stay
+                  <span className="transition-transform group-hover:translate-x-1">→</span>
+                </a>
+                <p className="max-w-xs text-left text-[0.72rem] leading-relaxed text-ivory/65 sm:text-right">
+                  {WHATSAPP_NOTE}
+                </p>
+              </div>
             </div>
           </Reveal>
         </div>
@@ -278,9 +289,19 @@ function HomePage() {
               The river is waiting.<br/>
               <em className="italic text-ivory/85">When will you arrive?</em>
             </h2>
-            <Link to="/plan" className="mt-12 inline-flex items-center gap-4 border border-ivory px-8 py-5 text-[0.72rem] uppercase tracking-[0.32em] hover:bg-ivory hover:text-charcoal">
-              Plan your stay →
-            </Link>
+            <div className="mt-12 flex flex-col items-center gap-4">
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-4 border border-ivory px-8 py-5 text-[0.72rem] uppercase tracking-[0.32em] hover:bg-ivory hover:text-charcoal"
+              >
+                Plan your stay →
+              </a>
+              <p className="max-w-md text-center text-xs leading-relaxed text-ivory/65">
+                {WHATSAPP_NOTE}
+              </p>
+            </div>
           </Reveal>
         </div>
       </section>

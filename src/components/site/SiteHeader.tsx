@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import logoUrl from "@/assets/mtoni-logo.png";
+import { WHATSAPP_URL } from "@/lib/contact";
 
 const links = [
   { to: "/", label: "Home" },
@@ -94,12 +95,14 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
         </nav>
 
         <div className="hidden items-center gap-4 lg:flex">
-          <Link
-            to="/plan"
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="group inline-flex items-center gap-3 border border-current px-5 py-2.5 text-[0.72rem] font-medium uppercase tracking-[0.28em] transition-all hover:bg-current"
           >
             <span className="transition-colors group-hover:text-ivory">Reserve</span>
-          </Link>
+          </a>
         </div>
 
         <button
@@ -143,13 +146,18 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
           ))}
         </nav>
         <div className="px-6 pb-10 pt-4">
-          <Link
-            to="/plan"
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={() => setOpen(false)}
             className="block w-full border border-ivory py-4 text-center text-[0.72rem] font-medium uppercase tracking-[0.28em] transition hover:bg-ivory hover:text-charcoal"
           >
-            Reserve
-          </Link>
+            Reserve on WhatsApp
+          </a>
+          <p className="mt-3 text-center text-[0.7rem] leading-relaxed text-ivory/60">
+            Speak with our team instantly on WhatsApp for availability and personalized arrangements.
+          </p>
         </div>
       </div>
     </header>
