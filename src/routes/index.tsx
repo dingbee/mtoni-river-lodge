@@ -55,15 +55,14 @@ function HomePage() {
                A serene retreat where Africa’s beauty meets authenticity. On the banks of the Mtoni River, we blend traditional Maasai architecture and modern comforts, offering a uniquely African stay.
               </p>
               <div className="flex flex-col items-start gap-3 sm:items-end">
-                <a
-                  href={WHATSAPP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  to="/plan"
+                  hash="booking-form"
                   className="group inline-flex items-center gap-4 border border-ivory px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.32em] transition-colors hover:bg-ivory hover:text-charcoal"
                 >
-                  Plan your stay
+                  Check Availability
                   <span className="transition-transform group-hover:translate-x-1">→</span>
-                </a>
+                </Link>
                 <p className="max-w-xs text-left text-[0.72rem] leading-relaxed text-ivory/65 sm:text-right">
                   {WHATSAPP_NOTE}
                 </p>
@@ -290,14 +289,13 @@ function HomePage() {
               <em className="italic text-ivory/85">When will you arrive?</em>
             </h2>
             <div className="mt-12 flex flex-col items-center gap-4">
-              <a
-                href={WHATSAPP_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to="/plan"
+                hash="booking-form"
                 className="inline-flex items-center gap-4 border border-ivory px-8 py-5 text-[0.72rem] uppercase tracking-[0.32em] hover:bg-ivory hover:text-charcoal"
               >
-                Plan your stay →
-              </a>
+                Reserve Your Stay →
+              </Link>
               <p className="max-w-md text-center text-xs leading-relaxed text-ivory/65">
                 {WHATSAPP_NOTE}
               </p>
