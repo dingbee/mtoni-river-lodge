@@ -3,9 +3,10 @@ import { Reveal } from "@/components/site/Reveal";
 import { ArticleLayout } from "@/components/site/ArticleLayout";
 import villa from "@/assets/villa-exterior.jpg";
 
-const TITLE = "The architecture of disappearing";
+const TITLE =
+  "Maasai Boma Architecture: The Earth and Thatch Design Philosophy of Mtoni River Lodge";
 const DESCRIPTION =
-  "How the lodge was designed to vanish into the trees — and the local artisans who built it.";
+  "Earth, thatch, and circular spatial logic — how the suites at Mtoni are grounded in a Maasai boma tradition shaped by climate, culture, and the Arusha landscape.";
 
 export const Route = createFileRoute("/journal/the-architecture-of-disappearing")({
   head: () => ({
@@ -26,66 +27,141 @@ export const Route = createFileRoute("/journal/the-architecture-of-disappearing"
 function ArticlePage() {
   return (
     <ArticleLayout
-      eyebrow="December 2025 · 7 min read"
+      eyebrow="December 2025 · 6 min read"
       title={TITLE}
       intro={DESCRIPTION}
       image={villa}
-      imageAlt="Lodge villa half-hidden among riverside trees"
-      caption="A villa among the figs — photograph by the lodge"
+      imageAlt="Earth and thatch suite at Mtoni River Lodge, inspired by Maasai boma architecture"
+      caption="Earth and thatch — photograph by the lodge"
     >
       <Reveal>
         <p>
-          The brief, when the lodge was first imagined, was almost a riddle:
-          to build something that would not be seen. Not from the river, not
-          from the opposite bank, not from the path that runs along the
-          ridge. The trees were here first. They would stay first.
+          In the open landscapes of Arusha, Tanzania, architecture has never
+          been separate from life. It has always been shaped by climate,
+          culture, and necessity. At Mtoni River Lodge, this wisdom is not
+          referenced as inspiration alone — it is actively built into every
+          structure.
         </p>
-      </Reveal>
-      <Reveal delay={80}>
         <p>
-          The architects, a small studio from Arusha, spent the first month
-          not drawing. They walked the land at dawn, at noon, at dusk. They
-          marked the trees that could not be moved. They mapped the small
-          clearings the elephants had already made for them. The plan, when
-          it finally appeared, followed the land instead of correcting it.
+          The suites at Mtoni are grounded in the Maasai boma architecture
+          tradition, where earth and thatch are not aesthetic choices, but
+          intelligent responses to environment, temperature, and community
+          living. This is sustainable architecture in Tanzania, expressed
+          through form, material, and spatial rhythm.
         </p>
       </Reveal>
-      <Reveal delay={80}>
-        <h2 className="pt-6 font-display text-3xl leading-tight text-charcoal">
-          Stone, thatch, the long grain of timber
-        </h2>
-        <p>
-          The walls are local stone, cut from a quarry an hour upriver. The
-          roofs are thatched in the old way, by a family from the
-          neighbouring village who have done this work for four generations
-          and prefer not to be hurried. The timber for the decks came from
-          fallen mninga, gathered slowly over two seasons. Nothing was
-          shipped in that could be made nearby.
-        </p>
-      </Reveal>
-      <Reveal delay={80}>
-        <p>
-          The colours were chosen, in the end, by holding swatches against
-          the bark of the largest fig on site, and rejecting anything that
-          shouted. What remained was the colour of shade, of damp earth,
-          of the river when it slows.
-        </p>
-      </Reveal>
+
       <Reveal delay={80}>
         <h2 className="pt-6 font-display text-3xl leading-tight text-charcoal">
-          The disappearing act
+          The logic of earth and thatch construction
         </h2>
         <p>
-          From the river, on a quiet morning, you can pass the lodge
-          without seeing it. A line of thatch, perhaps. A glint of glass
-          between two trunks. Then the bend in the river takes you on, and
-          it is gone. This, more than any award, is the measure we use.
+          The suites are constructed using natural earth and thatch —
+          materials that belong to the land itself. This approach is rooted
+          in centuries of traditional African building systems, where homes
+          were designed to respond to heat, wind, and seasonal change without
+          mechanical intervention.
+        </p>
+        <p>
+          Earth walls naturally regulate indoor temperature, keeping
+          interiors cool during the day and warm during cooler nights. Thatch
+          roofing softens sunlight, allowing filtered light and ventilation
+          to move through the space. Together, these materials create a
+          living structure — one that breathes with its environment rather
+          than resisting it.
         </p>
       </Reveal>
+
+      <Reveal delay={80}>
+        <h2 className="pt-6 font-display text-3xl leading-tight text-charcoal">
+          Circular spatial design: the boma principle
+        </h2>
+        <p>
+          At the heart of Maasai boma architecture is the circle. This
+          circular logic is reflected in how space is organized and
+          experienced at Mtoni River Lodge. Rather than rigid linear layouts,
+          the design encourages flow, orientation, and openness.
+        </p>
+        <p>
+          The circular form represents equality of space, natural movement
+          between areas, a sense of enclosure without confinement, and a
+          connection to communal living traditions. This spatial intelligence
+          is not decorative — it is functional heritage architecture.
+        </p>
+      </Reveal>
+
+      <Reveal delay={80}>
+        <h2 className="pt-6 font-display text-3xl leading-tight text-charcoal">
+          Climate intelligence in design
+        </h2>
+        <p>
+          The use of earth and thatch is not symbolic. It is climatic
+          intelligence refined over generations. In the context of eco lodge
+          design in Arusha, these materials perform critical environmental
+          functions: earth stabilizes internal temperatures naturally, thick
+          walls reduce heat penetration, thatch roofs allow hot air to rise
+          and escape, and natural ventilation reduces dependency on
+          artificial cooling.
+        </p>
+        <p>
+          This creates a low-impact, energy-efficient living environment that
+          aligns with modern sustainability principles while remaining deeply
+          traditional.
+        </p>
+      </Reveal>
+
+      <Reveal delay={80}>
+        <h2 className="pt-6 font-display text-3xl leading-tight text-charcoal">
+          Cultural continuity through architecture
+        </h2>
+        <p>
+          Mtoni River Lodge does not replicate Maasai boma design as a visual
+          motif. Instead, it respects it as an architectural language. This
+          means preserving spatial principles rather than just appearance,
+          using materials that reflect local ecosystems, honoring indigenous
+          construction logic, and maintaining harmony between structure and
+          landscape. This continuity ensures that the lodge remains
+          culturally grounded within its environment in Tanzania.
+        </p>
+      </Reveal>
+
+      <Reveal delay={80}>
+        <h2 className="pt-6 font-display text-3xl leading-tight text-charcoal">
+          Minimal impact construction philosophy
+        </h2>
+        <p>
+          One of the defining principles of Mtoni River Lodge is minimal
+          environmental disruption. By using locally available materials such
+          as earth, thatch, and timber, construction avoids unnecessary
+          industrial processing and long-distance material transport.
+        </p>
+        <p>
+          The result is a reduced environmental footprint, stronger
+          integration with the surrounding landscape, and architecture that
+          feels placed rather than imposed. The lodge becomes part of the
+          terrain — not an interruption of it.
+        </p>
+      </Reveal>
+
+      <Reveal delay={80}>
+        <h2 className="pt-6 font-display text-3xl leading-tight text-charcoal">
+          Living within the landscape
+        </h2>
+        <p>
+          Set near the river ecosystem of Arusha, the suites exist in
+          continuous dialogue with nature. The design does not dominate the
+          environment but responds to it — light, wind, vegetation, and
+          seasonal rhythm all influence how the space is experienced. This is
+          not just accommodation. It is eco-luxury living in Tanzania, where
+          architecture and nature are inseparable.
+        </p>
+      </Reveal>
+
       <Reveal delay={80}>
         <p className="pt-6 italic text-charcoal/70">
-          The best buildings, here, are the ones the forest forgets to
-          notice.
+          Through earth, thatch, and circular spatial logic, the lodge offers
+          more than shelter — it offers continuity with a way of building
+          that has always belonged here.
         </p>
       </Reveal>
     </ArticleLayout>
