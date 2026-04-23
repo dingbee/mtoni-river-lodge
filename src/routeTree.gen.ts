@@ -15,6 +15,7 @@ import { Route as LodgeRouteImport } from './routes/lodge'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as ExperiencesRouteImport } from './routes/experiences'
 import { Route as DiningRouteImport } from './routes/dining'
+import { Route as BookRouteImport } from './routes/book'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuitesIndexRouteImport } from './routes/suites.index'
 import { Route as JournalIndexRouteImport } from './routes/journal.index'
@@ -55,6 +56,11 @@ const ExperiencesRoute = ExperiencesRouteImport.update({
 const DiningRoute = DiningRouteImport.update({
   id: '/dining',
   path: '/dining',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookRoute = BookRouteImport.update({
+  id: '/book',
+  path: '/book',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -120,6 +126,7 @@ const JournalAMorningWithTheBeekeepersOfGombaRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/book': typeof BookRoute
   '/dining': typeof DiningRoute
   '/experiences': typeof ExperiencesRoute
   '/journal': typeof JournalRouteWithChildren
@@ -139,6 +146,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/book': typeof BookRoute
   '/dining': typeof DiningRoute
   '/experiences': typeof ExperiencesRoute
   '/lodge': typeof LodgeRoute
@@ -157,6 +165,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/book': typeof BookRoute
   '/dining': typeof DiningRoute
   '/experiences': typeof ExperiencesRoute
   '/journal': typeof JournalRouteWithChildren
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/book'
     | '/dining'
     | '/experiences'
     | '/journal'
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/book'
     | '/dining'
     | '/experiences'
     | '/lodge'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/book'
     | '/dining'
     | '/experiences'
     | '/journal'
@@ -234,6 +246,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BookRoute: typeof BookRoute
   DiningRoute: typeof DiningRoute
   ExperiencesRoute: typeof ExperiencesRoute
   JournalRoute: typeof JournalRouteWithChildren
@@ -284,6 +297,13 @@ declare module '@tanstack/react-router' {
       path: '/dining'
       fullPath: '/dining'
       preLoaderRoute: typeof DiningRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/book': {
+      id: '/book'
+      path: '/book'
+      fullPath: '/book'
+      preLoaderRoute: typeof BookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -410,6 +430,7 @@ const SuitesRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BookRoute: BookRoute,
   DiningRoute: DiningRoute,
   ExperiencesRoute: ExperiencesRoute,
   JournalRoute: JournalRouteWithChildren,
