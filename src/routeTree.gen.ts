@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SuitesRouteImport } from './routes/suites'
 import { Route as PlanRouteImport } from './routes/plan'
 import { Route as LodgeRouteImport } from './routes/lodge'
+import { Route as JournalRouteImport } from './routes/journal'
 import { Route as ExperiencesRouteImport } from './routes/experiences'
 import { Route as DiningRouteImport } from './routes/dining'
 import { Route as IndexRouteImport } from './routes/index'
@@ -37,6 +38,11 @@ const LodgeRoute = LodgeRouteImport.update({
   path: '/lodge',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JournalRoute = JournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExperiencesRoute = ExperiencesRouteImport.update({
   id: '/experiences',
   path: '/experiences',
@@ -58,9 +64,9 @@ const SuitesIndexRoute = SuitesIndexRouteImport.update({
   getParentRoute: () => SuitesRoute,
 } as any)
 const JournalIndexRoute = JournalIndexRouteImport.update({
-  id: '/journal/',
-  path: '/journal/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => JournalRoute,
 } as any)
 const SuitesStandardRiverRoute = SuitesStandardRiverRouteImport.update({
   id: '/standard-river',
@@ -79,15 +85,16 @@ const SuitesFamilySuiteRoute = SuitesFamilySuiteRouteImport.update({
 } as any)
 const JournalWhatTheRiverHasTaughtUsAboutTimeRoute =
   JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport.update({
-    id: '/journal/what-the-river-has-taught-us-about-time',
-    path: '/journal/what-the-river-has-taught-us-about-time',
-    getParentRoute: () => rootRouteImport,
+    id: '/what-the-river-has-taught-us-about-time',
+    path: '/what-the-river-has-taught-us-about-time',
+    getParentRoute: () => JournalRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dining': typeof DiningRoute
   '/experiences': typeof ExperiencesRoute
+  '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/suites': typeof SuitesRouteWithChildren
@@ -116,6 +123,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dining': typeof DiningRoute
   '/experiences': typeof ExperiencesRoute
+  '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/suites': typeof SuitesRouteWithChildren
@@ -132,6 +140,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dining'
     | '/experiences'
+    | '/journal'
     | '/lodge'
     | '/plan'
     | '/suites'
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dining'
     | '/experiences'
+    | '/journal'
     | '/lodge'
     | '/plan'
     | '/suites'
@@ -174,11 +184,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DiningRoute: typeof DiningRoute
   ExperiencesRoute: typeof ExperiencesRoute
+  JournalRoute: typeof JournalRouteWithChildren
   LodgeRoute: typeof LodgeRoute
   PlanRoute: typeof PlanRoute
   SuitesRoute: typeof SuitesRouteWithChildren
-  JournalWhatTheRiverHasTaughtUsAboutTimeRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
-  JournalIndexRoute: typeof JournalIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -202,6 +211,13 @@ declare module '@tanstack/react-router' {
       path: '/lodge'
       fullPath: '/lodge'
       preLoaderRoute: typeof LodgeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journal': {
+      id: '/journal'
+      path: '/journal'
+      fullPath: '/journal'
+      preLoaderRoute: typeof JournalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/experiences': {
@@ -234,10 +250,10 @@ declare module '@tanstack/react-router' {
     }
     '/journal/': {
       id: '/journal/'
-      path: '/journal'
+      path: '/'
       fullPath: '/journal/'
       preLoaderRoute: typeof JournalIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof JournalRoute
     }
     '/suites/standard-river': {
       id: '/suites/standard-river'
@@ -262,13 +278,27 @@ declare module '@tanstack/react-router' {
     }
     '/journal/what-the-river-has-taught-us-about-time': {
       id: '/journal/what-the-river-has-taught-us-about-time'
-      path: '/journal/what-the-river-has-taught-us-about-time'
+      path: '/what-the-river-has-taught-us-about-time'
       fullPath: '/journal/what-the-river-has-taught-us-about-time'
       preLoaderRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof JournalRoute
     }
   }
 }
+
+interface JournalRouteChildren {
+  JournalWhatTheRiverHasTaughtUsAboutTimeRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
+  JournalIndexRoute: typeof JournalIndexRoute
+}
+
+const JournalRouteChildren: JournalRouteChildren = {
+  JournalWhatTheRiverHasTaughtUsAboutTimeRoute:
+    JournalWhatTheRiverHasTaughtUsAboutTimeRoute,
+  JournalIndexRoute: JournalIndexRoute,
+}
+
+const JournalRouteWithChildren =
+  JournalRoute._addFileChildren(JournalRouteChildren)
 
 interface SuitesRouteChildren {
   SuitesFamilySuiteRoute: typeof SuitesFamilySuiteRoute
@@ -291,12 +321,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DiningRoute: DiningRoute,
   ExperiencesRoute: ExperiencesRoute,
+  JournalRoute: JournalRouteWithChildren,
   LodgeRoute: LodgeRoute,
   PlanRoute: PlanRoute,
   SuitesRoute: SuitesRouteWithChildren,
-  JournalWhatTheRiverHasTaughtUsAboutTimeRoute:
-    JournalWhatTheRiverHasTaughtUsAboutTimeRoute,
-  JournalIndexRoute: JournalIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
