@@ -20,6 +20,7 @@ import { Route as SuitesIndexRouteImport } from './routes/suites.index'
 import { Route as SuitesStandardRiverRouteImport } from './routes/suites.standard-river'
 import { Route as SuitesRiverfrontDeluxeRouteImport } from './routes/suites.riverfront-deluxe'
 import { Route as SuitesFamilySuiteRouteImport } from './routes/suites.family-suite'
+import { Route as JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport } from './routes/journal.what-the-river-has-taught-us-about-time'
 
 const SuitesRoute = SuitesRouteImport.update({
   id: '/suites',
@@ -76,15 +77,22 @@ const SuitesFamilySuiteRoute = SuitesFamilySuiteRouteImport.update({
   path: '/family-suite',
   getParentRoute: () => SuitesRoute,
 } as any)
+const JournalWhatTheRiverHasTaughtUsAboutTimeRoute =
+  JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport.update({
+    id: '/what-the-river-has-taught-us-about-time',
+    path: '/what-the-river-has-taught-us-about-time',
+    getParentRoute: () => JournalRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dining': typeof DiningRoute
   '/experiences': typeof ExperiencesRoute
-  '/journal': typeof JournalRoute
+  '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/suites': typeof SuitesRouteWithChildren
+  '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/suites/family-suite': typeof SuitesFamilySuiteRoute
   '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
   '/suites/standard-river': typeof SuitesStandardRiverRoute
@@ -94,9 +102,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dining': typeof DiningRoute
   '/experiences': typeof ExperiencesRoute
-  '/journal': typeof JournalRoute
+  '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
+  '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/suites/family-suite': typeof SuitesFamilySuiteRoute
   '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
   '/suites/standard-river': typeof SuitesStandardRiverRoute
@@ -107,10 +116,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dining': typeof DiningRoute
   '/experiences': typeof ExperiencesRoute
-  '/journal': typeof JournalRoute
+  '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/suites': typeof SuitesRouteWithChildren
+  '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/suites/family-suite': typeof SuitesFamilySuiteRoute
   '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
   '/suites/standard-river': typeof SuitesStandardRiverRoute
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/plan'
     | '/suites'
+    | '/journal/what-the-river-has-taught-us-about-time'
     | '/suites/family-suite'
     | '/suites/riverfront-deluxe'
     | '/suites/standard-river'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/journal'
     | '/lodge'
     | '/plan'
+    | '/journal/what-the-river-has-taught-us-about-time'
     | '/suites/family-suite'
     | '/suites/riverfront-deluxe'
     | '/suites/standard-river'
@@ -151,6 +163,7 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/plan'
     | '/suites'
+    | '/journal/what-the-river-has-taught-us-about-time'
     | '/suites/family-suite'
     | '/suites/riverfront-deluxe'
     | '/suites/standard-river'
@@ -161,7 +174,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DiningRoute: typeof DiningRoute
   ExperiencesRoute: typeof ExperiencesRoute
-  JournalRoute: typeof JournalRoute
+  JournalRoute: typeof JournalRouteWithChildren
   LodgeRoute: typeof LodgeRoute
   PlanRoute: typeof PlanRoute
   SuitesRoute: typeof SuitesRouteWithChildren
@@ -246,8 +259,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuitesFamilySuiteRouteImport
       parentRoute: typeof SuitesRoute
     }
+    '/journal/what-the-river-has-taught-us-about-time': {
+      id: '/journal/what-the-river-has-taught-us-about-time'
+      path: '/what-the-river-has-taught-us-about-time'
+      fullPath: '/journal/what-the-river-has-taught-us-about-time'
+      preLoaderRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport
+      parentRoute: typeof JournalRoute
+    }
   }
 }
+
+interface JournalRouteChildren {
+  JournalWhatTheRiverHasTaughtUsAboutTimeRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
+}
+
+const JournalRouteChildren: JournalRouteChildren = {
+  JournalWhatTheRiverHasTaughtUsAboutTimeRoute:
+    JournalWhatTheRiverHasTaughtUsAboutTimeRoute,
+}
+
+const JournalRouteWithChildren =
+  JournalRoute._addFileChildren(JournalRouteChildren)
 
 interface SuitesRouteChildren {
   SuitesFamilySuiteRoute: typeof SuitesFamilySuiteRoute
@@ -270,7 +302,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DiningRoute: DiningRoute,
   ExperiencesRoute: ExperiencesRoute,
-  JournalRoute: JournalRoute,
+  JournalRoute: JournalRouteWithChildren,
   LodgeRoute: LodgeRoute,
   PlanRoute: PlanRoute,
   SuitesRoute: SuitesRouteWithChildren,
