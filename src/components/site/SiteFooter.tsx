@@ -12,6 +12,29 @@ const socials = [
   { label: "Pinterest", href: "https://www.pinterest.com/mtoniriverlodge", Icon: PinterestIcon },
 ];
 
+function ExternalSocialLink({
+  href,
+  label,
+  children,
+}: {
+  href: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={label}
+      data-external-link="true"
+      className="relative z-10 inline-flex h-12 w-12 cursor-pointer items-center justify-center text-ivory/70 transition-colors hover:text-gold [&_svg]:pointer-events-none"
+    >
+      {children}
+    </a>
+  );
+}
+
 function PinterestIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -36,15 +59,9 @@ export function SiteFooter() {
         <ul className="flex items-center justify-center gap-8">
           {socials.map(({ label, href, Icon }) => (
             <li key={label}>
-              <a
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={label}
-                className="relative z-10 inline-flex h-12 w-12 cursor-pointer items-center justify-center text-ivory/70 transition-colors hover:text-gold [&_svg]:pointer-events-none"
-              >
+              <ExternalSocialLink href={href} label={label}>
                 <Icon className="h-6 w-6" />
-              </a>
+              </ExternalSocialLink>
             </li>
           ))}
         </ul>
