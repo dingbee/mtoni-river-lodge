@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SuitesRouteImport } from './routes/suites'
 import { Route as RoomsRouteImport } from './routes/rooms'
 import { Route as PlanRouteImport } from './routes/plan'
@@ -29,6 +30,11 @@ import { Route as JournalTheArchitectureOfDisappearingRouteImport } from './rout
 import { Route as JournalReadingTheSkyOverMountMeruRouteImport } from './routes/journal.reading-the-sky-over-mount-meru'
 import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './routes/journal.a-morning-with-the-beekeepers-of-gomba'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SuitesRoute = SuitesRouteImport.update({
   id: '/suites',
   path: '/suites',
@@ -140,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/plan': typeof PlanRoute
   '/rooms': typeof RoomsRouteWithChildren
   '/suites': typeof SuitesRoute
+  '/terms': typeof TermsRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
@@ -159,6 +166,7 @@ export interface FileRoutesByTo {
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/suites': typeof SuitesRoute
+  '/terms': typeof TermsRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
@@ -181,6 +189,7 @@ export interface FileRoutesById {
   '/plan': typeof PlanRoute
   '/rooms': typeof RoomsRouteWithChildren
   '/suites': typeof SuitesRoute
+  '/terms': typeof TermsRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
@@ -204,6 +213,7 @@ export interface FileRouteTypes {
     | '/plan'
     | '/rooms'
     | '/suites'
+    | '/terms'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
@@ -223,6 +233,7 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/plan'
     | '/suites'
+    | '/terms'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
@@ -244,6 +255,7 @@ export interface FileRouteTypes {
     | '/plan'
     | '/rooms'
     | '/suites'
+    | '/terms'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
@@ -266,10 +278,18 @@ export interface RootRouteChildren {
   PlanRoute: typeof PlanRoute
   RoomsRoute: typeof RoomsRouteWithChildren
   SuitesRoute: typeof SuitesRoute
+  TermsRoute: typeof TermsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/suites': {
       id: '/suites'
       path: '/suites'
@@ -457,6 +477,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlanRoute: PlanRoute,
   RoomsRoute: RoomsRouteWithChildren,
   SuitesRoute: SuitesRoute,
+  TermsRoute: TermsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

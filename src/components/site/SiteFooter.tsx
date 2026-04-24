@@ -55,6 +55,10 @@ const discoveryGroups: Array<{
     title: "Journal",
     links: [{ label: "All Stories", to: "/journal" }],
   },
+  {
+    title: "Policies",
+    links: [{ label: "Terms & Conditions", to: "/terms" }],
+  },
 ];
 
 function AccordionGroup({

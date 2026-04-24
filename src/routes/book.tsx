@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooterMinimal } from "@/components/site/SiteFooterMinimal";
@@ -30,6 +31,7 @@ export const Route = createFileRoute("/book")({
 
 function BookPage() {
   const [loaded, setLoaded] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   return (
     <div className="bg-ivory text-charcoal">
@@ -44,6 +46,10 @@ function BookPage() {
           <p className="mx-auto mt-6 max-w-xl text-base text-charcoal/70">
             Select your dates, room and number of guests. Our team confirms
             every reservation personally within 24 hours.
+          </p>
+          <p className="mx-auto mt-8 max-w-xl border-t border-charcoal/10 pt-6 text-sm leading-relaxed text-charcoal/65">
+            A 50% deposit secures your stay. Balance due 30 days before
+            arrival. Cancellation terms apply.
           </p>
         </section>
 
@@ -100,6 +106,27 @@ function BookPage() {
 
           {/* Assistance row */}
           <div className="mt-8 flex flex-col items-center gap-3 text-center">
+            {/* Terms acknowledgement */}
+            <label className="mx-auto mb-4 flex max-w-md cursor-pointer items-start gap-3 text-left text-xs leading-relaxed text-charcoal/70">
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-charcoal"
+              />
+              <span>
+                I agree to the{" "}
+                <Link
+                  to="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-4 hover:text-charcoal"
+                >
+                  Terms &amp; Conditions
+                </Link>
+                .
+              </span>
+            </label>
             <p className="text-xs uppercase tracking-[0.28em] text-charcoal/50">
               Need assistance?
             </p>
@@ -107,7 +134,15 @@ function BookPage() {
               href={WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 border border-charcoal px-6 py-3 text-[0.72rem] uppercase tracking-[0.28em] transition-colors hover:bg-charcoal hover:text-ivory"
+              aria-disabled={!agreedToTerms}
+              onClick={(e) => {
+                if (!agreedToTerms) e.preventDefault();
+              }}
+              className={`inline-flex items-center gap-3 border border-charcoal px-6 py-3 text-[0.72rem] uppercase tracking-[0.28em] transition-colors ${
+                agreedToTerms
+                  ? "hover:bg-charcoal hover:text-ivory"
+                  : "cursor-not-allowed opacity-50"
+              }`}
             >
               WhatsApp +255 752 441 443 →
             </a>
