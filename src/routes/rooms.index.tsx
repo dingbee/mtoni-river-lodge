@@ -63,10 +63,9 @@ function RoomRow({ room, reverse }: { room: Room; reverse: boolean }) {
           </Link>
         </div>
         <div className="lg:col-span-4 lg:[direction:ltr]">
-          <p className="eyebrow">No. {room.no}</p>
-          <h2 className="mt-3 font-display text-4xl lg:text-5xl">{room.name}</h2>
+          <h2 className="font-display text-4xl lg:text-5xl">{room.name}</h2>
           <div className="mt-6 flex gap-6 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            <span>{room.size}</span><span>·</span><span>{room.view}</span>
+            <span>{room.view}</span>
           </div>
           <p className="mt-6 leading-relaxed text-charcoal/75">{room.shortDesc}</p>
           <div className="mt-8 flex flex-wrap items-center gap-6">
