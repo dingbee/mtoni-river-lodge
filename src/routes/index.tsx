@@ -54,7 +54,7 @@ function HomePage() {
           <Reveal delay={300}>
             <div className="mt-12 flex flex-col items-start gap-8 sm:flex-row sm:items-end sm:justify-between">
               <p className="max-w-md text-pretty text-ivory/80">
-               A serene retreat where Africa’s beauty meets authenticity. On the banks of the Mtoni River, we blend traditional Maasai architecture and modern comforts, offering a uniquely African stay.
+               A serene retreat where Africa’s beauty meets authenticity. On the banks of the Nduruma River, we blend traditional Maasai architecture and modern comforts, offering a uniquely African stay.
               </p>
               <div className="flex flex-col items-start gap-3 sm:items-end">
                 <Link
