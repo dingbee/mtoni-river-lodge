@@ -15,13 +15,13 @@ export const Route = createFileRoute("/book")({
       {
         name: "description",
         content:
-          "Check availability and reserve your suite at Mtoni River Lodge on the banks of the Nduruma River, Arusha.",
+          "Check availability and reserve your room at Mtoni River Lodge on the banks of the Nduruma River, Arusha.",
       },
       { property: "og:title", content: "Book Your Stay — Mtoni River Lodge" },
       {
         property: "og:description",
         content:
-          "Reserve your suite at Mtoni River Lodge — an intimate riverfront retreat in Arusha, Tanzania.",
+          "Reserve your room at Mtoni River Lodge — an intimate riverfront retreat in Arusha, Tanzania.",
       },
     ],
   }),
@@ -42,7 +42,7 @@ function BookPage() {
             Check availability.
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-base text-charcoal/70">
-            Select your dates, suite and number of guests. Our team confirms
+            Select your dates, room and number of guests. Our team confirms
             every reservation personally within 24 hours.
           </p>
         </section>

@@ -6,7 +6,7 @@ import villa from "@/assets/villa-exterior.jpg";
 const TITLE =
   "Maasai Boma Architecture: The Earth and Thatch Design Philosophy of Mtoni River Lodge";
 const DESCRIPTION =
-  "Earth, thatch, and circular spatial logic — how the suites at Mtoni are grounded in a Maasai boma tradition shaped by climate, culture, and the Arusha landscape.";
+  "Earth, thatch, and circular spatial logic — how the rooms at Mtoni are grounded in a Maasai boma tradition shaped by climate, culture, and the Arusha landscape.";
 
 export const Route = createFileRoute("/journal/the-architecture-of-disappearing")({
   head: () => ({
@@ -31,7 +31,7 @@ function ArticlePage() {
       title={TITLE}
       intro={DESCRIPTION}
       image={villa}
-      imageAlt="Earth and thatch suite at Mtoni River Lodge, inspired by Maasai boma architecture"
+      imageAlt="Earth and thatch room at Mtoni River Lodge, inspired by Maasai boma architecture"
       caption="Earth and thatch — photograph by the lodge"
     >
       <Reveal>
@@ -43,7 +43,7 @@ function ArticlePage() {
           structure.
         </p>
         <p>
-          The suites at Mtoni are grounded in the Maasai boma architecture
+          The rooms at Mtoni are grounded in the Maasai boma architecture
           tradition, where earth and thatch are not aesthetic choices, but
           intelligent responses to environment, temperature, and community
           living. This is sustainable architecture in Tanzania, expressed
@@ -56,7 +56,7 @@ function ArticlePage() {
           The logic of earth and thatch construction
         </h2>
         <p>
-          The suites are constructed using natural earth and thatch —
+          The rooms are constructed using natural earth and thatch —
           materials that belong to the land itself. This approach is rooted
           in centuries of traditional African building systems, where homes
           were designed to respond to heat, wind, and seasonal change without
@@ -148,7 +148,7 @@ function ArticlePage() {
           Living within the landscape
         </h2>
         <p>
-          Set near the river ecosystem of Arusha, the suites exist in
+          Set near the river ecosystem of Arusha, the rooms exist in
           continuous dialogue with nature. The design does not dominate the
           environment but responds to it — light, wind, vegetation, and
           seasonal rhythm all influence how the space is experienced. This is

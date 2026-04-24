@@ -31,7 +31,7 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Mtoni River Lodge — A Riverfront Sanctuary in Arusha, Tanzania" },
-      { name: "description", content: "An intimate luxury eco-lodge on the banks of the Mtoni River in Arusha. Riverside suites, fireside dining, and curated journeys into the heart of Tanzania." },
+      { name: "description", content: "An intimate luxury eco-lodge on the banks of the Mtoni River in Arusha. Riverside rooms, fireside dining, and curated journeys into the heart of Tanzania." },
       { name: "author", content: "Mtoni River Lodge" },
       { property: "og:title", content: "Mtoni River Lodge — Riverfront Sanctuary, Arusha" },
       { property: "og:description", content: "An intimate luxury eco-lodge on the banks of the Mtoni River." },

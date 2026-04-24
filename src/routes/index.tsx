@@ -22,7 +22,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Mtoni River Lodge — Riverfront Sanctuary in Arusha, Tanzania" },
-      { name: "description", content: "An intimate luxury eco-lodge on the banks of the Mtoni River. Twelve riverfront suites, fireside dining, and curated journeys into the heart of Tanzania." },
+      { name: "description", content: "An intimate luxury eco-lodge on the banks of the Mtoni River. Twelve riverfront rooms, fireside dining, and curated journeys into the heart of Tanzania." },
       { property: "og:image", content: heroImg },
     ],
   }),
@@ -46,7 +46,7 @@ function HomePage() {
             <p className="eyebrow !text-ivory/70">Arusha · Tanzania</p>
           </Reveal>
           <Reveal delay={150}>
-            <h1 className="mt-6 max-w-5xl font-display text-[3.25rem] leading-[1.02] tracking-tight sm:text-6xl lg:text-[6.5rem]">
+           <h1 className="mt-6 max-w-5xl font-display text-[3.25rem] leading-[1.02] tracking-tight sm:text-6xl lg:text-[6.5rem]">
               A river. A whisper.<br/>
               <em className="font-light italic text-ivory/85">A homecoming.</em>
             </h1>
@@ -90,14 +90,14 @@ function HomePage() {
           </Reveal>
           <Reveal delay={150} className="lg:col-span-6 lg:col-start-7">
             <p className="font-display text-2xl leading-[1.45] text-charcoal/80 lg:text-[1.7rem]">
-              At first light, a soft veil of mist lifts from the water, and the lodge wakes quietly with it. Paths wind between stone and earth, leading to twenty-four suites set low along the riverbank — each shaped in the spirit of a Maasai boma, where circular forms, natural textures, and open space create a sense of grounding and ease.
+              At first light, a soft veil of mist lifts from the water, and the lodge wakes quietly with it. Paths wind between stone and earth, leading to twenty-four rooms set low along the riverbank — each shaped in the spirit of a Maasai boma, where circular forms, natural textures, and open space create a sense of grounding and ease.
             </p>
             <p className="mt-8 max-w-lg text-base leading-relaxed text-charcoal/70">
               Here, architecture does not compete with the landscape; it follows it. Walls carry the warmth of earth, timber frames the light, and every threshold opens toward the rhythm of the river. The day unfolds without urgency — mornings in stillness, afternoons in shade, evenings gathered under the sky as lanterns glow and the sound of water carries through the night.
             </p>
             <div className="mt-12 grid grid-cols-3 gap-8 border-t border-border pt-8 text-center">
               {[
-                { Icon: Home, label: "Maasai Boma Suites" },
+                { Icon: Home, label: "Maasai Boma Rooms" },
                 { Icon: Leaf, label: "Eco Lodge" },
                 { Icon: Sun, label: "Eco Powered" },
               ].map(({ Icon, label }) => (
@@ -125,19 +125,19 @@ function HomePage() {
         </div>
       </section>
 
-      {/* SUITES TEASER — editorial split */}
+      {/* ROOMS TEASER — editorial split */}
       <section className="px-6 py-32 lg:px-12 lg:py-48">
         <div className="mx-auto max-w-[1400px]">
           <Reveal className="mb-20 flex flex-col items-end justify-between gap-6 lg:flex-row lg:items-end">
             <div>
-              <p className="eyebrow">The Suites</p>
+              <p className="eyebrow">Rooms by the River</p>
               <h2 className="mt-4 font-display text-5xl leading-[1.04] lg:text-7xl">
               Living spaces.<br/>
               Rooted in nature.
               </h2>
             </div>
-            <Link to="/suites" className="group inline-flex items-center gap-3 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]">
-              Discover the suites
+            <Link to="/rooms" className="group inline-flex items-center gap-3 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]">
+              Explore Rooms
               <span className="transition-transform group-hover:translate-x-1">→</span>
             </Link>
           </Reveal>
@@ -145,13 +145,13 @@ function HomePage() {
           <div className="grid gap-12 lg:grid-cols-12">
             <Reveal className="lg:col-span-7">
               <div className="relative aspect-[4/5] overflow-hidden lg:aspect-[5/6]">
-                <img src={suiteImg} alt="Interior of a Mtoni River Lodge suite at dusk" className="h-full w-full object-cover" loading="lazy" />
+                <img src={suiteImg} alt="Interior of a Mtoni River Lodge room at dusk" className="h-full w-full object-cover" loading="lazy" />
               </div>
             </Reveal>
             <Reveal delay={200} className="self-end lg:col-span-4 lg:col-start-9">
               <p className="eyebrow">No. 01</p>
               <h3 className="mt-3 font-display text-3xl lg:text-4xl">Riverfront Deluxe</h3>
-              <p className="mt-6 leading-relaxed text-charcoal/70">Set along the river’s edge at Mtoni River Lodge, the Riverfront Deluxe Suite offers a calm, immersive escape with uninterrupted water views.</p>
+              <p className="mt-6 leading-relaxed text-charcoal/70">Set along the river’s edge at Mtoni River Lodge, the Riverfront Deluxe Room offers a calm, immersive escape with uninterrupted water views — an earth-and-thatch sanctuary inspired by Maasai boma design.</p>
               <ul className="mt-8 space-y-3 text-sm text-charcoal/80">
                 {["Private river-facing deck","Antique king bed","Outdoor copper shower","Indoor bathtub"].map((f)=>(
                   <li key={f} className="flex items-baseline gap-3">
