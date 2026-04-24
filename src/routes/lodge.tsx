@@ -57,7 +57,7 @@ function LodgePage() {
         <div className="flex items-center bg-bone px-8 py-24 lg:px-20">
           <Reveal>
             <p className="eyebrow">Philosophy</p>
-            <h2 className="mt-4 font-display text-4xl lg:text-5xl">Less, but better.</h2>
+            <h2 className="mt-4 font-display text-4xl lg:text-5xl">Our way of being</h2>
             <div className="mt-10 space-y-8 text-charcoal/75">
               {[
                 ["Connection", "A stay that goes beyond comfort, grounding guests in a genuine African experience."],
