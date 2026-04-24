@@ -7,6 +7,7 @@ import dining from "@/assets/dining.jpg";
 import bonfire from "@/assets/xp-bonfire.jpg";
 import riverWalk from "@/assets/xp-river-walk.jpg";
 import canoe from "@/assets/xp-canoe.jpg";
+import standardRiverGarden from "@/assets/standard-river-garden.jpg";
 
 export const ROOM_PATHS = {
   "riverfront-deluxe": "/rooms/riverfront-deluxe",
@@ -79,7 +80,7 @@ export const STANDARD_RIVER_ROOM: Room = {
     ],
     ctaLine: "Experience the simplicity of staying close to nature.",
     img: villa,
-    gallery: [villa, aerial, canoe],
+    gallery: [villa, aerial, standardRiverGarden],
     size: "78 m²",
     view: "Serene river proximity",
   };
