@@ -1,5 +1,6 @@
 import roomImg from "@/assets/suite-interior.jpg";
 import villa from "@/assets/villa-exterior.jpg";
+import standardRiverExterior from "@/assets/standard-river-exterior.jpg";
 import pool from "@/assets/pool.jpg";
 import aerial from "@/assets/aerial-lodge.jpg";
 import river from "@/assets/hero-river.jpg";
@@ -79,8 +80,8 @@ export const STANDARD_RIVER_ROOM: Room = {
       { label: "Bathroom", value: "En-suite" },
     ],
     ctaLine: "Experience the simplicity of staying close to nature.",
-    img: villa,
-    gallery: [villa, aerial, standardRiverGarden],
+    img: standardRiverExterior,
+    gallery: [standardRiverExterior, aerial, standardRiverGarden],
     size: "78 m²",
     view: "Serene river proximity",
   };
