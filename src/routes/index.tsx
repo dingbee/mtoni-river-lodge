@@ -336,7 +336,7 @@ function HomePage() {
                 attribution: "Sofia, Italy",
               },
               {
-                quote: "Mornings on the deck, lantern-light at supper, the sound of water through the night. We are still carrying it with us.",
+                quote: "The perfect blend of bush charm and quiet luxury—peaceful, welcoming, and hard to leave.",
                 attribution: "Aiko & Ren, Japan",
               },
             ].map((t, i) => (
