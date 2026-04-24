@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SuitesRouteImport } from './routes/suites'
 import { Route as RoomsRouteImport } from './routes/rooms'
 import { Route as PlanRouteImport } from './routes/plan'
 import { Route as LodgeRouteImport } from './routes/lodge'
@@ -28,6 +29,11 @@ import { Route as JournalTheArchitectureOfDisappearingRouteImport } from './rout
 import { Route as JournalReadingTheSkyOverMountMeruRouteImport } from './routes/journal.reading-the-sky-over-mount-meru'
 import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './routes/journal.a-morning-with-the-beekeepers-of-gomba'
 
+const SuitesRoute = SuitesRouteImport.update({
+  id: '/suites',
+  path: '/suites',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RoomsRoute = RoomsRouteImport.update({
   id: '/rooms',
   path: '/rooms',
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/rooms': typeof RoomsRouteWithChildren
+  '/suites': typeof SuitesRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByTo {
   '/experiences': typeof ExperiencesRoute
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
+  '/suites': typeof SuitesRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
@@ -172,6 +180,7 @@ export interface FileRoutesById {
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/rooms': typeof RoomsRouteWithChildren
+  '/suites': typeof SuitesRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
@@ -194,6 +203,7 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/plan'
     | '/rooms'
+    | '/suites'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
@@ -212,6 +222,7 @@ export interface FileRouteTypes {
     | '/experiences'
     | '/lodge'
     | '/plan'
+    | '/suites'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
@@ -232,6 +243,7 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/plan'
     | '/rooms'
+    | '/suites'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
@@ -253,10 +265,18 @@ export interface RootRouteChildren {
   LodgeRoute: typeof LodgeRoute
   PlanRoute: typeof PlanRoute
   RoomsRoute: typeof RoomsRouteWithChildren
+  SuitesRoute: typeof SuitesRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/suites': {
+      id: '/suites'
+      path: '/suites'
+      fullPath: '/suites'
+      preLoaderRoute: typeof SuitesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/rooms': {
       id: '/rooms'
       path: '/rooms'
@@ -436,6 +456,7 @@ const rootRouteChildren: RootRouteChildren = {
   LodgeRoute: LodgeRoute,
   PlanRoute: PlanRoute,
   RoomsRoute: RoomsRouteWithChildren,
+  SuitesRoute: SuitesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
