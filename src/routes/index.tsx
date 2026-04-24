@@ -14,6 +14,7 @@ import villaImg from "@/assets/villa-exterior.jpg";
 import poolImg from "@/assets/pool.jpg";
 import coffeeImg from "@/assets/coffee.jpg";
 import spaImg from "@/assets/spa.jpg";
+import ritualImg from "@/assets/rituals.jpg";
 import xpRiverWalk from "@/assets/xp-river-walk.jpg";
 import xpCycling from "@/assets/xp-cycling.jpg";
 import xpBonfire from "@/assets/xp-bonfire.jpg";
@@ -244,8 +245,17 @@ function HomePage() {
             </p>
           </Reveal>
           <Reveal delay={200} className="lg:mt-32">
-            <div className="aspect-[4/5] overflow-hidden">
-              <img src={spaImg} alt="Riverside spa pavilion" className="h-full w-full object-cover" loading="lazy" />
+            <div className="relative aspect-[4/5] overflow-hidden group">
+              <img
+                src={ritualImg}
+                alt="Hand lighting a candle by firelight — an evening ritual at the lodge"
+                className="h-full w-full object-cover object-center transition-transform duration-[2000ms] ease-out group-hover:scale-[1.04] motion-safe:animate-[kenBurns_24s_ease-in-out_infinite_alternate]"
+                loading="lazy"
+              />
+              {/* Warm earthy tint */}
+              <div className="pointer-events-none absolute inset-0 bg-[#7a3a12]/10 mix-blend-multiply" />
+              {/* Subtle vignette for cinematic depth */}
+              <div className="pointer-events-none absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.35)_100%)]" />
             </div>
             <p className="eyebrow mt-8">Ritual</p>
             <h3 className="mt-3 font-display text-3xl lg:text-4xl">Spa beneath the thatch</h3>
