@@ -1,5 +1,4 @@
-import roomImg from "@/assets/suite-interior.jpg";
-import villa from "@/assets/villa-exterior.jpg";
+import riverfrontDeluxeInterior from "@/assets/riverfront-deluxe-interior.jpg";
 import standardRiverExterior from "@/assets/standard-river-exterior.jpg";
 import pool from "@/assets/pool.jpg";
 import aerial from "@/assets/aerial-lodge.jpg";
@@ -54,8 +53,8 @@ export const RIVERFRONT_DELUXE_ROOM: Room = {
       { label: "Bathroom", value: "En-suite" },
     ],
     ctaLine: "Step into a space where the river sets the pace.",
-    img: roomImg,
-    gallery: [roomImg, river, riverWalk],
+    img: riverfrontDeluxeInterior,
+    gallery: [riverfrontDeluxeInterior, river, riverWalk],
     size: "62 m²",
     view: "River-facing private deck",
   };
