@@ -40,7 +40,7 @@ const posts = [
     read: "6 min",
     title: "Maasai Boma Architecture at Mtoni",
     excerpt:
-      "Earth, thatch, and circular spatial logic — how the suites are grounded in a building tradition shaped by climate, culture, and land.",
+      "Earth, thatch, and circular spatial logic — how the rooms are grounded in a building tradition shaped by climate, culture, and land.",
     img: villa,
     href: "/journal/the-architecture-of-disappearing" as const,
   },

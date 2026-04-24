@@ -1,4 +1,4 @@
-import suiteImg from "@/assets/suite-interior.jpg";
+import roomImg from "@/assets/suite-interior.jpg";
 import villa from "@/assets/villa-exterior.jpg";
 import pool from "@/assets/pool.jpg";
 import aerial from "@/assets/aerial-lodge.jpg";
@@ -8,16 +8,16 @@ import bonfire from "@/assets/xp-bonfire.jpg";
 import riverWalk from "@/assets/xp-river-walk.jpg";
 import canoe from "@/assets/xp-canoe.jpg";
 
-export const SUITE_PATHS = {
-  "riverfront-deluxe": "/suites/riverfront-deluxe",
-  "standard-river": "/suites/standard-river",
-  "family-suite": "/suites/family-suite",
+export const ROOM_PATHS = {
+  "riverfront-deluxe": "/rooms/riverfront-deluxe",
+  "standard-river": "/rooms/standard-river",
+  "family-room": "/rooms/family-room",
 } as const;
 
-export type SuiteSlug = keyof typeof SUITE_PATHS;
+export type RoomSlug = keyof typeof ROOM_PATHS;
 
-export type Suite = {
-  slug: SuiteSlug;
+export type Room = {
+  slug: RoomSlug;
   no: string;
   name: string;
   shortName: string;
@@ -32,16 +32,16 @@ export type Suite = {
   view: string;
 };
 
-export const RIVERFRONT_DELUXE_SUITE: Suite = {
+export const RIVERFRONT_DELUXE_ROOM: Room = {
     slug: "riverfront-deluxe",
     no: "01",
-    name: "Riverfront Deluxe Suite",
+    name: "Riverfront Deluxe Room",
     shortName: "Riverfront Deluxe",
     heroLine: "Wake to the rhythm of the river.",
     shortDesc:
       "Closest to the water’s edge — an uninterrupted connection to the river’s quiet presence.",
     description: [
-      "The Riverfront Deluxe Suite is built from natural earth and thatch, following the circular logic of a Maasai boma — low, grounded, and shaped to exist in quiet harmony with the riverbank.",
+      "The Riverfront Deluxe Room is built from natural earth and thatch, following the circular logic of a Maasai boma — low, grounded, and shaped to exist in quiet harmony with the riverbank.",
       "Its form is intentional: walls that breathe, textures that carry the warmth of hand-worked materials, and openings that invite light without disrupting privacy. The river remains ever-present, not as decoration, but as a living rhythm just beyond the threshold.",
       "Here, comfort is not added — it is carved from simplicity.",
     ],
@@ -52,22 +52,22 @@ export const RIVERFRONT_DELUXE_SUITE: Suite = {
       { label: "Bathroom", value: "En-suite" },
     ],
     ctaLine: "Step into a space where the river sets the pace.",
-    img: suiteImg,
-    gallery: [suiteImg, river, riverWalk],
+    img: roomImg,
+    gallery: [roomImg, river, riverWalk],
     size: "62 m²",
     view: "River-facing private deck",
   };
 
-export const STANDARD_RIVER_SUITE: Suite = {
+export const STANDARD_RIVER_ROOM: Room = {
     slug: "standard-river",
     no: "02",
-    name: "Standard River Suite",
+    name: "Standard River Room",
     shortName: "Standard River",
     heroLine: "Grounded in simplicity. Guided by nature.",
     shortDesc:
       "A quiet balance between comfort and immersion, set along the riverbank.",
     description: [
-      "The Standard River Suite reflects the same architectural language of earth and thatch, shaped through the circular principles of traditional Maasai boma design. It is modest in scale, but rich in atmosphere — where natural materials define both structure and feeling.",
+      "The Standard River Room reflects the same architectural language of earth and thatch, shaped through the circular principles of traditional Maasai boma design. It is modest in scale, but rich in atmosphere — where natural materials define both structure and feeling.",
       "Set slightly away from the river’s edge, it carries the same sense of calm and connection, allowing light, air, and texture to define the experience.",
       "It is not about excess — it is about presence.",
     ],
@@ -84,16 +84,16 @@ export const STANDARD_RIVER_SUITE: Suite = {
     view: "Serene river proximity",
   };
 
-export const FAMILY_SUITE: Suite = {
-    slug: "family-suite",
+export const FAMILY_ROOM: Room = {
+    slug: "family-room",
     no: "03",
-    name: "Family / Group Suite",
+    name: "Family / Group Room",
     shortName: "The Garden & Family Rooms",
     heroLine: "Space to gather, room to breathe.",
     shortDesc:
       "Designed for shared moments — generous in space, grounded in simplicity.",
     description: [
-      "Designed for shared moments, the Family Suite brings people together without losing the quiet essence of Mtoni. Generous in space yet grounded in simplicity, it allows families or groups to experience the lodge at their own rhythm.",
+      "Designed for shared moments, the Family Room brings people together without losing the quiet essence of Mtoni. Generous in space yet grounded in simplicity, it allows families or groups to experience the lodge at their own rhythm.",
       "Inspired by the communal nature of Maasai living, the layout encourages connection — whether through shared spaces or quiet individual corners. Natural materials and warm finishes maintain a sense of continuity with the surrounding environment.",
       "Here, time is not divided — it is shared.",
     ],
@@ -110,12 +110,12 @@ export const FAMILY_SUITE: Suite = {
     view: "Garden & family serenity",
   };
 
-export const SUITES: Suite[] = [
-  RIVERFRONT_DELUXE_SUITE,
-  STANDARD_RIVER_SUITE,
-  FAMILY_SUITE,
+export const ROOMS: Room[] = [
+  RIVERFRONT_DELUXE_ROOM,
+  STANDARD_RIVER_ROOM,
+  FAMILY_ROOM,
 ];
 
-export function getSuitePath(slug: SuiteSlug) {
-  return SUITE_PATHS[slug];
+export function getRoomPath(slug: RoomSlug) {
+  return ROOM_PATHS[slug];
 }

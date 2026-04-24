@@ -6,9 +6,9 @@ import { useState } from "react";
 import villa from "@/assets/villa-exterior.jpg";
 import { WHATSAPP_URL, WHATSAPP_NOTE } from "@/lib/contact";
 
-const SUITE_OPTIONS = [
-  "Riverfront Deluxe Suite",
-  "Riverfront Standard Suite",
+const ROOM_OPTIONS = [
+  "Riverfront Deluxe Room",
+  "Riverfront Standard Room",
   "The Garden & Family Rooms",
 ] as const;
 
@@ -18,7 +18,7 @@ function buildWhatsAppUrl(fields: {
   arrival: string;
   departure: string;
   guests: string;
-  suite: string;
+  room: string;
   name?: string;
   note?: string;
 }) {
@@ -28,7 +28,7 @@ function buildWhatsAppUrl(fields: {
     `Check-in: ${fields.arrival || "—"}`,
     `Check-out: ${fields.departure || "—"}`,
     `Guests: ${fields.guests || "—"}`,
-    `Suite: ${fields.suite || "—"}`,
+    `Room: ${fields.room || "—"}`,
   ];
   if (fields.name) lines.push(`Name: ${fields.name}`);
   if (fields.note) lines.push("", `Note: ${fields.note}`);
@@ -52,7 +52,7 @@ function PlanPage() {
     arrival: "",
     departure: "",
     guests: "2",
-    suite: "",
+    room: "",
     email: "",
     phone: "",
     note: "",
@@ -60,7 +60,7 @@ function PlanPage() {
   const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
   const waUrl = buildWhatsAppUrl(form);
-  const canSubmit = Boolean(form.arrival && form.departure && form.guests && form.suite);
+  const canSubmit = Boolean(form.arrival && form.departure && form.guests && form.room);
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
@@ -78,7 +78,7 @@ function PlanPage() {
               <p className="eyebrow !text-ivory/70">Reserve</p>
               <h1 className="mt-6 font-display text-5xl leading-[1.05] xl:text-7xl">Begin the<br/>journey.</h1>
               <p className="mt-8 max-w-md text-ivory/80">
-                Our reservations team responds within 24 hours with a tailored itinerary, suite recommendations, and seasonal notes.
+                Our reservations team responds within 24 hours with a tailored itinerary, room recommendations, and seasonal notes.
               </p>
             </Reveal>
           </div>
@@ -97,17 +97,17 @@ function PlanPage() {
                 <div className="grid grid-cols-2 gap-6">
                   <Field label="Guests" name="guests" type="number" value={form.guests} onChange={update("guests")} required />
                   <div>
-                    <label className="eyebrow block" htmlFor="suite">Select Suite Type</label>
+                    <label className="eyebrow block" htmlFor="room">Select Room Type</label>
                     <select
-                      id="suite"
-                      name="suite"
-                      value={form.suite}
-                      onChange={update("suite")}
+                      id="room"
+                      name="room"
+                      value={form.room}
+                      onChange={update("room")}
                       required
                       className="mt-3 w-full appearance-none border-b border-border bg-transparent pb-2 text-base outline-none transition-colors focus:border-ember"
                     >
-                      <option value="" disabled>Choose a suite…</option>
-                      {SUITE_OPTIONS.map((s) => (
+                      <option value="" disabled>Choose a room…</option>
+                      {ROOM_OPTIONS.map((s) => (
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>

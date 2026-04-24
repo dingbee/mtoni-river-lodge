@@ -9,7 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SuitesRouteImport } from './routes/suites'
+import { Route as RoomsRouteImport } from './routes/rooms'
 import { Route as PlanRouteImport } from './routes/plan'
 import { Route as LodgeRouteImport } from './routes/lodge'
 import { Route as JournalRouteImport } from './routes/journal'
@@ -17,20 +17,20 @@ import { Route as ExperiencesRouteImport } from './routes/experiences'
 import { Route as DiningRouteImport } from './routes/dining'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as SuitesIndexRouteImport } from './routes/suites.index'
+import { Route as RoomsIndexRouteImport } from './routes/rooms.index'
 import { Route as JournalIndexRouteImport } from './routes/journal.index'
-import { Route as SuitesStandardRiverRouteImport } from './routes/suites.standard-river'
-import { Route as SuitesRiverfrontDeluxeRouteImport } from './routes/suites.riverfront-deluxe'
-import { Route as SuitesFamilySuiteRouteImport } from './routes/suites.family-suite'
+import { Route as RoomsStandardRiverRouteImport } from './routes/rooms.standard-river'
+import { Route as RoomsRiverfrontDeluxeRouteImport } from './routes/rooms.riverfront-deluxe'
+import { Route as RoomsFamilyRoomRouteImport } from './routes/rooms.family-room'
 import { Route as JournalWildGingerBaobabRosehipRouteImport } from './routes/journal.wild-ginger-baobab-rosehip'
 import { Route as JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport } from './routes/journal.what-the-river-has-taught-us-about-time'
 import { Route as JournalTheArchitectureOfDisappearingRouteImport } from './routes/journal.the-architecture-of-disappearing'
 import { Route as JournalReadingTheSkyOverMountMeruRouteImport } from './routes/journal.reading-the-sky-over-mount-meru'
 import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './routes/journal.a-morning-with-the-beekeepers-of-gomba'
 
-const SuitesRoute = SuitesRouteImport.update({
-  id: '/suites',
-  path: '/suites',
+const RoomsRoute = RoomsRouteImport.update({
+  id: '/rooms',
+  path: '/rooms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlanRoute = PlanRouteImport.update({
@@ -68,30 +68,30 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SuitesIndexRoute = SuitesIndexRouteImport.update({
+const RoomsIndexRoute = RoomsIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => SuitesRoute,
+  getParentRoute: () => RoomsRoute,
 } as any)
 const JournalIndexRoute = JournalIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => JournalRoute,
 } as any)
-const SuitesStandardRiverRoute = SuitesStandardRiverRouteImport.update({
+const RoomsStandardRiverRoute = RoomsStandardRiverRouteImport.update({
   id: '/standard-river',
   path: '/standard-river',
-  getParentRoute: () => SuitesRoute,
+  getParentRoute: () => RoomsRoute,
 } as any)
-const SuitesRiverfrontDeluxeRoute = SuitesRiverfrontDeluxeRouteImport.update({
+const RoomsRiverfrontDeluxeRoute = RoomsRiverfrontDeluxeRouteImport.update({
   id: '/riverfront-deluxe',
   path: '/riverfront-deluxe',
-  getParentRoute: () => SuitesRoute,
+  getParentRoute: () => RoomsRoute,
 } as any)
-const SuitesFamilySuiteRoute = SuitesFamilySuiteRouteImport.update({
-  id: '/family-suite',
-  path: '/family-suite',
-  getParentRoute: () => SuitesRoute,
+const RoomsFamilyRoomRoute = RoomsFamilyRoomRouteImport.update({
+  id: '/family-room',
+  path: '/family-room',
+  getParentRoute: () => RoomsRoute,
 } as any)
 const JournalWildGingerBaobabRosehipRoute =
   JournalWildGingerBaobabRosehipRouteImport.update({
@@ -132,17 +132,17 @@ export interface FileRoutesByFullPath {
   '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
-  '/suites': typeof SuitesRouteWithChildren
+  '/rooms': typeof RoomsRouteWithChildren
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/journal/wild-ginger-baobab-rosehip': typeof JournalWildGingerBaobabRosehipRoute
-  '/suites/family-suite': typeof SuitesFamilySuiteRoute
-  '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
-  '/suites/standard-river': typeof SuitesStandardRiverRoute
+  '/rooms/family-room': typeof RoomsFamilyRoomRoute
+  '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
+  '/rooms/standard-river': typeof RoomsStandardRiverRoute
   '/journal/': typeof JournalIndexRoute
-  '/suites/': typeof SuitesIndexRoute
+  '/rooms/': typeof RoomsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -156,11 +156,11 @@ export interface FileRoutesByTo {
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/journal/wild-ginger-baobab-rosehip': typeof JournalWildGingerBaobabRosehipRoute
-  '/suites/family-suite': typeof SuitesFamilySuiteRoute
-  '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
-  '/suites/standard-river': typeof SuitesStandardRiverRoute
+  '/rooms/family-room': typeof RoomsFamilyRoomRoute
+  '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
+  '/rooms/standard-river': typeof RoomsStandardRiverRoute
   '/journal': typeof JournalIndexRoute
-  '/suites': typeof SuitesIndexRoute
+  '/rooms': typeof RoomsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -171,17 +171,17 @@ export interface FileRoutesById {
   '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
-  '/suites': typeof SuitesRouteWithChildren
+  '/rooms': typeof RoomsRouteWithChildren
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/journal/wild-ginger-baobab-rosehip': typeof JournalWildGingerBaobabRosehipRoute
-  '/suites/family-suite': typeof SuitesFamilySuiteRoute
-  '/suites/riverfront-deluxe': typeof SuitesRiverfrontDeluxeRoute
-  '/suites/standard-river': typeof SuitesStandardRiverRoute
+  '/rooms/family-room': typeof RoomsFamilyRoomRoute
+  '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
+  '/rooms/standard-river': typeof RoomsStandardRiverRoute
   '/journal/': typeof JournalIndexRoute
-  '/suites/': typeof SuitesIndexRoute
+  '/rooms/': typeof RoomsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -193,17 +193,17 @@ export interface FileRouteTypes {
     | '/journal'
     | '/lodge'
     | '/plan'
-    | '/suites'
+    | '/rooms'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/journal/wild-ginger-baobab-rosehip'
-    | '/suites/family-suite'
-    | '/suites/riverfront-deluxe'
-    | '/suites/standard-river'
+    | '/rooms/family-room'
+    | '/rooms/riverfront-deluxe'
+    | '/rooms/standard-river'
     | '/journal/'
-    | '/suites/'
+    | '/rooms/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -217,11 +217,11 @@ export interface FileRouteTypes {
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/journal/wild-ginger-baobab-rosehip'
-    | '/suites/family-suite'
-    | '/suites/riverfront-deluxe'
-    | '/suites/standard-river'
+    | '/rooms/family-room'
+    | '/rooms/riverfront-deluxe'
+    | '/rooms/standard-river'
     | '/journal'
-    | '/suites'
+    | '/rooms'
   id:
     | '__root__'
     | '/'
@@ -231,17 +231,17 @@ export interface FileRouteTypes {
     | '/journal'
     | '/lodge'
     | '/plan'
-    | '/suites'
+    | '/rooms'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/journal/wild-ginger-baobab-rosehip'
-    | '/suites/family-suite'
-    | '/suites/riverfront-deluxe'
-    | '/suites/standard-river'
+    | '/rooms/family-room'
+    | '/rooms/riverfront-deluxe'
+    | '/rooms/standard-river'
     | '/journal/'
-    | '/suites/'
+    | '/rooms/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -252,16 +252,16 @@ export interface RootRouteChildren {
   JournalRoute: typeof JournalRouteWithChildren
   LodgeRoute: typeof LodgeRoute
   PlanRoute: typeof PlanRoute
-  SuitesRoute: typeof SuitesRouteWithChildren
+  RoomsRoute: typeof RoomsRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/suites': {
-      id: '/suites'
-      path: '/suites'
-      fullPath: '/suites'
-      preLoaderRoute: typeof SuitesRouteImport
+    '/rooms': {
+      id: '/rooms'
+      path: '/rooms'
+      fullPath: '/rooms'
+      preLoaderRoute: typeof RoomsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/plan': {
@@ -313,12 +313,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/suites/': {
-      id: '/suites/'
+    '/rooms/': {
+      id: '/rooms/'
       path: '/'
-      fullPath: '/suites/'
-      preLoaderRoute: typeof SuitesIndexRouteImport
-      parentRoute: typeof SuitesRoute
+      fullPath: '/rooms/'
+      preLoaderRoute: typeof RoomsIndexRouteImport
+      parentRoute: typeof RoomsRoute
     }
     '/journal/': {
       id: '/journal/'
@@ -327,26 +327,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JournalIndexRouteImport
       parentRoute: typeof JournalRoute
     }
-    '/suites/standard-river': {
-      id: '/suites/standard-river'
+    '/rooms/standard-river': {
+      id: '/rooms/standard-river'
       path: '/standard-river'
-      fullPath: '/suites/standard-river'
-      preLoaderRoute: typeof SuitesStandardRiverRouteImport
-      parentRoute: typeof SuitesRoute
+      fullPath: '/rooms/standard-river'
+      preLoaderRoute: typeof RoomsStandardRiverRouteImport
+      parentRoute: typeof RoomsRoute
     }
-    '/suites/riverfront-deluxe': {
-      id: '/suites/riverfront-deluxe'
+    '/rooms/riverfront-deluxe': {
+      id: '/rooms/riverfront-deluxe'
       path: '/riverfront-deluxe'
-      fullPath: '/suites/riverfront-deluxe'
-      preLoaderRoute: typeof SuitesRiverfrontDeluxeRouteImport
-      parentRoute: typeof SuitesRoute
+      fullPath: '/rooms/riverfront-deluxe'
+      preLoaderRoute: typeof RoomsRiverfrontDeluxeRouteImport
+      parentRoute: typeof RoomsRoute
     }
-    '/suites/family-suite': {
-      id: '/suites/family-suite'
-      path: '/family-suite'
-      fullPath: '/suites/family-suite'
-      preLoaderRoute: typeof SuitesFamilySuiteRouteImport
-      parentRoute: typeof SuitesRoute
+    '/rooms/family-room': {
+      id: '/rooms/family-room'
+      path: '/family-room'
+      fullPath: '/rooms/family-room'
+      preLoaderRoute: typeof RoomsFamilyRoomRouteImport
+      parentRoute: typeof RoomsRoute
     }
     '/journal/wild-ginger-baobab-rosehip': {
       id: '/journal/wild-ginger-baobab-rosehip'
@@ -411,22 +411,21 @@ const JournalRouteChildren: JournalRouteChildren = {
 const JournalRouteWithChildren =
   JournalRoute._addFileChildren(JournalRouteChildren)
 
-interface SuitesRouteChildren {
-  SuitesFamilySuiteRoute: typeof SuitesFamilySuiteRoute
-  SuitesRiverfrontDeluxeRoute: typeof SuitesRiverfrontDeluxeRoute
-  SuitesStandardRiverRoute: typeof SuitesStandardRiverRoute
-  SuitesIndexRoute: typeof SuitesIndexRoute
+interface RoomsRouteChildren {
+  RoomsFamilyRoomRoute: typeof RoomsFamilyRoomRoute
+  RoomsRiverfrontDeluxeRoute: typeof RoomsRiverfrontDeluxeRoute
+  RoomsStandardRiverRoute: typeof RoomsStandardRiverRoute
+  RoomsIndexRoute: typeof RoomsIndexRoute
 }
 
-const SuitesRouteChildren: SuitesRouteChildren = {
-  SuitesFamilySuiteRoute: SuitesFamilySuiteRoute,
-  SuitesRiverfrontDeluxeRoute: SuitesRiverfrontDeluxeRoute,
-  SuitesStandardRiverRoute: SuitesStandardRiverRoute,
-  SuitesIndexRoute: SuitesIndexRoute,
+const RoomsRouteChildren: RoomsRouteChildren = {
+  RoomsFamilyRoomRoute: RoomsFamilyRoomRoute,
+  RoomsRiverfrontDeluxeRoute: RoomsRiverfrontDeluxeRoute,
+  RoomsStandardRiverRoute: RoomsStandardRiverRoute,
+  RoomsIndexRoute: RoomsIndexRoute,
 }
 
-const SuitesRouteWithChildren =
-  SuitesRoute._addFileChildren(SuitesRouteChildren)
+const RoomsRouteWithChildren = RoomsRoute._addFileChildren(RoomsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -436,7 +435,7 @@ const rootRouteChildren: RootRouteChildren = {
   JournalRoute: JournalRouteWithChildren,
   LodgeRoute: LodgeRoute,
   PlanRoute: PlanRoute,
-  SuitesRoute: SuitesRouteWithChildren,
+  RoomsRoute: RoomsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
