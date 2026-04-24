@@ -7,7 +7,7 @@ import { MobileStickyCTA } from "@/components/site/MobileStickyCTA";
 const links = [
   { to: "/", label: "Home" },
   { to: "/lodge", label: "The Lodge" },
-  { to: "/suites", label: "Suites" },
+  { to: "/rooms", label: "Rooms" },
   { to: "/experiences", label: "Experiences" },
   { to: "/dining", label: "Dining" },
   { to: "/journal", label: "Journal" },

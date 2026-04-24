@@ -43,12 +43,12 @@ const discoveryGroups: Array<{
     links: [{ label: "All Experiences", to: "/experiences" }],
   },
   {
-    title: "Suites",
+    title: "Rooms",
     links: [
-      { label: "All Suites", to: "/suites" },
-      { label: "Riverfront Deluxe", to: "/suites/riverfront-deluxe" },
-      { label: "Family Suite", to: "/suites/family-suite" },
-      { label: "Standard River", to: "/suites/standard-river" },
+      { label: "All Rooms", to: "/rooms" },
+      { label: "Riverfront Deluxe", to: "/rooms/riverfront-deluxe" },
+      { label: "Family Room", to: "/rooms/family-room" },
+      { label: "Standard River", to: "/rooms/standard-river" },
     ],
   },
   {
@@ -127,7 +127,7 @@ export function SiteFooter() {
         </h2>
         <p className="mx-auto mt-6 max-w-xl text-ivory/70">
           An intimate retreat on the banks of the Nduruma River, Arusha.
-          Twenty four suites. One river. A thousand quiet hours.
+          Twenty four rooms. One river. A thousand quiet hours.
         </p>
 
         {/* ============ B. DISCOVERY SECTION ============ */}
