@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
-import dining from "@/assets/dining.jpg";
+import dining from "@/assets/dining-hero.jpg";
 import detail from "@/assets/detail-coffee.jpg";
 import { WHATSAPP_URL } from "@/lib/contact";
 
@@ -23,9 +23,18 @@ function DiningPage() {
       <SiteHeader overlay />
 
       {/* HERO */}
-      <section className="relative h-[80svh] overflow-hidden">
-        <img src={dining} alt="Open-fire live cooking by the Nduruma River at Mtoni" className="ken-burns h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-charcoal/45" />
+      <section className="relative h-[80svh] overflow-hidden lg:aspect-video lg:h-auto">
+        <img
+          src={dining}
+          alt="Garden picnic with live open-fire cooking at Mtoni River Lodge"
+          className="ken-burns h-full w-full object-cover object-[center_35%] lg:object-center"
+          width={1920}
+          height={1080}
+        />
+        {/* Warm amber tone overlay */}
+        <div className="pointer-events-none absolute inset-0 bg-[#b8741a]/10 mix-blend-multiply" />
+        {/* Bottom-up gradient for text readability */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-charcoal/70 via-charcoal/25 to-charcoal/15" />
         <div className="absolute inset-0 mx-auto flex max-w-[1100px] flex-col items-center justify-center px-6 text-center text-ivory">
           <Reveal><p className="eyebrow !text-ivory/70">Dining</p></Reveal>
           <Reveal delay={150}><h1 className="mt-6 font-display text-5xl leading-[1.05] lg:text-7xl">Dining by the River</h1></Reveal>
