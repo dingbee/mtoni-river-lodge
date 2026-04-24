@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import dining from "@/assets/dining-hero.jpg";
-import detail from "@/assets/detail-coffee.jpg";
+import liveCooking from "@/assets/live-cooking.jpg";
 import { WHATSAPP_URL } from "@/lib/contact";
 
 export const Route = createFileRoute("/dining")({
@@ -99,8 +99,17 @@ function DiningPage() {
       {/* LIVE COOKING + ATMOSPHERE */}
       <section className="grid lg:grid-cols-2">
         <Reveal>
-          <div className="aspect-square overflow-hidden lg:aspect-auto lg:h-full">
-            <img src={detail} alt="Traditional pot cooking at Mtoni River Lodge" className="h-full w-full object-cover" loading="lazy" />
+          <div className="relative aspect-square overflow-hidden lg:aspect-auto lg:h-full group">
+            <img
+              src={liveCooking}
+              alt="Chef plating an open-fire dish at Mtoni River Lodge"
+              className="h-full w-full object-cover object-center transition-transform duration-[2000ms] ease-out group-hover:scale-[1.04] motion-safe:animate-[kenBurns_24s_ease-in-out_infinite_alternate]"
+              loading="lazy"
+            />
+            {/* Warm earthy tint to match brand palette */}
+            <div className="pointer-events-none absolute inset-0 bg-[#7a3a12]/10 mix-blend-multiply" />
+            {/* Subtle vignette for cinematic depth */}
+            <div className="pointer-events-none absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_60%,rgba(0,0,0,0.3)_100%)]" />
           </div>
         </Reveal>
         <div className="flex items-center bg-charcoal px-8 py-24 text-ivory lg:px-20">
