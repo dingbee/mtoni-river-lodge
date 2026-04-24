@@ -33,7 +33,7 @@ function RoomsIndexPage() {
           <Reveal delay={150}><h1 className="mt-6 font-display text-5xl leading-tight lg:text-7xl">Rooms at Mtoni<br />River Lodge.</h1></Reveal>
           <Reveal delay={300}>
             <p className="mt-6 max-w-xl text-ivory/80">
-              Earth-and-thatch accommodations inspired by Maasai boma design — three quiet sanctuaries along the Nduruma River, each shaped by stone, timber, and the rhythm of the water.
+              Earth-and-thatch accommodations inspired by Maasai boma design — 24 quiet sanctuaries along the Nduruma River, each shaped by stone, timber, and the rhythm of the water.
             </p>
           </Reveal>
         </div>
