@@ -1,4 +1,3 @@
-import villa from "@/assets/villa-exterior.jpg";
 import riverfrontDeluxeInterior from "@/assets/riverfront-deluxe-interior.jpg";
 import standardRiverExterior from "@/assets/standard-river-exterior.jpg";
 import pool from "@/assets/pool.jpg";
