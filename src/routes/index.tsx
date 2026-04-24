@@ -14,6 +14,7 @@ import villaImg from "@/assets/villa-exterior.jpg";
 import poolImg from "@/assets/pool.jpg";
 import coffeeImg from "@/assets/coffee.jpg";
 import spaImg from "@/assets/spa.jpg";
+import ritualImg from "@/assets/rituals.jpg";
 import xpRiverWalk from "@/assets/xp-river-walk.jpg";
 import xpCycling from "@/assets/xp-cycling.jpg";
 import xpBonfire from "@/assets/xp-bonfire.jpg";
