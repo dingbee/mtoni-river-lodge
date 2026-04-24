@@ -328,7 +328,7 @@ function HomePage() {
           <div className="mt-20 space-y-24 lg:mt-28 lg:space-y-32">
             {[
               {
-                quote: "We arrived tired and left quieter than we had been in years. The river does something to you — it slows the breath.",
+                quote: "A hidden gem and an ideal start to a safari vacation. Warm hospitality and a truly welcoming atmosphere.",
                 attribution: "Daniel, United Kingdom",
               },
               {
