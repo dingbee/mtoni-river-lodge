@@ -60,9 +60,9 @@ function LodgePage() {
             <h2 className="mt-4 font-display text-4xl lg:text-5xl">Less, but better.</h2>
             <div className="mt-10 space-y-8 text-charcoal/75">
               {[
-                ["Land first","Built around — not on top of — the trees, the river, and the wildlife corridor it shares."],
-                ["Local hands","98% of our team is Tanzanian. Our chef trained in Arusha. Our weavers are from Gomba."],
-                ["Slow craft","No televisions. No clocks. The day is set by the light and the river."],
+                ["Connection", "A stay that goes beyond comfort, grounding guests in a genuine African experience."],
+                ["Tradition", "Where earth, craft, and design reflect the stories of the land."],
+                ["Legacy", "Every guest leaves with a lasting piece of Africa in their heart."],
               ].map(([t,d])=>(
                 <div key={t}>
                   <p className="font-display text-xl">{t}</p>
