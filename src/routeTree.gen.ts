@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SuitesRouteImport } from './routes/suites'
+import { Route as RoomsRouteImport } from './routes/rooms'
 import { Route as PlanRouteImport } from './routes/plan'
 import { Route as LodgeRouteImport } from './routes/lodge'
 import { Route as JournalRouteImport } from './routes/journal'
@@ -31,6 +32,11 @@ import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './r
 const SuitesRoute = SuitesRouteImport.update({
   id: '/suites',
   path: '/suites',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoomsRoute = RoomsRouteImport.update({
+  id: '/rooms',
+  path: '/rooms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlanRoute = PlanRouteImport.update({
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
+  '/rooms': typeof RoomsRoute
   '/suites': typeof SuitesRouteWithChildren
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByTo {
   '/experiences': typeof ExperiencesRoute
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
+  '/rooms': typeof RoomsRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
@@ -171,6 +179,7 @@ export interface FileRoutesById {
   '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
+  '/rooms': typeof RoomsRoute
   '/suites': typeof SuitesRouteWithChildren
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
@@ -193,6 +202,7 @@ export interface FileRouteTypes {
     | '/journal'
     | '/lodge'
     | '/plan'
+    | '/rooms'
     | '/suites'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/reading-the-sky-over-mount-meru'
@@ -212,6 +222,7 @@ export interface FileRouteTypes {
     | '/experiences'
     | '/lodge'
     | '/plan'
+    | '/rooms'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
@@ -231,6 +242,7 @@ export interface FileRouteTypes {
     | '/journal'
     | '/lodge'
     | '/plan'
+    | '/rooms'
     | '/suites'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/reading-the-sky-over-mount-meru'
@@ -252,6 +264,7 @@ export interface RootRouteChildren {
   JournalRoute: typeof JournalRouteWithChildren
   LodgeRoute: typeof LodgeRoute
   PlanRoute: typeof PlanRoute
+  RoomsRoute: typeof RoomsRoute
   SuitesRoute: typeof SuitesRouteWithChildren
 }
 
@@ -262,6 +275,13 @@ declare module '@tanstack/react-router' {
       path: '/suites'
       fullPath: '/suites'
       preLoaderRoute: typeof SuitesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rooms': {
+      id: '/rooms'
+      path: '/rooms'
+      fullPath: '/rooms'
+      preLoaderRoute: typeof RoomsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/plan': {
@@ -436,6 +456,7 @@ const rootRouteChildren: RootRouteChildren = {
   JournalRoute: JournalRouteWithChildren,
   LodgeRoute: LodgeRoute,
   PlanRoute: PlanRoute,
+  RoomsRoute: RoomsRoute,
   SuitesRoute: SuitesRouteWithChildren,
 }
 export const routeTree = rootRouteImport
