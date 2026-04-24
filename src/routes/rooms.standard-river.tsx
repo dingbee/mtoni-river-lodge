@@ -43,8 +43,7 @@ function StandardRiverPage() {
       <section className="px-6 py-24 lg:px-12 lg:py-32">
         <div className="mx-auto grid max-w-[1200px] gap-16 lg:grid-cols-12">
           <div className="lg:col-span-4">
-            <p className="eyebrow">No. {room.no}</p>
-            <h2 className="mt-4 font-display text-4xl leading-tight lg:text-5xl">Grounded in simplicity. Guided by nature.</h2>
+            <h2 className="font-display text-4xl leading-tight lg:text-5xl">Grounded in simplicity. Guided by nature.</h2>
           </div>
           <div className="space-y-6 lg:col-span-7 lg:col-start-6">
             {room.description.map((paragraph, index) => (
@@ -77,11 +76,7 @@ function StandardRiverPage() {
       <section className="border-y border-border bg-bone/40 px-6 py-20 lg:px-12">
         <div className="mx-auto max-w-[1200px]">
           <p className="eyebrow">Room Details</p>
-          <div className="mt-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
-            <div>
-              <p className="text-[0.65rem] uppercase tracking-[0.28em] text-charcoal/55">Size</p>
-              <p className="mt-3 font-display text-2xl leading-tight">{room.size}</p>
-            </div>
+          <div className="mt-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             {room.details.map((detail) => (
               <div key={detail.label}>
                 <p className="text-[0.65rem] uppercase tracking-[0.28em] text-charcoal/55">{detail.label}</p>
