@@ -22,7 +22,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Mtoni River Lodge — Riverfront Sanctuary in Arusha, Tanzania" },
-      { name: "description", content: "An intimate luxury eco-lodge on the banks of the Mtoni River. Twelve riverfront rooms, fireside dining, and curated journeys into the heart of Tanzania." },
+       { name: "description", content: "An intimate luxury eco-lodge on the banks of the Nduruma River. Twelve riverfront rooms, fireside dining, and curated journeys into the heart of Tanzania." },
       { property: "og:image", content: heroImg },
     ],
   }),
@@ -37,7 +37,7 @@ function HomePage() {
       {/* HERO */}
       <section className="relative h-[100svh] w-full overflow-hidden">
         <div className="absolute inset-0">
-          <img src={heroImg} alt="Mist over the Mtoni River at dawn with Mount Meru in the distance" className="ken-burns h-full w-full object-cover" width={1920} height={1080} />
+          <img src={heroImg} alt="Mist over the Nduruma River at dawn with Mount Meru in the distance" className="ken-burns h-full w-full object-cover" width={1920} height={1080} />
           <div className="absolute inset-0 bg-gradient-to-b from-charcoal/40 via-charcoal/10 to-charcoal/80" />
         </div>
 
