@@ -258,9 +258,9 @@ function HomePage() {
               <div className="pointer-events-none absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.35)_100%)]" />
             </div>
             <p className="eyebrow mt-8">Ritual</p>
-            <h3 className="mt-3 font-display text-3xl lg:text-4xl">Spa beneath the thatch</h3>
+            <h3 className="mt-3 font-display text-3xl lg:text-4xl">​Where light becomes a ritual.</h3>
             <p className="mt-4 max-w-md text-charcoal/70">
-              Treatments drawn from East African botanicals — wild ginger, rosehip, baobab — performed to the sound of running water.
+              As daylight fades along the river, candlelight is gently introduced to mark the shift into stillness, turning ordinary evening moments into quiet rituals of presence and connection.
             </p>
           </Reveal>
         </div>
