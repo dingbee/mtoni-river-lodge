@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Home, Leaf, Sun } from "lucide-react";
+import { Home, Leaf, Waves } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
@@ -99,7 +99,7 @@ function HomePage() {
               {[
                 { Icon: Home, label: "Maasai Boma Rooms" },
                 { Icon: Leaf, label: "Eco Lodge" },
-                { Icon: Sun, label: "Eco Powered" },
+                { Icon: Waves, label: "Riverfront Setting" },
               ].map(({ Icon, label }) => (
                 <div key={label} className="flex flex-col items-center">
                   <Icon className="h-9 w-9 text-primary" strokeWidth={1.4} aria-hidden />
