@@ -6,13 +6,14 @@ import { Mountain, PawPrint, Footprints, Flower2 } from "lucide-react";
 import aerial from "@/assets/aerial-lodge.jpg";
 import villa from "@/assets/villa-exterior.jpg";
 import detail from "@/assets/detail-coffee.jpg";
+import lodgeHero from "@/assets/lodge-hero-aerial.jpg";
 
 export const Route = createFileRoute("/lodge")({
   head: () => ({
     meta: [
       { title: "The Lodge — Mtoni River Lodge" },
       { name: "description", content: "A small, family-run riverfront sanctuary built quietly into the banks of the Mtoni River, Arusha." },
-      { property: "og:image", content: aerial },
+      { property: "og:image", content: lodgeHero },
     ],
   }),
   component: LodgePage,
@@ -23,7 +24,7 @@ function LodgePage() {
     <div className="bg-ivory text-charcoal">
       <SiteHeader overlay />
       <section className="relative h-[80svh] overflow-hidden">
-        <img src={villa} alt="Mtoni River Lodge villa at twilight" className="ken-burns h-full w-full object-cover" />
+        <img src={lodgeHero} alt="Aerial view of Mtoni River Lodge — thatched villas nestled among the forest canopy" className="ken-burns h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-charcoal/30 to-charcoal/70" />
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1300px] px-6 pb-24 text-ivory lg:px-12">
           <Reveal><p className="eyebrow !text-ivory/70">The Lodge</p></Reveal>
