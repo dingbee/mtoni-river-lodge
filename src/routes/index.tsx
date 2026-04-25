@@ -39,7 +39,12 @@ function HomePage() {
       <section className="relative h-[100svh] w-full overflow-hidden">
         <div className="absolute inset-0">
           <img src={heroImg} alt="Mist over the Nduruma River at dawn with Mount Meru in the distance" className="ken-burns h-full w-full object-cover" width={1920} height={1080} />
-          <div className="absolute inset-0 bg-gradient-to-b from-charcoal/40 via-charcoal/10 to-charcoal/80" />
+          {/* Warm earthy tone wash */}
+          <div className="pointer-events-none absolute inset-0 bg-amber-900/[0.07] mix-blend-multiply" />
+          {/* Readability gradient (stronger toward bottom for text contrast) */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-charcoal/35 via-transparent to-charcoal/85" />
+          {/* Subtle vignette */}
+          <div className="pointer-events-none absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.35)_100%)]" />
         </div>
 
         <div className="relative z-10 mx-auto flex h-full max-w-[1500px] flex-col justify-end px-6 pb-24 text-ivory lg:px-12 lg:pb-32">
