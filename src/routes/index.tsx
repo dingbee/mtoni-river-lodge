@@ -155,7 +155,8 @@ function HomePage() {
               </div>
             </Reveal>
             <Reveal delay={200} className="self-end lg:col-span-4 lg:col-start-9">
-              <h3 className="font-display text-3xl lg:text-4xl">Riverfront Deluxe</h3>
+              <p className="eyebrow">No. 01</p>
+              <h3 className="mt-3 font-display text-3xl lg:text-4xl">Riverfront Deluxe</h3>
               <p className="mt-6 leading-relaxed text-charcoal/70">Set along the river’s edge at Mtoni River Lodge, the Riverfront Deluxe Room offers a calm, immersive escape with uninterrupted water views — an earth-and-thatch sanctuary inspired by Maasai boma design.</p>
               <ul className="mt-8 space-y-3 text-sm text-charcoal/80">
                 {["Private river-facing deck","Antique king bed","Outdoor copper shower","Indoor bathtub"].map((f)=>(

@@ -204,7 +204,7 @@ export function SiteFooter() {
             className="h-20 w-auto brightness-0 invert"
           />
           <p className="text-xs uppercase tracking-[0.4em] text-ivory/70">
-            An African Experience
+            The African Experience
           </p>
         </section>
 
