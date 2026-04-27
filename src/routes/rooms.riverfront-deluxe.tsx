@@ -5,11 +5,12 @@ import { Reveal } from "@/components/site/Reveal";
 import { WHATSAPP_NOTE, WHATSAPP_URL } from "@/lib/contact";
 import { RIVERFRONT_DELUXE_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 import outdoorShowerImg from "@/assets/riverfront-deluxe-outdoor-shower.jpg";
+import exteriorImg from "@/assets/riverfront-deluxe-exterior.jpg";
 
 function RiverfrontDeluxePage() {
   const room = RIVERFRONT_DELUXE_ROOM;
   const others = ROOMS.filter((item) => item.slug !== room.slug);
-  const gallery = [room.gallery[0], outdoorShowerImg, room.gallery[2]];
+  const gallery = [room.gallery[0], outdoorShowerImg, exteriorImg];
 
   return (
     <div className="bg-ivory text-charcoal">
