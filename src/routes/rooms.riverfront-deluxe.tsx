@@ -4,10 +4,12 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { WHATSAPP_NOTE, WHATSAPP_URL } from "@/lib/contact";
 import { RIVERFRONT_DELUXE_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
+import outdoorShowerImg from "@/assets/riverfront-deluxe-outdoor-shower.jpg";
 
 function RiverfrontDeluxePage() {
   const room = RIVERFRONT_DELUXE_ROOM;
   const others = ROOMS.filter((item) => item.slug !== room.slug);
+  const gallery = [room.gallery[0], outdoorShowerImg, room.gallery[2]];
 
   return (
     <div className="bg-ivory text-charcoal">
@@ -59,7 +61,7 @@ function RiverfrontDeluxePage() {
         <div className="mx-auto max-w-[1200px]">
           <p className="eyebrow">Room Gallery</p>
           <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {room.gallery.map((image, index) => (
+            {gallery.map((image, index) => (
               <div key={image} className="aspect-[4/5] overflow-hidden">
                 <img
                   src={image}
