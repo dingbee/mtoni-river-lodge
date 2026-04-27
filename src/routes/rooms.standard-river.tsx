@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
+import { PageHero } from "@/components/site/PageHero";
 import { WHATSAPP_NOTE, WHATSAPP_URL } from "@/lib/contact";
 import { STANDARD_RIVER_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 import interiorImg from "@/assets/standard-river-interior.jpg";
@@ -15,34 +16,16 @@ function StandardRiverPage() {
     <div className="bg-ivory text-charcoal">
       <SiteHeader overlay />
 
-      <section className="relative h-[88svh] min-h-[560px] overflow-hidden">
-        <img src={room.img} alt={room.name} className="ken-burns h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-charcoal/30 via-charcoal/20 to-charcoal/70" />
-        <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1300px] px-6 pb-16 text-ivory lg:px-12 lg:pb-24">
-          <Reveal>
-            <Link to="/rooms" className="eyebrow inline-flex items-center gap-2 !text-ivory/70">
-              ← Back to Rooms
-            </Link>
-          </Reveal>
-          <Reveal delay={120}>
-            <h1 className="mt-6 font-display text-5xl leading-[1.05] lg:text-7xl">{room.name}</h1>
-          </Reveal>
-          <Reveal delay={240}>
-            <p className="mt-5 max-w-xl font-display text-2xl italic text-ivory/85 lg:text-3xl">{room.heroLine}</p>
-          </Reveal>
-          <Reveal delay={360}>
-            <Link
-              to="/book"
-              className="mt-10 inline-flex items-center gap-3 border border-ivory bg-ivory px-7 py-4 text-[0.72rem] uppercase tracking-[0.28em] text-charcoal transition-colors hover:bg-transparent hover:text-ivory"
-            >
-              <span>Check Availability</span>
-              <span>→</span>
-            </Link>
-          </Reveal>
-        </div>
-      </section>
+      <PageHero
+        image={room.img}
+        imageAlt={room.name}
+        title={room.name}
+        subtitle={room.heroLine}
+        back={{ to: "/rooms", label: "Back to Rooms" }}
+        cta={{ label: "Check Availability", to: "/book" }}
+      />
 
-      <section className="px-6 py-24 lg:px-12 lg:py-32">
+      <section className="px-6 pb-24 lg:px-12 lg:pb-32">
         <div className="mx-auto grid max-w-[1200px] gap-16 lg:grid-cols-12">
           <div className="lg:col-span-4">
             <h2 className="font-display text-4xl leading-tight lg:text-5xl">Grounded in simplicity. Guided by nature.</h2>
