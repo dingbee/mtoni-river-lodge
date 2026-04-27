@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
+import { PageHero } from "@/components/site/PageHero";
 import { Button } from "@/components/ui/button";
 import { WHATSAPP_NOTE } from "@/lib/contact";
 import cycling from "@/assets/xp-cycling.jpg";
@@ -37,16 +38,14 @@ function ExperiencesPage() {
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader overlay />
-      <section className="relative h-[70svh] overflow-hidden">
-        <img src={riverWalk} alt="Guided river walk at sunrise along the Mtoni River" className="ken-burns h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-charcoal/40" />
-        <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1300px] px-6 pb-20 text-ivory lg:px-12">
-          <Reveal><p className="eyebrow !text-ivory/70">Experiences</p></Reveal>
-          <Reveal delay={150}><h1 className="mt-6 font-display text-5xl leading-tight lg:text-7xl">Rooted in nature,<br/>shaped by movement,<br/>guided by the land.</h1></Reveal>
-        </div>
-      </section>
+      <PageHero
+        image={riverWalk}
+        imageAlt="Guided river walk at sunrise along the Mtoni River"
+        eyebrow="Experiences"
+        title={<>Rooted in nature,<br/>guided by the land.</>}
+      />
 
-      <section className="px-6 pt-24 lg:px-12 lg:pt-32">
+      <section className="px-6 lg:px-12">
         <div className="mx-auto max-w-3xl text-center">
           <Reveal>
             <p className="eyebrow">The Experiences</p>

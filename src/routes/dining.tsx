@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
+import { PageHero } from "@/components/site/PageHero";
 import dining from "@/assets/dining-hero.jpg";
 import liveCooking from "@/assets/live-cooking.jpg";
 import { WHATSAPP_URL } from "@/lib/contact";
@@ -22,32 +23,18 @@ function DiningPage() {
     <div className="bg-ivory text-charcoal">
       <SiteHeader overlay />
 
-      {/* HERO */}
-      <section className="relative h-[80svh] overflow-hidden lg:aspect-video lg:h-auto">
-        <img
-          src={dining}
-          alt="Garden picnic with live open-fire cooking at Mtoni River Lodge"
-          className="ken-burns h-full w-full object-cover object-[center_35%] lg:object-center"
-          width={1920}
-          height={1080}
-        />
-        {/* Warm amber tone overlay */}
-        <div className="pointer-events-none absolute inset-0 bg-[#b8741a]/10 mix-blend-multiply" />
-        {/* Bottom-up gradient for text readability */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-charcoal/70 via-charcoal/25 to-charcoal/15" />
-        <div className="absolute inset-0 mx-auto flex max-w-[1100px] flex-col items-center justify-center px-6 text-center text-ivory">
-          <Reveal><p className="eyebrow !text-ivory/70">Dining</p></Reveal>
-          <Reveal delay={150}><h1 className="mt-6 font-display text-5xl leading-[1.05] lg:text-7xl">Dining by the River</h1></Reveal>
-          <Reveal delay={250}>
-            <p className="mx-auto mt-8 max-w-2xl text-base leading-relaxed text-ivory/80 lg:text-lg">
-              At Mtoni River Lodge, dining is not a separate experience — it is part of the landscape. Meals are shaped by river-fed gardens, lodge groves, and the slow craft of open-fire cooking.
-            </p>
-          </Reveal>
-        </div>
-      </section>
+      <PageHero
+        image={dining}
+        imageAlt="Garden picnic with live open-fire cooking at Mtoni River Lodge"
+        eyebrow="Dining"
+        title="Dining by the River"
+        subtitle="At Mtoni River Lodge, dining is not a separate experience — it is part of the landscape. Meals shaped by river-fed gardens, lodge groves, and the slow craft of open-fire cooking."
+        align="center"
+        imagePosition="center 35%"
+      />
 
       {/* CORE EXPERIENCE — open kitchen */}
-      <section className="px-6 py-28 lg:px-12 lg:py-40">
+      <section className="px-6 pb-28 lg:px-12 lg:pb-40">
         <div className="mx-auto grid max-w-[1300px] gap-16 lg:grid-cols-12">
           <Reveal className="lg:col-span-5">
             <p className="eyebrow">The open kitchen</p>

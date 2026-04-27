@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
+import { PageHero } from "@/components/site/PageHero";
 import { WHATSAPP_NOTE } from "@/lib/contact";
 import { ROOMS, getRoomPath, type Room } from "@/lib/rooms";
 import roomImg from "@/assets/suite-interior.jpg";
@@ -25,21 +26,15 @@ function RoomsIndexPage() {
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader overlay />
-      <section className="relative h-[70svh] overflow-hidden">
-        <img src={roomImg} alt="Room interior" className="ken-burns h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-charcoal/40 to-charcoal/60" />
-        <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1300px] px-6 pb-20 text-ivory lg:px-12">
-          <Reveal><p className="eyebrow !text-ivory/70">Rooms by the River</p></Reveal>
-          <Reveal delay={150}><h1 className="mt-6 font-display text-5xl leading-tight lg:text-7xl">Rooms at Mtoni<br />River Lodge.</h1></Reveal>
-          <Reveal delay={300}>
-            <p className="mt-6 max-w-xl text-ivory/80">
-              Earth-and-thatch accommodations inspired by Maasai boma design — 24 quiet sanctuaries along the Nduruma River, each shaped by stone, timber, and the rhythm of the water.
-            </p>
-          </Reveal>
-        </div>
-      </section>
+      <PageHero
+        image={roomImg}
+        imageAlt="Room interior at Mtoni River Lodge"
+        eyebrow="Rooms by the River"
+        title={<>Rooms at Mtoni<br />River Lodge.</>}
+        subtitle="Earth-and-thatch accommodations inspired by Maasai boma design — 24 quiet sanctuaries along the Nduruma River, each shaped by stone, timber, and the rhythm of the water."
+      />
 
-      <section className="px-6 py-24 lg:px-12 lg:py-40">
+      <section className="px-6 pb-24 lg:px-12 lg:pb-40">
         <div className="mx-auto max-w-[1400px] space-y-32 lg:space-y-48">
           {ROOMS.map((room, index) => (
             <RoomRow key={room.no} room={room} reverse={index % 2 === 1} />

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
+import { PageHero } from "@/components/site/PageHero";
 import { Mountain, PawPrint, Footprints, Flower2 } from "lucide-react";
 import aerial from "@/assets/aerial-lodge.jpg";
 import villa from "@/assets/villa-exterior.jpg";
@@ -23,16 +24,14 @@ function LodgePage() {
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader overlay />
-      <section className="relative h-[80svh] overflow-hidden">
-        <img src={lodgeHero} alt="Aerial view of Mtoni River Lodge — thatched villas nestled among the forest canopy" className="ken-burns h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-charcoal/30 to-charcoal/70" />
-        <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1300px] px-6 pb-24 text-ivory lg:px-12">
-          <Reveal><p className="eyebrow !text-ivory/70">The Lodge</p></Reveal>
-          <Reveal delay={150}><h1 className="mt-6 max-w-3xl font-display text-5xl leading-[1.05] lg:text-7xl">A sanctuary built quietly into the riverbank.</h1></Reveal>
-        </div>
-      </section>
+      <PageHero
+        image={lodgeHero}
+        imageAlt="Aerial view of Mtoni River Lodge — thatched villas nestled among the forest canopy"
+        eyebrow="The Lodge"
+        title="A sanctuary built quietly into the riverbank."
+      />
 
-      <section className="px-6 py-32 lg:px-12 lg:py-48">
+      <section className="px-6 pb-32 lg:px-12 lg:pb-48">
         <div className="mx-auto grid max-w-[1300px] gap-16 lg:grid-cols-12">
           <Reveal className="lg:col-span-5">
             <p className="eyebrow">Our story</p>
