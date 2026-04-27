@@ -151,7 +151,7 @@ function HomePage() {
           <div className="grid gap-12 lg:grid-cols-12">
             <Reveal className="lg:col-span-7">
               <div className="relative aspect-[4/5] overflow-hidden lg:aspect-[5/6]">
-                <img src={suiteImg} alt="Interior of a Mtoni River Lodge room at dusk" className="h-full w-full object-cover" loading="lazy" />
+                <img src={suiteImg} alt="Candlelit bubble bath with champagne beneath the thatched roof of a Mtoni River Lodge suite" className="h-full w-full object-cover" loading="lazy" />
               </div>
             </Reveal>
             <Reveal delay={200} className="self-end lg:col-span-4 lg:col-start-9">
