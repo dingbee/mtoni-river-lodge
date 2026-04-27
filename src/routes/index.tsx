@@ -241,7 +241,7 @@ function HomePage() {
         <div className="mx-auto grid max-w-[1400px] gap-16 lg:grid-cols-2">
           <Reveal>
             <div className="aspect-[4/5] overflow-hidden">
-              <img src={poolImg} alt="Infinity pool overlooking the river" className="h-full w-full object-cover" loading="lazy" />
+              <img src={poolImg} alt="Curved swimming pool framed by thatched umbrellas and tropical greenery at Mtoni River Lodge" className="h-full w-full object-cover" loading="lazy" />
             </div>
             <p className="eyebrow mt-8">Stillness</p>
             <h3 className="mt-3 font-display text-3xl lg:text-4xl">A pool in conversation with nature</h3>
