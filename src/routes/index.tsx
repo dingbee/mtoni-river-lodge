@@ -36,7 +36,7 @@ function HomePage() {
       <SiteHeader overlay />
 
       {/* HERO */}
-      <section className="relative h-[100svh] w-full overflow-hidden">
+      <section className="relative mb-20 h-[75svh] min-h-[560px] w-full overflow-hidden lg:h-[90svh]">
         <div className="absolute inset-0">
           <img src={heroImg} alt="Mist over the Nduruma River at dawn with Mount Meru in the distance" className="ken-burns h-full w-full object-cover" width={1920} height={1080} />
           {/* Warm earthy tone wash */}
@@ -47,7 +47,7 @@ function HomePage() {
           <div className="pointer-events-none absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.35)_100%)]" />
         </div>
 
-        <div className="relative z-10 mx-auto flex h-full max-w-[1500px] flex-col justify-end px-6 pb-24 text-ivory lg:px-12 lg:pb-32">
+        <div className="relative z-10 mx-auto flex h-full max-w-[1500px] flex-col justify-end px-6 pb-20 pt-[110px] text-ivory lg:px-12 lg:pb-28 lg:pt-[140px]">
           <Reveal>
             <p className="eyebrow !text-ivory/70">Arusha · Tanzania</p>
           </Reveal>
@@ -78,15 +78,13 @@ function HomePage() {
           </Reveal>
         </div>
 
-        <div className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 text-ivory/70">
-          <div className="flex flex-col items-center gap-2 text-[0.6rem] uppercase tracking-[0.4em]">
-            <span className="h-12 w-px animate-pulse bg-ivory/50" />
-          </div>
+        <div className="pointer-events-none absolute bottom-6 left-1/2 z-10 hidden -translate-x-1/2 text-ivory/70 lg:block">
+          <span className="block h-12 w-px animate-pulse bg-ivory/50" />
         </div>
       </section>
 
       {/* INTRO / NARRATIVE */}
-      <section className="relative px-6 py-32 lg:px-12 lg:py-48">
+      <section className="relative px-6 pb-32 pt-12 lg:px-12 lg:pb-48 lg:pt-28">
         <div className="mx-auto grid max-w-[1300px] gap-16 lg:grid-cols-12">
           <Reveal className="lg:col-span-5">
             <p className="eyebrow">Chapter One</p>

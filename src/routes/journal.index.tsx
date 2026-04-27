@@ -79,18 +79,18 @@ function JournalPage() {
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader />
-      <section className="px-6 pt-40 pb-20 lg:px-12">
-        <div className="mx-auto max-w-[1300px]">
+      <section className="px-6 pb-20 pt-[110px] lg:px-12 lg:pt-[180px]">
+        <div className="mx-auto max-w-[700px]">
           <Reveal>
             <p className="eyebrow">Journal</p>
           </Reveal>
           <Reveal delay={120}>
-            <h1 className="mt-6 max-w-4xl font-display text-5xl leading-[1.05] lg:text-7xl">
+            <h1 className="mt-6 font-display text-[2.5rem] leading-[1.05] sm:text-5xl lg:text-[4.25rem]">
               Stories from the riverbank.
             </h1>
           </Reveal>
           <Reveal delay={240}>
-            <p className="mt-8 max-w-xl text-charcoal/70">
+            <p className="mt-6 max-w-[560px] text-base leading-relaxed text-charcoal/70 lg:text-lg">
               Slow essays on land, season, and the small ceremonies of life at Mtoni.
             </p>
           </Reveal>
