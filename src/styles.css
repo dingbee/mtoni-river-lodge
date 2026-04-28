@@ -205,6 +205,39 @@
     opacity: 0.15;
     mix-blend-mode: overlay;
   }
+
+  /* Hero text shadow — subtle support for legibility over imagery.
+     Low opacity, minimal blur, not visually obvious. */
+  .hero-text-shadow {
+    text-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.35),
+      0 2px 12px rgba(0, 0, 0, 0.25);
+  }
+
+  /* Unified hero overlay — dark green/black tone, stronger top & bottom.
+     Mobile uses a slightly stronger stack for readability on smaller screens. */
+  .hero-overlay {
+    background-image:
+      linear-gradient(
+        to bottom,
+        rgba(10, 22, 10, 0.72) 0%,
+        rgba(10, 22, 10, 0.45) 40%,
+        rgba(10, 22, 10, 0.35) 60%,
+        rgba(10, 22, 10, 0.78) 100%
+      );
+  }
+  @media (min-width: 1024px) {
+    .hero-overlay {
+      background-image:
+        linear-gradient(
+          to bottom,
+          rgba(10, 22, 10, 0.65) 0%,
+          rgba(10, 22, 10, 0.4) 45%,
+          rgba(10, 22, 10, 0.28) 60%,
+          rgba(10, 22, 10, 0.72) 100%
+        );
+    }
+  }
 }
 
 @keyframes kenBurns {

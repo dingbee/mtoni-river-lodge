@@ -39,25 +39,25 @@ function HomePage() {
       <section className="relative mb-20 h-[75svh] min-h-[520px] w-full overflow-hidden lg:h-[85svh] lg:min-h-[640px]">
         <div className="absolute inset-0">
           <img src={heroImg} alt="Mist over the Nduruma River at dawn with Mount Meru in the distance" className="ken-burns h-full w-full object-cover" width={1920} height={1080} />
-          {/* Standard unified gradient: dark top for header, soft middle, dark bottom for text */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-charcoal/55 via-charcoal/10 to-charcoal/75" />
+          {/* Unified hero overlay — stronger top/bottom, brand-aligned dark green/black */}
+          <div className="hero-overlay pointer-events-none absolute inset-0" />
           {/* Subtle vignette */}
           <div className="pointer-events-none absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_60%,rgba(0,0,0,0.3)_100%)]" />
         </div>
 
         <div className="relative z-10 mx-auto flex h-full max-w-[1300px] flex-col justify-end px-6 pb-16 pt-[110px] text-ivory lg:px-12 lg:pb-20 lg:pt-[140px]">
           <Reveal>
-            <p className="eyebrow !text-ivory/75">Arusha · Tanzania</p>
+            <p className="eyebrow hero-text-shadow !text-ivory/85">Arusha · Tanzania</p>
           </Reveal>
           <Reveal delay={150}>
-            <h1 className="mt-5 max-w-[700px] font-display text-[2.5rem] leading-[1.05] tracking-tight sm:text-5xl lg:text-[4.25rem]">
+            <h1 className="hero-text-shadow mt-5 max-w-[700px] font-display text-[2.5rem] leading-[1.05] tracking-tight sm:text-5xl lg:text-[4.25rem]">
               A river. A whisper.<br/>
               <em className="font-light italic text-ivory/85">A homecoming.</em>
             </h1>
           </Reveal>
           <Reveal delay={250}>
             <div className="mt-6 flex flex-col items-start gap-6 sm:flex-row sm:items-end sm:justify-between">
-              <p className="max-w-[560px] text-pretty text-base leading-relaxed text-ivory/85 lg:text-lg">
+              <p className="hero-text-shadow max-w-[560px] text-pretty text-base leading-relaxed text-ivory/90 lg:text-lg">
                A serene retreat where Africa’s beauty meets authenticity. On the banks of the Nduruma River, we blend traditional Maasai architecture and modern comforts, offering a uniquely African stay.
               </p>
               <div className="flex flex-col items-start gap-3 sm:items-end">
@@ -68,7 +68,7 @@ function HomePage() {
                   Check Availability
                   <span className="transition-transform group-hover:translate-x-1">→</span>
                 </Link>
-                <p className="max-w-xs text-left text-[0.72rem] leading-relaxed text-ivory/65 sm:text-right">
+                <p className="hero-text-shadow max-w-xs text-left text-[0.72rem] leading-relaxed text-ivory/80 sm:text-right">
                   {WHATSAPP_NOTE}
                 </p>
               </div>
