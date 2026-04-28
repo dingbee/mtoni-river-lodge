@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { WHATSAPP_NOTE } from "@/lib/contact";
 import cycling from "@/assets/xp-cycling.jpg";
 import riverWalk from "@/assets/xp-river-walk.jpg";
-import motorbike from "@/assets/xp-motorbike.jpg";
 import cooking from "@/assets/xp-cooking.jpg";
 import bonfire from "@/assets/xp-bonfire.jpg";
 import market from "@/assets/xp-market.jpg";
