@@ -57,8 +57,8 @@ export function PageHero({
         width={1920}
         height={1080}
       />
-      {/* Standard gradient: dark top for header, soft middle, dark bottom for text */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-charcoal/55 via-charcoal/10 to-charcoal/75" />
+      {/* Unified hero overlay — stronger top/bottom, brand-aligned dark green/black */}
+      <div className="hero-overlay pointer-events-none absolute inset-0" />
 
       <div
         className={`relative z-10 mx-auto flex h-full max-w-[1300px] flex-col px-6 pb-16 pt-[110px] text-ivory lg:px-12 lg:pb-20 lg:pt-[140px] ${
@@ -77,12 +77,12 @@ export function PageHero({
         )}
         {eyebrow && (
           <Reveal>
-            <p className="eyebrow !text-ivory/75">{eyebrow}</p>
+            <p className="eyebrow hero-text-shadow !text-ivory/85">{eyebrow}</p>
           </Reveal>
         )}
         <Reveal delay={150}>
           <h1
-            className={`mt-5 font-display text-[2.5rem] leading-[1.05] sm:text-5xl lg:text-[4.25rem] ${
+            className={`hero-text-shadow mt-5 font-display text-[2.5rem] leading-[1.05] text-ivory sm:text-5xl lg:text-[4.25rem] ${
               isCenter ? "max-w-[700px]" : "max-w-[640px]"
             }`}
           >
@@ -92,7 +92,7 @@ export function PageHero({
         {subtitle && (
           <Reveal delay={250}>
             <p
-              className={`mt-6 text-base leading-relaxed text-ivory/85 lg:text-lg ${
+              className={`hero-text-shadow mt-6 text-base leading-relaxed text-ivory/90 lg:text-lg ${
                 isCenter ? "max-w-[600px]" : "max-w-[560px]"
               }`}
             >
