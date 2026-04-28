@@ -14,13 +14,12 @@ import market from "@/assets/xp-market.jpg";
 import canoe from "@/assets/xp-canoe.jpg";
 
 const xp = [
-  { num: "01", eyebrow: "On two wheels", title: "Cycling", img: cycling, body: "Explore the quiet surroundings of Mtoni on two wheels, moving through open landscapes and local paths at your own pace." },
-  { num: "02", eyebrow: "On foot", title: "Guided River Walks", img: riverWalk, body: "Walk alongside the river with a local guide, discovering the subtle rhythms of the ecosystem and the stories carried by the land." },
-  { num: "03", eyebrow: "Off the path", title: "Motorbike Off-road Adventure", img: motorbike, body: "Venture beyond the lodge on an off-road motorbike experience, navigating rugged terrain and expansive natural routes." },
-  { num: "04", eyebrow: "At the table", title: "Live Cooking Experience", img: cooking, body: "Gather around the kitchen and experience meals prepared in real time, where local ingredients and shared moments come together." },
-  { num: "05", eyebrow: "After dark", title: "Bonfire Experience", img: bonfire, body: "As evening settles, gather around the fire beneath open skies — a space for warmth, reflection, and quiet connection." },
-  { num: "06", eyebrow: "In the village", title: "Local Market Experience", img: market, body: "Visit nearby markets and engage with local culture through craft, food, and everyday life in the surrounding community." },
-  { num: "07", eyebrow: "On still water", title: "Lake Duluti Canoeing", img: canoe, body: "Glide across the calm waters of Lake Duluti, surrounded by forest and stillness, offering a peaceful contrast to the river’s flow." },
+  { eyebrow: "On two wheels", title: "Cycling", img: cycling, body: "Explore the quiet surroundings of Mtoni on two wheels, moving through open landscapes and local paths at your own pace." },
+  { eyebrow: "On foot", title: "Guided River Walks", img: riverWalk, body: "Walk alongside the river with a local guide, discovering the subtle rhythms of the ecosystem and the stories carried by the land." },
+  { eyebrow: "At the table", title: "Live Cooking Experience", img: cooking, body: "Gather around the kitchen and experience meals prepared in real time, where local ingredients and shared moments come together." },
+  { eyebrow: "After dark", title: "Bonfire Experience", img: bonfire, body: "As evening settles, gather around the fire beneath open skies — a space for warmth, reflection, and quiet connection." },
+  { eyebrow: "In the village", title: "Local Market Experience", img: market, body: "Visit nearby markets and engage with local culture through craft, food, and everyday life in the surrounding community." },
+  { eyebrow: "On still water", title: "Lake Duluti Canoeing", img: canoe, body: "Glide across the calm waters of Lake Duluti, surrounded by forest and stillness, offering a peaceful contrast to the river’s flow." },
 ];
 
 export const Route = createFileRoute("/experiences")({
@@ -84,10 +83,7 @@ function ExperiencesPage() {
                   delay={150}
                   className={`md:col-span-5 ${reverse ? "md:order-1 md:pr-6" : "md:pl-6"}`}
                 >
-                  <p className="font-mono text-xs tracking-[0.32em] text-charcoal/40">
-                    {e.num}
-                  </p>
-                  <p className="eyebrow mt-4">{e.eyebrow}</p>
+                  <p className="eyebrow">{e.eyebrow}</p>
                   <h2 className="mt-4 font-display text-4xl leading-tight lg:text-5xl">
                     {e.title}
                   </h2>
