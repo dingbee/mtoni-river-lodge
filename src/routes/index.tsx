@@ -36,7 +36,7 @@ function HomePage() {
       <SiteHeader overlay />
 
       {/* HERO — unified design system (75svh mobile / 85svh desktop, 110/140 top safe spacing, mb-20) */}
-      <section className="relative mb-20 h-[75svh] min-h-[520px] w-full overflow-hidden lg:h-[85svh] lg:min-h-[640px]">
+      <section className="relative mb-20 h-[78svh] min-h-[640px] w-full overflow-hidden lg:h-[85svh] lg:min-h-[640px]">
         <div className="absolute inset-0">
           <img src={heroImg} alt="Mist over the Nduruma River at dawn with Mount Meru in the distance" className="ken-burns h-full w-full object-cover" width={1920} height={1080} />
           {/* Unified hero overlay — stronger top/bottom, brand-aligned dark green/black */}
@@ -50,7 +50,7 @@ function HomePage() {
             <p className="eyebrow hero-text-shadow !text-ivory/85">Arusha · Tanzania</p>
           </Reveal>
           <Reveal delay={150}>
-            <h1 className="hero-text-shadow mt-5 max-w-[700px] font-display text-[2.5rem] leading-[1.05] tracking-tight sm:text-5xl lg:text-[4.25rem]">
+            <h1 className="hero-text-shadow mt-5 max-w-[700px] font-display text-[2rem] leading-[1.08] tracking-tight sm:text-5xl lg:text-[4.25rem]">
               A river. A whisper.<br/>
               <em className="font-light italic text-ivory/85">A homecoming.</em>
             </h1>
