@@ -45,7 +45,7 @@ function HomePage() {
           <div className="pointer-events-none absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_60%,rgba(0,0,0,0.3)_100%)]" />
         </div>
 
-        <div className="relative z-10 mx-auto flex h-full max-w-[1300px] flex-col justify-end px-6 pb-16 pt-[110px] text-ivory lg:px-12 lg:pb-20 lg:pt-[140px]">
+        <div className="relative z-10 mx-auto flex h-full max-w-[1300px] flex-col justify-end px-6 pb-10 pt-[120px] text-ivory lg:px-12 lg:pb-20 lg:pt-[140px]">
           <Reveal>
             <p className="eyebrow hero-text-shadow !text-ivory/85">Arusha · Tanzania</p>
           </Reveal>
