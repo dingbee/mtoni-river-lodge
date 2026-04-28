@@ -35,37 +35,35 @@ function HomePage() {
     <div className="bg-ivory text-charcoal">
       <SiteHeader overlay />
 
-      {/* HERO */}
-      <section className="relative mb-20 h-[75svh] min-h-[560px] w-full overflow-hidden lg:h-[90svh]">
+      {/* HERO — unified design system (75svh mobile / 85svh desktop, 110/140 top safe spacing, mb-20) */}
+      <section className="relative mb-20 h-[75svh] min-h-[520px] w-full overflow-hidden lg:h-[85svh] lg:min-h-[640px]">
         <div className="absolute inset-0">
           <img src={heroImg} alt="Mist over the Nduruma River at dawn with Mount Meru in the distance" className="ken-burns h-full w-full object-cover" width={1920} height={1080} />
-          {/* Warm earthy tone wash */}
-          <div className="pointer-events-none absolute inset-0 bg-amber-900/[0.07] mix-blend-multiply" />
-          {/* Readability gradient (stronger toward bottom for text contrast) */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-charcoal/35 via-transparent to-charcoal/85" />
+          {/* Standard unified gradient: dark top for header, soft middle, dark bottom for text */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-charcoal/55 via-charcoal/10 to-charcoal/75" />
           {/* Subtle vignette */}
-          <div className="pointer-events-none absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.35)_100%)]" />
+          <div className="pointer-events-none absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_60%,rgba(0,0,0,0.3)_100%)]" />
         </div>
 
-        <div className="relative z-10 mx-auto flex h-full max-w-[1500px] flex-col justify-end px-6 pb-20 pt-[110px] text-ivory lg:px-12 lg:pb-28 lg:pt-[140px]">
+        <div className="relative z-10 mx-auto flex h-full max-w-[1300px] flex-col justify-end px-6 pb-16 pt-[110px] text-ivory lg:px-12 lg:pb-20 lg:pt-[140px]">
           <Reveal>
-            <p className="eyebrow !text-ivory/70">Arusha · Tanzania</p>
+            <p className="eyebrow !text-ivory/75">Arusha · Tanzania</p>
           </Reveal>
           <Reveal delay={150}>
-           <h1 className="mt-6 max-w-5xl font-display text-[3.25rem] leading-[1.02] tracking-tight sm:text-6xl lg:text-[6.5rem]">
+            <h1 className="mt-5 max-w-[700px] font-display text-[2.5rem] leading-[1.05] tracking-tight sm:text-5xl lg:text-[4.25rem]">
               A river. A whisper.<br/>
               <em className="font-light italic text-ivory/85">A homecoming.</em>
             </h1>
           </Reveal>
-          <Reveal delay={300}>
-            <div className="mt-12 flex flex-col items-start gap-8 sm:flex-row sm:items-end sm:justify-between">
-              <p className="max-w-md text-pretty text-ivory/80">
+          <Reveal delay={250}>
+            <div className="mt-6 flex flex-col items-start gap-6 sm:flex-row sm:items-end sm:justify-between">
+              <p className="max-w-[560px] text-pretty text-base leading-relaxed text-ivory/85 lg:text-lg">
                A serene retreat where Africa’s beauty meets authenticity. On the banks of the Nduruma River, we blend traditional Maasai architecture and modern comforts, offering a uniquely African stay.
               </p>
               <div className="flex flex-col items-start gap-3 sm:items-end">
                 <Link
                   to="/book"
-                  className="group inline-flex items-center gap-4 border border-ivory px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.32em] transition-colors hover:bg-ivory hover:text-charcoal"
+                  className="group inline-flex items-center gap-3 border border-ivory bg-ivory px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-charcoal transition-colors hover:bg-transparent hover:text-ivory"
                 >
                   Check Availability
                   <span className="transition-transform group-hover:translate-x-1">→</span>
