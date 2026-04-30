@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { ArticleLayout } from "@/components/site/ArticleLayout";
-import guide from "@/assets/guide.jpg";
+import guide from "@/assets/maasai-by-river.jpg";
 
 const TITLE = "Building With the Community";
 const DESCRIPTION =
@@ -30,8 +30,8 @@ function ArticlePage() {
       title={TITLE}
       intro="At the core of Mtoni River Lodge lies a principle that extends beyond hospitality: true luxury must be shared with its surroundings."
       image={guide}
-      imageAlt="Local team member at Mtoni River Lodge"
-      caption="Hands that build, tend, and host — photograph by the lodge"
+      imageAlt="A Maasai elder in a red shuka standing at the edge of the Nduruma River"
+      caption="A neighbour by the river — photograph by the lodge"
     >
       <Reveal>
         <p>
