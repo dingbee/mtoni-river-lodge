@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
-import river from "@/assets/hero-river.jpg";
+import river from "@/assets/nduruma-river-flow.jpg";
 import ndurumaGrove from "@/assets/nduruma-banana-grove.jpg";
 import guide from "@/assets/guide.jpg";
 import villa from "@/assets/villa-exterior.jpg";
