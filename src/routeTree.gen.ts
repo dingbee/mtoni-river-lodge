@@ -24,7 +24,6 @@ import { Route as JournalIndexRouteImport } from './routes/journal.index'
 import { Route as RoomsStandardRiverRouteImport } from './routes/rooms.standard-river'
 import { Route as RoomsRiverfrontDeluxeRouteImport } from './routes/rooms.riverfront-deluxe'
 import { Route as RoomsFamilyRoomRouteImport } from './routes/rooms.family-room'
-import { Route as JournalWildGingerBaobabRosehipRouteImport } from './routes/journal.wild-ginger-baobab-rosehip'
 import { Route as JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport } from './routes/journal.what-the-river-has-taught-us-about-time'
 import { Route as JournalTheArchitectureOfDisappearingRouteImport } from './routes/journal.the-architecture-of-disappearing'
 import { Route as JournalReadingTheSkyOverMountMeruRouteImport } from './routes/journal.reading-the-sky-over-mount-meru'
@@ -105,12 +104,6 @@ const RoomsFamilyRoomRoute = RoomsFamilyRoomRouteImport.update({
   path: '/family-room',
   getParentRoute: () => RoomsRoute,
 } as any)
-const JournalWildGingerBaobabRosehipRoute =
-  JournalWildGingerBaobabRosehipRouteImport.update({
-    id: '/wild-ginger-baobab-rosehip',
-    path: '/wild-ginger-baobab-rosehip',
-    getParentRoute: () => JournalRoute,
-  } as any)
 const JournalWhatTheRiverHasTaughtUsAboutTimeRoute =
   JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport.update({
     id: '/what-the-river-has-taught-us-about-time',
@@ -151,7 +144,6 @@ export interface FileRoutesByFullPath {
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
-  '/journal/wild-ginger-baobab-rosehip': typeof JournalWildGingerBaobabRosehipRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
@@ -171,7 +163,6 @@ export interface FileRoutesByTo {
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
-  '/journal/wild-ginger-baobab-rosehip': typeof JournalWildGingerBaobabRosehipRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
@@ -194,7 +185,6 @@ export interface FileRoutesById {
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
-  '/journal/wild-ginger-baobab-rosehip': typeof JournalWildGingerBaobabRosehipRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
@@ -218,7 +208,6 @@ export interface FileRouteTypes {
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
-    | '/journal/wild-ginger-baobab-rosehip'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
@@ -238,7 +227,6 @@ export interface FileRouteTypes {
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
-    | '/journal/wild-ginger-baobab-rosehip'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
@@ -260,7 +248,6 @@ export interface FileRouteTypes {
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
-    | '/journal/wild-ginger-baobab-rosehip'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
@@ -388,13 +375,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RoomsFamilyRoomRouteImport
       parentRoute: typeof RoomsRoute
     }
-    '/journal/wild-ginger-baobab-rosehip': {
-      id: '/journal/wild-ginger-baobab-rosehip'
-      path: '/wild-ginger-baobab-rosehip'
-      fullPath: '/journal/wild-ginger-baobab-rosehip'
-      preLoaderRoute: typeof JournalWildGingerBaobabRosehipRouteImport
-      parentRoute: typeof JournalRoute
-    }
     '/journal/what-the-river-has-taught-us-about-time': {
       id: '/journal/what-the-river-has-taught-us-about-time'
       path: '/what-the-river-has-taught-us-about-time'
@@ -431,7 +411,6 @@ interface JournalRouteChildren {
   JournalReadingTheSkyOverMountMeruRoute: typeof JournalReadingTheSkyOverMountMeruRoute
   JournalTheArchitectureOfDisappearingRoute: typeof JournalTheArchitectureOfDisappearingRoute
   JournalWhatTheRiverHasTaughtUsAboutTimeRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
-  JournalWildGingerBaobabRosehipRoute: typeof JournalWildGingerBaobabRosehipRoute
   JournalIndexRoute: typeof JournalIndexRoute
 }
 
@@ -444,7 +423,6 @@ const JournalRouteChildren: JournalRouteChildren = {
     JournalTheArchitectureOfDisappearingRoute,
   JournalWhatTheRiverHasTaughtUsAboutTimeRoute:
     JournalWhatTheRiverHasTaughtUsAboutTimeRoute,
-  JournalWildGingerBaobabRosehipRoute: JournalWildGingerBaobabRosehipRoute,
   JournalIndexRoute: JournalIndexRoute,
 }
 

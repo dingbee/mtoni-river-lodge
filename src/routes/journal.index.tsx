@@ -6,7 +6,6 @@ import river from "@/assets/nduruma-river-flow.jpg";
 import ndurumaGrove from "@/assets/nduruma-banana-grove.jpg";
 import guide from "@/assets/maasai-by-river.jpg";
 import villa from "@/assets/villa-exterior.jpg";
-import spa from "@/assets/spa.jpg";
 
 const posts = [
   {
@@ -43,14 +42,6 @@ const posts = [
       "Earth, thatch, and circular spatial logic — how the rooms are grounded in a building tradition shaped by climate, culture, and land.",
     img: villa,
     href: "/journal/the-architecture-of-disappearing" as const,
-  },
-  {
-    date: "November 2025",
-    read: "3 min",
-    title: "Wild ginger, baobab, rosehip",
-    excerpt: "A short note on the East African botanicals at the heart of our spa.",
-    img: spa,
-    href: "/journal/wild-ginger-baobab-rosehip" as const,
   },
 ];
 
