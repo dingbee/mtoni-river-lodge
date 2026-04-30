@@ -5,7 +5,7 @@ import { Reveal } from "@/components/site/Reveal";
 import river from "@/assets/nduruma-river-flow.jpg";
 import ndurumaGrove from "@/assets/nduruma-banana-grove.jpg";
 import guide from "@/assets/maasai-by-river.jpg";
-import villa from "@/assets/villa-exterior.jpg";
+import villa from "@/assets/boma-thatch-room.jpg";
 
 const posts = [
   {
