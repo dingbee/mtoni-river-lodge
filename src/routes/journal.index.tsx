@@ -4,7 +4,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import river from "@/assets/nduruma-river-flow.jpg";
 import ndurumaGrove from "@/assets/nduruma-banana-grove.jpg";
-import guide from "@/assets/guide.jpg";
+import guide from "@/assets/maasai-by-river.jpg";
 import villa from "@/assets/villa-exterior.jpg";
 import spa from "@/assets/spa.jpg";
 
