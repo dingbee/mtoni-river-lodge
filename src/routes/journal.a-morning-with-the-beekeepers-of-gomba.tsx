@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { ArticleLayout } from "@/components/site/ArticleLayout";
-import coffee from "@/assets/coffee.jpg";
+import ndurumaGrove from "@/assets/nduruma-banana-grove.jpg";
 
 const TITLE =
   "Life Along the Nduruma River: Farming Traditions, Irrigation Streams, and the Green Heart of Mtoni River Lodge";
@@ -15,10 +15,10 @@ export const Route = createFileRoute("/journal/a-morning-with-the-beekeepers-of-
       { name: "description", content: DESCRIPTION },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
-      { property: "og:image", content: coffee },
+      { property: "og:image", content: ndurumaGrove },
       { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: coffee },
+      { name: "twitter:image", content: ndurumaGrove },
     ],
   }),
   component: ArticlePage,
@@ -30,9 +30,9 @@ function ArticlePage() {
       eyebrow="February 2026 · 4 min read"
       title={TITLE}
       intro={DESCRIPTION}
-      image={coffee}
-      imageAlt="Irrigation streams of the Nduruma River winding through cultivated fields near Mtoni"
-      caption="Along the Nduruma River — photograph by the lodge"
+      image={ndurumaGrove}
+      imageAlt="A banana grove laden with green fruit beside the Nduruma River gardens at Mtoni"
+      caption="Banana groves along the Nduruma — photograph by the lodge"
     >
       <Reveal>
         <p>

@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import river from "@/assets/hero-river.jpg";
-import coffee from "@/assets/coffee.jpg";
+import ndurumaGrove from "@/assets/nduruma-banana-grove.jpg";
 import guide from "@/assets/guide.jpg";
 import villa from "@/assets/villa-exterior.jpg";
 import spa from "@/assets/spa.jpg";
@@ -23,7 +23,7 @@ const posts = [
     title: "Life Along the Nduruma River",
     excerpt:
       "Farming traditions, irrigation streams, and the green heart of Mtoni — where ox-ploughed fields and river-fed gardens shape daily life.",
-    img: coffee,
+    img: ndurumaGrove,
     href: "/journal/a-morning-with-the-beekeepers-of-gomba" as const,
   },
   {
