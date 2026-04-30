@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { WHATSAPP_URL } from "@/lib/contact";
-import river from "@/assets/hero-river.jpg";
+import river from "@/assets/nduruma-river-flow.jpg";
 
 const TITLE = "What the River Has Taught Us About Time";
 const DESCRIPTION =
@@ -66,12 +66,12 @@ function ArticlePage() {
             <div className="mx-auto aspect-[16/9] max-w-[1300px] overflow-hidden">
               <img
                 src={river}
-                alt="The river at first light, mist rising from the water"
+                alt="The Nduruma River in full flow, framed by lush green banks under a dramatic sky"
                 className="h-full w-full object-cover"
               />
             </div>
             <figcaption className="mx-auto mt-4 max-w-3xl text-xs uppercase tracking-[0.22em] text-muted-foreground">
-              First light on the river — photograph by the lodge
+              The Nduruma in full flow — photograph by the lodge
             </figcaption>
           </figure>
         </Reveal>
