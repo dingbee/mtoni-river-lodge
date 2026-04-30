@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { ArticleLayout } from "@/components/site/ArticleLayout";
-import villa from "@/assets/villa-exterior.jpg";
+import villa from "@/assets/boma-thatch-room.jpg";
 
 const TITLE =
   "Maasai Boma Architecture: The Earth and Thatch Design Philosophy of Mtoni River Lodge";
@@ -31,8 +31,8 @@ function ArticlePage() {
       title={TITLE}
       intro={DESCRIPTION}
       image={villa}
-      imageAlt="Earth and thatch room at Mtoni River Lodge, inspired by Maasai boma architecture"
-      caption="Earth and thatch — photograph by the lodge"
+      imageAlt="Thatched earth-walled room nestled among banana palms and forest at Mtoni River Lodge"
+      caption="Earth, thatch and garden — photograph by the lodge"
     >
       <Reveal>
         <p>
