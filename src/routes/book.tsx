@@ -71,14 +71,6 @@ function BookPage() {
             </p>
           </div>
           <div
-            style={{
-              height: "40px",
-              background:
-                "linear-gradient(to bottom, transparent, #f8f6f2)",
-              marginBottom: "-40px",
-            }}
-          />
-          <div
             className="relative w-full overflow-hidden"
             style={{
               minHeight: "780px",
@@ -136,14 +128,6 @@ function BookPage() {
               </div>
             )}
           </div>
-          <div
-            style={{
-              height: "40px",
-              background:
-                "linear-gradient(to top, transparent, #f8f6f2)",
-              marginTop: "-40px",
-            }}
-          />
 
           {/* Assistance row */}
           <div className="mt-8 flex flex-col items-center gap-3 text-center">
