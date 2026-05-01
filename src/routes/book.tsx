@@ -7,7 +7,8 @@ import { WHATSAPP_URL } from "@/lib/contact";
 
 // Replace with the real Beds24 embed URL when available, e.g.:
 // "https://beds24.com/booking2.php?propid=YOUR_PROPERTY_ID"
-const BEDS24_EMBED_URL: string | null = null;
+const BEDS24_EMBED_URL: string | null =
+  "https://beds24.com/booking2.php?propid=324535&referer=iframe";
 
 export const Route = createFileRoute("/book")({
   head: () => ({
