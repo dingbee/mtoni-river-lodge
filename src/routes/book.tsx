@@ -59,6 +59,17 @@ function BookPage() {
           aria-label="Booking engine"
           className="mx-auto w-full max-w-[1100px] px-4 pb-20 lg:px-12"
         >
+          <div className="mb-8 text-center lg:mb-10">
+            <h2 className="font-display text-3xl leading-tight lg:text-4xl">
+              Check Availability &amp; Book Your Stay
+            </h2>
+            <p className="mt-3 text-xs uppercase tracking-[0.28em] text-charcoal/50">
+              Secure booking. Instant confirmation.
+            </p>
+            <p className="mx-auto mt-5 max-w-xl text-base text-charcoal/70">
+              Select your preferred dates and discover your place along the river.
+            </p>
+          </div>
           <div
             className="relative w-full overflow-hidden"
             style={{
