@@ -39,21 +39,6 @@ function BookPage() {
       <SiteHeader />
 
       <main className="pt-28 lg:pt-36">
-        <section className="mx-auto max-w-[1100px] px-6 pb-10 text-center lg:px-12 lg:pb-14">
-          <p className="eyebrow">Reserve</p>
-          <h1 className="mt-4 font-display text-4xl leading-[1.05] lg:text-6xl">
-            Check availability.
-          </h1>
-          <p className="mx-auto mt-6 max-w-xl text-base text-charcoal/70">
-            Select your dates, room and number of guests. Our team confirms
-            every reservation personally within 24 hours.
-          </p>
-          <p className="mx-auto mt-8 max-w-xl border-t border-charcoal/10 pt-6 text-sm leading-relaxed text-charcoal/65">
-            A 50% deposit secures your stay. Balance due 30 days before
-            arrival. Cancellation terms apply.
-          </p>
-        </section>
-
         {/* Beds24 booking engine */}
         <section
           aria-label="Booking engine"
