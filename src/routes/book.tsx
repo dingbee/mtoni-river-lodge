@@ -48,11 +48,11 @@ function BookPage() {
             <h2 className="font-display text-3xl leading-tight lg:text-4xl">
               Check Availability &amp; Book Your Stay
             </h2>
-            <p className="mt-3 text-xs uppercase tracking-[0.28em] text-charcoal/50">
-              Secure booking. Instant confirmation.
-            </p>
             <p className="mx-auto mt-5 max-w-xl text-base text-charcoal/70">
               Select your preferred dates and discover your place along the river.
+            </p>
+            <p className="mt-5 text-xs uppercase tracking-[0.28em] text-charcoal/50">
+              Secure booking · Instant confirmation · Best available rates
             </p>
           </div>
           <div
@@ -80,7 +80,7 @@ function BookPage() {
                   src={BEDS24_EMBED_URL}
                   loading="lazy"
                   onLoad={() => setLoaded(true)}
-                  className="h-[780px] w-full lg:h-[900px]"
+                  className="booking-iframe h-[780px] w-full lg:h-[900px]"
                   style={{
                     border: "none",
                     display: "block",
@@ -113,6 +113,17 @@ function BookPage() {
               </div>
             )}
           </div>
+          <p className="mt-6 text-center text-sm text-charcoal/60">
+            Looking for something tailored? Contact us to curate your stay.
+          </p>
+
+          <style>{`
+            @media (max-width: 768px) {
+              .booking-iframe {
+                height: 1100px !important;
+              }
+            }
+          `}</style>
 
           {/* Assistance row */}
           <div className="mt-8 flex flex-col items-center gap-3 text-center">
