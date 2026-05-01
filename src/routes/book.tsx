@@ -60,8 +60,15 @@ function BookPage() {
           className="mx-auto w-full max-w-[1100px] px-4 pb-20 lg:px-12"
         >
           <div
-            className="relative w-full overflow-hidden rounded-sm border border-charcoal/10 bg-white"
-            style={{ minHeight: "780px" }}
+            className="relative w-full overflow-hidden"
+            style={{
+              minHeight: "780px",
+              margin: "60px auto",
+              padding: "20px",
+              background: "#f8f6f2",
+              borderRadius: "16px",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+            }}
           >
             {BEDS24_EMBED_URL ? (
               <>
@@ -78,7 +85,13 @@ function BookPage() {
                   loading="lazy"
                   onLoad={() => setLoaded(true)}
                   className="h-[780px] w-full lg:h-[900px]"
-                  style={{ border: 0, display: "block" }}
+                  style={{
+                    border: "none",
+                    display: "block",
+                    borderRadius: "12px",
+                    background: "white",
+                    overflow: "auto",
+                  }}
                   allow="payment"
                 />
               </>
