@@ -155,15 +155,7 @@ function BookPage() {
               href={WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              aria-disabled={!agreedToTerms}
-              onClick={(e) => {
-                if (!agreedToTerms) e.preventDefault();
-              }}
-              className={`inline-flex items-center gap-3 border border-charcoal px-6 py-3 text-[0.72rem] uppercase tracking-[0.28em] transition-colors ${
-                agreedToTerms
-                  ? "hover:bg-charcoal hover:text-ivory"
-                  : "cursor-not-allowed opacity-50"
-              }`}
+              className="inline-flex items-center gap-3 border border-charcoal px-6 py-3 text-[0.72rem] uppercase tracking-[0.28em] transition-colors hover:bg-charcoal hover:text-ivory"
             >
               WhatsApp +255 752 441 443 →
             </a>
