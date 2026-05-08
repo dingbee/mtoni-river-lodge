@@ -8,6 +8,7 @@ import bonfire from "@/assets/xp-bonfire.jpg";
 import riverWalk from "@/assets/xp-river-walk.jpg";
 import canoe from "@/assets/xp-canoe.jpg";
 import standardRiverGarden from "@/assets/standard-river-garden.jpg";
+import familyRoomHero from "@/assets/family-room-hero.jpg";
 
 export const ROOM_PATHS = {
   "riverfront-deluxe": "/rooms/riverfront-deluxe",
@@ -105,8 +106,8 @@ export const FAMILY_ROOM: Room = {
       { label: "Bathroom", value: "Private facilities" },
     ],
     ctaLine: "Make space for shared experiences, naturally.",
-    img: pool,
-    gallery: [pool, dining, bonfire],
+    img: familyRoomHero,
+    gallery: [familyRoomHero, dining, bonfire],
     size: "140 m²",
     view: "Garden & family serenity",
   };
