@@ -9,7 +9,6 @@ import cycling from "@/assets/xp-cycling.jpg";
 import riverWalk from "@/assets/xp-river-walk.jpg";
 import cooking from "@/assets/xp-cooking.jpg";
 import bonfire from "@/assets/xp-bonfire.jpg";
-import market from "@/assets/xp-market.jpg";
 import canoe from "@/assets/xp-canoe.jpg";
 
 const xp = [
@@ -17,7 +16,6 @@ const xp = [
   { eyebrow: "On foot", title: "Guided River Walks", img: riverWalk, body: "Walk alongside the river with a local guide, discovering the subtle rhythms of the ecosystem and the stories carried by the land." },
   { eyebrow: "At the table", title: "Live Cooking Experience", img: cooking, body: "Gather around the kitchen and experience meals prepared in real time, where local ingredients and shared moments come together." },
   { eyebrow: "After dark", title: "Bonfire Experience", img: bonfire, body: "As evening settles, gather around the fire beneath open skies — a space for warmth, reflection, and quiet connection." },
-  { eyebrow: "In the village", title: "Local Market Experience", img: market, body: "Visit nearby markets and engage with local culture through craft, food, and everyday life in the surrounding community." },
   { eyebrow: "On still water", title: "Lake Duluti Canoeing", img: canoe, body: "Glide across the calm waters of Lake Duluti, surrounded by forest and stillness, offering a peaceful contrast to the river’s flow." },
 ];
 
