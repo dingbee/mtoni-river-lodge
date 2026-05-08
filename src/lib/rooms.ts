@@ -9,6 +9,8 @@ import riverWalk from "@/assets/xp-river-walk.jpg";
 import canoe from "@/assets/xp-canoe.jpg";
 import standardRiverGarden from "@/assets/standard-river-garden.jpg";
 import familyRoomHero from "@/assets/family-room-hero.jpg";
+import familyRoomGallery2 from "@/assets/family-room-gallery-2.jpg";
+import familyRoomGallery3 from "@/assets/family-room-gallery-3.jpg";
 
 export const ROOM_PATHS = {
   "riverfront-deluxe": "/rooms/riverfront-deluxe",
@@ -107,7 +109,7 @@ export const FAMILY_ROOM: Room = {
     ],
     ctaLine: "Make space for shared experiences, naturally.",
     img: familyRoomHero,
-    gallery: [familyRoomHero, dining, bonfire],
+    gallery: [familyRoomHero, familyRoomGallery2, familyRoomGallery3],
     size: "140 m²",
     view: "Garden & family serenity",
   };
