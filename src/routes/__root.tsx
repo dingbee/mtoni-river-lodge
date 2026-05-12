@@ -40,8 +40,8 @@ export const Route = createRootRoute({
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "Mtoni River Lodge — A Riverfront Sanctuary in Arusha, Tanzania" },
       { name: "twitter:description", content: "An intimate luxury eco-lodge on the banks of the Mtoni River in Arusha. Riverside rooms, fireside dining, and curated journeys into the heart of Tanzania." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/5825cfaf-84c5-4896-adc2-81d9c7b66ef3/id-preview-72593f1d--deb4bd88-d20d-4e0d-a818-aa094e5354f5.lovable.app-1777103258007.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/5825cfaf-84c5-4896-adc2-81d9c7b66ef3/id-preview-72593f1d--deb4bd88-d20d-4e0d-a818-aa094e5354f5.lovable.app-1777103258007.png" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/SHkcQELriCO5cdR2YzaTl25G7pE2/social-images/social-1778599166460-1000489399.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/SHkcQELriCO5cdR2YzaTl25G7pE2/social-images/social-1778599166460-1000489399.webp" },
     ],
     links: [
       {
