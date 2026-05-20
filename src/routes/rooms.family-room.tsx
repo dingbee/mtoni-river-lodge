@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { PageHero } from "@/components/site/PageHero";
+import { RoomRate } from "@/components/site/RoomRate";
 import { WHATSAPP_NOTE, WHATSAPP_URL } from "@/lib/contact";
 import { FAMILY_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 
