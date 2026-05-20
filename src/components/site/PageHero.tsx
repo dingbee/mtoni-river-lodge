@@ -21,6 +21,15 @@ type Props = {
   back?: { to: string; label: string };
   /** Optional override for object-position on the image */
   imagePosition?: string;
+  /** Optional floating price card overlay (used on room pages) */
+  priceCard?: {
+    eyebrow?: string;
+    name: string;
+    price: string;
+    unit?: string;
+    note?: string;
+    cta?: { label: string; to: string };
+  };
 };
 
 /**
@@ -45,6 +54,7 @@ export function PageHero({
   cta,
   back,
   imagePosition,
+  priceCard,
 }: Props) {
   const isCenter = align === "center";
   return (
@@ -124,6 +134,43 @@ export function PageHero({
           </Reveal>
         )}
       </div>
+      {priceCard && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-6 z-10 flex justify-center px-6 sm:bottom-8 lg:inset-x-auto lg:right-12 lg:bottom-20 lg:justify-end lg:px-0">
+          <Reveal delay={400}>
+            <div className="pointer-events-auto w-full max-w-[320px] border border-ivory/25 bg-charcoal/55 px-6 py-5 text-ivory shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur-md sm:max-w-[340px] lg:w-[340px] lg:px-7 lg:py-6">
+              {priceCard.eyebrow && (
+                <p className="text-[0.6rem] uppercase tracking-[0.28em] text-ivory/70">
+                  {priceCard.eyebrow}
+                </p>
+              )}
+              <p className="mt-2 font-display text-lg leading-tight text-ivory lg:text-xl">
+                {priceCard.name}
+              </p>
+              <div className="mt-3 flex items-baseline gap-2 border-t border-ivory/20 pt-3">
+                <span className="text-[0.6rem] uppercase tracking-[0.24em] text-ivory/65">From</span>
+                <span className="font-display text-3xl leading-none lg:text-4xl">{priceCard.price}</span>
+                {priceCard.unit && (
+                  <span className="text-[0.65rem] uppercase tracking-[0.2em] text-ivory/65">
+                    / {priceCard.unit}
+                  </span>
+                )}
+              </div>
+              {priceCard.note && (
+                <p className="mt-3 text-xs leading-relaxed text-ivory/70">{priceCard.note}</p>
+              )}
+              {priceCard.cta && (
+                <Link
+                  to={priceCard.cta.to}
+                  className="group mt-4 inline-flex w-full items-center justify-center gap-3 border border-ivory/80 bg-ivory/95 px-5 py-3 text-[0.65rem] font-medium uppercase tracking-[0.28em] text-charcoal transition-colors hover:bg-transparent hover:text-ivory"
+                >
+                  <span>{priceCard.cta.label}</span>
+                  <span className="transition-transform group-hover:translate-x-1">→</span>
+                </Link>
+              )}
+            </div>
+          </Reveal>
+        </div>
+      )}
     </section>
   );
 }
