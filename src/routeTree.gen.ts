@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SuitesRouteImport } from './routes/suites'
 import { Route as RoomsRouteImport } from './routes/rooms'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PlanRouteImport } from './routes/plan'
 import { Route as LodgeRouteImport } from './routes/lodge'
 import { Route as JournalRouteImport } from './routes/journal'
@@ -42,6 +43,11 @@ const SuitesRoute = SuitesRouteImport.update({
 const RoomsRoute = RoomsRouteImport.update({
   id: '/rooms',
   path: '/rooms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlanRoute = PlanRouteImport.update({
@@ -137,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
+  '/pricing': typeof PricingRoute
   '/rooms': typeof RoomsRouteWithChildren
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
@@ -157,6 +164,7 @@ export interface FileRoutesByTo {
   '/experiences': typeof ExperiencesRoute
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
+  '/pricing': typeof PricingRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
@@ -178,6 +186,7 @@ export interface FileRoutesById {
   '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
+  '/pricing': typeof PricingRoute
   '/rooms': typeof RoomsRouteWithChildren
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
@@ -201,6 +210,7 @@ export interface FileRouteTypes {
     | '/journal'
     | '/lodge'
     | '/plan'
+    | '/pricing'
     | '/rooms'
     | '/suites'
     | '/terms'
@@ -221,6 +231,7 @@ export interface FileRouteTypes {
     | '/experiences'
     | '/lodge'
     | '/plan'
+    | '/pricing'
     | '/suites'
     | '/terms'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/journal'
     | '/lodge'
     | '/plan'
+    | '/pricing'
     | '/rooms'
     | '/suites'
     | '/terms'
@@ -263,6 +275,7 @@ export interface RootRouteChildren {
   JournalRoute: typeof JournalRouteWithChildren
   LodgeRoute: typeof LodgeRoute
   PlanRoute: typeof PlanRoute
+  PricingRoute: typeof PricingRoute
   RoomsRoute: typeof RoomsRouteWithChildren
   SuitesRoute: typeof SuitesRoute
   TermsRoute: typeof TermsRoute
@@ -289,6 +302,13 @@ declare module '@tanstack/react-router' {
       path: '/rooms'
       fullPath: '/rooms'
       preLoaderRoute: typeof RoomsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/plan': {
@@ -453,6 +473,7 @@ const rootRouteChildren: RootRouteChildren = {
   JournalRoute: JournalRouteWithChildren,
   LodgeRoute: LodgeRoute,
   PlanRoute: PlanRoute,
+  PricingRoute: PricingRoute,
   RoomsRoute: RoomsRouteWithChildren,
   SuitesRoute: SuitesRoute,
   TermsRoute: TermsRoute,

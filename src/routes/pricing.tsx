@@ -1,0 +1,186 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Check } from "lucide-react";
+import { SiteHeader } from "@/components/site/SiteHeader";
+import { SiteFooter } from "@/components/site/SiteFooter";
+import { Reveal } from "@/components/site/Reveal";
+import { PageHero } from "@/components/site/PageHero";
+import heroImg from "@/assets/hero-river.jpg";
+import riverfrontDeluxe from "@/assets/riverfront-deluxe-interior.jpg";
+import standardRiver from "@/assets/standard-river-exterior.jpg";
+import familyRoom from "@/assets/family-room-hero.jpg";
+
+export const Route = createFileRoute("/pricing")({
+  head: () => ({
+    meta: [
+      { title: "Pricing & Stays — Mtoni River Lodge" },
+      { name: "description", content: "Choose your stay at Mtoni River Lodge. Riverfront Deluxe, Riverfront Standard, and Family & Garden Suite — transparent nightly rates along the Nduruma River." },
+      { property: "og:title", content: "Pricing & Stays — Mtoni River Lodge" },
+      { property: "og:description", content: "Three accommodation tiers along the Nduruma River — transparent nightly rates and a quiet, riverside calm." },
+      { property: "og:image", content: heroImg },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: heroImg },
+    ],
+  }),
+  component: PricingPage,
+});
+
+type Tier = {
+  name: string;
+  eyebrow: string;
+  price: string;
+  unit: string;
+  blurb: string;
+  features: string[];
+  image: string;
+  imageAlt: string;
+  featured?: boolean;
+};
+
+const TIERS: Tier[] = [
+  {
+    name: "Riverfront Deluxe",
+    eyebrow: "Closest to the water",
+    price: "$310",
+    unit: "per night",
+    blurb: "Premium river-facing room with the lodge’s most uninterrupted views.",
+    features: [
+      "Premium river-facing room",
+      "Best views of the water and surrounding nature",
+      "Luxury bedding and upgraded interior finishes",
+      "Private relaxation space",
+    ],
+    image: riverfrontDeluxe,
+    imageAlt: "Interior of the Riverfront Deluxe room",
+    featured: true,
+  },
+  {
+    name: "Riverfront Standard",
+    eyebrow: "Balanced & quiet",
+    price: "$260",
+    unit: "per night",
+    blurb: "A calm, river-view sanctuary — simplicity carved from natural materials.",
+    features: [
+      "Comfortable river-view accommodation",
+      "Balanced design of simplicity and comfort",
+      "Ideal for couples or solo travelers",
+      "Direct access to lodge amenities",
+    ],
+    image: standardRiver,
+    imageAlt: "Exterior of the Standard River room",
+  },
+  {
+    name: "Family & Garden Suite",
+    eyebrow: "Space to gather",
+    price: "$360",
+    unit: "per night",
+    blurb: "Generous, garden-facing layout shaped around shared moments.",
+    features: [
+      "Spacious family-friendly layout",
+      "Garden-facing with natural surroundings",
+      "Multiple bedding arrangements",
+      "Designed for groups and longer stays",
+    ],
+    image: familyRoom,
+    imageAlt: "Family & Garden Suite at Mtoni River Lodge",
+  },
+];
+
+function PricingPage() {
+  return (
+    <div className="bg-ivory text-charcoal">
+      <SiteHeader overlay />
+      <PageHero
+        image={heroImg}
+        imageAlt="The Nduruma River at dawn"
+        eyebrow="Stays · Rates"
+        title={<>Stay by the River.<br />Choose Your Experience.</>}
+        subtitle="Three accommodations along the Nduruma River — each grounded in earth, thatch, and the quiet rhythm of the water. Transparent nightly rates, with breakfast and personal hosting included."
+      />
+
+      <section className="px-6 pb-24 lg:px-12 lg:pb-40">
+        <div className="mx-auto max-w-[1400px]">
+          <div className="grid gap-8 lg:grid-cols-3 lg:gap-10">
+            {TIERS.map((tier, i) => (
+              <Reveal key={tier.name} delay={i * 120}>
+                <PricingCard tier={tier} />
+              </Reveal>
+            ))}
+          </div>
+
+          <Reveal delay={300}>
+            <p className="mx-auto mt-16 max-w-2xl text-center text-xs uppercase tracking-[0.28em] text-charcoal/55">
+              Rates are per room, per night · Includes breakfast · Taxes additional · Seasonal pricing may apply
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
+      <SiteFooter />
+    </div>
+  );
+}
+
+function PricingCard({ tier }: { tier: Tier }) {
+  return (
+    <article
+      className={`group relative flex h-full flex-col overflow-hidden border bg-ivory transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_30px_60px_-30px_rgba(30,45,30,0.35)] ${
+        tier.featured ? "border-charcoal/30" : "border-charcoal/10"
+      }`}
+    >
+      {tier.featured && (
+        <div
+          className="absolute right-4 top-4 z-10 px-3 py-1 text-[0.6rem] font-medium uppercase tracking-[0.24em]"
+          style={{ backgroundColor: "#C0B87A", color: "#1E2D1E" }}
+        >
+          Most Loved
+        </div>
+      )}
+
+      <div className="relative aspect-[4/3] overflow-hidden">
+        <img
+          src={tier.image}
+          alt={tier.imageAlt}
+          loading="lazy"
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-charcoal/30 via-transparent to-transparent" />
+      </div>
+
+      <div className="flex flex-1 flex-col p-8 lg:p-10">
+        <p className="eyebrow text-charcoal/60">{tier.eyebrow}</p>
+        <h2 className="mt-3 font-display text-3xl lg:text-[2.125rem] leading-tight">{tier.name}</h2>
+
+        <div className="mt-5 flex items-baseline gap-2">
+          <span className="text-[0.65rem] uppercase tracking-[0.24em] text-charcoal/55">From</span>
+          <span className="font-display text-4xl">{tier.price}</span>
+          <span className="text-xs uppercase tracking-[0.2em] text-charcoal/55">/ {tier.unit}</span>
+        </div>
+
+        <p className="mt-5 text-sm leading-relaxed text-charcoal/75">{tier.blurb}</p>
+
+        <ul className="mt-6 space-y-3 border-t border-charcoal/10 pt-6">
+          {tier.features.map((f) => (
+            <li key={f} className="flex items-start gap-3 text-sm leading-relaxed text-charcoal/80">
+              <Check className="mt-0.5 h-4 w-4 flex-none text-charcoal/60" strokeWidth={1.5} />
+              <span>{f}</span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-8 flex-1" />
+
+        <Link
+          to="/book"
+          className={`group/btn mt-2 inline-flex items-center justify-center gap-3 px-6 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] transition-colors ${
+            tier.featured
+              ? "bg-charcoal text-ivory hover:bg-charcoal/90"
+              : "border border-charcoal text-charcoal hover:bg-charcoal hover:text-ivory"
+          }`}
+        >
+          <span>Book Now</span>
+          <span className="transition-transform group-hover/btn:translate-x-1">→</span>
+        </Link>
+      </div>
+    </article>
+  );
+}
