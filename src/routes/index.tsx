@@ -117,7 +117,7 @@ function HomePage() {
       {/* AERIAL FULL-BLEED */}
       <section className="relative h-[80svh] w-full overflow-hidden">
         <img src={aerialImg} alt="Candlelit dining hall at Mtoni River Lodge with cowhide chairs and lantern light" className="h-full w-full object-cover" loading="lazy" width={1920} height={1080} />
-        <div className="absolute inset-0 bg-gradient-to-t from-charcoal/95 via-charcoal/65 to-charcoal/70" />
+        <div className="absolute inset-0 bg-gradient-to-t from-charcoal/70 via-charcoal/25 to-charcoal/35" />
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1300px] px-6 pb-16 text-ivory lg:px-12 lg:pb-24">
           <Reveal>
             <p className="eyebrow !text-ivory/70">A place, found</p>
