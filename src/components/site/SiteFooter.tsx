@@ -164,7 +164,8 @@ export function SiteFooter() {
             <ul className="mt-6 space-y-2 text-sm text-ivory/80">
               <li>Gomba Estate</li>
               <li>Arusha, Tanzania</li>
-              <li>+255 752 441 443</li>
+              <li><a href="tel:+255752441443" className="hover:text-gold">+255 752 441 443</a></li>
+              <li><a href="tel:+255784270357" className="hover:text-gold">+255 784 270 357</a></li>
               <li className="pt-2">
                 <a href="mailto:info@mtoniriverlodge.com" className="hover:text-gold">
                   info@mtoniriverlodge.com
