@@ -137,6 +137,37 @@
     hyphens: auto;
   }
 
+  /* Mobile-first responsive typography for editorial headings.
+     Scales large display sizes down smoothly on phones while keeping
+     desktop classes (lg:text-*) untouched at >= 1024px. */
+  @media (max-width: 767px) {
+    h1, .font-display.text-6xl, .font-display.text-7xl, .font-display.text-8xl {
+      font-size: clamp(2rem, 9vw, 3rem) !important;
+      line-height: 1.1 !important;
+      letter-spacing: -0.02em;
+    }
+    h2, .font-display.text-5xl {
+      font-size: clamp(1.75rem, 7.5vw, 2.5rem) !important;
+      line-height: 1.15 !important;
+    }
+    .font-display.text-4xl {
+      font-size: clamp(1.5rem, 6.5vw, 2.125rem) !important;
+      line-height: 1.2 !important;
+    }
+    .font-display.text-3xl {
+      font-size: clamp(1.375rem, 5.5vw, 1.875rem) !important;
+      line-height: 1.2 !important;
+    }
+    /* Prevent forced editorial line breaks from stacking words vertically. */
+    h1 br, h2 br, h3 br, .font-display br {
+      display: none;
+    }
+    /* Tighter horizontal padding on phones for premium edge-to-edge layout. */
+    .px-6 { padding-left: 1rem !important; padding-right: 1rem !important; }
+    /* Improve wrapping balance on small screens. */
+    h1, h2, h3, .font-display { text-wrap: balance; hyphens: manual; }
+  }
+
   p {
     line-height: 1.75;
     overflow-wrap: break-word;
