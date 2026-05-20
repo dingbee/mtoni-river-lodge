@@ -121,7 +121,7 @@ function HomePage() {
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1300px] px-6 pb-16 text-ivory lg:px-12 lg:pb-24">
           <Reveal>
             <p className="eyebrow !text-ivory/70">A place, found</p>
-            <h2 className="mt-4 max-w-3xl font-display text-4xl leading-tight lg:text-6xl">
+            <h2 className="hero-text-shadow mt-4 max-w-3xl font-display text-4xl leading-tight text-ivory lg:text-6xl">
               Where the river leads, and everything else follows.
             </h2>
           </Reveal>
