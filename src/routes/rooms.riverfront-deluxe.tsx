@@ -23,7 +23,14 @@ function RiverfrontDeluxePage() {
         title={room.name}
         subtitle={room.heroLine}
         back={{ to: "/rooms", label: "Back to Rooms" }}
-        cta={{ label: "Check Availability", to: "/book" }}
+        priceCard={{
+          eyebrow: "Riverfront Deluxe",
+          name: "Closest to the water",
+          price: "$310",
+          unit: "night",
+          note: "Premium river-facing room · Breakfast included",
+          cta: { label: "Check Availability", to: "/book" },
+        }}
       />
 
       <section className="px-6 pb-24 lg:px-12 lg:pb-32">

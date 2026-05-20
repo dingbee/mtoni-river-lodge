@@ -20,7 +20,14 @@ function FamilyRoomPage() {
         title={room.name}
         subtitle={room.heroLine}
         back={{ to: "/rooms", label: "Back to Rooms" }}
-        cta={{ label: "Check Availability", to: "/book" }}
+        priceCard={{
+          eyebrow: "Family & Garden",
+          name: "Space to gather",
+          price: "$360",
+          unit: "night",
+          note: "Garden-facing suite · Designed for groups",
+          cta: { label: "Check Availability", to: "/book" },
+        }}
       />
 
       <section className="px-6 pb-24 lg:px-12 lg:pb-32">
