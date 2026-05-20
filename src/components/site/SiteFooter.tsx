@@ -165,7 +165,6 @@ export function SiteFooter() {
               <li>Gomba Estate</li>
               <li>Arusha, Tanzania</li>
               <li>+255 752 441 443</li>
-              <li>+255 786 441 441</li>
               <li className="pt-2">
                 <a href="mailto:info@mtoniriverlodge.com" className="hover:text-gold">
                   info@mtoniriverlodge.com
