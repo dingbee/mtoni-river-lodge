@@ -21,7 +21,7 @@ function PinterestIcon({ className }: { className?: string }) {
 
 const socials = [
   { label: "Instagram", href: "https://www.instagram.com/mtoni_river_lodge", Icon: Instagram },
-  { label: "Facebook", href: "https://www.facebook.com/mtoniriverlodge", Icon: Facebook },
+  { label: "Facebook", href: "https://www.facebook.com/share/1ERY93Negq/", Icon: Facebook },
   { label: "YouTube", href: "https://www.youtube.com/@MtoniRiverLodge", Icon: Youtube },
   { label: "Pinterest", href: "https://www.pinterest.com/mtoniriverlodge", Icon: PinterestIcon },
 ];
