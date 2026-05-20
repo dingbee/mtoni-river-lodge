@@ -213,7 +213,7 @@ function HomePage() {
       {/* DINING — full bleed quote */}
       <section className="relative h-[90svh] w-full overflow-hidden">
         <img src={diningImg} alt="Stone lobby entrance with beaded chandelier and arched doorways at Mtoni River Lodge" className="h-full w-full object-cover" loading="lazy" />
-        <div className="absolute inset-0 bg-charcoal/55" />
+        <div className="absolute inset-0 bg-charcoal/30" />
         <div className="relative z-10 mx-auto flex h-full max-w-[1100px] flex-col items-center justify-center px-6 text-center text-ivory">
           <Reveal>
             <p className="eyebrow !text-ivory/60">Dining</p>
