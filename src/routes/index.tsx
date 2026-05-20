@@ -63,13 +63,15 @@ function HomePage() {
                A serene retreat where Africa’s beauty meets authenticity. On the banks of the Nduruma River, we blend traditional Maasai architecture and modern comforts, offering a uniquely African stay.
               </p>
               <div className="flex flex-col items-start gap-3 sm:items-end">
-                <Link
-                  to="/book"
+                <a
+                  href={WHATSAPP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="group inline-flex items-center gap-3 border border-ivory bg-ivory px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-charcoal transition-colors hover:bg-transparent hover:text-ivory"
                 >
                   Check Availability
                   <span className="transition-transform group-hover:translate-x-1">→</span>
-                </Link>
+                </a>
                 <p className="hero-text-shadow max-w-xs text-left text-[0.72rem] leading-relaxed text-ivory/80 sm:text-right">
                   {WHATSAPP_NOTE}
                 </p>
