@@ -43,6 +43,8 @@ function HomePage() {
           <div className="hero-overlay pointer-events-none absolute inset-0" />
           {/* Subtle vignette */}
           <div className="pointer-events-none absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_60%,rgba(0,0,0,0.3)_100%)]" />
+          {/* Extra bottom darken for hero text legibility */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
         </div>
 
         <div className="relative z-10 mx-auto flex h-full max-w-[1300px] flex-col justify-end px-6 pb-10 pt-[120px] text-ivory lg:px-12 lg:pb-20 lg:pt-[140px]">
@@ -85,7 +87,6 @@ function HomePage() {
       <section className="relative px-6 pb-32 pt-12 lg:px-12 lg:pb-48 lg:pt-28">
         <div className="mx-auto grid max-w-[1300px] gap-16 lg:grid-cols-12">
           <Reveal className="lg:col-span-5">
-            <p className="eyebrow">Chapter One</p>
             <h2 className="mt-6 font-display text-5xl leading-[1.04] lg:text-6xl">
               The river<br/>writes the day.
             </h2>
@@ -116,7 +117,7 @@ function HomePage() {
       {/* AERIAL FULL-BLEED */}
       <section className="relative h-[80svh] w-full overflow-hidden">
         <img src={aerialImg} alt="Candlelit dining hall at Mtoni River Lodge with cowhide chairs and lantern light" className="h-full w-full object-cover" loading="lazy" width={1920} height={1080} />
-        <div className="absolute inset-0 bg-gradient-to-t from-charcoal/80 via-charcoal/30 to-charcoal/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-charcoal/95 via-charcoal/65 to-charcoal/70" />
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1300px] px-6 pb-16 text-ivory lg:px-12 lg:pb-24">
           <Reveal>
             <p className="eyebrow !text-ivory/70">A place, found</p>
