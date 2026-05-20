@@ -108,6 +108,8 @@
   html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
+    max-width: 100%;
   }
 
   body {
@@ -120,6 +122,8 @@
     line-height: 1.7;
     font-size: 16px;
     text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+    max-width: 100%;
   }
 
   h1, h2, h3, h4, .font-display {
@@ -128,10 +132,20 @@
     letter-spacing: -0.015em;
     line-height: 1.12;
     color: var(--color-foreground);
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
   }
 
   p {
     line-height: 1.75;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+
+  /* Prevent media and embeds from overflowing their containers */
+  img, video, iframe, svg {
+    max-width: 100%;
   }
 
   /* Constrain long-form prose for readability */
