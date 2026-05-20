@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { PageHero } from "@/components/site/PageHero";
+import { ROOM_PATHS, type RoomSlug } from "@/lib/rooms";
 import heroImg from "@/assets/hero-river.jpg";
 import riverfrontDeluxe from "@/assets/riverfront-deluxe-interior.jpg";
 import standardRiver from "@/assets/standard-river-exterior.jpg";
@@ -33,6 +34,7 @@ type Tier = {
   features: string[];
   image: string;
   imageAlt: string;
+  slug: RoomSlug;
   featured?: boolean;
 };
 
@@ -51,6 +53,7 @@ const TIERS: Tier[] = [
     ],
     image: riverfrontDeluxe,
     imageAlt: "Interior of the Riverfront Deluxe room",
+    slug: "riverfront-deluxe",
     featured: true,
   },
   {
@@ -67,6 +70,7 @@ const TIERS: Tier[] = [
     ],
     image: standardRiver,
     imageAlt: "Exterior of the Standard River room",
+    slug: "standard-river",
   },
   {
     name: "Family & Garden Suite",
@@ -82,6 +86,7 @@ const TIERS: Tier[] = [
     ],
     image: familyRoom,
     imageAlt: "Family & Garden Suite at Mtoni River Lodge",
+    slug: "family-room",
   },
 ];
 
@@ -169,17 +174,29 @@ function PricingCard({ tier }: { tier: Tier }) {
 
         <div className="mt-8 flex-1" />
 
-        <Link
-          to="/book"
-          className={`group/btn mt-2 inline-flex items-center justify-center gap-3 px-6 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] transition-colors ${
-            tier.featured
-              ? "bg-charcoal text-ivory hover:bg-charcoal/90"
-              : "border border-charcoal text-charcoal hover:bg-charcoal hover:text-ivory"
-          }`}
-        >
-          <span>Book Now</span>
-          <span className="transition-transform group-hover/btn:translate-x-1">→</span>
-        </Link>
+        <div className="mt-2 flex flex-col gap-3">
+          <Link
+            to={ROOM_PATHS[tier.slug]}
+            className={`group/explore inline-flex items-center justify-center gap-3 px-6 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] transition-colors ${
+              tier.featured
+                ? "bg-charcoal text-ivory hover:bg-charcoal/90"
+                : "border border-charcoal text-charcoal hover:bg-charcoal hover:text-ivory"
+            }`}
+          >
+            <span>Explore More</span>
+            <span className="transition-transform group-hover/explore:translate-x-1">→</span>
+          </Link>
+          <Link
+            to="/book"
+            className={`group/book inline-flex items-center justify-center gap-3 px-6 py-3 text-[0.72rem] font-medium uppercase tracking-[0.28em] transition-colors ${
+              tier.featured
+                ? "border border-charcoal text-charcoal hover:bg-charcoal hover:text-ivory"
+                : "text-charcoal/70 hover:text-charcoal underline underline-offset-[6px] decoration-charcoal/30 hover:decoration-charcoal"
+            }`}
+          >
+            <span>Book This Room</span>
+          </Link>
+        </div>
       </div>
     </article>
   );
