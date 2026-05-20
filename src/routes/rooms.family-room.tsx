@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { PageHero } from "@/components/site/PageHero";
+import { RoomRate } from "@/components/site/RoomRate";
 import { WHATSAPP_NOTE, WHATSAPP_URL } from "@/lib/contact";
 import { FAMILY_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 
@@ -20,14 +21,14 @@ function FamilyRoomPage() {
         title={room.name}
         subtitle={room.heroLine}
         back={{ to: "/rooms", label: "Back to Rooms" }}
-        priceCard={{
-          eyebrow: "Family & Garden",
-          name: "Space to gather",
-          price: "$360",
-          unit: "night",
-          note: "Garden-facing suite · Designed for groups",
-          cta: { label: "Check Availability", to: "/book" },
-        }}
+        cta={{ label: "Check Availability", to: "/book" }}
+      />
+
+      <RoomRate
+        eyebrow="Family & Garden"
+        tagline="Space to gather"
+        price="$360"
+        note="Garden-facing suite · Designed for groups & longer stays"
       />
 
       <section className="px-6 pb-24 lg:px-12 lg:pb-32">

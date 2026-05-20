@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { PageHero } from "@/components/site/PageHero";
+import { RoomRate } from "@/components/site/RoomRate";
 import { WHATSAPP_NOTE, WHATSAPP_URL } from "@/lib/contact";
 import { STANDARD_RIVER_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 import interiorImg from "@/assets/standard-river-interior.jpg";
@@ -22,14 +23,14 @@ function StandardRiverPage() {
         title={room.name}
         subtitle={room.heroLine}
         back={{ to: "/rooms", label: "Back to Rooms" }}
-        priceCard={{
-          eyebrow: "Riverfront Standard",
-          name: "Balanced & quiet",
-          price: "$260",
-          unit: "night",
-          note: "River-view sanctuary · Breakfast included",
-          cta: { label: "Check Availability", to: "/book" },
-        }}
+        cta={{ label: "Check Availability", to: "/book" }}
+      />
+
+      <RoomRate
+        eyebrow="Riverfront Standard"
+        tagline="Balanced & quiet"
+        price="$260"
+        note="River-view sanctuary · Breakfast & personal hosting included"
       />
 
       <section className="px-6 pb-24 lg:px-12 lg:pb-32">

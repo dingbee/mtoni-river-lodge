@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { PageHero } from "@/components/site/PageHero";
+import { RoomRate } from "@/components/site/RoomRate";
 import { WHATSAPP_NOTE, WHATSAPP_URL } from "@/lib/contact";
 import { RIVERFRONT_DELUXE_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 import outdoorShowerImg from "@/assets/riverfront-deluxe-outdoor-shower.jpg";
@@ -23,14 +24,14 @@ function RiverfrontDeluxePage() {
         title={room.name}
         subtitle={room.heroLine}
         back={{ to: "/rooms", label: "Back to Rooms" }}
-        priceCard={{
-          eyebrow: "Riverfront Deluxe",
-          name: "Closest to the water",
-          price: "$310",
-          unit: "night",
-          note: "Premium river-facing room · Breakfast included",
-          cta: { label: "Check Availability", to: "/book" },
-        }}
+        cta={{ label: "Check Availability", to: "/book" }}
+      />
+
+      <RoomRate
+        eyebrow="Riverfront Deluxe"
+        tagline="Closest to the water"
+        price="$310"
+        note="Premium river-facing room · Breakfast & personal hosting included"
       />
 
       <section className="px-6 pb-24 lg:px-12 lg:pb-32">
