@@ -23,14 +23,14 @@ function RiverfrontDeluxePage() {
         title={room.name}
         subtitle={room.heroLine}
         back={{ to: "/rooms", label: "Back to Rooms" }}
-        priceCard={{
-          eyebrow: "Riverfront Deluxe",
-          name: "Closest to the water",
-          price: "$310",
-          unit: "night",
-          note: "Premium river-facing room · Breakfast included",
-          cta: { label: "Check Availability", to: "/book" },
-        }}
+        cta={{ label: "Check Availability", to: "/book" }}
+      />
+
+      <RoomRate
+        eyebrow="Riverfront Deluxe"
+        tagline="Closest to the water"
+        price="$310"
+        note="Premium river-facing room · Breakfast & personal hosting included"
       />
 
       <section className="px-6 pb-24 lg:px-12 lg:pb-32">

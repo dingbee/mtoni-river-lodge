@@ -22,14 +22,14 @@ function StandardRiverPage() {
         title={room.name}
         subtitle={room.heroLine}
         back={{ to: "/rooms", label: "Back to Rooms" }}
-        priceCard={{
-          eyebrow: "Riverfront Standard",
-          name: "Balanced & quiet",
-          price: "$260",
-          unit: "night",
-          note: "River-view sanctuary · Breakfast included",
-          cta: { label: "Check Availability", to: "/book" },
-        }}
+        cta={{ label: "Check Availability", to: "/book" }}
+      />
+
+      <RoomRate
+        eyebrow="Riverfront Standard"
+        tagline="Balanced & quiet"
+        price="$260"
+        note="River-view sanctuary · Breakfast & personal hosting included"
       />
 
       <section className="px-6 pb-24 lg:px-12 lg:pb-32">
