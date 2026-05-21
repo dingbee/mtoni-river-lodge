@@ -78,6 +78,7 @@ function RootComponent() {
     <>
       <Outlet />
       <BackToTop />
+      <TawkToWidget />
     </>
   );
 }
