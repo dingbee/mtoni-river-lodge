@@ -2,7 +2,7 @@ import { Star } from "lucide-react";
 import { Reveal } from "@/components/site/Reveal";
 
 const TRIPADVISOR_URL =
-  "https://www.tripadvisor.com/Hotel_Review-g317084-Mtoni_River_Lodge.html";
+  "https://www.tripadvisor.com/Hotel_Review-g297913-d27185811-Reviews-Mtoni_River_Lodge-Arusha_Arusha_Region.html";
 
 const reviews = [
   {
