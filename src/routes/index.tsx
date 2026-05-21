@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { LocationMap } from "@/components/site/LocationMap";
 import { GuestReviews } from "@/components/site/GuestReviews";
+import { HeroCinematic } from "@/components/site/HeroCinematic";
 import { WHATSAPP_NOTE, WHATSAPP_URL } from "@/lib/contact";
 import heroImg from "@/assets/hero-river.jpg";
 import suiteImg from "@/assets/suite-interior.jpg";
@@ -36,55 +37,10 @@ function HomePage() {
     <div className="bg-ivory text-charcoal">
       <SiteHeader overlay />
 
-      {/* HERO — unified design system (75svh mobile / 85svh desktop, 110/140 top safe spacing, mb-20) */}
-      <section className="relative mb-20 h-[78svh] min-h-[640px] w-full overflow-hidden lg:h-[85svh] lg:min-h-[640px]">
-        <div className="absolute inset-0">
-          <img src={heroImg} alt="Mist over the Nduruma River at dawn with Mount Meru in the distance" className="ken-burns h-full w-full object-cover" width={1920} height={1080} />
-          {/* Unified hero overlay — stronger top/bottom, brand-aligned dark green/black */}
-          <div className="hero-overlay pointer-events-none absolute inset-0" />
-          {/* Subtle vignette */}
-          <div className="pointer-events-none absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_60%,rgba(0,0,0,0.3)_100%)]" />
-          {/* Extra bottom darken for hero text legibility */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-        </div>
-
-        <div className="relative z-10 mx-auto flex h-full max-w-[1300px] flex-col justify-end px-6 pb-10 pt-[120px] text-ivory lg:px-12 lg:pb-20 lg:pt-[140px]">
-          <Reveal>
-            <p className="eyebrow hero-text-shadow !text-ivory/85">Arusha · Tanzania</p>
-          </Reveal>
-          <Reveal delay={150}>
-            <h1 className="hero-text-shadow mt-5 max-w-[700px] font-display text-[2rem] leading-[1.08] tracking-tight text-ivory sm:text-5xl lg:text-[4.25rem]">
-              A river. A whisper.<br/>
-              <em className="font-light italic text-ivory">A homecoming.</em>
-            </h1>
-          </Reveal>
-          <Reveal delay={250}>
-            <div className="mt-6 flex flex-col items-start gap-6 sm:flex-row sm:items-end sm:justify-between">
-              <p className="hero-text-shadow max-w-[560px] text-pretty text-base leading-relaxed text-ivory/90 lg:text-lg">
-               A serene retreat where Africa’s beauty meets authenticity. On the banks of the Nduruma River, we blend traditional Maasai architecture and modern comforts, offering a uniquely African stay.
-              </p>
-              <div className="flex flex-col items-start gap-3 sm:items-end">
-                <a
-                  href={WHATSAPP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-3 border border-ivory bg-ivory px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-charcoal transition-colors hover:bg-transparent hover:text-ivory"
-                >
-                  Check Availability
-                  <span className="transition-transform group-hover:translate-x-1">→</span>
-                </a>
-                <p className="hero-text-shadow max-w-xs text-left text-[0.72rem] leading-relaxed text-ivory/80 sm:text-right">
-                  {WHATSAPP_NOTE}
-                </p>
-              </div>
-            </div>
-          </Reveal>
-        </div>
-
-        <div className="pointer-events-none absolute bottom-6 left-1/2 z-10 hidden -translate-x-1/2 text-ivory/70 lg:block">
-          <span className="block h-12 w-px animate-pulse bg-ivory/50" />
-        </div>
-      </section>
+      <HeroCinematic
+        poster={heroImg}
+        posterAlt="Mist over the Nduruma River at dawn with Mount Meru in the distance"
+      />
 
       {/* INTRO / NARRATIVE */}
       <section className="relative px-6 pb-32 pt-12 lg:px-12 lg:pb-48 lg:pt-28">
