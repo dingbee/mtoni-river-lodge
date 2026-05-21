@@ -167,8 +167,8 @@ export function SiteFooter() {
               <li><a href="tel:+255752441443" className="hover:text-gold">+255 752 441 443</a></li>
               <li><a href="tel:+255784270357" className="hover:text-gold">+255 784 270 357</a></li>
               <li className="pt-2">
-                <a href="mailto:info@mtoniriverlodge.com" className="hover:text-gold">
-                  info@mtoniriverlodge.com
+                <a href="mailto:bookings@mtoniriverlodge.com" className="hover:text-gold">
+                  bookings@mtoniriverlodge.com
                 </a>
               </li>
             </ul>
