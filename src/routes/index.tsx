@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Home, Leaf, Waves } from "lucide-react";
+import { Home, Leaf, Waves, Star } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
@@ -327,44 +327,8 @@ function HomePage() {
         </div>
       </section>
 
-      {/* CLOSING CTA */}
-      {/* TESTIMONIALS */}
-      <section className="px-6 py-32 lg:px-12 lg:py-48">
-        <div className="mx-auto max-w-[900px] text-center">
-          <Reveal>
-            <p className="eyebrow">Voices</p>
-            <h2 className="mt-6 font-display text-4xl leading-[1.08] lg:text-5xl">
-              What our guests felt.
-            </h2>
-          </Reveal>
-
-          <div className="mt-20 space-y-24 lg:mt-28 lg:space-y-32">
-            {[
-              {
-                quote: "A hidden gem and an ideal start to a safari vacation. Warm hospitality and a truly welcoming atmosphere.",
-                attribution: "Daniel, United Kingdom",
-              },
-              {
-                quote: "It felt less like a hotel and more like being held by a place. Every detail seemed to know us before we did.",
-                attribution: "Sofia, Italy",
-              },
-              {
-                quote: "The perfect blend of bush charm and quiet luxury—peaceful, welcoming, and hard to leave.",
-                attribution: "Aiko & Ren, Japan",
-              },
-            ].map((t, i) => (
-              <Reveal key={t.attribution} delay={i * 200}>
-                <p className="font-display text-2xl italic leading-[1.45] text-charcoal/85 lg:text-3xl">
-                  “{t.quote}”
-                </p>
-                <p className="mt-8 text-[0.72rem] uppercase tracking-[0.32em] text-charcoal/55">
-                  — {t.attribution}
-                </p>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* GUEST REVIEWS — TripAdvisor-aligned */}
+      <GuestReviews />
 
       <section className="relative bg-charcoal px-6 py-32 text-ivory lg:px-12 lg:py-48">
         <div className="mx-auto max-w-[1100px] text-center">
