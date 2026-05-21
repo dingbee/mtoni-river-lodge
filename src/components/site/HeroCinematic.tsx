@@ -11,6 +11,10 @@ type Props = {
   /** Static fallback shown before/while video loads, or when motion is reduced. */
   poster: string;
   posterAlt: string;
+  /** Optional additional posters to cross-fade with the primary poster. */
+  posters?: { src: string; alt: string }[];
+  /** Seconds each slide is shown before dissolving. */
+  slideDurationMs?: number;
 };
 
 const DEFAULT_SOURCES: Source[] = [
@@ -24,7 +28,17 @@ const DEFAULT_SOURCES: Source[] = [
  * gradient overlay. Falls back to the poster image on reduced-motion
  * or when the video cannot play.
  */
-export function HeroCinematic({ sources = DEFAULT_SOURCES, poster, posterAlt }: Props) {
+export function HeroCinematic({
+  sources = DEFAULT_SOURCES,
+  poster,
+  posterAlt,
+  posters,
+  slideDurationMs = 7000,
+}: Props) {
+  const slides = (posters && posters.length > 0
+    ? posters
+    : [{ src: poster, alt: posterAlt }]);
+  const [activeSlide, setActiveSlide] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const [playing, setPlaying] = useState(true);
@@ -40,6 +54,16 @@ export function HeroCinematic({ sources = DEFAULT_SOURCES, poster, posterAlt }: 
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
   }, []);
+
+  // Cross-fade between posters when video isn't covering them
+  useEffect(() => {
+    if (slides.length < 2) return;
+    if (videoReady && !reduceMotion) return;
+    const id = window.setInterval(() => {
+      setActiveSlide((i) => (i + 1) % slides.length);
+    }, slideDurationMs);
+    return () => window.clearInterval(id);
+  }, [slides.length, slideDurationMs, videoReady, reduceMotion]);
 
   // Subtle parallax on scroll (rAF-throttled)
   useEffect(() => {
@@ -107,17 +131,22 @@ export function HeroCinematic({ sources = DEFAULT_SOURCES, poster, posterAlt }: 
         className="absolute inset-0 will-change-transform"
         style={{ transform: `translate3d(0, ${offset}px, 0) scale(1.06)` }}
       >
-        {/* Poster — always rendered; sits behind the video for instant paint + fallback */}
-        <img
-          src={poster}
-          alt={posterAlt}
-          className="ken-burns absolute inset-0 h-full w-full object-cover"
-          width={1920}
-          height={1080}
-          loading="eager"
-          decoding="async"
-          fetchPriority="high"
-        />
+        {/* Posters — cross-fade between multiple signature atmospheres */}
+        {slides.map((s, i) => (
+          <img
+            key={s.src}
+            src={s.src}
+            alt={s.alt}
+            className={`ken-burns absolute inset-0 h-full w-full object-cover transition-opacity duration-[2000ms] ease-in-out ${
+              i === activeSlide ? "opacity-100" : "opacity-0"
+            }`}
+            width={1920}
+            height={1080}
+            loading={i === 0 ? "eager" : "lazy"}
+            decoding="async"
+            fetchPriority={i === 0 ? "high" : "low"}
+          />
+        ))}
         {!reduceMotion && (
           <video
             ref={videoRef}
