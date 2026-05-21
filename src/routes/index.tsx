@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Home, Leaf, Waves, Star } from "lucide-react";
+import { Home, Leaf, Waves } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { LocationMap } from "@/components/site/LocationMap";
+import { GuestReviews } from "@/components/site/GuestReviews";
 import { WHATSAPP_NOTE, WHATSAPP_URL } from "@/lib/contact";
 import heroImg from "@/assets/hero-river.jpg";
 import suiteImg from "@/assets/suite-interior.jpg";
