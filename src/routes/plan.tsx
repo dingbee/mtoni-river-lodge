@@ -140,6 +140,9 @@ function PlanPage() {
                 <p className="pt-2 text-xs text-muted-foreground">
                   Or write directly to <a href="mailto:bookings@mtoniriverlodge.com" className="underline underline-offset-4">bookings@mtoniriverlodge.com</a>
                 </p>
+                <p className="text-xs italic text-muted-foreground">
+                  Reservations & personalized stay assistance.
+                </p>
             </form>
           </div>
         </div>
