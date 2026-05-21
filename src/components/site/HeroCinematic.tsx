@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Pause, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { Reveal } from "@/components/site/Reveal";
 
 type Source = { src: string; type: string };
@@ -45,6 +45,8 @@ export function HeroCinematic({
   const [videoReady, setVideoReady] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [offset, setOffset] = useState(0);
+  const [hovered, setHovered] = useState(false);
+  const [tabVisible, setTabVisible] = useState(true);
 
   // Respect reduced motion
   useEffect(() => {
@@ -55,15 +57,23 @@ export function HeroCinematic({
     return () => mq.removeEventListener("change", apply);
   }, []);
 
+  // Pause autoplay when tab is hidden
+  useEffect(() => {
+    const onVis = () => setTabVisible(!document.hidden);
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
+
   // Cross-fade between posters when video isn't covering them
   useEffect(() => {
     if (slides.length < 2) return;
     if (videoReady && !reduceMotion) return;
+    if (hovered || !tabVisible) return;
     const id = window.setInterval(() => {
       setActiveSlide((i) => (i + 1) % slides.length);
     }, slideDurationMs);
     return () => window.clearInterval(id);
-  }, [slides.length, slideDurationMs, videoReady, reduceMotion]);
+  }, [slides.length, slideDurationMs, videoReady, reduceMotion, hovered, tabVisible]);
 
   // Subtle parallax on scroll (rAF-throttled)
   useEffect(() => {
@@ -125,6 +135,8 @@ export function HeroCinematic({
     <section
       ref={sectionRef}
       className="relative mb-20 h-[88svh] min-h-[640px] w-full overflow-hidden bg-charcoal"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {/* Background media */}
       <div
@@ -227,16 +239,47 @@ export function HeroCinematic({
           type="button"
           onClick={toggle}
           aria-label={playing ? "Pause background video" : "Play background video"}
-          className="absolute bottom-6 right-6 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full border border-ivory/40 bg-black/30 text-ivory backdrop-blur-sm transition-colors hover:bg-black/50 lg:bottom-8 lg:right-10"
+          className="absolute bottom-6 right-6 z-20 hidden h-11 w-11 items-center justify-center rounded-full border border-ivory/40 bg-black/30 text-ivory backdrop-blur-sm transition-colors hover:bg-black/50 lg:bottom-8 lg:right-10"
         >
           {playing ? <Pause className="h-4 w-4" strokeWidth={1.5} /> : <Play className="h-4 w-4" strokeWidth={1.5} />}
         </button>
       )}
 
-      {/* Scroll cue */}
-      <div className="pointer-events-none absolute bottom-8 left-1/2 z-10 hidden -translate-x-1/2 text-ivory/60 lg:block">
-        <span className="block h-12 w-px animate-pulse bg-ivory/50" />
-      </div>
+      {/* Slide navigation — arrows (desktop) + dots (all) */}
+      {slides.length > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={() => setActiveSlide((i) => (i - 1 + slides.length) % slides.length)}
+            aria-label="Previous slide"
+            className="absolute left-4 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-ivory/30 bg-black/20 text-ivory/80 backdrop-blur-sm transition-colors hover:bg-black/40 hover:text-ivory md:inline-flex lg:left-8"
+          >
+            <ChevronLeft className="h-5 w-5" strokeWidth={1.4} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSlide((i) => (i + 1) % slides.length)}
+            aria-label="Next slide"
+            className="absolute right-4 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-ivory/30 bg-black/20 text-ivory/80 backdrop-blur-sm transition-colors hover:bg-black/40 hover:text-ivory md:inline-flex lg:right-8"
+          >
+            <ChevronRight className="h-5 w-5" strokeWidth={1.4} />
+          </button>
+          <div className="absolute bottom-7 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 lg:bottom-10">
+            {slides.map((s, i) => (
+              <button
+                key={s.src}
+                type="button"
+                onClick={() => setActiveSlide(i)}
+                aria-label={`Go to slide ${i + 1}`}
+                aria-current={i === activeSlide}
+                className={`h-[6px] rounded-full transition-all duration-500 ${
+                  i === activeSlide ? "w-8 bg-ivory" : "w-2.5 bg-ivory/45 hover:bg-ivory/70"
+                }`}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </section>
   );
 }
