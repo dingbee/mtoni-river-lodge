@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 
 import appCss from "../styles.css?url";
 import { BackToTop } from "@/components/site/BackToTop";
+import { TawkToWidget } from "@/components/site/TawkToWidget";
 
 function NotFoundComponent() {
   return (
@@ -77,6 +78,7 @@ function RootComponent() {
     <>
       <Outlet />
       <BackToTop />
+      <TawkToWidget />
     </>
   );
 }
