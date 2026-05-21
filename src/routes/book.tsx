@@ -151,6 +151,9 @@ function BookPage() {
             <p className="text-xs uppercase tracking-[0.28em] text-charcoal/50">
               Need assistance?
             </p>
+            <p className="text-xs italic text-charcoal/60">
+              Reservations & personalized stay assistance.
+            </p>
             <a
               href={WHATSAPP_URL}
               target="_blank"
@@ -162,10 +165,10 @@ function BookPage() {
             <p className="mt-2 text-xs text-charcoal/50">
               Or write to{" "}
               <a
-                href="mailto:info@mtoniriverlodge.com"
+                href="mailto:bookings@mtoniriverlodge.com"
                 className="underline underline-offset-4 hover:text-charcoal"
               >
-                info@mtoniriverlodge.com
+                bookings@mtoniriverlodge.com
               </a>
             </p>
           </div>

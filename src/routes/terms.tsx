@@ -211,10 +211,10 @@ function TermsPage() {
             <p className="text-sm leading-relaxed text-charcoal/65">
               Questions about these terms? Write to{" "}
               <a
-                href="mailto:info@mtoniriverlodge.com"
+                href="mailto:bookings@mtoniriverlodge.com"
                 className="underline underline-offset-4 hover:text-charcoal"
               >
-                info@mtoniriverlodge.com
+                bookings@mtoniriverlodge.com
               </a>
               .
             </p>

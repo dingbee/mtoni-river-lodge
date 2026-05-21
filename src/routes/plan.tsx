@@ -138,7 +138,10 @@ function PlanPage() {
                   <span className="transition-transform group-hover:translate-x-1">→</span>
                 </a>
                 <p className="pt-2 text-xs text-muted-foreground">
-                  Or write directly to <a href="mailto:info@mtoniriverlodge.com" className="underline underline-offset-4">info@mtoniriverlodge.com</a>
+                  Or write directly to <a href="mailto:bookings@mtoniriverlodge.com" className="underline underline-offset-4">bookings@mtoniriverlodge.com</a>
+                </p>
+                <p className="text-xs italic text-muted-foreground">
+                  Reservations & personalized stay assistance.
                 </p>
             </form>
           </div>

@@ -21,7 +21,7 @@ export function SiteFooterMinimal() {
           <Link to="/lodge" className="hover:text-gold">The Lodge</Link>
           <Link to="/experiences" className="hover:text-gold">Experiences</Link>
           <Link to="/terms" className="hover:text-gold">Terms</Link>
-          <a href="mailto:info@mtoniriverlodge.com" className="hover:text-gold">
+          <a href="mailto:bookings@mtoniriverlodge.com" className="hover:text-gold">
             Contact
           </a>
         </nav>
