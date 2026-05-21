@@ -151,6 +151,9 @@ function BookPage() {
             <p className="text-xs uppercase tracking-[0.28em] text-charcoal/50">
               Need assistance?
             </p>
+            <p className="text-xs italic text-charcoal/60">
+              Reservations & personalized stay assistance.
+            </p>
             <a
               href={WHATSAPP_URL}
               target="_blank"
