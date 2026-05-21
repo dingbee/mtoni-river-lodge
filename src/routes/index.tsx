@@ -8,6 +8,7 @@ import { GuestReviews } from "@/components/site/GuestReviews";
 import { HeroCinematic } from "@/components/site/HeroCinematic";
 import { WHATSAPP_NOTE } from "@/lib/contact";
 import heroImg from "@/assets/hero-river.jpg";
+import lodgeHeroImg from "@/assets/lodge-hero-aerial.jpg";
 import suiteImg from "@/assets/suite-interior.jpg";
 import diningImg from "@/assets/dining.jpg";
 import aerialImg from "@/assets/aerial-lodge.jpg";
@@ -40,6 +41,10 @@ function HomePage() {
       <HeroCinematic
         poster={heroImg}
         posterAlt="Mist over the Nduruma River at dawn with Mount Meru in the distance"
+        posters={[
+          { src: heroImg, alt: "Mist over the Nduruma River at dawn with Mount Meru in the distance" },
+          { src: lodgeHeroImg, alt: "Aerial view of Mtoni River Lodge — thatched villas nestled among the forest canopy" },
+        ]}
       />
 
       {/* INTRO / NARRATIVE */}
