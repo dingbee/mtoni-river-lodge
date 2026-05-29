@@ -8,15 +8,80 @@ import { WHATSAPP_NOTE } from "@/lib/contact";
 import cycling from "@/assets/xp-cycling.jpg";
 import riverWalk from "@/assets/xp-river-walk.jpg";
 import cooking from "@/assets/xp-cooking.jpg";
-import bonfire from "@/assets/xp-bonfire.jpg";
 import canoe from "@/assets/xp-canoe.jpg";
+import market from "@/assets/xp-market.jpg";
+import waterfall from "@/assets/xp-waterfall.jpg";
+import hotsprings from "@/assets/xp-hotsprings.jpg";
 
-const xp = [
-  { eyebrow: "On two wheels", title: "Cycling", img: cycling, body: "Explore the quiet surroundings of Mtoni on two wheels, moving through open landscapes and local paths at your own pace." },
-  { eyebrow: "On foot", title: "Guided River Walks", img: riverWalk, body: "Walk alongside the river with a local guide, discovering the subtle rhythms of the ecosystem and the stories carried by the land." },
-  { eyebrow: "At the table", title: "Live Cooking Experience", img: cooking, body: "Gather around the kitchen and experience meals prepared in real time, where local ingredients and shared moments come together." },
-  { eyebrow: "After dark", title: "Bonfire Experience", img: bonfire, body: "As evening settles, gather around the fire beneath open skies — a space for warmth, reflection, and quiet connection." },
-  { eyebrow: "On still water", title: "Lake Duluti Canoeing", img: canoe, body: "Glide across the calm waters of Lake Duluti, surrounded by forest and stillness, offering a peaceful contrast to the river’s flow." },
+type Xp = {
+  eyebrow: string;
+  title: string;
+  img: string;
+  body: string;
+  price: string;
+  priceNote?: string;
+  transport?: string;
+};
+
+const xp: Xp[] = [
+  {
+    eyebrow: "On still water",
+    title: "Lake Duluti Canoeing",
+    img: canoe,
+    body: "Glide across the calm waters of Lake Duluti surrounded by forest stillness and birdlife.",
+    price: "$35",
+    priceNote: "per person",
+    transport: "+ $25 transport",
+  },
+  {
+    eyebrow: "In the village",
+    title: "Local Market Experience",
+    img: market,
+    body: "Walk through vibrant local markets and discover the rhythms, colors, and textures of everyday life in Arusha.",
+    price: "$35",
+    priceNote: "per person",
+  },
+  {
+    eyebrow: "On two wheels",
+    title: "Mountain Bike Adventure",
+    img: cycling,
+    body: "Explore nearby trails and open landscapes on a guided cycling experience through the countryside.",
+    price: "$25",
+    priceNote: "per person",
+  },
+  {
+    eyebrow: "Through hidden paths",
+    title: "Waterfall Excursion",
+    img: waterfall,
+    body: "A refreshing journey through nature paths leading to hidden waterfalls and cool natural pools.",
+    price: "$25",
+    priceNote: "per person",
+    transport: "+ $20 transport",
+  },
+  {
+    eyebrow: "Restorative waters",
+    title: "Maji Moto Hot Springs",
+    img: hotsprings,
+    body: "A restorative day experience at the natural hot springs, surrounded by open landscapes and crystal-clear waters.",
+    price: "$250",
+    priceNote: "for up to 4 guests",
+  },
+  {
+    eyebrow: "On foot",
+    title: "Guided River Walks",
+    img: riverWalk,
+    body: "Slow walks along the riverbank through greenery, birdsong, and flowing streams.",
+    price: "Complimentary",
+    priceNote: "for lodge guests",
+  },
+  {
+    eyebrow: "At the table",
+    title: "Live Cooking Experience",
+    img: cooking,
+    body: "Prepare and enjoy local dishes through an interactive cooking experience inspired by regional traditions.",
+    price: "$35",
+    priceNote: "per person",
+  },
 ];
 
 export const Route = createFileRoute("/experiences")({
@@ -44,11 +109,11 @@ function ExperiencesPage() {
       <section className="px-6 lg:px-12">
         <div className="mx-auto max-w-3xl text-center">
           <Reveal>
-            <p className="eyebrow">The Experiences</p>
+            <p className="eyebrow">Mtoni Experiences</p>
           </Reveal>
           <Reveal delay={120}>
             <p className="mx-auto mt-8 max-w-xl font-display text-2xl leading-relaxed text-charcoal/80 lg:text-3xl">
-              A collection of quiet, considered ways to spend the day — each rooted in the landscape that surrounds the lodge.
+              Slow encounters shaped by river, land, and local tradition.
             </p>
           </Reveal>
         </div>
@@ -88,6 +153,22 @@ function ExperiencesPage() {
                   <p className="mt-6 max-w-md text-base leading-relaxed text-charcoal/70">
                     {e.body}
                   </p>
+                  <div className="mt-8 max-w-md">
+                    <p className="text-[10px] uppercase tracking-[0.32em] text-charcoal/40">From</p>
+                    <p className="mt-2 font-display text-xl leading-snug text-charcoal/80 lg:text-2xl">
+                      {e.price}
+                      {e.priceNote && (
+                        <span className="ml-2 text-sm font-sans tracking-wide text-charcoal/55">
+                          {e.priceNote}
+                        </span>
+                      )}
+                    </p>
+                    {e.transport && (
+                      <p className="mt-1 text-xs italic tracking-wide text-charcoal/45">
+                        {e.transport}
+                      </p>
+                    )}
+                  </div>
                 </Reveal>
               </article>
             );
