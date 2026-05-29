@@ -54,32 +54,32 @@
   /* Mtoni earthen palette — exact HEX system */
   --ivory: #F2E3BB;        /* main background / footer text */
   --bone: #E6D8A8;         /* alternate sections, card surface */
-  --clay: #C0B87A;         /* accent (CTA / social icons) */
+  --clay: #C0B87A;         /* premium accent (icons / dividers) */
   --ember: #C0B87A;        /* accent alias */
   --gold: #C0B87A;         /* accent alias */
-  --river: #5A6B5A;        /* secondary text / muted */
-  --forest: #427A43;       /* secondary green */
-  --charcoal: #005F02;     /* primary deep green (footer / primary) */
+  --river: #5E665E;        /* secondary text / muted */
+  --forest: #427A43;       /* secondary green / hover */
+  --charcoal: #346739;     /* primary brand green (footer / primary) */
 
   --background: var(--ivory);
-  --foreground: #1E2D1E;
+  --foreground: #1F2A1F;
   --card: var(--bone);
-  --card-foreground: #1E2D1E;
+  --card-foreground: #1F2A1F;
   --popover: var(--ivory);
-  --popover-foreground: #1E2D1E;
-  --primary: var(--clay);
-  --primary-foreground: #1E2D1E;
+  --popover-foreground: #1F2A1F;
+  --primary: var(--charcoal);
+  --primary-foreground: var(--ivory);
   --secondary: var(--bone);
-  --secondary-foreground: #1E2D1E;
+  --secondary-foreground: #1F2A1F;
   --muted: var(--bone);
-  --muted-foreground: #5A6B5A;
+  --muted-foreground: #5E665E;
   --accent: var(--clay);
-  --accent-foreground: #1E2D1E;
+  --accent-foreground: #1F2A1F;
   --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: #F2E3BB;
-  --border: color-mix(in oklab, #427A43 22%, transparent);
-  --input: color-mix(in oklab, #427A43 22%, transparent);
-  --ring: var(--clay);
+  --border: color-mix(in oklab, #346739 22%, transparent);
+  --input: color-mix(in oklab, #346739 22%, transparent);
+  --ring: var(--charcoal);
 }
 
 .dark {
@@ -240,10 +240,10 @@
     background-image:
       linear-gradient(
         to bottom,
-        rgba(10, 22, 10, 0.72) 0%,
-        rgba(10, 22, 10, 0.45) 40%,
-        rgba(10, 22, 10, 0.35) 60%,
-        rgba(10, 22, 10, 0.78) 100%
+        rgba(20, 45, 24, 0.72) 0%,
+        rgba(20, 45, 24, 0.42) 40%,
+        rgba(20, 45, 24, 0.32) 60%,
+        rgba(20, 45, 24, 0.78) 100%
       );
   }
   @media (min-width: 1024px) {
@@ -251,10 +251,10 @@
       background-image:
         linear-gradient(
           to bottom,
-          rgba(10, 22, 10, 0.65) 0%,
-          rgba(10, 22, 10, 0.4) 45%,
-          rgba(10, 22, 10, 0.28) 60%,
-          rgba(10, 22, 10, 0.72) 100%
+          rgba(20, 45, 24, 0.65) 0%,
+          rgba(20, 45, 24, 0.38) 45%,
+          rgba(20, 45, 24, 0.26) 60%,
+          rgba(20, 45, 24, 0.72) 100%
         );
     }
   }
