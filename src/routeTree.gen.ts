@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VoteRouteImport } from './routes/vote'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SuitesRouteImport } from './routes/suites'
 import { Route as RoomsRouteImport } from './routes/rooms'
@@ -30,6 +31,11 @@ import { Route as JournalTheArchitectureOfDisappearingRouteImport } from './rout
 import { Route as JournalReadingTheSkyOverMountMeruRouteImport } from './routes/journal.reading-the-sky-over-mount-meru'
 import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './routes/journal.a-morning-with-the-beekeepers-of-gomba'
 
+const VoteRoute = VoteRouteImport.update({
+  id: '/vote',
+  path: '/vote',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/rooms': typeof RoomsRouteWithChildren
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
+  '/vote': typeof VoteRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
@@ -167,6 +174,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
+  '/vote': typeof VoteRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
@@ -190,6 +198,7 @@ export interface FileRoutesById {
   '/rooms': typeof RoomsRouteWithChildren
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
+  '/vote': typeof VoteRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
@@ -214,6 +223,7 @@ export interface FileRouteTypes {
     | '/rooms'
     | '/suites'
     | '/terms'
+    | '/vote'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
@@ -234,6 +244,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/suites'
     | '/terms'
+    | '/vote'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
@@ -256,6 +267,7 @@ export interface FileRouteTypes {
     | '/rooms'
     | '/suites'
     | '/terms'
+    | '/vote'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
@@ -279,10 +291,18 @@ export interface RootRouteChildren {
   RoomsRoute: typeof RoomsRouteWithChildren
   SuitesRoute: typeof SuitesRoute
   TermsRoute: typeof TermsRoute
+  VoteRoute: typeof VoteRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/vote': {
+      id: '/vote'
+      path: '/vote'
+      fullPath: '/vote'
+      preLoaderRoute: typeof VoteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
@@ -477,6 +497,7 @@ const rootRouteChildren: RootRouteChildren = {
   RoomsRoute: RoomsRouteWithChildren,
   SuitesRoute: SuitesRoute,
   TermsRoute: TermsRoute,
+  VoteRoute: VoteRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
