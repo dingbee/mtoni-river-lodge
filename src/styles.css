@@ -126,6 +126,36 @@
     max-width: 100%;
   }
 
+  /* Global mobile responsiveness guardrails.
+     Prevent any descendant from exceeding viewport width. */
+  #root, main, section, header, footer, article, aside, div {
+    max-width: 100%;
+  }
+  img, video, picture, canvas { height: auto; }
+
+  /* Phones: slightly soften editorial typography and tighten horizontal
+     padding on common section utilities so content breathes within the
+     viewport without horizontal scroll. */
+  @media (max-width: 480px) {
+    body { font-size: 15px; }
+    h1, .font-display.text-6xl, .font-display.text-7xl { font-size: clamp(2rem, 9vw, 2.75rem) !important; line-height: 1.1; }
+    h2, .text-5xl { font-size: clamp(1.75rem, 7.5vw, 2.25rem) !important; line-height: 1.15; }
+    h3, .text-4xl { font-size: clamp(1.4rem, 6vw, 1.85rem) !important; line-height: 1.2; }
+    .text-3xl { font-size: 1.5rem !important; }
+    .text-2xl { font-size: 1.25rem !important; }
+
+    /* Reduce default editorial horizontal padding on small phones. */
+    .px-12 { padding-left: 1rem !important; padding-right: 1rem !important; }
+    .px-8  { padding-left: 1rem !important; padding-right: 1rem !important; }
+    .px-6  { padding-left: 1rem !important; padding-right: 1rem !important; }
+    .px-5  { padding-left: 0.875rem !important; padding-right: 0.875rem !important; }
+  }
+
+  /* Tablets: gently tighten very large editorial padding. */
+  @media (min-width: 481px) and (max-width: 1023px) {
+    .px-12 { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
+  }
+
   h1, h2, h3, h4, .font-display {
     font-family: var(--font-display);
     font-weight: 400;

@@ -57,7 +57,7 @@ export function MobileStickyCTA() {
 
   return (
     <div
-      className={`fixed right-4 z-[999] lg:hidden transition-all duration-500 ease-out ${
+      className={`fixed left-1/2 -translate-x-1/2 z-[999] lg:hidden transition-all duration-500 ease-out ${
         visible ? "translate-y-0 opacity-100 pointer-events-auto" : "translate-y-6 opacity-0 pointer-events-none"
       }`}
       style={{ bottom: "max(1rem, env(safe-area-inset-bottom))" }}
@@ -65,7 +65,7 @@ export function MobileStickyCTA() {
     >
       <Link
         to="/book"
-        className="inline-flex items-center justify-center rounded-full px-4 py-2.5 text-[0.62rem] font-medium uppercase tracking-[0.22em] shadow-[0_10px_30px_-8px_rgba(0,0,0,0.45)] transition-transform active:scale-[0.98] hover:brightness-105"
+        className="inline-flex items-center justify-center rounded-full px-5 py-3 text-[0.65rem] font-medium uppercase tracking-[0.22em] shadow-[0_10px_30px_-8px_rgba(0,0,0,0.45)] transition-transform active:scale-[0.98] hover:brightness-105"
         style={{ backgroundColor: "#C0B87A", color: "#1E2D1E" }}
       >
         Check Availability
