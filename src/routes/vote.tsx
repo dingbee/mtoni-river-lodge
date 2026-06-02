@@ -97,6 +97,7 @@ function VotePage() {
                 href={VOTE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackVoteClick("vote_page_hero")}
                 className="group inline-flex items-center gap-3 bg-[#C0B87A] px-8 py-4 text-[0.72rem] font-medium uppercase tracking-[0.3em] text-charcoal shadow-[0_20px_50px_-15px_rgba(0,0,0,0.6)] transition-all hover:bg-ivory hover:tracking-[0.32em]"
               >
                 Vote Now
