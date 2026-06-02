@@ -481,23 +481,23 @@ function ShareRow() {
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-3">
-      <ShareBtn href={wa} label="Share on WhatsApp">
+      <ShareBtn href={wa} label="Share on WhatsApp" onClick={() => trackShareClick("whatsapp", "vote_page_share_row")}>
         <MessageCircle className="h-4 w-4" strokeWidth={1.5} aria-hidden />
         WhatsApp
       </ShareBtn>
-      <ShareBtn href={fb} label="Share on Facebook">
+      <ShareBtn href={fb} label="Share on Facebook" onClick={() => trackShareClick("facebook", "vote_page_share_row")}>
         <Share2 className="h-4 w-4" strokeWidth={1.5} aria-hidden />
         Facebook
       </ShareBtn>
-      <ShareBtn href={tw} label="Share on Twitter">
+      <ShareBtn href={tw} label="Share on Twitter" onClick={() => trackShareClick("twitter", "vote_page_share_row")}>
         <Share2 className="h-4 w-4" strokeWidth={1.5} aria-hidden />
         Twitter / X
       </ShareBtn>
-      <ShareBtn href={ig} label="Follow on Instagram">
+      <ShareBtn href={ig} label="Follow on Instagram" onClick={() => trackShareClick("instagram", "vote_page_share_row")}>
         <Instagram className="h-4 w-4" strokeWidth={1.5} aria-hidden />
         Instagram
       </ShareBtn>
-      <ShareBtn href={WHATSAPP_URL} label="Concierge on WhatsApp">
+      <ShareBtn href={WHATSAPP_URL} label="Concierge on WhatsApp" onClick={() => trackContactClick("whatsapp", "vote_page_concierge")}>
         <Users className="h-4 w-4" strokeWidth={1.5} aria-hidden />
         Concierge
       </ShareBtn>
