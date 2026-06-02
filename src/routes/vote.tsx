@@ -11,7 +11,7 @@ import aerialImg from "@/assets/aerial-lodge.jpg";
 import suiteImg from "@/assets/suite-interior.jpg";
 import diningImg from "@/assets/dining.jpg";
 import poolImg from "@/assets/pool.jpg";
-import guideImg from "@/assets/guide.jpg";
+import riverWalkImg from "@/assets/xp-river-walk.jpg";
 import ritualImg from "@/assets/rituals.jpg";
 import sunsetImg from "@/assets/lodge-hero-aerial.jpg";
 import voteWelcomeAsset from "@/assets/vote-welcome.jpg.asset.json";
