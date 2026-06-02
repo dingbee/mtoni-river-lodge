@@ -1,4 +1,5 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter } from "@tanstack/react-router";
+import { useRef, useEffect } from "react";
 
 import appCss from "../styles.css?url";
 import { BackToTop } from "@/components/site/BackToTop";
