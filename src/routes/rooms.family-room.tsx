@@ -87,6 +87,7 @@ function FamilyRoomPage() {
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Link
                 to="/book"
+                onClick={() => trackCheckAvailabilityClick("family_room")}
                 className="group inline-flex items-center gap-3 border border-charcoal bg-charcoal px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-transparent hover:text-charcoal"
               >
                 <span>Check Availability</span>
@@ -96,6 +97,7 @@ function FamilyRoomPage() {
                 href={WHATSAPP_URL}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackContactClick("whatsapp", "family_room")}
                 className="inline-flex items-center gap-3 border border-charcoal px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] transition-colors hover:bg-charcoal hover:text-ivory"
               >
                 <span>Chat on WhatsApp</span>
