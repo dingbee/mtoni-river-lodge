@@ -1,4 +1,12 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter } from "@tanstack/react-router";
+import { useRef, useEffect } from "react";
+
+declare global {
+  interface Window {
+    gtag: (...args: unknown[]) => void;
+    dataLayer: unknown[];
+  }
+}
 
 import appCss from "../styles.css?url";
 import { BackToTop } from "@/components/site/BackToTop";
@@ -53,6 +61,22 @@ export const Route = createRootRoute({
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" },
     ],
+    scripts: [
+      {
+        type: "text/javascript",
+        async: true,
+        src: "https://www.googletagmanager.com/gtag/js?id=GT-55XDHB82",
+      },
+      {
+        type: "text/javascript",
+        children: `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'GT-55XDHB82');
+        `,
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -73,12 +97,35 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function GoogleAnalytics() {
+  const router = useRouter();
+  const prevPathRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = router.subscribe("onResolved", () => {
+      const currentPath = router.state.location.href;
+      if (typeof window !== "undefined" && window.gtag && currentPath !== prevPathRef.current) {
+        window.gtag("event", "page_view", {
+          page_location: currentPath,
+          page_path: router.state.location.pathname,
+          page_title: document.title,
+        });
+        prevPathRef.current = currentPath;
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
+
+  return null;
+}
+
 function RootComponent() {
   return (
     <>
       <Outlet />
       <BackToTop />
       <TawkToWidget />
+      <GoogleAnalytics />
     </>
   );
 }
