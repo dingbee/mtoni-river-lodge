@@ -99,9 +99,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function GoogleAnalytics() {
   const router = useRouter();
-  const prevPathRef = React.useRef<string | null>(null);
+  const prevPathRef = useRef<string | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const unsubscribe = router.subscribe("onResolved", () => {
       const currentPath = router.state.location.href;
       if (typeof window !== "undefined" && window.gtag && currentPath !== prevPathRef.current) {
