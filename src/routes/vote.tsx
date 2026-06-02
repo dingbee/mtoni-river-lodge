@@ -10,11 +10,12 @@ import heroImg from "@/assets/hero-river.jpg";
 import aerialImg from "@/assets/aerial-lodge.jpg";
 import suiteImg from "@/assets/suite-interior.jpg";
 import diningImg from "@/assets/dining.jpg";
-import villaImg from "@/assets/villa-exterior.jpg";
 import poolImg from "@/assets/pool.jpg";
 import guideImg from "@/assets/guide.jpg";
 import ritualImg from "@/assets/rituals.jpg";
 import sunsetImg from "@/assets/lodge-hero-aerial.jpg";
+import voteWelcomeAsset from "@/assets/vote-welcome.jpg.asset.json";
+import voteMaasaiRiverAsset from "@/assets/vote-maasai-river.jpg.asset.json";
 
 const VOTE_URL = "https://luxuryhotelawards.com/vote/";
 const SHARE_TEXT =
@@ -128,8 +129,8 @@ function VotePage() {
             <Reveal className="lg:col-span-6">
               <div className="relative aspect-[4/5] overflow-hidden lg:aspect-[5/6]">
                 <img
-                  src={guideImg}
-                  alt="A Mtoni host welcoming guests with quiet warmth"
+                  src={voteWelcomeAsset.url}
+                  alt="A thatched Mtoni boma nestled among the trees"
                   className="h-full w-full object-cover transition-transform duration-[2000ms] hover:scale-105"
                   loading="lazy"
                 />
@@ -192,7 +193,7 @@ function VotePage() {
             {[
               { img: aerialImg, alt: "Aerial view of Mtoni River Lodge", span: "col-span-2 row-span-2" },
               { img: suiteImg, alt: "Candlelit Mtoni suite", span: "col-span-1 row-span-1" },
-              { img: villaImg, alt: "Mtoni boma villa exterior", span: "col-span-1 row-span-1" },
+              { img: voteMaasaiRiverAsset.url, alt: "A Maasai elder beside the Nduruma River", span: "col-span-1 row-span-1" },
               { img: diningImg, alt: "Mtoni dining hall", span: "col-span-2 row-span-1 md:col-span-1 md:row-span-2" },
               { img: poolImg, alt: "Round pool in conversation with nature", span: "col-span-1 row-span-1" },
               { img: ritualImg, alt: "Evening candlelight ritual", span: "col-span-1 row-span-1" },
