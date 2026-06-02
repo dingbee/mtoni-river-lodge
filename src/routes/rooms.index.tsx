@@ -4,6 +4,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { PageHero } from "@/components/site/PageHero";
 import { WHATSAPP_NOTE } from "@/lib/contact";
+import { trackCheckAvailabilityClick } from "@/lib/analytics";
 import { ROOMS, getRoomPath, type Room } from "@/lib/rooms";
 import roomImg from "@/assets/suite-interior.jpg";
 
@@ -73,6 +74,7 @@ function RoomRow({ room, reverse }: { room: Room; reverse: boolean }) {
             </Link>
             <Link
               to="/book"
+              onClick={() => trackCheckAvailabilityClick("rooms_page")}
               className="inline-flex items-center gap-3 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]"
             >
               Check Availability →
