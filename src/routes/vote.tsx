@@ -273,6 +273,7 @@ function VotePage() {
               href={VOTE_URL}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackVoteClick("vote_page_process")}
               className="group inline-flex items-center gap-3 bg-charcoal px-8 py-4 text-[0.72rem] font-medium uppercase tracking-[0.3em] text-ivory transition-all hover:bg-forest"
             >
               Cast Your Vote
@@ -314,6 +315,7 @@ function VotePage() {
               href={VOTE_URL}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackVoteClick("vote_page_final_cta")}
               className="group mt-12 inline-flex items-center gap-4 bg-[#C0B87A] px-10 py-5 text-[0.72rem] font-medium uppercase tracking-[0.32em] text-charcoal shadow-[0_30px_70px_-20px_rgba(0,0,0,0.7)] transition-all hover:bg-ivory hover:tracking-[0.34em] lg:px-14 lg:py-6"
             >
               Vote for Mtoni River Lodge
@@ -346,6 +348,7 @@ function VotePage() {
           href={VOTE_URL}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackVoteClick("vote_page_sticky")}
           className="group inline-flex items-center gap-3 bg-charcoal px-6 py-3.5 text-[0.66rem] font-medium uppercase tracking-[0.28em] text-ivory shadow-[0_20px_50px_-15px_rgba(0,0,0,0.6)] transition-all hover:bg-[#C0B87A] hover:text-charcoal"
         >
           <Award className="h-4 w-4" strokeWidth={1.5} aria-hidden />
