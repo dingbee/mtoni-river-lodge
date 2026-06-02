@@ -11,7 +11,7 @@ import aerialImg from "@/assets/aerial-lodge.jpg";
 import suiteImg from "@/assets/suite-interior.jpg";
 import diningImg from "@/assets/dining.jpg";
 import poolImg from "@/assets/pool.jpg";
-import guideImg from "@/assets/guide.jpg";
+import riverWalkImg from "@/assets/xp-river-walk.jpg";
 import ritualImg from "@/assets/rituals.jpg";
 import sunsetImg from "@/assets/lodge-hero-aerial.jpg";
 import voteWelcomeAsset from "@/assets/vote-welcome.jpg.asset.json";
@@ -197,7 +197,7 @@ function VotePage() {
               { img: diningImg, alt: "Mtoni dining hall", span: "col-span-2 row-span-1 md:col-span-1 md:row-span-2" },
               { img: poolImg, alt: "Round pool in conversation with nature", span: "col-span-1 row-span-1" },
               { img: ritualImg, alt: "Evening candlelight ritual", span: "col-span-1 row-span-1" },
-              { img: guideImg, alt: "A Mtoni host", span: "col-span-2 row-span-1 md:col-span-2" },
+              { img: riverWalkImg, alt: "Guided river walk at sunrise along the Mtoni River", span: "col-span-2 row-span-1 md:col-span-2" },
             ].map((tile, i) => (
               <Reveal key={i} delay={i * 80} className={`group relative overflow-hidden ${tile.span}`}>
                 <img
