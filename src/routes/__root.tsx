@@ -89,12 +89,35 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function GoogleAnalytics() {
+  const router = useRouter();
+  const prevPathRef = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    const unsubscribe = router.subscribe("onResolved", () => {
+      const currentPath = router.state.location.href;
+      if (typeof window !== "undefined" && window.gtag && currentPath !== prevPathRef.current) {
+        window.gtag("event", "page_view", {
+          page_location: currentPath,
+          page_path: router.state.location.pathname,
+          page_title: document.title,
+        });
+        prevPathRef.current = currentPath;
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
+
+  return null;
+}
+
 function RootComponent() {
   return (
     <>
       <Outlet />
       <BackToTop />
       <TawkToWidget />
+      <GoogleAnalytics />
     </>
   );
 }
