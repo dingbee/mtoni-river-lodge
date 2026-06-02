@@ -508,10 +508,12 @@ function ShareRow() {
 function ShareBtn({
   href,
   label,
+  onClick,
   children,
 }: {
   href: string;
   label: string;
+  onClick?: () => void;
   children: React.ReactNode;
 }) {
   return (
@@ -520,6 +522,7 @@ function ShareBtn({
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label}
+      onClick={onClick}
       className="inline-flex items-center gap-2 border border-ivory/40 px-4 py-2.5 text-[0.62rem] uppercase tracking-[0.28em] text-ivory/85 transition-all hover:border-ivory hover:bg-ivory hover:text-charcoal"
     >
       {children}
