@@ -5,6 +5,7 @@ import { Reveal } from "@/components/site/Reveal";
 import { PageHero } from "@/components/site/PageHero";
 import { Button } from "@/components/ui/button";
 import { WHATSAPP_NOTE } from "@/lib/contact";
+import { trackCheckAvailabilityClick } from "@/lib/analytics";
 import cycling from "@/assets/xp-cycling.jpg";
 import riverWalk from "@/assets/xp-river-walk.jpg";
 import cooking from "@/assets/xp-cooking.jpg";
@@ -188,7 +189,7 @@ function ExperiencesPage() {
           </Reveal>
           <Reveal delay={240}>
             <div className="mt-12">
-              <Button asChild size="lg" className="rounded-none px-10 py-6 text-xs uppercase tracking-[0.3em]">
+              <Button asChild size="lg" className="rounded-none px-10 py-6 text-xs uppercase tracking-[0.3em]" onClick={() => trackCheckAvailabilityClick("experiences_page_cta")}>
                 <Link to="/book">
                   Check Availability
                 </Link>

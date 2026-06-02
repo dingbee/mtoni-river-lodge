@@ -7,6 +7,7 @@ import { LocationMap } from "@/components/site/LocationMap";
 import { GuestReviews } from "@/components/site/GuestReviews";
 import { HeroCinematic } from "@/components/site/HeroCinematic";
 import { WHATSAPP_NOTE } from "@/lib/contact";
+import { trackCheckAvailabilityClick } from "@/lib/analytics";
 import heroImg from "@/assets/hero-river.jpg";
 import lodgeHeroImg from "@/assets/lodge-hero-aerial.jpg";
 import cottageHeroImg from "@/assets/hero-cottage-exterior.jpg";
@@ -307,6 +308,7 @@ function HomePage() {
             <div className="mt-12 flex flex-col items-center gap-4">
               <Link
                 to="/book"
+                onClick={() => trackCheckAvailabilityClick("homepage_final_cta")}
                 className="inline-flex items-center gap-4 border border-ivory px-8 py-5 text-[0.72rem] uppercase tracking-[0.32em] hover:bg-ivory hover:text-charcoal"
               >
                 Reserve Your Stay →

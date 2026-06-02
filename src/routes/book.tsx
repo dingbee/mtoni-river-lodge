@@ -4,6 +4,7 @@ import { useState } from "react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooterMinimal } from "@/components/site/SiteFooterMinimal";
 import { WHATSAPP_URL } from "@/lib/contact";
+import { trackContactClick } from "@/lib/analytics";
 
 // Replace with the real Beds24 embed URL when available, e.g.:
 // "https://beds24.com/booking2.php?propid=YOUR_PROPERTY_ID"
@@ -105,6 +106,7 @@ function BookPage() {
                   href={WHATSAPP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => trackContactClick("whatsapp", "book_page_reserve")}
                   className="mt-2 inline-flex items-center gap-3 px-7 py-4 text-[0.72rem] uppercase tracking-[0.28em]"
                   style={{ backgroundColor: "#C0B87A", color: "#1E2D1E" }}
                 >
@@ -158,6 +160,7 @@ function BookPage() {
               href={WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackContactClick("whatsapp", "book_page_assistance")}
               className="inline-flex items-center gap-3 border border-charcoal px-6 py-3 text-[0.72rem] uppercase tracking-[0.28em] transition-colors hover:bg-charcoal hover:text-ivory"
             >
               WhatsApp +255 752 441 443 →

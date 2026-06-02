@@ -5,6 +5,7 @@ import { Reveal } from "@/components/site/Reveal";
 import { useState } from "react";
 import villa from "@/assets/villa-exterior.jpg";
 import { WHATSAPP_URL, WHATSAPP_NOTE } from "@/lib/contact";
+import { trackContactClick } from "@/lib/analytics";
 
 const ROOM_OPTIONS = [
   "Riverfront Deluxe Room",
@@ -64,6 +65,7 @@ function PlanPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
+    trackContactClick("whatsapp_form", "plan_page");
     window.open(waUrl, "_blank", "noopener,noreferrer");
   };
   return (
@@ -132,6 +134,7 @@ function PlanPage() {
                   href={WHATSAPP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => trackContactClick("whatsapp", "plan_page")}
                   className="group inline-flex w-full items-center justify-between border border-charcoal px-6 py-5 text-[0.72rem] uppercase tracking-[0.32em] transition-colors hover:bg-charcoal hover:text-ivory"
                 >
                   <span>Chat on WhatsApp</span>

@@ -6,6 +6,7 @@ import { PageHero } from "@/components/site/PageHero";
 import dining from "@/assets/dining-hero.jpg";
 import liveCooking from "@/assets/live-cooking.jpg";
 import { WHATSAPP_URL } from "@/lib/contact";
+import { trackContactClick } from "@/lib/analytics";
 
 export const Route = createFileRoute("/dining")({
   head: () => ({
@@ -229,6 +230,7 @@ function DiningPage() {
               href={WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackContactClick("whatsapp", "dining_page")}
               className="mt-10 inline-flex items-center gap-3 border border-charcoal px-6 py-3 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-charcoal transition-colors hover:bg-charcoal hover:text-ivory"
             >
               Reserve on WhatsApp

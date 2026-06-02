@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { WHATSAPP_URL } from "@/lib/contact";
+import { trackVoteClick, trackShareClick, trackContactClick } from "@/lib/analytics";
 import heroImg from "@/assets/hero-river.jpg";
 import aerialImg from "@/assets/aerial-lodge.jpg";
 import suiteImg from "@/assets/suite-interior.jpg";
@@ -96,6 +97,7 @@ function VotePage() {
                 href={VOTE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackVoteClick("vote_page_hero")}
                 className="group inline-flex items-center gap-3 bg-[#C0B87A] px-8 py-4 text-[0.72rem] font-medium uppercase tracking-[0.3em] text-charcoal shadow-[0_20px_50px_-15px_rgba(0,0,0,0.6)] transition-all hover:bg-ivory hover:tracking-[0.32em]"
               >
                 Vote Now
@@ -271,6 +273,7 @@ function VotePage() {
               href={VOTE_URL}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackVoteClick("vote_page_process")}
               className="group inline-flex items-center gap-3 bg-charcoal px-8 py-4 text-[0.72rem] font-medium uppercase tracking-[0.3em] text-ivory transition-all hover:bg-forest"
             >
               Cast Your Vote
@@ -312,6 +315,7 @@ function VotePage() {
               href={VOTE_URL}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackVoteClick("vote_page_final_cta")}
               className="group mt-12 inline-flex items-center gap-4 bg-[#C0B87A] px-10 py-5 text-[0.72rem] font-medium uppercase tracking-[0.32em] text-charcoal shadow-[0_30px_70px_-20px_rgba(0,0,0,0.7)] transition-all hover:bg-ivory hover:tracking-[0.34em] lg:px-14 lg:py-6"
             >
               Vote for Mtoni River Lodge
@@ -344,6 +348,7 @@ function VotePage() {
           href={VOTE_URL}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackVoteClick("vote_page_sticky")}
           className="group inline-flex items-center gap-3 bg-charcoal px-6 py-3.5 text-[0.66rem] font-medium uppercase tracking-[0.28em] text-ivory shadow-[0_20px_50px_-15px_rgba(0,0,0,0.6)] transition-all hover:bg-[#C0B87A] hover:text-charcoal"
         >
           <Award className="h-4 w-4" strokeWidth={1.5} aria-hidden />
@@ -476,23 +481,23 @@ function ShareRow() {
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-3">
-      <ShareBtn href={wa} label="Share on WhatsApp">
+      <ShareBtn href={wa} label="Share on WhatsApp" onClick={() => trackShareClick("whatsapp", "vote_page_share_row")}>
         <MessageCircle className="h-4 w-4" strokeWidth={1.5} aria-hidden />
         WhatsApp
       </ShareBtn>
-      <ShareBtn href={fb} label="Share on Facebook">
+      <ShareBtn href={fb} label="Share on Facebook" onClick={() => trackShareClick("facebook", "vote_page_share_row")}>
         <Share2 className="h-4 w-4" strokeWidth={1.5} aria-hidden />
         Facebook
       </ShareBtn>
-      <ShareBtn href={tw} label="Share on Twitter">
+      <ShareBtn href={tw} label="Share on Twitter" onClick={() => trackShareClick("twitter", "vote_page_share_row")}>
         <Share2 className="h-4 w-4" strokeWidth={1.5} aria-hidden />
         Twitter / X
       </ShareBtn>
-      <ShareBtn href={ig} label="Follow on Instagram">
+      <ShareBtn href={ig} label="Follow on Instagram" onClick={() => trackShareClick("instagram", "vote_page_share_row")}>
         <Instagram className="h-4 w-4" strokeWidth={1.5} aria-hidden />
         Instagram
       </ShareBtn>
-      <ShareBtn href={WHATSAPP_URL} label="Concierge on WhatsApp">
+      <ShareBtn href={WHATSAPP_URL} label="Concierge on WhatsApp" onClick={() => trackContactClick("whatsapp", "vote_page_concierge")}>
         <Users className="h-4 w-4" strokeWidth={1.5} aria-hidden />
         Concierge
       </ShareBtn>
@@ -503,10 +508,12 @@ function ShareRow() {
 function ShareBtn({
   href,
   label,
+  onClick,
   children,
 }: {
   href: string;
   label: string;
+  onClick?: () => void;
   children: React.ReactNode;
 }) {
   return (
@@ -515,6 +522,7 @@ function ShareBtn({
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label}
+      onClick={onClick}
       className="inline-flex items-center gap-2 border border-ivory/40 px-4 py-2.5 text-[0.62rem] uppercase tracking-[0.28em] text-ivory/85 transition-all hover:border-ivory hover:bg-ivory hover:text-charcoal"
     >
       {children}

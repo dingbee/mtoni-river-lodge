@@ -5,6 +5,7 @@ import { Reveal } from "@/components/site/Reveal";
 import { PageHero } from "@/components/site/PageHero";
 import { RoomRate } from "@/components/site/RoomRate";
 import { WHATSAPP_NOTE, WHATSAPP_URL } from "@/lib/contact";
+import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics";
 import { RIVERFRONT_DELUXE_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 import outdoorShowerImg from "@/assets/riverfront-deluxe-outdoor-shower.jpg";
 import exteriorImg from "@/assets/riverfront-deluxe-exterior.jpg";
@@ -89,6 +90,7 @@ function RiverfrontDeluxePage() {
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Link
                 to="/book"
+                onClick={() => trackCheckAvailabilityClick("riverfront_deluxe_room")}
                 className="group inline-flex items-center gap-3 border border-charcoal bg-charcoal px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-transparent hover:text-charcoal"
               >
                 <span>Check Availability</span>
@@ -98,6 +100,7 @@ function RiverfrontDeluxePage() {
                 href={WHATSAPP_URL}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackContactClick("whatsapp", "riverfront_deluxe_room")}
                 className="inline-flex items-center gap-3 border border-charcoal px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] transition-colors hover:bg-charcoal hover:text-ivory"
               >
                 <span>Chat on WhatsApp</span>
