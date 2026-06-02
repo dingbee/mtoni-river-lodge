@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { WHATSAPP_URL } from "@/lib/contact";
+import { trackVoteClick, trackShareClick, trackContactClick } from "@/lib/analytics";
 import heroImg from "@/assets/hero-river.jpg";
 import aerialImg from "@/assets/aerial-lodge.jpg";
 import suiteImg from "@/assets/suite-interior.jpg";
