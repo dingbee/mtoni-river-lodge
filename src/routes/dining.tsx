@@ -6,6 +6,7 @@ import { PageHero } from "@/components/site/PageHero";
 import dining from "@/assets/dining-hero.jpg";
 import liveCooking from "@/assets/live-cooking.jpg";
 import { WHATSAPP_URL } from "@/lib/contact";
+import { trackContactClick } from "@/lib/analytics";
 
 export const Route = createFileRoute("/dining")({
   head: () => ({
