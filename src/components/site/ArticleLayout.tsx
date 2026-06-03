@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { WHATSAPP_URL } from "@/lib/contact";
+import { trackBookingClick, trackWhatsAppClick } from "@/lib/analytics";
 
 type Props = {
   eyebrow: string;
@@ -77,6 +78,13 @@ export function ArticleLayout({ eyebrow, title, intro, image, imageAlt, caption,
               <div className="flex flex-wrap items-center gap-4">
                 <Link
                   to="/book"
+                  onClick={() =>
+                    trackBookingClick({
+                      buttonText: "Check Availability",
+                      location: "article_cta",
+                      destinationUrl: "/book",
+                    })
+                  }
                   className="inline-flex items-center gap-3 bg-charcoal px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-charcoal/85"
                 >
                   Check Availability →
@@ -85,6 +93,13 @@ export function ArticleLayout({ eyebrow, title, intro, image, imageAlt, caption,
                   href={WHATSAPP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() =>
+                    trackWhatsAppClick({
+                      buttonText: "WhatsApp",
+                      location: "article_cta",
+                      destinationUrl: WHATSAPP_URL,
+                    })
+                  }
                   className="inline-flex items-center gap-3 border border-charcoal px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] text-charcoal transition-colors hover:bg-charcoal hover:text-ivory"
                 >
                   WhatsApp →

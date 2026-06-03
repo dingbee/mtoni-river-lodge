@@ -12,6 +12,7 @@ import appCss from "../styles.css?url";
 import { BackToTop } from "@/components/site/BackToTop";
 import { TawkToWidget } from "@/components/site/TawkToWidget";
 import { Toaster } from "@/components/ui/sonner";
+import { trackPageView } from "@/lib/analytics";
 
 function NotFoundComponent() {
   return (
@@ -105,12 +106,8 @@ function GoogleAnalytics() {
   useEffect(() => {
     const unsubscribe = router.subscribe("onResolved", () => {
       const currentPath = router.state.location.href;
-      if (typeof window !== "undefined" && window.gtag && currentPath !== prevPathRef.current) {
-        window.gtag("event", "page_view", {
-          page_location: currentPath,
-          page_path: router.state.location.pathname,
-          page_title: document.title,
-        });
+      if (currentPath !== prevPathRef.current) {
+        trackPageView(router.state.location.pathname, document.title);
         prevPathRef.current = currentPath;
       }
     });
