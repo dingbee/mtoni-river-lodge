@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Instagram, Facebook, Youtube, Plus, Minus } from "lucide-react";
 import logoUrl from "@/assets/mtoni-logo.png";
-import { WHATSAPP_URL, WHATSAPP_NOTE } from "@/lib/contact";
+import { WHATSAPP_NOTE } from "@/lib/contact";
+import { AvailabilityModal } from "@/components/site/AvailabilityModal";
 
 function PinterestIcon({ className }: { className?: string }) {
   return (
@@ -93,6 +94,7 @@ function AccordionGroup({
 }
 
 export function SiteFooter() {
+  const [availOpen, setAvailOpen] = useState(false);
   return (
     <footer
       id="site-footer"
@@ -178,14 +180,13 @@ export function SiteFooter() {
             <p className="mx-auto mt-6 max-w-xs text-sm text-ivory/70">
               Our reservations team responds within 24 hours with a tailored itinerary.
             </p>
-            <a
-              href={WHATSAPP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => setAvailOpen(true)}
               className="mt-6 inline-flex items-center gap-3 border border-ivory/40 px-5 py-3 text-[0.72rem] font-medium uppercase tracking-[0.28em] hover:bg-ivory hover:text-charcoal"
             >
               Reserve on WhatsApp
-            </a>
+            </button>
             <p className="mx-auto mt-4 max-w-xs text-xs leading-relaxed text-ivory/55">
               {WHATSAPP_NOTE}
             </p>
@@ -216,6 +217,11 @@ export function SiteFooter() {
           </p>
         </div>
       </div>
+      <AvailabilityModal
+        open={availOpen}
+        onOpenChange={setAvailOpen}
+        location="footer"
+      />
     </footer>
   );
 }
