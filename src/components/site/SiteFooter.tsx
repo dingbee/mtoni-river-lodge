@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Instagram, Facebook, Youtube, Plus, Minus } from "lucide-react";
 import logoUrl from "@/assets/mtoni-logo.png";
-import { WHATSAPP_URL, WHATSAPP_NOTE } from "@/lib/contact";
+import { WHATSAPP_NOTE } from "@/lib/contact";
 import { AvailabilityModal } from "@/components/site/AvailabilityModal";
 
 function PinterestIcon({ className }: { className?: string }) {
