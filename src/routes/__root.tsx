@@ -11,6 +11,7 @@ declare global {
 import appCss from "../styles.css?url";
 import { BackToTop } from "@/components/site/BackToTop";
 import { TawkToWidget } from "@/components/site/TawkToWidget";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -126,6 +127,7 @@ function RootComponent() {
       <BackToTop />
       <TawkToWidget />
       <GoogleAnalytics />
+      <Toaster position="top-center" richColors />
     </>
   );
 }

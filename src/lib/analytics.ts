@@ -52,3 +52,38 @@ export function trackContactClick(channel: string, location: string) {
 export function trackShareClick(platform: string, location: string) {
   trackCTAClick("share", location, { share_platform: platform });
 }
+
+/* ─── Availability inquiry events ─── */
+
+export function trackAvailabilityStarted(location: string) {
+  trackGAEvent("availability_request_started", {
+    event_category: "conversion",
+    cta_location: location,
+  });
+}
+
+export function trackAvailabilityWhatsApp(params: {
+  room_type?: string;
+  guest_count?: number;
+  country?: string;
+  stay_length?: number;
+  location?: string;
+}) {
+  trackGAEvent("availability_request_whatsapp", {
+    event_category: "conversion",
+    ...params,
+  });
+}
+
+export function trackAvailabilityCompleted(params: {
+  room_type?: string;
+  guest_count?: number;
+  country?: string;
+  stay_length?: number;
+  location?: string;
+}) {
+  trackGAEvent("availability_request_completed", {
+    event_category: "conversion",
+    ...params,
+  });
+}
