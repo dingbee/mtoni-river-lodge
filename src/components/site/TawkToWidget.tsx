@@ -22,11 +22,13 @@ export function TawkToWidget() {
             position: "bl",
             xOffset: 20,
             yOffset: 20,
+            show: true,
           },
           mobile: {
             position: "bl",
             xOffset: 16,
             yOffset: 80, // sits above the mobile sticky CTA (~60px tall)
+            show: true,
           },
         },
         color: {
