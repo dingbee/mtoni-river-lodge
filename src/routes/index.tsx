@@ -126,7 +126,7 @@ function HomePage() {
               <ul className="mt-8 space-y-3 text-sm text-charcoal/80">
                 {["Private river-facing deck","Antique king bed","Outdoor copper shower","Indoor bathtub"].map((f)=>(
                   <li key={f} className="flex items-baseline gap-3">
-                    <span className="h-px w-6 bg-charcoal/40" />{f}
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-charcoal/70" />{f}
                   </li>
                 ))}
               </ul>
