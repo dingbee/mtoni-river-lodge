@@ -4,6 +4,7 @@ import logoUrl from "@/assets/mtoni-logo.png";
 import { Link } from "@tanstack/react-router";
 import { MobileStickyCTA } from "@/components/site/MobileStickyCTA";
 import { AvailabilityModal } from "@/components/site/AvailabilityModal";
+import { trackBookingClick } from "@/lib/analytics";
 
 const links = [
   { to: "/", label: "Home" },
@@ -101,6 +102,10 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
           <button
             type="button"
             onClick={() => {
+              trackBookingClick({
+                buttonText: "Check Availability",
+                location: "nav_desktop",
+              });
               setAvailLocation("nav_desktop");
               setAvailOpen(true);
             }}
@@ -154,6 +159,10 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
           <button
             type="button"
             onClick={() => {
+              trackBookingClick({
+                buttonText: "Check Availability",
+                location: "nav_mobile",
+              });
               setOpen(false);
               setAvailLocation("nav_mobile");
               setAvailOpen(true);
