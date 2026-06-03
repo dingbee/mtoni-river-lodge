@@ -6,8 +6,18 @@ import river from "@/assets/nduruma-river-flow.jpg";
 import ndurumaGrove from "@/assets/nduruma-banana-grove.jpg";
 import guide from "@/assets/maasai-by-river.jpg";
 import villa from "@/assets/boma-thatch-room.jpg";
+import aerial from "@/assets/aerial-lodge.jpg";
 
 const posts = [
+  {
+    date: "June 2026",
+    read: "4 min",
+    title: "Discovering Arusha Through Nature and Authentic Hospitality",
+    excerpt:
+      "Why more travelers are choosing nature-inspired hospitality at Mtoni River Lodge — a peaceful retreat close to Arusha's iconic attractions.",
+    img: aerial,
+    href: "/journal/discovering-arusha-through-nature-and-authentic-hospitality" as const,
+  },
   {
     date: "March 2026",
     read: "6 min",
