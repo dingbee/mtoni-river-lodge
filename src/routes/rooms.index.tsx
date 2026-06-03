@@ -4,7 +4,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { PageHero } from "@/components/site/PageHero";
 import { WHATSAPP_NOTE } from "@/lib/contact";
-import { trackCheckAvailabilityClick } from "@/lib/analytics";
+import { trackCheckAvailabilityClick, trackRoomView } from "@/lib/analytics";
 import { ROOMS, getRoomPath, type Room } from "@/lib/rooms";
 import roomImg from "@/assets/suite-interior.jpg";
 
@@ -54,7 +54,11 @@ function RoomRow({ room, reverse }: { room: Room; reverse: boolean }) {
     <Reveal>
       <div className={`grid items-center gap-12 lg:grid-cols-12 ${reverse ? "lg:[direction:rtl]" : ""}`}>
         <div className="lg:col-span-7 lg:[direction:ltr]">
-          <Link to={roomPath} className="group block aspect-[4/3] overflow-hidden">
+          <Link
+            to={roomPath}
+            onClick={() => trackRoomView(room.name, "rooms_index_image")}
+            className="group block aspect-[4/3] overflow-hidden"
+          >
             <img src={room.img} alt={room.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" loading="lazy" />
           </Link>
         </div>
@@ -67,6 +71,7 @@ function RoomRow({ room, reverse }: { room: Room; reverse: boolean }) {
           <div className="mt-8 flex flex-wrap items-center gap-6">
             <Link
               to={roomPath}
+              onClick={() => trackRoomView(room.name, "rooms_index_cta")}
               className="group inline-flex items-center gap-3 border border-charcoal px-6 py-3 text-[0.72rem] uppercase tracking-[0.28em] transition-colors hover:bg-charcoal hover:text-ivory"
             >
               <span>Explore Room</span>
@@ -74,7 +79,7 @@ function RoomRow({ room, reverse }: { room: Room; reverse: boolean }) {
             </Link>
             <Link
               to="/book"
-              onClick={() => trackCheckAvailabilityClick("rooms_page")}
+              onClick={() => trackCheckAvailabilityClick(`rooms_page:${room.slug}`)}
               className="inline-flex items-center gap-3 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]"
             >
               Check Availability →
