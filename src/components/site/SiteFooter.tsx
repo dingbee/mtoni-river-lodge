@@ -4,6 +4,12 @@ import { Instagram, Facebook, Youtube, Plus, Minus } from "lucide-react";
 import logoUrl from "@/assets/mtoni-logo.png";
 import { WHATSAPP_NOTE } from "@/lib/contact";
 import { AvailabilityModal } from "@/components/site/AvailabilityModal";
+import {
+  trackBookingClick,
+  trackCallClick,
+  trackEmailClick,
+  trackSocialClick,
+} from "@/lib/analytics";
 
 function PinterestIcon({ className }: { className?: string }) {
   return (
@@ -117,6 +123,13 @@ export function SiteFooter() {
                   rel="noopener noreferrer"
                   aria-label={label}
                   data-external-link="true"
+                  onClick={() =>
+                    trackSocialClick({
+                      platform: label,
+                      location: "footer",
+                      destinationUrl: href,
+                    })
+                  }
                   className="relative inline-flex h-12 w-12 cursor-pointer items-center justify-center text-ivory/70 transition-colors hover:text-gold [&_svg]:pointer-events-none"
                   style={{ zIndex: 50, pointerEvents: "auto" }}
                 >
@@ -166,10 +179,48 @@ export function SiteFooter() {
             <ul className="mt-6 space-y-2 text-sm text-ivory/80">
               <li>Gomba Estate</li>
               <li>Arusha, Tanzania</li>
-              <li><a href="tel:+255752441443" className="hover:text-gold">+255 752 441 443</a></li>
-              <li><a href="tel:+255784270357" className="hover:text-gold">+255 784 270 357</a></li>
+              <li>
+                <a
+                  href="tel:+255752441443"
+                  onClick={() =>
+                    trackCallClick({
+                      buttonText: "+255 752 441 443",
+                      location: "footer",
+                      destinationUrl: "tel:+255752441443",
+                    })
+                  }
+                  className="hover:text-gold"
+                >
+                  +255 752 441 443
+                </a>
+              </li>
+              <li>
+                <a
+                  href="tel:+255784270357"
+                  onClick={() =>
+                    trackCallClick({
+                      buttonText: "+255 784 270 357",
+                      location: "footer",
+                      destinationUrl: "tel:+255784270357",
+                    })
+                  }
+                  className="hover:text-gold"
+                >
+                  +255 784 270 357
+                </a>
+              </li>
               <li className="pt-2">
-                <a href="mailto:bookings@mtoniriverlodge.com" className="hover:text-gold">
+                <a
+                  href="mailto:bookings@mtoniriverlodge.com"
+                  onClick={() =>
+                    trackEmailClick({
+                      buttonText: "bookings@mtoniriverlodge.com",
+                      location: "footer",
+                      destinationUrl: "mailto:bookings@mtoniriverlodge.com",
+                    })
+                  }
+                  className="hover:text-gold"
+                >
                   bookings@mtoniriverlodge.com
                 </a>
               </li>
@@ -182,7 +233,13 @@ export function SiteFooter() {
             </p>
             <button
               type="button"
-              onClick={() => setAvailOpen(true)}
+              onClick={() => {
+                trackBookingClick({
+                  buttonText: "Reserve on WhatsApp",
+                  location: "footer",
+                });
+                setAvailOpen(true);
+              }}
               className="mt-6 inline-flex items-center gap-3 border border-ivory/40 px-5 py-3 text-[0.72rem] font-medium uppercase tracking-[0.28em] hover:bg-ivory hover:text-charcoal"
             >
               Reserve on WhatsApp
