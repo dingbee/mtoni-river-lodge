@@ -29,6 +29,7 @@ import { Route as RoomsFamilyRoomRouteImport } from './routes/rooms.family-room'
 import { Route as JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport } from './routes/journal.what-the-river-has-taught-us-about-time'
 import { Route as JournalTheArchitectureOfDisappearingRouteImport } from './routes/journal.the-architecture-of-disappearing'
 import { Route as JournalReadingTheSkyOverMountMeruRouteImport } from './routes/journal.reading-the-sky-over-mount-meru'
+import { Route as JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRouteImport } from './routes/journal.discovering-arusha-through-nature-and-authentic-hospitality'
 import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './routes/journal.a-morning-with-the-beekeepers-of-gomba'
 
 const VoteRoute = VoteRouteImport.update({
@@ -134,6 +135,14 @@ const JournalReadingTheSkyOverMountMeruRoute =
     path: '/reading-the-sky-over-mount-meru',
     getParentRoute: () => JournalRoute,
   } as any)
+const JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute =
+  JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRouteImport.update(
+    {
+      id: '/discovering-arusha-through-nature-and-authentic-hospitality',
+      path: '/discovering-arusha-through-nature-and-authentic-hospitality',
+      getParentRoute: () => JournalRoute,
+    } as any,
+  )
 const JournalAMorningWithTheBeekeepersOfGombaRoute =
   JournalAMorningWithTheBeekeepersOfGombaRouteImport.update({
     id: '/a-morning-with-the-beekeepers-of-gomba',
@@ -155,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
+  '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
@@ -176,6 +186,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
+  '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
@@ -200,6 +211,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
+  '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
@@ -225,6 +237,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/vote'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
+    | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
@@ -246,6 +259,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/vote'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
+    | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
@@ -269,6 +283,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/vote'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
+    | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
@@ -436,6 +451,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JournalReadingTheSkyOverMountMeruRouteImport
       parentRoute: typeof JournalRoute
     }
+    '/journal/discovering-arusha-through-nature-and-authentic-hospitality': {
+      id: '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
+      path: '/discovering-arusha-through-nature-and-authentic-hospitality'
+      fullPath: '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
+      preLoaderRoute: typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRouteImport
+      parentRoute: typeof JournalRoute
+    }
     '/journal/a-morning-with-the-beekeepers-of-gomba': {
       id: '/journal/a-morning-with-the-beekeepers-of-gomba'
       path: '/a-morning-with-the-beekeepers-of-gomba'
@@ -448,6 +470,7 @@ declare module '@tanstack/react-router' {
 
 interface JournalRouteChildren {
   JournalAMorningWithTheBeekeepersOfGombaRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRoute
+  JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute: typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
   JournalReadingTheSkyOverMountMeruRoute: typeof JournalReadingTheSkyOverMountMeruRoute
   JournalTheArchitectureOfDisappearingRoute: typeof JournalTheArchitectureOfDisappearingRoute
   JournalWhatTheRiverHasTaughtUsAboutTimeRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
@@ -457,6 +480,8 @@ interface JournalRouteChildren {
 const JournalRouteChildren: JournalRouteChildren = {
   JournalAMorningWithTheBeekeepersOfGombaRoute:
     JournalAMorningWithTheBeekeepersOfGombaRoute,
+  JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute:
+    JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute,
   JournalReadingTheSkyOverMountMeruRoute:
     JournalReadingTheSkyOverMountMeruRoute,
   JournalTheArchitectureOfDisappearingRoute:
