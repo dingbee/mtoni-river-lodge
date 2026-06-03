@@ -302,3 +302,11 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Force Tawk.to chat widget visibility (desktop fix) */
+iframe[src*="tawk"] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 2147483647 !important;
+}
