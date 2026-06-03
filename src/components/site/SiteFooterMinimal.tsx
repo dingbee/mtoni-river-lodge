@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import logoUrl from "@/assets/mtoni-logo.png";
+import { trackEmailClick } from "@/lib/analytics";
 
 export function SiteFooterMinimal() {
   return (
@@ -21,7 +22,17 @@ export function SiteFooterMinimal() {
           <Link to="/lodge" className="hover:text-gold">The Lodge</Link>
           <Link to="/experiences" className="hover:text-gold">Experiences</Link>
           <Link to="/terms" className="hover:text-gold">Terms</Link>
-          <a href="mailto:bookings@mtoniriverlodge.com" className="hover:text-gold">
+          <a
+            href="mailto:bookings@mtoniriverlodge.com"
+            onClick={() =>
+              trackEmailClick({
+                buttonText: "Contact",
+                location: "footer_minimal",
+                destinationUrl: "mailto:bookings@mtoniriverlodge.com",
+              })
+            }
+            className="hover:text-gold"
+          >
             Contact
           </a>
         </nav>
