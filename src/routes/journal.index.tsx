@@ -102,7 +102,7 @@ function JournalPage() {
         <div className="mx-auto max-w-[1300px]">
           <Reveal>
             <Link
-              to="/journal/what-the-river-has-taught-us-about-time"
+              to={posts[0].href}
               className="group grid gap-10 border-t border-border pt-12 lg:grid-cols-12"
             >
               <div className="lg:col-span-7">
