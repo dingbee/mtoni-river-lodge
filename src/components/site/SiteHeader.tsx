@@ -3,6 +3,7 @@ import { Menu, X } from "lucide-react";
 import logoUrl from "@/assets/mtoni-logo.png";
 import { Link } from "@tanstack/react-router";
 import { MobileStickyCTA } from "@/components/site/MobileStickyCTA";
+import { AvailabilityModal } from "@/components/site/AvailabilityModal";
 
 const links = [
   { to: "/", label: "Home" },
@@ -19,6 +20,8 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
   const [progress, setProgress] = useState(0); // 0..1 transition state
   const [open, setOpen] = useState(false);
   const [isLg, setIsLg] = useState(false);
+  const [availOpen, setAvailOpen] = useState(false);
+  const [availLocation, setAvailLocation] = useState("nav_desktop");
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY;
@@ -95,12 +98,16 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
         </nav>
 
         <div className="hidden items-center gap-4 lg:flex">
-          <Link
-            to="/book"
+          <button
+            type="button"
+            onClick={() => {
+              setAvailLocation("nav_desktop");
+              setAvailOpen(true);
+            }}
             className="group inline-flex items-center gap-3 border border-current px-5 py-2.5 text-[0.72rem] font-medium uppercase tracking-[0.28em] transition-all hover:bg-current"
           >
-            <span className="transition-colors group-hover:text-ivory">Reserve</span>
-          </Link>
+            <span className="transition-colors group-hover:text-ivory">Check Availability</span>
+          </button>
         </div>
 
         <button
@@ -144,19 +151,28 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
           ))}
         </nav>
         <div className="px-6 pb-10 pt-4">
-          <Link
-            to="/book"
-            onClick={() => setOpen(false)}
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              setAvailLocation("nav_mobile");
+              setAvailOpen(true);
+            }}
             className="block w-full border border-ivory py-4 text-center text-[0.72rem] font-medium uppercase tracking-[0.28em] transition hover:bg-ivory hover:text-charcoal"
           >
             Check Availability
-          </Link>
+          </button>
           <p className="mt-3 text-center text-[0.7rem] leading-relaxed text-ivory/60">
             Fill in your details and we'll open WhatsApp with your booking request.
           </p>
         </div>
       </div>
       <MobileStickyCTA />
+      <AvailabilityModal
+        open={availOpen}
+        onOpenChange={setAvailOpen}
+        location={availLocation}
+      />
     </header>
   );
 }
