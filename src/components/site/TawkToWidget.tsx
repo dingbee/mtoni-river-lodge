@@ -40,6 +40,33 @@ export function TawkToWidget() {
         },
       };
 
+      // The remote Tawk dashboard settings have desktop visibility disabled
+      // (`visibility.desktop.show = false`), which causes the widget to be
+      // hidden on desktop even though customStyle requests it. Force-show
+      // the widget once the API is ready, on both desktop and mobile.
+      existing.onLoad = function () {
+        try {
+          (window as any).Tawk_API?.showWidget?.();
+        } catch {}
+      };
+      existing.onStatusChange = function () {
+        try {
+          (window as any).Tawk_API?.showWidget?.();
+        } catch {}
+      };
+
+      // Safety net: poll for a short window after load in case onLoad fires
+      // before our handler is registered.
+      let attempts = 0;
+      const showInterval = setInterval(() => {
+        attempts++;
+        const api = (window as any).Tawk_API;
+        if (api?.showWidget) {
+          try { api.showWidget(); } catch {}
+        }
+        if (attempts > 20) clearInterval(showInterval);
+      }, 500);
+
       const s1 = document.createElement("script");
       s1.type = "text/javascript";
       s1.async = true;
