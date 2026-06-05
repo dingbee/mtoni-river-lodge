@@ -89,12 +89,12 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
             <Link
               key={l.to}
               to={l.to}
-              className="group relative text-[0.78rem] font-medium uppercase tracking-[0.22em] transition-opacity hover:opacity-100"
-              activeProps={{ className: "opacity-100" }}
+              className="group relative text-[0.78rem] font-medium uppercase tracking-[0.22em] transition-colors hover:text-[var(--gold)]"
+              activeProps={{ className: "opacity-100 text-[var(--green)]" }}
               inactiveProps={{ className: "opacity-75" }}
             >
               {l.label}
-              <span className="absolute -bottom-1 left-0 h-px w-0 bg-current transition-all duration-500 group-hover:w-full" />
+              <span className="absolute -bottom-1 left-0 h-px w-0 bg-[var(--gold)] transition-all duration-500 group-hover:w-full" />
             </Link>
           ))}
         </nav>
@@ -110,9 +110,9 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
               setAvailLocation("nav_desktop");
               setAvailOpen(true);
             }}
-            className="group inline-flex items-center gap-3 border border-current px-5 py-2.5 text-[0.72rem] font-medium uppercase tracking-[0.28em] transition-all hover:bg-current"
+            className="group inline-flex items-center gap-3 border-2 border-[var(--green)] bg-transparent px-5 py-2.5 text-[0.72rem] font-medium uppercase tracking-[0.28em] transition-all duration-300 hover:border-[var(--gold)] hover:text-[var(--gold)] hover:shadow-[0_0_24px_-4px_rgba(192,184,122,0.5)]"
           >
-            <span className="transition-colors group-hover:text-ivory">Check Availability</span>
+            <span>Check Availability</span>
           </button>
         </div>
 
