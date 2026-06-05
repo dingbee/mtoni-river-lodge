@@ -6,7 +6,6 @@ import { PageHero } from "@/components/site/PageHero";
 import { WHATSAPP_NOTE } from "@/lib/contact";
 import { trackCheckAvailabilityClick, trackRoomView } from "@/lib/analytics";
 import { ROOMS, getRoomPath, type Room } from "@/lib/rooms";
-import { TripadvisorExcellentWidget } from "@/components/site/TripadvisorExcellentWidget";
 import roomImg from "@/assets/suite-interior.jpg";
 
 export const Route = createFileRoute("/rooms/")({
@@ -41,11 +40,6 @@ function RoomsIndexPage() {
           {ROOMS.map((room, index) => (
             <RoomRow key={room.no} room={room} reverse={index % 2 === 1} />
           ))}
-        </div>
-      </section>
-      <section className="px-6 pb-24 lg:px-12 lg:pb-32">
-        <div className="mx-auto max-w-[1100px]">
-          <TripadvisorExcellentWidget />
         </div>
       </section>
       <SiteFooter />

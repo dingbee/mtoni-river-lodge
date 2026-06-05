@@ -16,11 +16,38 @@ type Props = {
 export function TripadvisorExcellentWidget({ className = "", label }: Props) {
   const uniqueListId = useId().replace(/:/g, "");
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [inView, setInView] = useState(false);
 
+  // Lazy-load: only attach script once the widget enters the viewport.
   useEffect(() => {
     if (typeof window === "undefined") return;
+    const el = wrapRef.current;
+    if (!el) return;
+    if (!("IntersectionObserver" in window)) {
+      setInView(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            setInView(true);
+            io.disconnect();
+            break;
+          }
+        }
+      },
+      { rootMargin: "200px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !inView) return;
     let cancelled = false;
     let timeoutId: number | undefined;
 
@@ -63,7 +90,7 @@ export function TripadvisorExcellentWidget({ className = "", label }: Props) {
       cancelled = true;
       if (timeoutId) window.clearTimeout(timeoutId);
     };
-  }, []);
+  }, [inView]);
 
   if (failed) {
     return (
@@ -92,7 +119,7 @@ export function TripadvisorExcellentWidget({ className = "", label }: Props) {
   }
 
   return (
-    <div className={`flex w-full justify-center ${className}`}>
+    <div ref={wrapRef} className={`flex w-full justify-center ${className}`}>
       <div
         className="ta-excellent-wrap flex w-full max-w-md items-center justify-center"
         style={{ minHeight: 110 }}
