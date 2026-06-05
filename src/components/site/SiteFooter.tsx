@@ -4,6 +4,7 @@ import { Instagram, Facebook, Youtube, Plus, Minus } from "lucide-react";
 import logoUrl from "@/assets/mtoni-logo.png";
 import { WHATSAPP_NOTE } from "@/lib/contact";
 import { AvailabilityModal } from "@/components/site/AvailabilityModal";
+import { TripadvisorExcellentWidget } from "@/components/site/TripadvisorExcellentWidget";
 import {
   trackBookingClick,
   trackCallClick,
@@ -267,7 +268,11 @@ export function SiteFooter() {
         </section>
 
         {/* Bottom row */}
-        <div className="mt-14 flex flex-col items-center justify-center gap-3 border-t border-ivory/10 pt-8 text-xs text-ivory/50">
+        <div className="mt-16 flex justify-center">
+          <TripadvisorExcellentWidget />
+        </div>
+
+        <div className="mt-12 flex flex-col items-center justify-center gap-3 border-t border-ivory/10 pt-8 text-xs text-ivory/50">
           <p>© {new Date().getFullYear()} Mtoni River Lodge. All rights reserved.</p>
           <p className="font-display italic text-ivory/60">
             "Pole pole — slowly, slowly, the river finds the sea."
