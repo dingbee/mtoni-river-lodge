@@ -51,35 +51,39 @@
 :root {
   --radius: 4px;
 
-  /* Mtoni earthen palette — exact HEX system */
-  --ivory: #F2E3BB;        /* main background / footer text */
-  --bone: #E6D8A8;         /* alternate sections, card surface */
-  --clay: #C0B87A;         /* premium accent (icons / dividers) */
+  /* Mtoni modern-luxury palette — exact HEX system
+     Token names retained for backward compatibility with existing
+     class names (bg-ivory, bg-bone, text-charcoal, bg-charcoal,
+     text-ivory, etc.) — only the values are refreshed. */
+  --ivory: #FFFFFF;        /* dominant background + light text on dark */
+  --bone: #F5F5F5;         /* alternate sections, cards, content blocks */
+  --clay: #C0B87A;         /* soft gold accent (sparingly) */
   --ember: #C0B87A;        /* accent alias */
   --gold: #C0B87A;         /* accent alias */
-  --river: #5E665E;        /* secondary text / muted */
-  --forest: #427A43;       /* secondary green / hover */
-  --charcoal: #346739;     /* primary brand green (footer / primary) */
+  --river: #6B6B6B;        /* muted secondary text */
+  --forest: #2A5430;       /* deep green hover */
+  --charcoal: #1A1A1A;     /* primary text + black luxe surfaces */
+  --green: #346739;        /* brand primary green */
 
   --background: var(--ivory);
-  --foreground: #1F2A1F;
-  --card: var(--bone);
-  --card-foreground: #1F2A1F;
-  --popover: var(--ivory);
-  --popover-foreground: #1F2A1F;
-  --primary: var(--charcoal);
-  --primary-foreground: var(--ivory);
+  --foreground: var(--charcoal);
+  --card: #FFFFFF;
+  --card-foreground: var(--charcoal);
+  --popover: #FFFFFF;
+  --popover-foreground: var(--charcoal);
+  --primary: var(--green);
+  --primary-foreground: #FFFFFF;
   --secondary: var(--bone);
-  --secondary-foreground: #1F2A1F;
+  --secondary-foreground: var(--charcoal);
   --muted: var(--bone);
-  --muted-foreground: #5E665E;
+  --muted-foreground: #6B6B6B;
   --accent: var(--clay);
-  --accent-foreground: #1F2A1F;
+  --accent-foreground: var(--charcoal);
   --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: #F2E3BB;
-  --border: color-mix(in oklab, #346739 22%, transparent);
-  --input: color-mix(in oklab, #346739 22%, transparent);
-  --ring: var(--charcoal);
+  --destructive-foreground: #FFFFFF;
+  --border: rgba(26, 26, 26, 0.10);
+  --input: rgba(26, 26, 26, 0.14);
+  --ring: var(--green);
 }
 
 .dark {
@@ -264,16 +268,16 @@
       0 2px 12px rgba(0, 0, 0, 0.25);
   }
 
-  /* Unified hero overlay — dark green/black tone, stronger top & bottom.
+  /* Unified hero overlay — neutral luxe black, stronger top & bottom.
      Mobile uses a slightly stronger stack for readability on smaller screens. */
   .hero-overlay {
     background-image:
       linear-gradient(
         to bottom,
-        rgba(20, 45, 24, 0.72) 0%,
-        rgba(20, 45, 24, 0.42) 40%,
-        rgba(20, 45, 24, 0.32) 60%,
-        rgba(20, 45, 24, 0.78) 100%
+        rgba(10, 10, 10, 0.65) 0%,
+        rgba(10, 10, 10, 0.30) 40%,
+        rgba(10, 10, 10, 0.22) 60%,
+        rgba(10, 10, 10, 0.70) 100%
       );
   }
   @media (min-width: 1024px) {
@@ -281,10 +285,10 @@
       background-image:
         linear-gradient(
           to bottom,
-          rgba(20, 45, 24, 0.65) 0%,
-          rgba(20, 45, 24, 0.38) 45%,
-          rgba(20, 45, 24, 0.26) 60%,
-          rgba(20, 45, 24, 0.72) 100%
+          rgba(10, 10, 10, 0.55) 0%,
+          rgba(10, 10, 10, 0.25) 45%,
+          rgba(10, 10, 10, 0.18) 60%,
+          rgba(10, 10, 10, 0.65) 100%
         );
     }
   }
