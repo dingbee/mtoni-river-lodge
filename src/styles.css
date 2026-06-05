@@ -165,7 +165,6 @@
     font-weight: 400;
     letter-spacing: -0.015em;
     line-height: 1.12;
-    color: var(--color-foreground);
     overflow-wrap: break-word;
     word-wrap: break-word;
     hyphens: auto;
