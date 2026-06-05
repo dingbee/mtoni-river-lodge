@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { LocationMap } from "@/components/site/LocationMap";
 import { GuestReviews } from "@/components/site/GuestReviews";
+import { TrustedByGuestsSection } from "@/components/site/TrustedByGuestsSection";
 import { HeroCinematic } from "@/components/site/HeroCinematic";
 import { WHATSAPP_NOTE } from "@/lib/contact";
 import { trackCheckAvailabilityClick } from "@/lib/analytics";
@@ -296,6 +297,9 @@ function HomePage() {
 
       {/* GUEST REVIEWS — TripAdvisor-aligned */}
       <GuestReviews />
+
+      {/* GUEST REVIEWS & RECOGNITION — Tripadvisor Excellent widget */}
+      <TrustedByGuestsSection />
 
       <section className="relative bg-charcoal px-6 py-32 text-ivory lg:px-12 lg:py-48">
         <div className="mx-auto max-w-[1100px] text-center">
