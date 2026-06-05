@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import logoUrl from "@/assets/mtoni-logo.png";
+import menuBgUrl from "@/assets/hero-river.jpg";
 import { Link } from "@tanstack/react-router";
 import { MobileStickyCTA } from "@/components/site/MobileStickyCTA";
 import { AvailabilityModal } from "@/components/site/AvailabilityModal";
@@ -126,36 +127,78 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
 
       {/* Mobile menu overlay */}
       <div
-        className={`fixed inset-0 z-[100] flex h-[100svh] w-screen flex-col bg-charcoal text-ivory transition-all duration-500 ease-out lg:hidden ${
+        className={`fixed inset-0 z-[100] flex h-[100svh] w-screen flex-col text-ivory transition-all duration-500 ease-out lg:hidden ${
           open ? "pointer-events-auto opacity-100 translate-y-0" : "pointer-events-none opacity-0 -translate-y-2"
         }`}
+        style={{ backgroundColor: "#141414" }}
         aria-hidden={!open}
         role="dialog"
         aria-modal="true"
       >
-        <div className="flex h-20 items-center justify-between px-6">
-          <img src={logoUrl} alt="Mtoni River Lodge" className="h-10 w-auto brightness-0 invert" />
+        {/* Faint background image */}
+        <div
+          className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.18]"
+          style={{ backgroundImage: `url(${menuBgUrl})` }}
+          aria-hidden="true"
+        />
+        {/* River-stone texture overlay */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.07] mix-blend-overlay"
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
+          }}
+          aria-hidden="true"
+        />
+        {/* Subtle vertical gradient to deepen edges */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage:
+              "linear-gradient(180deg, rgba(20,20,20,0.85) 0%, rgba(20,20,20,0.7) 50%, rgba(20,20,20,0.92) 100%)",
+          }}
+          aria-hidden="true"
+        />
+
+        <div className="relative flex h-20 items-center justify-between px-6">
+          <img src={logoUrl} alt="Mtoni River Lodge" className="h-12 w-auto brightness-0 invert" />
           <button
             aria-label="Close menu"
             onClick={() => setOpen(false)}
-            className="-mr-2 inline-flex h-12 w-12 items-center justify-center rounded-full border border-ivory/20 transition hover:bg-ivory/10"
+            className="-mr-2 inline-flex h-12 w-12 items-center justify-center rounded-full border border-ivory/25 transition hover:bg-ivory/10 hover:text-[var(--gold)]"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
-        <nav className="flex flex-1 flex-col items-center justify-center gap-2 px-6">
-          {links.map((l) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              onClick={() => setOpen(false)}
-              className="font-display text-3xl py-4 px-6 w-full text-center transition-opacity hover:opacity-70"
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="px-6 pb-10 pt-4">
+        <div className="relative flex flex-1 flex-col">
+          <p className="px-6 pt-2 text-center eyebrow text-[var(--gold)]/80">
+            Luxury by Nature
+          </p>
+          <nav className="flex flex-1 flex-col items-center justify-center gap-3 px-6">
+            {links.map((l, idx) => (
+              <Link
+                key={l.to}
+                to={l.to}
+                onClick={() => setOpen(false)}
+                activeProps={{ className: "is-active" }}
+                className="mtoni-menu-link group relative font-display text-[2rem] sm:text-4xl py-5 px-6 w-full text-center tracking-wide transition-colors duration-300 hover:text-[var(--gold)]"
+                style={{
+                  opacity: open ? 1 : 0,
+                  transform: open ? "translateY(0)" : "translateY(8px)",
+                  transition: `opacity 600ms ease ${idx * 80 + 120}ms, transform 600ms ease ${idx * 80 + 120}ms, color 300ms ease`,
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-1/2 top-1/2 hidden h-8 w-px -translate-y-1/2 bg-[var(--green)] group-[.is-active]:block"
+                  style={{ transform: "translate(-7.5rem, -50%)" }}
+                />
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+        <div className="relative px-6 pb-10 pt-4">
           <button
             type="button"
             onClick={() => {
@@ -167,11 +210,11 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
               setAvailLocation("nav_mobile");
               setAvailOpen(true);
             }}
-            className="block w-full border border-ivory py-4 text-center text-[0.72rem] font-medium uppercase tracking-[0.28em] transition hover:bg-ivory hover:text-charcoal"
+            className="block w-full border-2 border-[var(--green)] bg-transparent py-4 text-center text-[0.72rem] font-medium uppercase tracking-[0.32em] text-ivory transition-all duration-300 hover:border-[var(--gold)] hover:text-[var(--gold)] hover:shadow-[0_0_28px_-4px_rgba(192,184,122,0.55)]"
           >
             Check Availability
           </button>
-          <p className="mt-3 text-center text-[0.7rem] leading-relaxed text-ivory/60">
+          <p className="mt-3 text-center text-[0.7rem] leading-relaxed text-ivory/55">
             Fill in your details and we'll open WhatsApp with your booking request.
           </p>
         </div>
