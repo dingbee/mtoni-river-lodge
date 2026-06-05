@@ -181,7 +181,7 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
                 to={l.to}
                 onClick={() => setOpen(false)}
                 activeProps={{ className: "is-active" }}
-                className="mtoni-menu-link group relative font-display text-[2rem] sm:text-4xl py-5 px-6 w-full text-center tracking-wide transition-colors duration-300 hover:text-[var(--gold)]"
+                className="mtoni-menu-link group relative font-display text-[2rem] sm:text-4xl py-4 px-6 w-full tracking-wide transition-colors duration-300 hover:text-[var(--gold)] flex items-center justify-center gap-4"
                 style={{
                   opacity: open ? 1 : 0,
                   transform: open ? "translateY(0)" : "translateY(8px)",
@@ -190,10 +190,10 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
               >
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute left-1/2 top-1/2 hidden h-8 w-px -translate-y-1/2 bg-[var(--green)] group-[.is-active]:block"
-                  style={{ transform: "translate(-7.5rem, -50%)" }}
+                  className="block h-7 w-[2px] bg-[var(--green)] opacity-0 transition-opacity duration-300 group-[.is-active]:opacity-100"
                 />
-                {l.label}
+                <span>{l.label}</span>
+                <span aria-hidden="true" className="block h-7 w-[2px]" />
               </Link>
             ))}
           </nav>
