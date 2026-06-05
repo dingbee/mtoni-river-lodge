@@ -4,7 +4,6 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { LocationMap } from "@/components/site/LocationMap";
-import { GuestReviews } from "@/components/site/GuestReviews";
 import { TrustedByGuestsSection } from "@/components/site/TrustedByGuestsSection";
 import { HeroCinematic } from "@/components/site/HeroCinematic";
 import { WHATSAPP_NOTE } from "@/lib/contact";
@@ -294,9 +293,6 @@ function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* GUEST REVIEWS — TripAdvisor-aligned */}
-      <GuestReviews />
 
       {/* GUEST REVIEWS & RECOGNITION — Tripadvisor Excellent widget */}
       <TrustedByGuestsSection />
