@@ -6,6 +6,7 @@ import { useState } from "react";
 import villa from "@/assets/villa-exterior.jpg";
 import { WHATSAPP_URL, WHATSAPP_NOTE } from "@/lib/contact";
 import { trackContactClick } from "@/lib/analytics";
+import { TripadvisorExcellentWidget } from "@/components/site/TripadvisorExcellentWidget";
 
 const ROOM_OPTIONS = [
   "Riverfront Deluxe Room",
@@ -71,6 +72,11 @@ function PlanPage() {
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader />
+      <section className="border-b border-charcoal/10 px-6 py-12 lg:px-12 lg:py-16">
+        <div className="mx-auto max-w-[1100px]">
+          <TripadvisorExcellentWidget />
+        </div>
+      </section>
       <section id="booking-form" className="grid min-h-[100svh] lg:grid-cols-2 pt-20 lg:pt-28 scroll-mt-32">
         <div className="relative hidden overflow-hidden lg:block">
           <img src={villa} alt="Lodge at twilight" className="ken-burns h-full w-full object-cover" />
