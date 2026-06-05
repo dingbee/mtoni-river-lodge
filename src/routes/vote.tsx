@@ -380,32 +380,25 @@ function AwardBadge({ inverted = false }: { inverted?: boolean }) {
 function Testimonials() {
   const reviews = [
     {
+      title: "Beautiful lodge, conveniently located with amazing staff",
       quote:
-        "A sanctuary in the truest sense. We woke to mist on the river and slept to the sound of water. The hospitality felt deeply personal — not performed, but lived.",
-      name: "Helena & Marcus",
-      origin: "Stockholm, Sweden",
-      kind: "Couples retreat",
+        "It's always a treat to stay at Mtoni. By now, it feels like my home away from home whenever I'm in Arusha. Tom, Neema, and the entire team are attentive, supportive, and always welcoming. The lodge itself is a beautiful oasis, perfectly located between Kilimanjaro International Airport and Arusha town. You feel completely immersed in nature while remaining conveniently close to everything. I cannot recommend this place enough.",
+      name: "Charissa",
+      date: "June 2026",
     },
     {
+      title: "Incredible Stay",
       quote:
-        "After our safari, Mtoni was the gentle exhale we needed. The architecture, the food, the people — every detail rooted in place. We will return.",
-      name: "The Okonkwo Family",
-      origin: "London, United Kingdom",
-      kind: "Family of four",
+        "Absolutely incredible stay at Mtoni River Lodge! We were here for a family wedding, and every aspect of our experience exceeded expectations. The staff were exceptionally helpful and made our stay one to remember. We look forward to returning.",
+      name: "Si, Belinda, Simon & Debbie",
+      date: "May 2026",
     },
     {
+      title: "Relaxing by the River",
       quote:
-        "Of all the lodges we've stayed in across East Africa, Mtoni stands apart for its restraint and warmth. A masterclass in quiet luxury.",
-      name: "Anaïs Belmont",
-      origin: "Paris, France",
-      kind: "International traveler",
-    },
-    {
-      quote:
-        "From the candlelit dinners to the riverwalk at dawn, every moment felt curated with care. Tanzanian hospitality at its most refined.",
-      name: "James & Priya",
-      origin: "Singapore",
-      kind: "Safari guests",
+        "Great surroundings, wonderful atmosphere, excellent service, and delicious food. The complete package when visiting Arusha. Babu looked after us exceptionally well, and the monkey watching provided endless entertainment for the kids. A truly relaxing and memorable experience.",
+      name: "Deon L",
+      date: "May 2026",
     },
   ];
 
@@ -419,9 +412,9 @@ function Testimonials() {
     <section className="bg-charcoal px-6 py-28 text-ivory lg:px-12 lg:py-40">
       <div className="mx-auto max-w-[1100px]">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <p className="eyebrow !text-ivory/65">Voices from the river</p>
+          <p className="eyebrow !text-ivory/65">Guest Experiences</p>
           <h2 className="mt-5 font-display text-4xl leading-[1.08] text-ivory lg:text-6xl">
-            What Our Guests Say
+            Memorable stays shared by travelers from around the world.
           </h2>
         </Reveal>
 
@@ -442,13 +435,16 @@ function Testimonials() {
                     <Star key={k} className="h-4 w-4 fill-current" strokeWidth={0} />
                   ))}
                 </div>
-                <blockquote className="mt-8 font-display text-2xl italic leading-[1.4] text-ivory/95 lg:text-[2rem]">
+                <p className="mt-6 font-display text-lg font-medium leading-snug text-ivory/95 lg:text-xl">
+                  {r.title}
+                </p>
+                <blockquote className="mt-4 font-display text-xl italic leading-[1.4] text-ivory/90 lg:text-[1.6rem]">
                   &ldquo;{r.quote}&rdquo;
                 </blockquote>
                 <div className="mt-10">
                   <p className="font-display text-lg text-ivory">{r.name}</p>
                   <p className="mt-1 text-[0.7rem] uppercase tracking-[0.28em] text-ivory/55">
-                    {r.origin} · {r.kind}
+                    {r.date}
                   </p>
                 </div>
               </div>

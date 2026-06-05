@@ -6,28 +6,28 @@ const TRIPADVISOR_URL =
 
 const reviews = [
   {
+    title: "Beautiful lodge, conveniently located with amazing staff",
     quote:
-      "A hidden gem and an ideal start to a safari vacation. Warm hospitality and a truly welcoming atmosphere.",
-    name: "Daniel",
-    country: "United Kingdom",
+      "It's always a treat to stay at Mtoni. By now, it feels like my home away from home whenever I'm in Arusha. Tom, Neema, and the entire team are attentive, supportive, and always welcoming. The lodge itself is a beautiful oasis, perfectly located between Kilimanjaro International Airport and Arusha town. You feel completely immersed in nature while remaining conveniently close to everything. I cannot recommend this place enough.",
+    name: "Charissa",
+    date: "June 2026",
     rating: 5,
-    stay: "Riverfront Deluxe · Sept 2025",
   },
   {
+    title: "Incredible Stay",
     quote:
-      "It felt less like a hotel and more like being held by a place. Every detail seemed to know us before we did.",
-    name: "Sofia",
-    country: "Italy",
+      "Absolutely incredible stay at Mtoni River Lodge! We were here for a family wedding, and every aspect of our experience exceeded expectations. The staff were exceptionally helpful and made our stay one to remember. We look forward to returning.",
+    name: "Si, Belinda, Simon & Debbie",
+    date: "May 2026",
     rating: 5,
-    stay: "Garden Suite · Aug 2025",
   },
   {
+    title: "Relaxing by the River",
     quote:
-      "The perfect blend of bush charm and quiet luxury — peaceful, welcoming, and hard to leave.",
-    name: "Aiko & Ren",
-    country: "Japan",
+      "Great surroundings, wonderful atmosphere, excellent service, and delicious food. The complete package when visiting Arusha. Babu looked after us exceptionally well, and the monkey watching provided endless entertainment for the kids. A truly relaxing and memorable experience.",
+    name: "Deon L",
+    date: "May 2026",
     rating: 5,
-    stay: "Family River Room · July 2025",
   },
 ];
 
@@ -42,8 +42,35 @@ function Stars({ count = 5 }: { count?: number }) {
 }
 
 export function GuestReviews() {
+  const schema = {
+    "@context": "https://schema.org",
+    "@graph": reviews.map((r) => ({
+      "@type": "Review",
+      name: r.title,
+      reviewBody: r.quote,
+      author: { "@type": "Person", name: r.name },
+      datePublished: r.date.replace(" ", "-"),
+      reviewRating: {
+        "@type": "Rating",
+        ratingValue: r.rating,
+        bestRating: 5,
+        worstRating: 1,
+      },
+      itemReviewed: {
+        "@type": "LodgingBusiness",
+        name: "Mtoni River Lodge",
+        address: {
+          "@type": "PostalAddress",
+          addressLocality: "Arusha",
+          addressCountry: "TZ",
+        },
+      },
+    })),
+  };
+
   return (
     <section
+      id="reviews"
       className="relative overflow-hidden px-6 py-32 lg:px-12 lg:py-48"
       style={{
         backgroundImage:
@@ -61,13 +88,19 @@ export function GuestReviews() {
         }}
       />
 
+      {/* Review Schema markup */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
+
       <div className="relative mx-auto max-w-[1200px]">
         {/* Header */}
         <div className="mx-auto max-w-[760px] text-center">
           <Reveal>
-            <p className="eyebrow text-charcoal/60">Guest Reviews</p>
+            <p className="eyebrow text-charcoal/60">Guest Experiences</p>
             <h2 className="mt-6 font-display text-4xl leading-[1.08] lg:text-6xl">
-              Moments remembered <em className="italic">long after the stay.</em>
+              Memorable stays shared by travelers from around the world.
             </h2>
           </Reveal>
         </div>
@@ -114,16 +147,18 @@ export function GuestReviews() {
               >
                 <div>
                   <Stars count={r.rating} />
-                  <p className="mt-6 font-display text-xl leading-[1.5] text-charcoal/90 lg:text-2xl">
-                    “{r.quote}”
+                  <p className="mt-5 font-display text-lg font-medium leading-snug text-charcoal/90 lg:text-xl">
+                    {r.title}
+                  </p>
+                  <p className="mt-4 text-sm leading-relaxed text-charcoal/75">
+                    &ldquo;{r.quote}&rdquo;
                   </p>
                 </div>
                 <div className="mt-8 border-t border-charcoal/10 pt-5">
                   <p className="font-display text-base">{r.name}</p>
                   <p className="mt-1 text-[0.7rem] uppercase tracking-[0.28em] text-charcoal/55">
-                    {r.country}
+                    {r.date}
                   </p>
-                  <p className="mt-2 text-xs text-charcoal/50">{r.stay}</p>
                 </div>
               </article>
             </Reveal>
@@ -139,8 +174,10 @@ export function GuestReviews() {
               rel="noopener noreferrer"
               className="group inline-flex items-center gap-3 rounded-full bg-[#2f4a3a] px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] text-ivory shadow-[0_20px_40px_-20px_rgba(47,74,58,0.6)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#243a2d] hover:shadow-[0_28px_50px_-20px_rgba(47,74,58,0.75)]"
             >
-              Read More Reviews on TripAdvisor
-              <span aria-hidden className="transition-transform group-hover:translate-x-1">↗</span>
+              Read More Reviews on Tripadvisor
+              <span aria-hidden className="transition-transform group-hover:translate-x-1">
+                ↗
+              </span>
             </a>
             <p className="text-[0.65rem] uppercase tracking-[0.28em] text-charcoal/45">
               Independent guest reviews · TripAdvisor
