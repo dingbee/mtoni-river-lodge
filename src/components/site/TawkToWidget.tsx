@@ -19,13 +19,13 @@ export function TawkToWidget() {
       existing.customStyle = {
         visibility: {
           desktop: {
-            position: "br",
+            position: "bl",
             xOffset: 24,
             yOffset: 24,
             show: true,
           },
           mobile: {
-            position: "br",
+            position: "bl",
             xOffset: 16,
             yOffset: 80, // sits above the mobile sticky CTA (~60px tall)
             show: true,
