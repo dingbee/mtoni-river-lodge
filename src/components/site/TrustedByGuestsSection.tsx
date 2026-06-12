@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
-import { TripadvisorExcellentWidget } from "@/components/site/TripadvisorExcellentWidget";
 import { trackCheckAvailabilityClick } from "@/lib/analytics";
 
 const TRIPADVISOR_URL =
@@ -100,30 +99,81 @@ export function TrustedByGuestsSection() {
           </Reveal>
         </div>
 
-        {/* Widget */}
+        {/* Tripadvisor Trust Block */}
         <Reveal delay={120}>
-          <div className="mx-auto mt-14 flex flex-col items-center gap-6 lg:mt-16">
-            <div className="rounded-2xl border border-charcoal/10 bg-ivory/80 px-8 py-8 shadow-[0_30px_60px_-40px_rgba(60,50,30,0.35)] backdrop-blur-sm">
-              <TripadvisorExcellentWidget />
-              <p className="mt-4 text-center text-[0.65rem] uppercase tracking-[0.28em] text-charcoal/55">
-                Tripadvisor · Travellers' Excellent
-              </p>
-            </div>
-          </div>
-        </Reveal>
-
-        {/* CTAs */}
-        <Reveal delay={180}>
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <div className="mx-auto mt-14 max-w-2xl lg:mt-16">
             <a
               href={TRIPADVISOR_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex items-center gap-3 rounded-full bg-[#2f4a3a] px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] text-ivory shadow-[0_20px_40px_-20px_rgba(47,74,58,0.6)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#243a2d]"
+              aria-label="Read Mtoni River Lodge reviews on Tripadvisor (opens in new tab)"
+              className="group block overflow-hidden rounded-2xl border border-[#2f4a3a]/15 bg-ivory/90 shadow-[0_30px_60px_-40px_rgba(47,74,58,0.45)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-[#2f4a3a]/30 hover:shadow-[0_40px_70px_-40px_rgba(47,74,58,0.6)]"
             >
-              Read Guest Reviews
-              <span aria-hidden className="transition-transform group-hover:translate-x-1">↗</span>
+              <div className="flex flex-col gap-6 p-8 sm:p-10">
+                {/* Top row: Travelers' Choice badge */}
+                <div className="flex items-center justify-center gap-3 border-b border-charcoal/10 pb-6">
+                  <svg
+                    aria-hidden
+                    viewBox="0 0 24 24"
+                    className="h-7 w-7 text-[#2f4a3a]"
+                    fill="currentColor"
+                  >
+                    <path d="M12 2l2.39 4.84 5.34.78-3.87 3.77.91 5.32L12 14.27l-4.77 2.51.91-5.32L4.27 7.62l5.34-.78L12 2z" />
+                  </svg>
+                  <div className="text-center">
+                    <p className="font-display text-lg leading-tight text-[#2f4a3a]">
+                      Tripadvisor Travelers' Choice
+                    </p>
+                    <p className="mt-0.5 text-[0.6rem] uppercase tracking-[0.28em] text-charcoal/55">
+                      Award Recognition
+                    </p>
+                  </div>
+                </div>
+
+                {/* Rating */}
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-display text-5xl leading-none text-charcoal lg:text-6xl">
+                      4.9
+                    </span>
+                    <span className="text-sm text-charcoal/55">/ 5</span>
+                  </div>
+                  <div className="flex items-center gap-1" aria-label="Rated 4.9 out of 5">
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <span
+                        key={i}
+                        aria-hidden
+                        className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#2f4a3a]"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-3 w-3 text-ivory" fill="currentColor">
+                          <circle cx="12" cy="12" r="6" />
+                        </svg>
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-sm text-charcoal/70">
+                    Based on <span className="font-medium text-charcoal">240+ verified reviews</span>
+                  </p>
+                </div>
+
+                {/* CTA */}
+                <div className="flex flex-col items-center gap-3 pt-2">
+                  <span className="inline-flex items-center gap-3 rounded-full bg-[#2f4a3a] px-7 py-3.5 text-[0.7rem] uppercase tracking-[0.28em] text-ivory transition-colors group-hover:bg-[#243a2d]">
+                    Read Guest Reviews on Tripadvisor
+                    <span aria-hidden className="transition-transform group-hover:translate-x-1">↗</span>
+                  </span>
+                  <p className="text-[0.6rem] uppercase tracking-[0.28em] text-charcoal/45">
+                    Opens in a new tab
+                  </p>
+                </div>
+              </div>
             </a>
+          </div>
+        </Reveal>
+
+        {/* Book CTA */}
+        <Reveal delay={180}>
+          <div className="mt-10 flex justify-center">
             <Link
               to="/book"
               onClick={() => trackCheckAvailabilityClick("homepage_reviews_recognition")}
