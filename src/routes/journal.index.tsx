@@ -7,8 +7,19 @@ import ndurumaGrove from "@/assets/nduruma-banana-grove.jpg";
 import guide from "@/assets/maasai-by-river.jpg";
 import villa from "@/assets/boma-thatch-room.jpg";
 import aerial from "@/assets/aerial-lodge.jpg";
+import cottage from "@/assets/hero-cottage-exterior.jpg";
 
 const posts = [
+  {
+    date: "June 2026",
+    read: "5 min",
+    title:
+      "Why Mtoni River Lodge Is the Perfect Arusha Stay for Safari Travelers in 2026",
+    excerpt:
+      "A peaceful retreat between Kilimanjaro International Airport and Arusha City — designed for safari travelers seeking comfort, nature, and authentic Tanzanian hospitality.",
+    img: cottage,
+    href: "/journal/perfect-arusha-stay-for-safari-travelers-2026" as const,
+  },
   {
     date: "June 2026",
     read: "4 min",
