@@ -3,68 +3,9 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import river from "@/assets/nduruma-river-flow.jpg";
-import ndurumaGrove from "@/assets/nduruma-banana-grove.jpg";
-import guide from "@/assets/maasai-by-river.jpg";
-import villa from "@/assets/boma-thatch-room.jpg";
-import aerial from "@/assets/aerial-lodge.jpg";
-import cottage from "@/assets/hero-cottage-exterior.jpg";
+import { getJournalPosts } from "@/lib/journal";
 
-const posts = [
-  {
-    date: "June 2026",
-    read: "5 min",
-    title:
-      "Why Mtoni River Lodge Is the Perfect Arusha Stay for Safari Travelers in 2026",
-    excerpt:
-      "A peaceful retreat between Kilimanjaro International Airport and Arusha City — designed for safari travelers seeking comfort, nature, and authentic Tanzanian hospitality.",
-    img: cottage,
-    href: "/journal/perfect-arusha-stay-for-safari-travelers-2026" as const,
-  },
-  {
-    date: "June 2026",
-    read: "4 min",
-    title: "Discovering Arusha Through Nature and Authentic Hospitality",
-    excerpt:
-      "Why more travelers are choosing nature-inspired hospitality at Mtoni River Lodge — a peaceful retreat close to Arusha's iconic attractions.",
-    img: aerial,
-    href: "/journal/discovering-arusha-through-nature-and-authentic-hospitality" as const,
-  },
-  {
-    date: "March 2026",
-    read: "6 min",
-    title: "What the River Has Taught Us About Time",
-    excerpt: "On the slow art of arriving, and why we removed every clock from the lodge.",
-    img: river,
-    href: "/journal/what-the-river-has-taught-us-about-time" as const,
-  },
-  {
-    date: "February 2026",
-    read: "5 min",
-    title: "Life Along the Nduruma River",
-    excerpt:
-      "Farming traditions, irrigation streams, and the green heart of Mtoni — where ox-ploughed fields and river-fed gardens shape daily life.",
-    img: ndurumaGrove,
-    href: "/journal/a-morning-with-the-beekeepers-of-gomba" as const,
-  },
-  {
-    date: "January 2026",
-    read: "6 min",
-    title: "Building With the Community",
-    excerpt:
-      "Employment, infrastructure, and shared growth — how Mtoni contributes to the people and ecosystems that surround it.",
-    img: guide,
-    href: "/journal/reading-the-sky-over-mount-meru" as const,
-  },
-  {
-    date: "December 2025",
-    read: "6 min",
-    title: "Maasai Boma Architecture at Mtoni",
-    excerpt:
-      "Earth, thatch, and circular spatial logic — how the rooms are grounded in a building tradition shaped by climate, culture, and land.",
-    img: villa,
-    href: "/journal/the-architecture-of-disappearing" as const,
-  },
-];
+const posts = getJournalPosts();
 
 export const Route = createFileRoute("/journal/")({
   head: () => ({

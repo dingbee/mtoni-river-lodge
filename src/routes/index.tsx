@@ -8,6 +8,7 @@ import { TrustedByGuestsSection } from "@/components/site/TrustedByGuestsSection
 import { HeroCinematic } from "@/components/site/HeroCinematic";
 import { WHATSAPP_NOTE } from "@/lib/contact";
 import { trackCheckAvailabilityClick } from "@/lib/analytics";
+import { getLatestJournalPosts } from "@/lib/journal";
 import heroImg from "@/assets/hero-river.jpg";
 import lodgeHeroImg from "@/assets/lodge-hero-aerial.jpg";
 import cottageHeroImg from "@/assets/hero-cottage-exterior.jpg";
@@ -247,32 +248,7 @@ function HomePage() {
             <Link to="/journal" className="hidden text-[0.72rem] uppercase tracking-[0.28em] underline-offset-8 hover:underline sm:inline">All stories →</Link>
           </Reveal>
           <div className="grid gap-12 md:grid-cols-3">
-            {[
-              {
-                date: "March 2026",
-                read: "6 min",
-                title: "What the River Has Taught Us About Time",
-                excerpt:
-                  "On the slow art of arriving, and why we removed every clock from the lodge.",
-                href: "/journal/what-the-river-has-taught-us-about-time" as const,
-              },
-              {
-                date: "February 2026",
-                read: "5 min",
-                title: "Life Along the Nduruma River",
-                excerpt:
-                  "Where the river branches into quiet irrigation streams, ox-ploughed fields and river-fed gardens shape the green heart of Mtoni.",
-                href: "/journal/a-morning-with-the-beekeepers-of-gomba" as const,
-              },
-              {
-                date: "January 2026",
-                read: "6 min",
-                title: "Building With the Community",
-                excerpt:
-                  "Employment, infrastructure, and shared growth — how Mtoni contributes to the people and ecosystems that surround it.",
-                href: "/journal/reading-the-sky-over-mount-meru" as const,
-              },
-            ].map((p, i) => (
+            {getLatestJournalPosts(3).map((p, i) => (
               <Reveal key={p.title} delay={i * 120}>
                 <Link to={p.href} className="group flex h-full flex-col">
                   <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
