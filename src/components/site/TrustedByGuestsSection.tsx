@@ -1,9 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { trackCheckAvailabilityClick } from "@/lib/analytics";
-
-const TRIPADVISOR_URL =
-  "https://www.tripadvisor.com/Hotel_Review-g297913-d27185811-Reviews-Mtoni_River_Lodge-Arusha_Arusha_Region.html";
+import { tripadvisorSettings } from "@/config/tripadvisor";
 
 const trustPillars = [
   {
@@ -31,6 +29,24 @@ const reviewHighlights = [
 ];
 
 export function TrustedByGuestsSection() {
+  const {
+    rating,
+    bestRating,
+    reviewCount,
+    reviewCountSuffix = "",
+    ranking,
+    awardTitle,
+    awardYear,
+    awardSubtitle = "Award Recognition",
+    reviewUrl,
+  } = tripadvisorSettings;
+
+  // Render the rating as 5 stars: fully filled for each whole point,
+  // half-filled for the fractional remainder.
+  const filledStars = Math.floor(rating);
+  const hasHalf = rating - filledStars >= 0.25 && rating - filledStars < 0.75;
+  const fullCount = hasHalf ? filledStars : Math.round(rating);
+
   const schema = {
     "@context": "https://schema.org",
     "@type": "Hotel",
@@ -46,12 +62,12 @@ export function TrustedByGuestsSection() {
     },
     aggregateRating: {
       "@type": "AggregateRating",
-      ratingValue: "4.9",
-      reviewCount: "240",
-      bestRating: "5",
+      ratingValue: String(rating),
+      reviewCount: String(reviewCount),
+      bestRating: String(bestRating),
       worstRating: "1",
     },
-    sameAs: [TRIPADVISOR_URL],
+    sameAs: [reviewUrl],
   };
 
   return (
@@ -103,7 +119,7 @@ export function TrustedByGuestsSection() {
         <Reveal delay={120}>
           <div className="mx-auto mt-14 max-w-2xl lg:mt-16">
             <a
-              href={TRIPADVISOR_URL}
+              href={reviewUrl}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Read Mtoni River Lodge reviews on Tripadvisor (opens in new tab)"
@@ -122,10 +138,10 @@ export function TrustedByGuestsSection() {
                   </svg>
                   <div className="text-center">
                     <p className="font-display text-lg leading-tight text-[#2f4a3a]">
-                      Tripadvisor Travelers' Choice
+                      {awardTitle} {awardYear}
                     </p>
                     <p className="mt-0.5 text-[0.6rem] uppercase tracking-[0.28em] text-charcoal/55">
-                      Award Recognition
+                      {awardSubtitle}
                     </p>
                   </div>
                 </div>
@@ -134,26 +150,50 @@ export function TrustedByGuestsSection() {
                 <div className="flex flex-col items-center gap-3">
                   <div className="flex items-baseline gap-2">
                     <span className="font-display text-5xl leading-none text-charcoal lg:text-6xl">
-                      4.9
+                      {rating.toFixed(1)}
                     </span>
-                    <span className="text-sm text-charcoal/55">/ 5</span>
+                    <span className="text-sm text-charcoal/55">/ {bestRating}</span>
                   </div>
-                  <div className="flex items-center gap-1" aria-label="Rated 4.9 out of 5">
-                    {[0, 1, 2, 3, 4].map((i) => (
-                      <span
-                        key={i}
-                        aria-hidden
-                        className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#2f4a3a]"
-                      >
-                        <svg viewBox="0 0 24 24" className="h-3 w-3 text-ivory" fill="currentColor">
-                          <circle cx="12" cy="12" r="6" />
-                        </svg>
-                      </span>
-                    ))}
+                  <div
+                    className="flex items-center gap-1"
+                    aria-label={`Rated ${rating} out of ${bestRating}`}
+                  >
+                    {Array.from({ length: bestRating }).map((_, i) => {
+                      const isFilled = i < fullCount;
+                      const isHalf = hasHalf && i === fullCount;
+                      return (
+                        <span
+                          key={i}
+                          aria-hidden
+                          className={`inline-flex h-5 w-5 items-center justify-center rounded-full ${
+                            isFilled || isHalf
+                              ? "bg-[#2f4a3a]"
+                              : "bg-[#2f4a3a]/20"
+                          }`}
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="h-3 w-3 text-ivory"
+                            fill="currentColor"
+                          >
+                            <circle cx="12" cy="12" r="6" />
+                          </svg>
+                        </span>
+                      );
+                    })}
                   </div>
                   <p className="text-sm text-charcoal/70">
-                    Based on <span className="font-medium text-charcoal">240+ verified reviews</span>
+                    Based on{" "}
+                    <span className="font-medium text-charcoal">
+                      {reviewCount.toLocaleString()}
+                      {reviewCountSuffix} verified reviews
+                    </span>
                   </p>
+                  {ranking ? (
+                    <p className="text-[0.65rem] uppercase tracking-[0.28em] text-charcoal/55">
+                      {ranking}
+                    </p>
+                  ) : null}
                 </div>
 
                 {/* CTA */}
