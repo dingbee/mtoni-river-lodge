@@ -247,26 +247,78 @@ function HomePage() {
             </div>
             <Link to="/journal" className="hidden text-[0.72rem] uppercase tracking-[0.28em] underline-offset-8 hover:underline sm:inline">All stories →</Link>
           </Reveal>
-          <div className="grid gap-12 md:grid-cols-3">
-            {getLatestJournalPosts(3).map((p, i) => (
-              <Reveal key={p.title} delay={i * 120}>
-                <Link to={p.href} className="group flex h-full flex-col">
-                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                    {p.date} · {p.read}
-                  </p>
-                  <h3 className="mt-5 font-display text-2xl leading-snug transition-colors group-hover:text-ember">
-                    {p.title}
-                  </h3>
-                  <p className="mt-4 line-clamp-3 text-[0.95rem] leading-relaxed text-charcoal/65">
-                    {p.excerpt}
-                  </p>
-                  <span className="mt-6 inline-block self-start border-b border-charcoal/40 pb-1 text-[0.7rem] uppercase tracking-[0.28em] transition-colors group-hover:border-charcoal">
-                    Read Article →
-                  </span>
-                </Link>
-              </Reveal>
-            ))}
-          </div>
+          {(() => {
+            const [featured, ...secondary] = getLatestJournalPosts(4);
+            if (!featured) return null;
+            return (
+              <>
+                <Reveal>
+                  <Link
+                    to={featured.href}
+                    className="group grid gap-10 lg:grid-cols-12 lg:gap-16"
+                  >
+                    <div className="relative overflow-hidden lg:col-span-7">
+                      <img
+                        src={featured.img}
+                        alt={featured.title}
+                        loading="lazy"
+                        decoding="async"
+                        className="aspect-[4/3] w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.03] lg:aspect-[16/11]"
+                      />
+                      <span className="absolute left-5 top-5 bg-ivory/95 px-3 py-1.5 text-[0.62rem] uppercase tracking-[0.28em] text-charcoal">
+                        Featured Story
+                      </span>
+                    </div>
+                    <div className="flex flex-col justify-center lg:col-span-5">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                        {featured.date} · {featured.read}
+                      </p>
+                      <h3 className="mt-5 font-display text-3xl leading-[1.1] transition-colors group-hover:text-ember lg:text-5xl">
+                        {featured.title}
+                      </h3>
+                      <p className="mt-6 text-base leading-relaxed text-charcoal/70 lg:text-lg">
+                        {featured.excerpt}
+                      </p>
+                      <span className="mt-8 inline-block self-start border-b border-charcoal/40 pb-1 text-[0.72rem] uppercase tracking-[0.28em] transition-colors group-hover:border-charcoal">
+                        Read More →
+                      </span>
+                    </div>
+                  </Link>
+                </Reveal>
+                {secondary.length > 0 && (
+                  <div className="mt-20 grid gap-12 border-t border-charcoal/10 pt-16 md:grid-cols-3">
+                    {secondary.map((p, i) => (
+                      <Reveal key={p.title} delay={i * 120}>
+                        <Link to={p.href} className="group flex h-full flex-col">
+                          <div className="mb-6 overflow-hidden">
+                            <img
+                              src={p.img}
+                              alt={p.title}
+                              loading="lazy"
+                              decoding="async"
+                              className="aspect-[4/3] w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.04]"
+                            />
+                          </div>
+                          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                            {p.date} · {p.read}
+                          </p>
+                          <h3 className="mt-4 font-display text-xl leading-snug transition-colors group-hover:text-ember">
+                            {p.title}
+                          </h3>
+                          <p className="mt-3 line-clamp-3 text-[0.95rem] leading-relaxed text-charcoal/65">
+                            {p.excerpt}
+                          </p>
+                          <span className="mt-5 inline-block self-start border-b border-charcoal/40 pb-1 text-[0.7rem] uppercase tracking-[0.28em] transition-colors group-hover:border-charcoal">
+                            Read Article →
+                          </span>
+                        </Link>
+                      </Reveal>
+                    ))}
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       </section>
 
