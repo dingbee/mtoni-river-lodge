@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { trackCheckAvailabilityClick } from "@/lib/analytics";
@@ -70,6 +71,23 @@ export function TrustedByGuestsSection() {
     sameAs: [reviewUrl],
   };
 
+  // Tripadvisor Travelers' Choice 2026 widget — script injected client-side
+  // to avoid SSR/hydration issues with external third-party scripts.
+  const widgetRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!widgetRef.current) return;
+    if (widgetRef.current.querySelector("script")) return;
+    const script = document.createElement("script");
+    script.async = true;
+    script.src =
+      "https://www.jscache.com/wejs?wtype=certificateOfExcellence&uniq=273&locationId=27185811&lang=en_US&year=2026&display_version=2";
+    script.setAttribute("data-loadtrk", "");
+    script.onload = () => {
+      (script as HTMLScriptElement & { loadtrk?: boolean }).loadtrk = true;
+    };
+    widgetRef.current.appendChild(script);
+  }, []);
+
   return (
     <section
       id="guest-reviews-recognition"
@@ -115,8 +133,22 @@ export function TrustedByGuestsSection() {
           </Reveal>
         </div>
 
-        {/* Tripadvisor Trust Block */}
+        {/* Tripadvisor Travelers' Choice 2026 Official Widget */}
         <Reveal delay={120}>
+          <div className="mx-auto mt-14 flex justify-center lg:mt-16">
+            <div
+              ref={widgetRef}
+              id="TA_certificateOfExcellence273"
+              className="TA_certificateOfExcellence"
+              dangerouslySetInnerHTML={{
+                __html: `<ul id="gwnougsPV" class="TA_links Ck7nTfH"><li id="pp7SlAAQ5Bjj" class="7ElfX8zHq"><a target="_blank" href="https://www.tripadvisor.com/Hotel_Review-g297913-d27185811-Reviews-Mtoni_River_Lodge-Arusha_Arusha_Region.html"><img src="https://static.tacdn.com/img2/travelers_choice/widgets/tchotel_2026_L.png" alt="TripAdvisor" class="widCOEImg" id="CDSWIDCOELOGO"/></a></li></ul>`,
+              }}
+            />
+          </div>
+        </Reveal>
+
+        {/* Tripadvisor Trust Block */}
+        <Reveal delay={180}>
           <div className="mx-auto mt-14 max-w-2xl lg:mt-16">
             <a
               href={reviewUrl}
@@ -212,7 +244,7 @@ export function TrustedByGuestsSection() {
         </Reveal>
 
         {/* Book CTA */}
-        <Reveal delay={180}>
+        <Reveal delay={240}>
           <div className="mt-10 flex justify-center">
             <Link
               to="/book"
