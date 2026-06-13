@@ -34,7 +34,7 @@ export const tripadvisorSettings: TripadvisorSettings = {
   reviewCountSuffix: "+",
   ranking: undefined,
   awardTitle: "Tripadvisor Travelers' Choice",
-  awardYear: 2025,
+  awardYear: 2026,
   awardSubtitle: "Award Recognition",
   reviewUrl:
     "https://www.tripadvisor.com/Hotel_Review-g297913-d27185811-Reviews-Mtoni_River_Lodge-Arusha_Arusha_Region.html",
