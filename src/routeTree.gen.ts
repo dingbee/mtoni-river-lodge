@@ -29,6 +29,7 @@ import { Route as DiningRouteImport } from './routes/dining'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as BookingFormRouteImport } from './routes/booking-form'
 import { Route as BookRouteImport } from './routes/book'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AmenitiesActivitiesRouteImport } from './routes/amenities-activities'
 import { Route as AccommodationsRouteImport } from './routes/accommodations'
 import { Route as AboutUsRouteImport } from './routes/about-us'
@@ -148,6 +149,11 @@ const BookRoute = BookRouteImport.update({
   path: '/book',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AmenitiesActivitiesRoute = AmenitiesActivitiesRouteImport.update({
   id: '/amenities-activities',
   path: '/amenities-activities',
@@ -249,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/about-us': typeof AboutUsRoute
   '/accommodations': typeof AccommodationsRoute
   '/amenities-activities': typeof AmenitiesActivitiesRoute
+  '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
   '/contact': typeof ContactRoute
@@ -288,6 +295,7 @@ export interface FileRoutesByTo {
   '/about-us': typeof AboutUsRoute
   '/accommodations': typeof AccommodationsRoute
   '/amenities-activities': typeof AmenitiesActivitiesRoute
+  '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
   '/contact': typeof ContactRoute
@@ -326,6 +334,7 @@ export interface FileRoutesById {
   '/about-us': typeof AboutUsRoute
   '/accommodations': typeof AccommodationsRoute
   '/amenities-activities': typeof AmenitiesActivitiesRoute
+  '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
   '/contact': typeof ContactRoute
@@ -367,6 +376,7 @@ export interface FileRouteTypes {
     | '/about-us'
     | '/accommodations'
     | '/amenities-activities'
+    | '/auth'
     | '/book'
     | '/booking-form'
     | '/contact'
@@ -406,6 +416,7 @@ export interface FileRouteTypes {
     | '/about-us'
     | '/accommodations'
     | '/amenities-activities'
+    | '/auth'
     | '/book'
     | '/booking-form'
     | '/contact'
@@ -443,6 +454,7 @@ export interface FileRouteTypes {
     | '/about-us'
     | '/accommodations'
     | '/amenities-activities'
+    | '/auth'
     | '/book'
     | '/booking-form'
     | '/contact'
@@ -483,6 +495,7 @@ export interface RootRouteChildren {
   AboutUsRoute: typeof AboutUsRoute
   AccommodationsRoute: typeof AccommodationsRoute
   AmenitiesActivitiesRoute: typeof AmenitiesActivitiesRoute
+  AuthRoute: typeof AuthRoute
   BookRoute: typeof BookRoute
   BookingFormRoute: typeof BookingFormRoute
   ContactRoute: typeof ContactRoute
@@ -645,6 +658,13 @@ declare module '@tanstack/react-router' {
       path: '/book'
       fullPath: '/book'
       preLoaderRoute: typeof BookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/amenities-activities': {
@@ -823,6 +843,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutUsRoute: AboutUsRoute,
   AccommodationsRoute: AccommodationsRoute,
   AmenitiesActivitiesRoute: AmenitiesActivitiesRoute,
+  AuthRoute: AuthRoute,
   BookRoute: BookRoute,
   BookingFormRoute: BookingFormRoute,
   ContactRoute: ContactRoute,
