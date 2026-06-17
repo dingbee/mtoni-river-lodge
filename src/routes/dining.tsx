@@ -6,6 +6,8 @@ import { PageHero } from "@/components/site/PageHero";
 import dining from "@/assets/dining-hero.jpg";
 import liveCooking from "@/assets/live-cooking.jpg";
 import { WHATSAPP_URL } from "@/lib/contact";
+import { Link } from "@tanstack/react-router";
+import { trackCheckAvailabilityClick } from "@/lib/analytics";
 import { trackContactClick } from "@/lib/analytics";
 
 export const Route = createFileRoute("/dining")({
@@ -224,17 +226,27 @@ function DiningPage() {
               An evening of live cooking and river-inspired dining.
             </h2>
             <p className="mt-8 leading-relaxed text-charcoal/70">
-              Reserve your table or stay via WhatsApp for a fully immersive culinary experience at Mtoni River Lodge.
+              Secure your preferred room in minutes — our team can arrange a private table or special menu on request.
             </p>
-            <a
-              href={WHATSAPP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackContactClick("whatsapp", "dining_page")}
-              className="mt-10 inline-flex items-center gap-3 border border-charcoal px-6 py-3 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-charcoal transition-colors hover:bg-charcoal hover:text-ivory"
-            >
-              Reserve on WhatsApp
-            </a>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+              <Link
+                to="/book"
+                onClick={() => trackCheckAvailabilityClick("dining_page")}
+                className="group inline-flex items-center gap-3 border border-charcoal bg-charcoal px-7 py-3.5 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-transparent hover:text-charcoal"
+              >
+                Check Availability
+                <span className="transition-transform group-hover:translate-x-1">→</span>
+              </Link>
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackContactClick("whatsapp", "dining_page")}
+                className="inline-flex items-center gap-3 border-b border-charcoal pb-1 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-charcoal"
+              >
+                Ask About Dining →
+              </a>
+            </div>
           </Reveal>
         </div>
       </section>

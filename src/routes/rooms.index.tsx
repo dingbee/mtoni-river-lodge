@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { PageHero } from "@/components/site/PageHero";
-import { WHATSAPP_NOTE } from "@/lib/contact";
+import { RESERVATIONS_NOTE } from "@/lib/contact";
 import { trackCheckAvailabilityClick, trackRoomView } from "@/lib/analytics";
 import { ROOMS, getRoomPath, type Room } from "@/lib/rooms";
 import roomImg from "@/assets/suite-interior.jpg";
@@ -80,13 +80,14 @@ function RoomRow({ room, reverse }: { room: Room; reverse: boolean }) {
             <Link
               to="/book"
               onClick={() => trackCheckAvailabilityClick(`rooms_page:${room.slug}`)}
-              className="inline-flex items-center gap-3 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]"
+              className="group inline-flex items-center gap-3 border border-charcoal bg-charcoal px-6 py-3 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-transparent hover:text-charcoal"
             >
-              Check Availability →
+              View Availability
+              <span className="transition-transform group-hover:translate-x-1">→</span>
             </Link>
           </div>
           <p className="mt-3 max-w-sm text-xs leading-relaxed text-charcoal/55">
-            {WHATSAPP_NOTE}
+            {RESERVATIONS_NOTE}
           </p>
         </div>
       </div>
