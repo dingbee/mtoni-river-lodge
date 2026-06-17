@@ -11,7 +11,7 @@ const DESCRIPTION =
 const URL = "https://mtoniriverlodge.com/journal/perfect-arusha-stay-for-safari-travelers-2026";
 
 const RELATED = [
-  { to: "/rooms/riverfront-deluxe", label: "Riverfront Deluxe Rooms", description: "The signature suite for travellers arriving before or after safari." },
+  { to: "/rooms/riverfront-deluxe", label: "Riverfront Deluxe Rooms", description: "The signature room for travellers arriving before or after safari." },
   { to: "/rooms/family-room", label: "Family Rooms at Mtoni", description: "Generous interiors for families travelling with children to Tanzania." },
   { to: "/experiences", label: "Experiences Around the Lodge", description: "Cultural walks, coffee mornings, and gentle day journeys near Arusha." },
   { to: "/journal/discovering-arusha-through-nature-and-authentic-hospitality", label: "Discovering Arusha Through Nature and Hospitality", description: "A deeper look at the landscape and rhythm that surrounds Mtoni." },

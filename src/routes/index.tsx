@@ -36,7 +36,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Mtoni River Lodge — Riverfront Sanctuary in Arusha, Tanzania" },
-       { name: "description", content: "An intimate luxury eco-lodge on the banks of the Nduruma River. Twelve riverfront rooms, fireside dining, and curated journeys into the heart of Tanzania." },
+       { name: "description", content: "An intimate luxury eco-lodge on the banks of the Nduruma River. 24 riverfront rooms in Arusha, Tanzania, fireside dining, and curated journeys into the heart of the country." },
       { property: "og:image", content: heroImg },
     ],
     links: [

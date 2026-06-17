@@ -11,7 +11,7 @@ const DESCRIPTION =
 
 const RELATED = [
   { to: "/lodge", label: "About Mtoni River Lodge", description: "Our story, design philosophy, and the people behind the lodge." },
-  { to: "/rooms", label: "The Rooms — Twelve Riverfront Suites", description: "Boma-inspired sanctuaries set low along the Nduruma River." },
+  { to: "/rooms", label: "The Rooms — 24 Riverfront Rooms", description: "Boma-inspired sanctuaries set low along the Nduruma River." },
   { to: "/experiences", label: "Curated Arusha Experiences", description: "Coffee mornings, guided walks, and journeys into the surrounding villages." },
   { to: "/journal/perfect-arusha-stay-for-safari-travelers-2026", label: "The Perfect Arusha Stay for Safari Travellers", description: "Why Mtoni is the natural pre- and post-safari base in Arusha." },
   { to: "/book", label: "Plan Your Visit to Mtoni", description: "Check availability and reserve a few quiet days by the river." },
