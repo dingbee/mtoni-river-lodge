@@ -29,9 +29,11 @@ import { Route as DiningRouteImport } from './routes/dining'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as BookingFormRouteImport } from './routes/booking-form'
 import { Route as BookRouteImport } from './routes/book'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AmenitiesActivitiesRouteImport } from './routes/amenities-activities'
 import { Route as AccommodationsRouteImport } from './routes/accommodations'
 import { Route as AboutUsRouteImport } from './routes/about-us'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RoomsIndexRouteImport } from './routes/rooms.index'
 import { Route as JournalIndexRouteImport } from './routes/journal.index'
@@ -46,6 +48,7 @@ import { Route as JournalLifeAlongTheNdurumaRiverRouteImport } from './routes/jo
 import { Route as JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRouteImport } from './routes/journal.discovering-arusha-through-nature-and-authentic-hospitality'
 import { Route as JournalBuildingWithTheCommunityRouteImport } from './routes/journal.building-with-the-community'
 import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './routes/journal.a-morning-with-the-beekeepers-of-gomba'
+import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authenticated.admin.bookings'
 
 const VoteRoute = VoteRouteImport.update({
   id: '/vote',
@@ -148,6 +151,11 @@ const BookRoute = BookRouteImport.update({
   path: '/book',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AmenitiesActivitiesRoute = AmenitiesActivitiesRouteImport.update({
   id: '/amenities-activities',
   path: '/amenities-activities',
@@ -161,6 +169,10 @@ const AccommodationsRoute = AccommodationsRouteImport.update({
 const AboutUsRoute = AboutUsRouteImport.update({
   id: '/about-us',
   path: '/about-us',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -243,12 +255,19 @@ const JournalAMorningWithTheBeekeepersOfGombaRoute =
     path: '/a-morning-with-the-beekeepers-of-gomba',
     getParentRoute: () => JournalRoute,
   } as any)
+const AuthenticatedAdminBookingsRoute =
+  AuthenticatedAdminBookingsRouteImport.update({
+    id: '/admin/bookings',
+    path: '/admin/bookings',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about-us': typeof AboutUsRoute
   '/accommodations': typeof AccommodationsRoute
   '/amenities-activities': typeof AmenitiesActivitiesRoute
+  '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
   '/contact': typeof ContactRoute
@@ -282,12 +301,14 @@ export interface FileRoutesByFullPath {
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
+  '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about-us': typeof AboutUsRoute
   '/accommodations': typeof AccommodationsRoute
   '/amenities-activities': typeof AmenitiesActivitiesRoute
+  '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
   '/contact': typeof ContactRoute
@@ -319,13 +340,16 @@ export interface FileRoutesByTo {
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
   '/journal': typeof JournalIndexRoute
   '/rooms': typeof RoomsIndexRoute
+  '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/about-us': typeof AboutUsRoute
   '/accommodations': typeof AccommodationsRoute
   '/amenities-activities': typeof AmenitiesActivitiesRoute
+  '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
   '/contact': typeof ContactRoute
@@ -359,6 +383,7 @@ export interface FileRoutesById {
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
+  '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -367,6 +392,7 @@ export interface FileRouteTypes {
     | '/about-us'
     | '/accommodations'
     | '/amenities-activities'
+    | '/auth'
     | '/book'
     | '/booking-form'
     | '/contact'
@@ -400,12 +426,14 @@ export interface FileRouteTypes {
     | '/rooms/standard-river'
     | '/journal/'
     | '/rooms/'
+    | '/admin/bookings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about-us'
     | '/accommodations'
     | '/amenities-activities'
+    | '/auth'
     | '/book'
     | '/booking-form'
     | '/contact'
@@ -437,12 +465,15 @@ export interface FileRouteTypes {
     | '/rooms/standard-river'
     | '/journal'
     | '/rooms'
+    | '/admin/bookings'
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/about-us'
     | '/accommodations'
     | '/amenities-activities'
+    | '/auth'
     | '/book'
     | '/booking-form'
     | '/contact'
@@ -476,13 +507,16 @@ export interface FileRouteTypes {
     | '/rooms/standard-river'
     | '/journal/'
     | '/rooms/'
+    | '/_authenticated/admin/bookings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AboutUsRoute: typeof AboutUsRoute
   AccommodationsRoute: typeof AccommodationsRoute
   AmenitiesActivitiesRoute: typeof AmenitiesActivitiesRoute
+  AuthRoute: typeof AuthRoute
   BookRoute: typeof BookRoute
   BookingFormRoute: typeof BookingFormRoute
   ContactRoute: typeof ContactRoute
@@ -647,6 +681,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/amenities-activities': {
       id: '/amenities-activities'
       path: '/amenities-activities'
@@ -666,6 +707,13 @@ declare module '@tanstack/react-router' {
       path: '/about-us'
       fullPath: '/about-us'
       preLoaderRoute: typeof AboutUsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -766,8 +814,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRouteImport
       parentRoute: typeof JournalRoute
     }
+    '/_authenticated/admin/bookings': {
+      id: '/_authenticated/admin/bookings'
+      path: '/admin/bookings'
+      fullPath: '/admin/bookings'
+      preLoaderRoute: typeof AuthenticatedAdminBookingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
+
+interface AuthenticatedRouteChildren {
+  AuthenticatedAdminBookingsRoute: typeof AuthenticatedAdminBookingsRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAdminBookingsRoute: AuthenticatedAdminBookingsRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
 
 interface JournalRouteChildren {
   JournalAMorningWithTheBeekeepersOfGombaRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRoute
@@ -820,9 +887,11 @@ const RoomsRouteWithChildren = RoomsRoute._addFileChildren(RoomsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AboutUsRoute: AboutUsRoute,
   AccommodationsRoute: AccommodationsRoute,
   AmenitiesActivitiesRoute: AmenitiesActivitiesRoute,
+  AuthRoute: AuthRoute,
   BookRoute: BookRoute,
   BookingFormRoute: BookingFormRoute,
   ContactRoute: ContactRoute,
