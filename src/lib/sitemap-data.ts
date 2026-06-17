@@ -63,13 +63,12 @@ export const PAGE_ENTRIES: PageEntry[] = [
   { path: "/journal", lastmod: TODAY, changefreq: "weekly", priority: "0.8" },
 ];
 
-/** Accommodation index + individual room/suite pages. */
+/** Accommodation index + individual room pages. */
 export const ACCOMMODATION_ENTRIES: PageEntry[] = [
   { path: "/rooms", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
   { path: "/rooms/standard-river", lastmod: TODAY, changefreq: "monthly", priority: "0.7" },
   { path: "/rooms/riverfront-deluxe", lastmod: TODAY, changefreq: "monthly", priority: "0.7" },
   { path: "/rooms/family-room", lastmod: TODAY, changefreq: "monthly", priority: "0.7" },
-  { path: "/suites", lastmod: TODAY, changefreq: "monthly", priority: "0.7" },
 ];
 
 /** Journal entries derived from the journal data source — auto-updates on publish. */
@@ -125,7 +124,7 @@ export function getImageGroups(): PageImages[] {
         { loc: abs(standardExt), caption: "Standard River Room exterior" },
         { loc: abs(deluxeExt), caption: "Riverfront Deluxe room exterior" },
         { loc: abs(familyHero), caption: "Family Room at Mtoni River Lodge" },
-        { loc: abs(suiteInterior), caption: "Suite interior" },
+        { loc: abs(suiteInterior), caption: "Room interior at Mtoni River Lodge" },
       ],
     },
     {
@@ -154,11 +153,6 @@ export function getImageGroups(): PageImages[] {
         { loc: abs(familyG2), caption: "Family Room interior" },
         { loc: abs(familyG3), caption: "Family Room sitting area" },
       ],
-    },
-    {
-      path: "/suites",
-      lastmod: TODAY,
-      images: [{ loc: abs(suiteInterior), caption: "Suite interior at Mtoni River Lodge" }],
     },
     {
       path: "/dining",
