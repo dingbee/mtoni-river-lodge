@@ -58,7 +58,7 @@ function ContactPage() {
 
 function HeroIntro() {
   return (
-    <section className="bg-ivory px-6 pt-36 pb-16 lg:px-12 lg:pt-44 lg:pb-24">
+    <section className="bg-ivory px-6 pt-12 pb-16 lg:px-12 lg:pt-16 lg:pb-24">
       <div className="mx-auto max-w-3xl text-center">
         <Reveal>
           <p className="eyebrow">Get in Touch</p>
