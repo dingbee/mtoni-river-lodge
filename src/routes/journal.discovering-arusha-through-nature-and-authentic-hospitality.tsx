@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { ArticleLayout } from "@/components/site/ArticleLayout";
 import hero from "@/assets/aerial-lodge.jpg";
@@ -47,9 +48,10 @@ function ArticlePage() {
     >
       <Reveal>
         <p>
-          At Mtoni River Lodge, guests are discovering a different way to
-          experience the region — one that combines comfort, nature,
-          culture, and genuine hospitality.
+          At{" "}
+          <Link to="/" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">Mtoni River Lodge</Link>,
+          guests are discovering a different way to experience the region —
+          one that combines comfort, nature, culture, and genuine hospitality.
         </p>
       </Reveal>
 
@@ -62,7 +64,9 @@ function ArticlePage() {
           travelers looking for a peaceful retreat while remaining close to
           Arusha's major attractions. Nestled among natural surroundings and
           inspired by local architectural traditions, Mtoni River Lodge
-          offers a unique balance between relaxation and exploration.
+          offers a unique balance between relaxation and exploration across
+          its{" "}
+          <Link to="/rooms" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">riverfront accommodation in Arusha</Link>.
         </p>
       </Reveal>
 
@@ -71,11 +75,12 @@ function ArticlePage() {
           Close to Arusha's most loved experiences
         </h2>
         <p>
-          Guests can enjoy easy access to experiences such as Lake Duluti
-          canoeing, local market visits, cultural tours, and day trips to
-          some of Tanzania's most celebrated natural wonders. After a day of
-          adventure, the lodge provides a tranquil setting where visitors
-          can reconnect with nature and unwind.
+          Guests can enjoy easy access to{" "}
+          <Link to="/experiences" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">curated cultural experiences in Arusha</Link>{" "}
+          such as Lake Duluti canoeing, local market visits, cultural tours,
+          and day trips to some of Tanzania's most celebrated natural
+          wonders. After a day of adventure, the lodge provides a tranquil
+          setting where visitors can reconnect with nature and unwind.
         </p>
       </Reveal>
 
@@ -88,7 +93,8 @@ function ArticlePage() {
           digital platforms reflects a growing appreciation for authentic
           accommodation experiences in Tanzania. Visitors are searching for
           places that offer more than a room — they seek memorable moments,
-          local connections, and a sense of place.
+          local connections, and a sense of place — often gathered around{" "}
+          <Link to="/dining" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">our riverside dining experience</Link>.
         </p>
       </Reveal>
 
@@ -109,7 +115,10 @@ function ArticlePage() {
         <p className="pt-6 italic text-charcoal/70">
           If you are planning your next visit to Arusha, we invite you to
           discover why more travelers are choosing nature-inspired
-          hospitality for their Tanzanian adventure.
+          hospitality for their Tanzanian adventure —{" "}
+          <Link to="/book" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">book your stay at Mtoni River Lodge</Link>{" "}
+          or read more about{" "}
+          <Link to="/journal/perfect-arusha-stay-for-safari-travelers-2026" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">why Mtoni is the perfect Arusha stay for safari travellers</Link>.
         </p>
       </Reveal>
     </ArticleLayout>
