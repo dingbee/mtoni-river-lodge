@@ -12,6 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VoteRouteImport } from './routes/vote'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SuitesRouteImport } from './routes/suites'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SitemapPagesDotxmlRouteImport } from './routes/sitemap-pages[.]xml'
+import { Route as SitemapJournalDotxmlRouteImport } from './routes/sitemap-journal[.]xml'
+import { Route as SitemapImagesDotxmlRouteImport } from './routes/sitemap-images[.]xml'
+import { Route as SitemapAccommodationDotxmlRouteImport } from './routes/sitemap-accommodation[.]xml'
 import { Route as RoomsRouteImport } from './routes/rooms'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PlanRouteImport } from './routes/plan'
@@ -56,6 +61,32 @@ const SuitesRoute = SuitesRouteImport.update({
   path: '/suites',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapPagesDotxmlRoute = SitemapPagesDotxmlRouteImport.update({
+  id: '/sitemap-pages.xml',
+  path: '/sitemap-pages.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapJournalDotxmlRoute = SitemapJournalDotxmlRouteImport.update({
+  id: '/sitemap-journal.xml',
+  path: '/sitemap-journal.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapImagesDotxmlRoute = SitemapImagesDotxmlRouteImport.update({
+  id: '/sitemap-images.xml',
+  path: '/sitemap-images.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapAccommodationDotxmlRoute =
+  SitemapAccommodationDotxmlRouteImport.update({
+    id: '/sitemap-accommodation.xml',
+    path: '/sitemap-accommodation.xml',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const RoomsRoute = RoomsRouteImport.update({
   id: '/rooms',
   path: '/rooms',
@@ -223,6 +254,11 @@ export interface FileRoutesByFullPath {
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
   '/rooms': typeof RoomsRouteWithChildren
+  '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
+  '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
+  '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
+  '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
@@ -254,6 +290,11 @@ export interface FileRoutesByTo {
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
+  '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
+  '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
+  '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
+  '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
@@ -288,6 +329,11 @@ export interface FileRoutesById {
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
   '/rooms': typeof RoomsRouteWithChildren
+  '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
+  '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
+  '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
+  '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
@@ -323,6 +369,11 @@ export interface FileRouteTypes {
     | '/plan'
     | '/pricing'
     | '/rooms'
+    | '/sitemap-accommodation.xml'
+    | '/sitemap-images.xml'
+    | '/sitemap-journal.xml'
+    | '/sitemap-pages.xml'
+    | '/sitemap.xml'
     | '/suites'
     | '/terms'
     | '/vote'
@@ -354,6 +405,11 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/plan'
     | '/pricing'
+    | '/sitemap-accommodation.xml'
+    | '/sitemap-images.xml'
+    | '/sitemap-journal.xml'
+    | '/sitemap-pages.xml'
+    | '/sitemap.xml'
     | '/suites'
     | '/terms'
     | '/vote'
@@ -387,6 +443,11 @@ export interface FileRouteTypes {
     | '/plan'
     | '/pricing'
     | '/rooms'
+    | '/sitemap-accommodation.xml'
+    | '/sitemap-images.xml'
+    | '/sitemap-journal.xml'
+    | '/sitemap-pages.xml'
+    | '/sitemap.xml'
     | '/suites'
     | '/terms'
     | '/vote'
@@ -421,6 +482,11 @@ export interface RootRouteChildren {
   PlanRoute: typeof PlanRoute
   PricingRoute: typeof PricingRoute
   RoomsRoute: typeof RoomsRouteWithChildren
+  SitemapAccommodationDotxmlRoute: typeof SitemapAccommodationDotxmlRoute
+  SitemapImagesDotxmlRoute: typeof SitemapImagesDotxmlRoute
+  SitemapJournalDotxmlRoute: typeof SitemapJournalDotxmlRoute
+  SitemapPagesDotxmlRoute: typeof SitemapPagesDotxmlRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SuitesRoute: typeof SuitesRoute
   TermsRoute: typeof TermsRoute
   VoteRoute: typeof VoteRoute
@@ -447,6 +513,41 @@ declare module '@tanstack/react-router' {
       path: '/suites'
       fullPath: '/suites'
       preLoaderRoute: typeof SuitesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap-pages.xml': {
+      id: '/sitemap-pages.xml'
+      path: '/sitemap-pages.xml'
+      fullPath: '/sitemap-pages.xml'
+      preLoaderRoute: typeof SitemapPagesDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap-journal.xml': {
+      id: '/sitemap-journal.xml'
+      path: '/sitemap-journal.xml'
+      fullPath: '/sitemap-journal.xml'
+      preLoaderRoute: typeof SitemapJournalDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap-images.xml': {
+      id: '/sitemap-images.xml'
+      path: '/sitemap-images.xml'
+      fullPath: '/sitemap-images.xml'
+      preLoaderRoute: typeof SitemapImagesDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap-accommodation.xml': {
+      id: '/sitemap-accommodation.xml'
+      path: '/sitemap-accommodation.xml'
+      fullPath: '/sitemap-accommodation.xml'
+      preLoaderRoute: typeof SitemapAccommodationDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rooms': {
@@ -713,6 +814,11 @@ const rootRouteChildren: RootRouteChildren = {
   PlanRoute: PlanRoute,
   PricingRoute: PricingRoute,
   RoomsRoute: RoomsRouteWithChildren,
+  SitemapAccommodationDotxmlRoute: SitemapAccommodationDotxmlRoute,
+  SitemapImagesDotxmlRoute: SitemapImagesDotxmlRoute,
+  SitemapJournalDotxmlRoute: SitemapJournalDotxmlRoute,
+  SitemapPagesDotxmlRoute: SitemapPagesDotxmlRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   SuitesRoute: SuitesRoute,
   TermsRoute: TermsRoute,
   VoteRoute: VoteRoute,
