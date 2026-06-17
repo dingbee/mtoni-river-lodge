@@ -14,14 +14,14 @@ async function handleNotification(orderTrackingId: string, merchantReference: st
     .maybeSingle();
 
   // Always log the raw notification, even if booking missing.
-  await supabaseAdmin.from("payment_events" as never).insert({
+  await supabaseAdmin.from("payment_events").insert({
     booking_id: booking?.id ?? null,
     provider: "pesapal",
     event_type: `ipn:${notificationType || "unknown"}`,
     order_tracking_id: orderTrackingId,
     merchant_reference: merchantReference,
     raw: { orderTrackingId, merchantReference, notificationType } as Record<string, unknown>,
-  } as never);
+  });
 
   if (!booking) return;
 
@@ -31,7 +31,7 @@ async function handleNotification(orderTrackingId: string, merchantReference: st
   const status = await getPesapalTransactionStatus(orderTrackingId);
   const outcome = classifyStatus(status.status_code);
 
-  await supabaseAdmin.from("payment_events" as never).insert({
+  await supabaseAdmin.from("payment_events").insert({
     booking_id: booking.id,
     provider: "pesapal",
     event_type: `ipn_status:${outcome}`,
@@ -42,7 +42,7 @@ async function handleNotification(orderTrackingId: string, merchantReference: st
     amount: status.amount ?? null,
     currency: status.currency ?? null,
     raw: status as unknown as Record<string, unknown>,
-  } as never);
+  });
 
   if (outcome === "completed") {
     const nowIso = new Date().toISOString();

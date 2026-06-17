@@ -69,7 +69,7 @@ export const initiatePayment = createServerFn({ method: "POST" })
       })
       .eq("id", booking.id);
 
-    await supabaseAdmin.from("payment_events" as never).insert({
+    await supabaseAdmin.from("payment_events").insert({
       booking_id: booking.id,
       provider: "pesapal",
       event_type: "order_submitted",
@@ -78,7 +78,7 @@ export const initiatePayment = createServerFn({ method: "POST" })
       amount: deposit,
       currency: booking.currency,
       raw: order as unknown as Record<string, unknown>,
-    } as never);
+    });
 
     return {
       redirectUrl: order.redirect_url,
@@ -132,7 +132,7 @@ export const getPaymentStatusByReference = createServerFn({ method: "POST" })
       outcome = classifyStatus(status.status_code);
       paymentMethod = status.payment_method ?? paymentMethod;
 
-      await supabaseAdmin.from("payment_events" as never).insert({
+      await supabaseAdmin.from("payment_events").insert({
         booking_id: booking.id,
         provider: "pesapal",
         event_type: "status_check",
@@ -142,7 +142,7 @@ export const getPaymentStatusByReference = createServerFn({ method: "POST" })
         amount: status.amount,
         currency: status.currency,
         raw: status as unknown as Record<string, unknown>,
-      } as never);
+      });
 
       if (outcome === "completed") {
         const nowIso = new Date().toISOString();
