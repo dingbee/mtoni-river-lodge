@@ -8,6 +8,14 @@ const TITLE =
 const DESCRIPTION =
   "Earth, thatch, and circular spatial logic — how the rooms at Mtoni are grounded in a Maasai boma tradition shaped by climate, culture, and the Arusha landscape.";
 
+const RELATED = [
+  { to: "/lodge", label: "About Mtoni River Lodge", description: "How the lodge was designed to disappear into the riverbank." },
+  { to: "/rooms", label: "The Boma-Inspired Rooms", description: "Tour the twelve riverfront suites shaped by this tradition." },
+  { to: "/rooms/standard-river", label: "Standard River Rooms", description: "Compact earth-and-thatch sanctuaries closest to the water." },
+  { to: "/journal/reading-the-sky-over-mount-meru", label: "Building With the Community", description: "On the craftspeople who shaped every wall, beam, and bead at Mtoni." },
+  { to: "/journal/what-the-river-has-taught-us-about-time", label: "What the River Has Taught Us About Time", description: "A quieter companion piece on the rhythm the architecture serves." },
+];
+
 export const Route = createFileRoute("/journal/the-architecture-of-disappearing")({
   head: () => ({
     meta: [
@@ -33,6 +41,7 @@ function ArticlePage() {
       image={villa}
       imageAlt="Thatched earth-walled room nestled among banana palms and forest at Mtoni River Lodge"
       caption="Earth, thatch and garden — photograph by the lodge"
+      relatedReading={RELATED}
     >
       <Reveal>
         <p>
