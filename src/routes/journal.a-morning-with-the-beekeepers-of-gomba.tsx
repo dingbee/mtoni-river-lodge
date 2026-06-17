@@ -8,6 +8,14 @@ const TITLE =
 const DESCRIPTION =
   "Where the Nduruma River branches into quiet irrigation streams, ox-ploughed fields, banana groves, and river-fed gardens shape the green sanctuary around Mtoni.";
 
+const RELATED = [
+  { to: "/lodge", label: "About Mtoni River Lodge", description: "The philosophy and family story behind this riverfront sanctuary." },
+  { to: "/dining", label: "Riverside Dining at Mtoni", description: "Seasonal menus drawn from the river-fed gardens described above." },
+  { to: "/experiences", label: "Curated Experiences in Arusha", description: "Walk the irrigation streams and farming villages with our guides." },
+  { to: "/journal/what-the-river-has-taught-us-about-time", label: "What the River Has Taught Us About Time", description: "Reflections on the slow rhythm of the Nduruma." },
+  { to: "/journal/reading-the-sky-over-mount-meru", label: "Building With the Community", description: "On the neighbours who shape life along the river." },
+];
+
 export const Route = createFileRoute("/journal/a-morning-with-the-beekeepers-of-gomba")({
   head: () => ({
     meta: [
@@ -33,6 +41,7 @@ function ArticlePage() {
       image={ndurumaGrove}
       imageAlt="A banana grove laden with green fruit beside the Nduruma River gardens at Mtoni"
       caption="Banana groves along the Nduruma — photograph by the lodge"
+      relatedReading={RELATED}
     >
       <Reveal>
         <p>
