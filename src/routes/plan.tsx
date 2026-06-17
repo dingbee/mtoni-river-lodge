@@ -72,7 +72,8 @@ function PlanPage() {
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader />
-      <section id="booking-form" className="grid min-h-[100svh] lg:grid-cols-2 pt-20 lg:pt-28 scroll-mt-32">
+      <BreadcrumbsBar />
+      <section id="booking-form" className="grid min-h-[100svh] lg:grid-cols-2 scroll-mt-32">
         <div className="relative hidden overflow-hidden lg:block">
           <img src={villa} alt="Lodge at twilight" className="ken-burns h-full w-full object-cover" />
           <div className="absolute inset-0 bg-charcoal/30" />
