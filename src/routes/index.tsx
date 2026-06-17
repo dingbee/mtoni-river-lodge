@@ -4,7 +4,6 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { LocationMap } from "@/components/site/LocationMap";
-import { TrustedByGuestsSection } from "@/components/site/TrustedByGuestsSection";
 import { HeroCinematic } from "@/components/site/HeroCinematic";
 import { TrustBar } from "@/components/site/reviews/TrustBar";
 import { GuestExperiencesSection } from "@/components/site/reviews/GuestExperiencesSection";
