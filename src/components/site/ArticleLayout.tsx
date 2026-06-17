@@ -6,6 +6,12 @@ import { Reveal } from "@/components/site/Reveal";
 import { WHATSAPP_URL } from "@/lib/contact";
 import { trackBookingClick, trackWhatsAppClick } from "@/lib/analytics";
 
+export type RelatedLink = {
+  to: string;
+  label: string;
+  description?: string;
+};
+
 type Props = {
   eyebrow: string;
   title: string;
@@ -14,9 +20,11 @@ type Props = {
   imageAlt: string;
   caption?: string;
   children: ReactNode;
+  /** 3–5 contextual internal links rendered above the booking CTA. */
+  relatedReading?: RelatedLink[];
 };
 
-export function ArticleLayout({ eyebrow, title, intro, image, imageAlt, caption, children }: Props) {
+export function ArticleLayout({ eyebrow, title, intro, image, imageAlt, caption, children, relatedReading }: Props) {
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader />
@@ -63,6 +71,42 @@ export function ArticleLayout({ eyebrow, title, intro, image, imageAlt, caption,
             {children}
           </div>
         </section>
+
+        {relatedReading && relatedReading.length > 0 && (
+          <section className="border-t border-border px-6 py-20 lg:px-12 lg:py-24">
+            <div className="mx-auto max-w-3xl">
+              <Reveal>
+                <p className="eyebrow">Related Reading</p>
+              </Reveal>
+              <Reveal delay={120}>
+                <h2 className="mt-4 font-display text-3xl leading-tight lg:text-4xl">
+                  Continue exploring Mtoni
+                </h2>
+              </Reveal>
+              <Reveal delay={220}>
+                <ul className="mt-10 divide-y divide-border border-y border-border">
+                  {relatedReading.map((link) => (
+                    <li key={link.to}>
+                      <Link
+                        to={link.to}
+                        className="group flex flex-col gap-2 py-6 transition-colors hover:text-[var(--gold)] sm:flex-row sm:items-baseline sm:justify-between sm:gap-8"
+                      >
+                        <span className="font-display text-xl leading-snug sm:text-2xl">
+                          {link.label}
+                        </span>
+                        {link.description && (
+                          <span className="text-sm leading-relaxed text-charcoal/65 sm:max-w-sm sm:text-right">
+                            {link.description}
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </Reveal>
+            </div>
+          </section>
+        )}
 
         <section className="border-t border-border px-6 py-24 lg:px-12">
           <div className="mx-auto flex max-w-3xl flex-col items-start gap-6">
