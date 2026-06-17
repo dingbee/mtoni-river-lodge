@@ -13,7 +13,7 @@ const RELATED = [
   { to: "/dining", label: "Riverside Dining at Mtoni", description: "Seasonal menus drawn from the river-fed gardens described above." },
   { to: "/experiences", label: "Curated Experiences in Arusha", description: "Walk the irrigation streams and farming villages with our guides." },
   { to: "/journal/what-the-river-has-taught-us-about-time", label: "What the River Has Taught Us About Time", description: "Reflections on the slow rhythm of the Nduruma." },
-  { to: "/journal/reading-the-sky-over-mount-meru", label: "Building With the Community", description: "On the neighbours who shape life along the river." },
+  { to: "/journal/building-with-the-community", label: "Building With the Community", description: "On the neighbours who shape life along the river." },
 ];
 
 export const Route = createFileRoute("/journal/life-along-the-nduruma-river")({
