@@ -28,6 +28,7 @@ export const Route = createFileRoute("/journal/life-along-the-nduruma-river")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: ndurumaGrove },
     ],
+    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/journal/life-along-the-nduruma-river" }],
   }),
   component: ArticlePage,
 });
