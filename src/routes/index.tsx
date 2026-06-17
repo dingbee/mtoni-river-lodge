@@ -6,8 +6,8 @@ import { Reveal } from "@/components/site/Reveal";
 import { LocationMap } from "@/components/site/LocationMap";
 import { HeroCinematic } from "@/components/site/HeroCinematic";
 import { GuestExperiencesSection } from "@/components/site/reviews/GuestExperiencesSection";
-import { WHATSAPP_NOTE } from "@/lib/contact";
-import { trackCheckAvailabilityClick } from "@/lib/analytics";
+import { RESERVATIONS_NOTE } from "@/lib/contact";
+import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics";
 import { getLatestJournalPosts } from "@/lib/journal";
 import heroImg from "@/assets/hero-river.jpg";
 import lodgeHeroImg from "@/assets/lodge-hero-aerial.jpg";
@@ -166,6 +166,22 @@ function HomePage() {
                   </li>
                 ))}
               </ul>
+              <div className="mt-10 flex flex-wrap items-center gap-4">
+                <Link
+                  to="/book"
+                  onClick={() => trackCheckAvailabilityClick("homepage_rooms_teaser")}
+                  className="group inline-flex items-center gap-3 border border-charcoal bg-charcoal px-7 py-3.5 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-transparent hover:text-charcoal"
+                >
+                  View Availability
+                  <span className="transition-transform group-hover:translate-x-1">→</span>
+                </Link>
+                <Link
+                  to="/rooms"
+                  className="inline-flex items-center gap-2 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]"
+                >
+                  Explore Rooms →
+                </Link>
+              </div>
             </Reveal>
           </div>
         </div>
@@ -208,9 +224,22 @@ function HomePage() {
           </div>
 
           <div className="mt-16 text-center">
-            <Link to="/experiences" className="inline-flex items-center gap-3 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]">
-              All experiences →
-            </Link>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <Link
+                to="/plan"
+                className="group inline-flex items-center gap-3 border border-charcoal bg-charcoal px-7 py-3.5 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-transparent hover:text-charcoal"
+              >
+                Plan Your Stay
+                <span className="transition-transform group-hover:translate-x-1">→</span>
+              </Link>
+              <Link
+                to="/contact"
+                onClick={() => trackContactClick("contact", "homepage_experiences")}
+                className="inline-flex items-center gap-2 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]"
+              >
+                Talk To Our Team →
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -368,16 +397,25 @@ function HomePage() {
               The river is waiting.<br/>
               <em className="italic text-ivory/85">When will you arrive?</em>
             </h2>
-            <div className="mt-12 flex flex-col items-center gap-4">
-              <Link
-                to="/book"
-                onClick={() => trackCheckAvailabilityClick("homepage_final_cta")}
-                className="inline-flex items-center gap-4 border border-ivory px-8 py-5 text-[0.72rem] uppercase tracking-[0.32em] hover:bg-ivory hover:text-charcoal"
-              >
-                Reserve Your Stay →
-              </Link>
+            <div className="mt-12 flex flex-col items-center gap-5">
+              <div className="flex flex-wrap items-center justify-center gap-4">
+                <Link
+                  to="/book"
+                  onClick={() => trackCheckAvailabilityClick("homepage_final_cta")}
+                  className="inline-flex items-center gap-4 border border-ivory bg-ivory px-8 py-5 text-[0.72rem] uppercase tracking-[0.32em] text-charcoal transition-colors hover:bg-transparent hover:text-ivory"
+                >
+                  Check Availability →
+                </Link>
+                <Link
+                  to="/contact"
+                  onClick={() => trackContactClick("contact", "homepage_final_cta")}
+                  className="inline-flex items-center gap-3 border border-ivory/60 px-8 py-5 text-[0.72rem] uppercase tracking-[0.32em] text-ivory hover:bg-ivory hover:text-charcoal"
+                >
+                  Contact Reservations →
+                </Link>
+              </div>
               <p className="max-w-md text-center text-xs leading-relaxed text-ivory/65">
-                {WHATSAPP_NOTE}
+                {RESERVATIONS_NOTE}
               </p>
             </div>
           </Reveal>

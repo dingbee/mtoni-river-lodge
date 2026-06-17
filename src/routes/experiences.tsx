@@ -4,7 +4,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { PageHero } from "@/components/site/PageHero";
 import { Button } from "@/components/ui/button";
-import { WHATSAPP_NOTE } from "@/lib/contact";
+import { RESERVATIONS_NOTE } from "@/lib/contact";
 import { trackCheckAvailabilityClick } from "@/lib/analytics";
 import cycling from "@/assets/xp-cycling.jpg";
 import riverWalk from "@/assets/xp-river-walk.jpg";
@@ -189,13 +189,21 @@ function ExperiencesPage() {
           </Reveal>
           <Reveal delay={240}>
             <div className="mt-12">
-              <Button asChild size="lg" className="rounded-none px-10 py-6 text-xs uppercase tracking-[0.3em]" onClick={() => trackCheckAvailabilityClick("experiences_page_cta")}>
-                <Link to="/book">
-                  Check Availability
+              <div className="flex flex-wrap items-center justify-center gap-4">
+                <Button asChild size="lg" className="rounded-none px-10 py-6 text-xs uppercase tracking-[0.3em]" onClick={() => trackCheckAvailabilityClick("experiences_page_cta")}>
+                  <Link to="/book">
+                    Check Availability
+                  </Link>
+                </Button>
+                <Link
+                  to="/contact"
+                  className="inline-flex items-center gap-2 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]"
+                >
+                  Talk To Our Team →
                 </Link>
-              </Button>
+              </div>
               <p className="mx-auto mt-5 max-w-md text-xs leading-relaxed text-charcoal/55">
-                {WHATSAPP_NOTE}
+                {RESERVATIONS_NOTE}
               </p>
             </div>
           </Reveal>

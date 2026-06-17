@@ -6,7 +6,7 @@ import { PageHero } from "@/components/site/PageHero";
 import { RoomRate } from "@/components/site/RoomRate";
 import { RoomReviews } from "@/components/site/reviews/RoomReviews";
 import { TrustBar } from "@/components/site/reviews/TrustBar";
-import { WHATSAPP_NOTE, WHATSAPP_URL } from "@/lib/contact";
+import { RESERVATIONS_NOTE, buildRoomInquiryUrl } from "@/lib/contact";
 import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics";
 import { FAMILY_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 
@@ -98,18 +98,18 @@ function FamilyRoomPage() {
                 <span className="transition-transform group-hover:translate-x-1">→</span>
               </Link>
               <a
-                href={WHATSAPP_URL}
+                href={buildRoomInquiryUrl(FAMILY_ROOM.name)}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => trackContactClick("whatsapp", "family_room")}
                 className="inline-flex items-center gap-3 border border-charcoal px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] transition-colors hover:bg-charcoal hover:text-ivory"
               >
-                <span>Chat on WhatsApp</span>
+                <span>Ask About This Room</span>
                 <span>→</span>
               </a>
             </div>
             <p className="mx-auto mt-6 max-w-md text-xs leading-relaxed text-charcoal/60">
-              {WHATSAPP_NOTE} For availability and personalized arrangements, connect with us directly on WhatsApp.
+              {RESERVATIONS_NOTE}
             </p>
           </Reveal>
         </div>
