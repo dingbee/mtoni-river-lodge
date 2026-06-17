@@ -4,6 +4,7 @@ import { Award, Heart, Leaf, Sparkles, Users, Star, Instagram, MessageCircle, Sh
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
+import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { WHATSAPP_URL } from "@/lib/contact";
 import { trackVoteClick, trackShareClick, trackContactClick } from "@/lib/analytics";
 import heroImg from "@/assets/hero-river.jpg";
