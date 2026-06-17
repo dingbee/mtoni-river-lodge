@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { ArticleLayout } from "@/components/site/ArticleLayout";
 import ndurumaGrove from "@/assets/nduruma-banana-grove.jpg";
@@ -48,8 +49,9 @@ function ArticlePage() {
         <p>
           Along the lower slopes where the Nduruma River begins to branch
           into quiet, flowing streams, life unfolds at a rhythm shaped long
-          before modern infrastructure arrived. This is the landscape where
-          Mtoni River Lodge is rooted — a place defined not just by its
+          before modern infrastructure arrived. This is the landscape where{" "}
+          <Link to="/lodge" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">our riverside lodge in Arusha</Link>{" "}
+          is rooted — a place defined not just by its
           architecture, but by the agricultural heartbeat of its surrounding
           community.
         </p>
@@ -107,7 +109,9 @@ function ArticlePage() {
           flow and fertile soil. Within the grounds, fresh vegetables are
           cultivated for seasonal cuisine, banana trees grow in abundance,
           and indigenous plants flourish in harmony with the river-fed soil.
-          It is, quietly, an authentic farm-to-table experience in Arusha.
+          It is, quietly, an authentic{" "}
+          <Link to="/dining" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">farm-to-table riverside dining experience</Link>{" "}
+          in Arusha.
         </p>
       </Reveal>
 
@@ -136,11 +140,14 @@ function ArticlePage() {
           Mtoni River Lodge exists within a shared ecosystem — one where
           local farming traditions, river systems, and hospitality intersect
           naturally. The lodge does not stand apart from the land. It
-          participates in it. From the ox-ploughed fields of nearby farmers
+          participates in it — a relationship explored further in{" "}
+          <Link to="/journal/building-with-the-community" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">our piece on building with the community</Link>.
+          From the ox-ploughed fields of nearby farmers
           to the banana groves within the lodge grounds, the connection is
           continuous. Water flows through fields, through gardens, through
-          kitchens — linking community life and guest experience in one
-          uninterrupted system.
+          kitchens — linking community life and{" "}
+          <Link to="/experiences" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">guided river walks and cultural experiences</Link>{" "}
+          in one uninterrupted system.
         </p>
       </Reveal>
 
@@ -148,7 +155,9 @@ function ArticlePage() {
         <p className="pt-6 italic text-charcoal/70">
           The Nduruma River does more than sustain agriculture. It sustains a
           way of life — visible in every green surface, every cultivated
-          garden, and every plate served with ingredients grown nearby.
+          garden, and every plate served with ingredients grown nearby.{" "}
+          <Link to="/book" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">Book your stay at Mtoni River Lodge</Link>{" "}
+          to walk these irrigation streams with us.
         </p>
       </Reveal>
     </ArticleLayout>

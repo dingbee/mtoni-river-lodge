@@ -77,7 +77,9 @@ function ArticlePage() {
             <Reveal>
               <p>
                 The first thing the river does, when you arrive, is ignore
-                you. It does not pause. It does not adjust its rhythm to
+                you at{" "}
+                <Link to="/lodge" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">our riverside lodge in Arusha</Link>.
+                It does not pause. It does not adjust its rhythm to
                 meet yours. It moves the way it has always moved — south,
                 slow, certain — and asks, gently, whether you can match it.
               </p>
@@ -115,7 +117,9 @@ function ArticlePage() {
                 in the rains. It falls in the dry months. The fish eagles
                 arrive at four, almost to the minute, but no one writes it
                 down. The hippos surface at dusk. The stars, when they
-                come, are not in any hurry to be admired.
+                come, are not in any hurry to be admired — a rhythm
+                explored more fully in{" "}
+                <Link to="/journal/life-along-the-nduruma-river" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">our piece on life along the Nduruma River</Link>.
               </p>
             </Reveal>
             <Reveal delay={80}>
@@ -126,7 +130,9 @@ function ArticlePage() {
                 We kept the bells — one in the kitchen, one by the boat
                 landing — because bells are not clocks. They mark a
                 moment, then release it. We kept the long table, where
-                breakfast unfolds for as long as it needs to. We kept the
+                breakfast unfolds for as long as it needs to as part of{" "}
+                <Link to="/dining" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">our riverside dining experience</Link>.
+                We kept the
                 lanterns, which are lit by hand each evening by someone
                 who has lit them, in the same order, for nine years.
               </p>
@@ -142,7 +148,10 @@ function ArticlePage() {
             <Reveal delay={80}>
               <p className="pt-6 italic text-charcoal/70">
                 Come slowly. Stay a while. The river is in no rush, and
-                neither, for these few days, are you.
+                neither, for these few days, are you.{" "}
+                <Link to="/book" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">Book your stay at Mtoni River Lodge</Link>{" "}
+                or browse{" "}
+                <Link to="/experiences" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">slow cultural experiences in Arusha</Link>.
               </p>
             </Reveal>
           </div>

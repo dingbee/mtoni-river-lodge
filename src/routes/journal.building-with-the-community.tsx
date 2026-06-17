@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { ArticleLayout } from "@/components/site/ArticleLayout";
 import guide from "@/assets/maasai-by-river.jpg";
@@ -45,8 +46,9 @@ function ArticlePage() {
     >
       <Reveal>
         <p>
-          Set within the river-fed landscapes of Arusha, Tanzania, Mtoni is
-          not an isolated sanctuary. It is part of a living ecosystem where
+          Set within the river-fed landscapes of Arusha, Tanzania,{" "}
+          <Link to="/lodge" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">our riverside lodge in Arusha</Link>{" "}
+          is not an isolated sanctuary. It is part of a living ecosystem where
           local communities, natural resources, and sustainable tourism are
           deeply interconnected. The lodge exists because of the land — and
           in return, it is committed to contributing meaningfully to the
@@ -73,7 +75,9 @@ function ArticlePage() {
           familiarity within its team. Employment at Mtoni is not just
           transactional — it is relational. It builds long-term skill
           development and fosters a shared sense of ownership in the lodge’s
-          growth.
+          growth — visible across{" "}
+          <Link to="/experiences" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">our cultural experiences in Arusha</Link>{" "}
+          guided by neighbours from the surrounding villages.
         </p>
       </Reveal>
 
@@ -95,7 +99,9 @@ function ArticlePage() {
           building practices aligned with the land. The use of river stone
           in key structures such as the restaurant, reception, and
           administration house reflects not only design identity but also a
-          commitment to local resource integration.
+          commitment to local resource integration — a story we unpack
+          further in{" "}
+          <Link to="/journal/the-architecture-of-disappearing" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">our piece on Maasai-inspired architecture</Link>.
         </p>
       </Reveal>
 
@@ -117,7 +123,9 @@ function ArticlePage() {
           similar ecological principles into its own food production. The
           result is circular: communities cultivate the land, the river
           sustains both farms and lodge, the lodge sources fresh produce
-          locally, and economic value returns to the community.
+          locally for{" "}
+          <Link to="/dining" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">our riverside dining experience</Link>,
+          and economic value returns to the community.
         </p>
       </Reveal>
 
@@ -165,7 +173,11 @@ function ArticlePage() {
           Mtoni River Lodge is more than a destination. It is a participant
           in a larger story of community resilience, environmental balance,
           and shared progress — ensuring that growth along the river is
-          experienced by everyone it touches.
+          experienced by everyone it touches. To visit,{" "}
+          <Link to="/book" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">book your stay at Mtoni River Lodge</Link>{" "}
+          or{" "}
+          <Link to="/contact" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">contact our Arusha lodge team</Link>{" "}
+          to plan a community-rooted visit.
         </p>
       </Reveal>
     </ArticleLayout>
