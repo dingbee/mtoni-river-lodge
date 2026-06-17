@@ -12,7 +12,6 @@ interface SitemapEntry {
 // Only canonical destinations — legacy/redirected URLs are intentionally excluded.
 const ENTRIES: SitemapEntry[] = [
   { path: "/", changefreq: "weekly", priority: "1.0" },
-  { path: "/about-mtoni", changefreq: "monthly", priority: "0.8" },
   { path: "/lodge", changefreq: "monthly", priority: "0.8" },
   { path: "/rooms", changefreq: "monthly", priority: "0.9" },
   { path: "/rooms/standard-river", changefreq: "monthly", priority: "0.7" },
