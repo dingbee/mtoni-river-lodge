@@ -260,7 +260,7 @@ export function HeroCinematic({
               to="/book"
               className="group inline-flex items-center gap-3 border border-ivory bg-ivory px-8 py-4 text-[0.72rem] font-medium uppercase tracking-[0.3em] text-charcoal transition-colors hover:bg-transparent hover:text-ivory"
             >
-              Reserve Your Escape
+              Check Availability
               <span className="transition-transform group-hover:translate-x-1">→</span>
             </Link>
             <Link
