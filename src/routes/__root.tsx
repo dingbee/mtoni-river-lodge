@@ -78,6 +78,94 @@ export const Route = createRootRoute({
           gtag('config', 'GT-55XDHB82');
         `,
       },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Organization",
+              "@id": "https://mtoniriverlodge.com/#organization",
+              name: "Mtoni River Lodge",
+              url: "https://mtoniriverlodge.com",
+              logo: "https://mtoniriverlodge.com/favicon.ico",
+              email: "bookings@mtoniriverlodge.com",
+              telephone: "+255752441443",
+              address: {
+                "@type": "PostalAddress",
+                streetAddress: "Gomba Estate",
+                addressLocality: "Arusha",
+                addressRegion: "Arusha",
+                addressCountry: "TZ",
+              },
+              contactPoint: [
+                {
+                  "@type": "ContactPoint",
+                  telephone: "+255752441443",
+                  contactType: "reservations",
+                  email: "bookings@mtoniriverlodge.com",
+                  areaServed: "Worldwide",
+                  availableLanguage: ["English", "Swahili"],
+                },
+              ],
+            },
+            {
+              "@type": ["Hotel", "LodgingBusiness"],
+              "@id": "https://mtoniriverlodge.com/#hotel",
+              name: "Mtoni River Lodge",
+              url: "https://mtoniriverlodge.com",
+              description:
+                "An intimate luxury eco-lodge on the banks of the Mtoni River in Arusha, Tanzania.",
+              image:
+                "https://storage.googleapis.com/gpt-engineer-file-uploads/SHkcQELriCO5cdR2YzaTl25G7pE2/social-images/social-1778599166460-1000489399.webp",
+              email: "bookings@mtoniriverlodge.com",
+              telephone: "+255752441443",
+              priceRange: "$$$",
+              address: {
+                "@type": "PostalAddress",
+                streetAddress: "Gomba Estate",
+                addressLocality: "Arusha",
+                addressRegion: "Arusha",
+                addressCountry: "TZ",
+              },
+              geo: {
+                "@type": "GeoCoordinates",
+                latitude: -3.386925,
+                longitude: 36.682995,
+              },
+              amenityFeature: [
+                "Swimming Pool",
+                "Restaurant",
+                "Riverfront Setting",
+                "Free WiFi",
+                "Airport Transfers",
+                "Guided Experiences",
+              ].map((name) => ({
+                "@type": "LocationFeatureSpecification",
+                name,
+                value: true,
+              })),
+              parentOrganization: { "@id": "https://mtoniriverlodge.com/#organization" },
+            },
+            {
+              "@type": "WebSite",
+              "@id": "https://mtoniriverlodge.com/#website",
+              url: "https://mtoniriverlodge.com",
+              name: "Mtoni River Lodge",
+              publisher: { "@id": "https://mtoniriverlodge.com/#organization" },
+              potentialAction: {
+                "@type": "SearchAction",
+                target: {
+                  "@type": "EntryPoint",
+                  urlTemplate:
+                    "https://mtoniriverlodge.com/journal?q={search_term_string}",
+                },
+                "query-input": "required name=search_term_string",
+              },
+            },
+          ],
+        }),
+      },
     ],
   }),
   shellComponent: RootShell,
