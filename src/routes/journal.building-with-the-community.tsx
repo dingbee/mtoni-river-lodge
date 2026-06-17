@@ -27,6 +27,7 @@ export const Route = createFileRoute("/journal/building-with-the-community")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: guide },
     ],
+    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/journal/building-with-the-community" }],
   }),
   component: ArticlePage,
 });
