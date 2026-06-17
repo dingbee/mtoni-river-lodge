@@ -253,10 +253,28 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {/* ============ C. BRAND BASE ============ */}
+        {/* ============ C. TRUST STRIP ============ */}
+        <section
+          aria-label="Trust and security"
+          className="relative mx-auto mt-16 flex max-w-xl flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-ivory/10 pt-8"
+        >
+          <span className="text-[0.65rem] uppercase tracking-[0.3em] text-ivory/45">
+            Secure Website
+          </span>
+          <span className="hidden h-3 w-px bg-ivory/20 sm:block" />
+          <span className="text-[0.65rem] uppercase tracking-[0.3em] text-ivory/45">
+            Privacy Protected
+          </span>
+          <span className="hidden h-3 w-px bg-ivory/20 sm:block" />
+          <span className="text-[0.65rem] uppercase tracking-[0.3em] text-ivory/45">
+            Secure Booking Experience
+          </span>
+        </section>
+
+        {/* ============ D. BRAND BASE ============ */}
         <section
           aria-label="Brand"
-          className="relative mt-20 flex flex-col items-center gap-4"
+          className="relative mt-14 flex flex-col items-center gap-4"
           style={{ zIndex: 5 }}
         >
           <img
@@ -271,6 +289,35 @@ export function SiteFooter() {
 
         {/* Bottom row */}
         <div className="mt-14 flex flex-col items-center justify-center gap-3 border-t border-ivory/10 pt-8 text-xs text-ivory/50">
+          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            <Link
+              to="/privacy"
+              className="uppercase tracking-[0.2em] transition-colors hover:text-gold"
+            >
+              Privacy Policy
+            </Link>
+            <span className="hidden text-ivory/25 sm:inline">·</span>
+            <Link
+              to="/terms"
+              className="uppercase tracking-[0.2em] transition-colors hover:text-gold"
+            >
+              Terms & Conditions
+            </Link>
+            <span className="hidden text-ivory/25 sm:inline">·</span>
+            <a
+              href="mailto:bookings@mtoniriverlodge.com"
+              onClick={() =>
+                trackEmailClick({
+                  buttonText: "Contact Us",
+                  location: "footer",
+                  destinationUrl: "mailto:bookings@mtoniriverlodge.com",
+                })
+              }
+              className="uppercase tracking-[0.2em] transition-colors hover:text-gold"
+            >
+              Contact Us
+            </a>
+          </nav>
           <p>© {new Date().getFullYear()} Mtoni River Lodge. All rights reserved.</p>
           <p className="font-display italic text-ivory/60">
             "Pole pole — slowly, slowly, the river finds the sea."
