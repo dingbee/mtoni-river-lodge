@@ -130,8 +130,8 @@ export const Route = createRootRoute({
               },
               geo: {
                 "@type": "GeoCoordinates",
-                latitude: -3.386925,
-                longitude: 36.682995,
+                latitude: -3.435813,
+                longitude: 36.794313,
               },
               amenityFeature: [
                 "Swimming Pool",
