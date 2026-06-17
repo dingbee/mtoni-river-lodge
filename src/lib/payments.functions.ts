@@ -77,7 +77,7 @@ export const initiatePayment = createServerFn({ method: "POST" })
       merchant_reference: order.merchant_reference,
       amount: deposit,
       currency: booking.currency,
-      raw: order as unknown as Record<string, unknown>,
+      raw: JSON.parse(JSON.stringify(order)),
     });
 
     return {
@@ -141,7 +141,7 @@ export const getPaymentStatusByReference = createServerFn({ method: "POST" })
         payment_method: paymentMethod,
         amount: status.amount,
         currency: status.currency,
-        raw: status as unknown as Record<string, unknown>,
+        raw: JSON.parse(JSON.stringify(status)),
       });
 
       if (outcome === "completed") {

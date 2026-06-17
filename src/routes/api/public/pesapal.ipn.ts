@@ -20,7 +20,7 @@ async function handleNotification(orderTrackingId: string, merchantReference: st
     event_type: `ipn:${notificationType || "unknown"}`,
     order_tracking_id: orderTrackingId,
     merchant_reference: merchantReference,
-    raw: { orderTrackingId, merchantReference, notificationType } as Record<string, unknown>,
+    raw: { orderTrackingId, merchantReference, notificationType },
   });
 
   if (!booking) return;
@@ -41,7 +41,7 @@ async function handleNotification(orderTrackingId: string, merchantReference: st
     payment_method: status.payment_method ?? null,
     amount: status.amount ?? null,
     currency: status.currency ?? null,
-    raw: status as unknown as Record<string, unknown>,
+    raw: JSON.parse(JSON.stringify(status)),
   });
 
   if (outcome === "completed") {
