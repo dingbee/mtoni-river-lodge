@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
+import { BreadcrumbsBar } from "@/components/site/Breadcrumbs";
 import { SiteFooterMinimal } from "@/components/site/SiteFooterMinimal";
 
 export const Route = createFileRoute("/terms")({
