@@ -105,9 +105,14 @@ export const Route = createRootRoute({
                   contactType: "reservations",
                   email: "bookings@mtoniriverlodge.com",
                   areaServed: "Worldwide",
-                  availableLanguage: ["English", "Swahili"],
-                },
-              ],
+              availableLanguage: ["English", "Swahili"],
+            },
+          ],
+          geo: {
+            "@type": "GeoCoordinates",
+            latitude: -3.435813,
+            longitude: 36.794313,
+          },
             },
             {
               "@type": ["Hotel", "LodgingBusiness"],
