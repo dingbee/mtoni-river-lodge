@@ -15,7 +15,9 @@ export const Route = createFileRoute("/lodge")({
       { title: "About Mtoni River Lodge | Our Story, Philosophy & Experience" },
       { name: "description", content: "Discover Mtoni River Lodge in Arusha, Tanzania. Learn about our story, design inspiration, commitment to authentic hospitality, and the experience that makes Mtoni unique." },
       { property: "og:image", content: lodgeHero },
+      { property: "og:url", content: "https://mtoniriverlodge.com/lodge" },
     ],
+    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/lodge" }],
   }),
   component: LodgePage,
 });
