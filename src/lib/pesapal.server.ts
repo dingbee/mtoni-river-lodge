@@ -59,13 +59,11 @@ export async function ensureIpn(baseUrl: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const env = pesapalEnv();
   const ipnUrl = `${baseUrl.replace(/\/$/, "")}/api/public/pesapal/ipn`;
-  const sb = supabaseAdmin as unknown as {
-    from: (t: string) => {
-      select: (c: string) => { eq: (k: string, v: string) => { maybeSingle: () => Promise<{ data: { ipn_id: string; ipn_url: string } | null }> } };
-      upsert: (row: Record<string, unknown>, opts?: { onConflict?: string }) => Promise<{ error: unknown }>;
-    };
-  };
-  const { data: existing } = await sb.from("pesapal_settings").select("ipn_id, ipn_url").eq("env", env).maybeSingle();
+  const { data: existing } = await supabaseAdmin
+    .from("pesapal_settings")
+    .select("ipn_id, ipn_url")
+    .eq("env", env)
+    .maybeSingle();
   if (existing && existing.ipn_url === ipnUrl) return existing.ipn_id;
   const reg = await pesapalFetch("/api/URLSetup/RegisterIPN", {
     method: "POST",
@@ -73,10 +71,9 @@ export async function ensureIpn(baseUrl: string) {
   });
   const ipnId = String((reg as { ipn_id?: string }).ipn_id ?? "");
   if (!ipnId) throw new Error(`Pesapal RegisterIPN returned no ipn_id: ${JSON.stringify(reg)}`);
-  await sb.from("pesapal_settings").upsert(
-    { env, ipn_id: ipnId, ipn_url: ipnUrl, updated_at: new Date().toISOString() },
-    { onConflict: "env" },
-  );
+  await supabaseAdmin
+    .from("pesapal_settings")
+    .upsert({ env, ipn_id: ipnId, ipn_url: ipnUrl, updated_at: new Date().toISOString() }, { onConflict: "env" });
   return ipnId;
 }
 
