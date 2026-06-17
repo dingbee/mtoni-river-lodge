@@ -219,15 +219,8 @@ function GoogleAnalytics() {
 }
 
 function RootComponent() {
-  let queryClient: QueryClient;
-  try {
-    const ctx = Route.useRouteContext() as { queryClient?: QueryClient };
-    queryClient = ctx?.queryClient ?? fallbackQueryClient;
-  } catch {
-    queryClient = fallbackQueryClient;
-  }
   return (
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={fallbackQueryClient}>
       <Outlet />
       <BackToTop />
       <TawkToWidget />
