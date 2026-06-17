@@ -29,10 +29,10 @@ import { Route as RoomsRiverfrontDeluxeRouteImport } from './routes/rooms.riverf
 import { Route as RoomsFamilyRoomRouteImport } from './routes/rooms.family-room'
 import { Route as JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport } from './routes/journal.what-the-river-has-taught-us-about-time'
 import { Route as JournalTheArchitectureOfDisappearingRouteImport } from './routes/journal.the-architecture-of-disappearing'
-import { Route as JournalReadingTheSkyOverMountMeruRouteImport } from './routes/journal.reading-the-sky-over-mount-meru'
 import { Route as JournalPerfectArushaStayForSafariTravelers2026RouteImport } from './routes/journal.perfect-arusha-stay-for-safari-travelers-2026'
+import { Route as JournalLifeAlongTheNdurumaRiverRouteImport } from './routes/journal.life-along-the-nduruma-river'
 import { Route as JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRouteImport } from './routes/journal.discovering-arusha-through-nature-and-authentic-hospitality'
-import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './routes/journal.a-morning-with-the-beekeepers-of-gomba'
+import { Route as JournalBuildingWithTheCommunityRouteImport } from './routes/journal.building-with-the-community'
 
 const VoteRoute = VoteRouteImport.update({
   id: '/vote',
@@ -136,16 +136,16 @@ const JournalTheArchitectureOfDisappearingRoute =
     path: '/the-architecture-of-disappearing',
     getParentRoute: () => JournalRoute,
   } as any)
-const JournalReadingTheSkyOverMountMeruRoute =
-  JournalReadingTheSkyOverMountMeruRouteImport.update({
-    id: '/reading-the-sky-over-mount-meru',
-    path: '/reading-the-sky-over-mount-meru',
-    getParentRoute: () => JournalRoute,
-  } as any)
 const JournalPerfectArushaStayForSafariTravelers2026Route =
   JournalPerfectArushaStayForSafariTravelers2026RouteImport.update({
     id: '/perfect-arusha-stay-for-safari-travelers-2026',
     path: '/perfect-arusha-stay-for-safari-travelers-2026',
+    getParentRoute: () => JournalRoute,
+  } as any)
+const JournalLifeAlongTheNdurumaRiverRoute =
+  JournalLifeAlongTheNdurumaRiverRouteImport.update({
+    id: '/life-along-the-nduruma-river',
+    path: '/life-along-the-nduruma-river',
     getParentRoute: () => JournalRoute,
   } as any)
 const JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute =
@@ -156,10 +156,10 @@ const JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute =
       getParentRoute: () => JournalRoute,
     } as any,
   )
-const JournalAMorningWithTheBeekeepersOfGombaRoute =
-  JournalAMorningWithTheBeekeepersOfGombaRouteImport.update({
-    id: '/a-morning-with-the-beekeepers-of-gomba',
-    path: '/a-morning-with-the-beekeepers-of-gomba',
+const JournalBuildingWithTheCommunityRoute =
+  JournalBuildingWithTheCommunityRouteImport.update({
+    id: '/building-with-the-community',
+    path: '/building-with-the-community',
     getParentRoute: () => JournalRoute,
   } as any)
 
@@ -177,10 +177,10 @@ export interface FileRoutesByFullPath {
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
-  '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
+  '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
+  '/journal/life-along-the-nduruma-river': typeof JournalLifeAlongTheNdurumaRiverRoute
   '/journal/perfect-arusha-stay-for-safari-travelers-2026': typeof JournalPerfectArushaStayForSafariTravelers2026Route
-  '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
@@ -201,10 +201,10 @@ export interface FileRoutesByTo {
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
-  '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
+  '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
+  '/journal/life-along-the-nduruma-river': typeof JournalLifeAlongTheNdurumaRiverRoute
   '/journal/perfect-arusha-stay-for-safari-travelers-2026': typeof JournalPerfectArushaStayForSafariTravelers2026Route
-  '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
@@ -228,10 +228,10 @@ export interface FileRoutesById {
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
-  '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
+  '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
+  '/journal/life-along-the-nduruma-river': typeof JournalLifeAlongTheNdurumaRiverRoute
   '/journal/perfect-arusha-stay-for-safari-travelers-2026': typeof JournalPerfectArushaStayForSafariTravelers2026Route
-  '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
@@ -256,10 +256,10 @@ export interface FileRouteTypes {
     | '/suites'
     | '/terms'
     | '/vote'
-    | '/journal/a-morning-with-the-beekeepers-of-gomba'
+    | '/journal/building-with-the-community'
     | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
+    | '/journal/life-along-the-nduruma-river'
     | '/journal/perfect-arusha-stay-for-safari-travelers-2026'
-    | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/rooms/family-room'
@@ -280,10 +280,10 @@ export interface FileRouteTypes {
     | '/suites'
     | '/terms'
     | '/vote'
-    | '/journal/a-morning-with-the-beekeepers-of-gomba'
+    | '/journal/building-with-the-community'
     | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
+    | '/journal/life-along-the-nduruma-river'
     | '/journal/perfect-arusha-stay-for-safari-travelers-2026'
-    | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/rooms/family-room'
@@ -306,10 +306,10 @@ export interface FileRouteTypes {
     | '/suites'
     | '/terms'
     | '/vote'
-    | '/journal/a-morning-with-the-beekeepers-of-gomba'
+    | '/journal/building-with-the-community'
     | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
+    | '/journal/life-along-the-nduruma-river'
     | '/journal/perfect-arusha-stay-for-safari-travelers-2026'
-    | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/rooms/family-room'
@@ -477,18 +477,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JournalTheArchitectureOfDisappearingRouteImport
       parentRoute: typeof JournalRoute
     }
-    '/journal/reading-the-sky-over-mount-meru': {
-      id: '/journal/reading-the-sky-over-mount-meru'
-      path: '/reading-the-sky-over-mount-meru'
-      fullPath: '/journal/reading-the-sky-over-mount-meru'
-      preLoaderRoute: typeof JournalReadingTheSkyOverMountMeruRouteImport
-      parentRoute: typeof JournalRoute
-    }
     '/journal/perfect-arusha-stay-for-safari-travelers-2026': {
       id: '/journal/perfect-arusha-stay-for-safari-travelers-2026'
       path: '/perfect-arusha-stay-for-safari-travelers-2026'
       fullPath: '/journal/perfect-arusha-stay-for-safari-travelers-2026'
       preLoaderRoute: typeof JournalPerfectArushaStayForSafariTravelers2026RouteImport
+      parentRoute: typeof JournalRoute
+    }
+    '/journal/life-along-the-nduruma-river': {
+      id: '/journal/life-along-the-nduruma-river'
+      path: '/life-along-the-nduruma-river'
+      fullPath: '/journal/life-along-the-nduruma-river'
+      preLoaderRoute: typeof JournalLifeAlongTheNdurumaRiverRouteImport
       parentRoute: typeof JournalRoute
     }
     '/journal/discovering-arusha-through-nature-and-authentic-hospitality': {
@@ -498,35 +498,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRouteImport
       parentRoute: typeof JournalRoute
     }
-    '/journal/a-morning-with-the-beekeepers-of-gomba': {
-      id: '/journal/a-morning-with-the-beekeepers-of-gomba'
-      path: '/a-morning-with-the-beekeepers-of-gomba'
-      fullPath: '/journal/a-morning-with-the-beekeepers-of-gomba'
-      preLoaderRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRouteImport
+    '/journal/building-with-the-community': {
+      id: '/journal/building-with-the-community'
+      path: '/building-with-the-community'
+      fullPath: '/journal/building-with-the-community'
+      preLoaderRoute: typeof JournalBuildingWithTheCommunityRouteImport
       parentRoute: typeof JournalRoute
     }
   }
 }
 
 interface JournalRouteChildren {
-  JournalAMorningWithTheBeekeepersOfGombaRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRoute
+  JournalBuildingWithTheCommunityRoute: typeof JournalBuildingWithTheCommunityRoute
   JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute: typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
+  JournalLifeAlongTheNdurumaRiverRoute: typeof JournalLifeAlongTheNdurumaRiverRoute
   JournalPerfectArushaStayForSafariTravelers2026Route: typeof JournalPerfectArushaStayForSafariTravelers2026Route
-  JournalReadingTheSkyOverMountMeruRoute: typeof JournalReadingTheSkyOverMountMeruRoute
   JournalTheArchitectureOfDisappearingRoute: typeof JournalTheArchitectureOfDisappearingRoute
   JournalWhatTheRiverHasTaughtUsAboutTimeRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   JournalIndexRoute: typeof JournalIndexRoute
 }
 
 const JournalRouteChildren: JournalRouteChildren = {
-  JournalAMorningWithTheBeekeepersOfGombaRoute:
-    JournalAMorningWithTheBeekeepersOfGombaRoute,
+  JournalBuildingWithTheCommunityRoute: JournalBuildingWithTheCommunityRoute,
   JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute:
     JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute,
+  JournalLifeAlongTheNdurumaRiverRoute: JournalLifeAlongTheNdurumaRiverRoute,
   JournalPerfectArushaStayForSafariTravelers2026Route:
     JournalPerfectArushaStayForSafariTravelers2026Route,
-  JournalReadingTheSkyOverMountMeruRoute:
-    JournalReadingTheSkyOverMountMeruRoute,
   JournalTheArchitectureOfDisappearingRoute:
     JournalTheArchitectureOfDisappearingRoute,
   JournalWhatTheRiverHasTaughtUsAboutTimeRoute:

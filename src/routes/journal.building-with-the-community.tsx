@@ -15,7 +15,7 @@ const RELATED = [
 const DESCRIPTION =
   "Employment, infrastructure, and shared growth at Mtoni River Lodge — how hospitality and community development flow together along the Nduruma River.";
 
-export const Route = createFileRoute("/journal/reading-the-sky-over-mount-meru")({
+export const Route = createFileRoute("/journal/building-with-the-community")({
   head: () => ({
     meta: [
       { title: `${TITLE} — Mtoni River Lodge` },

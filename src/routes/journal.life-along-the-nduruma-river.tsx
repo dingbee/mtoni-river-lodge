@@ -16,7 +16,7 @@ const RELATED = [
   { to: "/journal/reading-the-sky-over-mount-meru", label: "Building With the Community", description: "On the neighbours who shape life along the river." },
 ];
 
-export const Route = createFileRoute("/journal/a-morning-with-the-beekeepers-of-gomba")({
+export const Route = createFileRoute("/journal/life-along-the-nduruma-river")({
   head: () => ({
     meta: [
       { title: `${TITLE} — Mtoni River Lodge` },
