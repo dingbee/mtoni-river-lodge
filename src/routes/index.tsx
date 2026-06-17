@@ -5,7 +5,6 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { LocationMap } from "@/components/site/LocationMap";
 import { HeroCinematic } from "@/components/site/HeroCinematic";
-import { TrustBar } from "@/components/site/reviews/TrustBar";
 import { GuestExperiencesSection } from "@/components/site/reviews/GuestExperiencesSection";
 import { WHATSAPP_NOTE } from "@/lib/contact";
 import { trackCheckAvailabilityClick } from "@/lib/analytics";
