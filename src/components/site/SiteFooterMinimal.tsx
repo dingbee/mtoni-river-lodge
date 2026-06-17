@@ -16,24 +16,41 @@ export function SiteFooterMinimal() {
             className="h-12 w-auto brightness-0 invert"
           />
         </Link>
+
+        {/* Trust strip */}
+        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+          <span className="text-[0.65rem] uppercase tracking-[0.3em] text-ivory/45">
+            Secure Website
+          </span>
+          <span className="hidden h-3 w-px bg-ivory/20 sm:block" />
+          <span className="text-[0.65rem] uppercase tracking-[0.3em] text-ivory/45">
+            Privacy Protected
+          </span>
+          <span className="hidden h-3 w-px bg-ivory/20 sm:block" />
+          <span className="text-[0.65rem] uppercase tracking-[0.3em] text-ivory/45">
+            Secure Booking Experience
+          </span>
+        </div>
+
         <nav className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[0.7rem] uppercase tracking-[0.28em] text-ivory/70">
           <Link to="/" className="hover:text-gold">Home</Link>
           <Link to="/rooms" className="hover:text-gold">Rooms</Link>
           <Link to="/lodge" className="hover:text-gold">About Mtoni</Link>
           <Link to="/experiences" className="hover:text-gold">Experiences</Link>
-          <Link to="/terms" className="hover:text-gold">Terms</Link>
+          <Link to="/privacy" className="hover:text-gold">Privacy Policy</Link>
+          <Link to="/terms" className="hover:text-gold">Terms & Conditions</Link>
           <a
             href="mailto:bookings@mtoniriverlodge.com"
             onClick={() =>
               trackEmailClick({
-                buttonText: "Contact",
+                buttonText: "Contact Us",
                 location: "footer_minimal",
                 destinationUrl: "mailto:bookings@mtoniriverlodge.com",
               })
             }
             className="hover:text-gold"
           >
-            Contact
+            Contact Us
           </a>
         </nav>
         <p className="text-xs text-ivory/50">
