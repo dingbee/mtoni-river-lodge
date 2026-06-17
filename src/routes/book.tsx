@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -49,18 +49,91 @@ type AvailabilityResult = (AvailabilityRoom & { fits_guests: boolean })[];
 
 type SelectedExtra = { slug: string; quantity: number };
 
+const STORAGE_KEY = "mrl.booking.wizard.v1";
+
+type PersistedState = {
+  step: Step;
+  checkIn: string;
+  checkOut: string;
+  adults: number;
+  children: number;
+  results: AvailabilityResult;
+  selectedRoom: AvailabilityRoom | null;
+  extras: Array<{ slug: string; name: string; price: number; unit: string; description: string | null }>;
+  selectedExtras: SelectedExtra[];
+  guest: { name: string; email: string; phone: string; country: string; requests: string };
+};
+
+function readPersisted(): Partial<PersistedState> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Partial<PersistedState>) : {};
+  } catch (err) {
+    console.warn("[book] failed to read persisted wizard state", err);
+    return {};
+  }
+}
+
 function BookPage() {
-  const [step, setStep] = useState<Step>("search");
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
-  const [adults, setAdults] = useState(2);
-  const [children, setChildren] = useState(0);
-  const [results, setResults] = useState<AvailabilityResult>([]);
-  const [selectedRoom, setSelectedRoom] = useState<AvailabilityRoom | null>(null);
-  const [extras, setExtras] = useState<Array<{ slug: string; name: string; price: number; unit: string; description: string | null }>>([]);
-  const [selectedExtras, setSelectedExtras] = useState<SelectedExtra[]>([]);
-  const [guest, setGuest] = useState({ name: "", email: "", phone: "", country: "", requests: "" });
+  // Restore persisted wizard state on mount so a refresh / remount does not
+  // silently drop the guest back to step 1 ("automatic regression").
+  const persistedRef = useRef<Partial<PersistedState>>({});
+  if (persistedRef.current && Object.keys(persistedRef.current).length === 0) {
+    persistedRef.current = readPersisted();
+  }
+  const p = persistedRef.current;
+
+  const [step, setStepRaw] = useState<Step>(p.step ?? "search");
+  const [checkIn, setCheckIn] = useState(p.checkIn ?? "");
+  const [checkOut, setCheckOut] = useState(p.checkOut ?? "");
+  const [adults, setAdults] = useState(p.adults ?? 2);
+  const [children, setChildren] = useState(p.children ?? 0);
+  const [results, setResults] = useState<AvailabilityResult>(p.results ?? []);
+  const [selectedRoom, setSelectedRoom] = useState<AvailabilityRoom | null>(p.selectedRoom ?? null);
+  const [extras, setExtras] = useState<Array<{ slug: string; name: string; price: number; unit: string; description: string | null }>>(p.extras ?? []);
+  const [selectedExtras, setSelectedExtras] = useState<SelectedExtra[]>(p.selectedExtras ?? []);
+  const [guest, setGuest] = useState(p.guest ?? { name: "", email: "", phone: "", country: "", requests: "" });
   const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string } | null>(null);
+
+  // Single source of truth for step transitions. Logs prev → next so any
+  // unexpected jump is visible in the console.
+  const prevStepRef = useRef<Step>(step);
+  const goToStep = useCallback((next: Step, reason: string) => {
+    setStepRaw((prev) => {
+      if (prev !== next) {
+        // eslint-disable-next-line no-console
+        console.debug("[book] step change", { from: prev, to: next, reason });
+      }
+      prevStepRef.current = prev;
+      return next;
+    });
+  }, []);
+
+  // Persist wizard state on every meaningful change.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const snapshot: PersistedState = {
+        step, checkIn, checkOut, adults, children,
+        results, selectedRoom, extras, selectedExtras, guest,
+      };
+      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    } catch (err) {
+      console.warn("[book] failed to persist wizard state", err);
+    }
+  }, [step, checkIn, checkOut, adults, children, results, selectedRoom, extras, selectedExtras, guest]);
+
+  // Guard rail: if we land on a step whose prerequisites are missing, log it
+  // loudly so we can see whether a remount or stale storage caused a jump.
+  useEffect(() => {
+    if (step === "guest" && !selectedRoom) {
+      console.warn("[book] on 'guest' step without a selectedRoom — render guard will offer recovery");
+    }
+    if ((step === "select" || step === "guest") && (!checkIn || !checkOut)) {
+      console.warn("[book] missing dates for step", step, { checkIn, checkOut });
+    }
+  }, [step, selectedRoom, checkIn, checkOut]);
 
   const nights = nightsBetween(checkIn, checkOut);
   const guests = adults + children;
@@ -82,9 +155,12 @@ function BookPage() {
     onSuccess: ({ rooms, extrasList }) => {
       setResults(rooms);
       setExtras(extrasList);
-      setStep("select");
+      goToStep("select", "availability_search_success");
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => {
+      console.error("[book] availability search failed", err);
+      toast.error(err.message);
+    },
   });
 
   const submit = useMutation({
@@ -119,12 +195,16 @@ function BookPage() {
       setConfirmation({ reference: res.reference, total: res.total, currency: res.currency });
       // Redirect to Pesapal for deposit payment.
       if (res.redirectUrl) {
+        try { window.sessionStorage.removeItem(STORAGE_KEY); } catch {}
         window.location.href = res.redirectUrl;
         return;
       }
-      setStep("confirmation");
+      goToStep("confirmation", "booking_submit_success");
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => {
+      console.error("[book] booking submit / payment init failed", err);
+      toast.error(err.message);
+    },
   });
 
   const extrasTotal = useMemo(() => {
@@ -172,8 +252,8 @@ function BookPage() {
           {step === "select" && (
             <SelectStep
               results={results} guests={guests} nights={nights}
-              onBack={() => setStep("search")}
-              onSelect={(r) => { setSelectedRoom(r); setStep("guest"); }}
+              onBack={() => goToStep("search", "user_back_from_select")}
+              onSelect={(r) => { setSelectedRoom(r); goToStep("guest", "user_selected_room"); }}
             />
           )}
 
@@ -184,9 +264,23 @@ function BookPage() {
               extrasTotal={extrasTotal} grandTotal={grandTotal}
               guest={guest} setGuest={setGuest}
               submitting={submit.isPending}
-              onBack={() => setStep("select")}
+              onBack={() => goToStep("select", "user_back_from_guest")}
               onSubmit={() => submit.mutate()}
             />
+          )}
+
+          {step === "guest" && !selectedRoom && (
+            <div className="rounded-2xl border border-charcoal/10 bg-ivory p-8 text-center">
+              <p className="text-sm text-charcoal/70">
+                Your room selection was lost. Please pick a room again to continue — your dates and details are preserved.
+              </p>
+              <button
+                onClick={() => goToStep(results.length > 0 ? "select" : "search", "recover_missing_room")}
+                className="mt-5 inline-flex items-center gap-2 rounded-full border border-charcoal px-5 py-2.5 text-[0.7rem] uppercase tracking-[0.24em] hover:bg-charcoal hover:text-ivory"
+              >
+                Choose a room →
+              </button>
+            </div>
           )}
 
           {step === "confirmation" && confirmation && selectedRoom && (
