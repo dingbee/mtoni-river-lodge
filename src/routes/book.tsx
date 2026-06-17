@@ -293,7 +293,7 @@ function BookPage() {
           )}
 
           <div className="mt-12 flex flex-col items-center gap-3 text-center">
-            <p className="text-xs uppercase tracking-[0.28em] text-charcoal/50">Prefer to chat directly?</p>
+            <p className="text-xs uppercase tracking-[0.28em] text-charcoal/50">Need help planning your stay?</p>
             <a
               href={WHATSAPP_URL}
               target="_blank"
@@ -301,8 +301,11 @@ function BookPage() {
               onClick={() => trackContactClick("whatsapp", "book_page_assistance")}
               className="inline-flex items-center gap-3 rounded-full border border-charcoal px-6 py-3 text-[0.72rem] uppercase tracking-[0.28em] transition-colors hover:bg-charcoal hover:text-ivory"
             >
-              Book via WhatsApp · +255 752 441 443 →
+              Talk To Our Team · +255 752 441 443 →
             </a>
+            <p className="max-w-sm text-[0.7rem] text-charcoal/55">
+              Our reservations team is available should you need assistance.
+            </p>
             <p className="mt-4 max-w-sm text-[0.7rem] text-charcoal/50">
               By booking you agree to our{" "}
               <Link to="/terms" className="underline underline-offset-4 hover:text-charcoal">

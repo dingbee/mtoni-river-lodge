@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Instagram, Facebook, Youtube, Plus, Minus } from "lucide-react";
 import logoUrl from "@/assets/mtoni-logo.png";
-import { WHATSAPP_NOTE } from "@/lib/contact";
+import { RESERVATIONS_NOTE } from "@/lib/contact";
 import { AvailabilityModal } from "@/components/site/AvailabilityModal";
 import {
   trackBookingClick,
@@ -238,21 +238,20 @@ export function SiteFooter() {
             <p className="mx-auto mt-6 max-w-xs text-sm text-ivory/70">
               Our reservations team responds within 24 hours with a tailored itinerary.
             </p>
-            <button
-              type="button"
+            <Link
+              to="/book"
               onClick={() => {
                 trackBookingClick({
-                  buttonText: "Reserve on WhatsApp",
+                  buttonText: "Check Availability",
                   location: "footer",
                 });
-                setAvailOpen(true);
               }}
-              className="mt-6 inline-flex items-center gap-3 border border-ivory/40 px-5 py-3 text-[0.72rem] font-medium uppercase tracking-[0.28em] hover:bg-ivory hover:text-charcoal"
+              className="mt-6 inline-flex items-center gap-3 border border-ivory bg-ivory px-5 py-3 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-charcoal transition-colors hover:bg-transparent hover:text-ivory"
             >
-              Reserve on WhatsApp
-            </button>
+              Check Availability →
+            </Link>
             <p className="mx-auto mt-4 max-w-xs text-xs leading-relaxed text-ivory/55">
-              {WHATSAPP_NOTE}
+              {RESERVATIONS_NOTE}
             </p>
           </div>
         </div>
