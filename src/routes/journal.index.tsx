@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
+import { BreadcrumbsBar } from "@/components/site/Breadcrumbs";
 import river from "@/assets/nduruma-river-flow.jpg";
 import { getJournalPosts } from "@/lib/journal";
 
@@ -32,7 +33,8 @@ function JournalPage() {
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader />
-      <section className="px-6 pb-20 pt-[110px] lg:px-12 lg:pt-[180px]">
+      <BreadcrumbsBar />
+      <section className="px-6 pb-20 pt-10 lg:px-12 lg:pt-16">
         <div className="mx-auto max-w-[700px]">
           <Reveal>
             <p className="eyebrow">Journal</p>

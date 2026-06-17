@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
+import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { WHATSAPP_URL } from "@/lib/contact";
 import { trackBookingClick, trackWhatsAppClick } from "@/lib/analytics";
 
@@ -31,12 +32,7 @@ export function ArticleLayout({ eyebrow, title, intro, image, imageAlt, caption,
       <article>
         <div className="px-6 pt-32 lg:px-12 lg:pt-40">
           <div className="mx-auto max-w-3xl">
-            <Link
-              to="/journal"
-              className="inline-flex items-center gap-2 text-[0.72rem] uppercase tracking-[0.28em] text-charcoal/60 transition-colors hover:text-charcoal"
-            >
-              ← Back to Journal
-            </Link>
+            <Breadcrumbs variant="dark" />
           </div>
         </div>
         <header className="px-6 pt-10 pb-16 lg:px-12 lg:pt-14">

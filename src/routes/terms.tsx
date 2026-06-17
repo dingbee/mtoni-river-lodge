@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
+import { BreadcrumbsBar } from "@/components/site/Breadcrumbs";
 import { SiteFooterMinimal } from "@/components/site/SiteFooterMinimal";
 
 export const Route = createFileRoute("/terms")({
@@ -166,7 +167,8 @@ function TermsPage() {
     <div className="bg-ivory text-charcoal">
       <SiteHeader />
 
-      <main className="pt-28 lg:pt-36">
+      <BreadcrumbsBar />
+      <main className="pt-10 lg:pt-14">
         {/* Header */}
         <section className="mx-auto max-w-[820px] px-6 pb-14 text-center lg:px-12 lg:pb-20">
           <p className="eyebrow">Policies</p>

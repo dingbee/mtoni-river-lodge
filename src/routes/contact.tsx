@@ -4,6 +4,7 @@ import { useState } from "react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
+import { BreadcrumbsBar } from "@/components/site/Breadcrumbs";
 import { WHATSAPP_URL } from "@/lib/contact";
 import { trackContactClick } from "@/lib/analytics";
 
@@ -41,6 +42,7 @@ function ContactPage() {
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader />
+      <BreadcrumbsBar />
       <main>
         <HeroIntro />
         <ContactInformation />
@@ -56,7 +58,7 @@ function ContactPage() {
 
 function HeroIntro() {
   return (
-    <section className="bg-ivory px-6 pt-36 pb-16 lg:px-12 lg:pt-44 lg:pb-24">
+    <section className="bg-ivory px-6 pt-12 pb-16 lg:px-12 lg:pt-16 lg:pb-24">
       <div className="mx-auto max-w-3xl text-center">
         <Reveal>
           <p className="eyebrow">Get in Touch</p>

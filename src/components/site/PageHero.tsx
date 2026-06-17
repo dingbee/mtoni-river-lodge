@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
+import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 
 type Align = "left" | "center";
 
@@ -85,6 +86,9 @@ export function PageHero({
             </Link>
           </Reveal>
         )}
+        <Reveal>
+          <Breadcrumbs variant="light" className="mb-4" />
+        </Reveal>
         {eyebrow && (
           <Reveal>
             <p className="eyebrow hero-text-shadow !text-ivory/85">{eyebrow}</p>

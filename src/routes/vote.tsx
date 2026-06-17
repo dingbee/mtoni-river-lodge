@@ -4,6 +4,7 @@ import { Award, Heart, Leaf, Sparkles, Users, Star, Instagram, MessageCircle, Sh
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
+import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { WHATSAPP_URL } from "@/lib/contact";
 import { trackVoteClick, trackShareClick, trackContactClick } from "@/lib/analytics";
 import heroImg from "@/assets/hero-river.jpg";
@@ -71,6 +72,11 @@ function VotePage() {
         <div className="hero-overlay pointer-events-none absolute inset-0" />
 
         <div className="relative z-10 mx-auto flex h-full max-w-[1300px] flex-col items-center justify-center px-6 pb-16 pt-[120px] text-center text-ivory lg:px-12">
+          <Reveal>
+            <div className="mb-6 flex justify-center">
+              <Breadcrumbs variant="light" />
+            </div>
+          </Reveal>
           <Reveal>
             <AwardBadge />
           </Reveal>
