@@ -8,6 +8,7 @@ import { getPaymentStatusByReference } from "@/lib/payments.functions";
 import { trackGAEvent } from "@/lib/analytics";
 
 type Search = { ref?: string; email?: string };
+type PaymentStatus = Awaited<ReturnType<typeof getPaymentStatusByReference>>;
 
 export const Route = createFileRoute("/booking/return")({
   validateSearch: (s: Record<string, unknown>): Search => ({
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/booking/return")({
 function BookingReturn() {
   const { ref, email: emailFromUrl } = Route.useSearch();
   const [email, setEmail] = useState(emailFromUrl ?? "");
-  const [status, setStatus] = useState<null | Awaited<ReturnType<ReturnType<typeof useServerFn<typeof getPaymentStatusByReference>>>>>(null);
+  const [status, setStatus] = useState<PaymentStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [polls, setPolls] = useState(0);
