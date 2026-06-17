@@ -12,15 +12,21 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VoteRouteImport } from './routes/vote'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SuitesRouteImport } from './routes/suites'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as RoomsRouteImport } from './routes/rooms'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PlanRouteImport } from './routes/plan'
 import { Route as LodgeRouteImport } from './routes/lodge'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as ExperiencesRouteImport } from './routes/experiences'
+import { Route as DiningLeisureRouteImport } from './routes/dining-leisure'
 import { Route as DiningRouteImport } from './routes/dining'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as BookingFormRouteImport } from './routes/booking-form'
 import { Route as BookRouteImport } from './routes/book'
+import { Route as AmenitiesActivitiesRouteImport } from './routes/amenities-activities'
+import { Route as AccommodationsRouteImport } from './routes/accommodations'
+import { Route as AboutUsRouteImport } from './routes/about-us'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RoomsIndexRouteImport } from './routes/rooms.index'
 import { Route as JournalIndexRouteImport } from './routes/journal.index'
@@ -31,7 +37,9 @@ import { Route as JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport } from './r
 import { Route as JournalTheArchitectureOfDisappearingRouteImport } from './routes/journal.the-architecture-of-disappearing'
 import { Route as JournalReadingTheSkyOverMountMeruRouteImport } from './routes/journal.reading-the-sky-over-mount-meru'
 import { Route as JournalPerfectArushaStayForSafariTravelers2026RouteImport } from './routes/journal.perfect-arusha-stay-for-safari-travelers-2026'
+import { Route as JournalLifeAlongTheNdurumaRiverRouteImport } from './routes/journal.life-along-the-nduruma-river'
 import { Route as JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRouteImport } from './routes/journal.discovering-arusha-through-nature-and-authentic-hospitality'
+import { Route as JournalBuildingWithTheCommunityRouteImport } from './routes/journal.building-with-the-community'
 import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './routes/journal.a-morning-with-the-beekeepers-of-gomba'
 
 const VoteRoute = VoteRouteImport.update({
@@ -47,6 +55,11 @@ const TermsRoute = TermsRouteImport.update({
 const SuitesRoute = SuitesRouteImport.update({
   id: '/suites',
   path: '/suites',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RoomsRoute = RoomsRouteImport.update({
@@ -79,6 +92,11 @@ const ExperiencesRoute = ExperiencesRouteImport.update({
   path: '/experiences',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DiningLeisureRoute = DiningLeisureRouteImport.update({
+  id: '/dining-leisure',
+  path: '/dining-leisure',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DiningRoute = DiningRouteImport.update({
   id: '/dining',
   path: '/dining',
@@ -89,9 +107,29 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BookingFormRoute = BookingFormRouteImport.update({
+  id: '/booking-form',
+  path: '/booking-form',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BookRoute = BookRouteImport.update({
   id: '/book',
   path: '/book',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AmenitiesActivitiesRoute = AmenitiesActivitiesRouteImport.update({
+  id: '/amenities-activities',
+  path: '/amenities-activities',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccommodationsRoute = AccommodationsRouteImport.update({
+  id: '/accommodations',
+  path: '/accommodations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutUsRoute = AboutUsRouteImport.update({
+  id: '/about-us',
+  path: '/about-us',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -148,6 +186,12 @@ const JournalPerfectArushaStayForSafariTravelers2026Route =
     path: '/perfect-arusha-stay-for-safari-travelers-2026',
     getParentRoute: () => JournalRoute,
   } as any)
+const JournalLifeAlongTheNdurumaRiverRoute =
+  JournalLifeAlongTheNdurumaRiverRouteImport.update({
+    id: '/life-along-the-nduruma-river',
+    path: '/life-along-the-nduruma-river',
+    getParentRoute: () => JournalRoute,
+  } as any)
 const JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute =
   JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRouteImport.update(
     {
@@ -156,6 +200,12 @@ const JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute =
       getParentRoute: () => JournalRoute,
     } as any,
   )
+const JournalBuildingWithTheCommunityRoute =
+  JournalBuildingWithTheCommunityRouteImport.update({
+    id: '/building-with-the-community',
+    path: '/building-with-the-community',
+    getParentRoute: () => JournalRoute,
+  } as any)
 const JournalAMorningWithTheBeekeepersOfGombaRoute =
   JournalAMorningWithTheBeekeepersOfGombaRouteImport.update({
     id: '/a-morning-with-the-beekeepers-of-gomba',
@@ -165,20 +215,28 @@ const JournalAMorningWithTheBeekeepersOfGombaRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about-us': typeof AboutUsRoute
+  '/accommodations': typeof AccommodationsRoute
+  '/amenities-activities': typeof AmenitiesActivitiesRoute
   '/book': typeof BookRoute
+  '/booking-form': typeof BookingFormRoute
   '/contact': typeof ContactRoute
   '/dining': typeof DiningRoute
+  '/dining-leisure': typeof DiningLeisureRoute
   '/experiences': typeof ExperiencesRoute
   '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
   '/rooms': typeof RoomsRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
+  '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
+  '/journal/life-along-the-nduruma-river': typeof JournalLifeAlongTheNdurumaRiverRoute
   '/journal/perfect-arusha-stay-for-safari-travelers-2026': typeof JournalPerfectArushaStayForSafariTravelers2026Route
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
@@ -191,18 +249,26 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about-us': typeof AboutUsRoute
+  '/accommodations': typeof AccommodationsRoute
+  '/amenities-activities': typeof AmenitiesActivitiesRoute
   '/book': typeof BookRoute
+  '/booking-form': typeof BookingFormRoute
   '/contact': typeof ContactRoute
   '/dining': typeof DiningRoute
+  '/dining-leisure': typeof DiningLeisureRoute
   '/experiences': typeof ExperiencesRoute
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
+  '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
+  '/journal/life-along-the-nduruma-river': typeof JournalLifeAlongTheNdurumaRiverRoute
   '/journal/perfect-arusha-stay-for-safari-travelers-2026': typeof JournalPerfectArushaStayForSafariTravelers2026Route
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
@@ -216,20 +282,28 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about-us': typeof AboutUsRoute
+  '/accommodations': typeof AccommodationsRoute
+  '/amenities-activities': typeof AmenitiesActivitiesRoute
   '/book': typeof BookRoute
+  '/booking-form': typeof BookingFormRoute
   '/contact': typeof ContactRoute
   '/dining': typeof DiningRoute
+  '/dining-leisure': typeof DiningLeisureRoute
   '/experiences': typeof ExperiencesRoute
   '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
   '/rooms': typeof RoomsRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
+  '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
+  '/journal/life-along-the-nduruma-river': typeof JournalLifeAlongTheNdurumaRiverRoute
   '/journal/perfect-arusha-stay-for-safari-travelers-2026': typeof JournalPerfectArushaStayForSafariTravelers2026Route
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
@@ -244,20 +318,28 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about-us'
+    | '/accommodations'
+    | '/amenities-activities'
     | '/book'
+    | '/booking-form'
     | '/contact'
     | '/dining'
+    | '/dining-leisure'
     | '/experiences'
     | '/journal'
     | '/lodge'
     | '/plan'
     | '/pricing'
     | '/rooms'
+    | '/sitemap.xml'
     | '/suites'
     | '/terms'
     | '/vote'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
+    | '/journal/building-with-the-community'
     | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
+    | '/journal/life-along-the-nduruma-river'
     | '/journal/perfect-arusha-stay-for-safari-travelers-2026'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
@@ -270,18 +352,26 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about-us'
+    | '/accommodations'
+    | '/amenities-activities'
     | '/book'
+    | '/booking-form'
     | '/contact'
     | '/dining'
+    | '/dining-leisure'
     | '/experiences'
     | '/lodge'
     | '/plan'
     | '/pricing'
+    | '/sitemap.xml'
     | '/suites'
     | '/terms'
     | '/vote'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
+    | '/journal/building-with-the-community'
     | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
+    | '/journal/life-along-the-nduruma-river'
     | '/journal/perfect-arusha-stay-for-safari-travelers-2026'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
@@ -294,20 +384,28 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about-us'
+    | '/accommodations'
+    | '/amenities-activities'
     | '/book'
+    | '/booking-form'
     | '/contact'
     | '/dining'
+    | '/dining-leisure'
     | '/experiences'
     | '/journal'
     | '/lodge'
     | '/plan'
     | '/pricing'
     | '/rooms'
+    | '/sitemap.xml'
     | '/suites'
     | '/terms'
     | '/vote'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
+    | '/journal/building-with-the-community'
     | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
+    | '/journal/life-along-the-nduruma-river'
     | '/journal/perfect-arusha-stay-for-safari-travelers-2026'
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
@@ -321,15 +419,21 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutUsRoute: typeof AboutUsRoute
+  AccommodationsRoute: typeof AccommodationsRoute
+  AmenitiesActivitiesRoute: typeof AmenitiesActivitiesRoute
   BookRoute: typeof BookRoute
+  BookingFormRoute: typeof BookingFormRoute
   ContactRoute: typeof ContactRoute
   DiningRoute: typeof DiningRoute
+  DiningLeisureRoute: typeof DiningLeisureRoute
   ExperiencesRoute: typeof ExperiencesRoute
   JournalRoute: typeof JournalRouteWithChildren
   LodgeRoute: typeof LodgeRoute
   PlanRoute: typeof PlanRoute
   PricingRoute: typeof PricingRoute
   RoomsRoute: typeof RoomsRouteWithChildren
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SuitesRoute: typeof SuitesRoute
   TermsRoute: typeof TermsRoute
   VoteRoute: typeof VoteRoute
@@ -356,6 +460,13 @@ declare module '@tanstack/react-router' {
       path: '/suites'
       fullPath: '/suites'
       preLoaderRoute: typeof SuitesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rooms': {
@@ -400,6 +511,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExperiencesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dining-leisure': {
+      id: '/dining-leisure'
+      path: '/dining-leisure'
+      fullPath: '/dining-leisure'
+      preLoaderRoute: typeof DiningLeisureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dining': {
       id: '/dining'
       path: '/dining'
@@ -414,11 +532,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/booking-form': {
+      id: '/booking-form'
+      path: '/booking-form'
+      fullPath: '/booking-form'
+      preLoaderRoute: typeof BookingFormRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/book': {
       id: '/book'
       path: '/book'
       fullPath: '/book'
       preLoaderRoute: typeof BookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/amenities-activities': {
+      id: '/amenities-activities'
+      path: '/amenities-activities'
+      fullPath: '/amenities-activities'
+      preLoaderRoute: typeof AmenitiesActivitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/accommodations': {
+      id: '/accommodations'
+      path: '/accommodations'
+      fullPath: '/accommodations'
+      preLoaderRoute: typeof AccommodationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about-us': {
+      id: '/about-us'
+      path: '/about-us'
+      fullPath: '/about-us'
+      preLoaderRoute: typeof AboutUsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -491,11 +637,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JournalPerfectArushaStayForSafariTravelers2026RouteImport
       parentRoute: typeof JournalRoute
     }
+    '/journal/life-along-the-nduruma-river': {
+      id: '/journal/life-along-the-nduruma-river'
+      path: '/life-along-the-nduruma-river'
+      fullPath: '/journal/life-along-the-nduruma-river'
+      preLoaderRoute: typeof JournalLifeAlongTheNdurumaRiverRouteImport
+      parentRoute: typeof JournalRoute
+    }
     '/journal/discovering-arusha-through-nature-and-authentic-hospitality': {
       id: '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
       path: '/discovering-arusha-through-nature-and-authentic-hospitality'
       fullPath: '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
       preLoaderRoute: typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRouteImport
+      parentRoute: typeof JournalRoute
+    }
+    '/journal/building-with-the-community': {
+      id: '/journal/building-with-the-community'
+      path: '/building-with-the-community'
+      fullPath: '/journal/building-with-the-community'
+      preLoaderRoute: typeof JournalBuildingWithTheCommunityRouteImport
       parentRoute: typeof JournalRoute
     }
     '/journal/a-morning-with-the-beekeepers-of-gomba': {
@@ -510,7 +670,9 @@ declare module '@tanstack/react-router' {
 
 interface JournalRouteChildren {
   JournalAMorningWithTheBeekeepersOfGombaRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRoute
+  JournalBuildingWithTheCommunityRoute: typeof JournalBuildingWithTheCommunityRoute
   JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute: typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
+  JournalLifeAlongTheNdurumaRiverRoute: typeof JournalLifeAlongTheNdurumaRiverRoute
   JournalPerfectArushaStayForSafariTravelers2026Route: typeof JournalPerfectArushaStayForSafariTravelers2026Route
   JournalReadingTheSkyOverMountMeruRoute: typeof JournalReadingTheSkyOverMountMeruRoute
   JournalTheArchitectureOfDisappearingRoute: typeof JournalTheArchitectureOfDisappearingRoute
@@ -521,8 +683,10 @@ interface JournalRouteChildren {
 const JournalRouteChildren: JournalRouteChildren = {
   JournalAMorningWithTheBeekeepersOfGombaRoute:
     JournalAMorningWithTheBeekeepersOfGombaRoute,
+  JournalBuildingWithTheCommunityRoute: JournalBuildingWithTheCommunityRoute,
   JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute:
     JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute,
+  JournalLifeAlongTheNdurumaRiverRoute: JournalLifeAlongTheNdurumaRiverRoute,
   JournalPerfectArushaStayForSafariTravelers2026Route:
     JournalPerfectArushaStayForSafariTravelers2026Route,
   JournalReadingTheSkyOverMountMeruRoute:
@@ -555,15 +719,21 @@ const RoomsRouteWithChildren = RoomsRoute._addFileChildren(RoomsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutUsRoute: AboutUsRoute,
+  AccommodationsRoute: AccommodationsRoute,
+  AmenitiesActivitiesRoute: AmenitiesActivitiesRoute,
   BookRoute: BookRoute,
+  BookingFormRoute: BookingFormRoute,
   ContactRoute: ContactRoute,
   DiningRoute: DiningRoute,
+  DiningLeisureRoute: DiningLeisureRoute,
   ExperiencesRoute: ExperiencesRoute,
   JournalRoute: JournalRouteWithChildren,
   LodgeRoute: LodgeRoute,
   PlanRoute: PlanRoute,
   PricingRoute: PricingRoute,
   RoomsRoute: RoomsRouteWithChildren,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   SuitesRoute: SuitesRoute,
   TermsRoute: TermsRoute,
   VoteRoute: VoteRoute,

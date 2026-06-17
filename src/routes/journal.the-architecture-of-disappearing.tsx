@@ -12,7 +12,7 @@ const RELATED = [
   { to: "/lodge", label: "About Mtoni River Lodge", description: "How the lodge was designed to disappear into the riverbank." },
   { to: "/rooms", label: "The Boma-Inspired Rooms", description: "Tour the twelve riverfront suites shaped by this tradition." },
   { to: "/rooms/standard-river", label: "Standard River Rooms", description: "Compact earth-and-thatch sanctuaries closest to the water." },
-  { to: "/journal/reading-the-sky-over-mount-meru", label: "Building With the Community", description: "On the craftspeople who shaped every wall, beam, and bead at Mtoni." },
+  { to: "/journal/building-with-the-community", label: "Building With the Community", description: "On the craftspeople who shaped every wall, beam, and bead at Mtoni." },
   { to: "/journal/what-the-river-has-taught-us-about-time", label: "What the River Has Taught Us About Time", description: "A quieter companion piece on the rhythm the architecture serves." },
 ];
 
