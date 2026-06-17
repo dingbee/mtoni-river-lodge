@@ -73,6 +73,9 @@ function VotePage() {
 
         <div className="relative z-10 mx-auto flex h-full max-w-[1300px] flex-col items-center justify-center px-6 pb-16 pt-[120px] text-center text-ivory lg:px-12">
           <Reveal>
+            <Breadcrumbs variant="light" className="mb-6 justify-center" />
+          </Reveal>
+          <Reveal>
             <AwardBadge />
           </Reveal>
 
