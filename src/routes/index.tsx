@@ -358,9 +358,6 @@ function HomePage() {
         </div>
       </section>
 
-      {/* GUEST REVIEWS & RECOGNITION — Tripadvisor Excellent widget */}
-      <TrustedByGuestsSection />
-
       {/* GUEST EXPERIENCES — featured reviews grouped by category */}
       <GuestExperiencesSection />
 
