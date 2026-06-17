@@ -9,8 +9,8 @@ export type JournalPostHref =
   | "/journal/perfect-arusha-stay-for-safari-travelers-2026"
   | "/journal/discovering-arusha-through-nature-and-authentic-hospitality"
   | "/journal/what-the-river-has-taught-us-about-time"
-  | "/journal/a-morning-with-the-beekeepers-of-gomba"
-  | "/journal/reading-the-sky-over-mount-meru"
+  | "/journal/life-along-the-nduruma-river"
+  | "/journal/building-with-the-community"
   | "/journal/the-architecture-of-disappearing";
 
 export type JournalPost = {
@@ -76,7 +76,7 @@ const POSTS: JournalPost[] = [
     excerpt:
       "Farming traditions, irrigation streams, and the green heart of Mtoni — where ox-ploughed fields and river-fed gardens shape daily life.",
     img: ndurumaGrove,
-    href: "/journal/a-morning-with-the-beekeepers-of-gomba",
+    href: "/journal/life-along-the-nduruma-river",
   },
   {
     publishedAt: "2026-01-01",
@@ -87,7 +87,7 @@ const POSTS: JournalPost[] = [
     excerpt:
       "Employment, infrastructure, and shared growth — how Mtoni contributes to the people and ecosystems that surround it.",
     img: guide,
-    href: "/journal/reading-the-sky-over-mount-meru",
+    href: "/journal/building-with-the-community",
   },
   {
     publishedAt: "2025-12-01",
