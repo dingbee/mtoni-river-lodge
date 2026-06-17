@@ -26,7 +26,7 @@ const WHATSAPP_NUMBER = "255752441443";
 
 const ROOM_OPTIONS = [
   "Deluxe Room",
-  "River Suite",
+  "Riverfront Deluxe Room",
   "Family Room",
   "Honeymoon Stay",
   "Not Sure Yet",
