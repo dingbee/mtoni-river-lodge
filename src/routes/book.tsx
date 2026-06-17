@@ -131,6 +131,7 @@ function BookPage() {
       <SiteHeader />
       <BreadcrumbsBar />
       <TrustBar variant="subtle" compact />
+      <BookingTrustBlock />
       <main className="pt-10 lg:pt-14">
         <section className="mx-auto w-full max-w-[960px] px-4 pb-24 lg:px-12">
           <div className="mb-10 text-center">
@@ -141,8 +142,6 @@ function BookPage() {
             <h1 className="mt-5 font-display text-3xl leading-tight lg:text-5xl">Reserve Your Stay</h1>
             <Stepper step={step} />
           </div>
-
-          {step === "search" && <div className="mb-10"><BookingTrustBlock /></div>}
 
           {step === "search" && (
             <SearchStep
