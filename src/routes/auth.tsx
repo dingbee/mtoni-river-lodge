@@ -14,6 +14,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -24,6 +25,23 @@ function AuthPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    if (mode === "signup") {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/admin/bookings` },
+      });
+      setLoading(false);
+      if (error) return toast.error(error.message);
+      if (data.session) {
+        toast.success("Account created. You are signed in.");
+        navigate({ to: "/admin/bookings" });
+      } else {
+        toast.success("Account created. Check your email to confirm, then sign in.");
+        setMode("signin");
+      }
+      return;
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return toast.error(error.message);
@@ -37,7 +55,7 @@ function AuthPage() {
           <Leaf className="h-3 w-3" style={{ color: "#427A43" }} /> Staff Portal
         </p>
         <h1 className="mt-3 font-display text-2xl">Sign in</h1>
-        <p className="mt-1 text-xs text-charcoal/60">Reservations &amp; admin access only.</p>
+        <p className="mt-1 text-xs text-charcoal/60">{mode === "signup" ? "Create the first staff account." : "Reservations & admin access only."}</p>
         <div className="mt-6 space-y-4">
           <div>
             <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">Email</label>
@@ -49,7 +67,14 @@ function AuthPage() {
           </div>
         </div>
         <button disabled={loading} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60" style={{ background: "linear-gradient(135deg, #346739 0%, #427A43 100%)" }}>
-          {loading && <Loader2 className="h-4 w-4 animate-spin" />} Sign in
+          {loading && <Loader2 className="h-4 w-4 animate-spin" />} {mode === "signup" ? "Create account" : "Sign in"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
+          className="mt-4 block w-full text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/70 hover:text-charcoal"
+        >
+          {mode === "signup" ? "Already have an account? Sign in" : "First-time setup? Create account"}
         </button>
         <Link to="/" className="mt-4 block text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal">← Back to website</Link>
       </form>
