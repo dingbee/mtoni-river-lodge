@@ -320,6 +320,8 @@ function GuestStep(props: {
   onBack: () => void; onSubmit: () => void;
 }) {
   const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: props.room.currency, maximumFractionDigits: 0 }).format(n);
+  const deposit = Math.round(props.grandTotal * 0.3);
+  const balance = props.grandTotal - deposit;
   const toggleExtra = (slug: string) => {
     const existing = props.selectedExtras.find((s) => s.slug === slug);
     if (existing) props.setSelectedExtras(props.selectedExtras.filter((s) => s.slug !== slug));
@@ -374,6 +376,8 @@ function GuestStep(props: {
           <div className="flex justify-between"><span>Room</span><span>{fmt(Number(props.room.nightly_total))}</span></div>
           {props.extrasTotal > 0 && <div className="flex justify-between"><span>Extras</span><span>{fmt(props.extrasTotal)}</span></div>}
           <div className="flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(props.grandTotal)}</span></div>
+          <div className="flex justify-between text-charcoal/70"><span>Deposit (30%)</span><span>{fmt(deposit)}</span></div>
+          <div className="flex justify-between text-charcoal/70"><span>Balance on arrival</span><span>{fmt(balance)}</span></div>
         </div>
         <button
           onClick={props.onSubmit} disabled={props.submitting}
@@ -410,6 +414,8 @@ function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guest
         <div className="mt-2 flex justify-between"><span className="text-charcoal/60">Check-out</span><span>{checkOut}</span></div>
         <div className="mt-2 flex justify-between"><span className="text-charcoal/60">Nights</span><span>{nights}</span></div>
         <div className="mt-3 flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(confirmation.total)}</span></div>
+        <div className="mt-2 flex justify-between text-charcoal/70"><span>Deposit (30%)</span><span>{fmt(Math.round(confirmation.total * 0.3))}</span></div>
+        <div className="mt-1 flex justify-between text-charcoal/70"><span>Balance on arrival</span><span>{fmt(confirmation.total - Math.round(confirmation.total * 0.3))}</span></div>
       </div>
       <p className="mt-6 text-xs text-charcoal/55">Status: <span className="font-medium text-charcoal">Pending</span> — our team will reach out within 24 hours to finalise payment.</p>
     </div>
