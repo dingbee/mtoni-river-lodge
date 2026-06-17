@@ -75,7 +75,11 @@ export const updateBookingStatus = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertStaff(context.supabase, context.userId);
-    const patch: Record<string, unknown> = { status: data.status };
+    const patch: {
+      status: typeof data.status;
+      confirmed_at?: string;
+      cancelled_at?: string;
+    } = { status: data.status };
     if (data.status === "confirmed") patch.confirmed_at = new Date().toISOString();
     if (data.status === "cancelled") patch.cancelled_at = new Date().toISOString();
     const { error } = await context.supabase.from("bookings").update(patch).eq("id", data.id);
