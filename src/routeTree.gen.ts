@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VoteRouteImport } from './routes/vote'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SuitesRouteImport } from './routes/suites'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as RoomsRouteImport } from './routes/rooms'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PlanRouteImport } from './routes/plan'
@@ -55,11 +54,6 @@ const TermsRoute = TermsRouteImport.update({
 const SuitesRoute = SuitesRouteImport.update({
   id: '/suites',
   path: '/suites',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RoomsRoute = RoomsRouteImport.update({
@@ -229,7 +223,6 @@ export interface FileRoutesByFullPath {
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
   '/rooms': typeof RoomsRouteWithChildren
-  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
@@ -261,7 +254,6 @@ export interface FileRoutesByTo {
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
@@ -296,7 +288,6 @@ export interface FileRoutesById {
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
   '/rooms': typeof RoomsRouteWithChildren
-  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
@@ -332,7 +323,6 @@ export interface FileRouteTypes {
     | '/plan'
     | '/pricing'
     | '/rooms'
-    | '/sitemap.xml'
     | '/suites'
     | '/terms'
     | '/vote'
@@ -364,7 +354,6 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/plan'
     | '/pricing'
-    | '/sitemap.xml'
     | '/suites'
     | '/terms'
     | '/vote'
@@ -398,7 +387,6 @@ export interface FileRouteTypes {
     | '/plan'
     | '/pricing'
     | '/rooms'
-    | '/sitemap.xml'
     | '/suites'
     | '/terms'
     | '/vote'
@@ -433,7 +421,6 @@ export interface RootRouteChildren {
   PlanRoute: typeof PlanRoute
   PricingRoute: typeof PricingRoute
   RoomsRoute: typeof RoomsRouteWithChildren
-  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SuitesRoute: typeof SuitesRoute
   TermsRoute: typeof TermsRoute
   VoteRoute: typeof VoteRoute
@@ -460,13 +447,6 @@ declare module '@tanstack/react-router' {
       path: '/suites'
       fullPath: '/suites'
       preLoaderRoute: typeof SuitesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rooms': {
@@ -733,7 +713,6 @@ const rootRouteChildren: RootRouteChildren = {
   PlanRoute: PlanRoute,
   PricingRoute: PricingRoute,
   RoomsRoute: RoomsRouteWithChildren,
-  SitemapDotxmlRoute: SitemapDotxmlRoute,
   SuitesRoute: SuitesRoute,
   TermsRoute: TermsRoute,
   VoteRoute: VoteRoute,
