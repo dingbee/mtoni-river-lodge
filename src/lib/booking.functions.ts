@@ -102,9 +102,9 @@ export const createBooking = createServerFn({ method: "POST" })
       _children: data.children,
       _guest_name: data.guestName,
       _guest_email: data.guestEmail,
-      _guest_phone: data.guestPhone || null,
-      _country: data.country || null,
-      _special_requests: data.specialRequests || null,
+      _guest_phone: (data.guestPhone || null) as unknown as string,
+      _country: (data.country || null) as unknown as string,
+      _special_requests: (data.specialRequests || null) as unknown as string,
       _extras: data.extras,
     });
     if (error) throw new Error(error.message);
