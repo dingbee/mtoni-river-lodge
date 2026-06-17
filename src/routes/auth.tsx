@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Leaf } from "lucide-react";
 import { toast } from "sonner";
+import { adminExists } from "@/lib/auth-setup.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Staff Sign In — Mtoni River Lodge" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -15,6 +16,8 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [signupAllowed, setSignupAllowed] = useState(false);
+  const [checkingSetup, setCheckingSetup] = useState(true);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -22,10 +25,29 @@ function AuthPage() {
     });
   }, [navigate]);
 
+  useEffect(() => {
+    let cancelled = false;
+    adminExists()
+      .then((r) => {
+        if (cancelled) return;
+        setSignupAllowed(!r.adminExists);
+        if (r.adminExists) setMode("signin");
+      })
+      .catch(() => {})
+      .finally(() => !cancelled && setCheckingSetup(false));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     if (mode === "signup") {
+      if (!signupAllowed) {
+        setLoading(false);
+        return toast.error("Signup is disabled. An admin account already exists.");
+      }
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -69,13 +91,15 @@ function AuthPage() {
         <button disabled={loading} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60" style={{ background: "linear-gradient(135deg, #346739 0%, #427A43 100%)" }}>
           {loading && <Loader2 className="h-4 w-4 animate-spin" />} {mode === "signup" ? "Create account" : "Sign in"}
         </button>
-        <button
-          type="button"
-          onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
-          className="mt-4 block w-full text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/70 hover:text-charcoal"
-        >
-          {mode === "signup" ? "Already have an account? Sign in" : "First-time setup? Create account"}
-        </button>
+        {!checkingSetup && signupAllowed && (
+          <button
+            type="button"
+            onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
+            className="mt-4 block w-full text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/70 hover:text-charcoal"
+          >
+            {mode === "signup" ? "Already have an account? Sign in" : "First-time setup? Create account"}
+          </button>
+        )}
         <Link to="/" className="mt-4 block text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal">← Back to website</Link>
       </form>
     </div>
