@@ -173,6 +173,15 @@ function AdminBookings() {
                   <div><span className="text-charcoal/60">Children: </span>{detail.data.booking.children}</div>
                   <div><span className="text-charcoal/60">Country: </span>{detail.data.booking.country ?? "—"}</div>
                   <div><span className="text-charcoal/60">Payment: </span>{detail.data.booking.payment_status}</div>
+                  {detail.data.booking.payment_method && (
+                    <div><span className="text-charcoal/60">Method: </span>{detail.data.booking.payment_method}</div>
+                  )}
+                  {detail.data.booking.pesapal_order_tracking_id && (
+                    <div className="sm:col-span-2"><span className="text-charcoal/60">Pesapal ref: </span><span className="font-mono text-xs">{detail.data.booking.pesapal_order_tracking_id}</span></div>
+                  )}
+                  {detail.data.booking.payment_completed_at && (
+                    <div><span className="text-charcoal/60">Paid at: </span>{new Date(detail.data.booking.payment_completed_at).toLocaleString()}</div>
+                  )}
                 </div>
 
                 {detail.data.booking.special_requests && (
@@ -206,8 +215,8 @@ function AdminBookings() {
                   <span className="text-charcoal/60">Subtotal</span><span className="text-right">{fmt(Number(detail.data.booking.subtotal), detail.data.booking.currency)}</span>
                   <span className="text-charcoal/60">Extras</span><span className="text-right">{fmt(Number(detail.data.booking.extras_total), detail.data.booking.currency)}</span>
                   <span className="font-display text-base">Total</span><span className="text-right font-display text-base">{fmt(Number(detail.data.booking.total), detail.data.booking.currency)}</span>
-                  <span className="text-charcoal/60">Deposit (30%)</span><span className="text-right">{fmt(Math.round(Number(detail.data.booking.total) * 0.3), detail.data.booking.currency)}</span>
-                  <span className="text-charcoal/60">Balance</span><span className="text-right">{fmt(Number(detail.data.booking.total) - Math.round(Number(detail.data.booking.total) * 0.3), detail.data.booking.currency)}</span>
+                  <span className="text-charcoal/60">Deposit (50%)</span><span className="text-right">{fmt(Number(detail.data.booking.deposit_amount ?? Number(detail.data.booking.total) * 0.5), detail.data.booking.currency)}</span>
+                  <span className="text-charcoal/60">Balance (at check-in)</span><span className="text-right">{fmt(Number(detail.data.booking.balance_amount ?? Number(detail.data.booking.total) * 0.5), detail.data.booking.currency)}</span>
                 </div>
 
                 <div className="mt-6">
