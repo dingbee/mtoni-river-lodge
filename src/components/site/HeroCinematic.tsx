@@ -5,6 +5,15 @@ import { Reveal } from "@/components/site/Reveal";
 
 type Source = { src: string; type: string };
 
+export type HeroPoster = {
+  src: string;
+  alt: string;
+  /** Optional WebP variant at ~800w for mobile. */
+  webp800?: string;
+  /** Optional WebP variant at ~1600w for desktop. */
+  webp1600?: string;
+};
+
 type Props = {
   /** Video sources — drop files into public/videos/. First supported type wins. */
   sources?: Source[];
@@ -12,7 +21,7 @@ type Props = {
   poster: string;
   posterAlt: string;
   /** Optional additional posters to cross-fade with the primary poster. */
-  posters?: { src: string; alt: string }[];
+  posters?: HeroPoster[];
   /** Seconds each slide is shown before dissolving. */
   slideDurationMs?: number;
 };
@@ -37,7 +46,7 @@ export function HeroCinematic({
 }: Props) {
   const slides = (posters && posters.length > 0
     ? posters
-    : [{ src: poster, alt: posterAlt }]);
+    : [{ src: poster, alt: posterAlt } as HeroPoster]);
   const [activeSlide, setActiveSlide] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
@@ -47,6 +56,20 @@ export function HeroCinematic({
   const [offset, setOffset] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [tabVisible, setTabVisible] = useState(true);
+  // Defer mounting non-first slides until after the page has loaded so the
+  // mobile LCP isn't competing with extra image downloads.
+  const [mountRest, setMountRest] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (document.readyState === "complete") {
+      const id = window.setTimeout(() => setMountRest(true), 400);
+      return () => window.clearTimeout(id);
+    }
+    const onLoad = () => window.setTimeout(() => setMountRest(true), 400);
+    window.addEventListener("load", onLoad, { once: true });
+    return () => window.removeEventListener("load", onLoad);
+  }, []);
 
   // Respect reduced motion
   useEffect(() => {
@@ -144,21 +167,39 @@ export function HeroCinematic({
         style={{ transform: `translate3d(0, ${offset}px, 0) scale(1.06)` }}
       >
         {/* Posters — cross-fade between multiple signature atmospheres */}
-        {slides.map((s, i) => (
-          <img
-            key={s.src}
-            src={s.src}
-            alt={s.alt}
-            className={`ken-burns absolute inset-0 h-full w-full object-cover transition-opacity duration-[2000ms] ease-in-out ${
-              i === activeSlide ? "opacity-100" : "opacity-0"
-            }`}
-            width={1920}
-            height={1080}
-            loading={i === 0 ? "eager" : "lazy"}
-            decoding="async"
-            fetchPriority={i === 0 ? "high" : "low"}
-          />
-        ))}
+        {slides.map((s, i) => {
+          // Only the first slide renders on first paint; the rest mount after
+          // window.load to avoid stealing bandwidth from the LCP image.
+          if (i !== 0 && !mountRest) return null;
+          const srcSet = s.webp800 || s.webp1600
+            ? [s.webp800 ? `${s.webp800} 800w` : null, s.webp1600 ? `${s.webp1600} 1600w` : null]
+                .filter(Boolean)
+                .join(", ")
+            : undefined;
+          return (
+            <picture key={s.src}>
+              {srcSet && (
+                <source
+                  type="image/webp"
+                  srcSet={srcSet}
+                  sizes="100vw"
+                />
+              )}
+              <img
+                src={s.src}
+                alt={s.alt}
+                className={`ken-burns absolute inset-0 h-full w-full object-cover transition-opacity duration-[2000ms] ease-in-out ${
+                  i === activeSlide ? "opacity-100" : "opacity-0"
+                }`}
+                width={1920}
+                height={1080}
+                loading={i === 0 ? "eager" : "lazy"}
+                decoding="async"
+                fetchPriority={i === 0 ? "high" : "low"}
+              />
+            </picture>
+          );
+        })}
         {!reduceMotion && (
           <video
             ref={videoRef}
