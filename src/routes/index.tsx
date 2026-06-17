@@ -13,6 +13,12 @@ import heroImg from "@/assets/hero-river.jpg";
 import lodgeHeroImg from "@/assets/lodge-hero-aerial.jpg";
 import cottageHeroImg from "@/assets/hero-cottage-exterior.jpg";
 import receptionHeroImg from "@/assets/hero-reception-interior.jpg";
+import heroImg800 from "@/assets/hero-river-800w.webp";
+import heroImg1600 from "@/assets/hero-river-1600w.webp";
+import cottageHero800 from "@/assets/hero-cottage-exterior-800w.webp";
+import cottageHero1600 from "@/assets/hero-cottage-exterior-1600w.webp";
+import receptionHero800 from "@/assets/hero-reception-interior-800w.webp";
+import receptionHero1600 from "@/assets/hero-reception-interior-1600w.webp";
 import suiteImg from "@/assets/suite-interior.jpg";
 import diningImg from "@/assets/dining.jpg";
 import aerialImg from "@/assets/aerial-lodge.jpg";
@@ -33,6 +39,20 @@ export const Route = createFileRoute("/")({
        { name: "description", content: "An intimate luxury eco-lodge on the banks of the Nduruma River. Twelve riverfront rooms, fireside dining, and curated journeys into the heart of Tanzania." },
       { property: "og:image", content: heroImg },
     ],
+    links: [
+      // Preload the LCP hero image; the browser picks the matching variant
+      // via the imagesrcset + media query, so mobile fetches ~35 KB instead
+      // of the full-res JPG.
+      {
+        rel: "preload",
+        as: "image",
+        href: heroImg800,
+        type: "image/webp",
+        imagesrcset: `${heroImg800} 800w, ${heroImg1600} 1600w`,
+        imagesizes: "100vw",
+        fetchpriority: "high",
+      },
+    ],
   }),
   component: HomePage,
 });
@@ -46,9 +66,24 @@ function HomePage() {
         poster={heroImg}
         posterAlt="Mist over the Nduruma River at dawn with Mount Meru in the distance"
         posters={[
-          { src: heroImg, alt: "Mist over the Nduruma River at dawn with Mount Meru in the distance" },
-          { src: cottageHeroImg, alt: "A thatched riverfront cottage at Mtoni River Lodge nestled among forest greenery" },
-          { src: receptionHeroImg, alt: "Warm stone reception interior at Mtoni River Lodge with arched doorways and a beaded chandelier" },
+          {
+            src: heroImg,
+            webp800: heroImg800,
+            webp1600: heroImg1600,
+            alt: "Mist over the Nduruma River at dawn with Mount Meru in the distance",
+          },
+          {
+            src: cottageHeroImg,
+            webp800: cottageHero800,
+            webp1600: cottageHero1600,
+            alt: "A thatched riverfront cottage at Mtoni River Lodge nestled among forest greenery",
+          },
+          {
+            src: receptionHeroImg,
+            webp800: receptionHero800,
+            webp1600: receptionHero1600,
+            alt: "Warm stone reception interior at Mtoni River Lodge with arched doorways and a beaded chandelier",
+          },
         ]}
         slideDurationMs={7000}
       />
