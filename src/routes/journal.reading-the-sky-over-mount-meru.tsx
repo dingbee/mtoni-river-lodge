@@ -40,6 +40,7 @@ function ArticlePage() {
       image={guide}
       imageAlt="A Maasai elder in a red shuka standing at the edge of the Nduruma River"
       caption="A neighbour by the river — photograph by the lodge"
+      relatedReading={RELATED}
     >
       <Reveal>
         <p>
