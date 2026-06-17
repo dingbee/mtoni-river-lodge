@@ -1,5 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter } from "@tanstack/react-router";
 import { useRef, useEffect } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 declare global {
   interface Window {
@@ -35,6 +36,12 @@ function NotFoundComponent() {
     </div>
   );
 }
+
+const fallbackQueryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 60 * 1000, refetchOnWindowFocus: false },
+  },
+});
 
 export const Route = createRootRoute({
   head: () => ({
@@ -213,12 +220,12 @@ function GoogleAnalytics() {
 
 function RootComponent() {
   return (
-    <>
+    <QueryClientProvider client={fallbackQueryClient}>
       <Outlet />
       <BackToTop />
       <TawkToWidget />
       <GoogleAnalytics />
       <Toaster position="top-center" richColors />
-    </>
+    </QueryClientProvider>
   );
 }
