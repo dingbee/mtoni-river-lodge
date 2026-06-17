@@ -64,7 +64,10 @@ const discoveryGroups: Array<{
   },
   {
     title: "Policies",
-    links: [{ label: "Terms & Conditions", to: "/terms" }],
+    links: [
+      { label: "Terms & Conditions", to: "/terms" },
+      { label: "Privacy Policy", to: "/privacy" },
+    ],
   },
 ];
 

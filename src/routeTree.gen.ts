@@ -18,6 +18,7 @@ import { Route as SitemapJournalDotxmlRouteImport } from './routes/sitemap-journ
 import { Route as SitemapImagesDotxmlRouteImport } from './routes/sitemap-images[.]xml'
 import { Route as SitemapAccommodationDotxmlRouteImport } from './routes/sitemap-accommodation[.]xml'
 import { Route as RoomsRouteImport } from './routes/rooms'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PlanRouteImport } from './routes/plan'
 import { Route as LodgeRouteImport } from './routes/lodge'
@@ -90,6 +91,11 @@ const SitemapAccommodationDotxmlRoute =
 const RoomsRoute = RoomsRouteImport.update({
   id: '/rooms',
   path: '/rooms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -253,6 +259,7 @@ export interface FileRoutesByFullPath {
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/rooms': typeof RoomsRouteWithChildren
   '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
   '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
@@ -290,6 +297,7 @@ export interface FileRoutesByTo {
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
   '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
   '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
@@ -328,6 +336,7 @@ export interface FileRoutesById {
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/rooms': typeof RoomsRouteWithChildren
   '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
   '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
@@ -368,6 +377,7 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/plan'
     | '/pricing'
+    | '/privacy'
     | '/rooms'
     | '/sitemap-accommodation.xml'
     | '/sitemap-images.xml'
@@ -405,6 +415,7 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/plan'
     | '/pricing'
+    | '/privacy'
     | '/sitemap-accommodation.xml'
     | '/sitemap-images.xml'
     | '/sitemap-journal.xml'
@@ -442,6 +453,7 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/plan'
     | '/pricing'
+    | '/privacy'
     | '/rooms'
     | '/sitemap-accommodation.xml'
     | '/sitemap-images.xml'
@@ -481,6 +493,7 @@ export interface RootRouteChildren {
   LodgeRoute: typeof LodgeRoute
   PlanRoute: typeof PlanRoute
   PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
   RoomsRoute: typeof RoomsRouteWithChildren
   SitemapAccommodationDotxmlRoute: typeof SitemapAccommodationDotxmlRoute
   SitemapImagesDotxmlRoute: typeof SitemapImagesDotxmlRoute
@@ -555,6 +568,13 @@ declare module '@tanstack/react-router' {
       path: '/rooms'
       fullPath: '/rooms'
       preLoaderRoute: typeof RoomsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -813,6 +833,7 @@ const rootRouteChildren: RootRouteChildren = {
   LodgeRoute: LodgeRoute,
   PlanRoute: PlanRoute,
   PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
   RoomsRoute: RoomsRouteWithChildren,
   SitemapAccommodationDotxmlRoute: SitemapAccommodationDotxmlRoute,
   SitemapImagesDotxmlRoute: SitemapImagesDotxmlRoute,
