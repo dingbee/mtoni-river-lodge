@@ -59,6 +59,7 @@ export const PAGE_ENTRIES: PageEntry[] = [
   { path: "/book", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
   { path: "/contact", lastmod: TODAY, changefreq: "monthly", priority: "0.7" },
   { path: "/terms", lastmod: TODAY, changefreq: "yearly", priority: "0.3" },
+  { path: "/privacy", lastmod: TODAY, changefreq: "yearly", priority: "0.3" },
   { path: "/journal", lastmod: TODAY, changefreq: "weekly", priority: "0.8" },
 ];
 
