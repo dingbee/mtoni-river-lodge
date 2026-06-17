@@ -49,8 +49,10 @@ import { Route as JournalLifeAlongTheNdurumaRiverRouteImport } from './routes/jo
 import { Route as JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRouteImport } from './routes/journal.discovering-arusha-through-nature-and-authentic-hospitality'
 import { Route as JournalBuildingWithTheCommunityRouteImport } from './routes/journal.building-with-the-community'
 import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './routes/journal.a-morning-with-the-beekeepers-of-gomba'
+import { Route as BookingReturnRouteImport } from './routes/booking.return'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
 import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authenticated.admin.bookings'
+import { Route as ApiPublicPesapalIpnRouteImport } from './routes/api/public/pesapal.ipn'
 
 const VoteRoute = VoteRouteImport.update({
   id: '/vote',
@@ -262,6 +264,11 @@ const JournalAMorningWithTheBeekeepersOfGombaRoute =
     path: '/a-morning-with-the-beekeepers-of-gomba',
     getParentRoute: () => JournalRoute,
   } as any)
+const BookingReturnRoute = BookingReturnRouteImport.update({
+  id: '/booking/return',
+  path: '/booking/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminReviewsRoute =
   AuthenticatedAdminReviewsRouteImport.update({
     id: '/admin/reviews',
@@ -274,6 +281,11 @@ const AuthenticatedAdminBookingsRoute =
     path: '/admin/bookings',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicPesapalIpnRoute = ApiPublicPesapalIpnRouteImport.update({
+  id: '/api/public/pesapal/ipn',
+  path: '/api/public/pesapal/ipn',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -302,6 +314,7 @@ export interface FileRoutesByFullPath {
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
+  '/booking/return': typeof BookingReturnRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
@@ -317,6 +330,7 @@ export interface FileRoutesByFullPath {
   '/rooms/': typeof RoomsIndexRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -343,6 +357,7 @@ export interface FileRoutesByTo {
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
+  '/booking/return': typeof BookingReturnRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
@@ -358,6 +373,7 @@ export interface FileRoutesByTo {
   '/rooms': typeof RoomsIndexRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -388,6 +404,7 @@ export interface FileRoutesById {
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
+  '/booking/return': typeof BookingReturnRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
@@ -403,6 +420,7 @@ export interface FileRoutesById {
   '/rooms/': typeof RoomsIndexRoute
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -433,6 +451,7 @@ export interface FileRouteTypes {
     | '/suites'
     | '/terms'
     | '/vote'
+    | '/booking/return'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/building-with-the-community'
     | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
@@ -448,6 +467,7 @@ export interface FileRouteTypes {
     | '/rooms/'
     | '/admin/bookings'
     | '/admin/reviews'
+    | '/api/public/pesapal/ipn'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -474,6 +494,7 @@ export interface FileRouteTypes {
     | '/suites'
     | '/terms'
     | '/vote'
+    | '/booking/return'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/building-with-the-community'
     | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
@@ -489,6 +510,7 @@ export interface FileRouteTypes {
     | '/rooms'
     | '/admin/bookings'
     | '/admin/reviews'
+    | '/api/public/pesapal/ipn'
   id:
     | '__root__'
     | '/'
@@ -518,6 +540,7 @@ export interface FileRouteTypes {
     | '/suites'
     | '/terms'
     | '/vote'
+    | '/booking/return'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/building-with-the-community'
     | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
@@ -533,6 +556,7 @@ export interface FileRouteTypes {
     | '/rooms/'
     | '/_authenticated/admin/bookings'
     | '/_authenticated/admin/reviews'
+    | '/api/public/pesapal/ipn'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -563,6 +587,8 @@ export interface RootRouteChildren {
   SuitesRoute: typeof SuitesRoute
   TermsRoute: typeof TermsRoute
   VoteRoute: typeof VoteRoute
+  BookingReturnRoute: typeof BookingReturnRoute
+  ApiPublicPesapalIpnRoute: typeof ApiPublicPesapalIpnRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -847,6 +873,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRouteImport
       parentRoute: typeof JournalRoute
     }
+    '/booking/return': {
+      id: '/booking/return'
+      path: '/booking/return'
+      fullPath: '/booking/return'
+      preLoaderRoute: typeof BookingReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin/reviews': {
       id: '/_authenticated/admin/reviews'
       path: '/admin/reviews'
@@ -860,6 +893,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/bookings'
       preLoaderRoute: typeof AuthenticatedAdminBookingsRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/public/pesapal/ipn': {
+      id: '/api/public/pesapal/ipn'
+      path: '/api/public/pesapal/ipn'
+      fullPath: '/api/public/pesapal/ipn'
+      preLoaderRoute: typeof ApiPublicPesapalIpnRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -955,17 +995,9 @@ const rootRouteChildren: RootRouteChildren = {
   SuitesRoute: SuitesRoute,
   TermsRoute: TermsRoute,
   VoteRoute: VoteRoute,
+  BookingReturnRoute: BookingReturnRoute,
+  ApiPublicPesapalIpnRoute: ApiPublicPesapalIpnRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

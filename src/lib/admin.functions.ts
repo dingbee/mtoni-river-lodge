@@ -10,6 +10,7 @@ async function assertStaff(supabase: any, userId: string) {
 
 const listSchema = z.object({
   status: z.enum(["all", "pending", "confirmed", "cancelled", "completed", "no_show"]).default("all"),
+  paymentStatus: z.enum(["all", "unpaid", "deposit_paid", "paid", "refunded"]).default("all"),
   from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
@@ -21,10 +22,11 @@ export const listBookings = createServerFn({ method: "POST" })
     await assertStaff(context.supabase, context.userId);
     let q = context.supabase
       .from("bookings")
-      .select("id, reference, guest_name, guest_email, check_in, check_out, nights, adults, children, total, currency, status, payment_status, created_at, room_id")
+      .select("id, reference, guest_name, guest_email, check_in, check_out, nights, adults, children, total, deposit_amount, balance_amount, currency, status, payment_status, payment_method, created_at, room_id")
       .order("created_at", { ascending: false })
       .limit(200);
     if (data.status !== "all") q = q.eq("status", data.status);
+    if (data.paymentStatus !== "all") q = q.eq("payment_status", data.paymentStatus);
     if (data.from) q = q.gte("check_in", data.from);
     if (data.to) q = q.lte("check_in", data.to);
     const { data: rows, error } = await q;

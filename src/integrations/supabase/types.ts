@@ -104,6 +104,7 @@ export type Database = {
       bookings: {
         Row: {
           adults: number
+          balance_amount: number
           balance_due: number
           cancelled_at: string | null
           check_in: string
@@ -121,7 +122,14 @@ export type Database = {
           id: string
           nights: number
           notes: string | null
+          payment_completed_at: string | null
+          payment_failed_at: string | null
+          payment_initiated_at: string | null
+          payment_method: string | null
+          payment_provider: string
           payment_status: Database["public"]["Enums"]["payment_status"]
+          pesapal_merchant_reference: string | null
+          pesapal_order_tracking_id: string | null
           reference: string
           room_id: string
           source: string
@@ -134,6 +142,7 @@ export type Database = {
         }
         Insert: {
           adults?: number
+          balance_amount?: number
           balance_due?: number
           cancelled_at?: string | null
           check_in: string
@@ -151,7 +160,14 @@ export type Database = {
           id?: string
           nights: number
           notes?: string | null
+          payment_completed_at?: string | null
+          payment_failed_at?: string | null
+          payment_initiated_at?: string | null
+          payment_method?: string | null
+          payment_provider?: string
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          pesapal_merchant_reference?: string | null
+          pesapal_order_tracking_id?: string | null
           reference: string
           room_id: string
           source?: string
@@ -164,6 +180,7 @@ export type Database = {
         }
         Update: {
           adults?: number
+          balance_amount?: number
           balance_due?: number
           cancelled_at?: string | null
           check_in?: string
@@ -181,7 +198,14 @@ export type Database = {
           id?: string
           nights?: number
           notes?: string | null
+          payment_completed_at?: string | null
+          payment_failed_at?: string | null
+          payment_initiated_at?: string | null
+          payment_method?: string | null
+          payment_provider?: string
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          pesapal_merchant_reference?: string | null
+          pesapal_order_tracking_id?: string | null
           reference?: string
           room_id?: string
           source?: string
@@ -238,6 +262,83 @@ export type Database = {
           slug?: string
           sort_order?: number
           unit?: Database["public"]["Enums"]["extra_unit"]
+        }
+        Relationships: []
+      }
+      payment_events: {
+        Row: {
+          amount: number | null
+          booking_id: string | null
+          created_at: string
+          currency: string | null
+          event_type: string
+          id: string
+          merchant_reference: string | null
+          order_tracking_id: string | null
+          payment_method: string | null
+          provider: string
+          raw: Json | null
+          status_code: number | null
+        }
+        Insert: {
+          amount?: number | null
+          booking_id?: string | null
+          created_at?: string
+          currency?: string | null
+          event_type: string
+          id?: string
+          merchant_reference?: string | null
+          order_tracking_id?: string | null
+          payment_method?: string | null
+          provider?: string
+          raw?: Json | null
+          status_code?: number | null
+        }
+        Update: {
+          amount?: number | null
+          booking_id?: string | null
+          created_at?: string
+          currency?: string | null
+          event_type?: string
+          id?: string
+          merchant_reference?: string | null
+          order_tracking_id?: string | null
+          payment_method?: string | null
+          provider?: string
+          raw?: Json | null
+          status_code?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pesapal_settings: {
+        Row: {
+          created_at: string
+          env: string
+          ipn_id: string
+          ipn_url: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          env: string
+          ipn_id: string
+          ipn_url: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          env?: string
+          ipn_id?: string
+          ipn_url?: string
+          updated_at?: string
         }
         Relationships: []
       }

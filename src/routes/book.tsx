@@ -10,13 +10,14 @@ import { BreadcrumbsBar } from "@/components/site/Breadcrumbs";
 import { BookingTrustBlock } from "@/components/site/reviews/BookingTrustBlock";
 import { TrustBar } from "@/components/site/reviews/TrustBar";
 import { WHATSAPP_URL } from "@/lib/contact";
-import { trackContactClick } from "@/lib/analytics";
+import { trackContactClick, trackGAEvent } from "@/lib/analytics";
 import {
   checkAvailability,
   createBooking,
   listExtras,
   type AvailabilityRoom,
 } from "@/lib/booking.functions";
+import { initiatePayment } from "@/lib/payments.functions";
 
 export const Route = createFileRoute("/book")({
   head: () => ({
@@ -67,6 +68,7 @@ function BookPage() {
   const checkAvailabilityFn = useServerFn(checkAvailability);
   const listExtrasFn = useServerFn(listExtras);
   const createBookingFn = useServerFn(createBooking);
+  const initiatePaymentFn = useServerFn(initiatePayment);
 
   const search = useMutation({
     mutationFn: async () => {
@@ -88,7 +90,7 @@ function BookPage() {
   const submit = useMutation({
     mutationFn: async () => {
       if (!selectedRoom) throw new Error("Select a room first");
-      return createBookingFn({
+      const created = await createBookingFn({
         data: {
           roomSlug: selectedRoom.slug,
           checkIn,
@@ -103,9 +105,23 @@ function BookPage() {
           extras: selectedExtras,
         },
       });
+      trackGAEvent("begin_payment", {
+        transaction_id: created.reference,
+        currency: created.currency,
+        value: Math.round((created.total / 2) * 100) / 100,
+      });
+      const payment = await initiatePaymentFn({
+        data: { reference: created.reference, email: guest.email },
+      });
+      return { ...created, redirectUrl: payment.redirectUrl };
     },
     onSuccess: (res) => {
-      setConfirmation(res);
+      setConfirmation({ reference: res.reference, total: res.total, currency: res.currency });
+      // Redirect to Pesapal for deposit payment.
+      if (res.redirectUrl) {
+        window.location.href = res.redirectUrl;
+        return;
+      }
       setStep("confirmation");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -324,7 +340,7 @@ function GuestStep(props: {
   onBack: () => void; onSubmit: () => void;
 }) {
   const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: props.room.currency, maximumFractionDigits: 0 }).format(n);
-  const deposit = Math.round(props.grandTotal * 0.3);
+  const deposit = Math.round(props.grandTotal * 0.5);
   const balance = props.grandTotal - deposit;
   const toggleExtra = (slug: string) => {
     const existing = props.selectedExtras.find((s) => s.slug === slug);
@@ -380,8 +396,8 @@ function GuestStep(props: {
           <div className="flex justify-between"><span>Room</span><span>{fmt(Number(props.room.nightly_total))}</span></div>
           {props.extrasTotal > 0 && <div className="flex justify-between"><span>Extras</span><span>{fmt(props.extrasTotal)}</span></div>}
           <div className="flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(props.grandTotal)}</span></div>
-          <div className="flex justify-between text-charcoal/70"><span>Deposit (30%)</span><span>{fmt(deposit)}</span></div>
-          <div className="flex justify-between text-charcoal/70"><span>Balance on arrival</span><span>{fmt(balance)}</span></div>
+          <div className="flex justify-between text-charcoal/70"><span>Deposit now (50%)</span><span>{fmt(deposit)}</span></div>
+          <div className="flex justify-between text-charcoal/70"><span>Balance at check-in (50%)</span><span>{fmt(balance)}</span></div>
         </div>
         <button
           onClick={props.onSubmit} disabled={props.submitting}
@@ -389,9 +405,9 @@ function GuestStep(props: {
           style={{ background: "linear-gradient(135deg, #346739 0%, #427A43 100%)" }}
         >
           {props.submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          {props.submitting ? "Creating booking…" : "Confirm Booking"}
+          {props.submitting ? "Redirecting to payment…" : "Pay 50% Deposit & Confirm"}
         </button>
-        <p className="text-[0.65rem] text-charcoal/55">Your booking will be created in pending status. Our reservations team will follow up to confirm and arrange payment.</p>
+        <p className="text-[0.65rem] text-charcoal/55">You will be securely redirected to Pesapal to pay the 50% deposit. The remaining balance is payable on arrival.</p>
       </aside>
     </div>
   );
@@ -418,8 +434,8 @@ function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guest
         <div className="mt-2 flex justify-between"><span className="text-charcoal/60">Check-out</span><span>{checkOut}</span></div>
         <div className="mt-2 flex justify-between"><span className="text-charcoal/60">Nights</span><span>{nights}</span></div>
         <div className="mt-3 flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(confirmation.total)}</span></div>
-        <div className="mt-2 flex justify-between text-charcoal/70"><span>Deposit (30%)</span><span>{fmt(Math.round(confirmation.total * 0.3))}</span></div>
-        <div className="mt-1 flex justify-between text-charcoal/70"><span>Balance on arrival</span><span>{fmt(confirmation.total - Math.round(confirmation.total * 0.3))}</span></div>
+        <div className="mt-2 flex justify-between text-charcoal/70"><span>Deposit (50%)</span><span>{fmt(Math.round(confirmation.total * 0.5))}</span></div>
+        <div className="mt-1 flex justify-between text-charcoal/70"><span>Balance at check-in</span><span>{fmt(confirmation.total - Math.round(confirmation.total * 0.5))}</span></div>
       </div>
       <p className="mt-6 text-xs text-charcoal/55">Status: <span className="font-medium text-charcoal">Pending</span> — our team will reach out within 24 hours to finalise payment.</p>
     </div>
