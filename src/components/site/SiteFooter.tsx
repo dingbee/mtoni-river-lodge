@@ -40,7 +40,7 @@ const discoveryGroups: Array<{
   {
     title: "Discover",
     links: [
-      { label: "The Lodge", to: "/lodge" },
+      { label: "About Mtoni", to: "/lodge" },
       { label: "Dining", to: "/dining" },
       { label: "Plan Your Stay", to: "/plan" },
     ],

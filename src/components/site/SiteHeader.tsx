@@ -9,7 +9,7 @@ import { trackBookingClick } from "@/lib/analytics";
 
 const links = [
   { to: "/", label: "Home" },
-  { to: "/lodge", label: "The Lodge" },
+  { to: "/lodge", label: "About Mtoni" },
   { to: "/rooms", label: "Rooms" },
   { to: "/experiences", label: "Experiences" },
   { to: "/dining", label: "Dining" },

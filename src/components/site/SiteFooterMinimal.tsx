@@ -19,7 +19,7 @@ export function SiteFooterMinimal() {
         <nav className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[0.7rem] uppercase tracking-[0.28em] text-ivory/70">
           <Link to="/" className="hover:text-gold">Home</Link>
           <Link to="/rooms" className="hover:text-gold">Rooms</Link>
-          <Link to="/lodge" className="hover:text-gold">The Lodge</Link>
+          <Link to="/lodge" className="hover:text-gold">About Mtoni</Link>
           <Link to="/experiences" className="hover:text-gold">Experiences</Link>
           <Link to="/terms" className="hover:text-gold">Terms</Link>
           <a

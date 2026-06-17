@@ -12,8 +12,8 @@ import lodgeHero from "@/assets/lodge-hero-aerial.jpg";
 export const Route = createFileRoute("/lodge")({
   head: () => ({
     meta: [
-      { title: "The Lodge — Mtoni River Lodge" },
-      { name: "description", content: "A small, family-run riverfront sanctuary built quietly into the banks of the Mtoni River, Arusha." },
+      { title: "About Mtoni River Lodge | Our Story, Philosophy & Experience" },
+      { name: "description", content: "Discover Mtoni River Lodge in Arusha, Tanzania. Learn about our story, design inspiration, commitment to authentic hospitality, and the experience that makes Mtoni unique." },
       { property: "og:image", content: lodgeHero },
     ],
   }),
@@ -27,7 +27,7 @@ function LodgePage() {
       <PageHero
         image={lodgeHero}
         imageAlt="Aerial view of Mtoni River Lodge — thatched villas nestled among the forest canopy"
-        eyebrow="The Lodge"
+        eyebrow="About Mtoni"
         title="A sanctuary built quietly into the riverbank."
       />
 
