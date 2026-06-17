@@ -41,36 +41,6 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      {
-        httpEquiv: "Content-Security-Policy",
-        content: [
-          "default-src 'self'",
-          "base-uri 'self'",
-          "object-src 'none'",
-          "form-action 'self' https://wa.me",
-          "frame-ancestors 'self'",
-          "upgrade-insecure-requests",
-          // Scripts: GA/GTM, Tawk.to chat, Tripadvisor widget
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://embed.tawk.to https://*.tawk.to https://www.jscache.com https://*.tripadvisor.com",
-          "script-src-elem 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://embed.tawk.to https://*.tawk.to https://www.jscache.com https://*.tripadvisor.com",
-          // Styles: inline (Tailwind/runtime), Google Fonts, Tawk
-          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://embed.tawk.to https://*.tawk.to",
-          "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://embed.tawk.to https://*.tawk.to",
-          // Fonts
-          "font-src 'self' data: https://fonts.gstatic.com https://embed.tawk.to https://*.tawk.to",
-          // Images: allow any HTTPS source (CMS uploads, social previews, map tiles)
-          "img-src 'self' data: blob: https:",
-          // Media (videos)
-          "media-src 'self' https: blob:",
-          // XHR/fetch/websocket destinations
-          "connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://stats.g.doubleclick.net https://embed.tawk.to https://*.tawk.to wss://*.tawk.to https://*.tripadvisor.com https://storage.googleapis.com",
-          // Iframes: Google Maps embed, YouTube, Tawk, Tripadvisor
-          "frame-src 'self' https://www.google.com https://*.google.com https://www.youtube.com https://www.youtube-nocookie.com https://embed.tawk.to https://*.tawk.to https://*.tripadvisor.com",
-          // Web workers (Tawk uses blob workers)
-          "worker-src 'self' blob:",
-          "manifest-src 'self'",
-        ].join("; "),
-      },
       { title: "Mtoni River Lodge — A Riverfront Sanctuary in Arusha, Tanzania" },
       { name: "description", content: "An intimate luxury eco-lodge on the banks of the Mtoni River in Arusha. Riverside rooms, fireside dining, and curated journeys into the heart of Tanzania." },
       { name: "author", content: "Mtoni River Lodge" },
