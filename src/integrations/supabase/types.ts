@@ -241,6 +241,60 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          categories: Database["public"]["Enums"]["review_category"][]
+          created_at: string
+          created_by: string | null
+          external_url: string | null
+          featured: boolean
+          guest_location: string | null
+          guest_name: string
+          id: string
+          rating: number
+          review_date: string
+          review_text: string
+          source: Database["public"]["Enums"]["review_source"]
+          status: Database["public"]["Enums"]["review_status"]
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          categories?: Database["public"]["Enums"]["review_category"][]
+          created_at?: string
+          created_by?: string | null
+          external_url?: string | null
+          featured?: boolean
+          guest_location?: string | null
+          guest_name: string
+          id?: string
+          rating: number
+          review_date: string
+          review_text: string
+          source: Database["public"]["Enums"]["review_source"]
+          status?: Database["public"]["Enums"]["review_status"]
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          categories?: Database["public"]["Enums"]["review_category"][]
+          created_at?: string
+          created_by?: string | null
+          external_url?: string | null
+          featured?: boolean
+          guest_location?: string | null
+          guest_name?: string
+          id?: string
+          rating?: number
+          review_date?: string
+          review_text?: string
+          source?: Database["public"]["Enums"]["review_source"]
+          status?: Database["public"]["Enums"]["review_status"]
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       room_inventory: {
         Row: {
           available_units: number
@@ -377,6 +431,14 @@ export type Database = {
           total: number
         }[]
       }
+      get_review_aggregates: {
+        Args: never
+        Returns: {
+          average_rating: number
+          review_count: number
+          source: Database["public"]["Enums"]["review_source"]
+        }[]
+      }
       get_room_availability: {
         Args: { _check_in: string; _check_out: string }
         Returns: {
@@ -417,6 +479,16 @@ export type Database = {
         | "per_person"
         | "per_person_per_night"
       payment_status: "unpaid" | "deposit_paid" | "paid" | "refunded"
+      review_category:
+        | "hospitality_service"
+        | "tranquility_nature"
+        | "safari_gateway"
+        | "rooms_comfort"
+        | "dining"
+        | "pool_family"
+        | "overall_experience"
+      review_source: "google" | "tripadvisor" | "direct"
+      review_status: "pending" | "approved" | "archived"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -559,6 +631,17 @@ export const Constants = {
         "per_person_per_night",
       ],
       payment_status: ["unpaid", "deposit_paid", "paid", "refunded"],
+      review_category: [
+        "hospitality_service",
+        "tranquility_nature",
+        "safari_gateway",
+        "rooms_comfort",
+        "dining",
+        "pool_family",
+        "overall_experience",
+      ],
+      review_source: ["google", "tripadvisor", "direct"],
+      review_status: ["pending", "approved", "archived"],
     },
   },
 } as const

@@ -18,6 +18,7 @@ import { Route as SitemapJournalDotxmlRouteImport } from './routes/sitemap-journ
 import { Route as SitemapImagesDotxmlRouteImport } from './routes/sitemap-images[.]xml'
 import { Route as SitemapAccommodationDotxmlRouteImport } from './routes/sitemap-accommodation[.]xml'
 import { Route as RoomsRouteImport } from './routes/rooms'
+import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PlanRouteImport } from './routes/plan'
@@ -48,6 +49,7 @@ import { Route as JournalLifeAlongTheNdurumaRiverRouteImport } from './routes/jo
 import { Route as JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRouteImport } from './routes/journal.discovering-arusha-through-nature-and-authentic-hospitality'
 import { Route as JournalBuildingWithTheCommunityRouteImport } from './routes/journal.building-with-the-community'
 import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './routes/journal.a-morning-with-the-beekeepers-of-gomba'
+import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
 import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authenticated.admin.bookings'
 
 const VoteRoute = VoteRouteImport.update({
@@ -94,6 +96,11 @@ const SitemapAccommodationDotxmlRoute =
 const RoomsRoute = RoomsRouteImport.update({
   id: '/rooms',
   path: '/rooms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewsRoute = ReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -255,6 +262,12 @@ const JournalAMorningWithTheBeekeepersOfGombaRoute =
     path: '/a-morning-with-the-beekeepers-of-gomba',
     getParentRoute: () => JournalRoute,
   } as any)
+const AuthenticatedAdminReviewsRoute =
+  AuthenticatedAdminReviewsRouteImport.update({
+    id: '/admin/reviews',
+    path: '/admin/reviews',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdminBookingsRoute =
   AuthenticatedAdminBookingsRouteImport.update({
     id: '/admin/bookings',
@@ -279,6 +292,7 @@ export interface FileRoutesByFullPath {
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/reviews': typeof ReviewsRoute
   '/rooms': typeof RoomsRouteWithChildren
   '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
   '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
@@ -302,6 +316,7 @@ export interface FileRoutesByFullPath {
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
+  '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -319,6 +334,7 @@ export interface FileRoutesByTo {
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/reviews': typeof ReviewsRoute
   '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
   '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
   '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
@@ -341,6 +357,7 @@ export interface FileRoutesByTo {
   '/journal': typeof JournalIndexRoute
   '/rooms': typeof RoomsIndexRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
+  '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -361,6 +378,7 @@ export interface FileRoutesById {
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/reviews': typeof ReviewsRoute
   '/rooms': typeof RoomsRouteWithChildren
   '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
   '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
@@ -384,6 +402,7 @@ export interface FileRoutesById {
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
+  '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -404,6 +423,7 @@ export interface FileRouteTypes {
     | '/plan'
     | '/pricing'
     | '/privacy'
+    | '/reviews'
     | '/rooms'
     | '/sitemap-accommodation.xml'
     | '/sitemap-images.xml'
@@ -427,6 +447,7 @@ export interface FileRouteTypes {
     | '/journal/'
     | '/rooms/'
     | '/admin/bookings'
+    | '/admin/reviews'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -444,6 +465,7 @@ export interface FileRouteTypes {
     | '/plan'
     | '/pricing'
     | '/privacy'
+    | '/reviews'
     | '/sitemap-accommodation.xml'
     | '/sitemap-images.xml'
     | '/sitemap-journal.xml'
@@ -466,6 +488,7 @@ export interface FileRouteTypes {
     | '/journal'
     | '/rooms'
     | '/admin/bookings'
+    | '/admin/reviews'
   id:
     | '__root__'
     | '/'
@@ -485,6 +508,7 @@ export interface FileRouteTypes {
     | '/plan'
     | '/pricing'
     | '/privacy'
+    | '/reviews'
     | '/rooms'
     | '/sitemap-accommodation.xml'
     | '/sitemap-images.xml'
@@ -508,6 +532,7 @@ export interface FileRouteTypes {
     | '/journal/'
     | '/rooms/'
     | '/_authenticated/admin/bookings'
+    | '/_authenticated/admin/reviews'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -528,6 +553,7 @@ export interface RootRouteChildren {
   PlanRoute: typeof PlanRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
+  ReviewsRoute: typeof ReviewsRoute
   RoomsRoute: typeof RoomsRouteWithChildren
   SitemapAccommodationDotxmlRoute: typeof SitemapAccommodationDotxmlRoute
   SitemapImagesDotxmlRoute: typeof SitemapImagesDotxmlRoute
@@ -602,6 +628,13 @@ declare module '@tanstack/react-router' {
       path: '/rooms'
       fullPath: '/rooms'
       preLoaderRoute: typeof RoomsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reviews': {
+      id: '/reviews'
+      path: '/reviews'
+      fullPath: '/reviews'
+      preLoaderRoute: typeof ReviewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -814,6 +847,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRouteImport
       parentRoute: typeof JournalRoute
     }
+    '/_authenticated/admin/reviews': {
+      id: '/_authenticated/admin/reviews'
+      path: '/admin/reviews'
+      fullPath: '/admin/reviews'
+      preLoaderRoute: typeof AuthenticatedAdminReviewsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/admin/bookings': {
       id: '/_authenticated/admin/bookings'
       path: '/admin/bookings'
@@ -826,10 +866,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminBookingsRoute: typeof AuthenticatedAdminBookingsRoute
+  AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminBookingsRoute: AuthenticatedAdminBookingsRoute,
+  AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -903,6 +945,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlanRoute: PlanRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
+  ReviewsRoute: ReviewsRoute,
   RoomsRoute: RoomsRouteWithChildren,
   SitemapAccommodationDotxmlRoute: SitemapAccommodationDotxmlRoute,
   SitemapImagesDotxmlRoute: SitemapImagesDotxmlRoute,

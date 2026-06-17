@@ -7,6 +7,8 @@ import { Leaf, Loader2, Check } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooterMinimal } from "@/components/site/SiteFooterMinimal";
 import { BreadcrumbsBar } from "@/components/site/Breadcrumbs";
+import { BookingTrustBlock } from "@/components/site/reviews/BookingTrustBlock";
+import { TrustBar } from "@/components/site/reviews/TrustBar";
 import { WHATSAPP_URL } from "@/lib/contact";
 import { trackContactClick } from "@/lib/analytics";
 import {
@@ -128,6 +130,8 @@ function BookPage() {
     <div className="bg-ivory text-charcoal">
       <SiteHeader />
       <BreadcrumbsBar />
+      <TrustBar variant="subtle" compact />
+      <BookingTrustBlock />
       <main className="pt-10 lg:pt-14">
         <section className="mx-auto w-full max-w-[960px] px-4 pb-24 lg:px-12">
           <div className="mb-10 text-center">

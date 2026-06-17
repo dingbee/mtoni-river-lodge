@@ -67,7 +67,13 @@ function AdminBookings() {
     <div className="min-h-screen bg-ivory text-charcoal">
       <header className="border-b border-charcoal/10 bg-ivory">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 lg:px-8">
-          <Link to="/" className="font-display text-lg">Mtoni · Admin</Link>
+          <div className="flex items-center gap-6">
+            <Link to="/" className="font-display text-lg">Mtoni · Admin</Link>
+            <nav className="hidden gap-4 text-xs uppercase tracking-[0.22em] text-charcoal/60 sm:flex">
+              <Link to="/admin/bookings" className="text-charcoal">Bookings</Link>
+              <Link to="/admin/reviews" className="hover:text-charcoal">Reviews</Link>
+            </nav>
+          </div>
           <button onClick={signOut} className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-charcoal/60 hover:text-charcoal">
             <LogOut className="h-3.5 w-3.5" /> Sign out
           </button>
