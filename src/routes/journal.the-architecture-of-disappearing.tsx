@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { ArticleLayout } from "@/components/site/ArticleLayout";
 import villa from "@/assets/boma-thatch-room.jpg";
@@ -47,12 +48,16 @@ function ArticlePage() {
         <p>
           In the open landscapes of Arusha, Tanzania, architecture has never
           been separate from life. It has always been shaped by climate,
-          culture, and necessity. At Mtoni River Lodge, this wisdom is not
+          culture, and necessity. At{" "}
+          <Link to="/lodge" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">our luxury lodge in Arusha</Link>,
+          this wisdom is not
           referenced as inspiration alone — it is actively built into every
           structure.
         </p>
         <p>
-          The rooms at Mtoni are grounded in the Maasai boma architecture
+          The{" "}
+          <Link to="/rooms" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">boma-inspired rooms at Mtoni</Link>{" "}
+          are grounded in the Maasai boma architecture
           tradition, where earth and thatch are not aesthetic choices, but
           intelligent responses to environment, temperature, and community
           living. This is sustainable architecture in Tanzania, expressed
@@ -142,7 +147,10 @@ function ArticlePage() {
           One of the defining principles of Mtoni River Lodge is minimal
           environmental disruption. By using locally available materials such
           as earth, thatch, and timber, construction avoids unnecessary
-          industrial processing and long-distance material transport.
+          industrial processing and long-distance material transport — a
+          philosophy shared with the people who shaped the lodge, as we
+          describe in{" "}
+          <Link to="/journal/building-with-the-community" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">our piece on building with the community</Link>.
         </p>
         <p>
           The result is a reduced environmental footprint, stronger
@@ -157,12 +165,15 @@ function ArticlePage() {
           Living within the landscape
         </h2>
         <p>
-          Set near the river ecosystem of Arusha, the rooms exist in
+          Set near the river ecosystem of Arusha, the{" "}
+          <Link to="/rooms/standard-river" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">river-facing rooms</Link>{" "}
+          exist in
           continuous dialogue with nature. The design does not dominate the
           environment but responds to it — light, wind, vegetation, and
           seasonal rhythm all influence how the space is experienced. This is
           not just accommodation. It is eco-luxury living in Tanzania, where
-          architecture and nature are inseparable.
+          architecture and nature are inseparable — best understood through{" "}
+          <Link to="/experiences" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">our cultural experiences in Arusha</Link>.
         </p>
       </Reveal>
 
@@ -170,7 +181,9 @@ function ArticlePage() {
         <p className="pt-6 italic text-charcoal/70">
           Through earth, thatch, and circular spatial logic, the lodge offers
           more than shelter — it offers continuity with a way of building
-          that has always belonged here.
+          that has always belonged here.{" "}
+          <Link to="/book" className="underline decoration-[var(--gold)] underline-offset-4 hover:text-[var(--gold)]">Book your stay at Mtoni River Lodge</Link>{" "}
+          to experience these earth-and-thatch rooms in person.
         </p>
       </Reveal>
     </ArticleLayout>
