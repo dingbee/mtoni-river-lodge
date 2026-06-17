@@ -63,6 +63,10 @@ const discoveryGroups: Array<{
     links: [{ label: "All Stories", to: "/journal" }],
   },
   {
+    title: "Reviews",
+    links: [{ label: "Guest Reviews", to: "/reviews" }],
+  },
+  {
     title: "Policies",
     links: [
       { label: "Terms & Conditions", to: "/terms" },
