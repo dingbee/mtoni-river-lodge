@@ -144,6 +144,8 @@ function RiverfrontDeluxePage() {
         </div>
       </section>
 
+      <RoomReviews roomName={room.name} />
+
       <SiteFooter />
     </div>
   );
