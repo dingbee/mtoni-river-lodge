@@ -164,7 +164,7 @@ function ArticlePage() {
                   { to: "/", label: "Mtoni River Lodge — Riverfront Sanctuary in Arusha", description: "Return to the homepage to glimpse the wider landscape." },
                   { to: "/lodge", label: "About Mtoni River Lodge", description: "Our story, our family, and the philosophy that shaped this place." },
                   { to: "/experiences", label: "Slow Experiences by the River", description: "Walks, fireside dinners, and gentle journeys that follow the river's pace." },
-                  { to: "/journal/a-morning-with-the-beekeepers-of-gomba", label: "Life Along the Nduruma River", description: "The farming traditions that share this water with the lodge." },
+                  { to: "/journal/life-along-the-nduruma-river", label: "Life Along the Nduruma River", description: "The farming traditions that share this water with the lodge." },
                   { to: "/journal/the-architecture-of-disappearing", label: "Maasai Boma Architecture", description: "How the rooms were built to disappear into the riverbank." },
                 ].map((link) => (
                   <li key={link.to}>
