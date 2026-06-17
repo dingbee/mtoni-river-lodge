@@ -4,6 +4,8 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { PageHero } from "@/components/site/PageHero";
 import { RoomRate } from "@/components/site/RoomRate";
+import { RoomReviews } from "@/components/site/reviews/RoomReviews";
+import { TrustBar } from "@/components/site/reviews/TrustBar";
 import { WHATSAPP_NOTE, WHATSAPP_URL } from "@/lib/contact";
 import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics";
 import { STANDARD_RIVER_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
@@ -26,6 +28,8 @@ function StandardRiverPage() {
         back={{ to: "/rooms", label: "Back to Rooms" }}
         cta={{ label: "Check Availability", to: "/book" }}
       />
+
+      <TrustBar variant="subtle" compact />
 
       <RoomRate
         eyebrow="Riverfront Standard"
@@ -138,6 +142,8 @@ function StandardRiverPage() {
           </div>
         </div>
       </section>
+
+      <RoomReviews roomName={room.name} />
 
       <SiteFooter />
     </div>
