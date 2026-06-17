@@ -120,7 +120,8 @@ export const Route = createRootRoute({
               name: "Mtoni River Lodge",
               url: "https://mtoniriverlodge.com",
               description:
-                "An intimate luxury eco-lodge on the banks of the Mtoni River in Arusha, Tanzania.",
+                "Luxury eco-lodge in Arusha, Tanzania offering 24 riverfront rooms on the banks of the Nduruma River.",
+              numberOfRooms: 24,
               image:
                 "https://storage.googleapis.com/gpt-engineer-file-uploads/SHkcQELriCO5cdR2YzaTl25G7pE2/social-images/social-1778599166460-1000489399.webp",
               email: "bookings@mtoniriverlodge.com",
