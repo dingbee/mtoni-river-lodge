@@ -10,6 +10,14 @@ const DESCRIPTION =
   "Discover why Mtoni River Lodge is the ideal accommodation in Arusha for safari travelers, Kilimanjaro climbers, and visitors seeking authentic Tanzanian hospitality.";
 const URL = "https://mtoniriverlodge.com/journal/perfect-arusha-stay-for-safari-travelers-2026";
 
+const RELATED = [
+  { to: "/rooms/riverfront-deluxe", label: "Riverfront Deluxe Rooms", description: "The signature suite for travellers arriving before or after safari." },
+  { to: "/rooms/family-room", label: "Family Rooms at Mtoni", description: "Generous interiors for families travelling with children to Tanzania." },
+  { to: "/experiences", label: "Experiences Around the Lodge", description: "Cultural walks, coffee mornings, and gentle day journeys near Arusha." },
+  { to: "/journal/discovering-arusha-through-nature-and-authentic-hospitality", label: "Discovering Arusha Through Nature and Hospitality", description: "A deeper look at the landscape and rhythm that surrounds Mtoni." },
+  { to: "/book", label: "Check Availability for 2026", description: "Reserve your pre- or post-safari nights along the Nduruma River." },
+];
+
 export const Route = createFileRoute(
   "/journal/perfect-arusha-stay-for-safari-travelers-2026",
 )({
@@ -65,6 +73,7 @@ function ArticlePage() {
       image={hero}
       imageAlt="Maasai-inspired cottage exterior at Mtoni River Lodge surrounded by lush gardens near Arusha"
       caption="A quiet cottage at Mtoni River Lodge — photograph by the lodge"
+      relatedReading={RELATED}
     >
       <Reveal>
         <p>

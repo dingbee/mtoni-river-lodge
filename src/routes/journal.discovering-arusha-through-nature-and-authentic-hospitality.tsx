@@ -8,6 +8,14 @@ const META_TITLE = "Discover Arusha: Nature & Authentic Hospitality";
 const DESCRIPTION =
   "Discover Arusha through nature, culture, and authentic hospitality at Mtoni River Lodge — a peaceful retreat close to Tanzania's iconic attractions.";
 
+const RELATED = [
+  { to: "/lodge", label: "About Mtoni River Lodge", description: "Our story, design philosophy, and the people behind the lodge." },
+  { to: "/rooms", label: "The Rooms — Twelve Riverfront Suites", description: "Boma-inspired sanctuaries set low along the Nduruma River." },
+  { to: "/experiences", label: "Curated Arusha Experiences", description: "Coffee mornings, guided walks, and journeys into the surrounding villages." },
+  { to: "/journal/perfect-arusha-stay-for-safari-travelers-2026", label: "The Perfect Arusha Stay for Safari Travellers", description: "Why Mtoni is the natural pre- and post-safari base in Arusha." },
+  { to: "/book", label: "Plan Your Visit to Mtoni", description: "Check availability and reserve a few quiet days by the river." },
+];
+
 export const Route = createFileRoute(
   "/journal/discovering-arusha-through-nature-and-authentic-hospitality",
 )({
@@ -35,6 +43,7 @@ function ArticlePage() {
       image={hero}
       imageAlt="Aerial view of Mtoni River Lodge nestled in green surroundings near Arusha"
       caption="Mtoni River Lodge from above — photograph by the lodge"
+      relatedReading={RELATED}
     >
       <Reveal>
         <p>
