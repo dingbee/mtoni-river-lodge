@@ -152,6 +152,44 @@ function ArticlePage() {
           </div>
         </section>
 
+        <section className="border-t border-border px-6 py-20 lg:px-12 lg:py-24">
+          <div className="mx-auto max-w-3xl">
+            <Reveal>
+              <p className="eyebrow">Related Reading</p>
+            </Reveal>
+            <Reveal delay={120}>
+              <h2 className="mt-4 font-display text-3xl leading-tight lg:text-4xl">
+                Continue exploring Mtoni
+              </h2>
+            </Reveal>
+            <Reveal delay={220}>
+              <ul className="mt-10 divide-y divide-border border-y border-border">
+                {[
+                  { to: "/", label: "Mtoni River Lodge — Riverfront Sanctuary in Arusha", description: "Return to the homepage to glimpse the wider landscape." },
+                  { to: "/lodge", label: "About Mtoni River Lodge", description: "Our story, our family, and the philosophy that shaped this place." },
+                  { to: "/experiences", label: "Slow Experiences by the River", description: "Walks, fireside dinners, and gentle journeys that follow the river's pace." },
+                  { to: "/journal/a-morning-with-the-beekeepers-of-gomba", label: "Life Along the Nduruma River", description: "The farming traditions that share this water with the lodge." },
+                  { to: "/journal/the-architecture-of-disappearing", label: "Maasai Boma Architecture", description: "How the rooms were built to disappear into the riverbank." },
+                ].map((link) => (
+                  <li key={link.to}>
+                    <Link
+                      to={link.to}
+                      className="group flex flex-col gap-2 py-6 transition-colors hover:text-[var(--gold)] sm:flex-row sm:items-baseline sm:justify-between sm:gap-8"
+                    >
+                      <span className="font-display text-xl leading-snug sm:text-2xl">
+                        {link.label}
+                      </span>
+                      <span className="text-sm leading-relaxed text-charcoal/65 sm:max-w-sm sm:text-right">
+                        {link.description}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Reveal>
+          </div>
+        </section>
+
         <section className="border-t border-border px-6 py-24 lg:px-12">
           <div className="mx-auto flex max-w-3xl flex-col items-start gap-6">
             <Reveal>
