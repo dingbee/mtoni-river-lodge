@@ -13,6 +13,7 @@ export const Route = createFileRoute("/_authenticated/admin/bookings")({
 });
 
 type StatusFilter = "all" | "pending" | "confirmed" | "cancelled" | "completed" | "no_show";
+type PaymentFilter = "all" | "unpaid" | "deposit_paid" | "paid" | "refunded";
 
 const statusColors: Record<string, string> = {
   pending: "bg-amber-100 text-amber-900",
@@ -22,8 +23,16 @@ const statusColors: Record<string, string> = {
   no_show: "bg-zinc-200 text-zinc-700",
 };
 
+const paymentColors: Record<string, string> = {
+  unpaid: "bg-zinc-100 text-zinc-700",
+  deposit_paid: "bg-emerald-100 text-emerald-900",
+  paid: "bg-emerald-200 text-emerald-900",
+  refunded: "bg-rose-100 text-rose-900",
+};
+
 function AdminBookings() {
   const [status, setStatus] = useState<StatusFilter>("all");
+  const [paymentStatus, setPaymentStatus] = useState<PaymentFilter>("all");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
@@ -34,8 +43,8 @@ function AdminBookings() {
   const qc = useQueryClient();
 
   const bookings = useQuery({
-    queryKey: ["admin-bookings", status, from, to],
-    queryFn: () => listFn({ data: { status, from: from || undefined, to: to || undefined } }),
+    queryKey: ["admin-bookings", status, paymentStatus, from, to],
+    queryFn: () => listFn({ data: { status, paymentStatus, from: from || undefined, to: to || undefined } }),
   });
 
   const detail = useQuery({
@@ -96,6 +105,16 @@ function AdminBookings() {
             </select>
           </div>
           <div>
+            <label className="block text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Payment</label>
+            <select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value as PaymentFilter)} className="mt-1 rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm">
+              <option value="all">All</option>
+              <option value="unpaid">Unpaid</option>
+              <option value="deposit_paid">Deposit paid</option>
+              <option value="paid">Paid in full</option>
+              <option value="refunded">Refunded</option>
+            </select>
+          </div>
+          <div>
             <label className="block text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Check-in from</label>
             <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="mt-1 rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm" />
           </div>
@@ -103,8 +122,8 @@ function AdminBookings() {
             <label className="block text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Check-in to</label>
             <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="mt-1 rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm" />
           </div>
-          {(from || to || status !== "all") && (
-            <button onClick={() => { setStatus("all"); setFrom(""); setTo(""); }} className="text-xs uppercase tracking-[0.22em] text-charcoal/60 hover:text-charcoal">Clear</button>
+          {(from || to || status !== "all" || paymentStatus !== "all") && (
+            <button onClick={() => { setStatus("all"); setPaymentStatus("all"); setFrom(""); setTo(""); }} className="text-xs uppercase tracking-[0.22em] text-charcoal/60 hover:text-charcoal">Clear</button>
           )}
         </div>
 
@@ -124,6 +143,7 @@ function AdminBookings() {
                   <th className="px-4 py-3">Dates</th>
                   <th className="px-4 py-3">Total</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Payment</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -139,6 +159,7 @@ function AdminBookings() {
                     <td className="px-4 py-3 whitespace-nowrap">{b.check_in} → {b.check_out}<div className="text-xs text-charcoal/55">{b.nights} night{b.nights === 1 ? "" : "s"}</div></td>
                     <td className="px-4 py-3 whitespace-nowrap">{fmt(Number(b.total), b.currency)}</td>
                     <td className="px-4 py-3"><span className={`inline-flex rounded-full px-2 py-0.5 text-[0.65rem] uppercase tracking-[0.15em] ${statusColors[b.status] ?? ""}`}>{b.status}</span></td>
+                    <td className="px-4 py-3"><span className={`inline-flex rounded-full px-2 py-0.5 text-[0.65rem] uppercase tracking-[0.15em] ${paymentColors[b.payment_status] ?? ""}`}>{(b.payment_status ?? "unpaid").replace("_", " ")}</span></td>
                     <td className="px-4 py-3"><button onClick={() => setSelected(b.id)} className="text-xs uppercase tracking-[0.18em] text-charcoal/70 underline-offset-4 hover:underline">View</button></td>
                   </tr>
                 ))}
