@@ -4,6 +4,14 @@ import { ArticleLayout } from "@/components/site/ArticleLayout";
 import guide from "@/assets/maasai-by-river.jpg";
 
 const TITLE = "Building With the Community";
+
+const RELATED = [
+  { to: "/lodge", label: "About Mtoni River Lodge", description: "The family and philosophy behind a community-rooted retreat." },
+  { to: "/journal/the-architecture-of-disappearing", label: "Maasai Boma Architecture", description: "How local craft and circular form shaped every room at Mtoni." },
+  { to: "/journal/a-morning-with-the-beekeepers-of-gomba", label: "Life Along the Nduruma River", description: "The farming traditions of the villages that surround the lodge." },
+  { to: "/experiences", label: "Experiences With Our Neighbours", description: "Spend a morning with the people and crafts that shape this place." },
+  { to: "/contact", label: "Contact the Lodge", description: "Speak with our team about community visits and custom journeys." },
+];
 const DESCRIPTION =
   "Employment, infrastructure, and shared growth at Mtoni River Lodge — how hospitality and community development flow together along the Nduruma River.";
 
