@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooterMinimal } from "@/components/site/SiteFooterMinimal";
+import { BreadcrumbsBar } from "@/components/site/Breadcrumbs";
 import { WHATSAPP_URL } from "@/lib/contact";
 import { trackContactClick } from "@/lib/analytics";
 import { AvailabilityForm } from "@/components/site/AvailabilityForm";
@@ -32,7 +33,8 @@ function BookPage() {
     <div className="bg-ivory text-charcoal">
       <SiteHeader />
 
-      <main className="pt-28 lg:pt-36">
+      <BreadcrumbsBar />
+      <main className="pt-10 lg:pt-14">
         <section
           id="booking-form"
           aria-label="Reservation inquiry"
