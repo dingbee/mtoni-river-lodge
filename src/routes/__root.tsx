@@ -95,7 +95,7 @@ export const Route = createRootRoute({
               "@id": "https://mtoniriverlodge.com/#organization",
               name: "Mtoni River Lodge",
               url: "https://mtoniriverlodge.com",
-              logo: "https://mtoniriverlodge.com/favicon.ico",
+              logo: "https://mtoniriverlodge.com/__l5e/assets-v1/73e0339b-9bf5-43f8-b083-ec13fde6b001/mtoni-river-lodge-logo.png",
               email: "bookings@mtoniriverlodge.com",
               telephone: "+255752441443",
               address: {
