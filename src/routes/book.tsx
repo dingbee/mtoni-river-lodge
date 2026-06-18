@@ -106,26 +106,56 @@ function BookPage() {
   const step: Step = NUM_TO_STEP[stepNum as 1 | 2 | 3 | 4];
 
   // Bootstrap: decide on mount whether to resume the persisted draft or
-  // start a completely fresh booking session. We start fresh whenever the
-  // incoming session id (or room slug) does not match what is stored.
+  // start a completely fresh booking session.
+  //
+  // We ONLY auto-populate the form from sessionStorage when ALL of these
+  // hold true:
+  //   1. The URL carries a session id.
+  //   2. The stored draft's session id matches that URL session id.
+  //   3. If the URL carries a room slug, the stored draft is bound to the
+  //      same room slug.
+  // Any other case (no URL session, mismatched session, mismatched room,
+  // or a URL-room that disagrees with the stored draft's room) wipes
+  // cached booking data before the form renders — no auto-fill bleed-over
+  // between rooms or sessions.
   const bootstrapRef = useRef<{ sessionId: string; state: Partial<PersistedState> } | null>(null);
   if (!bootstrapRef.current) {
     const stored = readPersisted();
-    const sessionMismatch =
-      !!incomingSession && !!stored.sessionId && stored.sessionId !== incomingSession;
-    const roomMismatch =
-      !!incomingRoom && !!stored.selectedRoom && stored.selectedRoom.slug !== incomingRoom;
-    if (!stored.sessionId || sessionMismatch || roomMismatch) {
+    const storedRoomSlug = stored.selectedRoom?.slug;
+
+    const sessionMatches =
+      !!incomingSession && !!stored.sessionId && stored.sessionId === incomingSession;
+    const roomMatches = !incomingRoom
+      ? true
+      : !!storedRoomSlug && storedRoomSlug === incomingRoom;
+
+    const canResume = sessionMatches && roomMatches;
+
+    if (!canResume) {
       try {
         if (typeof window !== "undefined") window.sessionStorage.removeItem(STORAGE_KEY);
       } catch {}
+      // eslint-disable-next-line no-console
+      console.debug("[book] discarding cached draft before render", {
+        reason: !incomingSession
+          ? "no_session_in_url"
+          : !stored.sessionId
+          ? "no_stored_session"
+          : !sessionMatches
+          ? "session_mismatch"
+          : "room_mismatch",
+        incomingSession,
+        storedSession: stored.sessionId,
+        incomingRoom,
+        storedRoom: storedRoomSlug,
+      });
       bootstrapRef.current = {
         sessionId: incomingSession ?? newBookingSessionId(),
         state: {},
       };
     } else {
       bootstrapRef.current = {
-        sessionId: incomingSession ?? stored.sessionId,
+        sessionId: incomingSession!,
         state: stored,
       };
     }
