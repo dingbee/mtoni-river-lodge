@@ -66,7 +66,12 @@ export const listExtras = createServerFn({ method: "GET" }).handler(async () => 
     .eq("active", true)
     .order("sort_order");
   if (error) throw new Error(error.message);
-  return (data ?? []).map((e) => ({ ...e, price: Number(e.price) }));
+  const TRANSFER_SLUGS = new Set(["airport-transfer"]);
+  return (data ?? []).map((e) => ({
+    ...e,
+    price: Number(e.price),
+    category: TRANSFER_SLUGS.has(e.slug) ? ("transfers" as const) : ("experiences" as const),
+  }));
 });
 
 const extraSchema = z.object({
