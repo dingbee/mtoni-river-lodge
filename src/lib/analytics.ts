@@ -306,3 +306,76 @@ export function trackAvailabilityCompleted(params: {
   });
 }
 
+/* ─── Google Ads / paid landing-page funnel events ─── */
+
+/** Fired when the visitor submits the hero/landing availability form (top of funnel). */
+export function trackBookingStarted(params: {
+  location: string;
+  check_in?: string;
+  check_out?: string;
+  guests?: number;
+  room_slug?: string;
+}) {
+  emit("booking_started", {
+    event_category: "conversion",
+    ...params,
+  });
+}
+
+/** Fired when the availability RPC returns results inside the wizard. */
+export function trackAvailabilityChecked(params: {
+  check_in?: string;
+  check_out?: string;
+  guests?: number;
+  nights?: number;
+  available_rooms?: number;
+  total_rooms?: number;
+}) {
+  emit("availability_checked", {
+    event_category: "conversion",
+    ...params,
+  });
+}
+
+/** Fired when the guest picks a room in step 2. */
+export function trackRoomSelected(params: {
+  room_slug: string;
+  room_name?: string;
+  nightly_total?: number;
+  currency?: string;
+}) {
+  emit("room_selected", {
+    event_category: "conversion",
+    event_label: params.room_name ?? params.room_slug,
+    ...params,
+  });
+}
+
+/** Fired each time the guest toggles an add-on extra in step 3. */
+export function trackAddOnSelected(params: {
+  slug: string;
+  name?: string;
+  price?: number;
+  action: "added" | "removed";
+}) {
+  emit("add_on_selected", {
+    event_category: "conversion",
+    event_label: params.name ?? params.slug,
+    ...params,
+  });
+}
+
+/** Fired on the booking.return page once Pesapal confirms a deposit/payment. */
+export function trackBookingCompleted(params: {
+  reference?: string;
+  value?: number;
+  currency?: string;
+  payment_method?: string;
+}) {
+  emit("booking_completed", {
+    event_category: "conversion",
+    transaction_id: params.reference,
+    ...params,
+  });
+}
+
