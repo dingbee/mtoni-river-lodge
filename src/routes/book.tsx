@@ -657,8 +657,14 @@ function GuestStep(props: {
   const balance = props.grandTotal - deposit;
   const toggleExtra = (slug: string) => {
     const existing = props.selectedExtras.find((s) => s.slug === slug);
-    if (existing) props.setSelectedExtras(props.selectedExtras.filter((s) => s.slug !== slug));
-    else props.setSelectedExtras([...props.selectedExtras, { slug, quantity: 1 }]);
+    const extra = props.extras.find((e) => e.slug === slug);
+    if (existing) {
+      props.setSelectedExtras(props.selectedExtras.filter((s) => s.slug !== slug));
+      trackAddOnSelected({ slug, name: extra?.name, price: extra?.price, action: "removed" });
+    } else {
+      props.setSelectedExtras([...props.selectedExtras, { slug, quantity: 1 }]);
+      trackAddOnSelected({ slug, name: extra?.name, price: extra?.price, action: "added" });
+    }
   };
   const unitLabel = (unit: string) => {
     switch (unit) {
