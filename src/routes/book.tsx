@@ -12,6 +12,11 @@ import { TrustBar } from "@/components/site/reviews/TrustBar";
 import { WHATSAPP_URL } from "@/lib/contact";
 import { trackContactClick, trackGAEvent } from "@/lib/analytics";
 import {
+  trackAvailabilityChecked,
+  trackRoomSelected,
+  trackAddOnSelected,
+} from "@/lib/analytics";
+import {
   checkAvailability,
   createBooking,
   listExtras,
