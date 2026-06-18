@@ -18,12 +18,17 @@ import {
   type AvailabilityRoom,
 } from "@/lib/booking.functions";
 import { initiatePayment } from "@/lib/payments.functions";
+import { newBookingSessionId } from "@/lib/booking-session";
 
 export const Route = createFileRoute("/book")({
-  validateSearch: (search: Record<string, unknown>): { step: 1 | 2 | 3 | 4 } => {
+  validateSearch: (
+    search: Record<string, unknown>
+  ): { step: 1 | 2 | 3 | 4; session?: string; room?: string } => {
     const raw = Number(search.step);
     const step = raw === 2 || raw === 3 || raw === 4 ? raw : 1;
-    return { step: step as 1 | 2 | 3 | 4 };
+    const session = typeof search.session === "string" ? search.session : undefined;
+    const room = typeof search.room === "string" ? search.room : undefined;
+    return { step: step as 1 | 2 | 3 | 4, session, room };
   },
   head: () => ({
     meta: [
@@ -70,6 +75,7 @@ type SelectedExtra = { slug: string; quantity: number };
 const STORAGE_KEY = "mrl.booking.wizard.v1";
 
 type PersistedState = {
+  sessionId: string;
   checkIn: string;
   checkOut: string;
   adults: number;
@@ -93,19 +99,40 @@ function readPersisted(): Partial<PersistedState> {
 }
 
 function BookPage() {
-  // Restore persisted wizard state on mount so a refresh / remount does not
-  // silently drop the guest back to step 1 ("automatic regression").
-  const persistedRef = useRef<Partial<PersistedState>>({});
-  if (persistedRef.current && Object.keys(persistedRef.current).length === 0) {
-    persistedRef.current = readPersisted();
-  }
-  const p = persistedRef.current;
-
-  // Step lives in the URL (?step=1..4) so back/forward is always explicit
+  // Step + session live in the URL so back/forward is always explicit
   // routing, never a browser-history pop into a different session.
-  const { step: stepNum } = Route.useSearch();
+  const { step: stepNum, session: incomingSession, room: incomingRoom } = Route.useSearch();
   const navigate = Route.useNavigate();
   const step: Step = NUM_TO_STEP[stepNum as 1 | 2 | 3 | 4];
+
+  // Bootstrap: decide on mount whether to resume the persisted draft or
+  // start a completely fresh booking session. We start fresh whenever the
+  // incoming session id (or room slug) does not match what is stored.
+  const bootstrapRef = useRef<{ sessionId: string; state: Partial<PersistedState> } | null>(null);
+  if (!bootstrapRef.current) {
+    const stored = readPersisted();
+    const sessionMismatch =
+      !!incomingSession && !!stored.sessionId && stored.sessionId !== incomingSession;
+    const roomMismatch =
+      !!incomingRoom && !!stored.selectedRoom && stored.selectedRoom.slug !== incomingRoom;
+    if (!stored.sessionId || sessionMismatch || roomMismatch) {
+      try {
+        if (typeof window !== "undefined") window.sessionStorage.removeItem(STORAGE_KEY);
+      } catch {}
+      bootstrapRef.current = {
+        sessionId: incomingSession ?? newBookingSessionId(),
+        state: {},
+      };
+    } else {
+      bootstrapRef.current = {
+        sessionId: incomingSession ?? stored.sessionId,
+        state: stored,
+      };
+    }
+  }
+  const p = bootstrapRef.current.state;
+
+  const [sessionId, setSessionId] = useState<string>(bootstrapRef.current.sessionId);
   const [checkIn, setCheckIn] = useState(p.checkIn ?? "");
   const [checkOut, setCheckOut] = useState(p.checkOut ?? "");
   const [adults, setAdults] = useState(p.adults ?? 2);
@@ -116,6 +143,29 @@ function BookPage() {
   const [selectedExtras, setSelectedExtras] = useState<SelectedExtra[]>(p.selectedExtras ?? []);
   const [guest, setGuest] = useState(p.guest ?? { name: "", email: "", phone: "", country: "", requests: "" });
   const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string } | null>(null);
+
+  // If the URL session id changes while we're already mounted (e.g. the user
+  // clicks "Check Availability" from a different room without a full reload),
+  // wipe all wizard state and adopt the new session.
+  useEffect(() => {
+    if (!incomingSession || incomingSession === sessionId) return;
+    try {
+      if (typeof window !== "undefined") window.sessionStorage.removeItem(STORAGE_KEY);
+    } catch {}
+    setSessionId(incomingSession);
+    setCheckIn("");
+    setCheckOut("");
+    setAdults(2);
+    setChildren(0);
+    setResults([]);
+    setSelectedRoom(null);
+    setExtras([]);
+    setSelectedExtras([]);
+    setGuest({ name: "", email: "", phone: "", country: "", requests: "" });
+    setConfirmation(null);
+    // eslint-disable-next-line no-console
+    console.debug("[book] fresh booking session", { sessionId: incomingSession, room: incomingRoom });
+  }, [incomingSession, sessionId, incomingRoom]);
 
   // Single source of truth for step transitions — writes the step to the URL
   // via navigate(). Never relies on window.history.back / navigate(-1), so
@@ -164,6 +214,7 @@ function BookPage() {
     if (typeof window === "undefined") return;
     try {
       const snapshot: PersistedState = {
+        sessionId,
         checkIn, checkOut, adults, children,
         results, selectedRoom, extras, selectedExtras, guest,
       };
@@ -171,7 +222,7 @@ function BookPage() {
     } catch (err) {
       console.warn("[book] failed to persist wizard state", err);
     }
-  }, [checkIn, checkOut, adults, children, results, selectedRoom, extras, selectedExtras, guest]);
+  }, [sessionId, checkIn, checkOut, adults, children, results, selectedRoom, extras, selectedExtras, guest]);
 
   // Guard rail: if we land on a step whose prerequisites are missing, log it
   // loudly so we can see whether a remount or stale storage caused a jump.

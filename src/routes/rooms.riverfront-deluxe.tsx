@@ -9,6 +9,7 @@ import { TrustBar } from "@/components/site/reviews/TrustBar";
 import { LightboxGallery } from "@/components/site/Lightbox";
 import { RESERVATIONS_NOTE, buildRoomInquiryUrl } from "@/lib/contact";
 import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics";
+import { StartBookingLink } from "@/lib/booking-session";
 import { RIVERFRONT_DELUXE_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 import outdoorShowerImg from "@/assets/riverfront-deluxe-outdoor-shower.jpg";
 import exteriorImg from "@/assets/riverfront-deluxe-exterior.jpg";
@@ -28,7 +29,7 @@ function RiverfrontDeluxePage() {
         title={room.name}
         subtitle={room.heroLine}
         back={{ to: "/rooms", label: "Back to Rooms" }}
-        cta={{ label: "Check Availability", to: "/book" }}
+        cta={{ label: "Check Availability", bookingRoomSlug: "riverfront-deluxe" }}
       />
 
       <TrustBar variant="subtle" compact />
@@ -38,6 +39,7 @@ function RiverfrontDeluxePage() {
         tagline="Closest to the water"
         price="$310"
         note="Premium river-facing room · Breakfast & personal hosting included"
+        roomSlug="riverfront-deluxe"
       />
 
       <section className="px-6 pb-24 lg:px-12 lg:pb-32">
@@ -87,14 +89,14 @@ function RiverfrontDeluxePage() {
             <p className="eyebrow">Reserve</p>
             <h2 className="mt-6 font-display text-4xl leading-tight lg:text-6xl">{room.ctaLine}</h2>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              <Link
-                to="/book"
+              <StartBookingLink
+                roomSlug="riverfront-deluxe"
                 onClick={() => trackCheckAvailabilityClick("riverfront_deluxe_room")}
                 className="group inline-flex items-center gap-3 border border-charcoal bg-charcoal px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-transparent hover:text-charcoal"
               >
                 <span>Check Availability</span>
                 <span className="transition-transform group-hover:translate-x-1">→</span>
-              </Link>
+              </StartBookingLink>
               <a
                 href={buildRoomInquiryUrl(RIVERFRONT_DELUXE_ROOM.name)}
                 target="_blank"

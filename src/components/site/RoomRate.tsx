@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
+import { StartBookingLink } from "@/lib/booking-session";
 
 type Props = {
   eyebrow: string;
@@ -7,6 +7,8 @@ type Props = {
   price: string;
   unit?: string;
   note?: string;
+  /** Room slug — booking CTA opens a fresh wizard session bound to this room. */
+  roomSlug?: string;
 };
 
 /**
@@ -14,7 +16,7 @@ type Props = {
  * Sits between the hero and the long-form description as a quiet,
  * editorial price statement — not a card, not a CTA banner.
  */
-export function RoomRate({ eyebrow, tagline, price, unit = "night", note }: Props) {
+export function RoomRate({ eyebrow, tagline, price, unit = "night", note, roomSlug }: Props) {
   return (
     <section className="px-6 pb-16 lg:px-12 lg:pb-24">
       <div className="mx-auto max-w-[1200px]">
@@ -35,13 +37,13 @@ export function RoomRate({ eyebrow, tagline, price, unit = "night", note }: Prop
               )}
             </div>
             <div className="md:col-span-3 md:justify-self-end">
-              <Link
-                to="/book"
+              <StartBookingLink
+                roomSlug={roomSlug}
                 className="group inline-flex items-center gap-3 border border-charcoal px-6 py-3 text-[0.7rem] font-medium uppercase tracking-[0.28em] text-charcoal transition-colors hover:bg-charcoal hover:text-ivory"
               >
                 <span>Reserve This Room</span>
                 <span className="transition-transform group-hover:translate-x-1">→</span>
-              </Link>
+              </StartBookingLink>
             </div>
           </div>
         </Reveal>

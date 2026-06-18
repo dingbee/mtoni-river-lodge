@@ -5,6 +5,7 @@ import { Reveal } from "@/components/site/Reveal";
 import { PageHero } from "@/components/site/PageHero";
 import { RESERVATIONS_NOTE } from "@/lib/contact";
 import { trackCheckAvailabilityClick, trackRoomView } from "@/lib/analytics";
+import { StartBookingLink } from "@/lib/booking-session";
 import { ROOMS, getRoomPath, type Room } from "@/lib/rooms";
 import roomImg from "@/assets/suite-interior.jpg";
 
@@ -77,14 +78,14 @@ function RoomRow({ room, reverse }: { room: Room; reverse: boolean }) {
               <span>Explore Room</span>
               <span className="transition-transform group-hover:translate-x-1">→</span>
             </Link>
-            <Link
-              to="/book"
+            <StartBookingLink
+              roomSlug={room.slug}
               onClick={() => trackCheckAvailabilityClick(`rooms_page:${room.slug}`)}
               className="group inline-flex items-center gap-3 border border-charcoal bg-charcoal px-6 py-3 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-transparent hover:text-charcoal"
             >
               View Availability
               <span className="transition-transform group-hover:translate-x-1">→</span>
-            </Link>
+            </StartBookingLink>
           </div>
           <p className="mt-3 max-w-sm text-xs leading-relaxed text-charcoal/55">
             {RESERVATIONS_NOTE}
