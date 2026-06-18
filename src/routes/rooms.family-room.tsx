@@ -9,6 +9,7 @@ import { TrustBar } from "@/components/site/reviews/TrustBar";
 import { LightboxGallery } from "@/components/site/Lightbox";
 import { RESERVATIONS_NOTE, buildRoomInquiryUrl } from "@/lib/contact";
 import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics";
+import { StartBookingLink } from "@/lib/booking-session";
 import { FAMILY_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 
 function FamilyRoomPage() {
@@ -25,7 +26,7 @@ function FamilyRoomPage() {
         title={room.name}
         subtitle={room.heroLine}
         back={{ to: "/rooms", label: "Back to Rooms" }}
-        cta={{ label: "Check Availability", to: "/book" }}
+        cta={{ label: "Check Availability", bookingRoomSlug: "family-room" }}
       />
 
       <TrustBar variant="subtle" compact />
@@ -35,6 +36,7 @@ function FamilyRoomPage() {
         tagline="Space to gather"
         price="$360"
         note="Garden-facing suite · Designed for groups & longer stays"
+        roomSlug="family-room"
       />
 
       <section className="px-6 pb-24 lg:px-12 lg:pb-32">
@@ -84,14 +86,14 @@ function FamilyRoomPage() {
             <p className="eyebrow">Reserve</p>
             <h2 className="mt-6 font-display text-4xl leading-tight lg:text-6xl">{room.ctaLine}</h2>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              <Link
-                to="/book"
+              <StartBookingLink
+                roomSlug="family-room"
                 onClick={() => trackCheckAvailabilityClick("family_room")}
                 className="group inline-flex items-center gap-3 border border-charcoal bg-charcoal px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-transparent hover:text-charcoal"
               >
                 <span>Check Availability</span>
                 <span className="transition-transform group-hover:translate-x-1">→</span>
-              </Link>
+              </StartBookingLink>
               <a
                 href={buildRoomInquiryUrl(FAMILY_ROOM.name)}
                 target="_blank"
