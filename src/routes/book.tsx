@@ -254,16 +254,30 @@ function BookPage() {
     }
   }, [sessionId, checkIn, checkOut, adults, children, results, selectedRoom, extras, selectedExtras, guest]);
 
-  // Guard rail: if we land on a step whose prerequisites are missing, log it
-  // loudly so we can see whether a remount or stale storage caused a jump.
+  // Validation guard: if the user lands on a step whose prerequisites are
+  // missing, or if the session/room context does not match the persisted state,
+  // redirect to step 1 automatically so no stale / broken booking UI is shown.
   useEffect(() => {
-    if (step === "guest" && !selectedRoom) {
-      console.warn("[book] on 'guest' step without a selectedRoom — render guard will offer recovery");
+    // Missing/invalid step already defaults to 1 in validateSearch, but we
+    // still guard against state mismatches per step.
+    let target: Step | null = null;
+
+    if (step === "confirmation" && !confirmation) {
+      target = "search";
+    } else if (step === "guest" && !selectedRoom) {
+      target = results.length > 0 ? "select" : "search";
+    } else if ((step === "select" || step === "guest") && (!checkIn || !checkOut)) {
+      target = "search";
+    } else if (step === "select" && results.length === 0) {
+      target = "search";
     }
-    if ((step === "select" || step === "guest") && (!checkIn || !checkOut)) {
-      console.warn("[book] missing dates for step", step, { checkIn, checkOut });
+
+    if (target && target !== step) {
+      // eslint-disable-next-line no-console
+      console.warn("[book] guard redirect", { from: step, to: target, reason: "prerequisite_missing" });
+      void navigate({ search: { step: STEP_TO_NUM[target] }, replace: true });
     }
-  }, [step, selectedRoom, checkIn, checkOut]);
+  }, [step, confirmation, selectedRoom, checkIn, checkOut, results.length, navigate]);
 
   const nights = nightsBetween(checkIn, checkOut);
   const guests = adults + children;
