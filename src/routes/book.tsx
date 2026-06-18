@@ -135,20 +135,6 @@ function BookPage() {
       try {
         if (typeof window !== "undefined") window.sessionStorage.removeItem(STORAGE_KEY);
       } catch {}
-      // eslint-disable-next-line no-console
-      console.debug("[book] discarding cached draft before render", {
-        reason: !incomingSession
-          ? "no_session_in_url"
-          : !stored.sessionId
-          ? "no_stored_session"
-          : !sessionMatches
-          ? "session_mismatch"
-          : "room_mismatch",
-        incomingSession,
-        storedSession: stored.sessionId,
-        incomingRoom,
-        storedRoom: storedRoomSlug,
-      });
       bootstrapRef.current = {
         sessionId: incomingSession ?? newBookingSessionId(),
         state: {},
@@ -193,8 +179,6 @@ function BookPage() {
     setSelectedExtras([]);
     setGuest({ name: "", email: "", phone: "", country: "", requests: "" });
     setConfirmation(null);
-    // eslint-disable-next-line no-console
-    console.debug("[book] fresh booking session", { sessionId: incomingSession, room: incomingRoom });
   }, [incomingSession, sessionId, incomingRoom]);
 
   // Single source of truth for step transitions — writes the step to the URL
@@ -205,8 +189,6 @@ function BookPage() {
     (next: Step, reason: string) => {
       const prev = prevStepRef.current;
       if (prev !== next) {
-        // eslint-disable-next-line no-console
-        console.debug("[book] step change", { from: prev, to: next, reason });
         trackGAEvent("booking_funnel_step", {
           event_category: "conversion",
           from_step: prev,
@@ -273,8 +255,6 @@ function BookPage() {
     }
 
     if (target && target !== step) {
-      // eslint-disable-next-line no-console
-      console.warn("[book] guard redirect", { from: step, to: target, reason: "prerequisite_missing" });
       void navigate({ search: { step: STEP_TO_NUM[target] }, replace: true });
     }
   }, [step, confirmation, selectedRoom, checkIn, checkOut, results.length, navigate]);
