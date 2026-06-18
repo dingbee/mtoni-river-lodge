@@ -82,7 +82,7 @@ type PersistedState = {
   children: number;
   results: AvailabilityResult;
   selectedRoom: AvailabilityRoom | null;
-  extras: Array<{ slug: string; name: string; price: number; unit: string; description: string | null }>;
+  extras: Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>;
   selectedExtras: SelectedExtra[];
   guest: { name: string; email: string; phone: string; country: string; requests: string };
 };
@@ -155,7 +155,7 @@ function BookPage() {
   const [children, setChildren] = useState(p.children ?? 0);
   const [results, setResults] = useState<AvailabilityResult>(p.results ?? []);
   const [selectedRoom, setSelectedRoom] = useState<AvailabilityRoom | null>(p.selectedRoom ?? null);
-  const [extras, setExtras] = useState<Array<{ slug: string; name: string; price: number; unit: string; description: string | null }>>(p.extras ?? []);
+  const [extras, setExtras] = useState<Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>>(p.extras ?? []);
   const [selectedExtras, setSelectedExtras] = useState<SelectedExtra[]>(p.selectedExtras ?? []);
   const [guest, setGuest] = useState(p.guest ?? { name: "", email: "", phone: "", country: "", requests: "" });
   const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string } | null>(null);
