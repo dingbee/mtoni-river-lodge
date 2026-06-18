@@ -352,7 +352,6 @@ function BookPage() {
           {step === "select" && (
             <SelectStep
               results={results} guests={guests} nights={nights}
-              currentRoomSlug={selectedRoom?.slug ?? null}
               onBack={() => goToStep("search", "user_back_from_select")}
               onSelect={(r) => {
                 // Same room re-selected — just proceed.
