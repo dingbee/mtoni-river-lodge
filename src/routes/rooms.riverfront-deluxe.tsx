@@ -11,6 +11,7 @@ import { RESERVATIONS_NOTE, buildRoomInquiryUrl } from "@/lib/contact";
 import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics";
 import { StartBookingLink } from "@/lib/booking-session";
 import { RIVERFRONT_DELUXE_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
+import { buildRoomJsonLd } from "@/lib/room-schema";
 import outdoorShowerImg from "@/assets/riverfront-deluxe-outdoor-shower.jpg";
 import exteriorImg from "@/assets/riverfront-deluxe-exterior.jpg";
 
@@ -158,6 +159,19 @@ export const Route = createFileRoute("/rooms/riverfront-deluxe")({
       { property: "og:image", content: RIVERFRONT_DELUXE_ROOM.img },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: RIVERFRONT_DELUXE_ROOM.img },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(
+          buildRoomJsonLd({
+            room: RIVERFRONT_DELUXE_ROOM,
+            routePath: "/rooms/riverfront-deluxe",
+            priceUSD: 310,
+            occupancy: 2,
+          }),
+        ),
+      },
     ],
   }),
   component: RiverfrontDeluxePage,

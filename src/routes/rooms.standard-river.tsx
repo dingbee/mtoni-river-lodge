@@ -11,6 +11,7 @@ import { RESERVATIONS_NOTE, buildRoomInquiryUrl } from "@/lib/contact";
 import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics";
 import { StartBookingLink } from "@/lib/booking-session";
 import { STANDARD_RIVER_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
+import { buildRoomJsonLd } from "@/lib/room-schema";
 import interiorImg from "@/assets/standard-river-interior.jpg";
 
 function StandardRiverPage() {
@@ -157,6 +158,19 @@ export const Route = createFileRoute("/rooms/standard-river")({
       { property: "og:image", content: STANDARD_RIVER_ROOM.img },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: STANDARD_RIVER_ROOM.img },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(
+          buildRoomJsonLd({
+            room: STANDARD_RIVER_ROOM,
+            routePath: "/rooms/standard-river",
+            priceUSD: 260,
+            occupancy: 2,
+          }),
+        ),
+      },
     ],
   }),
   component: StandardRiverPage,

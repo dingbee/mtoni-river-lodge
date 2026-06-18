@@ -11,6 +11,7 @@ import { RESERVATIONS_NOTE, buildRoomInquiryUrl } from "@/lib/contact";
 import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics";
 import { StartBookingLink } from "@/lib/booking-session";
 import { FAMILY_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
+import { buildRoomJsonLd } from "@/lib/room-schema";
 
 function FamilyRoomPage() {
   const room = FAMILY_ROOM;
@@ -155,6 +156,19 @@ export const Route = createFileRoute("/rooms/family-room")({
       { property: "og:image", content: FAMILY_ROOM.img },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: FAMILY_ROOM.img },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(
+          buildRoomJsonLd({
+            room: FAMILY_ROOM,
+            routePath: "/rooms/family-room",
+            priceUSD: 360,
+            occupancy: 4,
+          }),
+        ),
+      },
     ],
   }),
   component: FamilyRoomPage,
