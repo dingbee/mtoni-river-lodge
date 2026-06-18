@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
-import logoAsset from "@/assets/mtoni-river-lodge-logo.png.asset.json";
+import logoUrl from "@/assets/mtoni-logo.png";
 import menuBgUrl from "@/assets/hero-river.jpg";
 import { Link } from "@tanstack/react-router";
 import { MobileStickyCTA } from "@/components/site/MobileStickyCTA";
 import { AvailabilityModal } from "@/components/site/AvailabilityModal";
 import { trackCheckAvailabilityClick } from "@/lib/analytics";
-
-const logoUrl = logoAsset.url;
 
 const links = [
   { to: "/", label: "Home" },
@@ -17,7 +15,6 @@ const links = [
   { to: "/dining", label: "Dining" },
   { to: "/gallery", label: "Gallery" },
   { to: "/journal", label: "Journal" },
-  { to: "/faq", label: "FAQ" },
   { to: "/contact", label: "Contact" },
   { to: "/plan", label: "Plan Your Stay" },
 ] as const;

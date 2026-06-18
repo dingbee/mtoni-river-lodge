@@ -43,7 +43,6 @@ const discoveryGroups: Array<{
       { label: "About Mtoni", to: "/lodge" },
       { label: "Dining", to: "/dining" },
       { label: "Gallery", to: "/gallery" },
-      { label: "FAQ", to: "/faq" },
       { label: "Plan Your Stay", to: "/plan" },
     ],
   },

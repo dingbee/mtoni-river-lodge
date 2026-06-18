@@ -26,7 +26,6 @@ const PATH_LABELS: Record<string, string> = {
   "/plan": "Plan Your Stay",
   "/pricing": "Pricing",
   "/terms": "Terms",
-  "/faq": "FAQ",
   "/vote": "Vote",
 };
 

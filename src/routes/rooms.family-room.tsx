@@ -156,33 +156,6 @@ export const Route = createFileRoute("/rooms/family-room")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: FAMILY_ROOM.img },
     ],
-    scripts: [
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "HotelRoom",
-          name: FAMILY_ROOM.name,
-          description: FAMILY_ROOM.shortDesc,
-          url: "https://mtoniriverlodge.com/rooms/family-room",
-          occupancy: { "@type": "QuantitativeValue", maxValue: 6, unitCode: "C62" },
-          containedInPlace: { "@id": "https://mtoniriverlodge.com/#hotel" },
-          offers: {
-            "@type": "Offer",
-            price: 360,
-            priceCurrency: "USD",
-            availability: "https://schema.org/InStock",
-            url: "https://mtoniriverlodge.com/book",
-            priceSpecification: {
-              "@type": "UnitPriceSpecification",
-              price: 360,
-              priceCurrency: "USD",
-              unitText: "per night",
-            },
-          },
-        }),
-      },
-    ],
   }),
   component: FamilyRoomPage,
 });
