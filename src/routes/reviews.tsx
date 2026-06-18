@@ -81,8 +81,8 @@ function ReviewsPage() {
           <Reveal>
             <div className="grid gap-6 sm:grid-cols-2">
               {[
-                { label: "Google", agg: google, url: GOOGLE_REVIEWS_URL },
-                { label: "Tripadvisor", agg: ta, url: TRIPADVISOR_URL },
+                { label: "Google", agg: google, url: GOOGLE_REVIEWS_URL, source: "google" as const },
+                { label: "Tripadvisor", agg: ta, url: TRIPADVISOR_URL, source: "tripadvisor" as const },
               ].map((it) => (
                 <a
                   key={it.label}
