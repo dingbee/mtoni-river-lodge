@@ -217,7 +217,7 @@ function BookPage() {
       void navigate({
         // Preserve session/room so the bootstrap + validation guards keep
         // recognising this as the same booking flow across step changes.
-        search: (prev) => ({ ...prev, step: STEP_TO_NUM[next] }),
+        search: (prev: Record<string, unknown>) => ({ ...prev, step: STEP_TO_NUM[next] }),
         replace: false,
       });
     },
@@ -283,7 +283,7 @@ function BookPage() {
 
       if (target && target !== step) {
         void navigate({
-          search: (prev) => ({ ...prev, step: STEP_TO_NUM[target!] }),
+          search: (prev: Record<string, unknown>) => ({ ...prev, step: STEP_TO_NUM[target!] }),
           replace: true,
         });
       }
