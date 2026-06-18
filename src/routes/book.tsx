@@ -105,7 +105,7 @@ function BookPage() {
   // routing, never a browser-history pop into a different session.
   const { step: stepNum } = Route.useSearch();
   const navigate = Route.useNavigate();
-  const step: Step = NUM_TO_STEP[stepNum];
+  const step: Step = NUM_TO_STEP[stepNum as 1 | 2 | 3 | 4];
   const [checkIn, setCheckIn] = useState(p.checkIn ?? "");
   const [checkOut, setCheckOut] = useState(p.checkOut ?? "");
   const [adults, setAdults] = useState(p.adults ?? 2);
