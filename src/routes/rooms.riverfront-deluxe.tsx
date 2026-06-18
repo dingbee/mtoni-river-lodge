@@ -39,6 +39,7 @@ function RiverfrontDeluxePage() {
         tagline="Closest to the water"
         price="$310"
         note="Premium river-facing room · Breakfast & personal hosting included"
+        roomSlug="riverfront-deluxe"
       />
 
       <section className="px-6 pb-24 lg:px-12 lg:pb-32">
