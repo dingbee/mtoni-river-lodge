@@ -55,9 +55,14 @@ export const GOOGLE_REVIEWS_URL =
 // reflect the seeded sample; published count reflects the lodge's actual
 // volume across Google + Tripadvisor.
 export const MIN_DISPLAY_REVIEW_COUNT = 90;
+export const MIN_TRIPADVISOR_REVIEW_COUNT = 140;
 
-export function formatReviewCount(count: number | null | undefined): string {
+export function formatReviewCount(
+  count: number | null | undefined,
+  source?: ReviewSource,
+): string {
   const n = Number(count ?? 0);
-  if (n >= MIN_DISPLAY_REVIEW_COUNT) return n.toLocaleString();
-  return `${MIN_DISPLAY_REVIEW_COUNT}+`;
+  const min = source === "tripadvisor" ? MIN_TRIPADVISOR_REVIEW_COUNT : MIN_DISPLAY_REVIEW_COUNT;
+  if (n >= min) return n.toLocaleString();
+  return `${min}+`;
 }

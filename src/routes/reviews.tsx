@@ -16,6 +16,7 @@ import {
   REVIEW_CATEGORIES,
   TRIPADVISOR_URL,
   GOOGLE_REVIEWS_URL,
+  formatReviewCount,
   type ReviewCategory,
   type ReviewSource,
 } from "@/lib/reviews";
@@ -80,8 +81,8 @@ function ReviewsPage() {
           <Reveal>
             <div className="grid gap-6 sm:grid-cols-2">
               {[
-                { label: "Google", agg: google, url: GOOGLE_REVIEWS_URL },
-                { label: "Tripadvisor", agg: ta, url: TRIPADVISOR_URL },
+                { label: "Google", agg: google, url: GOOGLE_REVIEWS_URL, source: "google" as const },
+                { label: "Tripadvisor", agg: ta, url: TRIPADVISOR_URL, source: "tripadvisor" as const },
               ].map((it) => (
                 <a
                   key={it.label}
@@ -102,7 +103,7 @@ function ReviewsPage() {
                   </div>
                   <div className="text-right">
                     <p className="font-display text-2xl leading-none">
-                      {it.agg ? it.agg.review_count : 0}
+                      {it.agg ? formatReviewCount(it.agg.review_count, it.source) : 0}
                     </p>
                     <p className="mt-2 text-[0.6rem] uppercase tracking-[0.28em] text-charcoal/55">
                       Verified reviews
