@@ -352,8 +352,35 @@ function BookPage() {
           {step === "select" && (
             <SelectStep
               results={results} guests={guests} nights={nights}
+              currentRoomSlug={selectedRoom?.slug ?? null}
               onBack={() => goToStep("search", "user_back_from_select")}
-              onSelect={(r) => { setSelectedRoom(r); goToStep("guest", "user_selected_room"); }}
+              onSelect={(r) => {
+                // Same room re-selected — just proceed.
+                if (selectedRoom && selectedRoom.slug === r.slug) {
+                  setSelectedRoom(r);
+                  goToStep("guest", "user_selected_room");
+                  return;
+                }
+                // Different room selected from inside the flow — wipe every
+                // stored draft and start a brand-new booking session bound to
+                // this room, then route back to step 1. The URL-session
+                // watcher in BookPage performs the actual state reset.
+                try {
+                  if (typeof window !== "undefined")
+                    window.sessionStorage.removeItem(STORAGE_KEY);
+                } catch {}
+                const fresh = newBookingSessionId();
+                trackGAEvent("booking_room_switch_reset", {
+                  event_category: "conversion",
+                  from_room: selectedRoom?.slug ?? null,
+                  to_room: r.slug,
+                  new_session: fresh,
+                });
+                void navigate({
+                  to: "/book",
+                  search: { step: 1, session: fresh, room: r.slug },
+                });
+              }}
             />
           )}
 
