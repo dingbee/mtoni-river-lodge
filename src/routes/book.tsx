@@ -160,6 +160,23 @@ function BookPage() {
   const [guest, setGuest] = useState(p.guest ?? { name: "", email: "", phone: "", country: "", requests: "" });
   const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string } | null>(null);
 
+  // Mirror critical state in refs so the validation guard can read the
+  // freshest values immediately after a navigate(), even if React hasn't
+  // flushed the setState batch yet. Without this, the router store update
+  // triggered by goToStep() can re-render with the new step before the
+  // setResults()/setSelectedRoom() updates commit, which the guard then
+  // misreads as "missing prerequisites" and bounces the user back to step 1.
+  const resultsRef = useRef(results);
+  const selectedRoomRef = useRef(selectedRoom);
+  const checkInRef = useRef(checkIn);
+  const checkOutRef = useRef(checkOut);
+  const confirmationRef = useRef(confirmation);
+  useEffect(() => { resultsRef.current = results; }, [results]);
+  useEffect(() => { selectedRoomRef.current = selectedRoom; }, [selectedRoom]);
+  useEffect(() => { checkInRef.current = checkIn; }, [checkIn]);
+  useEffect(() => { checkOutRef.current = checkOut; }, [checkOut]);
+  useEffect(() => { confirmationRef.current = confirmation; }, [confirmation]);
+
   // If the URL session id changes while we're already mounted (e.g. the user
   // clicks "Check Availability" from a different room without a full reload),
   // wipe all wizard state and adopt the new session.
@@ -198,7 +215,9 @@ function BookPage() {
       }
       prevStepRef.current = next;
       void navigate({
-        search: { step: STEP_TO_NUM[next] },
+        // Preserve session/room so the bootstrap + validation guards keep
+        // recognising this as the same booking flow across step changes.
+        search: (prev) => ({ ...prev, step: STEP_TO_NUM[next] }),
         replace: false,
       });
     },
@@ -240,23 +259,36 @@ function BookPage() {
   // missing, or if the session/room context does not match the persisted state,
   // redirect to step 1 automatically so no stale / broken booking UI is shown.
   useEffect(() => {
-    // Missing/invalid step already defaults to 1 in validateSearch, but we
-    // still guard against state mismatches per step.
-    let target: Step | null = null;
+    // Run on the next tick so any in-flight setState batch from a forward
+    // navigation (e.g. search.onSuccess → setResults + goToStep) has flushed
+    // before we evaluate prerequisites. Read from refs to avoid a stale
+    // snapshot if the URL changed before state committed.
+    const id = window.setTimeout(() => {
+      let target: Step | null = null;
+      const curResults = resultsRef.current;
+      const curRoom = selectedRoomRef.current;
+      const curIn = checkInRef.current;
+      const curOut = checkOutRef.current;
+      const curConfirm = confirmationRef.current;
 
-    if (step === "confirmation" && !confirmation) {
-      target = "search";
-    } else if (step === "guest" && !selectedRoom) {
-      target = results.length > 0 ? "select" : "search";
-    } else if ((step === "select" || step === "guest") && (!checkIn || !checkOut)) {
-      target = "search";
-    } else if (step === "select" && results.length === 0) {
-      target = "search";
-    }
+      if (step === "confirmation" && !curConfirm) {
+        target = "search";
+      } else if (step === "guest" && !curRoom) {
+        target = curResults.length > 0 ? "select" : "search";
+      } else if ((step === "select" || step === "guest") && (!curIn || !curOut)) {
+        target = "search";
+      } else if (step === "select" && curResults.length === 0) {
+        target = "search";
+      }
 
-    if (target && target !== step) {
-      void navigate({ search: { step: STEP_TO_NUM[target] }, replace: true });
-    }
+      if (target && target !== step) {
+        void navigate({
+          search: (prev) => ({ ...prev, step: STEP_TO_NUM[target!] }),
+          replace: true,
+        });
+      }
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [step, confirmation, selectedRoom, checkIn, checkOut, results.length, navigate]);
 
   const nights = nightsBetween(checkIn, checkOut);
