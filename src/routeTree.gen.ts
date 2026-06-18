@@ -24,6 +24,7 @@ import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PlanRouteImport } from './routes/plan'
 import { Route as LodgeRouteImport } from './routes/lodge'
 import { Route as JournalRouteImport } from './routes/journal'
+import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as ExperiencesRouteImport } from './routes/experiences'
 import { Route as DiningLeisureRouteImport } from './routes/dining-leisure'
 import { Route as DiningRouteImport } from './routes/dining'
@@ -128,6 +129,11 @@ const LodgeRoute = LodgeRouteImport.update({
 const JournalRoute = JournalRouteImport.update({
   id: '/journal',
   path: '/journal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GalleryRoute = GalleryRouteImport.update({
+  id: '/gallery',
+  path: '/gallery',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExperiencesRoute = ExperiencesRouteImport.update({
@@ -299,6 +305,7 @@ export interface FileRoutesByFullPath {
   '/dining': typeof DiningRoute
   '/dining-leisure': typeof DiningLeisureRoute
   '/experiences': typeof ExperiencesRoute
+  '/gallery': typeof GalleryRoute
   '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
@@ -344,6 +351,7 @@ export interface FileRoutesByTo {
   '/dining': typeof DiningRoute
   '/dining-leisure': typeof DiningLeisureRoute
   '/experiences': typeof ExperiencesRoute
+  '/gallery': typeof GalleryRoute
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
@@ -389,6 +397,7 @@ export interface FileRoutesById {
   '/dining': typeof DiningRoute
   '/dining-leisure': typeof DiningLeisureRoute
   '/experiences': typeof ExperiencesRoute
+  '/gallery': typeof GalleryRoute
   '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/plan': typeof PlanRoute
@@ -436,6 +445,7 @@ export interface FileRouteTypes {
     | '/dining'
     | '/dining-leisure'
     | '/experiences'
+    | '/gallery'
     | '/journal'
     | '/lodge'
     | '/plan'
@@ -481,6 +491,7 @@ export interface FileRouteTypes {
     | '/dining'
     | '/dining-leisure'
     | '/experiences'
+    | '/gallery'
     | '/lodge'
     | '/plan'
     | '/pricing'
@@ -525,6 +536,7 @@ export interface FileRouteTypes {
     | '/dining'
     | '/dining-leisure'
     | '/experiences'
+    | '/gallery'
     | '/journal'
     | '/lodge'
     | '/plan'
@@ -572,6 +584,7 @@ export interface RootRouteChildren {
   DiningRoute: typeof DiningRoute
   DiningLeisureRoute: typeof DiningLeisureRoute
   ExperiencesRoute: typeof ExperiencesRoute
+  GalleryRoute: typeof GalleryRoute
   JournalRoute: typeof JournalRouteWithChildren
   LodgeRoute: typeof LodgeRoute
   PlanRoute: typeof PlanRoute
@@ -696,6 +709,13 @@ declare module '@tanstack/react-router' {
       path: '/journal'
       fullPath: '/journal'
       preLoaderRoute: typeof JournalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gallery': {
+      id: '/gallery'
+      path: '/gallery'
+      fullPath: '/gallery'
+      preLoaderRoute: typeof GalleryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/experiences': {
@@ -980,6 +1000,7 @@ const rootRouteChildren: RootRouteChildren = {
   DiningRoute: DiningRoute,
   DiningLeisureRoute: DiningLeisureRoute,
   ExperiencesRoute: ExperiencesRoute,
+  GalleryRoute: GalleryRoute,
   JournalRoute: JournalRouteWithChildren,
   LodgeRoute: LodgeRoute,
   PlanRoute: PlanRoute,

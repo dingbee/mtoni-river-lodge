@@ -13,6 +13,7 @@ const links = [
   { to: "/rooms", label: "Rooms" },
   { to: "/experiences", label: "Experiences" },
   { to: "/dining", label: "Dining" },
+  { to: "/gallery", label: "Gallery" },
   { to: "/journal", label: "Journal" },
   { to: "/contact", label: "Contact" },
   { to: "/plan", label: "Plan Your Stay" },
