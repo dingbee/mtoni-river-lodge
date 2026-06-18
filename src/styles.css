@@ -240,7 +240,7 @@
   .text-pretty { text-wrap: pretty; }
 
   .ken-burns {
-    animation: kenBurns 20s ease-in-out infinite alternate;
+    animation: kenBurns 26s ease-in-out infinite alternate;
   }
 
   .reveal-up {
@@ -295,7 +295,7 @@
 
 @keyframes kenBurns {
   0% { transform: scale(1.02) translate3d(0,0,0); }
-  100% { transform: scale(1.12) translate3d(-1.5%, -1%, 0); }
+  100% { transform: scale(1.10) translate3d(-1.5%, -1%, 0); }
 }
 @keyframes revealUp {
   from { opacity: 0; transform: translateY(28px); }

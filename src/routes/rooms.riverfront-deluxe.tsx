@@ -6,6 +6,7 @@ import { PageHero } from "@/components/site/PageHero";
 import { RoomRate } from "@/components/site/RoomRate";
 import { RoomReviews } from "@/components/site/reviews/RoomReviews";
 import { TrustBar } from "@/components/site/reviews/TrustBar";
+import { LightboxGallery } from "@/components/site/Lightbox";
 import { RESERVATIONS_NOTE, buildRoomInquiryUrl } from "@/lib/contact";
 import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics";
 import { RIVERFRONT_DELUXE_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
@@ -57,18 +58,12 @@ function RiverfrontDeluxePage() {
       <section className="px-6 pb-24 lg:px-12 lg:pb-32">
         <div className="mx-auto max-w-[1200px]">
           <p className="eyebrow">Room Gallery</p>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {gallery.map((image, index) => (
-              <div key={image} className="aspect-[4/5] overflow-hidden">
-                <img
-                  src={image}
-                  alt={`${room.name} gallery image ${index + 1}`}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-            ))}
-          </div>
+          <LightboxGallery
+            images={gallery.map((src, i) => ({
+              src,
+              alt: `${room.name} — image ${i + 1}`,
+            }))}
+          />
         </div>
       </section>
 

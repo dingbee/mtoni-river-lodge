@@ -42,7 +42,7 @@ export function HeroCinematic({
   poster,
   posterAlt,
   posters,
-  slideDurationMs = 7000,
+  slideDurationMs = 9000,
 }: Props) {
   const slides = (posters && posters.length > 0
     ? posters
@@ -188,7 +188,7 @@ export function HeroCinematic({
               <img
                 src={s.src}
                 alt={s.alt}
-                className={`ken-burns absolute inset-0 h-full w-full object-cover transition-opacity duration-[2000ms] ease-in-out ${
+                className={`ken-burns absolute inset-0 h-full w-full object-cover transition-opacity duration-[2400ms] ease-in-out ${
                   i === activeSlide ? "opacity-100" : "opacity-0"
                 }`}
                 width={1920}
