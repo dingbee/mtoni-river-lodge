@@ -378,16 +378,31 @@ function BookPage() {
               results={results} guests={guests} nights={nights}
               onBack={() => goToStep("search", "user_back_from_select")}
               onSelect={(r) => {
-                // Same room re-selected — just proceed.
-                if (selectedRoom && selectedRoom.slug === r.slug) {
+                // The "room context" for this session is whichever room the
+                // session is currently bound to: either the previously
+                // selected room, or the URL ?room= slug the user arrived with.
+                const currentRoomContext = selectedRoom?.slug ?? incomingRoom ?? null;
+
+                // First-time pick, or re-picking the same room the session is
+                // already bound to — just proceed to guest details.
+                if (!currentRoomContext || currentRoomContext === r.slug) {
                   setSelectedRoom(r);
-                  goToStep("guest", "user_selected_room");
+                  // Keep the URL ?room= in sync so refreshes stay consistent.
+                  void navigate({
+                    search: { step: STEP_TO_NUM.guest, session: sessionId, room: r.slug },
+                  });
+                  prevStepRef.current = "guest";
+                  trackGAEvent("booking_funnel_step", {
+                    event_category: "conversion",
+                    from_step: "select",
+                    to_step: "guest",
+                    reason: "user_selected_room",
+                  });
                   return;
                 }
-                // Different room selected from inside the flow — wipe every
+                // Switching to a genuinely different room mid-flow — wipe the
                 // stored draft and start a brand-new booking session bound to
-                // this room, then route back to step 1. The URL-session
-                // watcher in BookPage performs the actual state reset.
+                // the new room, routed back to step 1.
                 try {
                   if (typeof window !== "undefined")
                     window.sessionStorage.removeItem(STORAGE_KEY);
@@ -395,7 +410,7 @@ function BookPage() {
                 const fresh = newBookingSessionId();
                 trackGAEvent("booking_room_switch_reset", {
                   event_category: "conversion",
-                  from_room: selectedRoom?.slug ?? null,
+                  from_room: currentRoomContext,
                   to_room: r.slug,
                   new_session: fresh,
                 });
