@@ -73,7 +73,7 @@ function BookingReturn() {
         reference: ref,
         value: status.deposit,
         currency: status.currency,
-        payment_method: status.paymentMethod,
+        payment_method: status.paymentMethod ?? undefined,
       });
     } else if (status.outcome === "failed") {
       trackGAEvent("payment_failed", { transaction_id: ref });
