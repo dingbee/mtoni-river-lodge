@@ -73,7 +73,7 @@ export function GuestExperiencesSection() {
                   <div className="flex flex-col gap-1">
                     <Stars rating={google.average_rating} size="sm" />
                     <span className="text-[0.62rem] uppercase tracking-[0.28em] text-charcoal/55">
-                      Google · {formatReviewCount(google.review_count)} reviews
+                      Google · {formatReviewCount(google.review_count, "google")} reviews
                     </span>
                   </div>
                 </div>
