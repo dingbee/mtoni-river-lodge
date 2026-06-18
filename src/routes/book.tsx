@@ -104,10 +104,26 @@ function BookPage() {
       if (prev !== next) {
         // eslint-disable-next-line no-console
         console.debug("[book] step change", { from: prev, to: next, reason });
+        trackGAEvent("booking_funnel_step", {
+          event_category: "conversion",
+          from_step: prev,
+          to_step: next,
+          reason,
+        });
       }
       prevStepRef.current = prev;
       return next;
     });
+  }, []);
+
+  // Funnel entry — fires once per mount so we can measure drop-off from the
+  // step a guest lands on (e.g. resumed from sessionStorage vs. fresh search).
+  useEffect(() => {
+    trackGAEvent("booking_funnel_enter", {
+      event_category: "conversion",
+      entry_step: step,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Persist wizard state on every meaningful change.
