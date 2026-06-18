@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VoteRouteImport } from './routes/vote'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SuitesRouteImport } from './routes/suites'
+import { Route as StayRouteImport } from './routes/stay'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SitemapPagesDotxmlRouteImport } from './routes/sitemap-pages[.]xml'
 import { Route as SitemapJournalDotxmlRouteImport } from './routes/sitemap-journal[.]xml'
@@ -68,6 +69,11 @@ const TermsRoute = TermsRouteImport.update({
 const SuitesRoute = SuitesRouteImport.update({
   id: '/suites',
   path: '/suites',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StayRoute = StayRouteImport.update({
+  id: '/stay',
+  path: '/stay',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -318,6 +324,7 @@ export interface FileRoutesByFullPath {
   '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
   '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/stay': typeof StayRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
@@ -362,6 +369,7 @@ export interface FileRoutesByTo {
   '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
   '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/stay': typeof StayRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
@@ -410,6 +418,7 @@ export interface FileRoutesById {
   '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
   '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/stay': typeof StayRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
@@ -458,6 +467,7 @@ export interface FileRouteTypes {
     | '/sitemap-journal.xml'
     | '/sitemap-pages.xml'
     | '/sitemap.xml'
+    | '/stay'
     | '/suites'
     | '/terms'
     | '/vote'
@@ -502,6 +512,7 @@ export interface FileRouteTypes {
     | '/sitemap-journal.xml'
     | '/sitemap-pages.xml'
     | '/sitemap.xml'
+    | '/stay'
     | '/suites'
     | '/terms'
     | '/vote'
@@ -549,6 +560,7 @@ export interface FileRouteTypes {
     | '/sitemap-journal.xml'
     | '/sitemap-pages.xml'
     | '/sitemap.xml'
+    | '/stay'
     | '/suites'
     | '/terms'
     | '/vote'
@@ -597,6 +609,7 @@ export interface RootRouteChildren {
   SitemapJournalDotxmlRoute: typeof SitemapJournalDotxmlRoute
   SitemapPagesDotxmlRoute: typeof SitemapPagesDotxmlRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  StayRoute: typeof StayRoute
   SuitesRoute: typeof SuitesRoute
   TermsRoute: typeof TermsRoute
   VoteRoute: typeof VoteRoute
@@ -625,6 +638,13 @@ declare module '@tanstack/react-router' {
       path: '/suites'
       fullPath: '/suites'
       preLoaderRoute: typeof SuitesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stay': {
+      id: '/stay'
+      path: '/stay'
+      fullPath: '/stay'
+      preLoaderRoute: typeof StayRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -1013,6 +1033,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapJournalDotxmlRoute: SitemapJournalDotxmlRoute,
   SitemapPagesDotxmlRoute: SitemapPagesDotxmlRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  StayRoute: StayRoute,
   SuitesRoute: SuitesRoute,
   TermsRoute: TermsRoute,
   VoteRoute: VoteRoute,
