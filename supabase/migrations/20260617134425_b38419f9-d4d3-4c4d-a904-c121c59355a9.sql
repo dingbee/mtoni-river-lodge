@@ -345,9 +345,9 @@ GRANT EXECUTE ON FUNCTION public.create_booking(text, date, date, int, int, text
 
 -- ============ SEED DATA ============
 INSERT INTO public.rooms (slug, name, short_description, capacity_adults, capacity_children, max_occupancy, total_units, base_price, sort_order) VALUES
-  ('riverfront-deluxe', 'Riverfront Deluxe Room', 'Closest to the water''s edge — uninterrupted river views.', 2, 1, 3, 8, 220.00, 1),
-  ('standard-river',    'Standard River Room',    'Nature-facing rooms set slightly back from the river.',     2, 1, 3, 12, 160.00, 2),
-  ('family-room',       'Family / Group Room',    'Generous space for families or small groups.',              4, 2, 6, 4, 320.00, 3);
+  ('riverfront-deluxe', 'Riverfront Deluxe Room', 'Closest to the water''s edge — uninterrupted river views.', 2, 1, 3, 8, 310.00, 1),
+  ('standard-river',    'Standard River Room',    'Nature-facing rooms set slightly back from the river.',     2, 1, 3, 12, 260.00, 2),
+  ('family-room',       'Family / Group Room',    'Generous space for families or small groups.',              4, 2, 6, 4, 360.00, 3);
 
 INSERT INTO public.extras (slug, name, description, price, unit, sort_order) VALUES
   ('airport-transfer',      'Airport Transfer (Kilimanjaro / Arusha)', 'Private return transfer to/from JRO or ARK.', 80.00, 'per_stay', 1),
