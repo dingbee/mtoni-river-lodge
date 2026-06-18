@@ -5,7 +5,7 @@ import { Loader2, Check, AlertTriangle } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooterMinimal } from "@/components/site/SiteFooterMinimal";
 import { getPaymentStatusByReference } from "@/lib/payments.functions";
-import { trackGAEvent } from "@/lib/analytics";
+import { trackGAEvent, trackBookingCompleted } from "@/lib/analytics";
 
 type Search = { ref?: string; email?: string };
 type PaymentStatus = Awaited<ReturnType<typeof getPaymentStatusByReference>>;
@@ -69,6 +69,12 @@ function BookingReturn() {
         booking_value: status.deposit,
       });
       trackGAEvent("booking_confirmed", { transaction_id: ref });
+      trackBookingCompleted({
+        reference: ref,
+        value: status.deposit,
+        currency: status.currency,
+        payment_method: status.paymentMethod,
+      });
     } else if (status.outcome === "failed") {
       trackGAEvent("payment_failed", { transaction_id: ref });
     }
