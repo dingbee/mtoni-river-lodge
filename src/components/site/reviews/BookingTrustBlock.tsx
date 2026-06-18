@@ -2,7 +2,7 @@ import { ShieldCheck, Heart, KeyRound } from "lucide-react";
 import { Stars } from "./Stars";
 import { ReviewCard } from "./ReviewCard";
 import { useApprovedReviews, useReviewAggregates, getAggregate } from "./useReviewData";
-import { TRIPADVISOR_URL, GOOGLE_REVIEWS_URL } from "@/lib/reviews";
+import { TRIPADVISOR_URL, GOOGLE_REVIEWS_URL, formatReviewCount } from "@/lib/reviews";
 
 export function BookingTrustBlock() {
   const { data: aggregates } = useReviewAggregates();
@@ -27,7 +27,7 @@ export function BookingTrustBlock() {
                   <div>
                     <Stars rating={google.average_rating} size="xs" />
                     <p className="mt-1 text-[0.6rem] uppercase tracking-[0.24em] text-charcoal/55">
-                      Google · {google.review_count} reviews
+                      Google · {formatReviewCount(google.review_count)} reviews
                     </p>
                   </div>
                 </a>
@@ -38,7 +38,7 @@ export function BookingTrustBlock() {
                   <div>
                     <Stars rating={ta.average_rating} size="xs" />
                     <p className="mt-1 text-[0.6rem] uppercase tracking-[0.24em] text-charcoal/55">
-                      Tripadvisor · {ta.review_count} reviews
+                      Tripadvisor · {formatReviewCount(ta.review_count)} reviews
                     </p>
                   </div>
                 </a>

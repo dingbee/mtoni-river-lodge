@@ -5,7 +5,7 @@ import { ReviewCard } from "./ReviewCard";
 import { Stars } from "./Stars";
 import { useApprovedReviews, useReviewAggregates, getAggregate } from "./useReviewData";
 import { ReviewSchema } from "./ReviewSchema";
-import { CATEGORY_LABELS, type ReviewCategory } from "@/lib/reviews";
+import { CATEGORY_LABELS, formatReviewCount, type ReviewCategory } from "@/lib/reviews";
 
 const HOMEPAGE_GROUPS: { key: ReviewCategory; eyebrow: string; copy: string }[] = [
   {
@@ -73,7 +73,7 @@ export function GuestExperiencesSection() {
                   <div className="flex flex-col gap-1">
                     <Stars rating={google.average_rating} size="sm" />
                     <span className="text-[0.62rem] uppercase tracking-[0.28em] text-charcoal/55">
-                      Google · {google.review_count} reviews
+                      Google · {formatReviewCount(google.review_count)} reviews
                     </span>
                   </div>
                 </div>
@@ -84,7 +84,7 @@ export function GuestExperiencesSection() {
                   <div className="flex flex-col gap-1">
                     <Stars rating={ta.average_rating} size="sm" />
                     <span className="text-[0.62rem] uppercase tracking-[0.28em] text-charcoal/55">
-                      Tripadvisor · {ta.review_count} reviews
+                      Tripadvisor · {formatReviewCount(ta.review_count)} reviews
                     </span>
                   </div>
                 </div>

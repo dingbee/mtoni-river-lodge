@@ -1,6 +1,6 @@
 import { Stars } from "./Stars";
 import { useReviewAggregates, getAggregate } from "./useReviewData";
-import { TRIPADVISOR_URL, GOOGLE_REVIEWS_URL } from "@/lib/reviews";
+import { TRIPADVISOR_URL, GOOGLE_REVIEWS_URL, formatReviewCount } from "@/lib/reviews";
 
 type Variant = "light" | "dark" | "subtle";
 
@@ -41,7 +41,7 @@ export function TrustBar({ variant = "subtle", compact = false }: { variant?: Va
           </span>
           <span className="text-[0.65rem] uppercase tracking-[0.22em] opacity-75">
             {it.label}
-            {it.agg ? ` · ${it.agg.review_count} ${it.agg.review_count === 1 ? "review" : "reviews"}` : ""}
+            {it.agg ? ` · ${formatReviewCount(it.agg.review_count)} reviews` : ""}
           </span>
         </a>
       ))}
