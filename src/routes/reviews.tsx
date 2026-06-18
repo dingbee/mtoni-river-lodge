@@ -103,7 +103,7 @@ function ReviewsPage() {
                   </div>
                   <div className="text-right">
                     <p className="font-display text-2xl leading-none">
-                      {it.agg ? it.agg.review_count : 0}
+                      {it.agg ? formatReviewCount(it.agg.review_count, it.source) : 0}
                     </p>
                     <p className="mt-2 text-[0.6rem] uppercase tracking-[0.28em] text-charcoal/55">
                       Verified reviews
