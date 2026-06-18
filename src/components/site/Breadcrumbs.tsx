@@ -2,8 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { useBreadcrumbTrail, type Crumb } from "@/lib/breadcrumbs";
 
-const SITE_ORIGIN = "https://mtoniriverlodge.com";
-
 type Variant = "light" | "dark";
 
 type Props = {
@@ -38,20 +36,8 @@ export function Breadcrumbs({ variant = "dark", className = "", items }: Props) 
   const hover =
     variant === "light" ? "hover:text-ivory" : "hover:text-[var(--gold)]";
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: trail.map((c, i) => ({
-      "@type": "ListItem",
-      position: i + 1,
-      name: c.name,
-      ...(c.to ? { item: `${SITE_ORIGIN}${c.to}` } : {}),
-    })),
-  };
-
   return (
-    <>
-      <nav
+    <nav
         aria-label="Breadcrumb"
         className={`text-[0.68rem] uppercase tracking-[0.22em] ${base} ${className}`}
       >
@@ -83,14 +69,7 @@ export function Breadcrumbs({ variant = "dark", className = "", items }: Props) 
             );
           })}
         </ol>
-      </nav>
-      <script
-        type="application/ld+json"
-        // BreadcrumbList JSON-LD — validated against Google's required
-        // fields (itemListElement[].position, name, item).
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-    </>
+    </nav>
   );
 }
 
