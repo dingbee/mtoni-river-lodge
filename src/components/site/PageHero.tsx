@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
+import { StartBookingLink } from "@/lib/booking-session";
 
 type Align = "left" | "center";
 
@@ -9,6 +10,9 @@ type CTA = {
   label: string;
   to?: string;
   href?: string;
+  /** When set, the CTA opens the booking wizard in a fresh session bound
+   *  to this room slug — never reuses a draft from a different room. */
+  bookingRoomSlug?: string;
 };
 
 type Props = {
@@ -117,7 +121,15 @@ export function PageHero({
         {cta && (
           <Reveal delay={350}>
             <div className="mt-9">
-              {cta.to ? (
+              {cta.bookingRoomSlug ? (
+                <StartBookingLink
+                  roomSlug={cta.bookingRoomSlug}
+                  className="group inline-flex items-center gap-3 border border-ivory bg-ivory px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-charcoal transition-colors hover:bg-transparent hover:text-ivory"
+                >
+                  <span>{cta.label}</span>
+                  <span className="transition-transform group-hover:translate-x-1">→</span>
+                </StartBookingLink>
+              ) : cta.to ? (
                 <Link
                   to={cta.to}
                   className="group inline-flex items-center gap-3 border border-ivory bg-ivory px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-charcoal transition-colors hover:bg-transparent hover:text-ivory"
