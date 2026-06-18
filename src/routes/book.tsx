@@ -20,6 +20,11 @@ import {
 import { initiatePayment } from "@/lib/payments.functions";
 
 export const Route = createFileRoute("/book")({
+  validateSearch: (search: Record<string, unknown>): { step: 1 | 2 | 3 | 4 } => {
+    const raw = Number(search.step);
+    const step = raw === 2 || raw === 3 || raw === 4 ? raw : 1;
+    return { step: step as 1 | 2 | 3 | 4 };
+  },
   head: () => ({
     meta: [
       { title: "Book Your Stay — Mtoni River Lodge" },
@@ -45,6 +50,19 @@ const nightsBetween = (a: string, b: string) =>
 
 type Step = "search" | "select" | "guest" | "confirmation";
 
+const STEP_TO_NUM: Record<Step, 1 | 2 | 3 | 4> = {
+  search: 1,
+  select: 2,
+  guest: 3,
+  confirmation: 4,
+};
+const NUM_TO_STEP: Record<1 | 2 | 3 | 4, Step> = {
+  1: "search",
+  2: "select",
+  3: "guest",
+  4: "confirmation",
+};
+
 type AvailabilityResult = (AvailabilityRoom & { fits_guests: boolean })[];
 
 type SelectedExtra = { slug: string; quantity: number };
@@ -52,7 +70,6 @@ type SelectedExtra = { slug: string; quantity: number };
 const STORAGE_KEY = "mrl.booking.wizard.v1";
 
 type PersistedState = {
-  step: Step;
   checkIn: string;
   checkOut: string;
   adults: number;
@@ -84,7 +101,11 @@ function BookPage() {
   }
   const p = persistedRef.current;
 
-  const [step, setStepRaw] = useState<Step>(p.step ?? "search");
+  // Step lives in the URL (?step=1..4) so back/forward is always explicit
+  // routing, never a browser-history pop into a different session.
+  const { step: stepNum } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const step: Step = NUM_TO_STEP[stepNum as 1 | 2 | 3 | 4];
   const [checkIn, setCheckIn] = useState(p.checkIn ?? "");
   const [checkOut, setCheckOut] = useState(p.checkOut ?? "");
   const [adults, setAdults] = useState(p.adults ?? 2);
@@ -96,11 +117,13 @@ function BookPage() {
   const [guest, setGuest] = useState(p.guest ?? { name: "", email: "", phone: "", country: "", requests: "" });
   const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string } | null>(null);
 
-  // Single source of truth for step transitions. Logs prev → next so any
-  // unexpected jump is visible in the console.
+  // Single source of truth for step transitions — writes the step to the URL
+  // via navigate(). Never relies on window.history.back / navigate(-1), so
+  // the "back" buttons always route to a known step of the same session.
   const prevStepRef = useRef<Step>(step);
-  const goToStep = useCallback((next: Step, reason: string) => {
-    setStepRaw((prev) => {
+  const goToStep = useCallback(
+    (next: Step, reason: string) => {
+      const prev = prevStepRef.current;
       if (prev !== next) {
         // eslint-disable-next-line no-console
         console.debug("[book] step change", { from: prev, to: next, reason });
@@ -111,10 +134,20 @@ function BookPage() {
           reason,
         });
       }
-      prevStepRef.current = prev;
-      return next;
-    });
-  }, []);
+      prevStepRef.current = next;
+      void navigate({
+        search: { step: STEP_TO_NUM[next] },
+        replace: false,
+      });
+    },
+    [navigate]
+  );
+
+  // Keep prevStepRef in sync if the URL changes from outside goToStep
+  // (e.g. user edits ?step= manually, or lands via a deep link).
+  useEffect(() => {
+    prevStepRef.current = step;
+  }, [step]);
 
   // Funnel entry — fires once per mount so we can measure drop-off from the
   // step a guest lands on (e.g. resumed from sessionStorage vs. fresh search).
@@ -131,14 +164,14 @@ function BookPage() {
     if (typeof window === "undefined") return;
     try {
       const snapshot: PersistedState = {
-        step, checkIn, checkOut, adults, children,
+        checkIn, checkOut, adults, children,
         results, selectedRoom, extras, selectedExtras, guest,
       };
       window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
     } catch (err) {
       console.warn("[book] failed to persist wizard state", err);
     }
-  }, [step, checkIn, checkOut, adults, children, results, selectedRoom, extras, selectedExtras, guest]);
+  }, [checkIn, checkOut, adults, children, results, selectedRoom, extras, selectedExtras, guest]);
 
   // Guard rail: if we land on a step whose prerequisites are missing, log it
   // loudly so we can see whether a remount or stale storage caused a jump.
