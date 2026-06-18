@@ -432,6 +432,12 @@ function BookPage() {
                 // already bound to — just proceed to guest details.
                 if (!currentRoomContext || currentRoomContext === r.slug) {
                   setSelectedRoom(r);
+                  trackRoomSelected({
+                    room_slug: r.slug,
+                    room_name: r.name,
+                    nightly_total: Number(r.nightly_total),
+                    currency: r.currency,
+                  });
                   // Keep the URL ?room= in sync so refreshes stay consistent.
                   void navigate({
                     search: { step: STEP_TO_NUM.guest, session: sessionId, room: r.slug },
