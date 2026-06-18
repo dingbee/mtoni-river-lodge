@@ -12,6 +12,11 @@ import { TrustBar } from "@/components/site/reviews/TrustBar";
 import { WHATSAPP_URL } from "@/lib/contact";
 import { trackContactClick, trackGAEvent } from "@/lib/analytics";
 import {
+  trackAvailabilityChecked,
+  trackRoomSelected,
+  trackAddOnSelected,
+} from "@/lib/analytics";
+import {
   checkAvailability,
   createBooking,
   listExtras,
@@ -311,6 +316,14 @@ function BookPage() {
     onSuccess: ({ rooms, extrasList }) => {
       setResults(rooms);
       setExtras(extrasList);
+      trackAvailabilityChecked({
+        check_in: checkIn,
+        check_out: checkOut,
+        guests,
+        nights,
+        available_rooms: rooms.filter((r) => r.is_available).length,
+        total_rooms: rooms.length,
+      });
       goToStep("select", "availability_search_success");
     },
     onError: (err: Error) => {
@@ -419,6 +432,12 @@ function BookPage() {
                 // already bound to — just proceed to guest details.
                 if (!currentRoomContext || currentRoomContext === r.slug) {
                   setSelectedRoom(r);
+                  trackRoomSelected({
+                    room_slug: r.slug,
+                    room_name: r.name,
+                    nightly_total: Number(r.nightly_total),
+                    currency: r.currency,
+                  });
                   // Keep the URL ?room= in sync so refreshes stay consistent.
                   void navigate({
                     search: { step: STEP_TO_NUM.guest, session: sessionId, room: r.slug },
@@ -638,8 +657,14 @@ function GuestStep(props: {
   const balance = props.grandTotal - deposit;
   const toggleExtra = (slug: string) => {
     const existing = props.selectedExtras.find((s) => s.slug === slug);
-    if (existing) props.setSelectedExtras(props.selectedExtras.filter((s) => s.slug !== slug));
-    else props.setSelectedExtras([...props.selectedExtras, { slug, quantity: 1 }]);
+    const extra = props.extras.find((e) => e.slug === slug);
+    if (existing) {
+      props.setSelectedExtras(props.selectedExtras.filter((s) => s.slug !== slug));
+      trackAddOnSelected({ slug, name: extra?.name, price: extra?.price, action: "removed" });
+    } else {
+      props.setSelectedExtras([...props.selectedExtras, { slug, quantity: 1 }]);
+      trackAddOnSelected({ slug, name: extra?.name, price: extra?.price, action: "added" });
+    }
   };
   const unitLabel = (unit: string) => {
     switch (unit) {
