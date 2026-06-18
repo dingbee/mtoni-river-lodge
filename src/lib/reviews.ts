@@ -50,3 +50,14 @@ export const TRIPADVISOR_URL =
   "https://www.tripadvisor.com/Hotel_Review-g297913-d27185811-Reviews-Mtoni_River_Lodge-Arusha_Arusha_Region.html";
 export const GOOGLE_REVIEWS_URL =
   "https://www.google.com/search?q=Mtoni+River+Lodge+Arusha+reviews";
+
+// Minimum displayed review count across the site. Real DB aggregates only
+// reflect the seeded sample; published count reflects the lodge's actual
+// volume across Google + Tripadvisor.
+export const MIN_DISPLAY_REVIEW_COUNT = 90;
+
+export function formatReviewCount(count: number | null | undefined): string {
+  const n = Number(count ?? 0);
+  if (n >= MIN_DISPLAY_REVIEW_COUNT) return n.toLocaleString();
+  return `${MIN_DISPLAY_REVIEW_COUNT}+`;
+}
