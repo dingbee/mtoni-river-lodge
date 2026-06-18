@@ -16,9 +16,9 @@ export function TrustBar({ variant = "subtle", compact = false }: { variant?: Va
   const ta = getAggregate(data, "tripadvisor");
 
   // Don't render an empty shell on first paint with no data — still show static labels.
-  const items = [
-    { label: "Google", url: GOOGLE_REVIEWS_URL, agg: google },
-    { label: "Tripadvisor", url: TRIPADVISOR_URL, agg: ta },
+  const items: { label: string; url: string; agg: typeof google; source: "google" | "tripadvisor" }[] = [
+    { label: "Google", url: GOOGLE_REVIEWS_URL, agg: google, source: "google" },
+    { label: "Tripadvisor", url: TRIPADVISOR_URL, agg: ta, source: "tripadvisor" },
   ];
 
   return (
