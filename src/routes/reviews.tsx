@@ -16,6 +16,7 @@ import {
   REVIEW_CATEGORIES,
   TRIPADVISOR_URL,
   GOOGLE_REVIEWS_URL,
+  formatReviewCount,
   type ReviewCategory,
   type ReviewSource,
 } from "@/lib/reviews";
