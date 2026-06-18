@@ -18,6 +18,7 @@ import {
   type AvailabilityRoom,
 } from "@/lib/booking.functions";
 import { initiatePayment } from "@/lib/payments.functions";
+import { newBookingSessionId } from "@/lib/booking-session";
 
 export const Route = createFileRoute("/book")({
   validateSearch: (
