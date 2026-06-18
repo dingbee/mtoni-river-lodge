@@ -625,7 +625,7 @@ function SelectStep({ results, guests, nights, onBack, onSelect }: {
 
 function GuestStep(props: {
   room: AvailabilityRoom; nights: number; guests: number;
-  extras: Array<{ slug: string; name: string; price: number; unit: string; description: string | null }>;
+  extras: Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>;
   selectedExtras: SelectedExtra[]; setSelectedExtras: (v: SelectedExtra[]) => void;
   extrasTotal: number; grandTotal: number;
   guest: { name: string; email: string; phone: string; country: string; requests: string };
@@ -641,6 +641,35 @@ function GuestStep(props: {
     if (existing) props.setSelectedExtras(props.selectedExtras.filter((s) => s.slug !== slug));
     else props.setSelectedExtras([...props.selectedExtras, { slug, quantity: 1 }]);
   };
+  const unitLabel = (unit: string) => {
+    switch (unit) {
+      case "per_stay": return "per booking";
+      case "per_night": return "per night";
+      case "per_person": return "per person";
+      case "per_person_per_night": return "per person / night";
+      default: return unit.replaceAll("_", " ");
+    }
+  };
+  const transfers = props.extras.filter((e) => (e.category ?? "experiences") === "transfers");
+  const experiences = props.extras.filter((e) => (e.category ?? "experiences") === "experiences");
+  const renderExtra = (e: typeof props.extras[number]) => {
+    const checked = !!props.selectedExtras.find((s) => s.slug === e.slug);
+    return (
+      <label key={e.slug} className={`flex cursor-pointer items-start justify-between gap-4 rounded-lg border p-4 transition ${checked ? "border-charcoal/40 bg-bone/40" : "border-charcoal/10"}`}>
+        <div className="flex items-start gap-3">
+          <input type="checkbox" checked={checked} onChange={() => toggleExtra(e.slug)} className="mt-1" />
+          <div>
+            <p className="font-medium">{e.name}</p>
+            {e.description && <p className="mt-0.5 text-xs text-charcoal/60">{e.description}</p>}
+          </div>
+        </div>
+        <span className="whitespace-nowrap text-right text-sm">
+          {fmt(e.price)}
+          <span className="block text-[0.65rem] uppercase tracking-[0.16em] text-charcoal/55">{unitLabel(e.unit)}</span>
+        </span>
+      </label>
+    );
+  };
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <div className="space-y-6">
@@ -648,24 +677,19 @@ function GuestStep(props: {
 
         <div className="rounded-2xl border border-charcoal/10 bg-ivory p-6 sm:p-8">
           <h3 className="font-display text-xl">Add Extras</h3>
-          <p className="mt-1 text-xs text-charcoal/60">Optional services to elevate your stay.</p>
-          <div className="mt-5 space-y-3">
-            {props.extras.map((e) => {
-              const checked = !!props.selectedExtras.find((s) => s.slug === e.slug);
-              return (
-                <label key={e.slug} className={`flex cursor-pointer items-start justify-between gap-4 rounded-lg border p-4 transition ${checked ? "border-charcoal/40 bg-bone/40" : "border-charcoal/10"}`}>
-                  <div className="flex items-start gap-3">
-                    <input type="checkbox" checked={checked} onChange={() => toggleExtra(e.slug)} className="mt-1" />
-                    <div>
-                      <p className="font-medium">{e.name}</p>
-                      {e.description && <p className="text-xs text-charcoal/60">{e.description}</p>}
-                    </div>
-                  </div>
-                  <span className="whitespace-nowrap text-sm">{fmt(e.price)} <span className="text-xs text-charcoal/55">/ {e.unit.replaceAll("_", " ")}</span></span>
-                </label>
-              );
-            })}
-          </div>
+          <p className="mt-1 text-xs text-charcoal/60">Optional services to elevate your stay. Select as many as you like.</p>
+          {transfers.length > 0 && (
+            <div className="mt-6">
+              <p className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">Transfers</p>
+              <div className="mt-3 space-y-3">{transfers.map(renderExtra)}</div>
+            </div>
+          )}
+          {experiences.length > 0 && (
+            <div className="mt-6">
+              <p className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">Experiences</p>
+              <div className="mt-3 space-y-3">{experiences.map(renderExtra)}</div>
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl border border-charcoal/10 bg-ivory p-6 sm:p-8">
