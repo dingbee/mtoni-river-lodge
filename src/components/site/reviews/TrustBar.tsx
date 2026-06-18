@@ -41,7 +41,7 @@ export function TrustBar({ variant = "subtle", compact = false }: { variant?: Va
           </span>
           <span className="text-[0.65rem] uppercase tracking-[0.22em] opacity-75">
             {it.label}
-            {it.agg ? ` · ${formatReviewCount(it.agg.review_count)} reviews` : ""}
+            {it.agg ? ` · ${formatReviewCount(it.agg.review_count, it.source)} reviews` : ""}
           </span>
         </a>
       ))}
