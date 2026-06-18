@@ -27,7 +27,7 @@ export function BookingTrustBlock() {
                   <div>
                     <Stars rating={google.average_rating} size="xs" />
                     <p className="mt-1 text-[0.6rem] uppercase tracking-[0.24em] text-charcoal/55">
-                      Google · {formatReviewCount(google.review_count)} reviews
+                      Google · {formatReviewCount(google.review_count, "google")} reviews
                     </p>
                   </div>
                 </a>
