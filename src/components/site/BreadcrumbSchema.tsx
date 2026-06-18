@@ -1,4 +1,5 @@
-import { useBreadcrumbTrail } from "@/lib/breadcrumbs";
+import { useRouterState } from "@tanstack/react-router";
+import { buildTrail } from "@/lib/breadcrumbs";
 
 const SITE_ORIGIN = "https://mtoniriverlodge.com";
 
@@ -10,8 +11,10 @@ const SITE_ORIGIN = "https://mtoniriverlodge.com";
  * Skips emission on the homepage where a single-item trail adds no value.
  */
 export function BreadcrumbSchema() {
-  const trail = useBreadcrumbTrail();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const trail = buildTrail(pathname);
   if (trail.length < 2) return null;
+  const currentPath = pathname !== "/" ? pathname.replace(/\/+$/, "") : "/";
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -20,9 +23,7 @@ export function BreadcrumbSchema() {
       "@type": "ListItem",
       position: i + 1,
       name: c.name,
-      item: c.to
-        ? `${SITE_ORIGIN}${c.to}`
-        : `${SITE_ORIGIN}${typeof window !== "undefined" ? window.location.pathname : ""}`,
+      item: `${SITE_ORIGIN}${c.to ?? currentPath}`,
     })),
   };
 
