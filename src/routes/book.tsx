@@ -316,6 +316,14 @@ function BookPage() {
     onSuccess: ({ rooms, extrasList }) => {
       setResults(rooms);
       setExtras(extrasList);
+      trackAvailabilityChecked({
+        check_in: checkIn,
+        check_out: checkOut,
+        guests,
+        nights,
+        available_rooms: rooms.filter((r) => r.is_available).length,
+        total_rooms: rooms.length,
+      });
       goToStep("select", "availability_search_success");
     },
     onError: (err: Error) => {
