@@ -217,7 +217,10 @@ function BookPage() {
       }
       prevStepRef.current = next;
       void navigate({
-        search: (prev) => ({ ...prev, step: STEP_TO_NUM[next] }),
+        search: (prev: { step: 1 | 2 | 3 | 4; session?: string; room?: string }) => ({
+          ...prev,
+          step: STEP_TO_NUM[next],
+        }),
         replace: false,
       });
     },
