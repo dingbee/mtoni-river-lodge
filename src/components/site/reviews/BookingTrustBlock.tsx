@@ -38,7 +38,7 @@ export function BookingTrustBlock() {
                   <div>
                     <Stars rating={ta.average_rating} size="xs" />
                     <p className="mt-1 text-[0.6rem] uppercase tracking-[0.24em] text-charcoal/55">
-                      Tripadvisor · {formatReviewCount(ta.review_count)} reviews
+                      Tripadvisor · {formatReviewCount(ta.review_count, "tripadvisor")} reviews
                     </p>
                   </div>
                 </a>
