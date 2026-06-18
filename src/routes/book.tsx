@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -216,7 +217,10 @@ function BookPage() {
       }
       prevStepRef.current = next;
       void navigate({
-        search: { step: STEP_TO_NUM[next] },
+        search: (prev: { step: 1 | 2 | 3 | 4; session?: string; room?: string }) => ({
+          ...prev,
+          step: STEP_TO_NUM[next],
+        }),
         replace: false,
       });
     },
@@ -297,8 +301,13 @@ function BookPage() {
       return { rooms, extrasList };
     },
     onSuccess: ({ rooms, extrasList }) => {
-      setResults(rooms);
-      setExtras(extrasList);
+      // Commit results synchronously BEFORE navigating to step 2, otherwise
+      // the router's render may run the step guard with results still empty
+      // and bounce us back to step 1.
+      flushSync(() => {
+        setResults(rooms);
+        setExtras(extrasList);
+      });
       goToStep("select", "availability_search_success");
     },
     onError: (err: Error) => {
