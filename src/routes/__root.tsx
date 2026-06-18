@@ -12,6 +12,7 @@ declare global {
 import appCss from "../styles.css?url";
 import { BackToTop } from "@/components/site/BackToTop";
 import { TawkToWidget } from "@/components/site/TawkToWidget";
+import { BreadcrumbSchema } from "@/components/site/BreadcrumbSchema";
 import { Toaster } from "@/components/ui/sonner";
 import { trackPageView } from "@/lib/analytics";
 
@@ -224,6 +225,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={fallbackQueryClient}>
       <Outlet />
+      <BreadcrumbSchema />
       <BackToTop />
       <TawkToWidget />
       <GoogleAnalytics />
