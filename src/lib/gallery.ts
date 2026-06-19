@@ -46,7 +46,7 @@ export type GalleryImage = {
 };
 
 export const GALLERY: GalleryImage[] = [
-  { src: aerial, alt: "Aerial view of Mtoni River Lodge along the Nduruma River", category: "Architecture" },
+  { src: aerial, alt: "Aerial view of Mtoni River Lodge along the Nduruma River", category: "Dining" },
   { src: cottage, alt: "Thatched riverfront cottage nestled in forest greenery", category: "Architecture" },
   { src: reception, alt: "Warm stone reception with beaded chandelier and arched doorways", category: "Architecture" },
   { src: bomaThatch, alt: "Boma-inspired thatched room", category: "Architecture" },
