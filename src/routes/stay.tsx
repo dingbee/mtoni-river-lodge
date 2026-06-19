@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  Leaf,
   Plane,
   Sparkles,
   ShieldCheck,
@@ -18,11 +17,9 @@ import { TripadvisorExcellentWidget } from "@/components/site/TripadvisorExcelle
 import {
   trackBookingStarted,
   trackContactClick,
-  trackRoomView,
 } from "@/lib/analytics";
 import { WHATSAPP_URL } from "@/lib/contact";
 import { newBookingSessionId } from "@/lib/booking-session";
-import { ROOMS, ROOM_PATHS } from "@/lib/rooms";
 
 import heroImg from "@/assets/hero-river.jpg";
 import heroImg800 from "@/assets/hero-river-800w.webp";
