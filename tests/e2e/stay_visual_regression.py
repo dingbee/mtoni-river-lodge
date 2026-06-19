@@ -122,11 +122,24 @@ async def main() -> int:
         await page.wait_for_load_state("networkidle")
         await page.wait_for_timeout(500)
 
+        # Pre-warm lazy-loaded images by scrolling the full document once,
+        # then return to the top. Without this, late stops capture a page
+        # whose images are still streaming in and the comparison run sees
+        # different content than the baseline run.
+        doc_height = await page.evaluate("document.documentElement.scrollHeight")
+        step = VIEWPORT["height"] // 2
+        for y in range(0, int(doc_height), step):
+            await page.evaluate(f"window.scrollTo(0, {y})")
+            await page.wait_for_timeout(150)
+        await page.evaluate("window.scrollTo(0, 0)")
+        await page.wait_for_load_state("networkidle")
+        await page.wait_for_timeout(500)
+
         for name, y in SCROLL_STOPS:
             await page.evaluate(f"window.scrollTo(0, {y})")
             # Let the compositor settle; this is where the corruption
             # used to surface.
-            await page.wait_for_timeout(400)
+            await page.wait_for_timeout(600)
             actual_path = DIFF_DIR / f"{name}.png"
             await page.screenshot(path=str(actual_path), full_page=False)
             baseline_path = BASELINE_DIR / f"{name}.png"
