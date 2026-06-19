@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { TrustBar } from "@/components/site/reviews/TrustBar";
 import { TripadvisorExcellentWidget } from "@/components/site/TripadvisorExcellentWidget";
-import { Reveal } from "@/components/site/Reveal";
 import {
   trackBookingStarted,
   trackContactClick,
