@@ -301,7 +301,6 @@ function StayLanding() {
           <div className="grid gap-6 md:grid-cols-3">
             {ROOMS.map((r) => {
               const price = ROOM_PRICES[r.slug];
-              const imageDimensions = ROOM_IMAGE_DIMENSIONS[r.slug];
               return (
                 <article
                   key={r.slug}
