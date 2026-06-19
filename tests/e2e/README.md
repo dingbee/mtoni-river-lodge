@@ -23,3 +23,26 @@ test never hits the external gateway.
 Override the base URL or screenshot directory with `BOOK_TEST_BASE` /
 `BOOK_TEST_SCREENSHOTS` env vars. Screenshots from each step land in
 `/tmp/booking-e2e/` by default.
+
+## stay_visual_regression.py
+
+Mobile-viewport visual regression for `/stay`. Loads the page at an
+iPhone 13 viewport, pre-warms lazy images, then captures screenshots at
+five scroll stops below the availability search — the band where the
+compositor corruption used to appear. Each screenshot is compared
+against a committed baseline under `tests/e2e/baselines/stay-mobile/`
+with a mean-pixel-difference threshold.
+
+### Run
+
+```bash
+# Compare against committed baselines (fails on regression).
+python3 tests/e2e/stay_visual_regression.py
+
+# Refresh baselines after an intentional visual change.
+UPDATE_BASELINES=1 python3 tests/e2e/stay_visual_regression.py
+```
+
+Override `STAY_TEST_BASE` (default `http://localhost:8080`) and
+`STAY_TEST_DIFFS` (default `/tmp/stay-visual/`) as needed. Diff images
+for failing stops are written under `STAY_TEST_DIFFS` for inspection.
