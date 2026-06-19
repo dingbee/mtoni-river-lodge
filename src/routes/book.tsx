@@ -9,7 +9,6 @@ import { SiteFooterMinimal } from "@/components/site/SiteFooterMinimal";
 import { BreadcrumbsBar } from "@/components/site/Breadcrumbs";
 import { BookingTrustBlock } from "@/components/site/reviews/BookingTrustBlock";
 import { TrustBar } from "@/components/site/reviews/TrustBar";
-import { StagingPaymentWarning } from "@/components/site/StagingBanner";
 import { WHATSAPP_URL } from "@/lib/contact";
 import { trackContactClick, trackGAEvent } from "@/lib/analytics";
 import {
@@ -752,7 +751,6 @@ function GuestStep(props: {
           {props.submitting ? "Redirecting to payment…" : "Pay 50% Deposit & Confirm"}
         </button>
         <p className="text-[0.65rem] text-charcoal/55">You will be securely redirected to Pesapal to pay the 50% deposit. The remaining balance is payable on arrival.</p>
-        <StagingPaymentWarning />
       </aside>
     </div>
   );
