@@ -13,7 +13,7 @@ export function LocationMap() {
             <p className="eyebrow">Find Us</p>
             <h2 className="mt-6 font-display text-4xl leading-[1.1] lg:text-5xl">
               On the banks of the Nduruma,<br />
-              <em className="italic text-charcoal/75">forty minutes from Arusha airport.</em>
+              <em className="italic text-charcoal/75">fifty minutes from Kilimanjaro airport.</em>
             </h2>
           </div>
         </Reveal>
