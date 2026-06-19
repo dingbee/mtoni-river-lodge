@@ -24,7 +24,7 @@ import bomaThatch from "@/assets/boma-thatch-room.jpg";
 import maasaiByRiver from "@/assets/maasai-by-river.jpg";
 import bananaGrove from "@/assets/nduruma-banana-grove.jpg";
 import riverFlow from "@/assets/nduruma-river-flow.jpg";
-import guide from "@/assets/guide.jpg";
+
 import riverWalk from "@/assets/xp-river-walk.jpg";
 import cycling from "@/assets/xp-cycling.jpg";
 import bonfire from "@/assets/xp-bonfire.jpg";
@@ -81,8 +81,6 @@ export const GALLERY: GalleryImage[] = [
   { src: canoe, alt: "Canoeing on Lake Duluti", category: "Experiences" },
   { src: market, alt: "Local market in Arusha", category: "Experiences" },
   { src: waterfall, alt: "Hidden waterfall walk", category: "Experiences" },
-  { src: hotsprings, alt: "Maji Moto hot springs in open country", category: "Experiences" },
-  { src: guide, alt: "Mtoni guide leading a morning walk", category: "Experiences" },
 
   { src: pool, alt: "Curved pool framed by thatched umbrellas and greenery", category: "Stillness" },
   { src: spa, alt: "Riverside spa moment", category: "Stillness" },
