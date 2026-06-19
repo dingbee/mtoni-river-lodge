@@ -139,7 +139,7 @@ function StayLanding() {
       <LandingHeader />
 
       {/* HERO */}
-      <section className="relative isolate overflow-hidden">
+      <section className="relative overflow-hidden min-h-[640px] lg:min-h-[680px]">
         <picture>
           <source
             type="image/webp"
@@ -180,7 +180,7 @@ function StayLanding() {
               e.preventDefault();
               startBooking("stay_hero");
             }}
-            className="w-full max-w-md rounded-2xl border border-ivory/15 bg-ivory/97 p-6 shadow-[0_30px_60px_-25px_rgba(0,0,0,0.6)] backdrop-blur lg:w-[400px]"
+            className="w-full max-w-md rounded-2xl border border-ivory/15 bg-ivory p-6 shadow-[0_30px_60px_-25px_rgba(0,0,0,0.6)] lg:w-[400px]"
           >
             <p className="text-[0.65rem] font-medium uppercase tracking-[0.28em] text-charcoal/70">
               Check live availability
