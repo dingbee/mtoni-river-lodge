@@ -157,7 +157,7 @@ function StayLanding() {
 
         <div className="relative mx-auto flex max-w-6xl flex-col gap-10 px-4 pb-16 pt-24 sm:px-6 lg:flex-row lg:items-end lg:gap-12 lg:pt-32">
           <div className="max-w-2xl text-ivory">
-            <p className="inline-flex items-center gap-2 rounded-full border border-ivory/30 bg-black/20 px-4 py-1.5 text-[0.65rem] uppercase tracking-[0.28em] backdrop-blur">
+            <p className="inline-flex items-center gap-2 rounded-full border border-ivory/30 bg-black/40 px-4 py-1.5 text-[0.65rem] uppercase tracking-[0.28em]">
               <MapPin className="h-3 w-3" /> 10 minutes from Arusha Airport
             </p>
             <h1 className="mt-6 font-display text-4xl leading-[1.05] sm:text-5xl lg:text-6xl">
