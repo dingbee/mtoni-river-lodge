@@ -14,7 +14,7 @@ import familyGallery2 from "@/assets/family-room-gallery-2.jpg";
 import familyGallery3 from "@/assets/family-room-gallery-3.jpg";
 import pool from "@/assets/pool.jpg";
 
-import dining from "@/assets/dining.jpg";
+
 import diningHero from "@/assets/dining-hero.jpg";
 import liveCooking from "@/assets/live-cooking.jpg";
 
@@ -66,7 +66,8 @@ export const GALLERY: GalleryImage[] = [
 
   { src: diningHero, alt: "Garden picnic with open-fire cooking", category: "Dining" },
   { src: liveCooking, alt: "Chef plating an open-fire dish", category: "Dining" },
-  { src: dining, alt: "Stone lobby entrance with beaded chandelier", category: "Dining" },
+  { src: detailCoffee, alt: "Detail of a morning coffee service", category: "Dining" },
+
   { src: detailCoffee, alt: "Detail of a morning coffee service", category: "Dining" },
 
 
