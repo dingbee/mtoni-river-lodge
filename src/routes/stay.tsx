@@ -305,7 +305,8 @@ function StayLanding() {
                       src={r.img}
                       alt={r.name}
                       loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      decoding="async"
+                      className="h-full w-full object-cover"
                     />
                   </div>
                   <div className="flex flex-1 flex-col p-6">
