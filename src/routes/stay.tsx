@@ -307,16 +307,13 @@ function StayLanding() {
                   key={r.slug}
                   className="flex flex-col rounded-2xl border border-charcoal/10 bg-ivory shadow-sm"
                 >
-                  <div className="aspect-[4/3] overflow-hidden rounded-t-2xl bg-bone">
-                    <img
-                      src={r.img}
-                      alt={r.name}
-                      width={imageDimensions.width}
-                      height={imageDimensions.height}
-                      loading="eager"
-                      className="block h-full w-full object-cover"
-                    />
-                  </div>
+                  {/* DIAGNOSTIC: room photo replaced with solid-color placeholder */}
+                  <div
+                    role="img"
+                    aria-label={`${r.name} (placeholder)`}
+                    className="aspect-[4/3] rounded-t-2xl"
+                    style={{ backgroundColor: "#7a8a6a" }}
+                  />
                   <div className="flex flex-1 flex-col p-6">
                     <h3 className="font-display text-xl">{r.name}</h3>
                     <p className="mt-1 text-sm text-charcoal/65">{r.shortDesc}</p>
