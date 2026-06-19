@@ -43,6 +43,12 @@ const ROOM_PRICES: Record<string, number> = {
   "family-room": 360,
 };
 
+const ROOM_IMAGE_DIMENSIONS: Record<string, { width: number; height: number }> = {
+  "riverfront-deluxe": { width: 1264, height: 848 },
+  "standard-river": { width: 1824, height: 1216 },
+  "family-room": { width: 862, height: 575 },
+};
+
 export const Route = createFileRoute("/stay")({
   head: () => ({
     meta: [
@@ -295,18 +301,20 @@ function StayLanding() {
           <div className="grid gap-6 md:grid-cols-3">
             {ROOMS.map((r) => {
               const price = ROOM_PRICES[r.slug];
+              const imageDimensions = ROOM_IMAGE_DIMENSIONS[r.slug];
               return (
                 <article
                   key={r.slug}
-                  className="group flex flex-col overflow-hidden rounded-2xl border border-charcoal/10 bg-ivory shadow-[0_18px_48px_-30px_rgba(30,45,30,0.4)]"
+                  className="flex flex-col rounded-2xl border border-charcoal/10 bg-ivory shadow-sm"
                 >
-                  <div className="relative aspect-[4/3] overflow-hidden">
+                  <div className="aspect-[4/3] overflow-hidden rounded-t-2xl bg-bone">
                     <img
                       src={r.img}
                       alt={r.name}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover"
+                      width={imageDimensions.width}
+                      height={imageDimensions.height}
+                      loading="eager"
+                      className="block h-full w-full object-cover"
                     />
                   </div>
                   <div className="flex flex-1 flex-col p-6">
