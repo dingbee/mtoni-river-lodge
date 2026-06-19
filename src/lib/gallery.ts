@@ -68,8 +68,6 @@ export const GALLERY: GalleryImage[] = [
   { src: liveCooking, alt: "Chef plating an open-fire dish", category: "Dining" },
   { src: detailCoffee, alt: "Detail of a morning coffee service", category: "Dining" },
 
-  { src: detailCoffee, alt: "Detail of a morning coffee service", category: "Dining" },
-
 
   { src: river, alt: "Mist over the Nduruma River at dawn with Mount Meru beyond", category: "Nature" },
   { src: riverFlow, alt: "Nduruma River flowing past river stones", category: "Nature" },
