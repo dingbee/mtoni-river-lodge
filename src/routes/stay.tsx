@@ -34,12 +34,6 @@ const WIZARD_STORAGE_KEY = "mrl.booking.wizard.v1";
 
 const CANONICAL = "https://mtoniriverlodge.com/stay";
 
-const ROOM_PRICES: Record<string, number> = {
-  "standard-river": 260,
-  "riverfront-deluxe": 310,
-  "family-room": 360,
-};
-
 export const Route = createFileRoute("/stay")({
   head: () => ({
     meta: [
