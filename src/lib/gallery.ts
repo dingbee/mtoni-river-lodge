@@ -29,9 +29,7 @@ import riverWalk from "@/assets/xp-river-walk.jpg";
 import cycling from "@/assets/xp-cycling.jpg";
 import bonfire from "@/assets/xp-bonfire.jpg";
 import canoe from "@/assets/xp-canoe.jpg";
-import market from "@/assets/xp-market.jpg";
 import waterfall from "@/assets/xp-waterfall.jpg";
-import hotsprings from "@/assets/xp-hotsprings.jpg";
 
 export type GalleryCategory =
   | "Architecture"
@@ -78,7 +76,6 @@ export const GALLERY: GalleryImage[] = [
   { src: cycling, alt: "Cycling through the foothills", category: "Experiences" },
   { src: bonfire, alt: "Evening bonfire under the sky", category: "Experiences" },
   { src: canoe, alt: "Canoeing on Lake Duluti", category: "Experiences" },
-  { src: market, alt: "Local market in Arusha", category: "Experiences" },
   { src: waterfall, alt: "Hidden waterfall walk", category: "Experiences" },
 
   { src: pool, alt: "Curved pool framed by thatched umbrellas and greenery", category: "Stillness" },
