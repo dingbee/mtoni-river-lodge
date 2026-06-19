@@ -30,7 +30,6 @@ import cycling from "@/assets/xp-cycling.jpg";
 import bonfire from "@/assets/xp-bonfire.jpg";
 import canoe from "@/assets/xp-canoe.jpg";
 import waterfall from "@/assets/xp-waterfall.jpg";
-import hotsprings from "@/assets/xp-hotsprings.jpg";
 
 export type GalleryCategory =
   | "Architecture"
