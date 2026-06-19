@@ -17,7 +17,7 @@ import pool from "@/assets/pool.jpg";
 import dining from "@/assets/dining.jpg";
 import diningHero from "@/assets/dining-hero.jpg";
 import liveCooking from "@/assets/live-cooking.jpg";
-import coffee from "@/assets/coffee.jpg";
+
 import detailCoffee from "@/assets/detail-coffee.jpg";
 import rituals from "@/assets/rituals.jpg";
 import bomaThatch from "@/assets/boma-thatch-room.jpg";
@@ -67,8 +67,8 @@ export const GALLERY: GalleryImage[] = [
   { src: diningHero, alt: "Garden picnic with open-fire cooking", category: "Dining" },
   { src: liveCooking, alt: "Chef plating an open-fire dish", category: "Dining" },
   { src: dining, alt: "Stone lobby entrance with beaded chandelier", category: "Dining" },
-  { src: coffee, alt: "Freshly brewed Tanzanian coffee at the lodge", category: "Dining" },
   { src: detailCoffee, alt: "Detail of a morning coffee service", category: "Dining" },
+
 
   { src: river, alt: "Mist over the Nduruma River at dawn with Mount Meru beyond", category: "Nature" },
   { src: riverFlow, alt: "Nduruma River flowing past river stones", category: "Nature" },
