@@ -20,7 +20,6 @@ import liveCooking from "@/assets/live-cooking.jpg";
 import coffee from "@/assets/coffee.jpg";
 import detailCoffee from "@/assets/detail-coffee.jpg";
 import rituals from "@/assets/rituals.jpg";
-import villa from "@/assets/villa-exterior.jpg";
 import bomaThatch from "@/assets/boma-thatch-room.jpg";
 import maasaiByRiver from "@/assets/maasai-by-river.jpg";
 import bananaGrove from "@/assets/nduruma-banana-grove.jpg";
@@ -52,7 +51,6 @@ export const GALLERY: GalleryImage[] = [
   { src: aerial, alt: "Aerial view of Mtoni River Lodge along the Nduruma River", category: "Architecture" },
   { src: cottage, alt: "Thatched riverfront cottage nestled in forest greenery", category: "Architecture" },
   { src: reception, alt: "Warm stone reception with beaded chandelier and arched doorways", category: "Architecture" },
-  { src: villa, alt: "Earth-and-thatch villa exterior at golden hour", category: "Architecture" },
   { src: bomaThatch, alt: "Boma-inspired thatched room", category: "Architecture" },
 
   { src: suite, alt: "Candlelit bubble bath beneath a thatched roof", category: "Rooms" },
