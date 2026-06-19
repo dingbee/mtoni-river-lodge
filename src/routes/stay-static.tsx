@@ -97,7 +97,7 @@ function StayStatic() {
         <div className="bg-charcoal text-ivory">
           <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
             <p className="inline-flex items-center gap-2 rounded-full border border-ivory/30 px-4 py-1.5 text-[0.65rem] uppercase tracking-[0.28em]">
-              <MapPin className="h-3 w-3" /> 10 minutes from Arusha Airport
+              <MapPin className="h-3 w-3" /> 50 minutes from Kilimanjaro International Airport
             </p>
             <h1 className="mt-6 font-display text-4xl leading-[1.05] sm:text-5xl lg:text-6xl">
               Your first &amp; last stop in Northern Tanzania.
@@ -136,8 +136,8 @@ function StayStatic() {
           />
           <Pillar
             icon={<Plane className="h-6 w-6" style={{ color: "#346739" }} />}
-            title="10 min from JRO"
-            body="Arusha Airport is a 10-minute drive. Optional airport transfer keeps your arrival effortless."
+            title="50 min from JRO"
+            body="Kilimanjaro International Airport is a 50-minute drive. Optional airport transfer keeps your arrival effortless."
           />
           <Pillar
             icon={<Sparkles className="h-6 w-6" style={{ color: "#346739" }} />}

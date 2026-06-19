@@ -39,12 +39,12 @@ export const Route = createFileRoute("/stay")({
     meta: [
       {
         title:
-          "Stay at Mtoni River Lodge — Riverside Retreat 10 min from Arusha Airport",
+          "Stay at Mtoni River Lodge — Riverside Retreat 50 min from Kilimanjaro Airport",
       },
       {
         name: "description",
         content:
-          "Book your stay at Mtoni River Lodge — a peaceful riverside retreat 10 minutes from Arusha Airport (JRO). Live availability, secure card payments, free cancellation up to 60 days.",
+          "Book your stay at Mtoni River Lodge — a peaceful riverside retreat 50 minutes from Kilimanjaro International Airport (JRO). Live availability, secure card payments, free cancellation up to 60 days.",
       },
       { property: "og:title", content: "Stay at Mtoni River Lodge — Arusha, Tanzania" },
       {
@@ -148,7 +148,7 @@ function StayLanding() {
         <div className="relative mx-auto flex max-w-6xl flex-col gap-10 px-4 pb-16 pt-24 sm:px-6 lg:flex-row lg:items-end lg:gap-12 lg:pt-32">
           <div className="max-w-2xl text-ivory">
             <p className="inline-flex items-center gap-2 rounded-full border border-ivory/30 bg-black/40 px-4 py-1.5 text-[0.65rem] uppercase tracking-[0.28em]">
-              <MapPin className="h-3 w-3" /> 10 minutes from Arusha Airport
+              <MapPin className="h-3 w-3" /> 50 minutes from Kilimanjaro International Airport
             </p>
             <h1 className="mt-6 font-display text-4xl leading-[1.05] sm:text-5xl lg:text-6xl">
               Your first &amp; last stop in Northern Tanzania.
@@ -253,8 +253,8 @@ function StayLanding() {
             />
             <Pillar
               icon={<Plane className="h-6 w-6" style={{ color: "#346739" }} />}
-              title="10 min from JRO"
-              body="Arusha Airport is a 10-minute drive. Optional airport transfer keeps your arrival effortless."
+              title="50 min from JRO"
+              body="Kilimanjaro International Airport is a 50-minute drive. Optional airport transfer keeps your arrival effortless."
             />
             <Pillar
               icon={<Sparkles className="h-6 w-6" style={{ color: "#346739" }} />}
@@ -336,7 +336,7 @@ function StayLanding() {
               context="Safari traveler, UK"
             />
             <Testimonial
-              quote="Ten minutes from the airport but feels a world away. We&apos;ll be back."
+              quote="Fifty minutes from the airport but feels a world away. We&apos;ll be back."
               author="Marcus T."
               context="Family stay, Germany"
             />

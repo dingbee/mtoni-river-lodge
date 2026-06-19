@@ -156,7 +156,7 @@ function VisitUs() {
             ))}
           </address>
           <p className="mt-6 text-sm leading-relaxed text-charcoal/65">
-            Forty minutes from Kilimanjaro International Airport and a short drive from
+            Fifty minutes from Kilimanjaro International Airport and a short drive from
             Arusha town. Need help finding us? Our team can share detailed driving
             directions or arrange a private transfer — simply reach out by WhatsApp or
             email and we'll guide you door to door.
