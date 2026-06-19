@@ -43,12 +43,6 @@ const ROOM_PRICES: Record<string, number> = {
   "family-room": 360,
 };
 
-const ROOM_IMAGE_DIMENSIONS: Record<string, { width: number; height: number }> = {
-  "riverfront-deluxe": { width: 1264, height: 848 },
-  "standard-river": { width: 1824, height: 1216 },
-  "family-room": { width: 862, height: 575 },
-};
-
 export const Route = createFileRoute("/stay")({
   head: () => ({
     meta: [
