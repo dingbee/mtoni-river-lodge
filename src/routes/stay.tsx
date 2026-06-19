@@ -252,7 +252,7 @@ function StayLanding() {
       <TrustBar variant="subtle" compact />
 
       {/* WHY MTONI */}
-      <Reveal>
+      
         <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
           <div className="grid gap-8 sm:grid-cols-3">
             <Pillar
@@ -272,10 +272,10 @@ function StayLanding() {
             />
           </div>
         </section>
-      </Reveal>
+      
 
       {/* FEATURED ROOMS */}
-      <Reveal>
+      
         <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:pb-20">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -345,10 +345,10 @@ function StayLanding() {
             })}
           </div>
         </section>
-      </Reveal>
+      
 
       {/* EXPERIENCES (add-ons) */}
-      <Reveal>
+      
         <section className="bg-bone/40 py-16 lg:py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="mb-8 max-w-2xl">
@@ -394,10 +394,10 @@ function StayLanding() {
             </p>
           </div>
         </section>
-      </Reveal>
+      
 
       {/* REVIEWS */}
-      <Reveal>
+      
         <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:py-20">
           <div className="text-center">
             <p className="text-[0.65rem] uppercase tracking-[0.28em] text-charcoal/60">
@@ -428,10 +428,10 @@ function StayLanding() {
             />
           </div>
         </section>
-      </Reveal>
+      
 
       {/* BOOKING BENEFITS */}
-      <Reveal>
+      
         <section className="bg-charcoal text-ivory py-14">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -442,10 +442,10 @@ function StayLanding() {
             </div>
           </div>
         </section>
-      </Reveal>
+      
 
       {/* FINAL CTA */}
-      <Reveal>
+      
         <section className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
           <h2 className="font-display text-3xl lg:text-4xl">
             Ready to book your riverside stay?
@@ -472,7 +472,7 @@ function StayLanding() {
             </a>
           </div>
         </section>
-      </Reveal>
+      
 
       {/* MINIMAL FOOTER */}
       <footer className="border-t border-charcoal/10 bg-bone/40 py-8 text-xs text-charcoal/65">
