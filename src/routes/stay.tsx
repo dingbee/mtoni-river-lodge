@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  Leaf,
   Plane,
   Sparkles,
   ShieldCheck,
@@ -18,11 +17,9 @@ import { TripadvisorExcellentWidget } from "@/components/site/TripadvisorExcelle
 import {
   trackBookingStarted,
   trackContactClick,
-  trackRoomView,
 } from "@/lib/analytics";
 import { WHATSAPP_URL } from "@/lib/contact";
 import { newBookingSessionId } from "@/lib/booking-session";
-import { ROOMS, ROOM_PATHS } from "@/lib/rooms";
 
 import heroImg from "@/assets/hero-river.jpg";
 import heroImg800 from "@/assets/hero-river-800w.webp";
@@ -36,12 +33,6 @@ import aerialImg from "@/assets/aerial-lodge.jpg";
 const WIZARD_STORAGE_KEY = "mrl.booking.wizard.v1";
 
 const CANONICAL = "https://mtoniriverlodge.com/stay";
-
-const ROOM_PRICES: Record<string, number> = {
-  "standard-river": 260,
-  "riverfront-deluxe": 310,
-  "family-room": 360,
-};
 
 export const Route = createFileRoute("/stay")({
   head: () => ({
@@ -274,79 +265,8 @@ function StayLanding() {
         </section>
       
 
-      {/* FEATURED ROOMS */}
-      
-        <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:pb-20">
-          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-[0.65rem] uppercase tracking-[0.28em] text-charcoal/60">
-                <Leaf className="mr-1.5 inline h-3 w-3" style={{ color: "#427A43" }} />
-                Choose your room
-              </p>
-              <h2 className="mt-3 font-display text-3xl lg:text-4xl">
-                Three rooms. One river.
-              </h2>
-            </div>
-            <p className="max-w-sm text-sm text-charcoal/70">
-              All rates in USD. Pay a 50% deposit now and the balance on arrival.
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-3">
-            {ROOMS.map((r) => {
-              const price = ROOM_PRICES[r.slug];
-              return (
-                <article
-                  key={r.slug}
-                  className="flex flex-col rounded-2xl border border-charcoal/10 bg-ivory shadow-sm"
-                >
-                  {/* DIAGNOSTIC: room photo replaced with solid-color placeholder */}
-                  <div
-                    role="img"
-                    aria-label={`${r.name} (placeholder)`}
-                    className="aspect-[4/3] rounded-t-2xl"
-                    style={{ backgroundColor: "#7a8a6a" }}
-                  />
-                  <div className="flex flex-1 flex-col p-6">
-                    <h3 className="font-display text-xl">{r.name}</h3>
-                    <p className="mt-1 text-sm text-charcoal/65">{r.shortDesc}</p>
-                    <div className="mt-4 flex items-baseline gap-2">
-                      <span className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/55">
-                        From
-                      </span>
-                      <span className="font-display text-2xl">${price}</span>
-                      <span className="text-xs text-charcoal/55">/ night</span>
-                    </div>
-                    <div className="mt-5 flex flex-col gap-2">
-                      <button
-                        onClick={() => {
-                          trackRoomView(r.name, "stay_room_cards");
-                          startBooking("stay_room_card", r.slug);
-                        }}
-                        className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110"
-                        style={{
-                          background:
-                            "linear-gradient(135deg, #346739 0%, #427A43 100%)",
-                        }}
-                      >
-                        Book this room →
-                      </button>
-                      <Link
-                        to={ROOM_PATHS[r.slug]}
-                        className="text-center text-[0.7rem] uppercase tracking-[0.22em] text-charcoal/65 hover:text-charcoal"
-                      >
-                        Room details
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-      
-
       {/* EXPERIENCES (add-ons) */}
+      
       
         <section className="bg-bone/40 py-16 lg:py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
