@@ -139,7 +139,7 @@ function StayLanding() {
       <LandingHeader />
 
       {/* HERO */}
-      <section className="relative isolate overflow-hidden">
+      <section className="relative overflow-hidden min-h-[640px] lg:min-h-[680px]">
         <picture>
           <source
             type="image/webp"
@@ -157,7 +157,7 @@ function StayLanding() {
 
         <div className="relative mx-auto flex max-w-6xl flex-col gap-10 px-4 pb-16 pt-24 sm:px-6 lg:flex-row lg:items-end lg:gap-12 lg:pt-32">
           <div className="max-w-2xl text-ivory">
-            <p className="inline-flex items-center gap-2 rounded-full border border-ivory/30 bg-black/20 px-4 py-1.5 text-[0.65rem] uppercase tracking-[0.28em] backdrop-blur">
+            <p className="inline-flex items-center gap-2 rounded-full border border-ivory/30 bg-black/40 px-4 py-1.5 text-[0.65rem] uppercase tracking-[0.28em]">
               <MapPin className="h-3 w-3" /> 10 minutes from Arusha Airport
             </p>
             <h1 className="mt-6 font-display text-4xl leading-[1.05] sm:text-5xl lg:text-6xl">
@@ -180,7 +180,7 @@ function StayLanding() {
               e.preventDefault();
               startBooking("stay_hero");
             }}
-            className="w-full max-w-md rounded-2xl border border-ivory/15 bg-ivory/97 p-6 shadow-[0_30px_60px_-25px_rgba(0,0,0,0.6)] backdrop-blur lg:w-[400px]"
+            className="w-full max-w-md rounded-2xl border border-ivory/15 bg-ivory p-6 shadow-[0_30px_60px_-25px_rgba(0,0,0,0.6)] lg:w-[400px]"
           >
             <p className="text-[0.65rem] font-medium uppercase tracking-[0.28em] text-charcoal/70">
               Check live availability
