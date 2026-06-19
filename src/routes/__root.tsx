@@ -12,6 +12,7 @@ declare global {
 import appCss from "../styles.css?url";
 import { BackToTop } from "@/components/site/BackToTop";
 import { TawkToWidget } from "@/components/site/TawkToWidget";
+import { StagingBanner } from "@/components/site/StagingBanner";
 import { Toaster } from "@/components/ui/sonner";
 import { trackPageView } from "@/lib/analytics";
 
@@ -221,6 +222,7 @@ function GoogleAnalytics() {
 function RootComponent() {
   return (
     <QueryClientProvider client={fallbackQueryClient}>
+      <StagingBanner />
       <Outlet />
       <BackToTop />
       <TawkToWidget />
