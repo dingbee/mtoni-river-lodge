@@ -13,7 +13,7 @@ import familyHero from "@/assets/family-room-hero.jpg";
 import familyGallery2 from "@/assets/family-room-gallery-2.jpg";
 import familyGallery3 from "@/assets/family-room-gallery-3.jpg";
 import pool from "@/assets/pool.jpg";
-import spa from "@/assets/spa.jpg";
+
 import dining from "@/assets/dining.jpg";
 import diningHero from "@/assets/dining-hero.jpg";
 import liveCooking from "@/assets/live-cooking.jpg";
@@ -83,8 +83,8 @@ export const GALLERY: GalleryImage[] = [
   { src: waterfall, alt: "Hidden waterfall walk", category: "Experiences" },
 
   { src: pool, alt: "Curved pool framed by thatched umbrellas and greenery", category: "Stillness" },
-  { src: spa, alt: "Riverside spa moment", category: "Stillness" },
   { src: rituals, alt: "Hand lighting a candle as evening falls", category: "Stillness" },
+
 ];
 
 export const GALLERY_CATEGORIES: ("All" | GalleryCategory)[] = [
