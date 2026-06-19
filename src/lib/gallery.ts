@@ -29,7 +29,6 @@ import riverWalk from "@/assets/xp-river-walk.jpg";
 import cycling from "@/assets/xp-cycling.jpg";
 import bonfire from "@/assets/xp-bonfire.jpg";
 import canoe from "@/assets/xp-canoe.jpg";
-import market from "@/assets/xp-market.jpg";
 import waterfall from "@/assets/xp-waterfall.jpg";
 import hotsprings from "@/assets/xp-hotsprings.jpg";
 
