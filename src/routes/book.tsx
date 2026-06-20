@@ -224,6 +224,9 @@ function BookPage() {
         // recognising this as the same booking flow across step changes.
         search: (prev: Record<string, unknown>) => ({ ...prev, step: STEP_TO_NUM[next] }),
         replace: false,
+        // Step transitions happen in-place — never scroll to top, the user
+        // is mid-form and expects to stay where they are.
+        resetScroll: false,
       });
     },
     [navigate]
@@ -290,6 +293,7 @@ function BookPage() {
         void navigate({
           search: (prev: Record<string, unknown>) => ({ ...prev, step: STEP_TO_NUM[target!] }),
           replace: true,
+          resetScroll: false,
         });
       }
     }, 0);
@@ -441,6 +445,7 @@ function BookPage() {
                   // Keep the URL ?room= in sync so refreshes stay consistent.
                   void navigate({
                     search: { step: STEP_TO_NUM.guest, session: sessionId, room: r.slug },
+                    resetScroll: false,
                   });
                   prevStepRef.current = "guest";
                   trackGAEvent("booking_funnel_step", {
