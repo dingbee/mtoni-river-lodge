@@ -6,6 +6,7 @@ import aerial from "@/assets/aerial-lodge.jpg";
 import cottage from "@/assets/hero-cottage-exterior.jpg";
 
 export type JournalPostHref =
+  | "/journal/discover-mtoni-river-lodge-arusha"
   | "/journal/perfect-arusha-stay-for-safari-travelers-2026"
   | "/journal/discovering-arusha-through-nature-and-authentic-hospitality"
   | "/journal/what-the-river-has-taught-us-about-time"
@@ -33,6 +34,18 @@ export type JournalPost = {
  * widgets will automatically display them in reverse chronological order.
  */
 const POSTS: JournalPost[] = [
+  {
+    publishedAt: "2026-06-21",
+    createdAt: "2026-06-21T00:00:00Z",
+    date: "June 2026",
+    read: "6 min",
+    title:
+      "Discover Mtoni River Lodge: A Hidden Nature Retreat in Arusha, Tanzania",
+    excerpt:
+      "An authentic Maasai-inspired boutique lodge on the riverbanks of Arusha — where culture, nature, and personalised hospitality meet.",
+    img: aerial,
+    href: "/journal/discover-mtoni-river-lodge-arusha",
+  },
   {
     publishedAt: "2026-06-12",
     createdAt: "2026-06-12T00:00:00Z",
