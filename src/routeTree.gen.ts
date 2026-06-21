@@ -50,6 +50,7 @@ import { Route as JournalReadingTheSkyOverMountMeruRouteImport } from './routes/
 import { Route as JournalPerfectArushaStayForSafariTravelers2026RouteImport } from './routes/journal.perfect-arusha-stay-for-safari-travelers-2026'
 import { Route as JournalLifeAlongTheNdurumaRiverRouteImport } from './routes/journal.life-along-the-nduruma-river'
 import { Route as JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRouteImport } from './routes/journal.discovering-arusha-through-nature-and-authentic-hospitality'
+import { Route as JournalDiscoverMtoniRiverLodgeArushaRouteImport } from './routes/journal.discover-mtoni-river-lodge-arusha'
 import { Route as JournalBuildingWithTheCommunityRouteImport } from './routes/journal.building-with-the-community'
 import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './routes/journal.a-morning-with-the-beekeepers-of-gomba'
 import { Route as BookingReturnRouteImport } from './routes/booking.return'
@@ -270,6 +271,12 @@ const JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute =
       getParentRoute: () => JournalRoute,
     } as any,
   )
+const JournalDiscoverMtoniRiverLodgeArushaRoute =
+  JournalDiscoverMtoniRiverLodgeArushaRouteImport.update({
+    id: '/discover-mtoni-river-lodge-arusha',
+    path: '/discover-mtoni-river-lodge-arusha',
+    getParentRoute: () => JournalRoute,
+  } as any)
 const JournalBuildingWithTheCommunityRoute =
   JournalBuildingWithTheCommunityRouteImport.update({
     id: '/building-with-the-community',
@@ -338,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/booking/return': typeof BookingReturnRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
+  '/journal/discover-mtoni-river-lodge-arusha': typeof JournalDiscoverMtoniRiverLodgeArushaRoute
   '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
   '/journal/life-along-the-nduruma-river': typeof JournalLifeAlongTheNdurumaRiverRoute
   '/journal/perfect-arusha-stay-for-safari-travelers-2026': typeof JournalPerfectArushaStayForSafariTravelers2026Route
@@ -384,6 +392,7 @@ export interface FileRoutesByTo {
   '/booking/return': typeof BookingReturnRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
+  '/journal/discover-mtoni-river-lodge-arusha': typeof JournalDiscoverMtoniRiverLodgeArushaRoute
   '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
   '/journal/life-along-the-nduruma-river': typeof JournalLifeAlongTheNdurumaRiverRoute
   '/journal/perfect-arusha-stay-for-safari-travelers-2026': typeof JournalPerfectArushaStayForSafariTravelers2026Route
@@ -434,6 +443,7 @@ export interface FileRoutesById {
   '/booking/return': typeof BookingReturnRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
+  '/journal/discover-mtoni-river-lodge-arusha': typeof JournalDiscoverMtoniRiverLodgeArushaRoute
   '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
   '/journal/life-along-the-nduruma-river': typeof JournalLifeAlongTheNdurumaRiverRoute
   '/journal/perfect-arusha-stay-for-safari-travelers-2026': typeof JournalPerfectArushaStayForSafariTravelers2026Route
@@ -484,6 +494,7 @@ export interface FileRouteTypes {
     | '/booking/return'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/building-with-the-community'
+    | '/journal/discover-mtoni-river-lodge-arusha'
     | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
     | '/journal/life-along-the-nduruma-river'
     | '/journal/perfect-arusha-stay-for-safari-travelers-2026'
@@ -530,6 +541,7 @@ export interface FileRouteTypes {
     | '/booking/return'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/building-with-the-community'
+    | '/journal/discover-mtoni-river-lodge-arusha'
     | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
     | '/journal/life-along-the-nduruma-river'
     | '/journal/perfect-arusha-stay-for-safari-travelers-2026'
@@ -579,6 +591,7 @@ export interface FileRouteTypes {
     | '/booking/return'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/building-with-the-community'
+    | '/journal/discover-mtoni-river-lodge-arusha'
     | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
     | '/journal/life-along-the-nduruma-river'
     | '/journal/perfect-arusha-stay-for-safari-travelers-2026'
@@ -919,6 +932,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRouteImport
       parentRoute: typeof JournalRoute
     }
+    '/journal/discover-mtoni-river-lodge-arusha': {
+      id: '/journal/discover-mtoni-river-lodge-arusha'
+      path: '/discover-mtoni-river-lodge-arusha'
+      fullPath: '/journal/discover-mtoni-river-lodge-arusha'
+      preLoaderRoute: typeof JournalDiscoverMtoniRiverLodgeArushaRouteImport
+      parentRoute: typeof JournalRoute
+    }
     '/journal/building-with-the-community': {
       id: '/journal/building-with-the-community'
       path: '/building-with-the-community'
@@ -981,6 +1001,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 interface JournalRouteChildren {
   JournalAMorningWithTheBeekeepersOfGombaRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   JournalBuildingWithTheCommunityRoute: typeof JournalBuildingWithTheCommunityRoute
+  JournalDiscoverMtoniRiverLodgeArushaRoute: typeof JournalDiscoverMtoniRiverLodgeArushaRoute
   JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute: typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
   JournalLifeAlongTheNdurumaRiverRoute: typeof JournalLifeAlongTheNdurumaRiverRoute
   JournalPerfectArushaStayForSafariTravelers2026Route: typeof JournalPerfectArushaStayForSafariTravelers2026Route
@@ -994,6 +1015,8 @@ const JournalRouteChildren: JournalRouteChildren = {
   JournalAMorningWithTheBeekeepersOfGombaRoute:
     JournalAMorningWithTheBeekeepersOfGombaRoute,
   JournalBuildingWithTheCommunityRoute: JournalBuildingWithTheCommunityRoute,
+  JournalDiscoverMtoniRiverLodgeArushaRoute:
+    JournalDiscoverMtoniRiverLodgeArushaRoute,
   JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute:
     JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute,
   JournalLifeAlongTheNdurumaRiverRoute: JournalLifeAlongTheNdurumaRiverRoute,
