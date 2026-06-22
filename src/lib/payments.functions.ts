@@ -161,7 +161,7 @@ export const getPaymentStatusByReference = createServerFn({ method: "POST" })
         try {
           const { sendBookingConfirmedEmail } = await import("./booking-confirmation-email.server");
           const r = await sendBookingConfirmedEmail(booking.id);
-          if (!r.ok) console.error("confirmation email failed:", r.error);
+          if (!r.ok) console.error("confirmation email failed:", "error" in r ? r.error : "unknown");
         } catch (e) {
           console.error("confirmation email error:", e);
         }
