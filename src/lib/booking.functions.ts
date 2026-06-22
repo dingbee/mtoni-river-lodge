@@ -114,6 +114,38 @@ export const createBooking = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
+    // Send "reservation received" email. Never let email failure block booking.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: full } = await supabaseAdmin
+        .from("bookings")
+        .select("reference, guest_name, guest_email, check_in, check_out, nights, adults, children, total, deposit_amount, balance_amount, currency, room_id")
+        .eq("id", row.booking_id as string)
+        .maybeSingle();
+      if (full) {
+        const { data: room } = await supabaseAdmin.from("rooms").select("name").eq("id", full.room_id).maybeSingle();
+        const { sendGmail, renderBookingReceived } = await import("./booking-email.server");
+        const tpl = renderBookingReceived({
+          reference: full.reference,
+          guestName: full.guest_name,
+          guestEmail: full.guest_email,
+          roomName: room?.name,
+          checkIn: full.check_in,
+          checkOut: full.check_out,
+          nights: full.nights,
+          adults: full.adults,
+          children: full.children ?? 0,
+          total: full.total,
+          deposit: full.deposit_amount,
+          balance: full.balance_amount,
+          currency: full.currency,
+        });
+        const result = await sendGmail({ to: full.guest_email, ...tpl });
+        if (!result.ok) console.error("booking email failed:", result.error);
+      }
+    } catch (e) {
+      console.error("booking email error:", e);
+    }
     return {
       bookingId: row.booking_id as string,
       reference: row.reference as string,
