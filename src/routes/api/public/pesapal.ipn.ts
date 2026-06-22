@@ -58,6 +58,12 @@ async function handleNotification(orderTrackingId: string, merchantReference: st
       .eq("id", booking.id)
       .neq("payment_status", "deposit_paid")
       .neq("payment_status", "paid");
+    try {
+      const { sendBookingConfirmedEmail } = await import("@/lib/booking-confirmation-email.server");
+      await sendBookingConfirmedEmail(booking.id);
+    } catch (e) {
+      console.error("ipn confirmation email error:", e);
+    }
   } else if (outcome === "failed" || outcome === "reversed") {
     await supabaseAdmin
       .from("bookings")

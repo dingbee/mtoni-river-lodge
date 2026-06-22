@@ -158,6 +158,13 @@ export const getPaymentStatusByReference = createServerFn({ method: "POST" })
           .eq("id", booking.id)
           .neq("payment_status", "deposit_paid")
           .neq("payment_status", "paid");
+        try {
+          const { sendBookingConfirmedEmail } = await import("./booking-confirmation-email.server");
+          const r = await sendBookingConfirmedEmail(booking.id);
+          if (!r.ok) console.error("confirmation email failed:", "error" in r ? r.error : "unknown");
+        } catch (e) {
+          console.error("confirmation email error:", e);
+        }
       } else if (outcome === "failed" || outcome === "reversed") {
         await supabaseAdmin
           .from("bookings")
