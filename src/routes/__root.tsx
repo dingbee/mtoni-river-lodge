@@ -54,8 +54,7 @@ export const Route = createRootRoute({
       { property: "og:title", content: "Mtoni River Lodge — A Riverfront Sanctuary in Arusha, Tanzania" },
       { property: "og:description", content: "An intimate luxury eco-lodge on the banks of the Mtoni River in Arusha. Riverside rooms, fireside dining, and curated journeys into the heart of Tanzania." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Mtoni River Lodge — A Riverfront Sanctuary in Arusha, Tanzania" },
       { name: "twitter:description", content: "An intimate luxury eco-lodge on the banks of the Mtoni River in Arusha. Riverside rooms, fireside dining, and curated journeys into the heart of Tanzania." },
       { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/SHkcQELriCO5cdR2YzaTl25G7pE2/social-images/social-1778599166460-1000489399.webp" },
@@ -74,7 +73,7 @@ export const Route = createRootRoute({
       {
         type: "text/javascript",
         async: true,
-        src: "https://www.googletagmanager.com/gtag/js?id=GT-55XDHB82",
+        src: "https://www.googletagmanager.com/gtag/js?id=G-367QZR4VD6",
       },
       {
         type: "text/javascript",
@@ -82,7 +81,7 @@ export const Route = createRootRoute({
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
-          gtag('config', 'GT-55XDHB82');
+          gtag('config', 'G-367QZR4VD6', { send_page_view: false });
         `,
       },
       {
