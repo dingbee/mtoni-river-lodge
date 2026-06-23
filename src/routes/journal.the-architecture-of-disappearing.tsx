@@ -3,11 +3,18 @@ import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { ArticleLayout } from "@/components/site/ArticleLayout";
 import villa from "@/assets/boma-thatch-room.jpg";
+import {
+  absoluteUrl,
+  buildArticleJsonLd,
+  buildBreadcrumbJsonLd,
+} from "@/lib/seo-schema";
 
 const TITLE =
   "Maasai Boma Architecture: The Earth and Thatch Design Philosophy of Mtoni River Lodge";
 const DESCRIPTION =
   "Earth, thatch, and circular spatial logic — how the rooms at Mtoni are grounded in a Maasai boma tradition shaped by climate, culture, and the Arusha landscape.";
+const ROUTE_PATH = "/journal/the-architecture-of-disappearing";
+const PUBLISHED = "2025-12-01";
 
 const RELATED = [
   { to: "/lodge", label: "About Mtoni River Lodge", description: "How the lodge was designed to disappear into the riverbank." },
@@ -24,10 +31,25 @@ export const Route = createFileRoute("/journal/the-architecture-of-disappearing"
       { name: "description", content: DESCRIPTION },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
-      { property: "og:image", content: villa },
+      { property: "og:image", content: absoluteUrl(villa) },
       { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: villa },
+      { name: "twitter:image", content: absoluteUrl(villa) },
+    ],
+    links: [{ rel: "canonical", href: absoluteUrl(ROUTE_PATH) }],
+    scripts: [
+      buildArticleJsonLd({
+        title: TITLE,
+        description: DESCRIPTION,
+        image: villa,
+        routePath: ROUTE_PATH,
+        datePublished: PUBLISHED,
+      }),
+      buildBreadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Journal", path: "/journal" },
+        { name: TITLE, path: ROUTE_PATH },
+      ]),
     ],
   }),
   component: ArticlePage,

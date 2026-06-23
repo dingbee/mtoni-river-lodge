@@ -3,11 +3,19 @@ import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { ArticleLayout } from "@/components/site/ArticleLayout";
 import hero from "@/assets/aerial-lodge.jpg";
+import {
+  absoluteUrl,
+  buildArticleJsonLd,
+  buildBreadcrumbJsonLd,
+} from "@/lib/seo-schema";
 
 const TITLE = "Discovering Arusha Through Nature and Authentic Hospitality";
 const META_TITLE = "Discover Arusha: Nature & Authentic Hospitality";
 const DESCRIPTION =
   "Discover Arusha through nature, culture, and authentic hospitality at Mtoni River Lodge — a peaceful retreat close to Tanzania's iconic attractions.";
+const ROUTE_PATH =
+  "/journal/discovering-arusha-through-nature-and-authentic-hospitality";
+const PUBLISHED = "2026-06-01";
 
 const RELATED = [
   { to: "/lodge", label: "About Mtoni River Lodge", description: "Our story, design philosophy, and the people behind the lodge." },
@@ -26,10 +34,25 @@ export const Route = createFileRoute(
       { name: "description", content: DESCRIPTION },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
-      { property: "og:image", content: hero },
+      { property: "og:image", content: absoluteUrl(hero) },
       { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: hero },
+      { name: "twitter:image", content: absoluteUrl(hero) },
+    ],
+    links: [{ rel: "canonical", href: absoluteUrl(ROUTE_PATH) }],
+    scripts: [
+      buildArticleJsonLd({
+        title: TITLE,
+        description: DESCRIPTION,
+        image: hero,
+        routePath: ROUTE_PATH,
+        datePublished: PUBLISHED,
+      }),
+      buildBreadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Journal", path: "/journal" },
+        { name: TITLE, path: ROUTE_PATH },
+      ]),
     ],
   }),
   component: ArticlePage,

@@ -3,11 +3,18 @@ import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { ArticleLayout } from "@/components/site/ArticleLayout";
 import ndurumaGrove from "@/assets/nduruma-banana-grove.jpg";
+import {
+  absoluteUrl,
+  buildArticleJsonLd,
+  buildBreadcrumbJsonLd,
+} from "@/lib/seo-schema";
 
 const TITLE =
   "Life Along the Nduruma River: Farming Traditions, Irrigation Streams, and the Green Heart of Mtoni River Lodge";
 const DESCRIPTION =
   "Where the Nduruma River branches into quiet irrigation streams, ox-ploughed fields, banana groves, and river-fed gardens shape the green sanctuary around Mtoni.";
+const ROUTE_PATH = "/journal/life-along-the-nduruma-river";
+const PUBLISHED = "2026-02-01";
 
 const RELATED = [
   { to: "/lodge", label: "About Mtoni River Lodge", description: "The philosophy and family story behind this riverfront sanctuary." },
@@ -24,12 +31,26 @@ export const Route = createFileRoute("/journal/life-along-the-nduruma-river")({
       { name: "description", content: DESCRIPTION },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
-      { property: "og:image", content: ndurumaGrove },
+      { property: "og:image", content: absoluteUrl(ndurumaGrove) },
       { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: ndurumaGrove },
+      { name: "twitter:image", content: absoluteUrl(ndurumaGrove) },
     ],
-    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/journal/life-along-the-nduruma-river" }],
+    links: [{ rel: "canonical", href: absoluteUrl(ROUTE_PATH) }],
+    scripts: [
+      buildArticleJsonLd({
+        title: TITLE,
+        description: DESCRIPTION,
+        image: ndurumaGrove,
+        routePath: ROUTE_PATH,
+        datePublished: PUBLISHED,
+      }),
+      buildBreadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Journal", path: "/journal" },
+        { name: TITLE, path: ROUTE_PATH },
+      ]),
+    ],
   }),
   component: ArticlePage,
 });

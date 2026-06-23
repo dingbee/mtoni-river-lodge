@@ -5,10 +5,17 @@ import { Reveal } from "@/components/site/Reveal";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { WHATSAPP_URL } from "@/lib/contact";
 import river from "@/assets/nduruma-river-flow.jpg";
+import {
+  absoluteUrl,
+  buildArticleJsonLd,
+  buildBreadcrumbJsonLd,
+} from "@/lib/seo-schema";
 
 const TITLE = "What the River Has Taught Us About Time";
 const DESCRIPTION =
   "On the slow art of arriving, and why we removed every clock from the lodge.";
+const ROUTE_PATH = "/journal/what-the-river-has-taught-us-about-time";
+const PUBLISHED = "2026-03-01";
 
 export const Route = createFileRoute(
   "/journal/what-the-river-has-taught-us-about-time",
@@ -19,10 +26,25 @@ export const Route = createFileRoute(
       { name: "description", content: DESCRIPTION },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
-      { property: "og:image", content: river },
+      { property: "og:image", content: absoluteUrl(river) },
       { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: river },
+      { name: "twitter:image", content: absoluteUrl(river) },
+    ],
+    links: [{ rel: "canonical", href: absoluteUrl(ROUTE_PATH) }],
+    scripts: [
+      buildArticleJsonLd({
+        title: TITLE,
+        description: DESCRIPTION,
+        image: river,
+        routePath: ROUTE_PATH,
+        datePublished: PUBLISHED,
+      }),
+      buildBreadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Journal", path: "/journal" },
+        { name: TITLE, path: ROUTE_PATH },
+      ]),
     ],
   }),
   component: ArticlePage,
