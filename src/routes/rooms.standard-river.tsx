@@ -12,6 +12,7 @@ import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics"
 import { StartBookingLink } from "@/lib/booking-session";
 import { STANDARD_RIVER_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 import { buildRoomJsonLd } from "@/lib/room-schema";
+import { getBasePriceLabel, getBasePriceUsd } from "@/lib/pricing";
 import interiorImg from "@/assets/standard-river-interior.jpg";
 
 function StandardRiverPage() {
