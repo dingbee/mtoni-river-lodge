@@ -38,7 +38,7 @@ function RiverfrontDeluxePage() {
       <RoomRate
         eyebrow="Riverfront Deluxe"
         tagline="Closest to the water"
-        price="$310"
+        price={getBasePriceLabel("riverfront-deluxe")}
         note="Premium river-facing room · Breakfast & personal hosting included"
         roomSlug="riverfront-deluxe"
       />
@@ -167,7 +167,7 @@ export const Route = createFileRoute("/rooms/riverfront-deluxe")({
           buildRoomJsonLd({
             room: RIVERFRONT_DELUXE_ROOM,
             routePath: "/rooms/riverfront-deluxe",
-            priceUSD: 310,
+            priceUSD: getBasePriceUsd("riverfront-deluxe"),
             occupancy: 2,
           }),
         ),
