@@ -82,16 +82,23 @@ export function TawkToWidget() {
       }
     };
 
-    // Lazy-load after main content / LCP
-    const idleTimer = setTimeout(() => {
+    // Defer until after window load so Tawk.to never competes with LCP / INP.
+    const startLoad = () => {
       if ("requestIdleCallback" in window) {
         window.requestIdleCallback(loadWidget, { timeout: 4000 });
       } else {
-        loadWidget();
+        // Fallback: small timeout so paint and input aren't blocked
+        setTimeout(loadWidget, 800);
       }
-    }, 2000);
+    };
 
-    return () => clearTimeout(idleTimer);
+    if (document.readyState === "complete") {
+      startLoad();
+    } else {
+      window.addEventListener("load", startLoad, { once: true });
+    }
+
+    return () => window.removeEventListener("load", startLoad);
   }, []);
 
   return null;
