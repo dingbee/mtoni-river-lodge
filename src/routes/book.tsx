@@ -839,10 +839,33 @@ function GuestStep(props: {
         <h4 className="font-display text-lg">Your Stay</h4>
         <div className="space-y-1 text-sm">
           <p className="font-medium">{props.room.name}</p>
-          <p className="text-xs text-charcoal/60">{props.nights} night{props.nights === 1 ? "" : "s"} · {props.guests} guest{props.guests === 1 ? "" : "s"}</p>
+          <p className="text-xs text-charcoal/60">
+            {props.nights} night{props.nights === 1 ? "" : "s"} · {props.totalOccupants} occupant{props.totalOccupants === 1 ? "" : "s"}
+            {props.childrenBelow6 > 0 && ` (incl. ${props.childrenBelow6} under 6)`}
+          </p>
         </div>
         <div className="space-y-2 border-t border-charcoal/10 pt-3 text-sm">
-          <div className="flex justify-between"><span>Room</span><span>{fmt(props.roomTotal)}</span></div>
+          {props.breakdown && (
+            <>
+              <div className="flex justify-between text-charcoal/70">
+                <span>Base room ({props.nights} × {fmt(props.breakdown.basePrice)})</span>
+                <span>{fmt(props.breakdown.basePrice * props.nights)}</span>
+              </div>
+              {props.breakdown.extraOccupants > 0 && (
+                <div className="flex justify-between text-charcoal/70">
+                  <span>Extra occupant{props.breakdown.extraOccupants === 1 ? "" : "s"} ({props.breakdown.extraOccupants} × {fmt(props.breakdown.extraOccupantFee)} × {props.nights})</span>
+                  <span>{fmt(props.breakdown.extraCharges * props.nights)}</span>
+                </div>
+              )}
+              {props.childrenBelow6 > 0 && (
+                <div className="flex justify-between text-charcoal/55">
+                  <span>{props.childrenBelow6} child under 6</span>
+                  <span>Free</span>
+                </div>
+              )}
+            </>
+          )}
+          <div className="flex justify-between"><span>Room subtotal</span><span>{fmt(props.roomTotal)}</span></div>
           {props.extrasTotal > 0 && <div className="flex justify-between"><span>Extras</span><span>{fmt(props.extrasTotal)}</span></div>}
           <div className="flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(props.grandTotal)}</span></div>
           <div className="flex justify-between text-charcoal/70"><span>Deposit now (50%)</span><span>{fmt(deposit)}</span></div>
