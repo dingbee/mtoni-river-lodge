@@ -5,6 +5,7 @@ import { PageHero } from "@/components/site/PageHero";
 import { Reveal } from "@/components/site/Reveal";
 import { FAQ } from "@/components/FAQ";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
+import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
 import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics";
 import { RESERVATIONS_NOTE } from "@/lib/contact";
 import aerialImg from "@/assets/lodge-hero-aerial.jpg";
@@ -97,6 +98,10 @@ export const Route = createFileRoute("/mount-kilimanjaro-accommodation-arusha")(
         type: "application/ld+json" as const,
         children: JSON.stringify(LocalBusinessJsonLd()),
       },
+      buildBreadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Kilimanjaro Stays", path: "/mount-kilimanjaro-accommodation-arusha" },
+      ]),
     ],
   }),
   component: KilimanjaroPage,

@@ -5,6 +5,7 @@ import { Reveal } from "@/components/site/Reveal";
 import { PageHero } from "@/components/site/PageHero";
 import dining from "@/assets/dining-hero.jpg";
 import liveCooking from "@/assets/live-cooking.jpg";
+import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
 import { WHATSAPP_URL } from "@/lib/contact";
 import { Link } from "@tanstack/react-router";
 import { trackCheckAvailabilityClick } from "@/lib/analytics";
@@ -16,6 +17,12 @@ export const Route = createFileRoute("/dining")({
       { title: "Dining by the River — Mtoni River Lodge" },
       { name: "description", content: "Live cooking over open fire, river-fed gardens, and a menu shaped by what grows here. An immersive farm-to-table experience in Arusha." },
       { property: "og:image", content: dining },
+    ],
+    scripts: [
+      buildBreadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Dining", path: "/dining" },
+      ]),
     ],
   }),
   component: DiningPage,

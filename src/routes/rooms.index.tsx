@@ -9,6 +9,7 @@ import { StartBookingLink } from "@/lib/booking-session";
 import { ROOMS, getRoomPath, type Room } from "@/lib/rooms";
 import { FAQ } from "@/components/FAQ";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
+import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
 import roomImg from "@/assets/suite-interior.jpg";
 
 const ROOMS_FAQS: FAQItem[] = [
@@ -49,7 +50,13 @@ export const Route = createFileRoute("/rooms/")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: roomImg },
     ],
-    scripts: [buildFAQJsonLd(ROOMS_FAQS)],
+    scripts: [
+      buildFAQJsonLd(ROOMS_FAQS),
+      buildBreadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Accommodation", path: "/rooms" },
+      ]),
+    ],
   }),
   component: RoomsIndexPage,
 });

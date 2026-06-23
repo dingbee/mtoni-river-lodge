@@ -8,6 +8,7 @@ import aerial from "@/assets/aerial-lodge.jpg";
 import villa from "@/assets/villa-exterior.jpg";
 import detail from "@/assets/detail-coffee.jpg";
 import lodgeHero from "@/assets/lodge-hero-aerial.jpg";
+import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
 
 export const Route = createFileRoute("/lodge")({
   head: () => ({
@@ -18,6 +19,12 @@ export const Route = createFileRoute("/lodge")({
       { property: "og:url", content: "https://mtoniriverlodge.com/lodge" },
     ],
     links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/lodge" }],
+    scripts: [
+      buildBreadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "About Mtoni", path: "/lodge" },
+      ]),
+    ],
   }),
   component: LodgePage,
 });

@@ -3,6 +3,7 @@ import { Reveal } from "@/components/site/Reveal";
 import { ArticleLayout } from "@/components/site/ArticleLayout";
 import { Link } from "@tanstack/react-router";
 import hero from "@/assets/hero-cottage-exterior.jpg";
+import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
 
 const TITLE =
   "Why Mtoni River Lodge Is the Perfect Arusha Stay for Safari Travelers in 2026";
@@ -59,6 +60,11 @@ export const Route = createFileRoute(
           mainEntityOfPage: { "@type": "WebPage", "@id": URL },
         }),
       },
+      buildBreadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Journal", path: "/journal" },
+        { name: TITLE, path: "/journal/perfect-arusha-stay-for-safari-travelers-2026" },
+      ]),
     ],
   }),
   component: ArticlePage,

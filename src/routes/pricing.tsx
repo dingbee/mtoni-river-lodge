@@ -8,6 +8,7 @@ import { ROOM_PATHS, type RoomSlug } from "@/lib/rooms";
 import { getBasePriceLabel } from "@/lib/pricing";
 import { FAQ } from "@/components/FAQ";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
+import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
 import heroImg from "@/assets/hero-river.jpg";
 import riverfrontDeluxe from "@/assets/riverfront-deluxe-interior.jpg";
 import standardRiver from "@/assets/standard-river-exterior.jpg";
@@ -47,7 +48,13 @@ export const Route = createFileRoute("/pricing")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: heroImg },
     ],
-    scripts: [buildFAQJsonLd(PRICING_FAQS)],
+    scripts: [
+      buildFAQJsonLd(PRICING_FAQS),
+      buildBreadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Pricing", path: "/pricing" },
+      ]),
+    ],
   }),
   component: PricingPage,
 });

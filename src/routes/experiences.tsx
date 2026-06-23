@@ -6,6 +6,7 @@ import { PageHero } from "@/components/site/PageHero";
 import { Button } from "@/components/ui/button";
 import { RESERVATIONS_NOTE } from "@/lib/contact";
 import { trackCheckAvailabilityClick } from "@/lib/analytics";
+import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
 import cycling from "@/assets/xp-cycling.jpg";
 import riverWalk from "@/assets/xp-river-walk.jpg";
 import cooking from "@/assets/xp-cooking.jpg";
@@ -91,6 +92,12 @@ export const Route = createFileRoute("/experiences")({
       { title: "Experiences — Mtoni River Lodge" },
       { name: "description", content: "Authentic experiences at Mtoni River Lodge — cycling, guided river walks, off-road adventures, live cooking, bonfires, local markets and canoeing on Lake Duluti." },
       { property: "og:image", content: riverWalk },
+    ],
+    scripts: [
+      buildBreadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Experiences", path: "/experiences" },
+      ]),
     ],
   }),
   component: ExperiencesPage,

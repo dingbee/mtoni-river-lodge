@@ -12,6 +12,7 @@ import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics"
 import { StartBookingLink } from "@/lib/booking-session";
 import { FAMILY_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 import { buildRoomJsonLd } from "@/lib/room-schema";
+import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
 import { getBasePriceLabel, getBasePriceUsd } from "@/lib/pricing";
 import { TrekkerBlock } from "@/components/site/TrekkerBlock";
 
@@ -173,6 +174,11 @@ export const Route = createFileRoute("/rooms/family-room")({
           }),
         ),
       },
+      buildBreadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Accommodation", path: "/rooms" },
+        { name: FAMILY_ROOM.name, path: "/rooms/family-room" },
+      ]),
     ],
   }),
   component: FamilyRoomPage,

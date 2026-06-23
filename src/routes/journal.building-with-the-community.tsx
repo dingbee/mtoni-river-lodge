@@ -3,6 +3,11 @@ import { Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { ArticleLayout } from "@/components/site/ArticleLayout";
 import guide from "@/assets/maasai-by-river.jpg";
+import {
+  absoluteUrl,
+  buildArticleJsonLd,
+  buildBreadcrumbJsonLd,
+} from "@/lib/seo-schema";
 
 const TITLE = "Building With the Community";
 
@@ -15,6 +20,8 @@ const RELATED = [
 ];
 const DESCRIPTION =
   "Employment, infrastructure, and shared growth at Mtoni River Lodge — how hospitality and community development flow together along the Nduruma River.";
+const ROUTE_PATH = "/journal/building-with-the-community";
+const PUBLISHED = "2026-01-01";
 
 export const Route = createFileRoute("/journal/building-with-the-community")({
   head: () => ({
@@ -23,12 +30,26 @@ export const Route = createFileRoute("/journal/building-with-the-community")({
       { name: "description", content: DESCRIPTION },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
-      { property: "og:image", content: guide },
+      { property: "og:image", content: absoluteUrl(guide) },
       { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: guide },
+      { name: "twitter:image", content: absoluteUrl(guide) },
     ],
-    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/journal/building-with-the-community" }],
+    links: [{ rel: "canonical", href: absoluteUrl(ROUTE_PATH) }],
+    scripts: [
+      buildArticleJsonLd({
+        title: TITLE,
+        description: DESCRIPTION,
+        image: guide,
+        routePath: ROUTE_PATH,
+        datePublished: PUBLISHED,
+      }),
+      buildBreadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Journal", path: "/journal" },
+        { name: TITLE, path: ROUTE_PATH },
+      ]),
+    ],
   }),
   component: ArticlePage,
 });
