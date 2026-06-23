@@ -204,7 +204,7 @@ function BookPage() {
     setSelectedRoom(null);
     setExtras([]);
     setSelectedExtras([]);
-    setGuest({ name: "", email: "", phone: "", country: "", requests: "" });
+    setGuest({ name: "", email: "", phone: "", country: "", requests: "", purpose: "" });
     setConfirmation(null);
   }, [incomingSession, sessionId, incomingRoom]);
 
