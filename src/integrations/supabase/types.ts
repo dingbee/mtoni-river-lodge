@@ -121,6 +121,7 @@ export type Database = {
           guest_email: string
           guest_name: string
           guest_phone: string | null
+          guest_type: Database["public"]["Enums"]["guest_type"]
           id: string
           invoice_number: string | null
           nights: number
@@ -165,6 +166,7 @@ export type Database = {
           guest_email: string
           guest_name: string
           guest_phone?: string | null
+          guest_type?: Database["public"]["Enums"]["guest_type"]
           id?: string
           invoice_number?: string | null
           nights: number
@@ -209,6 +211,7 @@ export type Database = {
           guest_email?: string
           guest_name?: string
           guest_phone?: string | null
+          guest_type?: Database["public"]["Enums"]["guest_type"]
           id?: string
           invoice_number?: string | null
           nights?: number
@@ -240,6 +243,47 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_events: {
+        Row: {
+          booking_id: string | null
+          event_type: string
+          id: string
+          message_id: string | null
+          metadata: Json
+          occurred_at: string
+          recipient_email: string | null
+          template_name: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          event_type: string
+          id?: string
+          message_id?: string | null
+          metadata?: Json
+          occurred_at?: string
+          recipient_email?: string | null
+          template_name?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          event_type?: string
+          id?: string
+          message_id?: string | null
+          metadata?: Json
+          occurred_at?: string
+          recipient_email?: string | null
+          template_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]
@@ -370,6 +414,94 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_threads: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          last_updated: string
+          notes: string | null
+          timeline: Json
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          last_updated?: string
+          notes?: string | null
+          timeline?: Json
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          last_updated?: string
+          notes?: string | null
+          timeline?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_threads_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ops_tasks: {
+        Row: {
+          assigned_to: string | null
+          booking_id: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_at: string | null
+          id: string
+          priority: number
+          status: Database["public"]["Enums"]["ops_task_status"]
+          task_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          booking_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          priority?: number
+          status?: Database["public"]["Enums"]["ops_task_status"]
+          task_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          booking_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          priority?: number
+          status?: Database["public"]["Enums"]["ops_task_status"]
+          task_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ops_tasks_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_events: {
         Row: {
           amount: number | null
@@ -416,6 +548,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "payment_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pending_notifications: {
+        Row: {
+          attempts: number
+          booking_id: string
+          created_at: string
+          event_type: string
+          id: string
+          last_error: string | null
+          payload: Json
+          processed_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          booking_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          last_error?: string | null
+          payload?: Json
+          processed_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          booking_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          last_error?: string | null
+          payload?: Json
+          processed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_notifications_booking_id_fkey"
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
@@ -641,6 +814,56 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_alerts: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          error_message: string | null
+          event_type: string
+          id: string
+          idempotency_key: string
+          message: string
+          provider_sid: string | null
+          sent_at: string | null
+          status: string
+          to_number: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          event_type: string
+          id?: string
+          idempotency_key: string
+          message: string
+          provider_sid?: string | null
+          sent_at?: string | null
+          status?: string
+          to_number: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          idempotency_key?: string
+          message?: string
+          provider_sid?: string | null
+          sent_at?: string | null
+          status?: string
+          to_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_alerts_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -694,6 +917,10 @@ export type Database = {
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
+      }
+      detect_guest_type: {
+        Args: { _purpose: string; _special: string }
+        Returns: Database["public"]["Enums"]["guest_type"]
       }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
@@ -758,11 +985,14 @@ export type Database = {
         | "cancelled"
         | "completed"
         | "no_show"
+        | "checked_in"
       extra_unit:
         | "per_stay"
         | "per_night"
         | "per_person"
         | "per_person_per_night"
+      guest_type: "standard" | "vip" | "climber"
+      ops_task_status: "pending" | "in_progress" | "completed" | "cancelled"
       payment_status:
         | "unpaid"
         | "deposit_paid"
@@ -913,6 +1143,7 @@ export const Constants = {
         "cancelled",
         "completed",
         "no_show",
+        "checked_in",
       ],
       extra_unit: [
         "per_stay",
@@ -920,6 +1151,8 @@ export const Constants = {
         "per_person",
         "per_person_per_night",
       ],
+      guest_type: ["standard", "vip", "climber"],
+      ops_task_status: ["pending", "in_progress", "completed", "cancelled"],
       payment_status: [
         "unpaid",
         "deposit_paid",

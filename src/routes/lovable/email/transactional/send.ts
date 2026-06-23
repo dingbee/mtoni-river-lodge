@@ -288,6 +288,10 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
             idempotency_key: idempotencyKey,
             unsubscribe_token: unsubscribeToken,
             queued_at: new Date().toISOString(),
+            // Mirror booking-related emails to the ops Outlook mailbox.
+            bcc: /^booking-|^payment-/.test(templateName)
+              ? ['bookings@mtoniriverlodge.com']
+              : undefined,
           },
         })
 

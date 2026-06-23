@@ -59,11 +59,14 @@ import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe
 import { Route as BookingReturnRouteImport } from './routes/booking.return'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
+import { Route as AuthenticatedAdminFrontDeskRouteImport } from './routes/_authenticated.admin.front-desk'
 import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authenticated.admin.bookings'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicPesapalIpnRouteImport } from './routes/api/public/pesapal.ipn'
+import { Route as ApiPublicOpsMorningDigestRouteImport } from './routes/api/public/ops/morning-digest'
+import { Route as ApiPublicOpsDrainRouteImport } from './routes/api/public/ops/drain'
 
 const VoteRoute = VoteRouteImport.update({
   id: '/vote',
@@ -328,6 +331,12 @@ const AuthenticatedAdminReviewsRoute =
     path: '/admin/reviews',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAdminFrontDeskRoute =
+  AuthenticatedAdminFrontDeskRouteImport.update({
+    id: '/admin/front-desk',
+    path: '/admin/front-desk',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdminBookingsRoute =
   AuthenticatedAdminBookingsRouteImport.update({
     id: '/admin/bookings',
@@ -355,6 +364,17 @@ const LovableEmailQueueProcessRoute =
 const ApiPublicPesapalIpnRoute = ApiPublicPesapalIpnRouteImport.update({
   id: '/api/public/pesapal/ipn',
   path: '/api/public/pesapal/ipn',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicOpsMorningDigestRoute =
+  ApiPublicOpsMorningDigestRouteImport.update({
+    id: '/api/public/ops/morning-digest',
+    path: '/api/public/ops/morning-digest',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicOpsDrainRoute = ApiPublicOpsDrainRouteImport.update({
+  id: '/api/public/ops/drain',
+  path: '/api/public/ops/drain',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -407,8 +427,11 @@ export interface FileRoutesByFullPath {
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
+  '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
+  '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -461,8 +484,11 @@ export interface FileRoutesByTo {
   '/journal': typeof JournalIndexRoute
   '/rooms': typeof RoomsIndexRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
+  '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
+  '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -519,8 +545,11 @@ export interface FileRoutesById {
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
+  '/_authenticated/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
+  '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -577,8 +606,11 @@ export interface FileRouteTypes {
     | '/journal/'
     | '/rooms/'
     | '/admin/bookings'
+    | '/admin/front-desk'
     | '/admin/reviews'
     | '/lovable/email/suppression'
+    | '/api/public/ops/drain'
+    | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -631,8 +663,11 @@ export interface FileRouteTypes {
     | '/journal'
     | '/rooms'
     | '/admin/bookings'
+    | '/admin/front-desk'
     | '/admin/reviews'
     | '/lovable/email/suppression'
+    | '/api/public/ops/drain'
+    | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -688,8 +723,11 @@ export interface FileRouteTypes {
     | '/journal/'
     | '/rooms/'
     | '/_authenticated/admin/bookings'
+    | '/_authenticated/admin/front-desk'
     | '/_authenticated/admin/reviews'
     | '/lovable/email/suppression'
+    | '/api/public/ops/drain'
+    | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -732,6 +770,8 @@ export interface RootRouteChildren {
   BookingReturnRoute: typeof BookingReturnRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicOpsDrainRoute: typeof ApiPublicOpsDrainRoute
+  ApiPublicOpsMorningDigestRoute: typeof ApiPublicOpsMorningDigestRoute
   ApiPublicPesapalIpnRoute: typeof ApiPublicPesapalIpnRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -1090,6 +1130,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminReviewsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin/front-desk': {
+      id: '/_authenticated/admin/front-desk'
+      path: '/admin/front-desk'
+      fullPath: '/admin/front-desk'
+      preLoaderRoute: typeof AuthenticatedAdminFrontDeskRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/admin/bookings': {
       id: '/_authenticated/admin/bookings'
       path: '/admin/bookings'
@@ -1125,16 +1172,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPesapalIpnRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/ops/morning-digest': {
+      id: '/api/public/ops/morning-digest'
+      path: '/api/public/ops/morning-digest'
+      fullPath: '/api/public/ops/morning-digest'
+      preLoaderRoute: typeof ApiPublicOpsMorningDigestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/ops/drain': {
+      id: '/api/public/ops/drain'
+      path: '/api/public/ops/drain'
+      fullPath: '/api/public/ops/drain'
+      preLoaderRoute: typeof ApiPublicOpsDrainRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminBookingsRoute: typeof AuthenticatedAdminBookingsRoute
+  AuthenticatedAdminFrontDeskRoute: typeof AuthenticatedAdminFrontDeskRoute
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminBookingsRoute: AuthenticatedAdminBookingsRoute,
+  AuthenticatedAdminFrontDeskRoute: AuthenticatedAdminFrontDeskRoute,
   AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
 }
 
@@ -1231,6 +1294,8 @@ const rootRouteChildren: RootRouteChildren = {
   BookingReturnRoute: BookingReturnRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicOpsDrainRoute: ApiPublicOpsDrainRoute,
+  ApiPublicOpsMorningDigestRoute: ApiPublicOpsMorningDigestRoute,
   ApiPublicPesapalIpnRoute: ApiPublicPesapalIpnRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
@@ -1239,13 +1304,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
