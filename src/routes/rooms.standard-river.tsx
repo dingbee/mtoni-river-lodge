@@ -37,7 +37,7 @@ function StandardRiverPage() {
       <RoomRate
         eyebrow="Riverfront Standard"
         tagline="Balanced & quiet"
-        price="$260"
+        price={getBasePriceLabel("standard-river")}
         note="River-view sanctuary · Breakfast & personal hosting included"
         roomSlug="standard-river"
       />
@@ -166,7 +166,7 @@ export const Route = createFileRoute("/rooms/standard-river")({
           buildRoomJsonLd({
             room: STANDARD_RIVER_ROOM,
             routePath: "/rooms/standard-river",
-            priceUSD: 260,
+            priceUSD: getBasePriceUsd("standard-river"),
             occupancy: 2,
           }),
         ),
