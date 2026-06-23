@@ -24,6 +24,7 @@ import {
 } from "@/lib/booking.functions";
 import { initiatePayment } from "@/lib/payments.functions";
 import { newBookingSessionId } from "@/lib/booking-session";
+import { calculateBookingTotal, calculateNightlyRate } from "@/lib/pricing";
 
 export const Route = createFileRoute("/book")({
   validateSearch: (
@@ -393,7 +394,20 @@ function BookPage() {
     }, 0);
   }, [selectedExtras, extras, nights, guests]);
 
-  const grandTotal = (selectedRoom?.nightly_total ?? 0) + extrasTotal;
+  // ROOM TOTAL comes from the centralized pricing service — never trust
+  // server-returned `nightly_total` (which is computed without guest count)
+  // for the displayed total. Backend re-computes authoritatively on
+  // `create_booking` and Pesapal charges the resulting deposit.
+  const roomTotal = useMemo(() => {
+    if (!selectedRoom || nights < 1) return 0;
+    try {
+      return calculateBookingTotal(selectedRoom.slug, guests, nights);
+    } catch {
+      return Number(selectedRoom.nightly_total) || 0;
+    }
+  }, [selectedRoom, guests, nights]);
+
+  const grandTotal = roomTotal + extrasTotal;
 
   return (
     <div className="bg-ivory text-charcoal">
@@ -482,7 +496,7 @@ function BookPage() {
             <GuestStep
               room={selectedRoom} nights={nights} guests={guests}
               extras={extras} selectedExtras={selectedExtras} setSelectedExtras={setSelectedExtras}
-              extrasTotal={extrasTotal} grandTotal={grandTotal}
+              roomTotal={roomTotal} extrasTotal={extrasTotal} grandTotal={grandTotal}
               guest={guest} setGuest={setGuest}
               submitting={submit.isPending}
               onBack={() => goToStep("select", "user_back_from_guest")}
@@ -621,6 +635,15 @@ function SelectStep({ results, guests, nights, onBack, onSelect }: {
       <button onClick={onBack} className="text-xs uppercase tracking-[0.22em] text-charcoal/60 hover:text-charcoal">← Change dates</button>
       {results.map((r) => {
         const disabled = !r.is_available || !r.fits_guests;
+        // Centralized pricing: per-guest, per-night.
+        let displayTotal = Number(r.nightly_total) || 0;
+        let nightlyRate = Number(r.base_price) || 0;
+        try {
+          nightlyRate = calculateNightlyRate(r.slug, guests);
+          displayTotal = nightlyRate * Math.max(1, nights);
+        } catch {
+          /* room not in pricing config — fall back to server values */
+        }
         return (
           <div key={r.room_id} className="flex flex-col gap-4 rounded-2xl border border-charcoal/10 bg-ivory p-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -630,8 +653,8 @@ function SelectStep({ results, guests, nights, onBack, onSelect }: {
             </div>
             <div className="text-right">
               <p className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">{nights} night{nights === 1 ? "" : "s"} total</p>
-              <p className="font-display text-2xl">{fmt(Number(r.nightly_total), r.currency)}</p>
-              <p className="text-xs text-charcoal/55">from {fmt(Number(r.base_price), r.currency)} / night</p>
+              <p className="font-display text-2xl">{fmt(displayTotal, r.currency)}</p>
+              <p className="text-xs text-charcoal/55">{fmt(nightlyRate, r.currency)} / night · {guests} guest{guests === 1 ? "" : "s"}</p>
               <button
                 onClick={() => onSelect(r)} disabled={disabled}
                 className="mt-3 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
@@ -651,7 +674,7 @@ function GuestStep(props: {
   room: AvailabilityRoom; nights: number; guests: number;
   extras: Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>;
   selectedExtras: SelectedExtra[]; setSelectedExtras: (v: SelectedExtra[]) => void;
-  extrasTotal: number; grandTotal: number;
+  roomTotal: number; extrasTotal: number; grandTotal: number;
   guest: { name: string; email: string; phone: string; country: string; requests: string };
   setGuest: (g: { name: string; email: string; phone: string; country: string; requests: string }) => void;
   submitting: boolean;
@@ -741,7 +764,7 @@ function GuestStep(props: {
           <p className="text-xs text-charcoal/60">{props.nights} night{props.nights === 1 ? "" : "s"} · {props.guests} guest{props.guests === 1 ? "" : "s"}</p>
         </div>
         <div className="space-y-2 border-t border-charcoal/10 pt-3 text-sm">
-          <div className="flex justify-between"><span>Room</span><span>{fmt(Number(props.room.nightly_total))}</span></div>
+          <div className="flex justify-between"><span>Room</span><span>{fmt(props.roomTotal)}</span></div>
           {props.extrasTotal > 0 && <div className="flex justify-between"><span>Extras</span><span>{fmt(props.extrasTotal)}</span></div>}
           <div className="flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(props.grandTotal)}</span></div>
           <div className="flex justify-between text-charcoal/70"><span>Deposit now (50%)</span><span>{fmt(deposit)}</span></div>
