@@ -120,12 +120,15 @@ export type Database = {
           guest_name: string
           guest_phone: string | null
           id: string
+          invoice_number: string | null
           nights: number
           notes: string | null
+          paid_amount: number | null
           payment_completed_at: string | null
           payment_failed_at: string | null
           payment_initiated_at: string | null
           payment_method: string | null
+          payment_mismatch_at: string | null
           payment_provider: string
           payment_status: Database["public"]["Enums"]["payment_status"]
           pesapal_merchant_reference: string | null
@@ -158,12 +161,15 @@ export type Database = {
           guest_name: string
           guest_phone?: string | null
           id?: string
+          invoice_number?: string | null
           nights: number
           notes?: string | null
+          paid_amount?: number | null
           payment_completed_at?: string | null
           payment_failed_at?: string | null
           payment_initiated_at?: string | null
           payment_method?: string | null
+          payment_mismatch_at?: string | null
           payment_provider?: string
           payment_status?: Database["public"]["Enums"]["payment_status"]
           pesapal_merchant_reference?: string | null
@@ -196,12 +202,15 @@ export type Database = {
           guest_name?: string
           guest_phone?: string | null
           id?: string
+          invoice_number?: string | null
           nights?: number
           notes?: string | null
+          paid_amount?: number | null
           payment_completed_at?: string | null
           payment_failed_at?: string | null
           payment_initiated_at?: string | null
           payment_method?: string | null
+          payment_mismatch_at?: string | null
           payment_provider?: string
           payment_status?: Database["public"]["Enums"]["payment_status"]
           pesapal_merchant_reference?: string | null
@@ -441,7 +450,9 @@ export type Database = {
           capacity_children: number
           created_at: string
           currency: string
+          extra_guest_fee: number
           id: string
+          included_guests: number
           max_occupancy: number
           name: string
           short_description: string | null
@@ -457,7 +468,9 @@ export type Database = {
           capacity_children?: number
           created_at?: string
           currency?: string
+          extra_guest_fee?: number
           id?: string
+          included_guests?: number
           max_occupancy?: number
           name: string
           short_description?: string | null
@@ -473,7 +486,9 @@ export type Database = {
           capacity_children?: number
           created_at?: string
           currency?: string
+          extra_guest_fee?: number
           id?: string
+          included_guests?: number
           max_occupancy?: number
           name?: string
           short_description?: string | null
@@ -579,7 +594,12 @@ export type Database = {
         | "per_night"
         | "per_person"
         | "per_person_per_night"
-      payment_status: "unpaid" | "deposit_paid" | "paid" | "refunded"
+      payment_status:
+        | "unpaid"
+        | "deposit_paid"
+        | "paid"
+        | "refunded"
+        | "payment_mismatch"
       review_category:
         | "hospitality_service"
         | "tranquility_nature"
@@ -731,7 +751,13 @@ export const Constants = {
         "per_person",
         "per_person_per_night",
       ],
-      payment_status: ["unpaid", "deposit_paid", "paid", "refunded"],
+      payment_status: [
+        "unpaid",
+        "deposit_paid",
+        "paid",
+        "refunded",
+        "payment_mismatch",
+      ],
       review_category: [
         "hospitality_service",
         "tranquility_nature",
