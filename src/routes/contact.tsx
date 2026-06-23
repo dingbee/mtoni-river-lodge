@@ -9,6 +9,7 @@ import { WHATSAPP_URL } from "@/lib/contact";
 import { trackContactClick } from "@/lib/analytics";
 import { FAQ } from "@/components/FAQ";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
+import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
 
 const PHONE_DISPLAY = "+255 752 441 443";
 const PHONE_TEL = "+255752441443";
@@ -63,7 +64,13 @@ export const Route = createFileRoute("/contact")({
       { property: "og:url", content: "https://mtoniriverlodge.com/contact" },
     ],
     links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/contact" }],
-    scripts: [buildFAQJsonLd(CONTACT_FAQS)],
+    scripts: [
+      buildFAQJsonLd(CONTACT_FAQS),
+      buildBreadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Contact", path: "/contact" },
+      ]),
+    ],
   }),
   component: ContactPage,
 });

@@ -5,6 +5,7 @@ import { Reveal } from "@/components/site/Reveal";
 import { BreadcrumbsBar } from "@/components/site/Breadcrumbs";
 import river from "@/assets/nduruma-river-flow.jpg";
 import { getJournalPosts } from "@/lib/journal";
+import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
 
 const posts = getJournalPosts();
 
@@ -24,6 +25,12 @@ export const Route = createFileRoute("/journal/")({
           "Stories from the riverbank — slow essays on land, season, and the small ceremonies of life at Mtoni.",
       },
       { property: "og:image", content: river },
+    ],
+    scripts: [
+      buildBreadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Journal", path: "/journal" },
+      ]),
     ],
   }),
   component: JournalPage,
