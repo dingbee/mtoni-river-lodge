@@ -54,9 +54,13 @@ import { Route as JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRo
 import { Route as JournalDiscoverMtoniRiverLodgeArushaRouteImport } from './routes/journal.discover-mtoni-river-lodge-arusha'
 import { Route as JournalBuildingWithTheCommunityRouteImport } from './routes/journal.building-with-the-community'
 import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './routes/journal.a-morning-with-the-beekeepers-of-gomba'
+import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as BookingReturnRouteImport } from './routes/booking.return'
+import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
 import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authenticated.admin.bookings'
+import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicPesapalIpnRouteImport } from './routes/api/public/pesapal.ipn'
 
@@ -297,9 +301,19 @@ const JournalAMorningWithTheBeekeepersOfGombaRoute =
     path: '/a-morning-with-the-beekeepers-of-gomba',
     getParentRoute: () => JournalRoute,
   } as any)
+const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
+  id: '/email/unsubscribe',
+  path: '/email/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BookingReturnRoute = BookingReturnRouteImport.update({
   id: '/booking/return',
   path: '/booking/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
+  id: '/lovable/email/suppression',
+  path: '/lovable/email/suppression',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminReviewsRoute =
@@ -313,6 +327,18 @@ const AuthenticatedAdminBookingsRoute =
     id: '/admin/bookings',
     path: '/admin/bookings',
     getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const LovableEmailTransactionalSendRoute =
+  LovableEmailTransactionalSendRouteImport.update({
+    id: '/lovable/email/transactional/send',
+    path: '/lovable/email/transactional/send',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
@@ -358,6 +384,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
   '/booking/return': typeof BookingReturnRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discover-mtoni-river-lodge-arusha': typeof JournalDiscoverMtoniRiverLodgeArushaRoute
@@ -374,8 +401,11 @@ export interface FileRoutesByFullPath {
   '/rooms/': typeof RoomsIndexRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -407,6 +437,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
   '/booking/return': typeof BookingReturnRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discover-mtoni-river-lodge-arusha': typeof JournalDiscoverMtoniRiverLodgeArushaRoute
@@ -423,8 +454,11 @@ export interface FileRoutesByTo {
   '/rooms': typeof RoomsIndexRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -460,6 +494,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/vote': typeof VoteRoute
   '/booking/return': typeof BookingReturnRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discover-mtoni-river-lodge-arusha': typeof JournalDiscoverMtoniRiverLodgeArushaRoute
@@ -476,8 +511,11 @@ export interface FileRoutesById {
   '/rooms/': typeof RoomsIndexRoute
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -513,6 +551,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/vote'
     | '/booking/return'
+    | '/email/unsubscribe'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/building-with-the-community'
     | '/journal/discover-mtoni-river-lodge-arusha'
@@ -529,8 +568,11 @@ export interface FileRouteTypes {
     | '/rooms/'
     | '/admin/bookings'
     | '/admin/reviews'
+    | '/lovable/email/suppression'
     | '/api/public/pesapal/ipn'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -562,6 +604,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/vote'
     | '/booking/return'
+    | '/email/unsubscribe'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/building-with-the-community'
     | '/journal/discover-mtoni-river-lodge-arusha'
@@ -578,8 +621,11 @@ export interface FileRouteTypes {
     | '/rooms'
     | '/admin/bookings'
     | '/admin/reviews'
+    | '/lovable/email/suppression'
     | '/api/public/pesapal/ipn'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   id:
     | '__root__'
     | '/'
@@ -614,6 +660,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/vote'
     | '/booking/return'
+    | '/email/unsubscribe'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/building-with-the-community'
     | '/journal/discover-mtoni-river-lodge-arusha'
@@ -630,8 +677,11 @@ export interface FileRouteTypes {
     | '/rooms/'
     | '/_authenticated/admin/bookings'
     | '/_authenticated/admin/reviews'
+    | '/lovable/email/suppression'
     | '/api/public/pesapal/ipn'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -667,8 +717,12 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   VoteRoute: typeof VoteRoute
   BookingReturnRoute: typeof BookingReturnRoute
+  EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
+  LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicPesapalIpnRoute: typeof ApiPublicPesapalIpnRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
+  LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -988,11 +1042,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRouteImport
       parentRoute: typeof JournalRoute
     }
+    '/email/unsubscribe': {
+      id: '/email/unsubscribe'
+      path: '/email/unsubscribe'
+      fullPath: '/email/unsubscribe'
+      preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/booking/return': {
       id: '/booking/return'
       path: '/booking/return'
       fullPath: '/booking/return'
       preLoaderRoute: typeof BookingReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/suppression': {
+      id: '/lovable/email/suppression'
+      path: '/lovable/email/suppression'
+      fullPath: '/lovable/email/suppression'
+      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/reviews': {
@@ -1008,6 +1076,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/bookings'
       preLoaderRoute: typeof AuthenticatedAdminBookingsRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/lovable/email/transactional/send': {
+      id: '/lovable/email/transactional/send'
+      path: '/lovable/email/transactional/send'
+      fullPath: '/lovable/email/transactional/send'
+      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
@@ -1126,8 +1208,12 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   VoteRoute: VoteRoute,
   BookingReturnRoute: BookingReturnRoute,
+  EmailUnsubscribeRoute: EmailUnsubscribeRoute,
+  LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicPesapalIpnRoute: ApiPublicPesapalIpnRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
+  LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
