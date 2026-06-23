@@ -609,11 +609,18 @@ const field = "w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 te
 const labelCls = "text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70";
 
 function SearchStep(props: {
-  checkIn: string; checkOut: string; adults: number; children: number; nights: number; loading: boolean;
+  checkIn: string; checkOut: string;
+  adults: number; childrenBelow6: number; children7Plus: number;
+  nights: number; loading: boolean;
   setCheckIn: (v: string) => void; setCheckOut: (v: string) => void;
-  setAdults: (v: number) => void; setChildren: (v: number) => void;
+  setAdults: (v: number) => void;
+  setChildrenBelow6: (v: number) => void;
+  setChildren7Plus: (v: number) => void;
   onSearch: () => void;
 }) {
+  const totalOccupants = props.adults + props.childrenBelow6 + props.children7Plus;
+  const ADULT_MAX = 5;
+  const CHILD_MAX = 5;
   return (
     <div className="space-y-5 rounded-2xl border border-charcoal/10 bg-ivory p-6 shadow-[0_24px_60px_-30px_rgba(30,45,30,0.35)] sm:p-10">
       <div className="grid gap-5 sm:grid-cols-2">
@@ -626,15 +633,50 @@ function SearchStep(props: {
           <input type="date" min={props.checkIn || today()} className={`mt-2 ${field}`} value={props.checkOut} onChange={(e) => props.setCheckOut(e.target.value)} />
         </div>
       </div>
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-3">
         <div>
           <label className={labelCls}>Adults</label>
-          <input type="number" min={1} max={10} className={`mt-2 ${field}`} value={props.adults} onChange={(e) => props.setAdults(Math.max(1, Number(e.target.value) || 1))} />
+          <select
+            className={`mt-2 ${field}`}
+            value={props.adults}
+            onChange={(e) => props.setAdults(Number(e.target.value))}
+            required
+          >
+            {Array.from({ length: ADULT_MAX }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
         </div>
         <div>
-          <label className={labelCls}>Children</label>
-          <input type="number" min={0} max={10} className={`mt-2 ${field}`} value={props.children} onChange={(e) => props.setChildren(Math.max(0, Number(e.target.value) || 0))} />
+          <label className={labelCls}>Children (under 6)</label>
+          <select
+            className={`mt-2 ${field}`}
+            value={props.childrenBelow6}
+            onChange={(e) => props.setChildrenBelow6(Number(e.target.value))}
+          >
+            {Array.from({ length: CHILD_MAX + 1 }, (_, i) => i).map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+          <p className="mt-1 text-[0.6rem] uppercase tracking-[0.18em] text-charcoal/50">Stay free</p>
         </div>
+        <div>
+          <label className={labelCls}>Children (7 & up)</label>
+          <select
+            className={`mt-2 ${field}`}
+            value={props.children7Plus}
+            onChange={(e) => props.setChildren7Plus(Number(e.target.value))}
+          >
+            {Array.from({ length: CHILD_MAX + 1 }, (_, i) => i).map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+          <p className="mt-1 text-[0.6rem] uppercase tracking-[0.18em] text-charcoal/50">Count as occupants</p>
+        </div>
+      </div>
+      <div className="flex items-center justify-between rounded-lg border border-dashed border-charcoal/20 bg-bone/30 px-4 py-3">
+        <span className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">Total occupants</span>
+        <span className="font-display text-lg">{totalOccupants}</span>
       </div>
       <div className="flex items-center justify-between rounded-lg border border-dashed border-charcoal/20 bg-bone/30 px-4 py-3">
         <span className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">Length of stay</span>
