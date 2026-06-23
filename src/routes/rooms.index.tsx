@@ -7,7 +7,32 @@ import { RESERVATIONS_NOTE } from "@/lib/contact";
 import { trackCheckAvailabilityClick, trackRoomView } from "@/lib/analytics";
 import { StartBookingLink } from "@/lib/booking-session";
 import { ROOMS, getRoomPath, type Room } from "@/lib/rooms";
+import { FAQ } from "@/components/FAQ";
+import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
 import roomImg from "@/assets/suite-interior.jpg";
+
+const ROOMS_FAQS: FAQItem[] = [
+  {
+    q: "What room types are available at Mtoni River Lodge?",
+    a: "We offer three room types — Riverfront Standard, Riverfront Deluxe, and the Family & Garden Suite — each designed in the spirit of Maasai boma architecture and grounded in natural materials.",
+  },
+  {
+    q: "How many guests can each room accommodate?",
+    a: "Standard and Deluxe rooms host up to 3 occupants, while the Family & Garden Suite welcomes up to 5 occupants — ideal for families travelling together.",
+  },
+  {
+    q: "Are children welcome and how are they counted?",
+    a: "Children are warmly welcome. Children under 6 stay free and do not affect pricing; children 7 and older count as occupants for capacity, but extra-occupant charges only apply once you exceed the base room rate's included guests.",
+  },
+  {
+    q: "What is included in the nightly rate?",
+    a: "Every stay includes breakfast, personal hosting, riverfront garden access, and complimentary Wi-Fi. Excursions, transfers, and additional meals can be added on request.",
+  },
+  {
+    q: "Can I see the room before booking?",
+    a: "Yes. Each room has its own page with photography and a full description — open any room from this page to explore the interior, view, and amenities before confirming a stay.",
+  },
+];
 
 export const Route = createFileRoute("/rooms/")({
   head: () => ({
@@ -20,6 +45,7 @@ export const Route = createFileRoute("/rooms/")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: roomImg },
     ],
+    scripts: [buildFAQJsonLd(ROOMS_FAQS)],
   }),
   component: RoomsIndexPage,
 });
@@ -43,6 +69,11 @@ function RoomsIndexPage() {
           ))}
         </div>
       </section>
+      <FAQ
+        faqs={ROOMS_FAQS}
+        eyebrow="About the rooms"
+        heading="Frequently asked questions"
+      />
       <SiteFooter />
     </div>
   );

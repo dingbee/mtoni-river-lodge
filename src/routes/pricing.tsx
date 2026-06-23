@@ -6,10 +6,35 @@ import { Reveal } from "@/components/site/Reveal";
 import { PageHero } from "@/components/site/PageHero";
 import { ROOM_PATHS, type RoomSlug } from "@/lib/rooms";
 import { getBasePriceLabel } from "@/lib/pricing";
+import { FAQ } from "@/components/FAQ";
+import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
 import heroImg from "@/assets/hero-river.jpg";
 import riverfrontDeluxe from "@/assets/riverfront-deluxe-interior.jpg";
 import standardRiver from "@/assets/standard-river-exterior.jpg";
 import familyRoom from "@/assets/family-room-hero.jpg";
+
+const PRICING_FAQS: FAQItem[] = [
+  {
+    q: "Are rates per room or per person?",
+    a: "Rates are quoted per room, per night, and include breakfast. The base rate covers two adults; extra adults or children aged 7 and older are charged a per-night supplement up to the room's maximum capacity.",
+  },
+  {
+    q: "Do children pay the same rate as adults?",
+    a: "Children under 6 stay free and are not counted toward the paying occupancy. Children aged 7 and older are counted as occupants and charged the same extra-occupant supplement as adults beyond the base two-guest rate.",
+  },
+  {
+    q: "Is a deposit required to confirm a booking?",
+    a: "Yes. A 50% deposit is collected at the time of booking through our secure payment partner, with the balance due on arrival. The deposit amount you pay always matches the total shown in your booking summary.",
+  },
+  {
+    q: "What is included in the nightly rate?",
+    a: "Every rate includes accommodation, breakfast, riverfront garden access, complimentary Wi-Fi, and personal hosting from our team. Taxes are additional; safaris, transfers, and additional meals can be added on request.",
+  },
+  {
+    q: "Do rates change by season?",
+    a: "Our published rates apply year-round for direct bookings. Seasonal adjustments or limited-time offers, when available, will be reflected in the booking summary before you confirm.",
+  },
+];
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
@@ -22,6 +47,7 @@ export const Route = createFileRoute("/pricing")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: heroImg },
     ],
+    scripts: [buildFAQJsonLd(PRICING_FAQS)],
   }),
   component: PricingPage,
 });
@@ -120,6 +146,12 @@ function PricingPage() {
           </Reveal>
         </div>
       </section>
+
+      <FAQ
+        faqs={PRICING_FAQS}
+        eyebrow="Rates & booking"
+        heading="Frequently asked questions"
+      />
 
       <SiteFooter />
     </div>

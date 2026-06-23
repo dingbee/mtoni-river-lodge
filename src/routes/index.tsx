@@ -6,6 +6,8 @@ import { Reveal } from "@/components/site/Reveal";
 import { LocationMap } from "@/components/site/LocationMap";
 import { HeroCinematic } from "@/components/site/HeroCinematic";
 import { GuestExperiencesSection } from "@/components/site/reviews/GuestExperiencesSection";
+import { FAQ } from "@/components/FAQ";
+import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
 import { RESERVATIONS_NOTE } from "@/lib/contact";
 import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics";
 import { getLatestJournalPosts } from "@/lib/journal";
@@ -32,6 +34,29 @@ import xpRiverWalk from "@/assets/xp-river-walk.jpg";
 import xpCycling from "@/assets/xp-cycling.jpg";
 import xpBonfire from "@/assets/xp-bonfire.jpg";
 
+const HOME_FAQS: FAQItem[] = [
+  {
+    q: "Where is Mtoni River Lodge located?",
+    a: "Mtoni River Lodge sits on the banks of the Nduruma River in Arusha, Tanzania — a quiet riverside retreat between Kilimanjaro International Airport and Arusha town, well placed for Northern Tanzania safaris.",
+  },
+  {
+    q: "How many rooms does the lodge have?",
+    a: "We have 24 riverfront rooms across three styles — Riverfront Standard, Riverfront Deluxe, and our Family & Garden Suite — each inspired by Maasai boma design and built from natural materials.",
+  },
+  {
+    q: "Is breakfast included with a stay?",
+    a: "Yes. Every booking includes a full breakfast served riverside, alongside personal hosting from our team throughout your stay.",
+  },
+  {
+    q: "Can the lodge arrange airport transfers and safaris?",
+    a: "Yes. Our reservations team arranges transfers from Kilimanjaro International Airport and Arusha Airport, and can plan day trips and multi-day safaris to Arusha National Park, Tarangire, Lake Manyara, Ngorongoro, and the Serengeti.",
+  },
+  {
+    q: "How do I check availability and book?",
+    a: "Use the Check Availability page to see live rates and confirm a stay online, or contact our reservations team directly for tailored arrangements.",
+  },
+];
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -53,6 +78,7 @@ export const Route = createFileRoute("/")({
         fetchpriority: "high",
       },
     ],
+    scripts: [buildFAQJsonLd(HOME_FAQS)],
   }),
   component: HomePage,
 });
@@ -423,6 +449,13 @@ function HomePage() {
       </section>
 
       <LocationMap />
+
+      <FAQ
+        faqs={HOME_FAQS}
+        eyebrow="Good to know"
+        heading="Frequently asked questions"
+        intro="A few things guests often ask before arriving at the river."
+      />
 
       <SiteFooter />
     </div>
