@@ -1,4 +1,4 @@
-// Sends the "booking confirmed" email exactly once per booking.
+// Sends the "booking confirmed" email exactly once per booking via Lovable Emails.
 // Idempotency is enforced by inserting a marker row into payment_events
 // with a unique (booking_id, event_type) constraint-free check.
 
@@ -23,41 +23,35 @@ export async function sendBookingConfirmedEmail(bookingId: string) {
   if (!full) return { ok: false, error: "booking not found" };
 
   const { data: room } = await supabaseAdmin.from("rooms").select("name").eq("id", full.room_id).maybeSingle();
-  const { sendGmail, renderBookingConfirmed } = await import("./booking-email.server");
-  const tpl = renderBookingConfirmed({
-    reference: full.reference,
-    guestName: full.guest_name,
-    guestEmail: full.guest_email,
-    roomName: room?.name,
-    checkIn: full.check_in,
-    checkOut: full.check_out,
-    nights: full.nights,
-    adults: full.adults,
-    children: full.children ?? 0,
-    total: full.total,
-    deposit: full.deposit_amount,
-    balance: full.balance_amount,
-    currency: full.currency,
+  const { sendTransactionalInternal } = await import("./email/send-internal.server");
+  const sent = await sendTransactionalInternal({
+    templateName: "booking-confirmed",
+    recipientEmail: full.guest_email,
+    idempotencyKey: `booking-confirmed-${bookingId}`,
+    templateData: {
+      reference: full.reference,
+      guestName: full.guest_name,
+      roomName: room?.name,
+      checkIn: full.check_in,
+      checkOut: full.check_out,
+      nights: full.nights,
+      adults: full.adults,
+      children: full.children ?? 0,
+      total: full.total,
+      deposit: full.deposit_amount,
+      balance: full.balance_amount,
+      currency: full.currency,
+    },
   });
 
-  // Generate PDF invoice; if it fails, still send the email without it.
-  let attachments: { filename: string; contentType: string; bytes: Uint8Array }[] | undefined;
-  try {
-    const { buildInvoiceForBooking } = await import("./booking-invoice.server");
-    const invoice = await buildInvoiceForBooking(bookingId);
-    if (invoice) {
-      attachments = [{ filename: invoice.filename, contentType: "application/pdf", bytes: invoice.bytes }];
-    }
-  } catch (err) {
-    console.error("[invoice] generation failed", err);
-  }
-
-  const sent = await sendGmail({ to: full.guest_email, ...tpl, attachments });
   await supabaseAdmin.from("payment_events").insert({
     booking_id: bookingId,
-    provider: "gmail",
+    provider: "lovable-emails",
     event_type: sent.ok ? "email_confirmation_sent" : "email_confirmation_failed",
-    raw: { messageId: sent.id ?? null, error: sent.error ?? null, invoiceAttached: !!attachments },
+    raw: {
+      messageId: sent.ok ? sent.messageId : null,
+      error: sent.ok ? null : sent.error ?? sent.reason,
+    },
   });
   return sent;
 }
