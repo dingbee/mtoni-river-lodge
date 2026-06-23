@@ -23,33 +23,61 @@ function buildMime(opts: {
   html: string;
   text: string;
   replyTo?: string;
+  attachments?: { filename: string; contentType: string; bytes: Uint8Array }[];
 }): string {
-  const boundary = `=_mtoni_${Math.random().toString(36).slice(2)}`;
+  const altBoundary = `=_alt_${Math.random().toString(36).slice(2)}`;
+  const mixedBoundary = `=_mixed_${Math.random().toString(36).slice(2)}`;
+  const hasAttachments = !!opts.attachments?.length;
+  const topBoundary = hasAttachments ? mixedBoundary : altBoundary;
+  const topType = hasAttachments ? "multipart/mixed" : "multipart/alternative";
+
   const headers = [
     `From: "${SENDER_NAME}" <${SENDER_EMAIL}>`,
     `To: ${opts.to}`,
     `Reply-To: ${opts.replyTo ?? REPLY_TO}`,
     `Subject: ${opts.subject}`,
     "MIME-Version: 1.0",
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    `Content-Type: ${topType}; boundary="${topBoundary}"`,
   ].join("\r\n");
 
-  const body = [
-    `--${boundary}`,
+  const altPart = [
+    `Content-Type: multipart/alternative; boundary="${altBoundary}"`,
+    "",
+    `--${altBoundary}`,
     'Content-Type: text/plain; charset="UTF-8"',
     "Content-Transfer-Encoding: 7bit",
     "",
     opts.text,
     "",
-    `--${boundary}`,
+    `--${altBoundary}`,
     'Content-Type: text/html; charset="UTF-8"',
     "Content-Transfer-Encoding: 7bit",
     "",
     opts.html,
     "",
-    `--${boundary}--`,
-    "",
+    `--${altBoundary}--`,
   ].join("\r\n");
+
+  let body: string;
+  if (!hasAttachments) {
+    body = altPart;
+  } else {
+    const parts: string[] = [`--${mixedBoundary}`, altPart, ""];
+    for (const a of opts.attachments!) {
+      const b64 = Buffer.from(a.bytes).toString("base64").replace(/(.{76})/g, "$1\r\n");
+      parts.push(
+        `--${mixedBoundary}`,
+        `Content-Type: ${a.contentType}; name="${a.filename}"`,
+        `Content-Disposition: attachment; filename="${a.filename}"`,
+        "Content-Transfer-Encoding: base64",
+        "",
+        b64,
+        "",
+      );
+    }
+    parts.push(`--${mixedBoundary}--`, "");
+    body = parts.join("\r\n");
+  }
 
   return `${headers}\r\n\r\n${body}`;
 }
@@ -60,6 +88,7 @@ export async function sendGmail(opts: {
   html: string;
   text: string;
   replyTo?: string;
+  attachments?: { filename: string; contentType: string; bytes: Uint8Array }[];
 }): Promise<{ id?: string; ok: boolean; error?: string }> {
   const lovableKey = process.env.LOVABLE_API_KEY;
   const gmailKey = process.env.GOOGLE_MAIL_API_KEY;
