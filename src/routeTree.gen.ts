@@ -59,6 +59,7 @@ import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe
 import { Route as BookingReturnRouteImport } from './routes/booking.return'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
+import { Route as AuthenticatedAdminFrontDeskRouteImport } from './routes/_authenticated/admin.front-desk'
 import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authenticated.admin.bookings'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -330,6 +331,12 @@ const AuthenticatedAdminReviewsRoute =
     path: '/admin/reviews',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAdminFrontDeskRoute =
+  AuthenticatedAdminFrontDeskRouteImport.update({
+    id: '/admin/front-desk',
+    path: '/admin/front-desk',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdminBookingsRoute =
   AuthenticatedAdminBookingsRouteImport.update({
     id: '/admin/bookings',
@@ -420,6 +427,7 @@ export interface FileRoutesByFullPath {
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
+  '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
@@ -476,6 +484,7 @@ export interface FileRoutesByTo {
   '/journal': typeof JournalIndexRoute
   '/rooms': typeof RoomsIndexRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
+  '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
@@ -536,6 +545,7 @@ export interface FileRoutesById {
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
+  '/_authenticated/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
@@ -596,6 +606,7 @@ export interface FileRouteTypes {
     | '/journal/'
     | '/rooms/'
     | '/admin/bookings'
+    | '/admin/front-desk'
     | '/admin/reviews'
     | '/lovable/email/suppression'
     | '/api/public/ops/drain'
@@ -652,6 +663,7 @@ export interface FileRouteTypes {
     | '/journal'
     | '/rooms'
     | '/admin/bookings'
+    | '/admin/front-desk'
     | '/admin/reviews'
     | '/lovable/email/suppression'
     | '/api/public/ops/drain'
@@ -711,6 +723,7 @@ export interface FileRouteTypes {
     | '/journal/'
     | '/rooms/'
     | '/_authenticated/admin/bookings'
+    | '/_authenticated/admin/front-desk'
     | '/_authenticated/admin/reviews'
     | '/lovable/email/suppression'
     | '/api/public/ops/drain'
@@ -1117,6 +1130,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminReviewsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin/front-desk': {
+      id: '/_authenticated/admin/front-desk'
+      path: '/admin/front-desk'
+      fullPath: '/admin/front-desk'
+      preLoaderRoute: typeof AuthenticatedAdminFrontDeskRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/admin/bookings': {
       id: '/_authenticated/admin/bookings'
       path: '/admin/bookings'
@@ -1171,11 +1191,13 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminBookingsRoute: typeof AuthenticatedAdminBookingsRoute
+  AuthenticatedAdminFrontDeskRoute: typeof AuthenticatedAdminFrontDeskRoute
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminBookingsRoute: AuthenticatedAdminBookingsRoute,
+  AuthenticatedAdminFrontDeskRoute: AuthenticatedAdminFrontDeskRoute,
   AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
 }
 
