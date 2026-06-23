@@ -32,6 +32,10 @@ export interface SendInternalArgs {
   recipientEmail: string
   idempotencyKey?: string
   templateData?: Record<string, unknown>
+  /** Booking id for email_events mirror. */
+  bookingId?: string
+  /** Additional BCC recipients (e.g. ops mailbox). */
+  bcc?: string[]
 }
 
 export type SendInternalResult =
@@ -147,6 +151,8 @@ export async function sendTransactionalInternal(
       idempotency_key: idempotencyKey,
       unsubscribe_token: unsubscribeToken,
       queued_at: new Date().toISOString(),
+      bcc: args.bcc && args.bcc.length > 0 ? args.bcc : undefined,
+      metadata: args.bookingId ? { booking_id: args.bookingId } : undefined,
     },
   })
 
@@ -160,6 +166,18 @@ export async function sendTransactionalInternal(
       error_message: 'Failed to enqueue email',
     })
     return { ok: false, reason: 'failed', error: enqueueError.message }
+  }
+
+  // Mirror to email_events for the front-desk timeline
+  if (args.bookingId) {
+    await supabaseAdmin.from('email_events').insert({
+      booking_id: args.bookingId,
+      event_type: 'queued',
+      template_name: args.templateName,
+      message_id: messageId,
+      recipient_email: effectiveRecipient,
+      metadata: { idempotency_key: idempotencyKey },
+    })
   }
 
   return { ok: true, queued: true, messageId }
