@@ -1,88 +1,102 @@
-## Phase 1 — Website Audit (findings)
 
-**Live functionality verified in the codebase:**
-- Booking engine at `/book` — 4-step wizard (dates → room → guest → Pesapal payment), accepts `?room=<slug>` deep link, persists session, supports add-ons (Transfers + Experiences).
-- 3 rooms with rates: Riverfront Deluxe $310, Standard River $260, Family $360 (per night, USD).
-- 8 add-ons live in Supabase `extras` (Airport Transfer $70, Lake Duluti Canoeing, Local Market, Mountain Bike, Waterfall Excursion, Maji Moto Hot Springs, Live Cooking, River Walks).
-- Reviews: 4.9/5 aggregate (240 reviews), 2026 TripAdvisor Travelers' Choice — pulled via `useReviewData`.
-- Payments: Pesapal (50% deposit, balance later); cancellation tiers already defined.
-- Analytics: `src/lib/analytics.ts` already emits `booking_click`, `whatsapp_click`, `call_click`, `email_click`, `availability_request_started/completed`, `room_view`. Missing: `add_on_selected`, `availability_checked`, `booking_started`, `booking_completed`.
-- Contact: WhatsApp link, phone `+255752441443`, email `bookings@…`.
-- Existing pages NOT to duplicate: `/`, `/rooms/*`, `/experiences`, `/dining`, `/reviews`, `/lodge`, `/about-us`.
+# Front Desk Command System — Implementation Plan
 
-**Differentiators:** riverfront Maasai-inspired architecture, 10-min from Arusha airport (transit-friendly), curated experiences bookable in same flow, real TripAdvisor proof, secure card payments in USD.
+A unified operations console for Mtoni River Lodge that ties booking emails (Lovable Emails), WhatsApp staff alerts, Outlook mirroring, and a front-desk dashboard into one event-driven workflow.
 
-**Strongest conversion assets:** Pesapal deposit flow, live availability RPC, TripAdvisor badge, hero river imagery, WhatsApp fallback.
+## 1. Scope confirmation
 
-**Weakest points for paid traffic:** homepage is brand-led, not offer-led; no single-scroll page that goes hero → trust → rooms → book; experiences add-on upsell isn't visible until step 2 of wizard.
+Before I build, two decisions need confirmation because they require external credentials / setup:
 
-## Phase 2 — Priority audiences
+1. **WhatsApp provider** — Twilio WhatsApp is the simplest path (already documented as a Lovable connector). Meta WhatsApp Cloud API is also possible but requires Business verification + a Meta app. **Default: Twilio WhatsApp via connector.** A staff phone number (E.164) is required as the alert recipient.
+2. **Outlook mirroring** — Two options:
+   - **(a) BCC every outbound email** to `bookings@mtoniriverlodge.com`. Simple, no OAuth, preserves SPF/DKIM because Lovable Emails signs the message and the BCC is delivered by the SMTP transport. **Recommended.**
+   - **(b) Microsoft Graph push** (writes a copy into the mailbox via the Outlook connector). Requires per-user OAuth for that mailbox or an Entra app with `Mail.ReadWrite` on a shared mailbox.
 
-Prioritize **Safari travelers** (highest intent + AOV: pre/post-safari stay, airport transfer attach) and **Airport transit travelers** (short-stay, high conversion, low decision friction). Leisure secondary; business deprioritized.
+   I'll implement (a) as the default and leave a hook so (b) can be added later. The existing `microsoft_outlook` connector authenticates the developer's mailbox, not arbitrary shared mailboxes, so option (b) is not a one-click setup.
 
-## Phase 3 — Strategy
+I'll proceed with **Twilio + BCC** unless you say otherwise.
 
-- **URL:** `/stay` (clean, ad-friendly, distinct from `/book` engine and `/` brand page).
-- **Positioning:** "Your First & Last Stop in Northern Tanzania — A Riverside Retreat 10 Minutes from Arusha Airport."
-- **Primary CTA:** "Check Availability" → deep-links to `/book?step=1` (pre-fills nothing) or `/book?step=1&room=<slug>` from room cards.
-- **Secondary CTA:** WhatsApp.
-- **Tracking added:** `booking_started`, `booking_completed`, `availability_checked`, `room_selected`, `add_on_selected` (wired into existing `analytics.ts` + `book.tsx` at the right lifecycle points). `whatsapp_click` / `phone_click` already exist.
+## 2. Database (one migration)
 
-## Phase 4 — Landing page structure (`/stay`)
+New tables (existing `bookings` table is kept and extended — it already has `guest_name`, `guest_email`, `guest_phone`, `check_in`, `check_out`, `status`, etc.):
 
-Single scroll, minimal nav (logo + phone + WhatsApp only — no full site header to reduce exits):
+- Add to `public.bookings`: `guest_type` enum (`standard|vip|climber`), generated from `special_requests` keywords or set manually.
+- `public.guest_threads` — one row per booking; `timeline jsonb[]`, `notes text`, `last_updated`.
+- `public.email_events` — `booking_id`, `event_type` (`queued|sent|delivered|bounced|failed`), `template_name`, `message_id`, `timestamp`. Backed by existing `email_send_log` data via a view + writer.
+- `public.ops_tasks` — `booking_id`, `task_type`, `assigned_to uuid null`, `status`, `due_at`, `priority`.
+- `public.whatsapp_alerts` — `booking_id`, `event_type`, `message`, `to_number`, `sent_at`, `provider_sid`, `status`, idempotency key.
 
-1. **Hero** — headline, sub, inline availability form (date in/out + guests) that submits straight to `/book?step=2` with the dates.
-2. **Trust bar** — 4.9★ · 240+ reviews · TripAdvisor Travelers' Choice 2026 · Secure Pesapal payments · 10 min from JRO.
-3. **Why Mtoni** — 3 icons: Riverfront sanctuary / Airport-close / Curated experiences.
-4. **Featured rooms** — 3 cards with price-from, "Select Room" → `/book?step=1&room=<slug>`.
-5. **Add-on experiences** — 4 most-bookable extras (Airport Transfer, Canoeing, Waterfall, Maji Moto) with prices.
-6. **Reviews** — 3 short testimonials + TripAdvisor widget (reuse existing components).
-7. **Booking benefits** — 50% deposit · Free cancellation 60+ days · Secure card payment · Instant confirmation.
-8. **Final CTA** — repeat availability form + WhatsApp.
-9. **Minimal footer** — contact, privacy, terms.
+All four get GRANTs (`authenticated` read, `service_role` all), RLS enabled, staff-only policies via existing `is_staff(auth.uid())`.
 
-Reuses: `AvailabilityForm`, `TrustBar`, `GuestReviews`/`TrustedByGuestsSection`, `TripadvisorExcellentWidget`, `LocationMap` (optional), room data from `src/lib/rooms.ts`, extras from `listExtras` server fn.
+Triggers:
+- `AFTER INSERT ON bookings` → seed `guest_threads`, create payment-followup `ops_task`, enqueue `booking-received` email, enqueue WhatsApp alert.
+- `AFTER UPDATE OF status, payment_status ON bookings` → append timeline row, create room-prep task on `paid`, enqueue confirmation email + WhatsApp.
+- Use `pg_net` (already enabled via cron) to hit internal server routes, OR write to a `pending_notifications` queue table the cron drains. **I'll use the queue table** to keep network calls out of triggers (more reliable, easier to retry).
 
-## Phase 5 — Booking integration
+## 3. Automation rule engine
 
-- Hero form posts dates+guests to `/book?step=1` with prefilled localStorage state (same `STORAGE_KEY` the wizard uses) so user lands on step 2 with availability already computed.
-- Room cards link `/book?step=1&room=<slug>` — book.tsx already reads `?room=`.
-- Add-on cards link to `/book?step=2` with a tooltip "Add at checkout."
+A single server route `POST /api/public/ops/drain` runs every 30s via `pg_cron` (with `X-Cron-Secret` header). It:
 
-## Phase 6 — Conversion tracking additions
+1. Reads pending rows from `pending_notifications`.
+2. For each: enqueues the right Lovable Email (`booking-received` / `booking-confirmed` / `payment-pending` / `payment-received` / `booking-cancelled`) with idempotency key `{event}-{booking_id}` and BCC `bookings@mtoniriverlodge.com`.
+3. Sends WhatsApp via Twilio gateway (`/Messages.json`, `From=whatsapp:<sandbox>`, `To=whatsapp:<staff>`) with idempotency check against `whatsapp_alerts`.
+4. Appends a `timeline` row to `guest_threads`.
+5. Marks the queue row processed.
 
-Extend `src/lib/analytics.ts`:
-```ts
-trackBookingStarted(location)        // fired on hero "Check Availability" submit
-trackAvailabilityChecked(params)     // fired when availability RPC returns
-trackRoomSelected(roomSlug, price)   // fired in book.tsx step 2 selection
-trackAddOnSelected(slug, qty)        // fired in book.tsx step 3 extras
-trackBookingCompleted(params)        // fired on Pesapal return success
-```
-Wire into `book.tsx` and `booking.return.tsx` at the matching lifecycle points.
+Morning digest: a cron-triggered server fn at 07:00 Africa/Dar_es_Salaam aggregates today's arrivals + VIP/climber highlights into one WhatsApp message.
 
-## Phase 7 — Performance
+## 4. Email layer
 
-- Reuse already-optimized `hero-river-{800,1600}w.webp` with preload.
-- Lazy-load below-fold sections (`Reveal` already exists).
-- Minimal header on `/stay` only — no journal/navigation noise.
-- Self-referencing `<link rel="canonical">` to `https://mtoniriverlodge.com/stay` + LodgingBusiness JSON-LD (reuse root schema).
-- `head()` with route-specific title/description/og:image.
+- Extend `src/lib/email/send-internal.server.ts` to accept `bcc` + `metadata.booking_id`.
+- Update `/lovable/email/transactional/send` to forward `bcc` to Lovable Emails (sets `Bcc: bookings@mtoniriverlodge.com` on every booking template).
+- Add new templates: `payment-pending.tsx`, `payment-received.tsx`, `booking-cancelled.tsx` (mirroring existing `_shared` styling).
+- `email_send_log` insert → trigger that mirrors into `email_events` keyed by `booking_id` parsed from idempotency key / metadata.
 
-## Files I'll create/edit
+## 5. WhatsApp integration (Twilio)
 
-**Create:**
-- `src/routes/stay.tsx` — the landing page.
-- `src/components/site/LandingHero.tsx` — hero + inline availability form.
-- `src/components/site/LandingHeader.tsx` — minimal header (logo + phone + WhatsApp).
-- `src/components/site/LandingRoomCards.tsx` — 3 room cards.
-- `src/components/site/LandingExperiences.tsx` — 4 add-on cards.
+- New helper `src/lib/whatsapp/send.server.ts` calling the connector gateway (`https://connector-gateway.lovable.dev/twilio/Messages.json`) per the Twilio knowledge card.
+- Uses `LOVABLE_API_KEY` + `TWILIO_API_KEY` (connector secret).
+- Two new secrets needed from the user: **`WHATSAPP_FROM`** (e.g. `whatsapp:+14155238886`) and **`WHATSAPP_STAFF_TO`** (comma-separated E.164 staff numbers). I'll request them with `add_secret` once Twilio is connected.
 
-**Edit:**
-- `src/lib/analytics.ts` — add 5 new tracking helpers.
-- `src/routes/book.tsx` — fire `room_selected`, `add_on_selected`, `availability_checked`, `booking_started`; accept hero form prefill.
-- `src/routes/booking.return.tsx` — fire `booking_completed` on success.
-- `src/lib/sitemap-data.ts` + `src/routes/sitemap-pages[.]xml.ts` — include `/stay` (or exclude if user prefers paid-only).
+## 6. Front Desk dashboard UI
 
-Ready to proceed with this plan?
+New route `src/routes/_authenticated/admin.front-desk.tsx` (staff-only via existing `is_staff` check). Sections:
+
+- **Today's Ops** — cards: check-ins today, check-outs today, pending payments, VIP arrivals (queries via server fn).
+- **Kanban** — 5 columns (`new` / `pending_payment` / `confirmed` / `checked_in` / `completed`), drag-drop updates `bookings.status` (uses `@dnd-kit/core` already installed? if not, install).
+- **Guest Thread drawer** — opens on card click; shows timeline + emails + WhatsApp alerts + editable staff notes.
+- **Alerts panel** — derived view: overdue payments (`balance_due > 0 AND check_in < now() + 3 days`), VIP arrivals next 48h, climber logistics.
+
+Realtime updates via Supabase Realtime on `bookings`, `guest_threads`, `ops_tasks`.
+
+## 7. Files to create / change
+
+**New:**
+- `supabase/migrations/<ts>_front_desk_system.sql` (schema + triggers + grants)
+- `src/lib/whatsapp/send.server.ts`
+- `src/lib/whatsapp/templates.ts`
+- `src/lib/front-desk.functions.ts` (server fns: list bookings, update status, add note, complete task)
+- `src/lib/email-templates/payment-pending.tsx`
+- `src/lib/email-templates/payment-received.tsx`
+- `src/lib/email-templates/booking-cancelled.tsx`
+- `src/routes/api/public/ops/drain.ts` (cron worker, secret-gated)
+- `src/routes/api/public/ops/morning-digest.ts`
+- `src/routes/_authenticated/admin.front-desk.tsx`
+- `src/components/front-desk/{TodayOps,KanbanBoard,GuestThreadDrawer,AlertsPanel}.tsx`
+
+**Updated:**
+- `src/lib/email/send-internal.server.ts` (add bcc + metadata)
+- `src/routes/lovable/email/transactional/send.ts` (forward bcc)
+- `src/lib/email-templates/registry.ts` (new templates)
+- `src/lib/booking.functions.ts` (write to `pending_notifications` instead of calling email inline)
+
+## 8. What I need from you before building
+
+Please confirm:
+
+1. ✅ Proceed with **Twilio WhatsApp + BCC mirroring** (default), OR specify Meta Cloud API / Microsoft Graph push instead.
+2. The Twilio connector must be linked (I'll prompt the connect dialog when ready).
+3. Staff WhatsApp recipient number(s) in E.164 format (e.g. `+255…`). I'll request these as secrets after Twilio is connected.
+4. Confirm the BCC target is exactly `bookings@mtoniriverlodge.com`.
+
+Once you confirm, I'll execute the plan end-to-end in the next turn.
