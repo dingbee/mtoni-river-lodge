@@ -94,7 +94,6 @@ export const getPaymentStatusByReference = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { getPesapalTransactionStatus, classifyStatus } = await import("./pesapal.server");
 
     const { data: booking, error } = await supabaseAdmin
       .from("bookings")
@@ -124,58 +123,23 @@ export const getPaymentStatusByReference = createServerFn({ method: "POST" })
       };
     }
 
-    let outcome: "pending" | "completed" | "failed" | "reversed" = "pending";
+    let outcome: "pending" | "completed" | "failed" | "reversed" | "mismatch" | "already_finalized" = "pending";
     let paymentMethod: string | null = booking.payment_method ?? null;
 
     if (booking.pesapal_order_tracking_id) {
-      const status = await getPesapalTransactionStatus(booking.pesapal_order_tracking_id);
-      outcome = classifyStatus(status.status_code);
-      paymentMethod = status.payment_method ?? paymentMethod;
-
-      await supabaseAdmin.from("payment_events").insert({
-        booking_id: booking.id,
-        provider: "pesapal",
-        event_type: "status_check",
-        order_tracking_id: booking.pesapal_order_tracking_id,
-        status_code: status.status_code ?? null,
-        payment_method: paymentMethod,
-        amount: status.amount,
-        currency: status.currency,
-        raw: JSON.parse(JSON.stringify(status)),
+      const { verifyAndFinalizePayment } = await import("./payment-finalize.server");
+      const result = await verifyAndFinalizePayment({
+        bookingId: booking.id,
+        orderTrackingId: booking.pesapal_order_tracking_id,
+        source: "status_check",
       });
-
-      if (outcome === "completed") {
-        const nowIso = new Date().toISOString();
-        await supabaseAdmin
-          .from("bookings")
-          .update({
-            payment_status: "deposit_paid",
-            status: "confirmed",
-            payment_method: paymentMethod,
-            payment_completed_at: nowIso,
-            confirmed_at: nowIso,
-          })
-          .eq("id", booking.id)
-          .neq("payment_status", "deposit_paid")
-          .neq("payment_status", "paid");
-        try {
-          const { sendBookingConfirmedEmail } = await import("./booking-confirmation-email.server");
-          const r = await sendBookingConfirmedEmail(booking.id);
-          if (!r.ok) console.error("confirmation email failed:", "error" in r ? r.error : "unknown");
-        } catch (e) {
-          console.error("confirmation email error:", e);
-        }
-      } else if (outcome === "failed" || outcome === "reversed") {
-        await supabaseAdmin
-          .from("bookings")
-          .update({ payment_failed_at: new Date().toISOString() })
-          .eq("id", booking.id);
-      }
+      outcome = result.outcome;
+      paymentMethod = result.paymentMethod ?? paymentMethod;
     }
 
     const { data: refreshed } = await supabaseAdmin
       .from("bookings")
-      .select("status, payment_status, payment_method, deposit_amount, balance_amount, total, currency")
+      .select("status, payment_status, payment_method, deposit_amount, balance_amount, total, currency, invoice_number")
       .eq("id", booking.id)
       .maybeSingle();
 
@@ -185,6 +149,7 @@ export const getPaymentStatusByReference = createServerFn({ method: "POST" })
       paymentStatus: refreshed?.payment_status ?? booking.payment_status,
       paymentMethod: refreshed?.payment_method ?? paymentMethod,
       outcome,
+      invoiceNumber: refreshed?.invoice_number ?? null,
       deposit: Number(refreshed?.deposit_amount ?? booking.deposit_amount),
       balance: Number(refreshed?.balance_amount ?? booking.balance_amount),
       total: Number(refreshed?.total ?? booking.total),
