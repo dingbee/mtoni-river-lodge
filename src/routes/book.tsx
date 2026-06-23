@@ -517,7 +517,11 @@ function BookPage() {
 
           {step === "guest" && selectedRoom && (
             <GuestStep
-              room={selectedRoom} nights={nights} guests={guests}
+              room={selectedRoom} nights={nights}
+              totalOccupants={totalOccupants}
+              paidOccupants={paidOccupants}
+              childrenBelow6={childrenBelow6}
+              breakdown={priceBreakdown}
               extras={extras} selectedExtras={selectedExtras} setSelectedExtras={setSelectedExtras}
               roomTotal={roomTotal} extrasTotal={extrasTotal} grandTotal={grandTotal}
               guest={guest} setGuest={setGuest}
