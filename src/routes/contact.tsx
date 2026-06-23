@@ -39,6 +39,10 @@ const CONTACT_FAQS: FAQItem[] = [
     q: "Where exactly is the lodge?",
     a: "Mtoni River Lodge is on the Gomba Estate in Arusha, Tanzania, on the banks of the Nduruma River. Use the Directions link on this page for live maps and driving directions.",
   },
+  {
+    q: "Can you arrange transfers and early breakfasts for Mount Kilimanjaro climbers?",
+    a: "Yes. We routinely host climbers before and after Kilimanjaro and coordinate with operators on every major route. Let us know your gate time and we'll arrange the transfer and an early or packed breakfast.",
+  },
 ];
 
 export const Route = createFileRoute("/contact")({
