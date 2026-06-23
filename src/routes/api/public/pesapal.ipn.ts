@@ -5,7 +5,6 @@ import { createFileRoute } from "@tanstack/react-router";
 
 async function handleNotification(orderTrackingId: string, merchantReference: string, notificationType: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { getPesapalTransactionStatus, classifyStatus } = await import("@/lib/pesapal.server");
 
   const { data: booking } = await supabaseAdmin
     .from("bookings")
@@ -25,51 +24,12 @@ async function handleNotification(orderTrackingId: string, merchantReference: st
 
   if (!booking) return;
 
-  // Dedupe: if already finalised, skip the status fetch & update.
-  if (booking.payment_status === "paid" || booking.payment_status === "deposit_paid") return;
-
-  const status = await getPesapalTransactionStatus(orderTrackingId);
-  const outcome = classifyStatus(status.status_code);
-
-  await supabaseAdmin.from("payment_events").insert({
-    booking_id: booking.id,
-    provider: "pesapal",
-    event_type: `ipn_status:${outcome}`,
-    order_tracking_id: orderTrackingId,
-    merchant_reference: merchantReference,
-    status_code: status.status_code ?? null,
-    payment_method: status.payment_method ?? null,
-    amount: status.amount ?? null,
-    currency: status.currency ?? null,
-    raw: JSON.parse(JSON.stringify(status)),
+  const { verifyAndFinalizePayment } = await import("@/lib/payment-finalize.server");
+  await verifyAndFinalizePayment({
+    bookingId: booking.id,
+    orderTrackingId,
+    source: "ipn",
   });
-
-  if (outcome === "completed") {
-    const nowIso = new Date().toISOString();
-    await supabaseAdmin
-      .from("bookings")
-      .update({
-        payment_status: "deposit_paid",
-        status: "confirmed",
-        payment_method: status.payment_method ?? null,
-        payment_completed_at: nowIso,
-        confirmed_at: nowIso,
-      })
-      .eq("id", booking.id)
-      .neq("payment_status", "deposit_paid")
-      .neq("payment_status", "paid");
-    try {
-      const { sendBookingConfirmedEmail } = await import("@/lib/booking-confirmation-email.server");
-      await sendBookingConfirmedEmail(booking.id);
-    } catch (e) {
-      console.error("ipn confirmation email error:", e);
-    }
-  } else if (outcome === "failed" || outcome === "reversed") {
-    await supabaseAdmin
-      .from("bookings")
-      .update({ payment_failed_at: new Date().toISOString() })
-      .eq("id", booking.id);
-  }
 }
 
 function ack(orderTrackingId: string, merchantReference: string, notificationType: string, ok: boolean) {
