@@ -55,6 +55,10 @@ const HOME_FAQS: FAQItem[] = [
     q: "How do I check availability and book?",
     a: "Use the Check Availability page to see live rates and confirm a stay online, or contact our reservations team directly for tailored arrangements.",
   },
+  {
+    q: "Do you accommodate Mount Kilimanjaro climbers?",
+    a: "Yes — Mtoni River Lodge is a popular pre-climb base and post-summit recovery stay for trekkers. We arrange early breakfasts, gear storage, and private transfers to and from the Kilimanjaro trailheads. See our Kilimanjaro stays page for details.",
+  },
 ];
 
 export const Route = createFileRoute("/")({
