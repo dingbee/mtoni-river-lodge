@@ -110,6 +110,8 @@ export type Database = {
           check_in: string
           check_out: string
           children: number
+          children_7_plus: number
+          children_below_6: number
           confirmed_at: string | null
           country: string | null
           created_at: string
@@ -151,6 +153,8 @@ export type Database = {
           check_in: string
           check_out: string
           children?: number
+          children_7_plus?: number
+          children_below_6?: number
           confirmed_at?: string | null
           country?: string | null
           created_at?: string
@@ -192,6 +196,8 @@ export type Database = {
           check_in?: string
           check_out?: string
           children?: number
+          children_7_plus?: number
+          children_below_6?: number
           confirmed_at?: string | null
           country?: string | null
           created_at?: string
@@ -526,27 +532,51 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_booking: {
-        Args: {
-          _adults: number
-          _check_in: string
-          _check_out: string
-          _children: number
-          _country: string
-          _extras?: Json
-          _guest_email: string
-          _guest_name: string
-          _guest_phone: string
-          _room_slug: string
-          _special_requests: string
-        }
-        Returns: {
-          booking_id: string
-          currency: string
-          reference: string
-          total: number
-        }[]
-      }
+      create_booking:
+        | {
+            Args: {
+              _adults: number
+              _check_in: string
+              _check_out: string
+              _children: number
+              _country: string
+              _extras?: Json
+              _guest_email: string
+              _guest_name: string
+              _guest_phone: string
+              _room_slug: string
+              _special_requests: string
+            }
+            Returns: {
+              booking_id: string
+              currency: string
+              reference: string
+              total: number
+            }[]
+          }
+        | {
+            Args: {
+              _adults: number
+              _check_in: string
+              _check_out: string
+              _children: number
+              _children_7_plus?: number
+              _children_below_6?: number
+              _country: string
+              _extras?: Json
+              _guest_email: string
+              _guest_name: string
+              _guest_phone: string
+              _room_slug: string
+              _special_requests: string
+            }
+            Returns: {
+              booking_id: string
+              currency: string
+              reference: string
+              total: number
+            }[]
+          }
       get_review_aggregates: {
         Args: never
         Returns: {
