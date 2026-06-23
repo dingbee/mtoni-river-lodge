@@ -50,7 +50,12 @@ function BookingReturn() {
   // Poll up to 10x while pending.
   useEffect(() => {
     if (!status || polls >= 10) return;
-    const isFinal = status.paymentStatus === "deposit_paid" || status.paymentStatus === "paid" || status.outcome === "failed";
+    const isFinal =
+      status.paymentStatus === "deposit_paid" ||
+      status.paymentStatus === "paid" ||
+      status.paymentStatus === "payment_mismatch" ||
+      status.outcome === "failed" ||
+      status.outcome === "mismatch";
     if (isFinal) return;
     const t = setTimeout(() => {
       setPolls((n) => n + 1);
@@ -133,6 +138,16 @@ function BookingReturn() {
                 </div>
                 <h2 className="mt-4 font-display text-2xl">Payment failed</h2>
                 <p className="mt-2 text-sm text-charcoal/70">No charge was made. You can retry from your confirmation email or contact us.</p>
+              </div>
+            ) : (status.paymentStatus === "payment_mismatch" || status.outcome === "mismatch") ? (
+              <div className="text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-100">
+                  <AlertTriangle className="h-7 w-7 text-amber-700" />
+                </div>
+                <h2 className="mt-4 font-display text-2xl">Payment under review</h2>
+                <p className="mt-2 text-sm text-charcoal/70">
+                  The amount received doesn't match this booking's deposit. Our team has been notified and will contact you shortly to resolve this.
+                </p>
               </div>
             ) : (
               <div className="flex items-center gap-3 text-sm text-charcoal/70">
