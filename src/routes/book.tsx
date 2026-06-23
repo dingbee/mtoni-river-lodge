@@ -166,7 +166,7 @@ function BookPage() {
   const [selectedRoom, setSelectedRoom] = useState<AvailabilityRoom | null>(p.selectedRoom ?? null);
   const [extras, setExtras] = useState<Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>>(p.extras ?? []);
   const [selectedExtras, setSelectedExtras] = useState<SelectedExtra[]>(p.selectedExtras ?? []);
-  const [guest, setGuest] = useState(p.guest ?? { name: "", email: "", phone: "", country: "", requests: "" });
+  const [guest, setGuest] = useState(p.guest ?? { name: "", email: "", phone: "", country: "", requests: "", purpose: "" });
   const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string } | null>(null);
 
   // Mirror critical state in refs so the validation guard can read the
@@ -360,6 +360,7 @@ function BookPage() {
           guestPhone: guest.phone,
           country: guest.country,
           specialRequests: guest.requests,
+          visitPurpose: guest.purpose,
           extras: selectedExtras,
         },
       });
