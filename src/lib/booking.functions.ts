@@ -84,7 +84,9 @@ const createBookingSchema = z.object({
   checkIn: dateStr,
   checkOut: dateStr,
   adults: z.number().int().min(1).max(10),
-  children: z.number().int().min(0).max(10),
+  children: z.number().int().min(0).max(10).optional(),
+  childrenBelow6: z.number().int().min(0).max(10).optional(),
+  children7Plus: z.number().int().min(0).max(10).optional(),
   guestName: z.string().trim().min(2).max(100),
   guestEmail: z.string().trim().email().max(255),
   guestPhone: z.string().trim().max(40).optional().or(z.literal("")),
@@ -99,19 +101,24 @@ export const createBooking = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createBookingSchema.parse(d))
   .handler(async ({ data }) => {
     const sb = getPublicClient();
+    const below6 = data.childrenBelow6 ?? 0;
+    const plus7 = data.children7Plus ?? Math.max(0, (data.children ?? 0) - below6);
+    const totalChildren = below6 + plus7;
     const { data: result, error } = await sb.rpc("create_booking", {
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
       _check_out: data.checkOut,
       _adults: data.adults,
-      _children: data.children,
+      _children: totalChildren,
+      _children_below_6: below6,
+      _children_7_plus: plus7,
       _guest_name: data.guestName,
       _guest_email: data.guestEmail,
       _guest_phone: (data.guestPhone || null) as unknown as string,
       _country: (data.country || null) as unknown as string,
       _special_requests: (data.specialRequests || null) as unknown as string,
       _extras: data.extras,
-    });
+    } as never);
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
     // Send "reservation received" email. Never let email failure block booking.
