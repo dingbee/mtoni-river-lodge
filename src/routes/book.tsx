@@ -92,7 +92,7 @@ type PersistedState = {
   selectedRoom: AvailabilityRoom | null;
   extras: Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>;
   selectedExtras: SelectedExtra[];
-  guest: { name: string; email: string; phone: string; country: string; requests: string };
+  guest: { name: string; email: string; phone: string; country: string; requests: string; purpose: string };
 };
 
 function readPersisted(): Partial<PersistedState> {
