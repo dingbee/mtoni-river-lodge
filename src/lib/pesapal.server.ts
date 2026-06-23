@@ -107,13 +107,25 @@ export async function submitPesapalOrder(input: SubmitOrderInput) {
     billing_address: billing,
   };
   const res = await pesapalFetch("/api/Transactions/SubmitOrderRequest", { method: "POST", json: body });
-  return res as {
+  const parsed = res as {
     order_tracking_id: string;
     merchant_reference: string;
     redirect_url: string;
     status: string;
-    error?: unknown;
+    error?: { code?: string; error_type?: string; message?: string } | null;
   };
+  // Pesapal returns HTTP 200 with an error body for merchant-side rejections
+  // (e.g. amount_exceeds_default_limit). Treat any missing redirect_url
+  // as a hard failure so the caller surfaces the real reason instead of
+  // silently sending the guest to a blank confirmation screen.
+  if (!parsed.redirect_url || !parsed.order_tracking_id) {
+    const err = parsed.error;
+    const message =
+      (err && (err.message || err.code)) ||
+      `Pesapal did not return a checkout URL (status ${parsed.status ?? "unknown"})`;
+    throw new Error(`Pesapal order rejected: ${message}`);
+  }
+  return parsed;
 }
 
 export async function getPesapalTransactionStatus(orderTrackingId: string) {
