@@ -39,10 +39,12 @@ import aerialImg from "@/assets/aerial-lodge.jpg";
  * Layout, copy and structure mirror /stay so visual comparison is direct.
  */
 
+import { ROOM_PRICING } from "@/lib/pricing";
+
 const ROOM_PRICES: Record<string, number> = {
-  "standard-river": 260,
-  "riverfront-deluxe": 310,
-  "family-room": 360,
+  "standard-river": ROOM_PRICING["standard-river"].basePrice,
+  "riverfront-deluxe": ROOM_PRICING["riverfront-deluxe"].basePrice,
+  "family-room": ROOM_PRICING["family-room"].basePrice,
 };
 
 const ROOM_IMAGE_DIMENSIONS: Record<string, { width: number; height: number }> = {

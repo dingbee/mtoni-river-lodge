@@ -12,6 +12,7 @@ import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics"
 import { StartBookingLink } from "@/lib/booking-session";
 import { STANDARD_RIVER_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 import { buildRoomJsonLd } from "@/lib/room-schema";
+import { getBasePriceLabel, getBasePriceUsd } from "@/lib/pricing";
 import interiorImg from "@/assets/standard-river-interior.jpg";
 
 function StandardRiverPage() {
@@ -37,7 +38,7 @@ function StandardRiverPage() {
       <RoomRate
         eyebrow="Riverfront Standard"
         tagline="Balanced & quiet"
-        price="$260"
+        price={getBasePriceLabel("standard-river")}
         note="River-view sanctuary · Breakfast & personal hosting included"
         roomSlug="standard-river"
       />
@@ -166,7 +167,7 @@ export const Route = createFileRoute("/rooms/standard-river")({
           buildRoomJsonLd({
             room: STANDARD_RIVER_ROOM,
             routePath: "/rooms/standard-river",
-            priceUSD: 260,
+            priceUSD: getBasePriceUsd("standard-river"),
             occupancy: 2,
           }),
         ),

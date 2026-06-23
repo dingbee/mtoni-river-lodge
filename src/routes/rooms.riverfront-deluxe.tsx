@@ -12,6 +12,7 @@ import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics"
 import { StartBookingLink } from "@/lib/booking-session";
 import { RIVERFRONT_DELUXE_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 import { buildRoomJsonLd } from "@/lib/room-schema";
+import { getBasePriceLabel, getBasePriceUsd } from "@/lib/pricing";
 import outdoorShowerImg from "@/assets/riverfront-deluxe-outdoor-shower.jpg";
 import exteriorImg from "@/assets/riverfront-deluxe-exterior.jpg";
 
@@ -38,7 +39,7 @@ function RiverfrontDeluxePage() {
       <RoomRate
         eyebrow="Riverfront Deluxe"
         tagline="Closest to the water"
-        price="$310"
+        price={getBasePriceLabel("riverfront-deluxe")}
         note="Premium river-facing room · Breakfast & personal hosting included"
         roomSlug="riverfront-deluxe"
       />
@@ -167,7 +168,7 @@ export const Route = createFileRoute("/rooms/riverfront-deluxe")({
           buildRoomJsonLd({
             room: RIVERFRONT_DELUXE_ROOM,
             routePath: "/rooms/riverfront-deluxe",
-            priceUSD: 310,
+            priceUSD: getBasePriceUsd("riverfront-deluxe"),
             occupancy: 2,
           }),
         ),

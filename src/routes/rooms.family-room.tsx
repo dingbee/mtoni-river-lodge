@@ -12,6 +12,7 @@ import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics"
 import { StartBookingLink } from "@/lib/booking-session";
 import { FAMILY_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 import { buildRoomJsonLd } from "@/lib/room-schema";
+import { getBasePriceLabel, getBasePriceUsd } from "@/lib/pricing";
 
 function FamilyRoomPage() {
   const room = FAMILY_ROOM;
@@ -35,7 +36,7 @@ function FamilyRoomPage() {
       <RoomRate
         eyebrow="Family & Garden"
         tagline="Space to gather"
-        price="$360"
+        price={getBasePriceLabel("family-room")}
         note="Garden-facing suite · Designed for groups & longer stays"
         roomSlug="family-room"
       />
@@ -164,7 +165,7 @@ export const Route = createFileRoute("/rooms/family-room")({
           buildRoomJsonLd({
             room: FAMILY_ROOM,
             routePath: "/rooms/family-room",
-            priceUSD: 360,
+            priceUSD: getBasePriceUsd("family-room"),
             occupancy: 4,
           }),
         ),

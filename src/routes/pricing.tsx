@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { PageHero } from "@/components/site/PageHero";
 import { ROOM_PATHS, type RoomSlug } from "@/lib/rooms";
+import { getBasePriceLabel } from "@/lib/pricing";
 import heroImg from "@/assets/hero-river.jpg";
 import riverfrontDeluxe from "@/assets/riverfront-deluxe-interior.jpg";
 import standardRiver from "@/assets/standard-river-exterior.jpg";
@@ -42,7 +43,7 @@ const TIERS: Tier[] = [
   {
     name: "Riverfront Deluxe",
     eyebrow: "Closest to the water",
-    price: "$310",
+    price: getBasePriceLabel("riverfront-deluxe"),
     unit: "per night",
     blurb: "Premium river-facing room with the lodge’s most uninterrupted views.",
     features: [
@@ -59,7 +60,7 @@ const TIERS: Tier[] = [
   {
     name: "Riverfront Standard",
     eyebrow: "Balanced & quiet",
-    price: "$260",
+    price: getBasePriceLabel("standard-river"),
     unit: "per night",
     blurb: "A calm, river-view sanctuary — simplicity carved from natural materials.",
     features: [
@@ -75,7 +76,7 @@ const TIERS: Tier[] = [
   {
     name: "Family & Garden Suite",
     eyebrow: "Space to gather",
-    price: "$360",
+    price: getBasePriceLabel("family-room"),
     unit: "per night",
     blurb: "Generous, garden-facing layout shaped around shared moments.",
     features: [
