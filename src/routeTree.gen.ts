@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VoteRouteImport } from './routes/vote'
+import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SuitesRouteImport } from './routes/suites'
 import { Route as StayStaticRouteImport } from './routes/stay-static'
@@ -67,6 +68,11 @@ import { Route as ApiPublicPesapalIpnRouteImport } from './routes/api/public/pes
 const VoteRoute = VoteRouteImport.update({
   id: '/vote',
   path: '/vote',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UnsubscribeRoute = UnsubscribeRouteImport.update({
+  id: '/unsubscribe',
+  path: '/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermsRoute = TermsRouteImport.update({
@@ -382,6 +388,7 @@ export interface FileRoutesByFullPath {
   '/stay-static': typeof StayStaticRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/vote': typeof VoteRoute
   '/booking/return': typeof BookingReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -435,6 +442,7 @@ export interface FileRoutesByTo {
   '/stay-static': typeof StayStaticRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/vote': typeof VoteRoute
   '/booking/return': typeof BookingReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -492,6 +500,7 @@ export interface FileRoutesById {
   '/stay-static': typeof StayStaticRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/vote': typeof VoteRoute
   '/booking/return': typeof BookingReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -549,6 +558,7 @@ export interface FileRouteTypes {
     | '/stay-static'
     | '/suites'
     | '/terms'
+    | '/unsubscribe'
     | '/vote'
     | '/booking/return'
     | '/email/unsubscribe'
@@ -602,6 +612,7 @@ export interface FileRouteTypes {
     | '/stay-static'
     | '/suites'
     | '/terms'
+    | '/unsubscribe'
     | '/vote'
     | '/booking/return'
     | '/email/unsubscribe'
@@ -658,6 +669,7 @@ export interface FileRouteTypes {
     | '/stay-static'
     | '/suites'
     | '/terms'
+    | '/unsubscribe'
     | '/vote'
     | '/booking/return'
     | '/email/unsubscribe'
@@ -715,6 +727,7 @@ export interface RootRouteChildren {
   StayStaticRoute: typeof StayStaticRoute
   SuitesRoute: typeof SuitesRoute
   TermsRoute: typeof TermsRoute
+  UnsubscribeRoute: typeof UnsubscribeRoute
   VoteRoute: typeof VoteRoute
   BookingReturnRoute: typeof BookingReturnRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
@@ -732,6 +745,13 @@ declare module '@tanstack/react-router' {
       path: '/vote'
       fullPath: '/vote'
       preLoaderRoute: typeof VoteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/unsubscribe': {
+      id: '/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/unsubscribe'
+      preLoaderRoute: typeof UnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms': {
@@ -1206,6 +1226,7 @@ const rootRouteChildren: RootRouteChildren = {
   StayStaticRoute: StayStaticRoute,
   SuitesRoute: SuitesRoute,
   TermsRoute: TermsRoute,
+  UnsubscribeRoute: UnsubscribeRoute,
   VoteRoute: VoteRoute,
   BookingReturnRoute: BookingReturnRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
