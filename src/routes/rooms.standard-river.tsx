@@ -84,6 +84,8 @@ function StandardRiverPage() {
         </div>
       </section>
 
+      <TrekkerBlock />
+
       <section className="px-6 py-24 lg:px-12 lg:py-32">
         <div className="mx-auto max-w-[900px] text-center">
           <Reveal>
