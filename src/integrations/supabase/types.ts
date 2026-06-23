@@ -985,6 +985,7 @@ export type Database = {
         | "cancelled"
         | "completed"
         | "no_show"
+        | "checked_in"
       extra_unit:
         | "per_stay"
         | "per_night"
@@ -1142,6 +1143,7 @@ export const Constants = {
         "cancelled",
         "completed",
         "no_show",
+        "checked_in",
       ],
       extra_unit: [
         "per_stay",
