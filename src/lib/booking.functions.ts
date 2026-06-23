@@ -150,6 +150,8 @@ export const createBooking = createServerFn({ method: "POST" })
           templateName: "booking-received",
           recipientEmail: full.guest_email,
           idempotencyKey: `booking-received-${row.booking_id}`,
+          bookingId: row.booking_id as string,
+          bcc: ["bookings@mtoniriverlodge.com"],
           templateData: {
             reference: full.reference,
             guestName: full.guest_name,
