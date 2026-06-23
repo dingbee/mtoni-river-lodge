@@ -144,6 +144,7 @@ export type Database = {
           taxes: number
           total: number
           updated_at: string
+          visit_purpose: string | null
         }
         Insert: {
           adults?: number
@@ -187,6 +188,7 @@ export type Database = {
           taxes?: number
           total?: number
           updated_at?: string
+          visit_purpose?: string | null
         }
         Update: {
           adults?: number
@@ -230,6 +232,7 @@ export type Database = {
           taxes?: number
           total?: number
           updated_at?: string
+          visit_purpose?: string | null
         }
         Relationships: [
           {
