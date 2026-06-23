@@ -117,7 +117,7 @@ export async function buildInvoicePdf(data: InvoiceData): Promise<Uint8Array> {
   y -= 14;
 
   for (const li of data.lineItems) {
-    const desc = li.description.length > 56 ? li.description.slice(0, 53) + "…" : li.description;
+    const desc = li.description.length > 56 ? li.description.slice(0, 53) + "..." : li.description;
     page.drawText(desc, { x: colDesc, y, size: 10, font: helv, color: TEXT });
     page.drawText(String(li.qty), { x: colQty, y, size: 10, font: helv, color: TEXT });
     page.drawText(fmtMoney(li.unit, data.currency), { x: colUnit, y, size: 10, font: helv, color: TEXT });
@@ -186,7 +186,7 @@ export async function buildInvoiceForBooking(bookingId: string): Promise<{ filen
   const roomSubtotal = Number(b.subtotal) || 0;
   const avgRate = nightsCount > 0 ? roomSubtotal / nightsCount : roomSubtotal;
   lineItems.push({
-    description: `${roomName} — ${b.check_in} → ${b.check_out}`,
+    description: `${roomName} - ${b.check_in} to ${b.check_out}`,
     qty: nightsCount,
     unit: avgRate,
     total: roomSubtotal,
