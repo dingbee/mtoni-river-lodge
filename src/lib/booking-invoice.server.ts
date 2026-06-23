@@ -154,7 +154,7 @@ export async function buildInvoicePdf(data: InvoiceData): Promise<Uint8Array> {
   page.drawText("Thank you for choosing Mtoni River Lodge.", {
     x: left, y: footerY + 14, size: 10, font: bold, color: BRAND,
   });
-  page.drawText("Questions? Reply to mtoniriver@gmail.com · mtoniriverlodge.com", {
+  page.drawText("Questions? Reply to bookings@mtoniriverlodge.com · mtoniriverlodge.com", {
     x: left, y: footerY, size: 9, font: helv, color: MUTED,
   });
 

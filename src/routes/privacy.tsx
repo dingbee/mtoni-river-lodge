@@ -174,10 +174,10 @@ const SECTIONS: Section[] = [
           <li>
             Email:{" "}
             <a
-              href="mailto:reservations@mtoniriverlodge.com"
+              href="mailto:bookings@mtoniriverlodge.com"
               className="underline underline-offset-4 hover:text-charcoal"
             >
-              reservations@mtoniriverlodge.com
+              bookings@mtoniriverlodge.com
             </a>
           </li>
           <li>Phone: +255 752 441 443</li>
@@ -244,10 +244,10 @@ function PrivacyPage() {
             <p className="text-sm leading-relaxed text-charcoal/65">
               Questions about this policy? Write to{" "}
               <a
-                href="mailto:reservations@mtoniriverlodge.com"
+                href="mailto:bookings@mtoniriverlodge.com"
                 className="underline underline-offset-4 hover:text-charcoal"
               >
-                reservations@mtoniriverlodge.com
+                bookings@mtoniriverlodge.com
               </a>
               .
             </p>
