@@ -24,6 +24,7 @@ import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PlanRouteImport } from './routes/plan'
+import { Route as MountKilimanjaroAccommodationArushaRouteImport } from './routes/mount-kilimanjaro-accommodation-arusha'
 import { Route as LodgeRouteImport } from './routes/lodge'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as GalleryRouteImport } from './routes/gallery'
@@ -134,6 +135,12 @@ const PlanRoute = PlanRouteImport.update({
   path: '/plan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MountKilimanjaroAccommodationArushaRoute =
+  MountKilimanjaroAccommodationArushaRouteImport.update({
+    id: '/mount-kilimanjaro-accommodation-arusha',
+    path: '/mount-kilimanjaro-accommodation-arusha',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LodgeRoute = LodgeRouteImport.update({
   id: '/lodge',
   path: '/lodge',
@@ -327,6 +334,7 @@ export interface FileRoutesByFullPath {
   '/gallery': typeof GalleryRoute
   '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
+  '/mount-kilimanjaro-accommodation-arusha': typeof MountKilimanjaroAccommodationArushaRoute
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -375,6 +383,7 @@ export interface FileRoutesByTo {
   '/experiences': typeof ExperiencesRoute
   '/gallery': typeof GalleryRoute
   '/lodge': typeof LodgeRoute
+  '/mount-kilimanjaro-accommodation-arusha': typeof MountKilimanjaroAccommodationArushaRoute
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -425,6 +434,7 @@ export interface FileRoutesById {
   '/gallery': typeof GalleryRoute
   '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
+  '/mount-kilimanjaro-accommodation-arusha': typeof MountKilimanjaroAccommodationArushaRoute
   '/plan': typeof PlanRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -476,6 +486,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/journal'
     | '/lodge'
+    | '/mount-kilimanjaro-accommodation-arusha'
     | '/plan'
     | '/pricing'
     | '/privacy'
@@ -524,6 +535,7 @@ export interface FileRouteTypes {
     | '/experiences'
     | '/gallery'
     | '/lodge'
+    | '/mount-kilimanjaro-accommodation-arusha'
     | '/plan'
     | '/pricing'
     | '/privacy'
@@ -573,6 +585,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/journal'
     | '/lodge'
+    | '/mount-kilimanjaro-accommodation-arusha'
     | '/plan'
     | '/pricing'
     | '/privacy'
@@ -624,6 +637,7 @@ export interface RootRouteChildren {
   GalleryRoute: typeof GalleryRoute
   JournalRoute: typeof JournalRouteWithChildren
   LodgeRoute: typeof LodgeRoute
+  MountKilimanjaroAccommodationArushaRoute: typeof MountKilimanjaroAccommodationArushaRoute
   PlanRoute: typeof PlanRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -748,6 +762,13 @@ declare module '@tanstack/react-router' {
       path: '/plan'
       fullPath: '/plan'
       preLoaderRoute: typeof PlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mount-kilimanjaro-accommodation-arusha': {
+      id: '/mount-kilimanjaro-accommodation-arusha'
+      path: '/mount-kilimanjaro-accommodation-arusha'
+      fullPath: '/mount-kilimanjaro-accommodation-arusha'
+      preLoaderRoute: typeof MountKilimanjaroAccommodationArushaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lodge': {
@@ -1066,6 +1087,8 @@ const rootRouteChildren: RootRouteChildren = {
   GalleryRoute: GalleryRoute,
   JournalRoute: JournalRouteWithChildren,
   LodgeRoute: LodgeRoute,
+  MountKilimanjaroAccommodationArushaRoute:
+    MountKilimanjaroAccommodationArushaRoute,
   PlanRoute: PlanRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,

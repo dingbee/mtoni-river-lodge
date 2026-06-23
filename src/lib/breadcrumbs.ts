@@ -27,6 +27,7 @@ const PATH_LABELS: Record<string, string> = {
   "/pricing": "Pricing",
   "/terms": "Terms",
   "/vote": "Vote",
+  "/mount-kilimanjaro-accommodation-arusha": "Kilimanjaro Stays",
 };
 
 function titleCase(seg: string): string {
