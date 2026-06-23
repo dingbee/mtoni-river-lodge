@@ -32,6 +32,10 @@ const ROOMS_FAQS: FAQItem[] = [
     q: "Can I see the room before booking?",
     a: "Yes. Each room has its own page with photography and a full description — open any room from this page to explore the interior, view, and amenities before confirming a stay.",
   },
+  {
+    q: "Are the rooms suitable for Mount Kilimanjaro climbers?",
+    a: "Yes — all three rooms are popular with trekkers. Expect hot showers, comfortable bedding, reliable Wi-Fi, and the option of an early or packed breakfast on departure day. See our Kilimanjaro stays page for the full picture.",
+  },
 ];
 
 export const Route = createFileRoute("/rooms/")({

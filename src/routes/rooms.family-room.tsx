@@ -13,6 +13,7 @@ import { StartBookingLink } from "@/lib/booking-session";
 import { FAMILY_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 import { buildRoomJsonLd } from "@/lib/room-schema";
 import { getBasePriceLabel, getBasePriceUsd } from "@/lib/pricing";
+import { TrekkerBlock } from "@/components/site/TrekkerBlock";
 
 function FamilyRoomPage() {
   const room = FAMILY_ROOM;
@@ -81,6 +82,8 @@ function FamilyRoomPage() {
           </div>
         </div>
       </section>
+
+      <TrekkerBlock variant="family" />
 
       <section className="px-6 py-24 lg:px-12 lg:py-32">
         <div className="mx-auto max-w-[900px] text-center">

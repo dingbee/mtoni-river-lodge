@@ -92,6 +92,7 @@ const createBookingSchema = z.object({
   guestPhone: z.string().trim().max(40).optional().or(z.literal("")),
   country: z.string().trim().max(100).optional().or(z.literal("")),
   specialRequests: z.string().trim().max(1000).optional().or(z.literal("")),
+  visitPurpose: z.string().trim().max(80).optional().or(z.literal("")),
   extras: z.array(extraSchema).max(20).default([]),
 });
 
@@ -121,6 +122,19 @@ export const createBooking = createServerFn({ method: "POST" })
     } as never);
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
+    // Persist optional purpose-of-visit on the booking row (RPC doesn't accept it).
+    const purpose = (data.visitPurpose || "").trim();
+    if (purpose) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await supabaseAdmin
+          .from("bookings")
+          .update({ visit_purpose: purpose } as never)
+          .eq("id", row.booking_id as string);
+      } catch (e) {
+        console.error("booking visit_purpose update failed:", e);
+      }
+    }
     // Send "reservation received" email. Never let email failure block booking.
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
