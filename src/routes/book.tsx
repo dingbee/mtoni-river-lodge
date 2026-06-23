@@ -694,22 +694,29 @@ function SearchStep(props: {
   );
 }
 
-function SelectStep({ results, guests, nights, onBack, onSelect }: {
-  results: AvailabilityResult; guests: number; nights: number;
+function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, onBack, onSelect }: {
+  results: AvailabilityResult;
+  adults: number; childrenBelow6: number; children7Plus: number;
+  nights: number;
   onBack: () => void; onSelect: (r: AvailabilityRoom) => void;
 }) {
   const fmt = (n: number, c: string) => new Intl.NumberFormat("en-US", { style: "currency", currency: c, maximumFractionDigits: 0 }).format(n);
+  const totalOccupants = adults + childrenBelow6 + children7Plus;
+  const paidOccupants = adults + children7Plus;
   return (
     <div className="space-y-4">
       <button onClick={onBack} className="text-xs uppercase tracking-[0.22em] text-charcoal/60 hover:text-charcoal">← Change dates</button>
       {results.map((r) => {
-        const disabled = !r.is_available || !r.fits_guests;
+        let fits = true;
+        try { fits = totalOccupants <= getRoomPricing(r.slug).maxGuests; } catch { fits = r.fits_guests; }
+        const disabled = !r.is_available || !fits;
         // Centralized pricing: per-guest, per-night.
         let displayTotal = Number(r.nightly_total) || 0;
         let nightlyRate = Number(r.base_price) || 0;
         try {
-          nightlyRate = calculateNightlyRate(r.slug, guests);
-          displayTotal = nightlyRate * Math.max(1, nights);
+          const bd = buildPriceBreakdown(r.slug, { adults, childrenBelow6, children7Plus }, Math.max(1, nights));
+          nightlyRate = bd.nightlyRate;
+          displayTotal = bd.grandTotal;
         } catch {
           /* room not in pricing config — fall back to server values */
         }
@@ -718,12 +725,12 @@ function SelectStep({ results, guests, nights, onBack, onSelect }: {
             <div>
               <h3 className="font-display text-xl">{r.name}</h3>
               <p className="mt-1 text-sm text-charcoal/60">Sleeps up to {r.max_occupancy} · {r.min_available > 0 ? `${r.min_available} unit${r.min_available === 1 ? "" : "s"} available` : "Sold out"}</p>
-              {!r.fits_guests && <p className="mt-1 text-xs text-red-600">Does not fit {guests} guests</p>}
+              {!fits && <p className="mt-1 text-xs text-red-600">Does not fit {totalOccupants} occupant{totalOccupants === 1 ? "" : "s"}</p>}
             </div>
             <div className="text-right">
               <p className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">{nights} night{nights === 1 ? "" : "s"} total</p>
               <p className="font-display text-2xl">{fmt(displayTotal, r.currency)}</p>
-              <p className="text-xs text-charcoal/55">{fmt(nightlyRate, r.currency)} / night · {guests} guest{guests === 1 ? "" : "s"}</p>
+              <p className="text-xs text-charcoal/55">{fmt(nightlyRate, r.currency)} / night · {paidOccupants} paid · {totalOccupants} total</p>
               <button
                 onClick={() => onSelect(r)} disabled={disabled}
                 className="mt-3 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
@@ -740,7 +747,9 @@ function SelectStep({ results, guests, nights, onBack, onSelect }: {
 }
 
 function GuestStep(props: {
-  room: AvailabilityRoom; nights: number; guests: number;
+  room: AvailabilityRoom; nights: number;
+  totalOccupants: number; paidOccupants: number; childrenBelow6: number;
+  breakdown: import("@/lib/pricing").PriceBreakdown | null;
   extras: Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>;
   selectedExtras: SelectedExtra[]; setSelectedExtras: (v: SelectedExtra[]) => void;
   roomTotal: number; extrasTotal: number; grandTotal: number;
