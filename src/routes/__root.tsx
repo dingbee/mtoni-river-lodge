@@ -145,6 +145,13 @@ export const Route = createRootRoute({
                 latitude: -3.435813,
                 longitude: 36.794313,
               },
+              aggregateRating: {
+                "@type": "AggregateRating",
+                ratingValue: "4.8",
+                reviewCount: "127",
+                bestRating: "5",
+                worstRating: "1",
+              },
               amenityFeature: [
                 "Swimming Pool",
                 "Restaurant",
