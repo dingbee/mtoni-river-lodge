@@ -24,7 +24,7 @@ import {
 } from "@/lib/booking.functions";
 import { initiatePayment } from "@/lib/payments.functions";
 import { newBookingSessionId } from "@/lib/booking-session";
-import { calculateBookingTotal, calculateNightlyRate } from "@/lib/pricing";
+import { calculateBookingTotal, calculateNightlyRate, buildPriceBreakdown, getRoomPricing } from "@/lib/pricing";
 
 export const Route = createFileRoute("/book")({
   validateSearch: (
@@ -86,6 +86,8 @@ type PersistedState = {
   checkOut: string;
   adults: number;
   children: number;
+  childrenBelow6: number;
+  children7Plus: number;
   results: AvailabilityResult;
   selectedRoom: AvailabilityRoom | null;
   extras: Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>;
@@ -158,7 +160,8 @@ function BookPage() {
   const [checkIn, setCheckIn] = useState(p.checkIn ?? "");
   const [checkOut, setCheckOut] = useState(p.checkOut ?? "");
   const [adults, setAdults] = useState(p.adults ?? 2);
-  const [children, setChildren] = useState(p.children ?? 0);
+  const [childrenBelow6, setChildrenBelow6] = useState(p.childrenBelow6 ?? 0);
+  const [children7Plus, setChildren7Plus] = useState(p.children7Plus ?? 0);
   const [results, setResults] = useState<AvailabilityResult>(p.results ?? []);
   const [selectedRoom, setSelectedRoom] = useState<AvailabilityRoom | null>(p.selectedRoom ?? null);
   const [extras, setExtras] = useState<Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>>(p.extras ?? []);
@@ -195,7 +198,8 @@ function BookPage() {
     setCheckIn("");
     setCheckOut("");
     setAdults(2);
-    setChildren(0);
+    setChildrenBelow6(0);
+    setChildren7Plus(0);
     setResults([]);
     setSelectedRoom(null);
     setExtras([]);
@@ -255,14 +259,15 @@ function BookPage() {
     try {
       const snapshot: PersistedState = {
         sessionId,
-        checkIn, checkOut, adults, children,
+        checkIn, checkOut, adults, children: childrenBelow6 + children7Plus,
+        childrenBelow6, children7Plus,
         results, selectedRoom, extras, selectedExtras, guest,
       };
       window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
     } catch (err) {
       console.warn("[book] failed to persist wizard state", err);
     }
-  }, [sessionId, checkIn, checkOut, adults, children, results, selectedRoom, extras, selectedExtras, guest]);
+  }, [sessionId, checkIn, checkOut, adults, childrenBelow6, children7Plus, results, selectedRoom, extras, selectedExtras, guest]);
 
   // Validation guard: if the user lands on a step whose prerequisites are
   // missing, or if the session/room context does not match the persisted state,
@@ -302,7 +307,8 @@ function BookPage() {
   }, [step, confirmation, selectedRoom, checkIn, checkOut, results.length, navigate]);
 
   const nights = nightsBetween(checkIn, checkOut);
-  const guests = adults + children;
+  const totalOccupants = adults + childrenBelow6 + children7Plus;
+  const paidOccupants = adults + children7Plus;
 
   const checkAvailabilityFn = useServerFn(checkAvailability);
   const listExtrasFn = useServerFn(listExtras);
@@ -313,7 +319,7 @@ function BookPage() {
     mutationFn: async () => {
       if (nights < 1) throw new Error("Pick a check-in and check-out date");
       const [rooms, extrasList] = await Promise.all([
-        checkAvailabilityFn({ data: { checkIn, checkOut, guests } }),
+        checkAvailabilityFn({ data: { checkIn, checkOut, guests: totalOccupants } }),
         listExtrasFn(),
       ]);
       return { rooms, extrasList };
@@ -324,7 +330,7 @@ function BookPage() {
       trackAvailabilityChecked({
         check_in: checkIn,
         check_out: checkOut,
-        guests,
+        guests: totalOccupants,
         nights,
         available_rooms: rooms.filter((r) => r.is_available).length,
         total_rooms: rooms.length,
@@ -346,7 +352,9 @@ function BookPage() {
           checkIn,
           checkOut,
           adults,
-          children,
+          children: childrenBelow6 + children7Plus,
+          childrenBelow6,
+          children7Plus,
           guestName: guest.name,
           guestEmail: guest.email,
           guestPhone: guest.phone,
@@ -388,24 +396,31 @@ function BookPage() {
       const mult =
         e.unit === "per_stay" ? 1 :
         e.unit === "per_night" ? nights :
-        e.unit === "per_person" ? guests :
-        e.unit === "per_person_per_night" ? guests * nights : 1;
+        e.unit === "per_person" ? totalOccupants :
+        e.unit === "per_person_per_night" ? totalOccupants * nights : 1;
       return sum + e.price * sel.quantity * mult;
     }, 0);
-  }, [selectedExtras, extras, nights, guests]);
+  }, [selectedExtras, extras, nights, totalOccupants]);
 
   // ROOM TOTAL comes from the centralized pricing service — never trust
   // server-returned `nightly_total` (which is computed without guest count)
   // for the displayed total. Backend re-computes authoritatively on
   // `create_booking` and Pesapal charges the resulting deposit.
-  const roomTotal = useMemo(() => {
-    if (!selectedRoom || nights < 1) return 0;
+  const priceBreakdown = useMemo(() => {
+    if (!selectedRoom || nights < 1) return null;
     try {
-      return calculateBookingTotal(selectedRoom.slug, guests, nights);
+      return buildPriceBreakdown(
+        selectedRoom.slug,
+        { adults, childrenBelow6, children7Plus },
+        nights,
+      );
     } catch {
-      return Number(selectedRoom.nightly_total) || 0;
+      return null;
     }
-  }, [selectedRoom, guests, nights]);
+  }, [selectedRoom, adults, childrenBelow6, children7Plus, nights]);
+
+  const roomTotal = priceBreakdown?.grandTotal
+    ?? (selectedRoom ? Number(selectedRoom.nightly_total) || 0 : 0);
 
   const grandTotal = roomTotal + extrasTotal;
 
@@ -428,8 +443,12 @@ function BookPage() {
 
           {step === "search" && (
             <SearchStep
-              checkIn={checkIn} checkOut={checkOut} adults={adults} children={children}
-              setCheckIn={setCheckIn} setCheckOut={setCheckOut} setAdults={setAdults} setChildren={setChildren}
+              checkIn={checkIn} checkOut={checkOut}
+              adults={adults} childrenBelow6={childrenBelow6} children7Plus={children7Plus}
+              setCheckIn={setCheckIn} setCheckOut={setCheckOut}
+              setAdults={setAdults}
+              setChildrenBelow6={setChildrenBelow6}
+              setChildren7Plus={setChildren7Plus}
               nights={nights}
               loading={search.isPending}
               onSearch={() => search.mutate()}
@@ -438,7 +457,11 @@ function BookPage() {
 
           {step === "select" && (
             <SelectStep
-              results={results} guests={guests} nights={nights}
+              results={results}
+              adults={adults}
+              childrenBelow6={childrenBelow6}
+              children7Plus={children7Plus}
+              nights={nights}
               onBack={() => goToStep("search", "user_back_from_select")}
               onSelect={(r) => {
                 // The "room context" for this session is whichever room the
@@ -494,7 +517,11 @@ function BookPage() {
 
           {step === "guest" && selectedRoom && (
             <GuestStep
-              room={selectedRoom} nights={nights} guests={guests}
+              room={selectedRoom} nights={nights}
+              totalOccupants={totalOccupants}
+              paidOccupants={paidOccupants}
+              childrenBelow6={childrenBelow6}
+              breakdown={priceBreakdown}
               extras={extras} selectedExtras={selectedExtras} setSelectedExtras={setSelectedExtras}
               roomTotal={roomTotal} extrasTotal={extrasTotal} grandTotal={grandTotal}
               guest={guest} setGuest={setGuest}
@@ -582,11 +609,18 @@ const field = "w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 te
 const labelCls = "text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70";
 
 function SearchStep(props: {
-  checkIn: string; checkOut: string; adults: number; children: number; nights: number; loading: boolean;
+  checkIn: string; checkOut: string;
+  adults: number; childrenBelow6: number; children7Plus: number;
+  nights: number; loading: boolean;
   setCheckIn: (v: string) => void; setCheckOut: (v: string) => void;
-  setAdults: (v: number) => void; setChildren: (v: number) => void;
+  setAdults: (v: number) => void;
+  setChildrenBelow6: (v: number) => void;
+  setChildren7Plus: (v: number) => void;
   onSearch: () => void;
 }) {
+  const totalOccupants = props.adults + props.childrenBelow6 + props.children7Plus;
+  const ADULT_MAX = 5;
+  const CHILD_MAX = 5;
   return (
     <div className="space-y-5 rounded-2xl border border-charcoal/10 bg-ivory p-6 shadow-[0_24px_60px_-30px_rgba(30,45,30,0.35)] sm:p-10">
       <div className="grid gap-5 sm:grid-cols-2">
@@ -599,15 +633,50 @@ function SearchStep(props: {
           <input type="date" min={props.checkIn || today()} className={`mt-2 ${field}`} value={props.checkOut} onChange={(e) => props.setCheckOut(e.target.value)} />
         </div>
       </div>
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-3">
         <div>
           <label className={labelCls}>Adults</label>
-          <input type="number" min={1} max={10} className={`mt-2 ${field}`} value={props.adults} onChange={(e) => props.setAdults(Math.max(1, Number(e.target.value) || 1))} />
+          <select
+            className={`mt-2 ${field}`}
+            value={props.adults}
+            onChange={(e) => props.setAdults(Number(e.target.value))}
+            required
+          >
+            {Array.from({ length: ADULT_MAX }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
         </div>
         <div>
-          <label className={labelCls}>Children</label>
-          <input type="number" min={0} max={10} className={`mt-2 ${field}`} value={props.children} onChange={(e) => props.setChildren(Math.max(0, Number(e.target.value) || 0))} />
+          <label className={labelCls}>Children (under 6)</label>
+          <select
+            className={`mt-2 ${field}`}
+            value={props.childrenBelow6}
+            onChange={(e) => props.setChildrenBelow6(Number(e.target.value))}
+          >
+            {Array.from({ length: CHILD_MAX + 1 }, (_, i) => i).map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+          <p className="mt-1 text-[0.6rem] uppercase tracking-[0.18em] text-charcoal/50">Stay free</p>
         </div>
+        <div>
+          <label className={labelCls}>Children (7 & up)</label>
+          <select
+            className={`mt-2 ${field}`}
+            value={props.children7Plus}
+            onChange={(e) => props.setChildren7Plus(Number(e.target.value))}
+          >
+            {Array.from({ length: CHILD_MAX + 1 }, (_, i) => i).map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+          <p className="mt-1 text-[0.6rem] uppercase tracking-[0.18em] text-charcoal/50">Count as occupants</p>
+        </div>
+      </div>
+      <div className="flex items-center justify-between rounded-lg border border-dashed border-charcoal/20 bg-bone/30 px-4 py-3">
+        <span className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">Total occupants</span>
+        <span className="font-display text-lg">{totalOccupants}</span>
       </div>
       <div className="flex items-center justify-between rounded-lg border border-dashed border-charcoal/20 bg-bone/30 px-4 py-3">
         <span className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">Length of stay</span>
@@ -625,22 +694,29 @@ function SearchStep(props: {
   );
 }
 
-function SelectStep({ results, guests, nights, onBack, onSelect }: {
-  results: AvailabilityResult; guests: number; nights: number;
+function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, onBack, onSelect }: {
+  results: AvailabilityResult;
+  adults: number; childrenBelow6: number; children7Plus: number;
+  nights: number;
   onBack: () => void; onSelect: (r: AvailabilityRoom) => void;
 }) {
   const fmt = (n: number, c: string) => new Intl.NumberFormat("en-US", { style: "currency", currency: c, maximumFractionDigits: 0 }).format(n);
+  const totalOccupants = adults + childrenBelow6 + children7Plus;
+  const paidOccupants = adults + children7Plus;
   return (
     <div className="space-y-4">
       <button onClick={onBack} className="text-xs uppercase tracking-[0.22em] text-charcoal/60 hover:text-charcoal">← Change dates</button>
       {results.map((r) => {
-        const disabled = !r.is_available || !r.fits_guests;
+        let fits = true;
+        try { fits = totalOccupants <= getRoomPricing(r.slug).maxGuests; } catch { fits = r.fits_guests; }
+        const disabled = !r.is_available || !fits;
         // Centralized pricing: per-guest, per-night.
         let displayTotal = Number(r.nightly_total) || 0;
         let nightlyRate = Number(r.base_price) || 0;
         try {
-          nightlyRate = calculateNightlyRate(r.slug, guests);
-          displayTotal = nightlyRate * Math.max(1, nights);
+          const bd = buildPriceBreakdown(r.slug, { adults, childrenBelow6, children7Plus }, Math.max(1, nights));
+          nightlyRate = bd.nightlyRate;
+          displayTotal = bd.grandTotal;
         } catch {
           /* room not in pricing config — fall back to server values */
         }
@@ -649,12 +725,12 @@ function SelectStep({ results, guests, nights, onBack, onSelect }: {
             <div>
               <h3 className="font-display text-xl">{r.name}</h3>
               <p className="mt-1 text-sm text-charcoal/60">Sleeps up to {r.max_occupancy} · {r.min_available > 0 ? `${r.min_available} unit${r.min_available === 1 ? "" : "s"} available` : "Sold out"}</p>
-              {!r.fits_guests && <p className="mt-1 text-xs text-red-600">Does not fit {guests} guests</p>}
+              {!fits && <p className="mt-1 text-xs text-red-600">Does not fit {totalOccupants} occupant{totalOccupants === 1 ? "" : "s"}</p>}
             </div>
             <div className="text-right">
               <p className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">{nights} night{nights === 1 ? "" : "s"} total</p>
               <p className="font-display text-2xl">{fmt(displayTotal, r.currency)}</p>
-              <p className="text-xs text-charcoal/55">{fmt(nightlyRate, r.currency)} / night · {guests} guest{guests === 1 ? "" : "s"}</p>
+              <p className="text-xs text-charcoal/55">{fmt(nightlyRate, r.currency)} / night · {paidOccupants} paid · {totalOccupants} total</p>
               <button
                 onClick={() => onSelect(r)} disabled={disabled}
                 className="mt-3 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
@@ -671,7 +747,9 @@ function SelectStep({ results, guests, nights, onBack, onSelect }: {
 }
 
 function GuestStep(props: {
-  room: AvailabilityRoom; nights: number; guests: number;
+  room: AvailabilityRoom; nights: number;
+  totalOccupants: number; paidOccupants: number; childrenBelow6: number;
+  breakdown: import("@/lib/pricing").PriceBreakdown | null;
   extras: Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>;
   selectedExtras: SelectedExtra[]; setSelectedExtras: (v: SelectedExtra[]) => void;
   roomTotal: number; extrasTotal: number; grandTotal: number;
@@ -761,10 +839,33 @@ function GuestStep(props: {
         <h4 className="font-display text-lg">Your Stay</h4>
         <div className="space-y-1 text-sm">
           <p className="font-medium">{props.room.name}</p>
-          <p className="text-xs text-charcoal/60">{props.nights} night{props.nights === 1 ? "" : "s"} · {props.guests} guest{props.guests === 1 ? "" : "s"}</p>
+          <p className="text-xs text-charcoal/60">
+            {props.nights} night{props.nights === 1 ? "" : "s"} · {props.totalOccupants} occupant{props.totalOccupants === 1 ? "" : "s"}
+            {props.childrenBelow6 > 0 && ` (incl. ${props.childrenBelow6} under 6)`}
+          </p>
         </div>
         <div className="space-y-2 border-t border-charcoal/10 pt-3 text-sm">
-          <div className="flex justify-between"><span>Room</span><span>{fmt(props.roomTotal)}</span></div>
+          {props.breakdown && (
+            <>
+              <div className="flex justify-between text-charcoal/70">
+                <span>Base room ({props.nights} × {fmt(props.breakdown.basePrice)})</span>
+                <span>{fmt(props.breakdown.basePrice * props.nights)}</span>
+              </div>
+              {props.breakdown.extraOccupants > 0 && (
+                <div className="flex justify-between text-charcoal/70">
+                  <span>Extra occupant{props.breakdown.extraOccupants === 1 ? "" : "s"} ({props.breakdown.extraOccupants} × {fmt(props.breakdown.extraOccupantFee)} × {props.nights})</span>
+                  <span>{fmt(props.breakdown.extraCharges * props.nights)}</span>
+                </div>
+              )}
+              {props.childrenBelow6 > 0 && (
+                <div className="flex justify-between text-charcoal/55">
+                  <span>{props.childrenBelow6} child under 6</span>
+                  <span>Free</span>
+                </div>
+              )}
+            </>
+          )}
+          <div className="flex justify-between"><span>Room subtotal</span><span>{fmt(props.roomTotal)}</span></div>
           {props.extrasTotal > 0 && <div className="flex justify-between"><span>Extras</span><span>{fmt(props.extrasTotal)}</span></div>}
           <div className="flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(props.grandTotal)}</span></div>
           <div className="flex justify-between text-charcoal/70"><span>Deposit now (50%)</span><span>{fmt(deposit)}</span></div>

@@ -54,25 +54,93 @@ export function getRoomPricing(roomType: string): RoomPricingConfig {
   return cfg;
 }
 
-/** Per-night rate for the given room + guest count. */
-export function calculateNightlyRate(roomType: string, guestCount: number): number {
-  const cfg = getRoomPricing(roomType);
-  const guests = Math.max(1, Math.min(Math.floor(guestCount), cfg.maxGuests));
-  const extraGuests = Math.max(0, guests - cfg.includedGuests);
-  return cfg.basePrice + extraGuests * cfg.extraGuestFee;
+/**
+ * Occupancy breakdown:
+ *  - adults: paid occupants (>=1)
+ *  - childrenBelow6: free, count toward capacity only
+ *  - children7Plus: paid occupants
+ * Paid occupants = adults + children7Plus
+ * Total occupants (capacity check) = adults + childrenBelow6 + children7Plus
+ */
+export interface Occupancy {
+  adults: number;
+  childrenBelow6?: number;
+  children7Plus?: number;
 }
 
-/**
- * Total room charge for a stay. `nights` defaults to 1 so the function can
- * also answer the canonical per-night question used in tests.
- */
+export interface PriceBreakdown {
+  basePrice: number;
+  paidOccupants: number;
+  totalOccupants: number;
+  extraOccupants: number;
+  extraOccupantFee: number;
+  extraCharges: number;
+  nightlyRate: number;
+  nights: number;
+  grandTotal: number;
+  currency: "USD";
+}
+
+export function validateOccupancy(roomType: string, o: Occupancy): void {
+  const cfg = getRoomPricing(roomType);
+  const adults = Math.floor(o.adults);
+  if (!Number.isFinite(adults) || adults < 1) throw new Error("At least one adult is required");
+  const below6 = Math.max(0, Math.floor(o.childrenBelow6 ?? 0));
+  const plus7 = Math.max(0, Math.floor(o.children7Plus ?? 0));
+  const total = adults + below6 + plus7;
+  if (total > cfg.maxGuests) {
+    throw new Error(`Room allows up to ${cfg.maxGuests} occupants`);
+  }
+}
+
+export function buildPriceBreakdown(
+  roomType: string,
+  o: Occupancy,
+  nights = 1,
+): PriceBreakdown {
+  const cfg = getRoomPricing(roomType);
+  validateOccupancy(roomType, o);
+  const adults = Math.floor(o.adults);
+  const below6 = Math.max(0, Math.floor(o.childrenBelow6 ?? 0));
+  const plus7 = Math.max(0, Math.floor(o.children7Plus ?? 0));
+  const paidOccupants = adults + plus7;
+  const totalOccupants = adults + below6 + plus7;
+  const extraOccupants = Math.max(0, paidOccupants - cfg.includedGuests);
+  const extraCharges = extraOccupants * cfg.extraGuestFee;
+  const nightlyRate = cfg.basePrice + extraCharges;
+  const n = Math.max(1, Math.floor(nights));
+  return {
+    basePrice: cfg.basePrice,
+    paidOccupants,
+    totalOccupants,
+    extraOccupants,
+    extraOccupantFee: cfg.extraGuestFee,
+    extraCharges,
+    nightlyRate,
+    nights: n,
+    grandTotal: nightlyRate * n,
+    currency: cfg.currency,
+  };
+}
+
+/** Per-night rate. Accepts an Occupancy object or a legacy guest-count number. */
+export function calculateNightlyRate(roomType: string, guests: number | Occupancy): number {
+  const o: Occupancy = typeof guests === "number"
+    ? { adults: Math.max(1, Math.floor(guests)) }
+    : guests;
+  return buildPriceBreakdown(roomType, o, 1).nightlyRate;
+}
+
+/** Total room charge. Accepts an Occupancy object or a legacy guest-count number. */
 export function calculateBookingTotal(
   roomType: string,
-  guestCount: number,
+  guests: number | Occupancy,
   nights = 1,
 ): number {
-  const n = Math.max(1, Math.floor(nights));
-  return calculateNightlyRate(roomType, guestCount) * n;
+  const o: Occupancy = typeof guests === "number"
+    ? { adults: Math.max(1, Math.floor(guests)) }
+    : guests;
+  return buildPriceBreakdown(roomType, o, nights).grandTotal;
 }
 
 export function formatUsd(amount: number): string {
