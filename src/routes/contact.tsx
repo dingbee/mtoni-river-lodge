@@ -7,6 +7,8 @@ import { Reveal } from "@/components/site/Reveal";
 import { BreadcrumbsBar } from "@/components/site/Breadcrumbs";
 import { WHATSAPP_URL } from "@/lib/contact";
 import { trackContactClick } from "@/lib/analytics";
+import { FAQ } from "@/components/FAQ";
+import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
 
 const PHONE_DISPLAY = "+255 752 441 443";
 const PHONE_TEL = "+255752441443";
@@ -15,6 +17,29 @@ const EMAIL = "bookings@mtoniriverlodge.com";
 const ADDRESS_LINES = ["Mtoni River Lodge", "Gomba Estate, Arusha", "Tanzania"];
 const MAP_EMBED = "https://www.google.com/maps?q=Mtoni%20River%20Lodge&output=embed";
 const MAP_DIRECTIONS = "https://www.google.com/maps?q=Mtoni+River+Lodge";
+
+const CONTACT_FAQS: FAQItem[] = [
+  {
+    q: "What is the fastest way to reach the reservations team?",
+    a: "WhatsApp is the fastest channel during the day — message us at +255 752 441 443. You can also call the same number, or email bookings@mtoniriverlodge.com for written enquiries.",
+  },
+  {
+    q: "What are your reception and reservations hours?",
+    a: "Our reception is staffed daily and reservations enquiries are answered between 08:00 and 20:00 East Africa Time. Messages received outside these hours are answered first thing the next morning.",
+  },
+  {
+    q: "Can you arrange airport transfers?",
+    a: "Yes. We arrange private transfers from Kilimanjaro International Airport (JRO) and Arusha Airport (ARK). Share your flight details when booking and our team will confirm pickup arrangements.",
+  },
+  {
+    q: "Do you help plan safaris and excursions?",
+    a: "Yes. Our team helps plan day trips and multi-day safaris to Arusha National Park, Tarangire, Lake Manyara, Ngorongoro, and the Serengeti, alongside local experiences around the lodge.",
+  },
+  {
+    q: "Where exactly is the lodge?",
+    a: "Mtoni River Lodge is on the Gomba Estate in Arusha, Tanzania, on the banks of the Nduruma River. Use the Directions link on this page for live maps and driving directions.",
+  },
+];
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -34,6 +59,7 @@ export const Route = createFileRoute("/contact")({
       { property: "og:url", content: "https://mtoniriverlodge.com/contact" },
     ],
     links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/contact" }],
+    scripts: [buildFAQJsonLd(CONTACT_FAQS)],
   }),
   component: ContactPage,
 });
@@ -50,6 +76,11 @@ function ContactPage() {
         <SendMessage />
         <OperatingHours />
         <CtaBand />
+        <FAQ
+          faqs={CONTACT_FAQS}
+          eyebrow="Before you reach out"
+          heading="Frequently asked questions"
+        />
       </main>
       <SiteFooter />
     </div>
