@@ -831,6 +831,25 @@ function GuestStep(props: {
             <div><label className={labelCls}>Email</label><input type="email" className={`mt-2 ${field}`} value={props.guest.email} onChange={(e) => props.setGuest({ ...props.guest, email: e.target.value })} required /></div>
             <div><label className={labelCls}>Phone</label><input className={`mt-2 ${field}`} value={props.guest.phone} onChange={(e) => props.setGuest({ ...props.guest, phone: e.target.value })} /></div>
             <div className="sm:col-span-2"><label className={labelCls}>Country</label><input className={`mt-2 ${field}`} value={props.guest.country} onChange={(e) => props.setGuest({ ...props.guest, country: e.target.value })} /></div>
+            <div className="sm:col-span-2">
+              <label className={labelCls}>Purpose of Visit (optional)</label>
+              <select
+                className={`mt-2 ${field}`}
+                value={props.guest.purpose}
+                onChange={(e) => props.setGuest({ ...props.guest, purpose: e.target.value })}
+              >
+                <option value="">Select one (optional)</option>
+                <option value="Safari">Safari</option>
+                <option value="Mount Kilimanjaro Climb">Mount Kilimanjaro Climb</option>
+                <option value="Business Travel">Business Travel</option>
+                <option value="Retreat">Retreat</option>
+                <option value="Family Holiday">Family Holiday</option>
+                <option value="Honeymoon">Honeymoon</option>
+                <option value="Cultural Experience">Cultural Experience</option>
+                <option value="Other">Other</option>
+              </select>
+              <p className="mt-1 text-[0.6rem] uppercase tracking-[0.18em] text-charcoal/50">Helps us tailor your arrival (early breakfast, transfers, etc.)</p>
+            </div>
             <div className="sm:col-span-2"><label className={labelCls}>Special requests</label><textarea rows={3} className={`mt-2 ${field} resize-none`} value={props.guest.requests} onChange={(e) => props.setGuest({ ...props.guest, requests: e.target.value })} /></div>
           </div>
         </div>
