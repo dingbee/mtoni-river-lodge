@@ -24,7 +24,7 @@ import {
 } from "@/lib/booking.functions";
 import { initiatePayment } from "@/lib/payments.functions";
 import { newBookingSessionId } from "@/lib/booking-session";
-import { calculateBookingTotal, calculateNightlyRate } from "@/lib/pricing";
+import { calculateBookingTotal, calculateNightlyRate, buildPriceBreakdown, getRoomPricing } from "@/lib/pricing";
 
 export const Route = createFileRoute("/book")({
   validateSearch: (
@@ -86,6 +86,8 @@ type PersistedState = {
   checkOut: string;
   adults: number;
   children: number;
+  childrenBelow6: number;
+  children7Plus: number;
   results: AvailabilityResult;
   selectedRoom: AvailabilityRoom | null;
   extras: Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>;
@@ -158,7 +160,8 @@ function BookPage() {
   const [checkIn, setCheckIn] = useState(p.checkIn ?? "");
   const [checkOut, setCheckOut] = useState(p.checkOut ?? "");
   const [adults, setAdults] = useState(p.adults ?? 2);
-  const [children, setChildren] = useState(p.children ?? 0);
+  const [childrenBelow6, setChildrenBelow6] = useState(p.childrenBelow6 ?? 0);
+  const [children7Plus, setChildren7Plus] = useState(p.children7Plus ?? 0);
   const [results, setResults] = useState<AvailabilityResult>(p.results ?? []);
   const [selectedRoom, setSelectedRoom] = useState<AvailabilityRoom | null>(p.selectedRoom ?? null);
   const [extras, setExtras] = useState<Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>>(p.extras ?? []);
@@ -195,7 +198,8 @@ function BookPage() {
     setCheckIn("");
     setCheckOut("");
     setAdults(2);
-    setChildren(0);
+    setChildrenBelow6(0);
+    setChildren7Plus(0);
     setResults([]);
     setSelectedRoom(null);
     setExtras([]);
@@ -255,14 +259,15 @@ function BookPage() {
     try {
       const snapshot: PersistedState = {
         sessionId,
-        checkIn, checkOut, adults, children,
+        checkIn, checkOut, adults, children: childrenBelow6 + children7Plus,
+        childrenBelow6, children7Plus,
         results, selectedRoom, extras, selectedExtras, guest,
       };
       window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
     } catch (err) {
       console.warn("[book] failed to persist wizard state", err);
     }
-  }, [sessionId, checkIn, checkOut, adults, children, results, selectedRoom, extras, selectedExtras, guest]);
+  }, [sessionId, checkIn, checkOut, adults, childrenBelow6, children7Plus, results, selectedRoom, extras, selectedExtras, guest]);
 
   // Validation guard: if the user lands on a step whose prerequisites are
   // missing, or if the session/room context does not match the persisted state,
@@ -302,7 +307,8 @@ function BookPage() {
   }, [step, confirmation, selectedRoom, checkIn, checkOut, results.length, navigate]);
 
   const nights = nightsBetween(checkIn, checkOut);
-  const guests = adults + children;
+  const totalOccupants = adults + childrenBelow6 + children7Plus;
+  const paidOccupants = adults + children7Plus;
 
   const checkAvailabilityFn = useServerFn(checkAvailability);
   const listExtrasFn = useServerFn(listExtras);
@@ -313,7 +319,7 @@ function BookPage() {
     mutationFn: async () => {
       if (nights < 1) throw new Error("Pick a check-in and check-out date");
       const [rooms, extrasList] = await Promise.all([
-        checkAvailabilityFn({ data: { checkIn, checkOut, guests } }),
+        checkAvailabilityFn({ data: { checkIn, checkOut, guests: totalOccupants } }),
         listExtrasFn(),
       ]);
       return { rooms, extrasList };
@@ -324,7 +330,7 @@ function BookPage() {
       trackAvailabilityChecked({
         check_in: checkIn,
         check_out: checkOut,
-        guests,
+        guests: totalOccupants,
         nights,
         available_rooms: rooms.filter((r) => r.is_available).length,
         total_rooms: rooms.length,
@@ -346,7 +352,9 @@ function BookPage() {
           checkIn,
           checkOut,
           adults,
-          children,
+          children: childrenBelow6 + children7Plus,
+          childrenBelow6,
+          children7Plus,
           guestName: guest.name,
           guestEmail: guest.email,
           guestPhone: guest.phone,
@@ -388,24 +396,31 @@ function BookPage() {
       const mult =
         e.unit === "per_stay" ? 1 :
         e.unit === "per_night" ? nights :
-        e.unit === "per_person" ? guests :
-        e.unit === "per_person_per_night" ? guests * nights : 1;
+        e.unit === "per_person" ? totalOccupants :
+        e.unit === "per_person_per_night" ? totalOccupants * nights : 1;
       return sum + e.price * sel.quantity * mult;
     }, 0);
-  }, [selectedExtras, extras, nights, guests]);
+  }, [selectedExtras, extras, nights, totalOccupants]);
 
   // ROOM TOTAL comes from the centralized pricing service — never trust
   // server-returned `nightly_total` (which is computed without guest count)
   // for the displayed total. Backend re-computes authoritatively on
   // `create_booking` and Pesapal charges the resulting deposit.
-  const roomTotal = useMemo(() => {
-    if (!selectedRoom || nights < 1) return 0;
+  const priceBreakdown = useMemo(() => {
+    if (!selectedRoom || nights < 1) return null;
     try {
-      return calculateBookingTotal(selectedRoom.slug, guests, nights);
+      return buildPriceBreakdown(
+        selectedRoom.slug,
+        { adults, childrenBelow6, children7Plus },
+        nights,
+      );
     } catch {
-      return Number(selectedRoom.nightly_total) || 0;
+      return null;
     }
-  }, [selectedRoom, guests, nights]);
+  }, [selectedRoom, adults, childrenBelow6, children7Plus, nights]);
+
+  const roomTotal = priceBreakdown?.grandTotal
+    ?? (selectedRoom ? Number(selectedRoom.nightly_total) || 0 : 0);
 
   const grandTotal = roomTotal + extrasTotal;
 
@@ -428,8 +443,12 @@ function BookPage() {
 
           {step === "search" && (
             <SearchStep
-              checkIn={checkIn} checkOut={checkOut} adults={adults} children={children}
-              setCheckIn={setCheckIn} setCheckOut={setCheckOut} setAdults={setAdults} setChildren={setChildren}
+              checkIn={checkIn} checkOut={checkOut}
+              adults={adults} childrenBelow6={childrenBelow6} children7Plus={children7Plus}
+              setCheckIn={setCheckIn} setCheckOut={setCheckOut}
+              setAdults={setAdults}
+              setChildrenBelow6={setChildrenBelow6}
+              setChildren7Plus={setChildren7Plus}
               nights={nights}
               loading={search.isPending}
               onSearch={() => search.mutate()}
@@ -438,7 +457,11 @@ function BookPage() {
 
           {step === "select" && (
             <SelectStep
-              results={results} guests={guests} nights={nights}
+              results={results}
+              adults={adults}
+              childrenBelow6={childrenBelow6}
+              children7Plus={children7Plus}
+              nights={nights}
               onBack={() => goToStep("search", "user_back_from_select")}
               onSelect={(r) => {
                 // The "room context" for this session is whichever room the
