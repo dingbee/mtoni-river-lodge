@@ -182,6 +182,71 @@ function ExperiencesPage() {
           <Reveal>
             <p className="eyebrow">Stay with us</p>
           </Reveal>
+
+      <section className="bg-bone px-6 py-28 lg:px-12 lg:py-36">
+        <div className="mx-auto max-w-[1200px]">
+          <Reveal>
+            <p className="eyebrow">Kilimanjaro Preparation &amp; Recovery Stay</p>
+            <h2 className="mt-6 font-display text-4xl leading-tight lg:text-5xl">
+              Either side of the mountain.
+            </h2>
+            <p className="mt-6 max-w-2xl leading-relaxed text-charcoal/70">
+              Trekkers stay at Mtoni River Lodge in two waves — quiet preparation before transferring to the gate, and slow recovery on the way down. We shape both around what climbers actually need.
+            </p>
+          </Reveal>
+          <div className="mt-14 grid gap-10 lg:grid-cols-2">
+            <Reveal>
+              <div className="border-t border-charcoal/15 pt-6">
+                <p className="eyebrow">Before Your Climb</p>
+                <h3 className="mt-3 font-display text-2xl lg:text-3xl">A calm last night before the gate</h3>
+                <ul className="mt-6 space-y-3 text-charcoal/80">
+                  {[
+                    "Relax before departure with a riverside walk",
+                    "Lay out and check your gear, with secure storage available",
+                    "Early or packed breakfast arranged with our kitchen",
+                    "Private transfer to your trailhead, timed to your operator",
+                  ].map((b) => (
+                    <li key={b} className="flex items-baseline gap-3 text-sm leading-relaxed">
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-charcoal/70" />{b}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Reveal>
+            <Reveal delay={120}>
+              <div className="border-t border-charcoal/15 pt-6">
+                <p className="eyebrow">After Your Climb</p>
+                <h3 className="mt-3 font-display text-2xl lg:text-3xl">A soft landing after the summit</h3>
+                <ul className="mt-6 space-y-3 text-charcoal/80">
+                  {[
+                    "Recovery accommodation with hot showers and a deep bed",
+                    "Fresh, nourishing meals to rebuild reserves",
+                    "Peaceful riverfront environment for unhurried rest",
+                    "Optional massage and pool time on request",
+                  ].map((b) => (
+                    <li key={b} className="flex items-baseline gap-3 text-sm leading-relaxed">
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-charcoal/70" />{b}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Reveal>
+          </div>
+          <div className="mt-12">
+            <Link
+              to="/mount-kilimanjaro-accommodation-arusha"
+              className="inline-flex items-center gap-2 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]"
+            >
+              Explore our Kilimanjaro stays →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-charcoal/10 px-6 py-32 lg:px-12 lg:py-40 hidden">
+        <Reveal>
+          <p className="eyebrow">Stay with us</p>
+        </Reveal>
           <Reveal delay={120}>
             <h2 className="mt-8 font-display text-4xl leading-tight lg:text-5xl">
               Plan your stay and experience Mtoni.
