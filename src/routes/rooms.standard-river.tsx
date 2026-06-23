@@ -12,6 +12,7 @@ import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics"
 import { StartBookingLink } from "@/lib/booking-session";
 import { STANDARD_RIVER_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 import { buildRoomJsonLd } from "@/lib/room-schema";
+import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
 import { getBasePriceLabel, getBasePriceUsd } from "@/lib/pricing";
 import interiorImg from "@/assets/standard-river-interior.jpg";
 import { TrekkerBlock } from "@/components/site/TrekkerBlock";
@@ -175,6 +176,11 @@ export const Route = createFileRoute("/rooms/standard-river")({
           }),
         ),
       },
+      buildBreadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Accommodation", path: "/rooms" },
+        { name: STANDARD_RIVER_ROOM.name, path: "/rooms/standard-river" },
+      ]),
     ],
   }),
   component: StandardRiverPage,
