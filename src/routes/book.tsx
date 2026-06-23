@@ -754,8 +754,8 @@ function GuestStep(props: {
   extras: Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>;
   selectedExtras: SelectedExtra[]; setSelectedExtras: (v: SelectedExtra[]) => void;
   roomTotal: number; extrasTotal: number; grandTotal: number;
-  guest: { name: string; email: string; phone: string; country: string; requests: string };
-  setGuest: (g: { name: string; email: string; phone: string; country: string; requests: string }) => void;
+  guest: { name: string; email: string; phone: string; country: string; requests: string; purpose: string };
+  setGuest: (g: { name: string; email: string; phone: string; country: string; requests: string; purpose: string }) => void;
   submitting: boolean;
   onBack: () => void; onSubmit: () => void;
 }) {
