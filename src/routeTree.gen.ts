@@ -57,6 +57,7 @@ import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './r
 import { Route as BookingReturnRouteImport } from './routes/booking.return'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
 import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authenticated.admin.bookings'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicPesapalIpnRouteImport } from './routes/api/public/pesapal.ipn'
 
 const VoteRoute = VoteRouteImport.update({
@@ -313,6 +314,12 @@ const AuthenticatedAdminBookingsRoute =
     path: '/admin/bookings',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicPesapalIpnRoute = ApiPublicPesapalIpnRouteImport.update({
   id: '/api/public/pesapal/ipn',
   path: '/api/public/pesapal/ipn',
@@ -368,6 +375,7 @@ export interface FileRoutesByFullPath {
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -416,6 +424,7 @@ export interface FileRoutesByTo {
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -468,6 +477,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -520,6 +530,7 @@ export interface FileRouteTypes {
     | '/admin/bookings'
     | '/admin/reviews'
     | '/api/public/pesapal/ipn'
+    | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -568,6 +579,7 @@ export interface FileRouteTypes {
     | '/admin/bookings'
     | '/admin/reviews'
     | '/api/public/pesapal/ipn'
+    | '/lovable/email/queue/process'
   id:
     | '__root__'
     | '/'
@@ -619,6 +631,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/bookings'
     | '/_authenticated/admin/reviews'
     | '/api/public/pesapal/ipn'
+    | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -655,6 +668,7 @@ export interface RootRouteChildren {
   VoteRoute: typeof VoteRoute
   BookingReturnRoute: typeof BookingReturnRoute
   ApiPublicPesapalIpnRoute: typeof ApiPublicPesapalIpnRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -995,6 +1009,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminBookingsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/pesapal/ipn': {
       id: '/api/public/pesapal/ipn'
       path: '/api/public/pesapal/ipn'
@@ -1106,6 +1127,7 @@ const rootRouteChildren: RootRouteChildren = {
   VoteRoute: VoteRoute,
   BookingReturnRoute: BookingReturnRoute,
   ApiPublicPesapalIpnRoute: ApiPublicPesapalIpnRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
