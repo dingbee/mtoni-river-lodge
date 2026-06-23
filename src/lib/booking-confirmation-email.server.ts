@@ -39,12 +39,25 @@ export async function sendBookingConfirmedEmail(bookingId: string) {
     balance: full.balance_amount,
     currency: full.currency,
   });
-  const sent = await sendGmail({ to: full.guest_email, ...tpl });
+
+  // Generate PDF invoice; if it fails, still send the email without it.
+  let attachments: { filename: string; contentType: string; bytes: Uint8Array }[] | undefined;
+  try {
+    const { buildInvoiceForBooking } = await import("./booking-invoice.server");
+    const invoice = await buildInvoiceForBooking(bookingId);
+    if (invoice) {
+      attachments = [{ filename: invoice.filename, contentType: "application/pdf", bytes: invoice.bytes }];
+    }
+  } catch (err) {
+    console.error("[invoice] generation failed", err);
+  }
+
+  const sent = await sendGmail({ to: full.guest_email, ...tpl, attachments });
   await supabaseAdmin.from("payment_events").insert({
     booking_id: bookingId,
     provider: "gmail",
     event_type: sent.ok ? "email_confirmation_sent" : "email_confirmation_failed",
-    raw: { messageId: sent.id ?? null, error: sent.error ?? null },
+    raw: { messageId: sent.id ?? null, error: sent.error ?? null, invoiceAttached: !!attachments },
   });
   return sent;
 }
