@@ -1,11 +1,15 @@
 // Sends booking-related guest emails through the Gmail connector gateway.
-// Uses mtoniriver@gmail.com (the connected Gmail account) as the sender.
+// Sender identity: "Mtoni River Lodge <bookings@mtoniriverlodge.com>".
+// NOTE: The Gmail API will only honour this From address if
+// bookings@mtoniriverlodge.com is configured as a verified "Send mail as"
+// alias on the connected Google account. Otherwise Gmail rewrites From to
+// the authenticated mailbox. Reply-To is always set to bookings@.
 // This file is server-only and must never be imported from client code.
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 const SENDER_NAME = "Mtoni River Lodge";
-const SENDER_EMAIL = "mtoniriver@gmail.com";
-const REPLY_TO = "mtoniriver@gmail.com";
+const SENDER_EMAIL = "bookings@mtoniriverlodge.com";
+const REPLY_TO = "bookings@mtoniriverlodge.com";
 
 function b64url(input: string): string {
   // Gmail API expects base64url-encoded RFC 2822 message
