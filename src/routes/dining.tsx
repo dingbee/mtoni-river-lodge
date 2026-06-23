@@ -217,6 +217,39 @@ function DiningPage() {
         </div>
       </section>
 
+      {/* FUEL FOR ADVENTURE */}
+      <section className="border-t border-border bg-ivory px-6 py-28 lg:px-12 lg:py-36">
+        <div className="mx-auto grid max-w-[1200px] gap-16 lg:grid-cols-12">
+          <Reveal className="lg:col-span-5">
+            <p className="eyebrow">Fuel for Adventure</p>
+            <h2 className="mt-6 font-display text-4xl leading-tight lg:text-5xl">
+              Food that travels well<br/>with how you move.
+            </h2>
+          </Reveal>
+          <Reveal delay={150} className="lg:col-span-7">
+            <p className="text-lg leading-relaxed text-charcoal/80">
+              Our kitchen is shaped to support the way our guests actually spend their days — long, slow, and often outdoors. Meals are fresh, generous, and nourishing, suitable for the very different bodies that arrive at the river.
+            </p>
+            <ul className="mt-8 grid gap-4 text-sm text-charcoal/75 sm:grid-cols-2">
+              {[
+                ["Safari guests", "Hearty early breakfasts and packed lunches before game drives."],
+                ["Mount Kilimanjaro climbers", "Carb-rich pre-climb dinners and recovery meals after summit."],
+                ["Wellness travellers", "Lighter, plant-forward plates and herbal infusions from the garden."],
+                ["Long-stay guests", "A rotating, seasonal kitchen that never feels repetitive."],
+              ].map(([label, body]) => (
+                <li key={label as string} className="border-t border-charcoal/15 pt-4">
+                  <p className="eyebrow">{label}</p>
+                  <p className="mt-2 leading-relaxed">{body}</p>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-8 text-sm leading-relaxed text-charcoal/65">
+              Early breakfasts and packed meals can be arranged at check-in. Just let our team know your plan for the day.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="bg-bone px-6 py-28 text-center lg:py-36">
         <div className="mx-auto max-w-2xl">
