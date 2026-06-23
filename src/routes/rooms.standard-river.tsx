@@ -14,6 +14,7 @@ import { STANDARD_RIVER_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 import { buildRoomJsonLd } from "@/lib/room-schema";
 import { getBasePriceLabel, getBasePriceUsd } from "@/lib/pricing";
 import interiorImg from "@/assets/standard-river-interior.jpg";
+import { TrekkerBlock } from "@/components/site/TrekkerBlock";
 
 function StandardRiverPage() {
   const room = STANDARD_RIVER_ROOM;
@@ -84,7 +85,7 @@ function StandardRiverPage() {
         </div>
       </section>
 
-      <TrekkerBlock />
+      <TrekkerBlock variant="standard" />
 
       <section className="px-6 py-24 lg:px-12 lg:py-32">
         <div className="mx-auto max-w-[900px] text-center">

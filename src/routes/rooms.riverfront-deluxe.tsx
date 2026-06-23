@@ -15,6 +15,7 @@ import { buildRoomJsonLd } from "@/lib/room-schema";
 import { getBasePriceLabel, getBasePriceUsd } from "@/lib/pricing";
 import outdoorShowerImg from "@/assets/riverfront-deluxe-outdoor-shower.jpg";
 import exteriorImg from "@/assets/riverfront-deluxe-exterior.jpg";
+import { TrekkerBlock } from "@/components/site/TrekkerBlock";
 
 function RiverfrontDeluxePage() {
   const room = RIVERFRONT_DELUXE_ROOM;
@@ -84,6 +85,8 @@ function RiverfrontDeluxePage() {
           </div>
         </div>
       </section>
+
+      <TrekkerBlock variant="deluxe" />
 
       <section className="px-6 py-24 lg:px-12 lg:py-32">
         <div className="mx-auto max-w-[900px] text-center">
