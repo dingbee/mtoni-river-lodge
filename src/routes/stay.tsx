@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { TrustBar } from "@/components/site/reviews/TrustBar";
 import { TripadvisorExcellentWidget } from "@/components/site/TripadvisorExcellentWidget";
+import { Reveal } from "@/components/site/Reveal";
 import {
   trackBookingStarted,
   trackContactClick,
@@ -129,7 +130,7 @@ function StayLanding() {
       <LandingHeader />
 
       {/* HERO */}
-      <section className="relative overflow-hidden min-h-[640px] lg:min-h-[680px]">
+      <section className="relative overflow-hidden min-h-[620px] lg:min-h-[700px]">
         <picture>
           <source
             type="image/webp"
@@ -140,24 +141,27 @@ function StayLanding() {
             src={heroImg}
             alt="Nduruma River at Mtoni River Lodge, Arusha"
             className="absolute inset-0 h-full w-full object-cover"
+            decoding="async"
             fetchPriority="high"
+            width={1600}
+            height={1067}
           />
         </picture>
-        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/30 to-black/65" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/40 to-black/75" />
 
-        <div className="relative mx-auto flex max-w-6xl flex-col gap-10 px-4 pb-16 pt-24 sm:px-6 lg:flex-row lg:items-end lg:gap-12 lg:pt-32">
+        <div className="relative mx-auto flex max-w-6xl flex-col gap-8 px-4 pb-14 pt-24 sm:gap-10 sm:px-6 sm:pb-16 lg:flex-row lg:items-end lg:gap-12 lg:pt-32">
           <div className="max-w-2xl text-ivory">
             <p className="inline-flex items-center gap-2 rounded-full border border-ivory/30 bg-black/40 px-4 py-1.5 text-[0.65rem] uppercase tracking-[0.28em]">
               <MapPin className="h-3 w-3" /> 50 minutes from Kilimanjaro International Airport
             </p>
-            <h1 className="mt-6 font-display text-4xl leading-[1.05] sm:text-5xl lg:text-6xl">
+            <h1 className="mt-6 font-display text-[2.25rem] leading-[1.05] sm:text-5xl lg:text-6xl">
               Your first &amp; last stop in Northern Tanzania.
             </h1>
-            <p className="mt-5 max-w-xl text-lg text-ivory/85">
+            <p className="mt-5 max-w-xl text-base text-ivory/90 sm:text-lg">
               A peaceful riverside retreat on the Nduruma River — perfect before or
               after your safari, with secure online booking and curated experiences.
             </p>
-            <div className="mt-7 flex flex-wrap items-center gap-4 text-sm text-ivory/85">
+            <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ivory/90">
               <span className="inline-flex items-center gap-2"><Check className="h-4 w-4" /> 4.9★ on TripAdvisor</span>
               <span className="inline-flex items-center gap-2"><Check className="h-4 w-4" /> Free cancellation 60+ days</span>
               <span className="inline-flex items-center gap-2"><Check className="h-4 w-4" /> Pay 50% deposit</span>
@@ -170,7 +174,7 @@ function StayLanding() {
               e.preventDefault();
               startBooking("stay_hero");
             }}
-            className="w-full max-w-md rounded-2xl border border-ivory/15 bg-ivory p-6 shadow-[0_30px_60px_-25px_rgba(0,0,0,0.6)] lg:w-[400px]"
+            className="w-full max-w-md rounded-2xl border border-ivory/15 bg-ivory p-5 shadow-[0_30px_60px_-25px_rgba(0,0,0,0.6)] sm:p-6 lg:w-[400px]"
           >
             <p className="text-[0.65rem] font-medium uppercase tracking-[0.28em] text-charcoal/70">
               Check live availability
@@ -243,9 +247,9 @@ function StayLanding() {
       <TrustBar variant="subtle" compact />
 
       {/* WHY MTONI */}
-      
-        <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
-          <div className="grid gap-8 sm:grid-cols-3">
+      <Reveal>
+        <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
+          <div className="grid items-stretch gap-6 sm:grid-cols-3 sm:gap-8">
             <Pillar
               icon={<Waves className="h-6 w-6" style={{ color: "#346739" }} />}
               title="Riverside sanctuary"
@@ -263,12 +267,11 @@ function StayLanding() {
             />
           </div>
         </section>
-      
+      </Reveal>
 
       {/* EXPERIENCES (add-ons) */}
-      
-      
-        <section className="bg-bone/40 py-16 lg:py-20">
+      <Reveal>
+        <section className="bg-bone/40 py-16 lg:py-24">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="mb-8 max-w-2xl">
               <p className="text-[0.65rem] uppercase tracking-[0.28em] text-charcoal/60">
@@ -281,7 +284,7 @@ function StayLanding() {
                 Add any of these at checkout — no separate bookings, no hidden fees.
               </p>
             </div>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-4">
               <AddOnCard
                 img={aerialImg}
                 title="Airport Transfer"
@@ -313,11 +316,11 @@ function StayLanding() {
             </p>
           </div>
         </section>
-      
+      </Reveal>
 
       {/* REVIEWS */}
-      
-        <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:py-20">
+      <Reveal>
+        <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:py-24">
           <div className="text-center">
             <p className="text-[0.65rem] uppercase tracking-[0.28em] text-charcoal/60">
               What guests say
@@ -329,7 +332,7 @@ function StayLanding() {
           <div className="mt-10 flex justify-center">
             <TripadvisorExcellentWidget />
           </div>
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
+          <div className="mt-10 grid items-stretch gap-5 md:grid-cols-3">
             <Testimonial
               quote="A perfect first night in Tanzania — quiet, comfortable, and the river is magical at dawn."
               author="Helen R."
@@ -347,11 +350,10 @@ function StayLanding() {
             />
           </div>
         </section>
-      
+      </Reveal>
 
       {/* BOOKING BENEFITS */}
-      
-        <section className="bg-charcoal text-ivory py-14">
+      <section className="bg-charcoal text-ivory py-14 lg:py-16">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               <Benefit icon={<CreditCard className="h-5 w-5" />} title="Pay 50% deposit" body="Balance on arrival — no full prepayment." />
@@ -361,11 +363,10 @@ function StayLanding() {
             </div>
           </div>
         </section>
-      
 
       {/* FINAL CTA */}
-      
-        <section className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
+      <Reveal>
+        <section className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6 lg:py-24">
           <h2 className="font-display text-3xl lg:text-4xl">
             Ready to book your riverside stay?
           </h2>
@@ -391,7 +392,7 @@ function StayLanding() {
             </a>
           </div>
         </section>
-      
+      </Reveal>
 
       {/* MINIMAL FOOTER */}
       <footer className="border-t border-charcoal/10 bg-bone/40 py-8 text-xs text-charcoal/65">
@@ -465,12 +466,12 @@ function Pillar({
   body: string;
 }) {
   return (
-    <div className="rounded-2xl border border-charcoal/10 bg-ivory p-6">
+    <div className="flex h-full flex-col rounded-2xl border border-charcoal/10 bg-ivory p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-24px_rgba(0,0,0,0.18)]">
       <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#427A43]/10">
         {icon}
       </div>
-      <h3 className="mt-4 font-display text-lg">{title}</h3>
-      <p className="mt-2 text-sm text-charcoal/70">{body}</p>
+      <h3 className="mt-4 font-display text-lg leading-snug">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-charcoal/70">{body}</p>
     </div>
   );
 }
@@ -487,16 +488,22 @@ function AddOnCard({
   body: string;
 }) {
   return (
-    <article className="overflow-hidden rounded-2xl border border-charcoal/10 bg-ivory">
-      <div className="aspect-[4/3] overflow-hidden">
-        <img src={img} alt={title} loading="lazy" className="h-full w-full object-cover" />
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-charcoal/10 bg-ivory shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_44px_-24px_rgba(0,0,0,0.22)]">
+      <div className="aspect-[4/3] overflow-hidden bg-bone">
+        <img
+          src={img}
+          alt={title}
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.04]"
+        />
       </div>
-      <div className="p-5">
-        <h3 className="font-display text-base">{title}</h3>
+      <div className="flex flex-1 flex-col p-5">
+        <h3 className="font-display text-base leading-snug">{title}</h3>
         <p className="mt-1 text-[0.7rem] uppercase tracking-[0.18em] text-charcoal/60">
           {price}
         </p>
-        <p className="mt-2 text-sm text-charcoal/70">{body}</p>
+        <p className="mt-2 text-sm leading-relaxed text-charcoal/70">{body}</p>
       </div>
     </article>
   );
@@ -512,8 +519,8 @@ function Testimonial({
   context: string;
 }) {
   return (
-    <figure className="rounded-2xl border border-charcoal/10 bg-ivory p-6">
-      <blockquote className="text-sm leading-relaxed text-charcoal/85">
+    <figure className="flex h-full flex-col rounded-2xl border border-charcoal/10 bg-ivory p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      <blockquote className="flex-1 text-sm leading-relaxed text-charcoal/85">
         “{quote}”
       </blockquote>
       <figcaption className="mt-4 text-[0.7rem] uppercase tracking-[0.22em] text-charcoal/60">
