@@ -128,12 +128,12 @@ const SECTIONS: Section[] = [
           conditions:
         </p>
         <ul className="list-disc space-y-2 pl-6">
-          <li>More than 60 days before arrival — no charge.</li>
-          <li>40–45 days before arrival — 25% charge.</li>
-          <li>30–39 days before arrival — 50% charge.</li>
-          <li>Less than 30 days before arrival — 100% charge.</li>
+          <li>More than 45 days before arrival — no charge.</li>
+          <li>45–30 days before arrival — 25% charge.</li>
+          <li>30–15 days before arrival — 50% charge.</li>
+          <li>Less than 14 days before arrival — 100% charge.</li>
+          <li>All applicable charges are based on the total booking value.</li>
         </ul>
-        <p>All applicable charges are based on the total booking value.</p>
       </>
     ),
   },
