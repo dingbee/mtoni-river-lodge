@@ -102,16 +102,10 @@ const SECTIONS: Section[] = [
     number: "07",
     title: "Payment of Bills",
     body: (
-      <ul className="list-disc space-y-2 pl-6">
-        <li>
-          All payments must be made in foreign currency or via USD account
-          cheque, unless otherwise agreed for residents.
-        </li>
-        <li>
-          Outstanding balances not settled within 30 days will incur a 10% late
-          payment fee.
-        </li>
-      </ul>
+      <p>
+        All payments may be made in foreign currency or via USD account
+        cheque, unless otherwise agreed for residents.
+      </p>
     ),
   },
   {
