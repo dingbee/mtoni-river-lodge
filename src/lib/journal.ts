@@ -4,6 +4,7 @@ import guide from "@/assets/maasai-by-river.jpg";
 import villa from "@/assets/boma-thatch-room.jpg";
 import aerial from "@/assets/aerial-lodge.jpg";
 import cottage from "@/assets/hero-cottage-exterior.jpg";
+import poolAerialAsset from "@/assets/pool-aerial-slow-living.jpg.asset.json";
 
 export type JournalPostHref =
   | "/journal/discover-mtoni-river-lodge-arusha"
@@ -43,7 +44,7 @@ const POSTS: JournalPost[] = [
       "Discover Mtoni River Lodge: A Hidden Nature Retreat in Arusha, Tanzania",
     excerpt:
       "An authentic Maasai-inspired boutique lodge on the riverbanks of Arusha — where culture, nature, and personalised hospitality meet.",
-    img: aerial,
+    img: poolAerialAsset.url,
     href: "/journal/discover-mtoni-river-lodge-arusha",
   },
   {

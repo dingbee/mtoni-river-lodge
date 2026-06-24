@@ -12,6 +12,7 @@ import familyHero from "@/assets/family-room-hero.jpg";
 import familyGallery2 from "@/assets/family-room-gallery-2.jpg";
 import familyGallery3 from "@/assets/family-room-gallery-3.jpg";
 import pool from "@/assets/pool.jpg";
+import poolAerialSlowLiving from "@/assets/pool-aerial-slow-living.jpg.asset.json";
 
 
 import diningHero from "@/assets/dining-hero.jpg";
@@ -48,6 +49,7 @@ export const GALLERY: GalleryImage[] = [
   { src: aerial, alt: "Aerial view of Mtoni River Lodge along the Nduruma River", category: "Dining" },
   { src: reception, alt: "Warm stone reception with beaded chandelier and arched doorways", category: "Architecture" },
   { src: bomaThatch, alt: "Boma-inspired thatched room", category: "Architecture" },
+  { src: poolAerialSlowLiving.url, alt: "Aerial view of the curved swimming pool and garden island at Mtoni River Lodge", category: "Architecture" },
 
   { src: suite, alt: "Candlelit bubble bath beneath a thatched roof", category: "Rooms" },
   { src: riverfrontDeluxeInterior, alt: "Riverfront Deluxe interior with antique king bed", category: "Rooms" },
