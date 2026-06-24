@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { ArticleLayout } from "@/components/site/ArticleLayout";
-import hero from "@/assets/aerial-lodge.jpg";
+import heroAsset from "@/assets/pool-aerial-slow-living.jpg.asset.json";
+const hero = heroAsset.url;
 
 const TITLE =
   "Discover Mtoni River Lodge: A Hidden Nature Retreat in Arusha, Tanzania";
