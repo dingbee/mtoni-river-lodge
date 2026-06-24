@@ -102,16 +102,10 @@ const SECTIONS: Section[] = [
     number: "07",
     title: "Payment of Bills",
     body: (
-      <ul className="list-disc space-y-2 pl-6">
-        <li>
-          All payments must be made in foreign currency or via USD account
-          cheque, unless otherwise agreed for residents.
-        </li>
-        <li>
-          Outstanding balances not settled within 30 days will incur a 10% late
-          payment fee.
-        </li>
-      </ul>
+      <p>
+        All payments may be made in foreign currency or via USD account
+        cheque, unless otherwise agreed for residents.
+      </p>
     ),
   },
   {
@@ -134,12 +128,12 @@ const SECTIONS: Section[] = [
           conditions:
         </p>
         <ul className="list-disc space-y-2 pl-6">
-          <li>More than 60 days before arrival — no charge.</li>
-          <li>40–45 days before arrival — 25% charge.</li>
-          <li>30–39 days before arrival — 50% charge.</li>
-          <li>Less than 30 days before arrival — 100% charge.</li>
+          <li>More than 45 days before arrival — no charge.</li>
+          <li>45–30 days before arrival — 25% charge.</li>
+          <li>30–15 days before arrival — 50% charge.</li>
+          <li>Less than 14 days before arrival — 100% charge.</li>
+          <li>All applicable charges are based on the total booking value.</li>
         </ul>
-        <p>All applicable charges are based on the total booking value.</p>
       </>
     ),
   },
