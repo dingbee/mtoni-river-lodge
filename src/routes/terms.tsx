@@ -52,13 +52,6 @@ const SECTIONS: Section[] = [
           A 50% deposit of the total booking value is required to secure a
           reservation.
         </p>
-        <ul className="list-disc space-y-2 pl-6">
-          <li>Deposit must be paid at least 45 days prior to arrival.</li>
-          <li>
-            Bookings made within 45 days of arrival require immediate deposit
-            payment.
-          </li>
-        </ul>
       </>
     ),
   },
@@ -69,7 +62,7 @@ const SECTIONS: Section[] = [
       <>
         <p>The remaining balance must be settled:</p>
         <ul className="list-disc space-y-2 pl-6">
-          <li>30 days prior to arrival, or</li>
+          <li>30 days prior to arrival, or upon arrival, or</li>
           <li>As otherwise agreed in writing with management.</li>
         </ul>
         <p>
