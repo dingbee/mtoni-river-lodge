@@ -18,7 +18,7 @@ const RELATED = [
   { to: "/rooms", label: "Explore Our Rooms", description: "Maasai-inspired cottages and riverfront suites set within the lodge gardens." },
   { to: "/experiences", label: "Discover Our Experiences", description: "Cultural walks, coffee mornings, and gentle journeys around Arusha." },
   { to: "/gallery", label: "View the Gallery", description: "A visual journey through Mtoni — architecture, gardens, river, and light." },
-  { to: "/about-us", label: "Learn More About Mtoni", description: "Our story, our people, and the philosophy that shapes the lodge." },
+  { to: "/lodge", label: "Learn More About Mtoni", description: "Our story, our people, and the philosophy that shapes the lodge." },
   { to: "/contact", label: "Contact Our Team", description: "Plan transfers, excursions, and tailored stays with our hosts." },
 ];
 
@@ -158,7 +158,7 @@ function ArticlePage() {
           a family holiday, or a peaceful retreat surrounded by nature, Mtoni
           River Lodge provides a unique setting that captures the spirit of
           Tanzania. You can{" "}
-          <Link to="/about-us" className={linkCls}>learn more about Mtoni</Link>{" "}
+          <Link to="/lodge" className={linkCls}>learn more about Mtoni</Link>{" "}
           and the philosophy behind the lodge.
         </p>
       </Reveal>

@@ -28,6 +28,7 @@ import { Route as PlanRouteImport } from './routes/plan'
 import { Route as MountKilimanjaroAccommodationArushaRouteImport } from './routes/mount-kilimanjaro-accommodation-arusha'
 import { Route as LodgeRouteImport } from './routes/lodge'
 import { Route as JournalRouteImport } from './routes/journal'
+import { Route as HelloWorldRouteImport } from './routes/hello-world'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as ExperiencesRouteImport } from './routes/experiences'
 import { Route as DiningLeisureRouteImport } from './routes/dining-leisure'
@@ -43,6 +44,11 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RoomsIndexRouteImport } from './routes/rooms.index'
 import { Route as JournalIndexRouteImport } from './routes/journal.index'
+import { Route as WpJsonSplatRouteImport } from './routes/wp-json.$'
+import { Route as WpIncludesSplatRouteImport } from './routes/wp-includes.$'
+import { Route as WpContentSplatRouteImport } from './routes/wp-content.$'
+import { Route as WpAdminSplatRouteImport } from './routes/wp-admin.$'
+import { Route as TagSplatRouteImport } from './routes/tag.$'
 import { Route as RoomsStandardRiverRouteImport } from './routes/rooms.standard-river'
 import { Route as RoomsRiverfrontDeluxeRouteImport } from './routes/rooms.riverfront-deluxe'
 import { Route as RoomsFamilyRoomRouteImport } from './routes/rooms.family-room'
@@ -55,8 +61,11 @@ import { Route as JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRo
 import { Route as JournalDiscoverMtoniRiverLodgeArushaRouteImport } from './routes/journal.discover-mtoni-river-lodge-arusha'
 import { Route as JournalBuildingWithTheCommunityRouteImport } from './routes/journal.building-with-the-community'
 import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './routes/journal.a-morning-with-the-beekeepers-of-gomba'
+import { Route as FeedSplatRouteImport } from './routes/feed.$'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
+import { Route as CategorySplatRouteImport } from './routes/category.$'
 import { Route as BookingReturnRouteImport } from './routes/booking.return'
+import { Route as AuthorSplatRouteImport } from './routes/author.$'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
 import { Route as AuthenticatedAdminFrontDeskRouteImport } from './routes/_authenticated.admin.front-desk'
@@ -165,6 +174,11 @@ const JournalRoute = JournalRouteImport.update({
   path: '/journal',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelloWorldRoute = HelloWorldRouteImport.update({
+  id: '/hello-world',
+  path: '/hello-world',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GalleryRoute = GalleryRouteImport.update({
   id: '/gallery',
   path: '/gallery',
@@ -239,6 +253,31 @@ const JournalIndexRoute = JournalIndexRouteImport.update({
   path: '/',
   getParentRoute: () => JournalRoute,
 } as any)
+const WpJsonSplatRoute = WpJsonSplatRouteImport.update({
+  id: '/wp-json/$',
+  path: '/wp-json/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WpIncludesSplatRoute = WpIncludesSplatRouteImport.update({
+  id: '/wp-includes/$',
+  path: '/wp-includes/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WpContentSplatRoute = WpContentSplatRouteImport.update({
+  id: '/wp-content/$',
+  path: '/wp-content/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WpAdminSplatRoute = WpAdminSplatRouteImport.update({
+  id: '/wp-admin/$',
+  path: '/wp-admin/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TagSplatRoute = TagSplatRouteImport.update({
+  id: '/tag/$',
+  path: '/tag/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RoomsStandardRiverRoute = RoomsStandardRiverRouteImport.update({
   id: '/standard-river',
   path: '/standard-river',
@@ -310,14 +349,29 @@ const JournalAMorningWithTheBeekeepersOfGombaRoute =
     path: '/a-morning-with-the-beekeepers-of-gomba',
     getParentRoute: () => JournalRoute,
   } as any)
+const FeedSplatRoute = FeedSplatRouteImport.update({
+  id: '/feed/$',
+  path: '/feed/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CategorySplatRoute = CategorySplatRouteImport.update({
+  id: '/category/$',
+  path: '/category/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BookingReturnRoute = BookingReturnRouteImport.update({
   id: '/booking/return',
   path: '/booking/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthorSplatRoute = AuthorSplatRouteImport.update({
+  id: '/author/$',
+  path: '/author/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
@@ -391,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/dining-leisure': typeof DiningLeisureRoute
   '/experiences': typeof ExperiencesRoute
   '/gallery': typeof GalleryRoute
+  '/hello-world': typeof HelloWorldRoute
   '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/mount-kilimanjaro-accommodation-arusha': typeof MountKilimanjaroAccommodationArushaRoute
@@ -410,8 +465,11 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/vote': typeof VoteRoute
+  '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
+  '/category/$': typeof CategorySplatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/feed/$': typeof FeedSplatRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discover-mtoni-river-lodge-arusha': typeof JournalDiscoverMtoniRiverLodgeArushaRoute
@@ -424,6 +482,11 @@ export interface FileRoutesByFullPath {
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
+  '/tag/$': typeof TagSplatRoute
+  '/wp-admin/$': typeof WpAdminSplatRoute
+  '/wp-content/$': typeof WpContentSplatRoute
+  '/wp-includes/$': typeof WpIncludesSplatRoute
+  '/wp-json/$': typeof WpJsonSplatRoute
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
@@ -450,6 +513,7 @@ export interface FileRoutesByTo {
   '/dining-leisure': typeof DiningLeisureRoute
   '/experiences': typeof ExperiencesRoute
   '/gallery': typeof GalleryRoute
+  '/hello-world': typeof HelloWorldRoute
   '/lodge': typeof LodgeRoute
   '/mount-kilimanjaro-accommodation-arusha': typeof MountKilimanjaroAccommodationArushaRoute
   '/plan': typeof PlanRoute
@@ -467,8 +531,11 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/vote': typeof VoteRoute
+  '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
+  '/category/$': typeof CategorySplatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/feed/$': typeof FeedSplatRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discover-mtoni-river-lodge-arusha': typeof JournalDiscoverMtoniRiverLodgeArushaRoute
@@ -481,6 +548,11 @@ export interface FileRoutesByTo {
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
+  '/tag/$': typeof TagSplatRoute
+  '/wp-admin/$': typeof WpAdminSplatRoute
+  '/wp-content/$': typeof WpContentSplatRoute
+  '/wp-includes/$': typeof WpIncludesSplatRoute
+  '/wp-json/$': typeof WpJsonSplatRoute
   '/journal': typeof JournalIndexRoute
   '/rooms': typeof RoomsIndexRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
@@ -509,6 +581,7 @@ export interface FileRoutesById {
   '/dining-leisure': typeof DiningLeisureRoute
   '/experiences': typeof ExperiencesRoute
   '/gallery': typeof GalleryRoute
+  '/hello-world': typeof HelloWorldRoute
   '/journal': typeof JournalRouteWithChildren
   '/lodge': typeof LodgeRoute
   '/mount-kilimanjaro-accommodation-arusha': typeof MountKilimanjaroAccommodationArushaRoute
@@ -528,8 +601,11 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/vote': typeof VoteRoute
+  '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
+  '/category/$': typeof CategorySplatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/feed/$': typeof FeedSplatRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discover-mtoni-river-lodge-arusha': typeof JournalDiscoverMtoniRiverLodgeArushaRoute
@@ -542,6 +618,11 @@ export interface FileRoutesById {
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
+  '/tag/$': typeof TagSplatRoute
+  '/wp-admin/$': typeof WpAdminSplatRoute
+  '/wp-content/$': typeof WpContentSplatRoute
+  '/wp-includes/$': typeof WpIncludesSplatRoute
+  '/wp-json/$': typeof WpJsonSplatRoute
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
@@ -570,6 +651,7 @@ export interface FileRouteTypes {
     | '/dining-leisure'
     | '/experiences'
     | '/gallery'
+    | '/hello-world'
     | '/journal'
     | '/lodge'
     | '/mount-kilimanjaro-accommodation-arusha'
@@ -589,8 +671,11 @@ export interface FileRouteTypes {
     | '/terms'
     | '/unsubscribe'
     | '/vote'
+    | '/author/$'
     | '/booking/return'
+    | '/category/$'
     | '/email/unsubscribe'
+    | '/feed/$'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/building-with-the-community'
     | '/journal/discover-mtoni-river-lodge-arusha'
@@ -603,6 +688,11 @@ export interface FileRouteTypes {
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
+    | '/tag/$'
+    | '/wp-admin/$'
+    | '/wp-content/$'
+    | '/wp-includes/$'
+    | '/wp-json/$'
     | '/journal/'
     | '/rooms/'
     | '/admin/bookings'
@@ -629,6 +719,7 @@ export interface FileRouteTypes {
     | '/dining-leisure'
     | '/experiences'
     | '/gallery'
+    | '/hello-world'
     | '/lodge'
     | '/mount-kilimanjaro-accommodation-arusha'
     | '/plan'
@@ -646,8 +737,11 @@ export interface FileRouteTypes {
     | '/terms'
     | '/unsubscribe'
     | '/vote'
+    | '/author/$'
     | '/booking/return'
+    | '/category/$'
     | '/email/unsubscribe'
+    | '/feed/$'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/building-with-the-community'
     | '/journal/discover-mtoni-river-lodge-arusha'
@@ -660,6 +754,11 @@ export interface FileRouteTypes {
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
+    | '/tag/$'
+    | '/wp-admin/$'
+    | '/wp-content/$'
+    | '/wp-includes/$'
+    | '/wp-json/$'
     | '/journal'
     | '/rooms'
     | '/admin/bookings'
@@ -687,6 +786,7 @@ export interface FileRouteTypes {
     | '/dining-leisure'
     | '/experiences'
     | '/gallery'
+    | '/hello-world'
     | '/journal'
     | '/lodge'
     | '/mount-kilimanjaro-accommodation-arusha'
@@ -706,8 +806,11 @@ export interface FileRouteTypes {
     | '/terms'
     | '/unsubscribe'
     | '/vote'
+    | '/author/$'
     | '/booking/return'
+    | '/category/$'
     | '/email/unsubscribe'
+    | '/feed/$'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/building-with-the-community'
     | '/journal/discover-mtoni-river-lodge-arusha'
@@ -720,6 +823,11 @@ export interface FileRouteTypes {
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
+    | '/tag/$'
+    | '/wp-admin/$'
+    | '/wp-content/$'
+    | '/wp-includes/$'
+    | '/wp-json/$'
     | '/journal/'
     | '/rooms/'
     | '/_authenticated/admin/bookings'
@@ -748,6 +856,7 @@ export interface RootRouteChildren {
   DiningLeisureRoute: typeof DiningLeisureRoute
   ExperiencesRoute: typeof ExperiencesRoute
   GalleryRoute: typeof GalleryRoute
+  HelloWorldRoute: typeof HelloWorldRoute
   JournalRoute: typeof JournalRouteWithChildren
   LodgeRoute: typeof LodgeRoute
   MountKilimanjaroAccommodationArushaRoute: typeof MountKilimanjaroAccommodationArushaRoute
@@ -767,8 +876,16 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   VoteRoute: typeof VoteRoute
+  AuthorSplatRoute: typeof AuthorSplatRoute
   BookingReturnRoute: typeof BookingReturnRoute
+  CategorySplatRoute: typeof CategorySplatRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
+  FeedSplatRoute: typeof FeedSplatRoute
+  TagSplatRoute: typeof TagSplatRoute
+  WpAdminSplatRoute: typeof WpAdminSplatRoute
+  WpContentSplatRoute: typeof WpContentSplatRoute
+  WpIncludesSplatRoute: typeof WpIncludesSplatRoute
+  WpJsonSplatRoute: typeof WpJsonSplatRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicOpsDrainRoute: typeof ApiPublicOpsDrainRoute
   ApiPublicOpsMorningDigestRoute: typeof ApiPublicOpsMorningDigestRoute
@@ -913,6 +1030,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JournalRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hello-world': {
+      id: '/hello-world'
+      path: '/hello-world'
+      fullPath: '/hello-world'
+      preLoaderRoute: typeof HelloWorldRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/gallery': {
       id: '/gallery'
       path: '/gallery'
@@ -1018,6 +1142,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JournalIndexRouteImport
       parentRoute: typeof JournalRoute
     }
+    '/wp-json/$': {
+      id: '/wp-json/$'
+      path: '/wp-json/$'
+      fullPath: '/wp-json/$'
+      preLoaderRoute: typeof WpJsonSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wp-includes/$': {
+      id: '/wp-includes/$'
+      path: '/wp-includes/$'
+      fullPath: '/wp-includes/$'
+      preLoaderRoute: typeof WpIncludesSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wp-content/$': {
+      id: '/wp-content/$'
+      path: '/wp-content/$'
+      fullPath: '/wp-content/$'
+      preLoaderRoute: typeof WpContentSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wp-admin/$': {
+      id: '/wp-admin/$'
+      path: '/wp-admin/$'
+      fullPath: '/wp-admin/$'
+      preLoaderRoute: typeof WpAdminSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tag/$': {
+      id: '/tag/$'
+      path: '/tag/$'
+      fullPath: '/tag/$'
+      preLoaderRoute: typeof TagSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/rooms/standard-river': {
       id: '/rooms/standard-river'
       path: '/standard-river'
@@ -1102,6 +1261,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRouteImport
       parentRoute: typeof JournalRoute
     }
+    '/feed/$': {
+      id: '/feed/$'
+      path: '/feed/$'
+      fullPath: '/feed/$'
+      preLoaderRoute: typeof FeedSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/email/unsubscribe': {
       id: '/email/unsubscribe'
       path: '/email/unsubscribe'
@@ -1109,11 +1275,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/category/$': {
+      id: '/category/$'
+      path: '/category/$'
+      fullPath: '/category/$'
+      preLoaderRoute: typeof CategorySplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/booking/return': {
       id: '/booking/return'
       path: '/booking/return'
       fullPath: '/booking/return'
       preLoaderRoute: typeof BookingReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/author/$': {
+      id: '/author/$'
+      path: '/author/$'
+      fullPath: '/author/$'
+      preLoaderRoute: typeof AuthorSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lovable/email/suppression': {
@@ -1271,6 +1451,7 @@ const rootRouteChildren: RootRouteChildren = {
   DiningLeisureRoute: DiningLeisureRoute,
   ExperiencesRoute: ExperiencesRoute,
   GalleryRoute: GalleryRoute,
+  HelloWorldRoute: HelloWorldRoute,
   JournalRoute: JournalRouteWithChildren,
   LodgeRoute: LodgeRoute,
   MountKilimanjaroAccommodationArushaRoute:
@@ -1291,8 +1472,16 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   VoteRoute: VoteRoute,
+  AuthorSplatRoute: AuthorSplatRoute,
   BookingReturnRoute: BookingReturnRoute,
+  CategorySplatRoute: CategorySplatRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
+  FeedSplatRoute: FeedSplatRoute,
+  TagSplatRoute: TagSplatRoute,
+  WpAdminSplatRoute: WpAdminSplatRoute,
+  WpContentSplatRoute: WpContentSplatRoute,
+  WpIncludesSplatRoute: WpIncludesSplatRoute,
+  WpJsonSplatRoute: WpJsonSplatRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicOpsDrainRoute: ApiPublicOpsDrainRoute,
   ApiPublicOpsMorningDigestRoute: ApiPublicOpsMorningDigestRoute,
