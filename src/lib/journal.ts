@@ -5,10 +5,12 @@ import villa from "@/assets/boma-thatch-room.jpg";
 import aerial from "@/assets/aerial-lodge.jpg";
 import cottage from "@/assets/hero-cottage-exterior.jpg";
 import poolAerialAsset from "@/assets/pool-aerial-slow-living.jpg.asset.json";
+import lodgeAerial from "@/assets/lodge-hero-aerial.jpg";
 
 export type JournalPostHref =
   | "/journal/discover-mtoni-river-lodge-arusha"
   | "/journal/perfect-arusha-stay-for-safari-travelers-2026"
+  | "/journal/where-to-stay-before-climbing-mount-kilimanjaro"
   | "/journal/discovering-arusha-through-nature-and-authentic-hospitality"
   | "/journal/what-the-river-has-taught-us-about-time"
   | "/journal/life-along-the-nduruma-river"
@@ -35,6 +37,17 @@ export type JournalPost = {
  * widgets will automatically display them in reverse chronological order.
  */
 const POSTS: JournalPost[] = [
+  {
+    publishedAt: "2026-06-29",
+    createdAt: "2026-06-29T00:00:00Z",
+    date: "June 2026",
+    read: "7 min",
+    title: "Where to Stay Before Climbing Mount Kilimanjaro",
+    excerpt:
+      "A practical guide to choosing accommodation in Arusha before your Kilimanjaro trek — and why a peaceful riverfront lodge sets the right tone for the climb ahead.",
+    img: lodgeAerial,
+    href: "/journal/where-to-stay-before-climbing-mount-kilimanjaro",
+  },
   {
     publishedAt: "2026-06-21",
     createdAt: "2026-06-21T00:00:00Z",
