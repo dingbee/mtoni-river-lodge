@@ -52,6 +52,7 @@ import { Route as TagSplatRouteImport } from './routes/tag.$'
 import { Route as RoomsStandardRiverRouteImport } from './routes/rooms.standard-river'
 import { Route as RoomsRiverfrontDeluxeRouteImport } from './routes/rooms.riverfront-deluxe'
 import { Route as RoomsFamilyRoomRouteImport } from './routes/rooms.family-room'
+import { Route as JournalWhereToStayBeforeClimbingMountKilimanjaroRouteImport } from './routes/journal.where-to-stay-before-climbing-mount-kilimanjaro'
 import { Route as JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport } from './routes/journal.what-the-river-has-taught-us-about-time'
 import { Route as JournalTheArchitectureOfDisappearingRouteImport } from './routes/journal.the-architecture-of-disappearing'
 import { Route as JournalReadingTheSkyOverMountMeruRouteImport } from './routes/journal.reading-the-sky-over-mount-meru'
@@ -293,6 +294,12 @@ const RoomsFamilyRoomRoute = RoomsFamilyRoomRouteImport.update({
   path: '/family-room',
   getParentRoute: () => RoomsRoute,
 } as any)
+const JournalWhereToStayBeforeClimbingMountKilimanjaroRoute =
+  JournalWhereToStayBeforeClimbingMountKilimanjaroRouteImport.update({
+    id: '/where-to-stay-before-climbing-mount-kilimanjaro',
+    path: '/where-to-stay-before-climbing-mount-kilimanjaro',
+    getParentRoute: () => JournalRoute,
+  } as any)
 const JournalWhatTheRiverHasTaughtUsAboutTimeRoute =
   JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport.update({
     id: '/what-the-river-has-taught-us-about-time',
@@ -479,6 +486,7 @@ export interface FileRoutesByFullPath {
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
+  '/journal/where-to-stay-before-climbing-mount-kilimanjaro': typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
@@ -545,6 +553,7 @@ export interface FileRoutesByTo {
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
+  '/journal/where-to-stay-before-climbing-mount-kilimanjaro': typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
@@ -615,6 +624,7 @@ export interface FileRoutesById {
   '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
+  '/journal/where-to-stay-before-climbing-mount-kilimanjaro': typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
@@ -685,6 +695,7 @@ export interface FileRouteTypes {
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
+    | '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
@@ -751,6 +762,7 @@ export interface FileRouteTypes {
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
+    | '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
@@ -820,6 +832,7 @@ export interface FileRouteTypes {
     | '/journal/reading-the-sky-over-mount-meru'
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
+    | '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
@@ -1198,6 +1211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RoomsFamilyRoomRouteImport
       parentRoute: typeof RoomsRoute
     }
+    '/journal/where-to-stay-before-climbing-mount-kilimanjaro': {
+      id: '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
+      path: '/where-to-stay-before-climbing-mount-kilimanjaro'
+      fullPath: '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
+      preLoaderRoute: typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRouteImport
+      parentRoute: typeof JournalRoute
+    }
     '/journal/what-the-river-has-taught-us-about-time': {
       id: '/journal/what-the-river-has-taught-us-about-time'
       path: '/what-the-river-has-taught-us-about-time'
@@ -1395,6 +1415,7 @@ interface JournalRouteChildren {
   JournalReadingTheSkyOverMountMeruRoute: typeof JournalReadingTheSkyOverMountMeruRoute
   JournalTheArchitectureOfDisappearingRoute: typeof JournalTheArchitectureOfDisappearingRoute
   JournalWhatTheRiverHasTaughtUsAboutTimeRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
+  JournalWhereToStayBeforeClimbingMountKilimanjaroRoute: typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRoute
   JournalIndexRoute: typeof JournalIndexRoute
 }
 
@@ -1415,6 +1436,8 @@ const JournalRouteChildren: JournalRouteChildren = {
     JournalTheArchitectureOfDisappearingRoute,
   JournalWhatTheRiverHasTaughtUsAboutTimeRoute:
     JournalWhatTheRiverHasTaughtUsAboutTimeRoute,
+  JournalWhereToStayBeforeClimbingMountKilimanjaroRoute:
+    JournalWhereToStayBeforeClimbingMountKilimanjaroRoute,
   JournalIndexRoute: JournalIndexRoute,
 }
 
