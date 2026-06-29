@@ -1,14 +1,16 @@
 import { ShieldCheck, Heart, KeyRound } from "lucide-react";
-import { Stars } from "./Stars";
 import { ReviewCard } from "./ReviewCard";
-import { useApprovedReviews, useReviewAggregates, getAggregate } from "./useReviewData";
-import { TRIPADVISOR_URL, GOOGLE_REVIEWS_URL, formatReviewCount } from "@/lib/reviews";
+import { useApprovedReviews } from "./useReviewData";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 export function BookingTrustBlock() {
-  const { data: aggregates } = useReviewAggregates();
-  const { data: reviews = [] } = useApprovedReviews({ featuredOnly: true, limit: 3 });
-  const google = getAggregate(aggregates, "google");
-  const ta = getAggregate(aggregates, "tripadvisor");
+  const { data: reviews = [] } = useApprovedReviews({ featuredOnly: true, limit: 9 });
 
   return (
     <section aria-label="Why guests book direct" className="border-y border-charcoal/10 bg-bone px-6 py-10 lg:px-12 lg:py-12">
@@ -19,31 +21,6 @@ export function BookingTrustBlock() {
             <h2 className="mt-3 font-display text-2xl leading-snug lg:text-3xl">
               Book direct with confidence.
             </h2>
-
-            <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-4">
-              {google && (
-                <a href={GOOGLE_REVIEWS_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 hover:opacity-80">
-                  <span className="font-display text-2xl leading-none">{google.average_rating.toFixed(1)}</span>
-                  <div>
-                    <Stars rating={google.average_rating} size="xs" />
-                    <p className="mt-1 text-[0.6rem] uppercase tracking-[0.24em] text-charcoal/55">
-                      Google · {formatReviewCount(google.review_count, "google")} reviews
-                    </p>
-                  </div>
-                </a>
-              )}
-              {ta && (
-                <a href={TRIPADVISOR_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 hover:opacity-80">
-                  <span className="font-display text-2xl leading-none">{ta.average_rating.toFixed(1)}</span>
-                  <div>
-                    <Stars rating={ta.average_rating} size="xs" />
-                    <p className="mt-1 text-[0.6rem] uppercase tracking-[0.24em] text-charcoal/55">
-                      Tripadvisor · {formatReviewCount(ta.review_count, "tripadvisor")} reviews
-                    </p>
-                  </div>
-                </a>
-              )}
-            </div>
 
             <ul className="mt-7 space-y-3 text-sm text-charcoal/75">
               {[
@@ -60,16 +37,32 @@ export function BookingTrustBlock() {
           </div>
 
           <div className="lg:col-span-7">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {reviews.slice(0, 3).map((r) => (
-                <ReviewCard key={r.id} review={r} compact />
-              ))}
-              {reviews.length === 0 && (
-                <p className="col-span-full rounded-2xl border border-dashed border-charcoal/15 p-6 text-center text-sm text-charcoal/60">
-                  Featured guest reviews appear here.
-                </p>
-              )}
-            </div>
+            <Carousel
+              opts={{ align: "start", containScroll: "trimSnaps", dragFree: false }}
+              className="w-full"
+            >
+              <CarouselContent className="-ml-4">
+                {reviews.map((r) => (
+                  <CarouselItem
+                    key={r.id}
+                    className="basis-[82%] pl-4 sm:basis-1/2 lg:basis-1/2 xl:basis-1/3"
+                  >
+                    <div className="h-full">
+                      <ReviewCard review={r} compact />
+                    </div>
+                  </CarouselItem>
+                ))}
+                {reviews.length === 0 && (
+                  <CarouselItem className="basis-full pl-4">
+                    <p className="rounded-2xl border border-dashed border-charcoal/15 p-6 text-center text-sm text-charcoal/60">
+                      Featured guest reviews appear here.
+                    </p>
+                  </CarouselItem>
+                )}
+              </CarouselContent>
+              <CarouselPrevious className="hidden lg:-left-4 lg:flex" />
+              <CarouselNext className="hidden lg:-right-4 lg:flex" />
+            </Carousel>
           </div>
         </div>
       </div>
