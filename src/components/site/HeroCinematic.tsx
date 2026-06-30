@@ -157,7 +157,7 @@ export function HeroCinematic({
   return (
     <section
       ref={sectionRef}
-      className="relative mb-20 h-[88svh] min-h-[640px] w-full overflow-hidden bg-charcoal"
+      className="relative h-[88svh] min-h-[640px] w-full overflow-hidden bg-charcoal"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >

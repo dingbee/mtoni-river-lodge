@@ -6,6 +6,7 @@ import { Reveal } from "@/components/site/Reveal";
 import { LocationMap } from "@/components/site/LocationMap";
 import { HeroCinematic } from "@/components/site/HeroCinematic";
 import { GuestExperiencesSection } from "@/components/site/reviews/GuestExperiencesSection";
+import { GuestQuickAccess } from "@/components/site/GuestQuickAccess";
 import { FAQ } from "@/components/FAQ";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
 import { RESERVATIONS_NOTE } from "@/lib/contact";
@@ -117,6 +118,8 @@ function HomePage() {
         ]}
         slideDurationMs={7000}
       />
+
+      <GuestQuickAccess />
 
       {/* INTRO / NARRATIVE */}
       <section className="relative px-6 pb-32 pt-12 lg:px-12 lg:pb-48 lg:pt-28">
