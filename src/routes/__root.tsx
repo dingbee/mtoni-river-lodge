@@ -77,21 +77,44 @@ export const Route = createRootRoute({
       { rel: "manifest", href: "/site.webmanifest" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" },
+      // Non-blocking font load: fetched as low-priority print stylesheet, then
+      // swapped to all media via the inline script below. Falls back to a
+      // plain stylesheet via <noscript>.
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap",
+        media: "print",
+        // The onload swap is wired via the inline script in scripts[] below
+        // (TanStack head() does not accept event-handler attributes here).
+        // We tag it so the script can find it.
+        "data-font-stylesheet": "google",
+      } as unknown as { rel: string; href: string },
     ],
     scripts: [
+      // Promote the deferred Google Fonts stylesheet from media="print" to
+      // all media as soon as the browser has a chance — keeps fonts off the
+      // critical render path without delaying their first paint.
       {
         type: "text/javascript",
-        async: true,
-        src: "https://www.googletagmanager.com/gtag/js?id=G-367QZR4VD6",
+        children: `(function(){var l=document.querySelector('link[data-font-stylesheet="google"]');if(l){l.media='all';}})();`,
       },
+      // Defer Google Analytics until idle / first interaction so it never
+      // competes with LCP or INP on mobile. trackPageView() calls before
+      // gtag loads are simply no-ops (they're not critical for SEO).
       {
         type: "text/javascript",
         children: `
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
+          window.gtag = gtag;
           gtag('js', new Date());
           gtag('config', 'G-367QZR4VD6', { send_page_view: false });
+          var loaded=false;
+          function loadGA(){if(loaded)return;loaded=true;var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-367QZR4VD6';document.head.appendChild(s);}
+          var evts=['scroll','keydown','mousemove','touchstart','pointerdown'];
+          function trigger(){evts.forEach(function(e){window.removeEventListener(e,trigger,{passive:true});});loadGA();}
+          if(document.readyState==='complete'){setTimeout(function(){('requestIdleCallback'in window)?requestIdleCallback(loadGA,{timeout:4000}):setTimeout(loadGA,2500);},0);}else{window.addEventListener('load',function(){('requestIdleCallback'in window)?requestIdleCallback(loadGA,{timeout:4000}):setTimeout(loadGA,2500);},{once:true});}
+          evts.forEach(function(e){window.addEventListener(e,trigger,{passive:true,once:true});});
         `,
       },
       {
