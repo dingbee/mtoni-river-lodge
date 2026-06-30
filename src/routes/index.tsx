@@ -119,6 +119,8 @@ function HomePage() {
         slideDurationMs={7000}
       />
 
+      <GuestQuickAccess />
+
       {/* INTRO / NARRATIVE */}
       <section className="relative px-6 pb-32 pt-12 lg:px-12 lg:pb-48 lg:pt-28">
         <div className="mx-auto grid max-w-[1300px] gap-16 lg:grid-cols-12">
