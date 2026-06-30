@@ -10,5 +10,43 @@
   "icons": [
     { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Book a Room",
+      "short_name": "Book",
+      "description": "Check availability and reserve your stay at Mtoni River Lodge.",
+      "url": "/book",
+      "icons": [
+        { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    },
+    {
+      "name": "Contact Reception",
+      "short_name": "Contact",
+      "description": "Reach our reservations team for assistance.",
+      "url": "/contact",
+      "icons": [
+        { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    },
+    {
+      "name": "Experiences",
+      "short_name": "Experiences",
+      "description": "Explore curated experiences at Mtoni River Lodge.",
+      "url": "/experiences",
+      "icons": [
+        { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    },
+    {
+      "name": "Find Us",
+      "short_name": "Directions",
+      "description": "Get directions to Mtoni River Lodge in Arusha.",
+      "url": "/contact#location",
+      "icons": [
+        { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    }
   ]
 }
