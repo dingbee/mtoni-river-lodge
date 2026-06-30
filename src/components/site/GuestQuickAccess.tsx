@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   BedSingle,
@@ -11,6 +12,75 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_URL, DIRECTIONS_URL } from "@/lib/contact";
+
+function getIsStandalone(): boolean {
+  if (typeof window === "undefined") return false;
+
+  // iOS Safari / WebClip (iPhone/iPad Add to Home Screen)
+  if ((window.navigator as { standalone?: boolean }).standalone === true) {
+    return true;
+  }
+
+  // Chrome/Edge/Android desktop-installed PWA modes
+  if (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.matchMedia("(display-mode: window-controls-overlay)").matches
+  ) {
+    return true;
+  }
+
+  // Android Trusted Web Activity (TWA) / opened from Google Play
+  if (document.referrer?.startsWith("android-app://")) {
+    return true;
+  }
+
+  return false;
+}
+
+function useIsStandalonePWA(): boolean {
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    // Avoid hydration mismatch by only detecting on the client.
+    setIsStandalone(getIsStandalone());
+
+    const standaloneQuery = window.matchMedia("(display-mode: standalone)");
+    const overlayQuery = window.matchMedia(
+      "(display-mode: window-controls-overlay)"
+    );
+
+    const update = () => setIsStandalone(getIsStandalone());
+
+    // Modern API first, with legacy addListener fallback for older Safari.
+    if (typeof standaloneQuery.addEventListener === "function") {
+      standaloneQuery.addEventListener("change", update);
+      overlayQuery.addEventListener("change", update);
+    } else {
+      (standaloneQuery as { addListener?: (cb: () => void) => void }).addListener?.(
+        update
+      );
+      (overlayQuery as { addListener?: (cb: () => void) => void }).addListener?.(
+        update
+      );
+    }
+
+    return () => {
+      if (typeof standaloneQuery.removeEventListener === "function") {
+        standaloneQuery.removeEventListener("change", update);
+        overlayQuery.removeEventListener("change", update);
+      } else {
+        (
+          standaloneQuery as { removeListener?: (cb: () => void) => void }
+        ).removeListener?.(update);
+        (
+          overlayQuery as { removeListener?: (cb: () => void) => void }
+        ).removeListener?.(update);
+      }
+    };
+  }, []);
+
+  return isStandalone;
+}
 
 const items = [
   {
@@ -125,6 +195,14 @@ function ActionCard({
 }
 
 export function GuestQuickAccess() {
+  const isStandalone = useIsStandalonePWA();
+
+  // Render nothing on the server and during normal browser visits.
+  // This preserves the existing homepage layout for non-PWA users.
+  if (!isStandalone) {
+    return null;
+  }
+
   return (
     <section
       aria-label="Guest quick access"
