@@ -4,6 +4,8 @@ export const WHATSAPP_URL =
 export const WHATSAPP_NOTE =
   "Speak with our team instantly on WhatsApp for availability and personalized arrangements.";
 
+export const DIRECTIONS_URL = "https://www.google.com/maps?q=Mtoni+River+Lodge";
+
 /**
  * Premium hospitality copy used near primary booking CTAs. Positions the
  * online booking engine as the path to reserve, with the team available
