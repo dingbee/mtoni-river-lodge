@@ -13,8 +13,6 @@ import { Route as VoteRouteImport } from './routes/vote'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SuitesRouteImport } from './routes/suites'
-import { Route as StayStaticRouteImport } from './routes/stay-static'
-import { Route as StayRouteImport } from './routes/stay'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SitemapPagesDotxmlRouteImport } from './routes/sitemap-pages[.]xml'
 import { Route as SitemapJournalDotxmlRouteImport } from './routes/sitemap-journal[.]xml'
@@ -96,16 +94,6 @@ const TermsRoute = TermsRouteImport.update({
 const SuitesRoute = SuitesRouteImport.update({
   id: '/suites',
   path: '/suites',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StayStaticRoute = StayStaticRouteImport.update({
-  id: '/stay-static',
-  path: '/stay-static',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StayRoute = StayRouteImport.update({
-  id: '/stay',
-  path: '/stay',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -466,8 +454,6 @@ export interface FileRoutesByFullPath {
   '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
   '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/stay': typeof StayRoute
-  '/stay-static': typeof StayStaticRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
@@ -533,8 +519,6 @@ export interface FileRoutesByTo {
   '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
   '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/stay': typeof StayRoute
-  '/stay-static': typeof StayStaticRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
@@ -604,8 +588,6 @@ export interface FileRoutesById {
   '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
   '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/stay': typeof StayRoute
-  '/stay-static': typeof StayStaticRoute
   '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
@@ -675,8 +657,6 @@ export interface FileRouteTypes {
     | '/sitemap-journal.xml'
     | '/sitemap-pages.xml'
     | '/sitemap.xml'
-    | '/stay'
-    | '/stay-static'
     | '/suites'
     | '/terms'
     | '/unsubscribe'
@@ -742,8 +722,6 @@ export interface FileRouteTypes {
     | '/sitemap-journal.xml'
     | '/sitemap-pages.xml'
     | '/sitemap.xml'
-    | '/stay'
-    | '/stay-static'
     | '/suites'
     | '/terms'
     | '/unsubscribe'
@@ -812,8 +790,6 @@ export interface FileRouteTypes {
     | '/sitemap-journal.xml'
     | '/sitemap-pages.xml'
     | '/sitemap.xml'
-    | '/stay'
-    | '/stay-static'
     | '/suites'
     | '/terms'
     | '/unsubscribe'
@@ -883,8 +859,6 @@ export interface RootRouteChildren {
   SitemapJournalDotxmlRoute: typeof SitemapJournalDotxmlRoute
   SitemapPagesDotxmlRoute: typeof SitemapPagesDotxmlRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  StayRoute: typeof StayRoute
-  StayStaticRoute: typeof StayStaticRoute
   SuitesRoute: typeof SuitesRoute
   TermsRoute: typeof TermsRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
@@ -936,20 +910,6 @@ declare module '@tanstack/react-router' {
       path: '/suites'
       fullPath: '/suites'
       preLoaderRoute: typeof SuitesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/stay-static': {
-      id: '/stay-static'
-      path: '/stay-static'
-      fullPath: '/stay-static'
-      preLoaderRoute: typeof StayStaticRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/stay': {
-      id: '/stay'
-      path: '/stay'
-      fullPath: '/stay'
-      preLoaderRoute: typeof StayRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -1489,8 +1449,6 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapJournalDotxmlRoute: SitemapJournalDotxmlRoute,
   SitemapPagesDotxmlRoute: SitemapPagesDotxmlRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
-  StayRoute: StayRoute,
-  StayStaticRoute: StayStaticRoute,
   SuitesRoute: SuitesRoute,
   TermsRoute: TermsRoute,
   UnsubscribeRoute: UnsubscribeRoute,
