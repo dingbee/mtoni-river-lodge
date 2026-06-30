@@ -62,6 +62,9 @@ export function HeroCinematic({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    // On mobile, never mount the additional slides at all — keeps the LCP
+    // candidate fighting only one image download.
+    if (window.matchMedia("(max-width: 767px)").matches) return;
     if (document.readyState === "complete") {
       const id = window.setTimeout(() => setMountRest(true), 400);
       return () => window.clearTimeout(id);
