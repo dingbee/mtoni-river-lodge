@@ -10,8 +10,8 @@ import {
   Mountain,
   Binoculars,
 } from "lucide-react";
-import { cn } from "@lib/utils";
-import { WHATSAPP_URL, DIRECTIONS_URL } from "@lib/contact";
+import { cn } from "@/lib/utils";
+import { WHATSAPP_URL, DIRECTIONS_URL } from "@/lib/contact";
 
 function getIsStandalone(): boolean {
   if (typeof window === "undefined") return false;
