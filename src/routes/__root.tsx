@@ -12,6 +12,7 @@ declare global {
 import appCss from "../styles.css?url";
 import { BackToTop } from "@/components/site/BackToTop";
 import { TawkToWidget } from "@/components/site/TawkToWidget";
+import { PWALifecycle } from "@/components/site/PWALifecycle";
 import { Toaster } from "@/components/ui/sonner";
 import { trackPageView } from "@/lib/analytics";
 
@@ -240,6 +241,7 @@ function RootComponent() {
       <BackToTop />
       <TawkToWidget />
       <GoogleAnalytics />
+      <PWALifecycle />
       <Toaster position="top-center" richColors />
     </QueryClientProvider>
   );
