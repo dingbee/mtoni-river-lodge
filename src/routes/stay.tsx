@@ -22,9 +22,7 @@ import {
 import { WHATSAPP_URL } from "@/lib/contact";
 import { newBookingSessionId } from "@/lib/booking-session";
 
-import heroImg from "@/assets/hero-river.jpg";
-import heroImg800 from "@/assets/hero-river-800w.webp";
-import heroImg1600 from "@/assets/hero-river-1600w.webp";
+import heroImg from "@/assets/lodge-hero-aerial.jpg";
 import logoImg from "@/assets/mtoni-logo.png";
 import xpCanoe from "@/assets/xp-canoe.jpg";
 import xpWaterfall from "@/assets/xp-waterfall.jpg";
@@ -64,10 +62,7 @@ export const Route = createFileRoute("/stay")({
       {
         rel: "preload",
         as: "image",
-        href: heroImg800,
-        type: "image/webp",
-        imageSrcSet: `${heroImg800} 800w, ${heroImg1600} 1600w`,
-        imageSizes: "100vw",
+        href: heroImg,
         fetchPriority: "high",
       },
     ],
@@ -131,22 +126,15 @@ function StayLanding() {
 
       {/* HERO */}
       <section className="relative overflow-hidden min-h-[620px] lg:min-h-[700px]">
-        <picture>
-          <source
-            type="image/webp"
-            srcSet={`${heroImg800} 800w, ${heroImg1600} 1600w`}
-            sizes="100vw"
-          />
-          <img
-            src={heroImg}
-            alt="Nduruma River at Mtoni River Lodge, Arusha"
-            className="absolute inset-0 h-full w-full object-cover"
-            decoding="async"
-            fetchPriority="high"
-            width={1600}
-            height={1067}
-          />
-        </picture>
+        <img
+          src={heroImg}
+          alt="Aerial view of Mtoni River Lodge, Arusha"
+          className="absolute inset-0 h-full w-full object-cover"
+          decoding="async"
+          fetchPriority="high"
+          width={1600}
+          height={1067}
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/40 to-black/75" />
 
         <div className="relative mx-auto flex max-w-6xl flex-col gap-8 px-4 pb-14 pt-24 sm:gap-10 sm:px-6 sm:pb-16 lg:flex-row lg:items-end lg:gap-12 lg:pt-32">
