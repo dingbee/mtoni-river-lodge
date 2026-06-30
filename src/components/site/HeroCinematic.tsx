@@ -53,6 +53,7 @@ export function HeroCinematic({
   const [playing, setPlaying] = useState(true);
   const [videoReady, setVideoReady] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [offset, setOffset] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [tabVisible, setTabVisible] = useState(true);
@@ -78,6 +79,16 @@ export function HeroCinematic({
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const apply = () => setReduceMotion(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  // Skip the background video on mobile — it's ~MBs of data and decode cost
+  // that hurts LCP/TBT on Android. The poster image carries the hero alone.
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => setIsMobile(mq.matches);
     apply();
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
@@ -203,7 +214,7 @@ export function HeroCinematic({
             </picture>
           );
         })}
-        {!reduceMotion && (
+        {!reduceMotion && !isMobile && (
           <video
             ref={videoRef}
             className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1400ms] ease-out ${
