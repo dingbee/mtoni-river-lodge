@@ -217,26 +217,26 @@
     h2, .text-5xl { font-size: clamp(2rem, 5vw, 2.5rem) !important; line-height: 1.15 !important; }
   }
 
-  /* Icon-size cap on mobile.
-     Decorative icons can opt out with the `.icon-decorative` class. */
+  /* Icon-size cap on mobile — target Lucide icons (the project's
+     icon system) so brand logos, wordmarks, and decorative SVG art
+     are not affected. Opt out per-icon with `.icon-decorative`. */
   @media (max-width: 767px) {
-    svg:not(.icon-decorative):not([data-decorative]) {
-      max-width: 32px;
-      max-height: 32px;
+    svg.lucide:not(.icon-decorative) {
+      max-width: 32px !important;
+      max-height: 32px !important;
+      width: auto;
+      height: auto;
     }
-    /* Common oversized icon utility classes -> cap at 32px (2rem). */
-    .w-20:not(.icon-decorative) > svg,
-    .w-16:not(.icon-decorative) > svg,
-    .w-14:not(.icon-decorative) > svg,
-    .w-12:not(.icon-decorative) > svg { width: 2rem; height: 2rem; }
 
     /* Touch-target safety: interactive elements stay ≥ 44px tall
-       even when their icon is capped at 32px. */
-    button, a[role="button"], [role="button"] {
+       so capped icons remain comfortably tappable. */
+    button:not(.no-min-touch),
+    a[role="button"],
+    [role="button"]:not(.no-min-touch) {
       min-height: 44px;
     }
 
-    /* Prevent unnecessary heading wrapping in heroes. */
+    /* Prevent awkward hero heading wrapping. */
     .hero h1, [data-hero] h1 { text-wrap: balance; }
   }
 
