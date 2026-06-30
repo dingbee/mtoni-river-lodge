@@ -217,6 +217,66 @@
     h2, .text-5xl { font-size: clamp(2rem, 5vw, 2.5rem) !important; line-height: 1.15 !important; }
   }
 
+  /* ============================================================
+     MOBILE HIERARCHY CORRECTION LAYER ( ≤ 767px )
+     Non-structural visual weighting. No DOM changes, no desktop
+     impact, no token changes — only attention sequencing,
+     density rhythm, and CTA consolidation.
+     ============================================================ */
+  @media (max-width: 767px) {
+    /* 1 — Hero hierarchy compression.
+       Headline + primary CTA keep full weight; eyebrow,
+       breadcrumbs, subtitle recede so the first viewport reads
+       title → action. Targets the unified PageHero/HeroCinematic
+       structure without restructuring DOM. */
+    section[class*="h-[75svh]"] .eyebrow,
+    section[class*="h-[85svh]"] .eyebrow,
+    [data-hero] .eyebrow {
+      opacity: 0.7;
+    }
+    section[class*="h-[75svh]"] nav[aria-label="Breadcrumb"],
+    section[class*="h-[85svh]"] nav[aria-label="Breadcrumb"],
+    [data-hero] nav[aria-label="Breadcrumb"] {
+      opacity: 0.6;
+      transform: scale(0.94);
+      transform-origin: left center;
+    }
+    section[class*="h-[75svh]"] h1,
+    section[class*="h-[85svh]"] h1 { margin-top: 0.5rem !important; }
+    section[class*="h-[75svh]"] h1 ~ p,
+    section[class*="h-[85svh]"] h1 ~ p { opacity: 0.85; margin-top: 0.75rem !important; }
+    /* Primary hero CTA — explicit full weight to dominate the viewport. */
+    section[class*="h-[75svh]"] a.bg-ivory,
+    section[class*="h-[85svh]"] a.bg-ivory,
+    section[class*="h-[75svh]"] button.bg-ivory,
+    section[class*="h-[85svh]"] button.bg-ivory { opacity: 1 !important; }
+
+    /* 2 — Visual rhythm / density control.
+       Prevent two consecutive image-heavy sections from stacking
+       into a single dense wall on mobile. */
+    main > section + section { margin-top: 0.25rem; }
+    main > section:has(img):has(+ section:has(img)) {
+      padding-bottom: 2rem !important;
+    }
+
+    /* 3 — CTA consolidation: when a section has multiple primary
+       CTAs, the duplicates downgrade to secondary text links.
+       Content/DOM unchanged — visual hierarchy only. */
+    section a.bg-ivory ~ a.bg-ivory,
+    section a.bg-charcoal ~ a.bg-charcoal,
+    section button.bg-ivory ~ button.bg-ivory,
+    section button.bg-charcoal ~ button.bg-charcoal {
+      background: transparent !important;
+      border-color: transparent !important;
+      color: inherit !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      opacity: 0.8;
+    }
+  }
+
   /* Icon-size cap on mobile — target Lucide icons (the project's
      icon system) so brand logos, wordmarks, and decorative SVG art
      are not affected. Opt out per-icon with `.icon-decorative`. */
