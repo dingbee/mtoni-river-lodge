@@ -6,6 +6,7 @@ import { Reveal } from "@/components/site/Reveal";
 import { LocationMap } from "@/components/site/LocationMap";
 import { HeroCinematic } from "@/components/site/HeroCinematic";
 import { GuestExperiencesSection } from "@/components/site/reviews/GuestExperiencesSection";
+import { GuestQuickAccess } from "@/components/site/GuestQuickAccess";
 import { FAQ } from "@/components/FAQ";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
 import { RESERVATIONS_NOTE } from "@/lib/contact";
