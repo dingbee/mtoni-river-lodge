@@ -51,12 +51,31 @@ function useIsStandalonePWA(): boolean {
 
     const update = () => setIsStandalone(getIsStandalone());
 
-    standaloneQuery.addEventListener("change", update);
-    overlayQuery.addEventListener("change", update);
+    // Modern API first, with legacy addListener fallback for older Safari.
+    if (typeof standaloneQuery.addEventListener === "function") {
+      standaloneQuery.addEventListener("change", update);
+      overlayQuery.addEventListener("change", update);
+    } else {
+      (standaloneQuery as { addListener?: (cb: () => void) => void }).addListener?.(
+        update
+      );
+      (overlayQuery as { addListener?: (cb: () => void) => void }).addListener?.(
+        update
+      );
+    }
 
     return () => {
-      standaloneQuery.removeEventListener("change", update);
-      overlayQuery.removeEventListener("change", update);
+      if (typeof standaloneQuery.removeEventListener === "function") {
+        standaloneQuery.removeEventListener("change", update);
+        overlayQuery.removeEventListener("change", update);
+      } else {
+        (
+          standaloneQuery as { removeListener?: (cb: () => void) => void }
+        ).removeListener?.(update);
+        (
+          overlayQuery as { removeListener?: (cb: () => void) => void }
+        ).removeListener?.(update);
+      }
     };
   }, []);
 
