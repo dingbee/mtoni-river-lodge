@@ -445,24 +445,3 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
-
-/* Tawk.to widget — scoped fixes.
-   1) Only the minimised launcher bubble is force-shown on desktop; the
-      greeting/chat panel iframes must remain togglable by Tawk so the
-      close (X) button works and hidden panels never overlap content.
-   2) Exempt every Tawk iframe from the global `max-width: 100%` so the
-      panel and its controls (X button) are never cropped at narrow
-      desktop widths.
-   3) Anchor the launcher to the bottom-right corner above app chrome. */
-iframe[title*="chat widget" i],
-iframe[id^="tawk-"],
-iframe[src*="tawk.to"] {
-  max-width: none !important;
-  z-index: 2147483600 !important;
-}
-/* Launcher bubble only — keep it visible on desktop. */
-iframe[title="chat widget" i] {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
