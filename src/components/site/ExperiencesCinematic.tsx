@@ -81,9 +81,9 @@ export function ExperiencesCinematic() {
                   <img
                     src={s.img}
                     alt={s.alt}
-                    loading={i === 0 ? "eager" : "lazy"}
+                    loading="eager"
                     decoding="async"
-                    fetchPriority={i === 0 ? "high" : "low"}
+                    fetchPriority={i === 0 ? "high" : "auto"}
                     className={`absolute inset-0 h-full w-full object-cover will-change-transform transition-transform ease-[cubic-bezier(0.22,0.61,0.36,1)] duration-[8000ms] ${
                       isActive && !prefersReducedMotion ? "scale-[1.08]" : "scale-100"
                     }`}
@@ -92,7 +92,7 @@ export function ExperiencesCinematic() {
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10" />
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
 
-                  <div className="absolute inset-x-0 bottom-0 px-6 pb-16 md:px-12 md:pb-24 lg:px-20 lg:pb-28">
+                  <div className="absolute inset-x-0 bottom-0 px-6 pb-24 md:px-12 md:pb-24 lg:px-20 lg:pb-28">
                     <div className="mx-auto max-w-[1400px]">
                       {isActive && (
                         <motion.div
@@ -164,7 +164,7 @@ export function ExperiencesCinematic() {
       </button>
 
       {/* Pagination dots */}
-      <div className="absolute inset-x-0 bottom-6 z-20 flex justify-center gap-2 md:bottom-10">
+      <div className="absolute inset-x-0 bottom-4 z-20 flex justify-center gap-1.5 md:bottom-10 md:gap-2">
         {Array.from({ length: snapCount }).map((_, i) => (
           <button
             key={i}
@@ -172,8 +172,10 @@ export function ExperiencesCinematic() {
             onClick={() => scrollTo(i)}
             aria-label={`Go to slide ${i + 1}`}
             aria-current={i === selected}
-            className={`h-1.5 rounded-full transition-all duration-500 ${
-              i === selected ? "w-8 bg-ivory" : "w-4 bg-ivory/40 hover:bg-ivory/70"
+            className={`no-min-touch h-1 rounded-full transition-all duration-500 md:h-1.5 ${
+              i === selected
+                ? "w-5 bg-ivory md:w-8"
+                : "w-2 bg-ivory/40 hover:bg-ivory/70 md:w-4"
             }`}
           />
         ))}
