@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { LocationMap } from "@/components/site/LocationMap";
 import { HeroCinematic } from "@/components/site/HeroCinematic";
+import { ExperiencesCinematic } from "@/components/site/ExperiencesCinematic";
 import { GuestExperiencesSection } from "@/components/site/reviews/GuestExperiencesSection";
 import { FAQ } from "@/components/FAQ";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
@@ -30,9 +31,6 @@ import poolImg from "@/assets/pool.jpg";
 import coffeeImg from "@/assets/coffee.jpg";
 import spaImg from "@/assets/spa.jpg";
 import ritualImg from "@/assets/rituals.jpg";
-import xpRiverWalk from "@/assets/xp-river-walk.jpg";
-import xpCycling from "@/assets/xp-cycling.jpg";
-import xpBonfire from "@/assets/xp-bonfire.jpg";
 
 const HOME_FAQS: FAQItem[] = [
   {
