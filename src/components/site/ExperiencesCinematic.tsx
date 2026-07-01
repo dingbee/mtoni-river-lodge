@@ -81,7 +81,7 @@ export function ExperiencesCinematic() {
                   <img
                     src={s.img}
                     alt={s.alt}
-                    loading={i === 0 ? "eager" : "eager"}
+                    loading="eager"
                     decoding="async"
                     fetchPriority={i === 0 ? "high" : "auto"}
                     className={`absolute inset-0 h-full w-full object-cover will-change-transform transition-transform ease-[cubic-bezier(0.22,0.61,0.36,1)] duration-[8000ms] ${
