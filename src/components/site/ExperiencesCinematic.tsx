@@ -172,7 +172,7 @@ export function ExperiencesCinematic() {
             onClick={() => scrollTo(i)}
             aria-label={`Go to slide ${i + 1}`}
             aria-current={i === selected}
-            className={`h-1 rounded-full transition-all duration-500 md:h-1.5 ${
+            className={`no-min-touch h-1 rounded-full transition-all duration-500 md:h-1.5 ${
               i === selected
                 ? "w-5 bg-ivory md:w-8"
                 : "w-2 bg-ivory/40 hover:bg-ivory/70 md:w-4"
