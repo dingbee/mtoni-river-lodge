@@ -32,6 +32,7 @@ import { Route as ExperiencesRouteImport } from './routes/experiences'
 import { Route as DiningLeisureRouteImport } from './routes/dining-leisure'
 import { Route as DiningRouteImport } from './routes/dining'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as BoutiqueLodgeNearKilimanjaroAirportRouteImport } from './routes/boutique-lodge-near-kilimanjaro-airport'
 import { Route as BookingFormRouteImport } from './routes/booking-form'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -193,6 +194,12 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BoutiqueLodgeNearKilimanjaroAirportRoute =
+  BoutiqueLodgeNearKilimanjaroAirportRouteImport.update({
+    id: '/boutique-lodge-near-kilimanjaro-airport',
+    path: '/boutique-lodge-near-kilimanjaro-airport',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const BookingFormRoute = BookingFormRouteImport.update({
   id: '/booking-form',
   path: '/booking-form',
@@ -435,6 +442,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
+  '/boutique-lodge-near-kilimanjaro-airport': typeof BoutiqueLodgeNearKilimanjaroAirportRoute
   '/contact': typeof ContactRoute
   '/dining': typeof DiningRoute
   '/dining-leisure': typeof DiningLeisureRoute
@@ -502,6 +510,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
+  '/boutique-lodge-near-kilimanjaro-airport': typeof BoutiqueLodgeNearKilimanjaroAirportRoute
   '/contact': typeof ContactRoute
   '/dining': typeof DiningRoute
   '/dining-leisure': typeof DiningLeisureRoute
@@ -569,6 +578,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
+  '/boutique-lodge-near-kilimanjaro-airport': typeof BoutiqueLodgeNearKilimanjaroAirportRoute
   '/contact': typeof ContactRoute
   '/dining': typeof DiningRoute
   '/dining-leisure': typeof DiningLeisureRoute
@@ -638,6 +648,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/book'
     | '/booking-form'
+    | '/boutique-lodge-near-kilimanjaro-airport'
     | '/contact'
     | '/dining'
     | '/dining-leisure'
@@ -705,6 +716,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/book'
     | '/booking-form'
+    | '/boutique-lodge-near-kilimanjaro-airport'
     | '/contact'
     | '/dining'
     | '/dining-leisure'
@@ -771,6 +783,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/book'
     | '/booking-form'
+    | '/boutique-lodge-near-kilimanjaro-airport'
     | '/contact'
     | '/dining'
     | '/dining-leisure'
@@ -840,6 +853,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BookRoute: typeof BookRoute
   BookingFormRoute: typeof BookingFormRoute
+  BoutiqueLodgeNearKilimanjaroAirportRoute: typeof BoutiqueLodgeNearKilimanjaroAirportRoute
   ContactRoute: typeof ContactRoute
   DiningRoute: typeof DiningRoute
   DiningLeisureRoute: typeof DiningLeisureRoute
@@ -1043,6 +1057,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/boutique-lodge-near-kilimanjaro-airport': {
+      id: '/boutique-lodge-near-kilimanjaro-airport'
+      path: '/boutique-lodge-near-kilimanjaro-airport'
+      fullPath: '/boutique-lodge-near-kilimanjaro-airport'
+      preLoaderRoute: typeof BoutiqueLodgeNearKilimanjaroAirportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/booking-form': {
@@ -1429,6 +1450,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BookRoute: BookRoute,
   BookingFormRoute: BookingFormRoute,
+  BoutiqueLodgeNearKilimanjaroAirportRoute:
+    BoutiqueLodgeNearKilimanjaroAirportRoute,
   ContactRoute: ContactRoute,
   DiningRoute: DiningRoute,
   DiningLeisureRoute: DiningLeisureRoute,
