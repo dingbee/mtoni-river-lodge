@@ -319,7 +319,7 @@ export function HeroCinematic({
           >
             <ChevronRight className="h-5 w-5" strokeWidth={1.4} />
           </button>
-          <div className="absolute bottom-7 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 lg:bottom-10">
+          <div className="absolute inset-x-0 bottom-7 z-20 flex justify-center gap-1.5 lg:bottom-10 lg:gap-2">
             {slides.map((s, i) => (
               <button
                 key={s.src}
@@ -327,8 +327,10 @@ export function HeroCinematic({
                 onClick={() => setActiveSlide(i)}
                 aria-label={`Go to slide ${i + 1}`}
                 aria-current={i === activeSlide}
-                className={`h-[6px] rounded-full transition-all duration-500 ${
-                  i === activeSlide ? "w-8 bg-ivory" : "w-2.5 bg-ivory/45 hover:bg-ivory/70"
+                className={`no-min-touch h-1 rounded-full transition-all duration-500 lg:h-1.5 ${
+                  i === activeSlide
+                    ? "w-5 bg-ivory lg:w-8"
+                    : "w-2 bg-ivory/40 hover:bg-ivory/70 lg:w-4"
                 }`}
               />
             ))}
