@@ -267,42 +267,6 @@ function HomePage() {
         </div>
       </section>
 
-      {/* TWO-COLUMN: pool + spa story */}
-      <section className="px-6 py-32 lg:px-12 lg:py-48">
-        <div className="mx-auto grid max-w-[1400px] gap-16 lg:grid-cols-2">
-          <Reveal>
-            <div className="aspect-[4/5] overflow-hidden">
-              <img src={poolImg} alt="Curved swimming pool framed by thatched umbrellas and tropical greenery at Mtoni River Lodge" className="h-full w-full object-cover" loading="lazy" />
-            </div>
-            <p className="eyebrow mt-8">Stillness</p>
-            <h3 className="mt-3 font-display text-3xl lg:text-4xl">A pool in conversation with nature</h3>
-            <p className="mt-4 max-w-md text-charcoal/70">
-              At the heart of Mtoni lies a round pool, shaped in quiet dialogue with nature.
-            </p>
-          </Reveal>
-          <Reveal delay={200} className="lg:mt-32">
-            <div className="relative aspect-[4/5] overflow-hidden group">
-              <img
-                src={ritualImg}
-                alt="Hand lighting a candle by firelight — an evening ritual at the lodge"
-                className="h-full w-full object-cover object-center transition-transform duration-[2000ms] ease-out group-hover:scale-[1.04] motion-safe:animate-[kenBurns_24s_ease-in-out_infinite_alternate]"
-                loading="lazy"
-              />
-              {/* Warm earthy tint */}
-              <div className="pointer-events-none absolute inset-0 bg-[#7a3a12]/10 mix-blend-multiply" />
-              {/* Subtle vignette for cinematic depth */}
-              <div className="pointer-events-none absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.35)_100%)]" />
-            </div>
-            <p className="eyebrow mt-8">Ritual</p>
-            <h3 className="mt-3 font-display text-3xl lg:text-4xl">​Where light becomes a ritual.</h3>
-            <p className="mt-4 max-w-md text-charcoal/70">
-              As daylight fades along the river, candlelight is gently introduced to mark the shift into stillness, turning ordinary evening moments into quiet rituals of presence and connection.
-            </p>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* JOURNAL TEASER */}
       <section className="border-t border-border bg-bone px-6 py-32 lg:px-12">
         <div className="mx-auto max-w-[1400px]">
           <Reveal className="mb-16 flex items-end justify-between">
