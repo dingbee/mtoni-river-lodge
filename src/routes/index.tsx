@@ -27,10 +27,6 @@ import diningImg from "@/assets/dining.jpg";
 import aerialImg from "@/assets/aerial-lodge.jpg";
 import guideImg from "@/assets/guide.jpg";
 import villaImg from "@/assets/villa-exterior.jpg";
-import poolImg from "@/assets/pool.jpg";
-import coffeeImg from "@/assets/coffee.jpg";
-import spaImg from "@/assets/spa.jpg";
-import ritualImg from "@/assets/rituals.jpg";
 
 const HOME_FAQS: FAQItem[] = [
   {
@@ -271,37 +267,55 @@ function HomePage() {
         </div>
       </section>
 
-      {/* TWO-COLUMN: pool + spa story */}
-      <section className="px-6 py-32 lg:px-12 lg:py-48">
-        <div className="mx-auto grid max-w-[1400px] gap-16 lg:grid-cols-2">
-          <Reveal>
-            <div className="aspect-[4/5] overflow-hidden">
-              <img src={poolImg} alt="Curved swimming pool framed by thatched umbrellas and tropical greenery at Mtoni River Lodge" className="h-full w-full object-cover" loading="lazy" />
-            </div>
-            <p className="eyebrow mt-8">Stillness</p>
-            <h3 className="mt-3 font-display text-3xl lg:text-4xl">A pool in conversation with nature</h3>
-            <p className="mt-4 max-w-md text-charcoal/70">
-              At the heart of Mtoni lies a round pool, shaped in quiet dialogue with nature.
-            </p>
+      {/* KILIMANJARO RETREAT — climber positioning */}
+      <section className="bg-bone px-6 py-32 lg:px-12 lg:py-40">
+        <div className="mx-auto grid max-w-[1300px] gap-16 lg:grid-cols-12">
+          <Reveal className="lg:col-span-5">
+            <p className="eyebrow">Your Kilimanjaro Retreat in Arusha</p>
+            <h2 className="mt-6 font-display text-4xl leading-[1.05] lg:text-6xl">
+              Before the climb,<br/>and after the summit.
+            </h2>
           </Reveal>
-          <Reveal delay={200} className="lg:mt-32">
-            <div className="relative aspect-[4/5] overflow-hidden group">
-              <img
-                src={ritualImg}
-                alt="Hand lighting a candle by firelight — an evening ritual at the lodge"
-                className="h-full w-full object-cover object-center transition-transform duration-[2000ms] ease-out group-hover:scale-[1.04] motion-safe:animate-[kenBurns_24s_ease-in-out_infinite_alternate]"
-                loading="lazy"
-              />
-              {/* Warm earthy tint */}
-              <div className="pointer-events-none absolute inset-0 bg-[#7a3a12]/10 mix-blend-multiply" />
-              {/* Subtle vignette for cinematic depth */}
-              <div className="pointer-events-none absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.35)_100%)]" />
-            </div>
-            <p className="eyebrow mt-8">Ritual</p>
-            <h3 className="mt-3 font-display text-3xl lg:text-4xl">​Where light becomes a ritual.</h3>
-            <p className="mt-4 max-w-md text-charcoal/70">
-              As daylight fades along the river, candlelight is gently introduced to mark the shift into stillness, turning ordinary evening moments into quiet rituals of presence and connection.
+          <Reveal delay={150} className="lg:col-span-6 lg:col-start-7">
+            <p className="text-lg leading-relaxed text-charcoal/80">
+              A 50-minute drive from Kilimanjaro International Airport, Mtoni River Lodge is a quiet, low-altitude base for trekkers preparing for Mount Kilimanjaro — and a restorative landing place for those returning from the summit. Expect deep sleep by the river, hot showers, nourishing meals, and transfers coordinated with your climbing operator.
             </p>
+            <ul className="mt-8 grid gap-3 text-sm text-charcoal/75 sm:grid-cols-2">
+              {[
+                "Pre-climb rest by the river",
+                "Post-summit recovery comfort",
+                "Early or packed breakfasts",
+                "Private transfers to the gate",
+              ].map((b) => (
+                <li key={b} className="flex items-baseline gap-3">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-charcoal/70" />
+                  {b}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-10 flex flex-wrap items-center gap-4">
+              <Link
+                to="/book"
+                onClick={() => trackCheckAvailabilityClick("homepage_kilimanjaro_block")}
+                className="group inline-flex items-center gap-3 border border-charcoal bg-charcoal px-7 py-3.5 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-transparent hover:text-charcoal"
+              >
+                Book Your Stay
+                <span className="transition-transform group-hover:translate-x-1">→</span>
+              </Link>
+              <Link
+                to="/contact"
+                onClick={() => trackContactClick("contact", "homepage_kilimanjaro_block")}
+                className="inline-flex items-center gap-2 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]"
+              >
+                Contact Us →
+              </Link>
+              <Link
+                to="/mount-kilimanjaro-accommodation-arusha"
+                className="inline-flex items-center gap-2 border-b border-charcoal/40 pb-1 text-[0.72rem] uppercase tracking-[0.28em] text-charcoal/70 hover:border-charcoal hover:text-charcoal"
+              >
+                Climber stays →
+              </Link>
+            </div>
           </Reveal>
         </div>
       </section>
@@ -393,59 +407,6 @@ function HomePage() {
 
       {/* GUEST EXPERIENCES — featured reviews grouped by category */}
       <GuestExperiencesSection />
-
-      {/* KILIMANJARO RETREAT — climber positioning */}
-      <section className="bg-bone px-6 py-32 lg:px-12 lg:py-40">
-        <div className="mx-auto grid max-w-[1300px] gap-16 lg:grid-cols-12">
-          <Reveal className="lg:col-span-5">
-            <p className="eyebrow">Your Kilimanjaro Retreat in Arusha</p>
-            <h2 className="mt-6 font-display text-4xl leading-[1.05] lg:text-6xl">
-              Before the climb,<br/>and after the summit.
-            </h2>
-          </Reveal>
-          <Reveal delay={150} className="lg:col-span-6 lg:col-start-7">
-            <p className="text-lg leading-relaxed text-charcoal/80">
-              A 50-minute drive from Kilimanjaro International Airport, Mtoni River Lodge is a quiet, low-altitude base for trekkers preparing for Mount Kilimanjaro — and a restorative landing place for those returning from the summit. Expect deep sleep by the river, hot showers, nourishing meals, and transfers coordinated with your climbing operator.
-            </p>
-            <ul className="mt-8 grid gap-3 text-sm text-charcoal/75 sm:grid-cols-2">
-              {[
-                "Pre-climb rest by the river",
-                "Post-summit recovery comfort",
-                "Early or packed breakfasts",
-                "Private transfers to the gate",
-              ].map((b) => (
-                <li key={b} className="flex items-baseline gap-3">
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-charcoal/70" />
-                  {b}
-                </li>
-              ))}
-            </ul>
-            <div className="mt-10 flex flex-wrap items-center gap-4">
-              <Link
-                to="/book"
-                onClick={() => trackCheckAvailabilityClick("homepage_kilimanjaro_block")}
-                className="group inline-flex items-center gap-3 border border-charcoal bg-charcoal px-7 py-3.5 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-transparent hover:text-charcoal"
-              >
-                Book Your Stay
-                <span className="transition-transform group-hover:translate-x-1">→</span>
-              </Link>
-              <Link
-                to="/contact"
-                onClick={() => trackContactClick("contact", "homepage_kilimanjaro_block")}
-                className="inline-flex items-center gap-2 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]"
-              >
-                Contact Us →
-              </Link>
-              <Link
-                to="/mount-kilimanjaro-accommodation-arusha"
-                className="inline-flex items-center gap-2 border-b border-charcoal/40 pb-1 text-[0.72rem] uppercase tracking-[0.28em] text-charcoal/70 hover:border-charcoal hover:text-charcoal"
-              >
-                Climber stays →
-              </Link>
-            </div>
-          </Reveal>
-        </div>
-      </section>
 
       <section className="relative bg-charcoal px-6 py-32 text-ivory lg:px-12 lg:py-48">
         <div className="mx-auto max-w-[1100px] text-center">
