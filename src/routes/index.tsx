@@ -27,10 +27,6 @@ import diningImg from "@/assets/dining.jpg";
 import aerialImg from "@/assets/aerial-lodge.jpg";
 import guideImg from "@/assets/guide.jpg";
 import villaImg from "@/assets/villa-exterior.jpg";
-import poolImg from "@/assets/pool.jpg";
-import coffeeImg from "@/assets/coffee.jpg";
-import spaImg from "@/assets/spa.jpg";
-import ritualImg from "@/assets/rituals.jpg";
 
 const HOME_FAQS: FAQItem[] = [
   {
