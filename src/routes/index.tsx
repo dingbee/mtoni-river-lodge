@@ -404,6 +404,11 @@ function HomePage() {
           })()}
         </div>
       </section>
+
+      {/* GUEST EXPERIENCES — featured reviews grouped by category */}
+      <GuestExperiencesSection />
+
+      <section className="relative bg-charcoal px-6 py-32 text-ivory lg:px-12 lg:py-48">
         <div className="mx-auto max-w-[1100px] text-center">
           <Reveal>
             <p className="eyebrow !text-ivory/60">Begin the journey</p>
