@@ -6,6 +6,7 @@ import aerial from "@/assets/aerial-lodge.jpg";
 import cottage from "@/assets/hero-cottage-exterior.jpg";
 import poolAerialAsset from "@/assets/pool-aerial-slow-living.jpg.asset.json";
 import lodgeAerial from "@/assets/lodge-hero-aerial.jpg";
+import receptionFeatured from "@/assets/mtoni-reception-featured.webp.asset.json";
 
 export type JournalPostHref =
   | "/journal/discover-mtoni-river-lodge-arusha"
@@ -47,7 +48,7 @@ const POSTS: JournalPost[] = [
       "The Perfect Boutique Lodge Near Kilimanjaro Airport for Your Tanzania Safari",
     excerpt:
       "A peaceful boutique lodge with easy access to Kilimanjaro International Airport — the calm, authentic beginning and ending to your Northern Tanzania safari or Mount Kilimanjaro adventure.",
-    img: lodgeAerial,
+    img: receptionFeatured.url,
     href: "/boutique-lodge-near-kilimanjaro-airport",
   },
   {
