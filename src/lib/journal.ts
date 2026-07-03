@@ -11,6 +11,7 @@ export type JournalPostHref =
   | "/journal/discover-mtoni-river-lodge-arusha"
   | "/journal/perfect-arusha-stay-for-safari-travelers-2026"
   | "/journal/where-to-stay-before-climbing-mount-kilimanjaro"
+  | "/boutique-lodge-near-kilimanjaro-airport"
   | "/journal/discovering-arusha-through-nature-and-authentic-hospitality"
   | "/journal/what-the-river-has-taught-us-about-time"
   | "/journal/life-along-the-nduruma-river"
@@ -37,6 +38,18 @@ export type JournalPost = {
  * widgets will automatically display them in reverse chronological order.
  */
 const POSTS: JournalPost[] = [
+  {
+    publishedAt: "2026-07-02",
+    createdAt: "2026-07-02T00:00:00Z",
+    date: "July 2026",
+    read: "9 min",
+    title:
+      "The Perfect Boutique Lodge Near Kilimanjaro Airport for Your Tanzania Safari",
+    excerpt:
+      "A peaceful boutique lodge with easy access to Kilimanjaro International Airport — the calm, authentic beginning and ending to your Northern Tanzania safari or Mount Kilimanjaro adventure.",
+    img: lodgeAerial,
+    href: "/boutique-lodge-near-kilimanjaro-airport",
+  },
   {
     publishedAt: "2026-06-29",
     createdAt: "2026-06-29T00:00:00Z",
