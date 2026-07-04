@@ -21,6 +21,8 @@ import liveCooking from "@/assets/live-cooking.jpg";
 import detailCoffee from "@/assets/detail-coffee.jpg";
 import rituals from "@/assets/rituals.jpg";
 import bomaThatch from "@/assets/boma-thatch-room.jpg";
+import forestCottage from "@/assets/hero-forest-cottage.jpg.asset.json";
+import diningCandlelit from "@/assets/hero-dining-candlelit.jpg.asset.json";
 import maasaiByRiver from "@/assets/maasai-by-river.jpg";
 import bananaGrove from "@/assets/nduruma-banana-grove.jpg";
 import riverFlow from "@/assets/nduruma-river-flow.jpg";
@@ -49,6 +51,7 @@ export const GALLERY: GalleryImage[] = [
   { src: aerial, alt: "Aerial view of Mtoni River Lodge along the Nduruma River", category: "Dining" },
   { src: reception, alt: "Warm stone reception with beaded chandelier and arched doorways", category: "Architecture" },
   { src: bomaThatch, alt: "Boma-inspired thatched room", category: "Architecture" },
+  { src: forestCottage.url, alt: "Thatched cottage surrounded by tall forest trees at Mtoni River Lodge", category: "Architecture" },
   { src: poolAerialSlowLiving.url, alt: "Aerial view of the curved swimming pool and garden island at Mtoni River Lodge", category: "Architecture" },
 
   { src: suite, alt: "Candlelit bubble bath beneath a thatched roof", category: "Rooms" },
@@ -64,6 +67,7 @@ export const GALLERY: GalleryImage[] = [
 
   { src: diningHero, alt: "Garden picnic with open-fire cooking", category: "Dining" },
   { src: liveCooking, alt: "Chef plating an open-fire dish", category: "Dining" },
+  { src: diningCandlelit.url, alt: "Candlelit dining table with gourd pendant lamps at Mtoni River Lodge", category: "Dining" },
   { src: detailCoffee, alt: "Detail of a morning coffee service", category: "Rooms" },
 
 
