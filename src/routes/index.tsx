@@ -14,14 +14,14 @@ import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics"
 import { getLatestJournalPosts } from "@/lib/journal";
 import heroImg from "@/assets/hero-river.jpg";
 import lodgeHeroImg from "@/assets/lodge-hero-aerial.jpg";
-import cottageHeroImg from "@/assets/hero-cottage-exterior.jpg";
-import receptionHeroImg from "@/assets/hero-reception-interior.jpg";
 import heroImg800 from "@/assets/hero-river-800w.webp";
 import heroImg1600 from "@/assets/hero-river-1600w.webp";
-import cottageHero800 from "@/assets/hero-cottage-exterior-800w.webp";
-import cottageHero1600 from "@/assets/hero-cottage-exterior-1600w.webp";
-import receptionHero800 from "@/assets/hero-reception-interior-800w.webp";
-import receptionHero1600 from "@/assets/hero-reception-interior-1600w.webp";
+import forestCottageJpg from "@/assets/hero-forest-cottage.jpg.asset.json";
+import forestCottage800 from "@/assets/hero-forest-cottage-800w.webp.asset.json";
+import forestCottage1600 from "@/assets/hero-forest-cottage-1600w.webp.asset.json";
+import diningCandleJpg from "@/assets/hero-dining-candlelit.jpg.asset.json";
+import diningCandle800 from "@/assets/hero-dining-candlelit-800w.webp.asset.json";
+import diningCandle1600 from "@/assets/hero-dining-candlelit-1600w.webp.asset.json";
 import suiteImg from "@/assets/suite-interior.jpg";
 import diningImg from "@/assets/dining.jpg";
 import aerialImg from "@/assets/aerial-lodge.jpg";
@@ -97,16 +97,16 @@ function HomePage() {
             alt: "Mist over the Nduruma River at dawn with Mount Meru in the distance",
           },
           {
-            src: cottageHeroImg,
-            webp800: cottageHero800,
-            webp1600: cottageHero1600,
-            alt: "A thatched riverfront cottage at Mtoni River Lodge nestled among forest greenery",
+            src: forestCottageJpg.url,
+            webp800: forestCottage800.url,
+            webp1600: forestCottage1600.url,
+            alt: "A thatched cottage at Mtoni River Lodge surrounded by tall forest trees and a stone pathway",
           },
           {
-            src: receptionHeroImg,
-            webp800: receptionHero800,
-            webp1600: receptionHero1600,
-            alt: "Warm stone reception interior at Mtoni River Lodge with arched doorways and a beaded chandelier",
+            src: diningCandleJpg.url,
+            webp800: diningCandle800.url,
+            webp1600: diningCandle1600.url,
+            alt: "Candlelit dining table with gourd pendant lamps and stone wall at Mtoni River Lodge",
           },
         ]}
         slideDurationMs={7000}
