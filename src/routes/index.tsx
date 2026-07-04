@@ -12,6 +12,8 @@ import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
 import { RESERVATIONS_NOTE } from "@/lib/contact";
 import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics";
 import { getLatestJournalPosts } from "@/lib/journal";
+import { RIVERFRONT_DELUXE_ROOM } from "@/lib/rooms";
+import { RoomGallery } from "@/components/site/RoomGallery";
 import heroImg from "@/assets/hero-river.jpg";
 import lodgeHeroImg from "@/assets/lodge-hero-aerial.jpg";
 import heroImg800 from "@/assets/hero-river-800w.webp";
@@ -176,9 +178,18 @@ function HomePage() {
 
           <div className="grid gap-12 lg:grid-cols-12">
             <Reveal className="lg:col-span-7">
-              <div className="relative aspect-[4/5] overflow-hidden lg:aspect-[5/6]">
-                <img src={suiteImg} alt="Candlelit bubble bath with champagne beneath the thatched roof of a Mtoni River Lodge suite" className="h-full w-full object-cover" loading="lazy" />
-              </div>
+              <RoomGallery
+                images={[
+                  {
+                    src: suiteImg,
+                    alt: "Candlelit bubble bath with champagne beneath the thatched roof of a Mtoni River Lodge suite",
+                  },
+                  ...RIVERFRONT_DELUXE_ROOM.gallery.map((src, i) => ({
+                    src,
+                    alt: `${RIVERFRONT_DELUXE_ROOM.name} — view ${i + 2}`,
+                  })),
+                ]}
+              />
             </Reveal>
             <Reveal delay={200} className="self-end lg:col-span-4 lg:col-start-9">
               <h3 className="mt-3 font-display text-3xl lg:text-4xl">Riverfront Deluxe</h3>
