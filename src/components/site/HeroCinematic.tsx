@@ -47,6 +47,10 @@ export function HeroCinematic({
   const slides = (posters && posters.length > 0
     ? posters
     : [{ src: poster, alt: posterAlt } as HeroPoster]);
+  // When the caller supplies multiple posters, treat this as a photo
+  // carousel: skip the background video (which would cover the images and
+  // pause rotation) and mount every slide so all of them can appear.
+  const isPhotoCarousel = slides.length > 1;
   const [activeSlide, setActiveSlide] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
@@ -63,6 +67,10 @@ export function HeroCinematic({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (isPhotoCarousel) {
+      setMountRest(true);
+      return;
+    }
     // On mobile, never mount the additional slides at all — keeps the LCP
     // candidate fighting only one image download.
     if (window.matchMedia("(max-width: 767px)").matches) return;
@@ -73,7 +81,7 @@ export function HeroCinematic({
     const onLoad = () => window.setTimeout(() => setMountRest(true), 400);
     window.addEventListener("load", onLoad, { once: true });
     return () => window.removeEventListener("load", onLoad);
-  }, []);
+  }, [isPhotoCarousel]);
 
   // Respect reduced motion
   useEffect(() => {
@@ -104,13 +112,13 @@ export function HeroCinematic({
   // Cross-fade between posters when video isn't covering them
   useEffect(() => {
     if (slides.length < 2) return;
-    if (videoReady && !reduceMotion) return;
+    if (!isPhotoCarousel && videoReady && !reduceMotion) return;
     if (hovered || !tabVisible) return;
     const id = window.setInterval(() => {
       setActiveSlide((i) => (i + 1) % slides.length);
     }, slideDurationMs);
     return () => window.clearInterval(id);
-  }, [slides.length, slideDurationMs, videoReady, reduceMotion, hovered, tabVisible]);
+  }, [slides.length, slideDurationMs, videoReady, reduceMotion, hovered, tabVisible, isPhotoCarousel]);
 
   // Subtle parallax on scroll (rAF-throttled)
   useEffect(() => {
@@ -214,7 +222,7 @@ export function HeroCinematic({
             </picture>
           );
         })}
-        {!reduceMotion && !isMobile && (
+        {!reduceMotion && !isMobile && !isPhotoCarousel && (
           <video
             ref={videoRef}
             className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1400ms] ease-out ${
