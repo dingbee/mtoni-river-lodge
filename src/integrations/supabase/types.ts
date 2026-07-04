@@ -922,6 +922,7 @@ export type Database = {
         Args: { _purpose: string; _special: string }
         Returns: Database["public"]["Enums"]["guest_type"]
       }
+      email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
