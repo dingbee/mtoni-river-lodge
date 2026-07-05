@@ -5,7 +5,7 @@ import Autoplay from "embla-carousel-autoplay";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
-import morningImg from "@/assets/hero-river.jpg";
+import forestLight from "@/assets/forest-light.jpg.asset.json";
 import riverWalkImg from "@/assets/xp-river-walk.jpg";
 import poolImg from "@/assets/pool.jpg";
 import diningImg from "@/assets/xp-cooking.jpg";
@@ -13,6 +13,7 @@ import bonfireImg from "@/assets/xp-bonfire.jpg";
 import firelightImg from "@/assets/rituals.jpg";
 import kiliImg from "@/assets/lodge-hero-aerial.jpg";
 import maasaiImg from "@/assets/maasai-by-river.jpg";
+
 
 type Slide = {
   eyebrow: string;
@@ -23,7 +24,7 @@ type Slide = {
 };
 
 const SLIDES: Slide[] = [
-  { eyebrow: "Morning Light", title: "Wake to birdsong", tagline: "The river writes the first hour of the day.", img: morningImg, alt: "Mist rising over the Nduruma River at dawn" },
+  { eyebrow: "Morning Light", title: "Wake to birdsong", tagline: "The river writes the first hour of the day.", img: forestLight.url, alt: "Morning sunlight filtering through the forest canopy at Mtoni River Lodge" },
   { eyebrow: "River Walks", title: "Slow adventures", tagline: "Guided paths along the water's edge.", img: riverWalkImg, alt: "Guided river walk along the Nduruma at first light" },
   { eyebrow: "Pool Escape", title: "Refresh. Recharge.", tagline: "A round pool in quiet dialogue with nature.", img: poolImg, alt: "Curved pool framed by thatch and tropical greenery" },
   { eyebrow: "Local Flavours", title: "Taste Tanzania", tagline: "Live-fire cooking, garden herbs, honest plates.", img: diningImg, alt: "Chef preparing a live cooking experience over open flame" },
@@ -32,6 +33,7 @@ const SLIDES: Slide[] = [
   { eyebrow: "Kilimanjaro Base", title: "Rest before the climb", tagline: "A low-altitude sanctuary between summits.", img: kiliImg, alt: "Aerial view of Mtoni River Lodge, a Kilimanjaro base" },
   { eyebrow: "Maasai Heritage", title: "Culture lives here", tagline: "Design and craft rooted in the boma.", img: maasaiImg, alt: "Maasai elder by the river near Mtoni River Lodge" },
 ];
+
 
 export function ExperiencesCinematic() {
   const prefersReducedMotion = useReducedMotion();
