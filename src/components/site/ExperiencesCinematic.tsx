@@ -5,7 +5,7 @@ import Autoplay from "embla-carousel-autoplay";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
-import morningImg from "@/assets/hero-river.jpg";
+import forestLight from "@/assets/forest-light.jpg.asset.json";
 import riverWalkImg from "@/assets/xp-river-walk.jpg";
 import poolImg from "@/assets/pool.jpg";
 import diningImg from "@/assets/xp-cooking.jpg";
@@ -13,6 +13,7 @@ import bonfireImg from "@/assets/xp-bonfire.jpg";
 import firelightImg from "@/assets/rituals.jpg";
 import kiliImg from "@/assets/lodge-hero-aerial.jpg";
 import maasaiImg from "@/assets/maasai-by-river.jpg";
+
 
 type Slide = {
   eyebrow: string;
