@@ -12,8 +12,7 @@ import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
 import { RESERVATIONS_NOTE } from "@/lib/contact";
 import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics";
 import { getLatestJournalPosts } from "@/lib/journal";
-import { RIVERFRONT_DELUXE_ROOM } from "@/lib/rooms";
-import { RoomGallery } from "@/components/site/RoomGallery";
+import { ROOMS, getRoomPath } from "@/lib/rooms";
 import heroImg from "@/assets/hero-river.jpg";
 import lodgeHeroImg from "@/assets/lodge-hero-aerial.jpg";
 import heroImg800 from "@/assets/hero-river-800w.webp";
@@ -24,7 +23,6 @@ import forestCottage1600 from "@/assets/hero-forest-cottage-1600w.webp.asset.jso
 import diningCandleJpg from "@/assets/hero-dining-candlelit.jpg.asset.json";
 import diningCandle800 from "@/assets/hero-dining-candlelit-800w.webp.asset.json";
 import diningCandle1600 from "@/assets/hero-dining-candlelit-1600w.webp.asset.json";
-import suiteImg from "@/assets/suite-interior.jpg";
 import diningImg from "@/assets/dining.jpg";
 import aerialImg from "@/assets/aerial-lodge.jpg";
 import guideImg from "@/assets/guide.jpg";
@@ -159,66 +157,57 @@ function HomePage() {
         </div>
       </section>
 
-      {/* ROOMS TEASER — editorial split */}
-      <section className="px-6 py-32 lg:px-12 lg:py-48">
+      {/* ACCOMMODATION PREVIEW — curated room categories */}
+      <section aria-labelledby="accommodation-heading" className="px-6 py-32 lg:px-12 lg:py-48">
         <div className="mx-auto max-w-[1400px]">
-          <Reveal className="mb-20 flex flex-col items-end justify-between gap-6 lg:flex-row lg:items-end">
-            <div>
-              <p className="eyebrow">Rooms by the River</p>
-              <h2 className="mt-4 font-display text-5xl leading-[1.04] lg:text-7xl">
-              Living spaces.<br/>
-              Rooted in nature.
-              </h2>
-            </div>
-            <Link to="/rooms" className="group inline-flex items-center gap-3 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]">
-              Explore Rooms
+          <Reveal className="mx-auto mb-16 max-w-3xl text-center lg:mb-20">
+            <p className="eyebrow">Accommodation</p>
+            <h2 id="accommodation-heading" className="mt-4 font-display text-5xl leading-[1.04] lg:text-7xl">
+              Find Your Perfect Stay
+            </h2>
+            <p className="mt-8 text-base leading-relaxed text-charcoal/70 lg:text-lg">
+              Whether you’re seeking uninterrupted river views, a peaceful garden retreat, or space for family and friends, every stay at Mtoni River Lodge is thoughtfully designed to immerse you in nature, comfort, and authentic hospitality.
+            </p>
+          </Reveal>
+
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 lg:gap-10">
+            {ROOMS.map((room, i) => (
+              <Reveal key={room.slug} delay={i * 120}>
+                <Link
+                  to={getRoomPath(room.slug)}
+                  className="group block h-full"
+                >
+                  <div className="aspect-[4/5] overflow-hidden bg-bone">
+                    <img
+                      src={room.img}
+                      alt={`${room.name} at Mtoni River Lodge`}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out motion-safe:md:group-hover:scale-[1.04]"
+                    />
+                  </div>
+                  <div className="pt-6">
+                    <h3 className="font-display text-2xl lg:text-3xl">{room.name}</h3>
+                    <p className="mt-3 text-sm leading-relaxed text-charcoal/70">{room.shortDesc}</p>
+                    <span className="mt-6 inline-flex items-center gap-2 border-b border-charcoal pb-1 text-[0.7rem] uppercase tracking-[0.28em] transition-colors group-hover:text-charcoal/70">
+                      Explore Room
+                      <span className="transition-transform group-hover:translate-x-1">→</span>
+                    </span>
+                  </div>
+                </Link>
+              </Reveal>
+            ))}
+          </div>
+
+          <Reveal delay={200} className="mt-16 flex justify-center lg:mt-20">
+            <Link
+              to="/rooms"
+              className="group inline-flex items-center gap-3 border border-charcoal bg-charcoal px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-transparent hover:text-charcoal"
+            >
+              Explore All Rooms
               <span className="transition-transform group-hover:translate-x-1">→</span>
             </Link>
           </Reveal>
-
-          <div className="grid gap-12 lg:grid-cols-12">
-            <Reveal className="lg:col-span-7">
-              <RoomGallery
-                images={[
-                  {
-                    src: suiteImg,
-                    alt: "Candlelit bubble bath with champagne beneath the thatched roof of a Mtoni River Lodge suite",
-                  },
-                  ...RIVERFRONT_DELUXE_ROOM.gallery.map((src, i) => ({
-                    src,
-                    alt: `${RIVERFRONT_DELUXE_ROOM.name} — view ${i + 2}`,
-                  })),
-                ]}
-              />
-            </Reveal>
-            <Reveal delay={200} className="self-end lg:col-span-4 lg:col-start-9">
-              <h3 className="mt-3 font-display text-3xl lg:text-4xl">Riverfront Deluxe</h3>
-              <p className="mt-6 leading-relaxed text-charcoal/70">Set along the river’s edge at Mtoni River Lodge, the Riverfront Deluxe Room offers a calm, immersive escape with uninterrupted water views — an earth-and-thatch sanctuary inspired by Maasai boma design.</p>
-              <ul className="mt-8 space-y-3 text-sm text-charcoal/80">
-                {["Private river-facing deck","Antique king bed","Outdoor copper shower","Indoor bathtub"].map((f)=>(
-                  <li key={f} className="flex items-baseline gap-3">
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-charcoal/70" />{f}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-10 flex flex-wrap items-center gap-4">
-                <Link
-                  to="/book"
-                  onClick={() => trackCheckAvailabilityClick("homepage_rooms_teaser")}
-                  className="group inline-flex items-center gap-3 border border-charcoal bg-charcoal px-7 py-3.5 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-transparent hover:text-charcoal"
-                >
-                  View Availability
-                  <span className="transition-transform group-hover:translate-x-1">→</span>
-                </Link>
-                <Link
-                  to="/rooms"
-                  className="inline-flex items-center gap-2 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]"
-                >
-                  Explore Rooms →
-                </Link>
-              </div>
-            </Reveal>
-          </div>
         </div>
       </section>
 
