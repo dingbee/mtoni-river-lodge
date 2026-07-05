@@ -14,19 +14,18 @@ import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics"
 import { getLatestJournalPosts } from "@/lib/journal";
 import { ROOMS, getRoomPath } from "@/lib/rooms";
 import heroImg from "@/assets/hero-river.jpg";
-import lodgeHeroImg from "@/assets/lodge-hero-aerial.jpg";
 import heroImg800 from "@/assets/hero-river-800w.webp";
 import heroImg1600 from "@/assets/hero-river-1600w.webp";
-import forestCottageJpg from "@/assets/hero-forest-cottage.jpg.asset.json";
-import forestCottage800 from "@/assets/hero-forest-cottage-800w.webp.asset.json";
-import forestCottage1600 from "@/assets/hero-forest-cottage-1600w.webp.asset.json";
+import forestLightJpg from "@/assets/forest-light.jpg.asset.json";
+import forestLight800 from "@/assets/forest-light-800w.webp.asset.json";
+import forestLight1600 from "@/assets/forest-light-1600w.webp.asset.json";
+import palmGardenJpg from "@/assets/palm-garden.jpg.asset.json";
+import palmGarden800 from "@/assets/palm-garden-800w.webp.asset.json";
+import palmGarden1600 from "@/assets/palm-garden-1600w.webp.asset.json";
 import diningCandleJpg from "@/assets/hero-dining-candlelit.jpg.asset.json";
 import diningCandle800 from "@/assets/hero-dining-candlelit-800w.webp.asset.json";
 import diningCandle1600 from "@/assets/hero-dining-candlelit-1600w.webp.asset.json";
 import diningImg from "@/assets/dining.jpg";
-import aerialImg from "@/assets/aerial-lodge.jpg";
-import guideImg from "@/assets/guide.jpg";
-import villaImg from "@/assets/villa-exterior.jpg";
 
 const HOME_FAQS: FAQItem[] = [
   {
@@ -97,10 +96,10 @@ function HomePage() {
             alt: "Mist over the Nduruma River at dawn with Mount Meru in the distance",
           },
           {
-            src: forestCottageJpg.url,
-            webp800: forestCottage800.url,
-            webp1600: forestCottage1600.url,
-            alt: "A thatched cottage at Mtoni River Lodge surrounded by tall forest trees and a stone pathway",
+            src: forestLightJpg.url,
+            webp800: forestLight800.url,
+            webp1600: forestLight1600.url,
+            alt: "Morning light filtering through the forest canopy at Mtoni River Lodge",
           },
           {
             src: diningCandleJpg.url,
@@ -145,7 +144,22 @@ function HomePage() {
 
       {/* AERIAL FULL-BLEED */}
       <section className="relative h-[80svh] w-full overflow-hidden">
-        <img src={aerialImg} alt="Candlelit dining hall at Mtoni River Lodge with cowhide chairs and lantern light" className="h-full w-full object-cover" loading="lazy" width={1920} height={1080} />
+        <picture>
+          <source
+            type="image/webp"
+            srcSet={`${palmGarden800.url} 800w, ${palmGarden1600.url} 1600w`}
+            sizes="100vw"
+          />
+          <img
+            src={palmGardenJpg.url}
+            alt="Stone pathway winding through tall palm trees in the tropical garden at Mtoni River Lodge"
+            className="h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
+            width={1824}
+            height={1215}
+          />
+        </picture>
         <div className="absolute inset-0 bg-gradient-to-t from-charcoal/70 via-charcoal/25 to-charcoal/35" />
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1300px] px-6 pb-16 text-ivory lg:px-12 lg:pb-24">
           <Reveal>

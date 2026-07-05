@@ -23,6 +23,8 @@ import rituals from "@/assets/rituals.jpg";
 import bomaThatch from "@/assets/boma-thatch-room.jpg";
 import forestCottage from "@/assets/hero-forest-cottage.jpg.asset.json";
 import diningCandlelit from "@/assets/hero-dining-candlelit.jpg.asset.json";
+import palmGarden from "@/assets/palm-garden.jpg.asset.json";
+import forestLight from "@/assets/forest-light.jpg.asset.json";
 import maasaiByRiver from "@/assets/maasai-by-river.jpg";
 import bananaGrove from "@/assets/nduruma-banana-grove.jpg";
 import riverFlow from "@/assets/nduruma-river-flow.jpg";
@@ -52,6 +54,7 @@ export const GALLERY: GalleryImage[] = [
   { src: reception, alt: "Warm stone reception with beaded chandelier and arched doorways", category: "Architecture" },
   { src: bomaThatch, alt: "Boma-inspired thatched room", category: "Architecture" },
   { src: forestCottage.url, alt: "Thatched cottage surrounded by tall forest trees at Mtoni River Lodge", category: "Architecture" },
+  { src: palmGarden.url, alt: "Stone pathway winding through tall palm trees in the tropical garden at Mtoni River Lodge", category: "Architecture" },
   { src: poolAerialSlowLiving.url, alt: "Aerial view of the curved swimming pool and garden island at Mtoni River Lodge", category: "Architecture" },
 
   { src: suite, alt: "Candlelit bubble bath beneath a thatched roof", category: "Rooms" },
@@ -75,6 +78,7 @@ export const GALLERY: GalleryImage[] = [
   { src: riverFlow, alt: "Nduruma River flowing past river stones", category: "Nature" },
   { src: bananaGrove, alt: "Banana grove along the riverbank", category: "Nature" },
   { src: maasaiByRiver, alt: "Maasai elder by the river at dusk", category: "Nature" },
+  { src: forestLight.url, alt: "Morning sunlight filtering through the dense forest canopy at Mtoni River Lodge", category: "Nature" },
 
   { src: riverWalk, alt: "Guided river walk at first light", category: "Experiences" },
   { src: cycling, alt: "Cycling through the foothills", category: "Experiences" },
