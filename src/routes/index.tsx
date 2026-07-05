@@ -14,7 +14,6 @@ import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics"
 import { getLatestJournalPosts } from "@/lib/journal";
 import { ROOMS, getRoomPath } from "@/lib/rooms";
 import heroImg from "@/assets/hero-river.jpg";
-import lodgeHeroImg from "@/assets/lodge-hero-aerial.jpg";
 import heroImg800 from "@/assets/hero-river-800w.webp";
 import heroImg1600 from "@/assets/hero-river-1600w.webp";
 import forestLightJpg from "@/assets/forest-light.jpg.asset.json";
@@ -27,9 +26,6 @@ import diningCandleJpg from "@/assets/hero-dining-candlelit.jpg.asset.json";
 import diningCandle800 from "@/assets/hero-dining-candlelit-800w.webp.asset.json";
 import diningCandle1600 from "@/assets/hero-dining-candlelit-1600w.webp.asset.json";
 import diningImg from "@/assets/dining.jpg";
-import aerialImg from "@/assets/aerial-lodge.jpg";
-import guideImg from "@/assets/guide.jpg";
-import villaImg from "@/assets/villa-exterior.jpg";
 
 const HOME_FAQS: FAQItem[] = [
   {
