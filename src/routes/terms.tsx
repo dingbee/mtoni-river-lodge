@@ -19,6 +19,7 @@ export const Route = createFileRoute("/terms")({
           "Deposit, balance, and cancellation policies for reservations at Mtoni River Lodge.",
       },
     ],
+    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/terms" }],
   }),
   component: TermsPage,
 });

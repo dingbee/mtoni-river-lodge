@@ -165,6 +165,7 @@ export const Route = createFileRoute("/rooms/riverfront-deluxe")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: RIVERFRONT_DELUXE_ROOM.img },
     ],
+    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/rooms/riverfront-deluxe" }],
     scripts: [
       {
         type: "application/ld+json",

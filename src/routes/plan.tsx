@@ -44,6 +44,7 @@ export const Route = createFileRoute("/plan")({
       { name: "description", content: "Begin your reservation. Our team responds within 24 hours with a tailored itinerary." },
       { property: "og:image", content: villa },
     ],
+    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/plan" }],
   }),
   component: PlanPage,
 });

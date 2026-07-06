@@ -50,6 +50,7 @@ export const Route = createFileRoute("/rooms/")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: roomImg },
     ],
+    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/rooms" }],
     scripts: [
       buildFAQJsonLd(ROOMS_FAQS),
       buildBreadcrumbJsonLd([

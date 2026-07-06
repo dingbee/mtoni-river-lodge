@@ -18,6 +18,7 @@ export const Route = createFileRoute("/dining")({
       { name: "description", content: "Live cooking over open fire, river-fed gardens, and a menu shaped by what grows here. An immersive farm-to-table experience in Arusha." },
       { property: "og:image", content: dining },
     ],
+    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/dining" }],
     scripts: [
       buildBreadcrumbJsonLd([
         { name: "Home", path: "/" },

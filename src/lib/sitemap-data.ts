@@ -61,6 +61,8 @@ export const PAGE_ENTRIES: PageEntry[] = [
   { path: "/terms", lastmod: TODAY, changefreq: "yearly", priority: "0.3" },
   { path: "/privacy", lastmod: TODAY, changefreq: "yearly", priority: "0.3" },
   { path: "/journal", lastmod: TODAY, changefreq: "weekly", priority: "0.8" },
+  { path: "/gallery", lastmod: TODAY, changefreq: "monthly", priority: "0.6" },
+  { path: "/reviews", lastmod: TODAY, changefreq: "weekly", priority: "0.7" },
   { path: "/mount-kilimanjaro-accommodation-arusha", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
   { path: "/boutique-lodge-near-kilimanjaro-airport", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
 ];

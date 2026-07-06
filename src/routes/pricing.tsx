@@ -48,6 +48,7 @@ export const Route = createFileRoute("/pricing")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: heroImg },
     ],
+    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/pricing" }],
     scripts: [
       buildFAQJsonLd(PRICING_FAQS),
       buildBreadcrumbJsonLd([

@@ -39,7 +39,7 @@ export const Route = createFileRoute("/reviews")({
       },
       { property: "og:image", content: heroImg },
     ],
-    links: [{ rel: "canonical", href: "/reviews" }],
+    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/reviews" }],
   }),
   component: ReviewsPage,
 });
