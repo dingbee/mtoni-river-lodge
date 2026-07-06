@@ -93,6 +93,7 @@ export const Route = createFileRoute("/experiences")({
       { name: "description", content: "Authentic experiences at Mtoni River Lodge — cycling, guided river walks, off-road adventures, live cooking, bonfires, local markets and canoeing on Lake Duluti." },
       { property: "og:image", content: riverWalk },
     ],
+    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/experiences" }],
     scripts: [
       buildBreadcrumbJsonLd([
         { name: "Home", path: "/" },

@@ -19,6 +19,7 @@ export const Route = createFileRoute("/gallery")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: heroImg },
     ],
+    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/gallery" }],
   }),
   component: GalleryPage,
 });

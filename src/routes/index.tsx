@@ -74,6 +74,7 @@ export const Route = createFileRoute("/")({
         imagesizes: "100vw",
         fetchpriority: "high",
       },
+      { rel: "canonical", href: "https://mtoniriverlodge.com/" },
     ],
     scripts: [buildFAQJsonLd(HOME_FAQS)],
   }),

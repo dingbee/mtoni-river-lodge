@@ -162,6 +162,7 @@ export const Route = createFileRoute("/rooms/family-room")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: FAMILY_ROOM.img },
     ],
+    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/rooms/family-room" }],
     scripts: [
       {
         type: "application/ld+json",

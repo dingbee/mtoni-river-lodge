@@ -26,6 +26,7 @@ export const Route = createFileRoute("/journal/")({
       },
       { property: "og:image", content: river },
     ],
+    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/journal" }],
     scripts: [
       buildBreadcrumbJsonLd([
         { name: "Home", path: "/" },

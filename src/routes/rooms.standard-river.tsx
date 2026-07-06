@@ -164,6 +164,7 @@ export const Route = createFileRoute("/rooms/standard-river")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: STANDARD_RIVER_ROOM.img },
     ],
+    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/rooms/standard-river" }],
     scripts: [
       {
         type: "application/ld+json",
