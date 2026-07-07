@@ -7,6 +7,7 @@ import { LocationMap } from "@/components/site/LocationMap";
 import { HeroCinematic } from "@/components/site/HeroCinematic";
 import { ExperiencesCinematic } from "@/components/site/ExperiencesCinematic";
 import { RiverWritesADay } from "@/components/site/RiverWritesADay";
+import { ADayAtMtoni } from "@/components/site/ADayAtMtoni";
 import { GuestExperiencesSection } from "@/components/site/reviews/GuestExperiencesSection";
 import { FAQ } from "@/components/FAQ";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
