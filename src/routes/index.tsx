@@ -143,34 +143,13 @@ function HomePage() {
         </div>
       </section>
 
-      {/* AERIAL FULL-BLEED */}
-      <section className="relative h-[80svh] w-full overflow-hidden">
-        <picture>
-          <source
-            type="image/webp"
-            srcSet={`${palmGarden800.url} 800w, ${palmGarden1600.url} 1600w`}
-            sizes="100vw"
-          />
-          <img
-            src={palmGardenJpg.url}
-            alt="Stone pathway winding through tall palm trees in the tropical garden at Mtoni River Lodge"
-            className="h-full w-full object-cover"
-            loading="lazy"
-            decoding="async"
-            width={1824}
-            height={1215}
-          />
-        </picture>
-        <div className="absolute inset-0 bg-gradient-to-t from-charcoal/70 via-charcoal/25 to-charcoal/35" />
-        <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1300px] px-6 pb-16 text-ivory lg:px-12 lg:pb-24">
-          <Reveal>
-            <p className="eyebrow !text-ivory/70">A place, found</p>
-            <h2 className="hero-text-shadow mt-4 max-w-3xl font-display text-4xl leading-tight text-ivory lg:text-6xl">
-              Where the river leads, and everything else follows.
-            </h2>
-          </Reveal>
-        </div>
-      </section>
+      {/* CINEMATIC EDITORIAL — Where the River Writes a Day */}
+      <RiverWritesADay
+        img={palmGardenJpg.url}
+        img800={palmGarden800.url}
+        img1600={palmGarden1600.url}
+        alt="Stone pathway winding through tall palms in the tropical garden at Mtoni River Lodge"
+      />
 
       {/* ACCOMMODATION PREVIEW — curated room categories */}
       <section aria-labelledby="accommodation-heading" className="px-6 py-32 lg:px-12 lg:py-48">
