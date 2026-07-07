@@ -6,7 +6,10 @@ import { toast } from "sonner";
 import { adminExists } from "@/lib/auth-setup.functions";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Staff Sign In — Mtoni River Lodge" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({
+    meta: [{ title: "Staff Sign In — Mtoni River Lodge" }, { name: "robots", content: "noindex,nofollow" }],
+    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/auth" }],
+  }),
   component: AuthPage,
 });
 
