@@ -7,6 +7,7 @@ import { LocationMap } from "@/components/site/LocationMap";
 import { HeroCinematic } from "@/components/site/HeroCinematic";
 import { ExperiencesCinematic } from "@/components/site/ExperiencesCinematic";
 import { RiverWritesADay } from "@/components/site/RiverWritesADay";
+import { ADayAtMtoni } from "@/components/site/ADayAtMtoni";
 import { GuestExperiencesSection } from "@/components/site/reviews/GuestExperiencesSection";
 import { FAQ } from "@/components/FAQ";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
@@ -152,13 +153,50 @@ function HomePage() {
         alt="Stone pathway winding through tall palms in the tropical garden at Mtoni River Lodge"
       />
 
+      {/* EDITORIAL TIMELINE — A Day at Mtoni */}
+      <ADayAtMtoni />
+
+      {/* EXPERIENCES — full-bleed cinematic carousel */}
+      <section aria-labelledby="experiences-heading" className="bg-bone px-6 pt-24 lg:px-12 lg:pt-32">
+        <div className="mx-auto mb-14 max-w-[1400px] lg:mb-20">
+          <Reveal className="max-w-3xl">
+            <p className="eyebrow">Days at Mtoni</p>
+            <h2 id="experiences-heading" className="mt-4 font-display text-5xl leading-[1.04] lg:text-7xl">
+              Slow mornings.<br/>Wild afternoons.
+            </h2>
+            <p className="mt-6 max-w-lg text-charcoal/70">
+              A few moments from a day by the river.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+      <ExperiencesCinematic />
+      <section className="bg-bone px-6 py-16 text-center lg:px-12 lg:py-20">
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          <Link
+            to="/experiences"
+            className="group inline-flex items-center gap-3 border border-charcoal bg-charcoal px-7 py-3.5 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-transparent hover:text-charcoal"
+          >
+            All Experiences
+            <span className="transition-transform group-hover:translate-x-1">→</span>
+          </Link>
+          <Link
+            to="/contact"
+            onClick={() => trackContactClick("contact", "homepage_experiences")}
+            className="inline-flex items-center gap-2 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]"
+          >
+            Talk To Our Team →
+          </Link>
+        </div>
+      </section>
+
       {/* ACCOMMODATION PREVIEW — curated room categories */}
       <section aria-labelledby="accommodation-heading" className="px-6 py-32 lg:px-12 lg:py-48">
         <div className="mx-auto max-w-[1400px]">
           <Reveal className="mx-auto mb-16 max-w-3xl text-center lg:mb-20">
-            <p className="eyebrow">Accommodation</p>
+            <p className="eyebrow">Stay Within Nature</p>
             <h2 id="accommodation-heading" className="mt-4 font-display text-5xl leading-[1.04] lg:text-7xl">
-              Find Your Perfect Stay
+              Choose Your Retreat
             </h2>
             <p className="mt-8 text-base leading-relaxed text-charcoal/70 lg:text-lg">
               Whether you’re seeking uninterrupted river views, a peaceful garden retreat, or space for family and friends, every stay at Mtoni River Lodge is thoughtfully designed to immerse you in nature, comfort, and authentic hospitality.
@@ -203,40 +241,6 @@ function HomePage() {
               <span className="transition-transform group-hover:translate-x-1">→</span>
             </Link>
           </Reveal>
-        </div>
-      </section>
-
-      {/* EXPERIENCES — full-bleed cinematic carousel */}
-      <section aria-labelledby="experiences-heading" className="bg-bone px-6 pt-24 lg:px-12 lg:pt-32">
-        <div className="mx-auto mb-14 max-w-[1400px] lg:mb-20">
-          <Reveal className="max-w-3xl">
-            <p className="eyebrow">Days at Mtoni</p>
-            <h2 id="experiences-heading" className="mt-4 font-display text-5xl leading-[1.04] lg:text-7xl">
-              Slow mornings.<br/>Wild afternoons.
-            </h2>
-            <p className="mt-6 max-w-lg text-charcoal/70">
-              A few moments from a day by the river.
-            </p>
-          </Reveal>
-        </div>
-      </section>
-      <ExperiencesCinematic />
-      <section className="bg-bone px-6 py-16 text-center lg:px-12 lg:py-20">
-        <div className="flex flex-wrap items-center justify-center gap-4">
-          <Link
-            to="/experiences"
-            className="group inline-flex items-center gap-3 border border-charcoal bg-charcoal px-7 py-3.5 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-transparent hover:text-charcoal"
-          >
-            All Experiences
-            <span className="transition-transform group-hover:translate-x-1">→</span>
-          </Link>
-          <Link
-            to="/contact"
-            onClick={() => trackContactClick("contact", "homepage_experiences")}
-            className="inline-flex items-center gap-2 border-b border-charcoal pb-1 text-[0.72rem] uppercase tracking-[0.28em]"
-          >
-            Talk To Our Team →
-          </Link>
         </div>
       </section>
 

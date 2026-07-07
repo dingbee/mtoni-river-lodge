@@ -47,7 +47,7 @@ export function RiverWritesADay({ img, img800, img1600, alt }: Props) {
     <section
       ref={ref}
       aria-labelledby="river-writes-heading"
-      className="relative isolate h-[92svh] min-h-[620px] w-full overflow-hidden bg-charcoal"
+      className="relative isolate h-[62svh] min-h-[460px] w-full overflow-hidden bg-charcoal md:h-[68svh] lg:h-[70svh]"
     >
       {/* Parallax image layer */}
       <motion.div
@@ -96,7 +96,7 @@ export function RiverWritesADay({ img, img800, img1600, alt }: Props) {
             Where the River Writes a Day
           </h2>
           <p className="mt-6 max-w-xl text-base leading-relaxed text-ivory/85 lg:text-lg">
-            Begin with birdsong. Wander beneath ancient trees. Pause beside the river. As evening falls, gather around the fire beneath an open African sky. Whether you're arriving before a Kilimanjaro climb, returning from safari, or simply seeking quiet, Mtoni invites you to slow down and reconnect with nature.
+            Wake to birdsong. Wander shaded gardens. Pause beside the river. As night falls, gather around the fire beneath an open African sky. Whether arriving before Kilimanjaro, returning from safari, or simply seeking stillness, Mtoni invites you to experience nature at its own rhythm.
           </p>
 
           <div className="mt-9">
