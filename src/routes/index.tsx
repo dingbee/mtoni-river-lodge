@@ -117,6 +117,9 @@ function HomePage() {
         slideDurationMs={7000}
       />
 
+      {/* EDITORIAL TRUST — Why Mtoni */}
+      <WhyMtoni />
+
       {/* CINEMATIC EDITORIAL — Where the River Writes a Day */}
       <RiverWritesADay
         img={palmGardenJpg.url}
@@ -124,9 +127,6 @@ function HomePage() {
         img1600={palmGarden1600.url}
         alt="Stone pathway winding through tall palms in the tropical garden at Mtoni River Lodge"
       />
-
-      {/* EDITORIAL TRUST — Why Mtoni */}
-      <WhyMtoni />
 
       {/* EXPERIENCES — full-bleed cinematic carousel */}
       <section
