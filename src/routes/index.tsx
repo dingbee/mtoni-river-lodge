@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Home, Leaf, Waves } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
@@ -7,7 +6,7 @@ import { LocationMap } from "@/components/site/LocationMap";
 import { HeroCinematic } from "@/components/site/HeroCinematic";
 import { ExperiencesCinematic } from "@/components/site/ExperiencesCinematic";
 import { RiverWritesADay } from "@/components/site/RiverWritesADay";
-import { ADayAtMtoni } from "@/components/site/ADayAtMtoni";
+import { WhyMtoni } from "@/components/site/WhyMtoni";
 import { GuestExperiencesSection } from "@/components/site/reviews/GuestExperiencesSection";
 import { FAQ } from "@/components/FAQ";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
@@ -60,7 +59,11 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Mtoni River Lodge — Riverfront Sanctuary in Arusha, Tanzania" },
-       { name: "description", content: "An intimate luxury eco-lodge on the banks of the Nduruma River. 24 riverfront rooms in Arusha, Tanzania, fireside dining, and curated journeys into the heart of the country." },
+      {
+        name: "description",
+        content:
+          "An intimate luxury eco-lodge on the banks of the Nduruma River. 24 riverfront rooms in Arusha, Tanzania, fireside dining, and curated journeys into the heart of the country.",
+      },
       { property: "og:image", content: heroImg },
     ],
     links: [
@@ -114,37 +117,6 @@ function HomePage() {
         slideDurationMs={7000}
       />
 
-      {/* INTRO / NARRATIVE */}
-      <section className="relative px-6 pb-32 pt-12 lg:px-12 lg:pb-48 lg:pt-28">
-        <div className="mx-auto grid max-w-[1300px] gap-16 lg:grid-cols-12">
-          <Reveal className="lg:col-span-5">
-            <h2 className="mt-6 font-display text-5xl leading-[1.04] lg:text-6xl">
-              The river<br/>writes the day.
-            </h2>
-          </Reveal>
-          <Reveal delay={150} className="lg:col-span-6 lg:col-start-7">
-            <p className="font-display text-2xl leading-[1.45] text-charcoal/80 lg:text-[1.7rem]">
-              At first light, a soft veil of mist lifts from the water, and the lodge wakes quietly with it. Paths wind between stone and earth, leading to twenty-four rooms set low along the riverbank — each shaped in the spirit of a Maasai boma, where circular forms, natural textures, and open space create a sense of grounding and ease.
-            </p>
-            <p className="mt-8 max-w-lg text-base leading-relaxed text-charcoal/70">
-              Here, architecture does not compete with the landscape; it follows it. Walls carry the warmth of earth, timber frames the light, and every threshold opens toward the rhythm of the river. The day unfolds without urgency — mornings in stillness, afternoons in shade, evenings gathered under the sky as lanterns glow and the sound of water carries through the night.
-            </p>
-            <div className="mt-12 grid grid-cols-3 gap-8 border-t border-border pt-8 text-center">
-              {[
-                { Icon: Home, label: "Maasai Boma Rooms" },
-                { Icon: Leaf, label: "Eco Lodge" },
-                { Icon: Waves, label: "Riverfront Setting" },
-              ].map(({ Icon, label }) => (
-                <div key={label} className="flex flex-col items-center">
-                  <Icon className="h-9 w-9 text-primary" strokeWidth={1.4} aria-hidden />
-                  <p className="mt-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
-                </div>
-              ))}
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
       {/* CINEMATIC EDITORIAL — Where the River Writes a Day */}
       <RiverWritesADay
         img={palmGardenJpg.url}
@@ -153,20 +125,26 @@ function HomePage() {
         alt="Stone pathway winding through tall palms in the tropical garden at Mtoni River Lodge"
       />
 
-      {/* EDITORIAL TIMELINE — A Day at Mtoni */}
-      <ADayAtMtoni />
+      {/* EDITORIAL TRUST — Why Mtoni */}
+      <WhyMtoni />
 
       {/* EXPERIENCES — full-bleed cinematic carousel */}
-      <section aria-labelledby="experiences-heading" className="bg-bone px-6 pt-24 lg:px-12 lg:pt-32">
+      <section
+        aria-labelledby="experiences-heading"
+        className="bg-bone px-6 pt-24 lg:px-12 lg:pt-32"
+      >
         <div className="mx-auto mb-14 max-w-[1400px] lg:mb-20">
           <Reveal className="max-w-3xl">
             <p className="eyebrow">Days at Mtoni</p>
-            <h2 id="experiences-heading" className="mt-4 font-display text-5xl leading-[1.04] lg:text-7xl">
-              Slow mornings.<br/>Wild afternoons.
+            <h2
+              id="experiences-heading"
+              className="mt-4 font-display text-5xl leading-[1.04] lg:text-7xl"
+            >
+              Slow mornings.
+              <br />
+              Wild afternoons.
             </h2>
-            <p className="mt-6 max-w-lg text-charcoal/70">
-              A few moments from a day by the river.
-            </p>
+            <p className="mt-6 max-w-lg text-charcoal/70">A few moments from a day by the river.</p>
           </Reveal>
         </div>
       </section>
@@ -195,21 +173,23 @@ function HomePage() {
         <div className="mx-auto max-w-[1400px]">
           <Reveal className="mx-auto mb-16 max-w-3xl text-center lg:mb-20">
             <p className="eyebrow">Stay Within Nature</p>
-            <h2 id="accommodation-heading" className="mt-4 font-display text-5xl leading-[1.04] lg:text-7xl">
+            <h2
+              id="accommodation-heading"
+              className="mt-4 font-display text-5xl leading-[1.04] lg:text-7xl"
+            >
               Choose Your Retreat
             </h2>
             <p className="mt-8 text-base leading-relaxed text-charcoal/70 lg:text-lg">
-              Whether you’re seeking uninterrupted river views, a peaceful garden retreat, or space for family and friends, every stay at Mtoni River Lodge is thoughtfully designed to immerse you in nature, comfort, and authentic hospitality.
+              Whether you’re seeking uninterrupted river views, a peaceful garden retreat, or space
+              for family and friends, every stay at Mtoni River Lodge is thoughtfully designed to
+              immerse you in nature, comfort, and authentic hospitality.
             </p>
           </Reveal>
 
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 lg:gap-10">
             {ROOMS.map((room, i) => (
               <Reveal key={room.slug} delay={i * 120}>
-                <Link
-                  to={getRoomPath(room.slug)}
-                  className="group block h-full"
-                >
+                <Link to={getRoomPath(room.slug)} className="group block h-full">
                   <div className="aspect-[4/5] overflow-hidden bg-bone">
                     <img
                       src={room.img}
@@ -221,7 +201,9 @@ function HomePage() {
                   </div>
                   <div className="pt-6">
                     <h3 className="font-display text-2xl lg:text-3xl">{room.name}</h3>
-                    <p className="mt-3 text-sm leading-relaxed text-charcoal/70">{room.shortDesc}</p>
+                    <p className="mt-3 text-sm leading-relaxed text-charcoal/70">
+                      {room.shortDesc}
+                    </p>
                     <span className="mt-6 inline-flex items-center gap-2 border-b border-charcoal pb-1 text-[0.7rem] uppercase tracking-[0.28em] transition-colors group-hover:text-charcoal/70">
                       Explore Room
                       <span className="transition-transform group-hover:translate-x-1">→</span>
@@ -246,7 +228,12 @@ function HomePage() {
 
       {/* DINING — full bleed quote */}
       <section className="relative h-[90svh] w-full overflow-hidden">
-        <img src={diningImg} alt="Stone lobby entrance with beaded chandelier and arched doorways at Mtoni River Lodge" className="h-full w-full object-cover" loading="lazy" />
+        <img
+          src={diningImg}
+          alt="Stone lobby entrance with beaded chandelier and arched doorways at Mtoni River Lodge"
+          className="h-full w-full object-cover"
+          loading="lazy"
+        />
         <div className="absolute inset-0 bg-charcoal/30" />
         <div className="relative z-10 mx-auto flex h-full max-w-[1100px] flex-col items-center justify-center px-6 text-center text-ivory">
           <Reveal>
@@ -254,12 +241,16 @@ function HomePage() {
           </Reveal>
           <Reveal delay={150}>
             <p className="mt-8 font-display text-3xl italic leading-[1.3] lg:text-5xl">
-              "Dinner is set wherever the light is most beautiful — on the deck, in the orchard, beside the water."
+              "Dinner is set wherever the light is most beautiful — on the deck, in the orchard,
+              beside the water."
             </p>
           </Reveal>
           <Reveal delay={300}>
             <p className="mt-10 text-ivory/70">— Chef Amina Mwakikoti</p>
-            <Link to="/dining" className="mt-12 inline-flex items-center gap-3 border border-ivory px-7 py-4 text-[0.72rem] uppercase tracking-[0.32em] hover:bg-ivory hover:text-charcoal">
+            <Link
+              to="/dining"
+              className="mt-12 inline-flex items-center gap-3 border border-ivory px-7 py-4 text-[0.72rem] uppercase tracking-[0.32em] hover:bg-ivory hover:text-charcoal"
+            >
               The kitchen
             </Link>
           </Reveal>
@@ -272,12 +263,18 @@ function HomePage() {
           <Reveal className="lg:col-span-5">
             <p className="eyebrow">Your Kilimanjaro Retreat in Arusha</p>
             <h2 className="mt-6 font-display text-4xl leading-[1.05] lg:text-6xl">
-              Before the climb,<br/>and after the summit.
+              Before the climb,
+              <br />
+              and after the summit.
             </h2>
           </Reveal>
           <Reveal delay={150} className="lg:col-span-6 lg:col-start-7">
             <p className="text-lg leading-relaxed text-charcoal/80">
-              A 50-minute drive from Kilimanjaro International Airport, Mtoni River Lodge is a quiet, low-altitude base for trekkers preparing for Mount Kilimanjaro — and a restorative landing place for those returning from the summit. Expect deep sleep by the river, hot showers, nourishing meals, and transfers coordinated with your climbing operator.
+              A 50-minute drive from Kilimanjaro International Airport, Mtoni River Lodge is a
+              quiet, low-altitude base for trekkers preparing for Mount Kilimanjaro — and a
+              restorative landing place for those returning from the summit. Expect deep sleep by
+              the river, hot showers, nourishing meals, and transfers coordinated with your climbing
+              operator.
             </p>
             <ul className="mt-8 grid gap-3 text-sm text-charcoal/75 sm:grid-cols-2">
               {[
@@ -327,7 +324,12 @@ function HomePage() {
               <p className="eyebrow">From the Journal</p>
               <h2 className="mt-4 font-display text-4xl lg:text-6xl">Stories from the riverbank</h2>
             </div>
-            <Link to="/journal" className="hidden text-[0.72rem] uppercase tracking-[0.28em] underline-offset-8 hover:underline sm:inline">All stories →</Link>
+            <Link
+              to="/journal"
+              className="hidden text-[0.72rem] uppercase tracking-[0.28em] underline-offset-8 hover:underline sm:inline"
+            >
+              All stories →
+            </Link>
           </Reveal>
           {(() => {
             const [featured, ...secondary] = getLatestJournalPosts(4);
@@ -335,10 +337,7 @@ function HomePage() {
             return (
               <>
                 <Reveal>
-                  <Link
-                    to={featured.href}
-                    className="group grid gap-10 lg:grid-cols-12 lg:gap-16"
-                  >
+                  <Link to={featured.href} className="group grid gap-10 lg:grid-cols-12 lg:gap-16">
                     <div className="relative overflow-hidden lg:col-span-7">
                       <img
                         src={featured.img}
@@ -412,7 +411,8 @@ function HomePage() {
           <Reveal>
             <p className="eyebrow !text-ivory/60">Begin the journey</p>
             <h2 className="mt-8 font-display text-5xl leading-[1.05] lg:text-7xl">
-              The river is waiting.<br/>
+              The river is waiting.
+              <br />
               <em className="italic text-ivory/85">When will you arrive?</em>
             </h2>
             <div className="mt-12 flex flex-col items-center gap-5">
