@@ -49,10 +49,9 @@ export function WhyMtoni() {
             More Than a Place to Stay
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-charcoal/70 lg:text-lg">
-            Every memorable stay begins with a sense of place. At Mtoni River
-            Lodge, nature, thoughtful hospitality, and an exceptional location
-            come together to create experiences that stay with you long after
-            your journey ends.
+            Every memorable stay begins with a sense of place. At Mtoni River Lodge, nature,
+            thoughtful hospitality, and an exceptional location come together to create experiences
+            that stay with you long after your journey ends.
           </p>
         </motion.div>
 
