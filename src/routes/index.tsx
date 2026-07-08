@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Home, Leaf, Waves } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
@@ -7,7 +6,7 @@ import { LocationMap } from "@/components/site/LocationMap";
 import { HeroCinematic } from "@/components/site/HeroCinematic";
 import { ExperiencesCinematic } from "@/components/site/ExperiencesCinematic";
 import { RiverWritesADay } from "@/components/site/RiverWritesADay";
-import { ADayAtMtoni } from "@/components/site/ADayAtMtoni";
+import { WhyMtoni } from "@/components/site/WhyMtoni";
 import { GuestExperiencesSection } from "@/components/site/reviews/GuestExperiencesSection";
 import { FAQ } from "@/components/FAQ";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
