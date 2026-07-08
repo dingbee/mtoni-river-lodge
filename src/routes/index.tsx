@@ -113,37 +113,6 @@ function HomePage() {
         slideDurationMs={7000}
       />
 
-      {/* INTRO / NARRATIVE */}
-      <section className="relative px-6 pb-32 pt-12 lg:px-12 lg:pb-48 lg:pt-28">
-        <div className="mx-auto grid max-w-[1300px] gap-16 lg:grid-cols-12">
-          <Reveal className="lg:col-span-5">
-            <h2 className="mt-6 font-display text-5xl leading-[1.04] lg:text-6xl">
-              The river<br/>writes the day.
-            </h2>
-          </Reveal>
-          <Reveal delay={150} className="lg:col-span-6 lg:col-start-7">
-            <p className="font-display text-2xl leading-[1.45] text-charcoal/80 lg:text-[1.7rem]">
-              At first light, a soft veil of mist lifts from the water, and the lodge wakes quietly with it. Paths wind between stone and earth, leading to twenty-four rooms set low along the riverbank — each shaped in the spirit of a Maasai boma, where circular forms, natural textures, and open space create a sense of grounding and ease.
-            </p>
-            <p className="mt-8 max-w-lg text-base leading-relaxed text-charcoal/70">
-              Here, architecture does not compete with the landscape; it follows it. Walls carry the warmth of earth, timber frames the light, and every threshold opens toward the rhythm of the river. The day unfolds without urgency — mornings in stillness, afternoons in shade, evenings gathered under the sky as lanterns glow and the sound of water carries through the night.
-            </p>
-            <div className="mt-12 grid grid-cols-3 gap-8 border-t border-border pt-8 text-center">
-              {[
-                { Icon: Home, label: "Maasai Boma Rooms" },
-                { Icon: Leaf, label: "Eco Lodge" },
-                { Icon: Waves, label: "Riverfront Setting" },
-              ].map(({ Icon, label }) => (
-                <div key={label} className="flex flex-col items-center">
-                  <Icon className="h-9 w-9 text-primary" strokeWidth={1.4} aria-hidden />
-                  <p className="mt-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
-                </div>
-              ))}
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
       {/* CINEMATIC EDITORIAL — Where the River Writes a Day */}
       <RiverWritesADay
         img={palmGardenJpg.url}
@@ -152,8 +121,8 @@ function HomePage() {
         alt="Stone pathway winding through tall palms in the tropical garden at Mtoni River Lodge"
       />
 
-      {/* EDITORIAL TIMELINE — A Day at Mtoni */}
-      <ADayAtMtoni />
+      {/* EDITORIAL TRUST — Why Mtoni */}
+      <WhyMtoni />
 
       {/* EXPERIENCES — full-bleed cinematic carousel */}
       <section aria-labelledby="experiences-heading" className="bg-bone px-6 pt-24 lg:px-12 lg:pt-32">
