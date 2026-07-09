@@ -38,12 +38,26 @@ export type Review = {
   external_url: string | null;
   created_at: string;
   updated_at: string;
+  original_review?: string | null;
+  short_summary?: string | null;
+  medium_summary?: string | null;
+  imported_from?: string | null;
+  review_url?: string | null;
+  imported_at?: string | null;
 };
 
 export type ReviewAggregate = {
   source: ReviewSource;
   average_rating: number;
   review_count: number;
+};
+
+export type ReviewStatistics = {
+  source: ReviewSource;
+  overall_rating: number;
+  total_reviews: number;
+  profile_url: string | null;
+  updated_at: string;
 };
 
 export const TRIPADVISOR_URL =
