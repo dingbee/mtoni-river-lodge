@@ -36,7 +36,7 @@ const listSchema = z.object({
 export const listActivityLogs = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => listSchema.parse(d ?? {}))
-  .handler(async ({ data, context }): Promise<ActivityLogEntry[]> => {
+  .handler(async ({ data, context }) => {
     await assertStaff(context.supabase, context.userId);
     let q = context.supabase
       .from("activity_logs")
@@ -53,7 +53,7 @@ export const listActivityLogs = createServerFn({ method: "POST" })
     }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return (rows ?? []) as ActivityLogEntry[];
+    return (rows ?? []) as any;
   });
 
 export const listActivityActors = createServerFn({ method: "GET" })
