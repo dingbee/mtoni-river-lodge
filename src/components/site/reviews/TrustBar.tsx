@@ -1,5 +1,5 @@
 import { Stars } from "./Stars";
-import { useReviewAggregates, getAggregate } from "./useReviewData";
+import { useReviewAggregates, getAggregate, useReviewStatistics, getStatistic } from "./useReviewData";
 import { TRIPADVISOR_URL, GOOGLE_REVIEWS_URL, formatReviewCount } from "@/lib/reviews";
 
 type Variant = "light" | "dark" | "subtle";
@@ -12,13 +12,16 @@ const variantClasses: Record<Variant, string> = {
 
 export function TrustBar({ variant = "subtle", compact = false }: { variant?: Variant; compact?: boolean }) {
   const { data } = useReviewAggregates();
+  const { data: stats } = useReviewStatistics();
   const google = getAggregate(data, "google");
   const ta = getAggregate(data, "tripadvisor");
+  const gStat = getStatistic(stats, "google");
+  const tStat = getStatistic(stats, "tripadvisor");
 
   // Don't render an empty shell on first paint with no data — still show static labels.
   const items: { label: string; url: string; agg: typeof google; source: "google" | "tripadvisor" }[] = [
-    { label: "Google", url: GOOGLE_REVIEWS_URL, agg: google, source: "google" },
-    { label: "Tripadvisor", url: TRIPADVISOR_URL, agg: ta, source: "tripadvisor" },
+    { label: "Google", url: gStat?.profile_url || GOOGLE_REVIEWS_URL, agg: google, source: "google" },
+    { label: "Tripadvisor", url: tStat?.profile_url || TRIPADVISOR_URL, agg: ta, source: "tripadvisor" },
   ];
 
   return (

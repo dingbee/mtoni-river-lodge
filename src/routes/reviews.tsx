@@ -11,6 +11,8 @@ import {
   useApprovedReviews,
   useReviewAggregates,
   getAggregate,
+  useReviewStatistics,
+  getStatistic,
 } from "@/components/site/reviews/useReviewData";
 import {
   REVIEW_CATEGORIES,
@@ -50,8 +52,11 @@ function ReviewsPage() {
 
   const { data: reviews = [], isLoading } = useApprovedReviews({ limit: 100 });
   const { data: aggregates } = useReviewAggregates();
+  const { data: stats } = useReviewStatistics();
   const google = getAggregate(aggregates, "google");
   const ta = getAggregate(aggregates, "tripadvisor");
+  const gStat = getStatistic(stats, "google");
+  const tStat = getStatistic(stats, "tripadvisor");
 
   const filtered = useMemo(() => {
     return reviews.filter(
@@ -81,8 +86,8 @@ function ReviewsPage() {
           <Reveal>
             <div className="grid gap-6 sm:grid-cols-2">
               {[
-                { label: "Google", agg: google, url: GOOGLE_REVIEWS_URL, source: "google" as const },
-                { label: "Tripadvisor", agg: ta, url: TRIPADVISOR_URL, source: "tripadvisor" as const },
+                { label: "Google", agg: google, url: gStat?.profile_url || GOOGLE_REVIEWS_URL, source: "google" as const },
+                { label: "Tripadvisor", agg: ta, url: tStat?.profile_url || TRIPADVISOR_URL, source: "tripadvisor" as const },
               ].map((it) => (
                 <a
                   key={it.label}

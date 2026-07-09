@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json
+          new_value: Json | null
+          previous_value: Json | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json
+          new_value?: Json | null
+          previous_value?: Json | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json
+          new_value?: Json | null
+          previous_value?: Json | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       booking_extras: {
         Row: {
           booking_id: string
@@ -620,6 +668,36 @@ export type Database = {
         }
         Relationships: []
       }
+      review_statistics: {
+        Row: {
+          created_at: string
+          overall_rating: number
+          profile_url: string | null
+          source: Database["public"]["Enums"]["review_source"]
+          total_reviews: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          overall_rating: number
+          profile_url?: string | null
+          source: Database["public"]["Enums"]["review_source"]
+          total_reviews: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          overall_rating?: number
+          profile_url?: string | null
+          source?: Database["public"]["Enums"]["review_source"]
+          total_reviews?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       reviews: {
         Row: {
           categories: Database["public"]["Enums"]["review_category"][]
@@ -630,9 +708,18 @@ export type Database = {
           guest_location: string | null
           guest_name: string
           id: string
+          imported_at: string | null
+          imported_by: string | null
+          imported_from: string | null
+          last_modified_at: string | null
+          last_modified_by: string | null
+          medium_summary: string | null
+          original_review: string | null
           rating: number
           review_date: string
           review_text: string
+          review_url: string | null
+          short_summary: string | null
           source: Database["public"]["Enums"]["review_source"]
           status: Database["public"]["Enums"]["review_status"]
           title: string | null
@@ -647,9 +734,18 @@ export type Database = {
           guest_location?: string | null
           guest_name: string
           id?: string
+          imported_at?: string | null
+          imported_by?: string | null
+          imported_from?: string | null
+          last_modified_at?: string | null
+          last_modified_by?: string | null
+          medium_summary?: string | null
+          original_review?: string | null
           rating: number
           review_date: string
           review_text: string
+          review_url?: string | null
+          short_summary?: string | null
           source: Database["public"]["Enums"]["review_source"]
           status?: Database["public"]["Enums"]["review_status"]
           title?: string | null
@@ -664,9 +760,18 @@ export type Database = {
           guest_location?: string | null
           guest_name?: string
           id?: string
+          imported_at?: string | null
+          imported_by?: string | null
+          imported_from?: string | null
+          last_modified_at?: string | null
+          last_modified_by?: string | null
+          medium_summary?: string | null
+          original_review?: string | null
           rating?: number
           review_date?: string
           review_text?: string
+          review_url?: string | null
+          short_summary?: string | null
           source?: Database["public"]["Enums"]["review_source"]
           status?: Database["public"]["Enums"]["review_status"]
           title?: string | null

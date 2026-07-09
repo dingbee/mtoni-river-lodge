@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getReviewAggregates, listApprovedReviews } from "@/lib/reviews.functions";
-import type { Review, ReviewAggregate, ReviewCategory, ReviewSource } from "@/lib/reviews";
+import { listReviewStatistics } from "@/lib/review-stats.functions";
+import type { Review, ReviewAggregate, ReviewCategory, ReviewSource, ReviewStatistics } from "@/lib/reviews";
 
 export function useReviewAggregates() {
   const fn = useServerFn(getReviewAggregates);
@@ -10,6 +11,19 @@ export function useReviewAggregates() {
     queryFn: () => fn(),
     staleTime: 5 * 60 * 1000,
   });
+}
+
+export function useReviewStatistics() {
+  const fn = useServerFn(listReviewStatistics);
+  return useQuery<ReviewStatistics[]>({
+    queryKey: ["review-statistics"],
+    queryFn: () => fn(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function getStatistic(stats: ReviewStatistics[] | undefined, source: ReviewSource) {
+  return stats?.find((s) => s.source === source);
 }
 
 export function useApprovedReviews(opts: {
