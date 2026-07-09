@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Leaf } from "lucide-react";
 import { toast } from "sonner";
-import { adminExists } from "@/lib/auth-setup.functions";
+import { adminExists, claimFirstAdmin } from "@/lib/auth-setup.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -59,6 +59,7 @@ function AuthPage() {
       setLoading(false);
       if (error) return toast.error(error.message);
       if (data.session) {
+        try { await claimFirstAdmin(); } catch (e) { console.error("claimFirstAdmin failed", e); }
         toast.success("Account created. You are signed in.");
         navigate({ to: "/admin/bookings" });
       } else {
