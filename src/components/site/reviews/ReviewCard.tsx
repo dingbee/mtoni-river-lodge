@@ -7,6 +7,10 @@ function formatDate(iso: string) {
 }
 
 export function ReviewCard({ review, compact = false }: { review: Review; compact?: boolean }) {
+  const displayText =
+    (compact && review.short_summary?.trim()) ||
+    review.medium_summary?.trim() ||
+    review.review_text;
   return (
     <article
       className={`group relative flex h-full flex-col justify-between rounded-2xl border border-charcoal/10 bg-ivory/90 ${
@@ -30,7 +34,7 @@ export function ReviewCard({ review, compact = false }: { review: Review; compac
           </p>
         )}
         <p className={`mt-3 ${compact ? "text-[0.82rem]" : "text-sm"} leading-relaxed text-charcoal/75`}>
-          &ldquo;{review.review_text}&rdquo;
+          &ldquo;{displayText}&rdquo;
         </p>
       </div>
       <div className="mt-7 border-t border-charcoal/10 pt-4">
