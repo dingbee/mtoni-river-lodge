@@ -76,7 +76,7 @@ export function formatReviewCount(
   source?: ReviewSource,
 ): string {
   const n = Number(count ?? 0);
+  if (n > 0) return n.toLocaleString();
   const min = source === "tripadvisor" ? MIN_TRIPADVISOR_REVIEW_COUNT : MIN_DISPLAY_REVIEW_COUNT;
-  if (n >= min) return n.toLocaleString();
   return `${min}+`;
 }
