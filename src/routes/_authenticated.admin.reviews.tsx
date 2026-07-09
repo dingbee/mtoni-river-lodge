@@ -909,6 +909,19 @@ function ReviewForm({
           </label>
 
           <label className="grid gap-1">
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Short summary (homepage cards · 20–30 words)</span>
+            <textarea rows={2} value={f.short_summary ?? ""} onChange={(e) => setF({ ...f, short_summary: e.target.value })} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2" />
+          </label>
+          <label className="grid gap-1">
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Medium summary (reviews page · 40–70 words)</span>
+            <textarea rows={3} value={f.medium_summary ?? ""} onChange={(e) => setF({ ...f, medium_summary: e.target.value })} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2" />
+          </label>
+          <label className="grid gap-1">
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Original review (verbatim, for reference)</span>
+            <textarea rows={3} value={f.original_review ?? ""} onChange={(e) => setF({ ...f, original_review: e.target.value })} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2" />
+          </label>
+
+          <label className="grid gap-1">
             <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">External URL</span>
             <input type="url" value={f.external_url} onChange={(e) => setF({ ...f, external_url: e.target.value })} placeholder="https://" className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2" />
           </label>
