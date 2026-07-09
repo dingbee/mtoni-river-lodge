@@ -57,8 +57,8 @@ export const getReviewAggregates = createServerFn({ method: "GET" })
       sb.from("review_statistics").select("source, overall_rating, total_reviews"),
       sb.rpc("get_review_aggregates"),
     ]);
-    const byStat = new Map((stats ?? []).map((s: any) => [s.source, s]));
-    const bySource = new Map((agg ?? []).map((a: any) => [a.source, a]));
+    const byStat = new Map<string, any>((stats ?? []).map((s: any) => [s.source, s]));
+    const bySource = new Map<string, any>(((agg as any[]) ?? []).map((a: any) => [a.source, a]));
     const sources = new Set<string>([...byStat.keys(), ...bySource.keys()] as string[]);
     return Array.from(sources).map((src) => {
       const s = byStat.get(src);
