@@ -57,6 +57,11 @@ type FormState = {
   status: ReviewStatus;
   featured: boolean;
   external_url: string;
+  original_review?: string;
+  short_summary?: string;
+  medium_summary?: string;
+  imported_from?: string;
+  review_url?: string;
 };
 
 const blankForm: FormState = {
@@ -71,6 +76,11 @@ const blankForm: FormState = {
   status: "pending",
   featured: false,
   external_url: "",
+  original_review: "",
+  short_summary: "",
+  medium_summary: "",
+  imported_from: "",
+  review_url: "",
 };
 
 function AdminReviews() {
@@ -805,6 +815,11 @@ function formFromReview(r: Review): FormState {
     status: r.status,
     featured: r.featured,
     external_url: r.external_url ?? "",
+    original_review: r.original_review ?? "",
+    short_summary: r.short_summary ?? "",
+    medium_summary: r.medium_summary ?? "",
+    imported_from: r.imported_from ?? "",
+    review_url: r.review_url ?? "",
   };
 }
 
@@ -814,6 +829,11 @@ function cleanForm(f: FormState) {
     guest_location: f.guest_location || null,
     title: f.title || null,
     external_url: f.external_url || null,
+    original_review: f.original_review || null,
+    short_summary: f.short_summary || null,
+    medium_summary: f.medium_summary || null,
+    imported_from: f.imported_from || null,
+    review_url: f.review_url || null,
   };
 }
 
