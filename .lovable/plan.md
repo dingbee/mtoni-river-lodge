@@ -1,102 +1,111 @@
 
-# Front Desk Command System — Implementation Plan
+## Mtoni OS Sprint 1 — Platform Shell & Core Architecture
 
-A unified operations console for Mtoni River Lodge that ties booking emails (Lovable Emails), WhatsApp staff alerts, Outlook mirroring, and a front-desk dashboard into one event-driven workflow.
+Transforms the existing `/admin/*` area into a proper application shell without touching the public marketing site, the booking engine, review/CMS logic, or any current URLs. Existing pages (`/admin/bookings`, `/admin/front-desk`, `/admin/reviews`) keep their routes and get re-linked from the new sidebar.
 
-## 1. Scope confirmation
+---
 
-Before I build, two decisions need confirmation because they require external credentials / setup:
+### 1. Route architecture
 
-1. **WhatsApp provider** — Twilio WhatsApp is the simplest path (already documented as a Lovable connector). Meta WhatsApp Cloud API is also possible but requires Business verification + a Meta app. **Default: Twilio WhatsApp via connector.** A staff phone number (E.164) is required as the alert recipient.
-2. **Outlook mirroring** — Two options:
-   - **(a) BCC every outbound email** to `bookings@mtoniriverlodge.com`. Simple, no OAuth, preserves SPF/DKIM because Lovable Emails signs the message and the BCC is delivered by the SMTP transport. **Recommended.**
-   - **(b) Microsoft Graph push** (writes a copy into the mailbox via the Outlook connector). Requires per-user OAuth for that mailbox or an Entra app with `Mail.ReadWrite` on a shared mailbox.
+New layout route:
+- `src/routes/_authenticated/admin.tsx` — Mtoni OS shell (sidebar + top bar + breadcrumbs + `<Outlet />`).
 
-   I'll implement (a) as the default and leave a hook so (b) can be added later. The existing `microsoft_outlook` connector authenticates the developer's mailbox, not arbitrary shared mailboxes, so option (b) is not a one-click setup.
+Move current admin leaves under it (URL unchanged because `_authenticated` and pathless segments don't affect the URL):
+- rename `_authenticated.admin.bookings.tsx` → `_authenticated/admin.bookings.tsx`
+- rename `_authenticated.admin.front-desk.tsx` → `_authenticated/admin.front-desk.tsx`
+- rename `_authenticated.admin.reviews.tsx` → `_authenticated/admin.reviews.tsx`
 
-I'll proceed with **Twilio + BCC** unless you say otherwise.
+New leaf routes:
+- `admin.index.tsx` → `/admin` dashboard
+- `admin.operations.calendar.tsx`, `admin.operations.rooms.tsx`, `admin.operations.housekeeping.tsx`
+- `admin.guests.crm.tsx`, `admin.guests.messages.tsx`
+- `admin.content.homepage.tsx`, `admin.content.rooms.tsx`, `admin.content.experiences.tsx`, `admin.content.journal.tsx`, `admin.content.gallery.tsx`, `admin.content.media.tsx`
+- `admin.marketing.seo.tsx`, `admin.marketing.campaigns.tsx`, `admin.marketing.analytics.tsx`
+- `admin.finance.payments.tsx`, `admin.finance.invoices.tsx`, `admin.finance.reports.tsx`
+- `admin.staff.users.tsx`, `admin.staff.roles.tsx`, `admin.staff.activity.tsx` (re-uses existing activity log viewer)
+- `admin.automation.tsx`, `admin.settings.tsx`
 
-## 2. Database (one migration)
+Sidebar labels re-map existing routes:
+- Reservations → `/admin/bookings`
+- Reviews → `/admin/reviews`
+- Front Desk (housekeeping/tasks card too) links to `/admin/front-desk`
 
-New tables (existing `bookings` table is kept and extended — it already has `guest_name`, `guest_email`, `guest_phone`, `check_in`, `check_out`, `status`, etc.):
+Non-implemented leaves render the shared `<ComingSoon />` component.
 
-- Add to `public.bookings`: `guest_type` enum (`standard|vip|climber`), generated from `special_requests` keywords or set manually.
-- `public.guest_threads` — one row per booking; `timeline jsonb[]`, `notes text`, `last_updated`.
-- `public.email_events` — `booking_id`, `event_type` (`queued|sent|delivered|bounced|failed`), `template_name`, `message_id`, `timestamp`. Backed by existing `email_send_log` data via a view + writer.
-- `public.ops_tasks` — `booking_id`, `task_type`, `assigned_to uuid null`, `status`, `due_at`, `priority`.
-- `public.whatsapp_alerts` — `booking_id`, `event_type`, `message`, `to_number`, `sent_at`, `provider_sid`, `status`, idempotency key.
+### 2. Shell components
 
-All four get GRANTs (`authenticated` read, `service_role` all), RLS enabled, staff-only policies via existing `is_staff(auth.uid())`.
+Under `src/components/os/`:
+- `AdminShell.tsx` — desktop grid (sidebar + main), mobile drawer via `Sheet`, persists collapsed state in `localStorage`, respects `pb-safe`.
+- `AdminSidebar.tsx` — grouped nav from a single `nav-config.ts`, active state via `useRouterState`, collapsible groups, role-gated items.
+- `AdminTopbar.tsx` — page title, breadcrumbs (derived from route match tree), global search trigger (`⌘K`), notifications bell, user menu (sign out reuses existing flow).
+- `Breadcrumbs.tsx` — reads `useMatches()` and per-route `staticData.crumb`.
+- `CommandPalette.tsx` — `cmdk` dialog with pluggable providers (`searchProviders.ts`); providers registered for Bookings, Reviews, Journal, Rooms, Settings; each provider is a stub returning nav links plus a `TODO: Supabase query` comment.
+- `NotificationsPanel.tsx` — slide-over sheet reading from a `useNotifications()` hook that returns an empty array + typed shape; ready for Sprint 2 wiring.
+- `ComingSoon.tsx` — reusable empty state.
+- `PageHeader.tsx`, `StatCard.tsx`, `SectionCard.tsx`, `DataTable.tsx` (thin wrapper over `@tanstack/react-table` if already present, else simple `Table` wrapper), `EmptyState.tsx`, `LoadingState.tsx`, `ErrorState.tsx`.
 
-Triggers:
-- `AFTER INSERT ON bookings` → seed `guest_threads`, create payment-followup `ops_task`, enqueue `booking-received` email, enqueue WhatsApp alert.
-- `AFTER UPDATE OF status, payment_status ON bookings` → append timeline row, create room-prep task on `paid`, enqueue confirmation email + WhatsApp.
-- Use `pg_net` (already enabled via cron) to hit internal server routes, OR write to a `pending_notifications` queue table the cron drains. **I'll use the queue table** to keep network calls out of triggers (more reliable, easier to retry).
+All use existing shadcn primitives and design tokens in `src/styles.css` — no hard-coded colors.
 
-## 3. Automation rule engine
+### 3. Dashboard `/admin`
 
-A single server route `POST /api/public/ops/drain` runs every 30s via `pg_cron` (with `X-Cron-Secret` header). It:
+`StatCard` grid: Occupancy, Today's arrivals, Today's departures, Pending bookings, Revenue (MTD), Reviews (avg + count), Website traffic, Notifications. Data comes from a `useDashboardMetrics()` hook that returns placeholder values with a clear `// TODO(sprint-2): wire to Supabase` marker per card. Two side panels: recent activity (already wired to `activity_logs`) and upcoming arrivals (placeholder).
 
-1. Reads pending rows from `pending_notifications`.
-2. For each: enqueues the right Lovable Email (`booking-received` / `booking-confirmed` / `payment-pending` / `payment-received` / `booking-cancelled`) with idempotency key `{event}-{booking_id}` and BCC `bookings@mtoniriverlodge.com`.
-3. Sends WhatsApp via Twilio gateway (`/Messages.json`, `From=whatsapp:<sandbox>`, `To=whatsapp:<staff>`) with idempotency check against `whatsapp_alerts`.
-4. Appends a `timeline` row to `guest_threads`.
-5. Marks the queue row processed.
+### 4. Permissions framework
 
-Morning digest: a cron-triggered server fn at 07:00 Africa/Dar_es_Salaam aggregates today's arrivals + VIP/climber highlights into one WhatsApp message.
+DB migration adds new roles to the `app_role` enum and helpers:
 
-## 4. Email layer
+```sql
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'owner';
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'manager';
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'reception';
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'marketing';
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'housekeeping';
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'finance';
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'editor';
 
-- Extend `src/lib/email/send-internal.server.ts` to accept `bcc` + `metadata.booking_id`.
-- Update `/lovable/email/transactional/send` to forward `bcc` to Lovable Emails (sets `Bcc: bookings@mtoniriverlodge.com` on every booking template).
-- Add new templates: `payment-pending.tsx`, `payment-received.tsx`, `booking-cancelled.tsx` (mirroring existing `_shared` styling).
-- `email_send_log` insert → trigger that mirrors into `email_events` keyed by `booking_id` parsed from idempotency key / metadata.
+-- helper: any-of check + module capability map
+CREATE OR REPLACE FUNCTION public.has_any_role(_user_id uuid, _roles app_role[])
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
+  SELECT EXISTS(SELECT 1 FROM public.user_roles WHERE user_id=_user_id AND role = ANY(_roles))
+$$;
+```
 
-## 5. WhatsApp integration (Twilio)
+`is_staff()` extended to include `owner` and `manager`. Existing `admin` role is preserved and treated as `owner` in the client capability map. No changes to existing RLS policies — everything currently gated on `admin` keeps working.
 
-- New helper `src/lib/whatsapp/send.server.ts` calling the connector gateway (`https://connector-gateway.lovable.dev/twilio/Messages.json`) per the Twilio knowledge card.
-- Uses `LOVABLE_API_KEY` + `TWILIO_API_KEY` (connector secret).
-- Two new secrets needed from the user: **`WHATSAPP_FROM`** (e.g. `whatsapp:+14155238886`) and **`WHATSAPP_STAFF_TO`** (comma-separated E.164 staff numbers). I'll request them with `add_secret` once Twilio is connected.
+Client-side: `src/lib/permissions.ts` exports a `MODULE_ROLES` map and a `useCurrentUserRoles()` hook (server function backed by `user_roles`). Sidebar items and route `beforeLoad` guards use it; unauthorised nav items are hidden and direct URL access redirects to `/admin`.
 
-## 6. Front Desk dashboard UI
+### 5. Notification + search frameworks
 
-New route `src/routes/_authenticated/admin.front-desk.tsx` (staff-only via existing `is_staff` check). Sections:
+- `src/lib/notifications.ts` — typed `Notification` shape (`booking_created`, `payment_received`, `review_submitted`, `form_submission`, `room_maintenance`, `task_assigned`), `useNotifications()` hook stubbed to `[]`, `useUnreadCount()`. Panel UI renders empty state today, ready for Sprint 2 subscription to `pending_notifications`.
+- `src/lib/search/registry.ts` — `SearchProvider` interface (`id`, `label`, `icon`, `search(query): Promise<SearchResult[]>`). Registered stubs for each entity; command palette merges results.
 
-- **Today's Ops** — cards: check-ins today, check-outs today, pending payments, VIP arrivals (queries via server fn).
-- **Kanban** — 5 columns (`new` / `pending_payment` / `confirmed` / `checked_in` / `completed`), drag-drop updates `bookings.status` (uses `@dnd-kit/core` already installed? if not, install).
-- **Guest Thread drawer** — opens on card click; shows timeline + emails + WhatsApp alerts + editable staff notes.
-- **Alerts panel** — derived view: overdue payments (`balance_due > 0 AND check_in < now() + 3 days`), VIP arrivals next 48h, climber logistics.
+### 6. Design system
 
-Realtime updates via Supabase Realtime on `bookings`, `guest_threads`, `ops_tasks`.
+Add to `src/styles.css` (admin-scoped tokens, no impact on marketing pages):
+- `--admin-bg`, `--admin-surface`, `--admin-sidebar`, `--admin-border`, `--admin-accent` mapped via `@theme inline`.
+- Utility variants (`status-success`, `status-warning`, `status-danger`, `status-info`) as `@utility` blocks used by `StatusChip`.
 
-## 7. Files to create / change
+`StatusChip`, `PageHeader`, `SectionCard`, `EmptyState`, `LoadingState`, `ErrorState`, `StatCard` all live in `src/components/os/` and are used across every new page.
 
-**New:**
-- `supabase/migrations/<ts>_front_desk_system.sql` (schema + triggers + grants)
-- `src/lib/whatsapp/send.server.ts`
-- `src/lib/whatsapp/templates.ts`
-- `src/lib/front-desk.functions.ts` (server fns: list bookings, update status, add note, complete task)
-- `src/lib/email-templates/payment-pending.tsx`
-- `src/lib/email-templates/payment-received.tsx`
-- `src/lib/email-templates/booking-cancelled.tsx`
-- `src/routes/api/public/ops/drain.ts` (cron worker, secret-gated)
-- `src/routes/api/public/ops/morning-digest.ts`
-- `src/routes/_authenticated/admin.front-desk.tsx`
-- `src/components/front-desk/{TodayOps,KanbanBoard,GuestThreadDrawer,AlertsPanel}.tsx`
+### 7. Preserved functionality
 
-**Updated:**
-- `src/lib/email/send-internal.server.ts` (add bcc + metadata)
-- `src/routes/lovable/email/transactional/send.ts` (forward bcc)
-- `src/lib/email-templates/registry.ts` (new templates)
-- `src/lib/booking.functions.ts` (write to `pending_notifications` instead of calling email inline)
+- `src/routes/_authenticated.tsx` gate unchanged.
+- Public site, booking engine, `/admin/bookings`, `/admin/front-desk`, `/admin/reviews` code untouched aside from the file move — the components are re-exported as-is inside the new shell.
+- `src/start.ts`, `auth-attacher`, `auth-middleware`, all server functions untouched.
 
-## 8. What I need from you before building
+### 8. Verification
 
-Please confirm:
+- `tsgo --noEmit` after all edits.
+- Playwright smoke run against `http://localhost:8080/admin` with the injected Supabase session: screenshot dashboard, click into Reservations, Reviews, Front Desk, a coming-soon page, toggle sidebar collapse, open command palette, verify no console errors.
+- Manual regression check against public routes `/`, `/reviews`, `/book` (screenshot only, no interaction).
 
-1. ✅ Proceed with **Twilio WhatsApp + BCC mirroring** (default), OR specify Meta Cloud API / Microsoft Graph push instead.
-2. The Twilio connector must be linked (I'll prompt the connect dialog when ready).
-3. Staff WhatsApp recipient number(s) in E.164 format (e.g. `+255…`). I'll request these as secrets after Twilio is connected.
-4. Confirm the BCC target is exactly `bookings@mtoniriverlodge.com`.
+### 9. Out of scope for this sprint
 
-Once you confirm, I'll execute the plan end-to-end in the next turn.
+- Real data wiring for occupancy/revenue/traffic cards.
+- Live notifications subscription.
+- Search provider implementations (only interface + stubs).
+- Housekeeping / calendar / CRM / SEO / campaigns / finance business logic.
+
+---
+
+Approve and I'll start with the DB migration for roles, then land the shell, route skeleton, dashboard, and framework stubs in one pass.

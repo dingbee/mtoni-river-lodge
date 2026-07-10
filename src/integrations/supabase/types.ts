@@ -1019,6 +1019,10 @@ export type Database = {
               total: number
             }[]
           }
+      current_user_roles: {
+        Args: never
+        Returns: Database["public"]["Enums"]["app_role"][]
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -1057,6 +1061,13 @@ export type Database = {
           slug: string
         }[]
       }
+      has_any_role: {
+        Args: {
+          _roles: Database["public"]["Enums"]["app_role"][]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1084,7 +1095,17 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "reservations" | "user"
+      app_role:
+        | "admin"
+        | "reservations"
+        | "user"
+        | "owner"
+        | "manager"
+        | "reception"
+        | "marketing"
+        | "housekeeping"
+        | "finance"
+        | "editor"
       booking_status:
         | "pending"
         | "confirmed"
@@ -1242,7 +1263,18 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "reservations", "user"],
+      app_role: [
+        "admin",
+        "reservations",
+        "user",
+        "owner",
+        "manager",
+        "reception",
+        "marketing",
+        "housekeeping",
+        "finance",
+        "editor",
+      ],
       booking_status: [
         "pending",
         "confirmed",
