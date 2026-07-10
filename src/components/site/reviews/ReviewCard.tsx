@@ -11,6 +11,7 @@ export function ReviewCard({ review, compact = false }: { review: Review; compac
     (compact && review.short_summary?.trim()) ||
     review.medium_summary?.trim() ||
     review.review_text;
+  const sourceUrl = review.review_url?.trim() || review.external_url?.trim() || null;
   return (
     <article
       className={`group relative flex h-full flex-col justify-between rounded-2xl border border-charcoal/10 bg-ivory/90 ${
@@ -43,6 +44,18 @@ export function ReviewCard({ review, compact = false }: { review: Review; compac
           {review.guest_location ? `${review.guest_location} · ` : ""}
           {formatDate(review.review_date)}
         </p>
+        {sourceUrl && (
+          <a
+            href={sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex items-center gap-1 text-[0.7rem] uppercase tracking-[0.24em] text-charcoal/60 transition-colors hover:text-charcoal"
+            aria-label={`Read original review by ${review.guest_name} on ${SOURCE_LABELS[review.source]}`}
+          >
+            Read original review
+            <span aria-hidden className="transition-transform group-hover:translate-x-0.5">↗</span>
+          </a>
+        )}
       </div>
     </article>
   );
