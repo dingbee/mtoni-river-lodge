@@ -6,6 +6,8 @@ import { createFileRoute } from "@tanstack/react-router";
 async function handleNotification(orderTrackingId: string, merchantReference: string, notificationType: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+  console.info("[pesapal] IPN received", { orderTrackingId, merchantReference, notificationType });
+
   const { data: booking } = await supabaseAdmin
     .from("bookings")
     .select("id, payment_status")
@@ -22,13 +24,21 @@ async function handleNotification(orderTrackingId: string, merchantReference: st
     raw: { orderTrackingId, merchantReference, notificationType },
   });
 
-  if (!booking) return;
+  if (!booking) {
+    console.warn("[pesapal] IPN: no booking matches orderTrackingId", { orderTrackingId });
+    return;
+  }
 
   const { verifyAndFinalizePayment } = await import("@/lib/payment-finalize.server");
-  await verifyAndFinalizePayment({
+  const result = await verifyAndFinalizePayment({
     bookingId: booking.id,
     orderTrackingId,
     source: "ipn",
+  });
+  console.info("[pesapal] IPN finalize outcome", {
+    bookingId: booking.id,
+    outcome: result.outcome,
+    paymentMethod: result.paymentMethod,
   });
 }
 
