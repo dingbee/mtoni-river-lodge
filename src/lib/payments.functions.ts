@@ -7,6 +7,9 @@ function deriveBaseUrl(): string {
   if (envUrl) return envUrl.replace(/\/$/, "");
   const proto = getRequestHeader("x-forwarded-proto") ?? "https";
   const host = getRequestHeader("host") ?? "";
+  if (!host) {
+    console.warn("[pesapal] deriveBaseUrl: no host header and no PUBLIC_BASE_URL set");
+  }
   return `${proto}://${host}`;
 }
 
@@ -36,6 +39,10 @@ export const initiatePayment = createServerFn({ method: "POST" })
     }
 
     const baseUrl = deriveBaseUrl();
+    console.info("[pesapal] initiatePayment", {
+      reference: data.reference,
+      baseUrl,
+    });
     const notificationId = await ensureIpn(baseUrl);
 
     const deposit = Number(booking.deposit_amount);
