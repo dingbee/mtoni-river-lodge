@@ -20,7 +20,19 @@ export async function getPesapalToken(): Promise<string> {
   if (cachedToken && cachedToken.expiresAt > Date.now() + 30_000) return cachedToken.token;
   const key = process.env.PESAPAL_CONSUMER_KEY;
   const secret = process.env.PESAPAL_CONSUMER_SECRET;
-  if (!key || !secret) throw new Error("Pesapal credentials missing");
+  if (!key || !secret) {
+    console.error("[pesapal] credentials missing", {
+      env: pesapalEnv(),
+      hasKey: Boolean(key),
+      hasSecret: Boolean(secret),
+    });
+    throw new Error("Pesapal credentials missing (PESAPAL_CONSUMER_KEY / PESAPAL_CONSUMER_SECRET)");
+  }
+  console.info("[pesapal] requesting auth token", {
+    env: pesapalEnv(),
+    baseUrl: pesapalBaseUrl(),
+    keyPrefix: key.slice(0, 6),
+  });
   const res = await fetch(`${pesapalBaseUrl()}/api/Auth/RequestToken`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -28,10 +40,12 @@ export async function getPesapalToken(): Promise<string> {
   });
   const json = (await res.json()) as TokenResp;
   if (!res.ok || !json.token) {
+    console.error("[pesapal] auth failed", { status: res.status, body: json });
     throw new Error(`Pesapal auth failed: ${res.status} ${JSON.stringify(json)}`);
   }
   const expiresAt = new Date(json.expiryDate).getTime();
   cachedToken = { token: json.token, expiresAt: Number.isFinite(expiresAt) ? expiresAt : Date.now() + 4 * 60_000 };
+  console.info("[pesapal] auth token acquired", { expiresAt: json.expiryDate });
   return json.token;
 }
 
@@ -64,13 +78,20 @@ export async function ensureIpn(baseUrl: string) {
     .select("ipn_id, ipn_url")
     .eq("env", env)
     .maybeSingle();
-  if (existing && existing.ipn_url === ipnUrl) return existing.ipn_id;
+  if (existing && existing.ipn_url === ipnUrl) {
+    console.info("[pesapal] using cached IPN registration", { env, ipnUrl, ipnId: existing.ipn_id });
+    return existing.ipn_id;
+  }
+  console.info("[pesapal] registering IPN", { env, ipnUrl, previous: existing?.ipn_url ?? null });
   const reg = await pesapalFetch("/api/URLSetup/RegisterIPN", {
     method: "POST",
     json: { url: ipnUrl, ipn_notification_type: "GET" },
   });
   const ipnId = String((reg as { ipn_id?: string }).ipn_id ?? "");
-  if (!ipnId) throw new Error(`Pesapal RegisterIPN returned no ipn_id: ${JSON.stringify(reg)}`);
+  if (!ipnId) {
+    console.error("[pesapal] RegisterIPN returned no ipn_id", { reg });
+    throw new Error(`Pesapal RegisterIPN returned no ipn_id: ${JSON.stringify(reg)}`);
+  }
   await supabaseAdmin
     .from("pesapal_settings")
     .upsert({ env, ipn_id: ipnId, ipn_url: ipnUrl, updated_at: new Date().toISOString() }, { onConflict: "env" });
@@ -106,6 +127,14 @@ export async function submitPesapalOrder(input: SubmitOrderInput) {
     notification_id: input.notificationId,
     billing_address: billing,
   };
+  console.info("[pesapal] submitting order", {
+    merchantReference: input.merchantReference,
+    amount: body.amount,
+    currency: body.currency,
+    callbackUrl: input.callbackUrl,
+    notificationId: input.notificationId,
+    env: pesapalEnv(),
+  });
   const res = await pesapalFetch("/api/Transactions/SubmitOrderRequest", { method: "POST", json: body });
   const parsed = res as {
     order_tracking_id: string;
@@ -123,8 +152,13 @@ export async function submitPesapalOrder(input: SubmitOrderInput) {
     const message =
       (err && (err.message || err.code)) ||
       `Pesapal did not return a checkout URL (status ${parsed.status ?? "unknown"})`;
+    console.error("[pesapal] order rejected", { response: parsed });
     throw new Error(`Pesapal order rejected: ${message}`);
   }
+  console.info("[pesapal] order accepted", {
+    orderTrackingId: parsed.order_tracking_id,
+    merchantReference: parsed.merchant_reference,
+  });
   return parsed;
 }
 
