@@ -19,6 +19,7 @@ export type Database = {
           action: string
           actor_email: string | null
           actor_id: string | null
+          correlation_id: string | null
           created_at: string
           entity_id: string | null
           entity_label: string | null
@@ -26,14 +27,17 @@ export type Database = {
           id: string
           ip_address: string | null
           metadata: Json
+          module: string | null
           new_value: Json | null
           previous_value: Json | null
+          severity: string
           user_agent: string | null
         }
         Insert: {
           action: string
           actor_email?: string | null
           actor_id?: string | null
+          correlation_id?: string | null
           created_at?: string
           entity_id?: string | null
           entity_label?: string | null
@@ -41,14 +45,17 @@ export type Database = {
           id?: string
           ip_address?: string | null
           metadata?: Json
+          module?: string | null
           new_value?: Json | null
           previous_value?: Json | null
+          severity?: string
           user_agent?: string | null
         }
         Update: {
           action?: string
           actor_email?: string | null
           actor_id?: string | null
+          correlation_id?: string | null
           created_at?: string
           entity_id?: string | null
           entity_label?: string | null
@@ -56,8 +63,10 @@ export type Database = {
           id?: string
           ip_address?: string | null
           metadata?: Json
+          module?: string | null
           new_value?: Json | null
           previous_value?: Json | null
+          severity?: string
           user_agent?: string | null
         }
         Relationships: []
