@@ -13,6 +13,7 @@ export type JournalPostHref =
   | "/journal/perfect-arusha-stay-for-safari-travelers-2026"
   | "/journal/where-to-stay-before-climbing-mount-kilimanjaro"
   | "/boutique-lodge-near-kilimanjaro-airport"
+  | "/planning-your-tanzania-safari-where-to-stay-in-arusha"
   | "/journal/discovering-arusha-through-nature-and-authentic-hospitality"
   | "/journal/what-the-river-has-taught-us-about-time"
   | "/journal/life-along-the-nduruma-river"
@@ -39,6 +40,18 @@ export type JournalPost = {
  * widgets will automatically display them in reverse chronological order.
  */
 const POSTS: JournalPost[] = [
+  {
+    publishedAt: "2026-07-13",
+    createdAt: "2026-07-13T00:00:00Z",
+    date: "July 2026",
+    read: "10 min",
+    title:
+      "Planning Your Tanzania Safari? Here's Why Your Stay in Arusha Matters More Than You Think",
+    excerpt:
+      "Planning a safari in Tanzania? Discover why staying in Arusha before and after your safari makes your journey smoother, more comfortable, and more memorable.",
+    img: lodgeAerial,
+    href: "/planning-your-tanzania-safari-where-to-stay-in-arusha",
+  },
   {
     publishedAt: "2026-07-02",
     createdAt: "2026-07-02T00:00:00Z",
