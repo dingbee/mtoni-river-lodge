@@ -167,6 +167,7 @@ export type Database = {
           deposit_amount: number
           extras_total: number
           guest_email: string
+          guest_id: string | null
           guest_name: string
           guest_phone: string | null
           guest_type: Database["public"]["Enums"]["guest_type"]
@@ -212,6 +213,7 @@ export type Database = {
           deposit_amount?: number
           extras_total?: number
           guest_email: string
+          guest_id?: string | null
           guest_name: string
           guest_phone?: string | null
           guest_type?: Database["public"]["Enums"]["guest_type"]
@@ -257,6 +259,7 @@ export type Database = {
           deposit_amount?: number
           extras_total?: number
           guest_email?: string
+          guest_id?: string | null
           guest_name?: string
           guest_phone?: string | null
           guest_type?: Database["public"]["Enums"]["guest_type"]
@@ -286,6 +289,20 @@ export type Database = {
           visit_purpose?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "bookings_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bookings_room_id_fkey"
             columns: ["room_id"]
@@ -462,6 +479,194 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_communications: {
+        Row: {
+          author_id: string | null
+          body: string | null
+          booking_id: string | null
+          channel: string
+          created_at: string
+          direction: string
+          guest_id: string
+          id: string
+          meta: Json
+          occurred_at: string
+          subject: string | null
+        }
+        Insert: {
+          author_id?: string | null
+          body?: string | null
+          booking_id?: string | null
+          channel: string
+          created_at?: string
+          direction: string
+          guest_id: string
+          id?: string
+          meta?: Json
+          occurred_at?: string
+          subject?: string | null
+        }
+        Update: {
+          author_id?: string | null
+          body?: string | null
+          booking_id?: string | null
+          channel?: string
+          created_at?: string
+          direction?: string
+          guest_id?: string
+          id?: string
+          meta?: Json
+          occurred_at?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_communications_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_communications_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_communications_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_notes: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          guest_id: string
+          history: Json
+          id: string
+          is_deleted: boolean
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          guest_id: string
+          history?: Json
+          id?: string
+          is_deleted?: boolean
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          guest_id?: string
+          history?: Json
+          id?: string
+          is_deleted?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_notes_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_notes_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_tag_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          guest_id: string
+          tag_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          guest_id: string
+          tag_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          guest_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_tag_assignments_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_tag_assignments_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_tag_assignments_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "guest_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_tags: {
+        Row: {
+          color: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          slug: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label: string
+          slug: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       guest_threads: {
         Row: {
           booking_id: string
@@ -493,6 +698,81 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: true
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guests: {
+        Row: {
+          avatar_url: string | null
+          communication_preference: Database["public"]["Enums"]["communication_preference"]
+          country: string | null
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          internal_notes: string | null
+          is_deleted: boolean
+          merged_into: string | null
+          nationality: string | null
+          phone_e164: string | null
+          preferred_language: string | null
+          status: Database["public"]["Enums"]["guest_status"]
+          status_override: boolean
+          time_zone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          communication_preference?: Database["public"]["Enums"]["communication_preference"]
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          internal_notes?: string | null
+          is_deleted?: boolean
+          merged_into?: string | null
+          nationality?: string | null
+          phone_e164?: string | null
+          preferred_language?: string | null
+          status?: Database["public"]["Enums"]["guest_status"]
+          status_override?: boolean
+          time_zone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          communication_preference?: Database["public"]["Enums"]["communication_preference"]
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          internal_notes?: string | null
+          is_deleted?: boolean
+          merged_into?: string | null
+          nationality?: string | null
+          phone_e164?: string | null
+          preferred_language?: string | null
+          status?: Database["public"]["Enums"]["guest_status"]
+          status_override?: boolean
+          time_zone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guests_merged_into_fkey"
+            columns: ["merged_into"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guests_merged_into_fkey"
+            columns: ["merged_into"]
+            isOneToOne: false
+            referencedRelation: "guests"
             referencedColumns: ["id"]
           },
         ]
@@ -971,7 +1251,34 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      guest_directory: {
+        Row: {
+          avatar_url: string | null
+          cancelled_count: number | null
+          communication_preference:
+            | Database["public"]["Enums"]["communication_preference"]
+            | null
+          country: string | null
+          created_at: string | null
+          email: string | null
+          first_stay: string | null
+          full_name: string | null
+          id: string | null
+          internal_notes: string | null
+          last_stay: string | null
+          lifetime_spend: number | null
+          nationality: string | null
+          phone_e164: string | null
+          preferred_language: string | null
+          status: Database["public"]["Enums"]["guest_status"] | null
+          tag_ids: string[] | null
+          time_zone: string | null
+          total_nights: number | null
+          total_stays: number | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       create_booking:
@@ -1036,6 +1343,16 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      find_duplicate_guests: {
+        Args: never
+        Returns: {
+          cluster_key: string
+          guest_ids: string[]
+          match_type: string
+          sample_emails: string[]
+          sample_names: string[]
+        }[]
+      }
       get_review_aggregates: {
         Args: never
         Returns: {
@@ -1075,6 +1392,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_any_staff: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       move_to_dlq: {
         Args: {
@@ -1113,11 +1431,13 @@ export type Database = {
         | "completed"
         | "no_show"
         | "checked_in"
+      communication_preference: "email" | "whatsapp" | "sms" | "none"
       extra_unit:
         | "per_stay"
         | "per_night"
         | "per_person"
         | "per_person_per_night"
+      guest_status: "new" | "returning" | "vip"
       guest_type: "standard" | "vip" | "climber"
       ops_task_status: "pending" | "in_progress" | "completed" | "cancelled"
       payment_status:
@@ -1283,12 +1603,14 @@ export const Constants = {
         "no_show",
         "checked_in",
       ],
+      communication_preference: ["email", "whatsapp", "sms", "none"],
       extra_unit: [
         "per_stay",
         "per_night",
         "per_person",
         "per_person_per_night",
       ],
+      guest_status: ["new", "returning", "vip"],
       guest_type: ["standard", "vip", "climber"],
       ops_task_status: ["pending", "in_progress", "completed", "cancelled"],
       payment_status: [
