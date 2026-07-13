@@ -3,6 +3,8 @@ export type PlatformEventType =
   | "reservation.created"
   | "reservation.updated"
   | "reservation.cancelled"
+  | "reservation.checked_in"
+  | "reservation.checked_out"
   | "guest.created"
   | "guest.updated"
   | "payment.received"
@@ -11,7 +13,14 @@ export type PlatformEventType =
   | "image.uploaded"
   | "user.login"
   | "user.role_changed"
-  | "seo.updated";
+  | "seo.updated"
+  | "room.state_changed"
+  | "room.assigned"
+  | "task.created"
+  | "task.assigned"
+  | "task.completed"
+  | "ops.alert_raised"
+  | "ops.alert_resolved";
 
 export type EventSeverity = "info" | "warn" | "error" | "audit";
 
