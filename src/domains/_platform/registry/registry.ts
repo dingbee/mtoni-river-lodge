@@ -20,10 +20,21 @@ import { housekeepingModule } from "./modules/housekeeping.module";
 import { automationModule, aiAssistantModule } from "./modules/automation.module";
 import { settingsModule, dashboardModule } from "./modules/system.module";
 import { loyaltyModule, conciergeModule, maintenanceModule, procurementModule, multiPropertyModule } from "./modules/future.module";
+import {
+  opsDashboardModule,
+  opsRoomBoardModule,
+  opsCalendarModule,
+  opsHousekeepingModule,
+  opsTasksModule,
+  opsAlertsModule,
+  opsTimelineModule,
+} from "./modules/operations.module";
 
 export const MODULE_REGISTRY: ModuleDefinition[] = [
   dashboardModule,
   reservationsModule, reservationsCalendarModule, reservationsRoomsModule,
+  opsDashboardModule, opsRoomBoardModule, opsCalendarModule, opsHousekeepingModule,
+  opsTasksModule, opsAlertsModule, opsTimelineModule,
   housekeepingModule,
   guestsCrmModule, guestsReviewsModule, guestsMessagesModule,
   contentHomepageModule, contentRoomsModule, contentExperiencesModule,
