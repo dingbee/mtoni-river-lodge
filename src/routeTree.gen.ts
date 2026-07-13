@@ -85,6 +85,7 @@ import { Route as ApiPublicOpsDrainRouteImport } from './routes/api/public/ops/d
 import { Route as AuthenticatedAdminStaffUsersRouteImport } from './routes/_authenticated.admin.staff.users'
 import { Route as AuthenticatedAdminStaffRolesRouteImport } from './routes/_authenticated.admin.staff.roles'
 import { Route as AuthenticatedAdminStaffActivityRouteImport } from './routes/_authenticated.admin.staff.activity'
+import { Route as AuthenticatedAdminOperationsTasksRouteImport } from './routes/_authenticated.admin.operations.tasks'
 import { Route as AuthenticatedAdminOperationsRoomsRouteImport } from './routes/_authenticated.admin.operations.rooms'
 import { Route as AuthenticatedAdminOperationsHousekeepingRouteImport } from './routes/_authenticated.admin.operations.housekeeping'
 import { Route as AuthenticatedAdminOperationsCalendarRouteImport } from './routes/_authenticated.admin.operations.calendar'
@@ -513,6 +514,12 @@ const AuthenticatedAdminStaffActivityRoute =
     path: '/staff/activity',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminOperationsTasksRoute =
+  AuthenticatedAdminOperationsTasksRouteImport.update({
+    id: '/tasks',
+    path: '/tasks',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
 const AuthenticatedAdminOperationsRoomsRoute =
   AuthenticatedAdminOperationsRoomsRouteImport.update({
     id: '/rooms',
@@ -711,6 +718,7 @@ export interface FileRoutesByFullPath {
   '/admin/operations/calendar': typeof AuthenticatedAdminOperationsCalendarRoute
   '/admin/operations/housekeeping': typeof AuthenticatedAdminOperationsHousekeepingRoute
   '/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
+  '/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
@@ -803,6 +811,7 @@ export interface FileRoutesByTo {
   '/admin/operations/calendar': typeof AuthenticatedAdminOperationsCalendarRoute
   '/admin/operations/housekeeping': typeof AuthenticatedAdminOperationsHousekeepingRoute
   '/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
+  '/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
@@ -901,6 +910,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations/calendar': typeof AuthenticatedAdminOperationsCalendarRoute
   '/_authenticated/admin/operations/housekeeping': typeof AuthenticatedAdminOperationsHousekeepingRoute
   '/_authenticated/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
+  '/_authenticated/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/_authenticated/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/_authenticated/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/_authenticated/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
@@ -999,6 +1009,7 @@ export interface FileRouteTypes {
     | '/admin/operations/calendar'
     | '/admin/operations/housekeeping'
     | '/admin/operations/rooms'
+    | '/admin/operations/tasks'
     | '/admin/staff/activity'
     | '/admin/staff/roles'
     | '/admin/staff/users'
@@ -1091,6 +1102,7 @@ export interface FileRouteTypes {
     | '/admin/operations/calendar'
     | '/admin/operations/housekeeping'
     | '/admin/operations/rooms'
+    | '/admin/operations/tasks'
     | '/admin/staff/activity'
     | '/admin/staff/roles'
     | '/admin/staff/users'
@@ -1188,6 +1200,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations/calendar'
     | '/_authenticated/admin/operations/housekeeping'
     | '/_authenticated/admin/operations/rooms'
+    | '/_authenticated/admin/operations/tasks'
     | '/_authenticated/admin/staff/activity'
     | '/_authenticated/admin/staff/roles'
     | '/_authenticated/admin/staff/users'
@@ -1788,6 +1801,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminStaffActivityRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/operations/tasks': {
+      id: '/_authenticated/admin/operations/tasks'
+      path: '/tasks'
+      fullPath: '/admin/operations/tasks'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsTasksRouteImport
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
     '/_authenticated/admin/operations/rooms': {
       id: '/_authenticated/admin/operations/rooms'
       path: '/rooms'
@@ -1928,6 +1948,7 @@ interface AuthenticatedAdminOperationsRouteChildren {
   AuthenticatedAdminOperationsCalendarRoute: typeof AuthenticatedAdminOperationsCalendarRoute
   AuthenticatedAdminOperationsHousekeepingRoute: typeof AuthenticatedAdminOperationsHousekeepingRoute
   AuthenticatedAdminOperationsRoomsRoute: typeof AuthenticatedAdminOperationsRoomsRoute
+  AuthenticatedAdminOperationsTasksRoute: typeof AuthenticatedAdminOperationsTasksRoute
   AuthenticatedAdminOperationsIndexRoute: typeof AuthenticatedAdminOperationsIndexRoute
 }
 
@@ -1939,6 +1960,8 @@ const AuthenticatedAdminOperationsRouteChildren: AuthenticatedAdminOperationsRou
       AuthenticatedAdminOperationsHousekeepingRoute,
     AuthenticatedAdminOperationsRoomsRoute:
       AuthenticatedAdminOperationsRoomsRoute,
+    AuthenticatedAdminOperationsTasksRoute:
+      AuthenticatedAdminOperationsTasksRoute,
     AuthenticatedAdminOperationsIndexRoute:
       AuthenticatedAdminOperationsIndexRoute,
   }
