@@ -71,6 +71,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated.admin.settings'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
+import { Route as AuthenticatedAdminOperationsRouteImport } from './routes/_authenticated.admin.operations'
 import { Route as AuthenticatedAdminFrontDeskRouteImport } from './routes/_authenticated.admin.front-desk'
 import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authenticated.admin.bookings'
 import { Route as AuthenticatedAdminAutomationRouteImport } from './routes/_authenticated.admin.automation'
@@ -428,6 +429,12 @@ const AuthenticatedAdminReviewsRoute =
     path: '/reviews',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminOperationsRoute =
+  AuthenticatedAdminOperationsRouteImport.update({
+    id: '/operations',
+    path: '/operations',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminFrontDeskRoute =
   AuthenticatedAdminFrontDeskRouteImport.update({
     id: '/front-desk',
@@ -500,15 +507,15 @@ const AuthenticatedAdminStaffActivityRoute =
   } as any)
 const AuthenticatedAdminOperationsRoomsRoute =
   AuthenticatedAdminOperationsRoomsRouteImport.update({
-    id: '/operations/rooms',
-    path: '/operations/rooms',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/rooms',
+    path: '/rooms',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
   } as any)
 const AuthenticatedAdminOperationsCalendarRoute =
   AuthenticatedAdminOperationsCalendarRouteImport.update({
-    id: '/operations/calendar',
-    path: '/operations/calendar',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/calendar',
+    path: '/calendar',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
   } as any)
 const AuthenticatedAdminMarketingSeoRoute =
   AuthenticatedAdminMarketingSeoRouteImport.update({
@@ -668,6 +675,7 @@ export interface FileRoutesByFullPath {
   '/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
+  '/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -758,6 +766,7 @@ export interface FileRoutesByTo {
   '/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
+  '/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -853,6 +862,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/_authenticated/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
+  '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -948,6 +958,7 @@ export interface FileRouteTypes {
     | '/admin/automation'
     | '/admin/bookings'
     | '/admin/front-desk'
+    | '/admin/operations'
     | '/admin/reviews'
     | '/admin/settings'
     | '/lovable/email/suppression'
@@ -1038,6 +1049,7 @@ export interface FileRouteTypes {
     | '/admin/automation'
     | '/admin/bookings'
     | '/admin/front-desk'
+    | '/admin/operations'
     | '/admin/reviews'
     | '/admin/settings'
     | '/lovable/email/suppression'
@@ -1132,6 +1144,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/automation'
     | '/_authenticated/admin/bookings'
     | '/_authenticated/admin/front-desk'
+    | '/_authenticated/admin/operations'
     | '/_authenticated/admin/reviews'
     | '/_authenticated/admin/settings'
     | '/lovable/email/suppression'
@@ -1653,6 +1666,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminReviewsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/operations': {
+      id: '/_authenticated/admin/operations'
+      path: '/operations'
+      fullPath: '/admin/operations'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/front-desk': {
       id: '/_authenticated/admin/front-desk'
       path: '/front-desk'
@@ -1739,17 +1759,17 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/admin/operations/rooms': {
       id: '/_authenticated/admin/operations/rooms'
-      path: '/operations/rooms'
+      path: '/rooms'
       fullPath: '/admin/operations/rooms'
       preLoaderRoute: typeof AuthenticatedAdminOperationsRoomsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
     }
     '/_authenticated/admin/operations/calendar': {
       id: '/_authenticated/admin/operations/calendar'
-      path: '/operations/calendar'
+      path: '/calendar'
       fullPath: '/admin/operations/calendar'
       preLoaderRoute: typeof AuthenticatedAdminOperationsCalendarRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
     }
     '/_authenticated/admin/marketing/seo': {
       id: '/_authenticated/admin/marketing/seo'
@@ -1866,6 +1886,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedAdminOperationsRouteChildren {
+  AuthenticatedAdminOperationsCalendarRoute: typeof AuthenticatedAdminOperationsCalendarRoute
+  AuthenticatedAdminOperationsRoomsRoute: typeof AuthenticatedAdminOperationsRoomsRoute
+}
+
+const AuthenticatedAdminOperationsRouteChildren: AuthenticatedAdminOperationsRouteChildren =
+  {
+    AuthenticatedAdminOperationsCalendarRoute:
+      AuthenticatedAdminOperationsCalendarRoute,
+    AuthenticatedAdminOperationsRoomsRoute:
+      AuthenticatedAdminOperationsRoomsRoute,
+  }
+
+const AuthenticatedAdminOperationsRouteWithChildren =
+  AuthenticatedAdminOperationsRoute._addFileChildren(
+    AuthenticatedAdminOperationsRouteChildren,
+  )
+
 interface AuthenticatedAdminGuestsCrmRouteChildren {
   AuthenticatedAdminGuestsCrmIdRoute: typeof AuthenticatedAdminGuestsCrmIdRoute
   AuthenticatedAdminGuestsCrmDuplicatesRoute: typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
@@ -1887,6 +1925,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAutomationRoute: typeof AuthenticatedAdminAutomationRoute
   AuthenticatedAdminBookingsRoute: typeof AuthenticatedAdminBookingsRoute
   AuthenticatedAdminFrontDeskRoute: typeof AuthenticatedAdminFrontDeskRoute
+  AuthenticatedAdminOperationsRoute: typeof AuthenticatedAdminOperationsRouteWithChildren
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -1904,8 +1943,6 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminMarketingAnalyticsRoute: typeof AuthenticatedAdminMarketingAnalyticsRoute
   AuthenticatedAdminMarketingCampaignsRoute: typeof AuthenticatedAdminMarketingCampaignsRoute
   AuthenticatedAdminMarketingSeoRoute: typeof AuthenticatedAdminMarketingSeoRoute
-  AuthenticatedAdminOperationsCalendarRoute: typeof AuthenticatedAdminOperationsCalendarRoute
-  AuthenticatedAdminOperationsRoomsRoute: typeof AuthenticatedAdminOperationsRoomsRoute
   AuthenticatedAdminStaffActivityRoute: typeof AuthenticatedAdminStaffActivityRoute
   AuthenticatedAdminStaffRolesRoute: typeof AuthenticatedAdminStaffRolesRoute
   AuthenticatedAdminStaffUsersRoute: typeof AuthenticatedAdminStaffUsersRoute
@@ -1915,6 +1952,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAutomationRoute: AuthenticatedAdminAutomationRoute,
   AuthenticatedAdminBookingsRoute: AuthenticatedAdminBookingsRoute,
   AuthenticatedAdminFrontDeskRoute: AuthenticatedAdminFrontDeskRoute,
+  AuthenticatedAdminOperationsRoute:
+    AuthenticatedAdminOperationsRouteWithChildren,
   AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
@@ -1939,10 +1978,6 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminMarketingCampaignsRoute:
     AuthenticatedAdminMarketingCampaignsRoute,
   AuthenticatedAdminMarketingSeoRoute: AuthenticatedAdminMarketingSeoRoute,
-  AuthenticatedAdminOperationsCalendarRoute:
-    AuthenticatedAdminOperationsCalendarRoute,
-  AuthenticatedAdminOperationsRoomsRoute:
-    AuthenticatedAdminOperationsRoomsRoute,
   AuthenticatedAdminStaffActivityRoute: AuthenticatedAdminStaffActivityRoute,
   AuthenticatedAdminStaffRolesRoute: AuthenticatedAdminStaffRolesRoute,
   AuthenticatedAdminStaffUsersRoute: AuthenticatedAdminStaffUsersRoute,
