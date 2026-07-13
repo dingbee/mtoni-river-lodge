@@ -1,69 +1,54 @@
-# Sprint 2+ — Platform Core Services
+## Sprint 3 — Guest CRM & 360° Guest Intelligence
 
-Goal: land three reusable platform services (Module Registry, Feature Flags, Event Bus) and adopt a Domain-Driven Design folder layout, without changing any user-facing behaviour from Sprint 1.
+Sprint 2 already delivered the CRM foundation: `guests` table, directory, profile page with tabs (reservations, notes, communications, reviews, timeline), tags, notes, duplicates finder, and CRM dashboard widgets. Sprint 3 builds the "intelligence" layer on top — preferences, smart tag catalogue, relationship metrics, quick actions, richer widgets, experience/payment tabs, and AI-ready summary hooks — without duplicating any existing records.
 
-## 1. Domain-Driven layout
+### Scope (this sprint)
 
-New top-level folder `src/domains/` with one folder per business domain:
+**Schema (single migration)**
+- `guest_preferences` (guest_id, key, value, category, source, updated_by) — keyed store for room/bed/dietary/service prefs; unique(guest_id,key).
+- `guests` new columns: `birthday date`, `anniversary date`, `marketing_consent bool`, `photo_url text`, `vip_since timestamptz`, `ai_summary text`, `ai_summary_updated_at timestamptz`.
+- `guest_metrics` view (per guest): repeat flag, avg_nights, avg_spend, favourite_room_id, favourite_experience, avg_lead_time_days, cancellation_rate, avg_party_size.
+- `guest_country_stats` view for dashboard.
+- `guest_documents` stub table (guest_id, kind, label, status, meta jsonb) — no uploads wired; RLS staff-only.
+- Extend `find_duplicate_guests` untouched. GRANTs + RLS for every new object.
 
-```text
-src/domains/
-  guests/         # CRM, guest identity, notes, tags
-  reservations/   # bookings, availability, pricing, extras
-  content/        # CMS, rooms marketing content, articles
-  marketing/      # reviews, SEO, campaigns
-  finance/        # payments, Pesapal, invoices
-  staff/          # roles, users, permissions
-  automation/     # notifications, event handlers, cron
-  _platform/      # cross-cutting: registry, flags, event bus
-```
+**Server functions (`src/lib/guests.functions.ts` + new `guest-intelligence.functions.ts`)**
+- `getGuestPreferences`, `upsertGuestPreference`, `deleteGuestPreference`.
+- `getGuestMetrics(id)` — reads `guest_metrics` view.
+- `getGuestExperiences(id)` — derives from existing `booking_extras` joined to `extras` (no new experience table).
+- `getGuestPayments(id)` — from existing `payment_events` + `bookings`.
+- `getDashboardIntelligence()` — VIP arrivals today, birthdays this week, anniversaries this week, top countries, top 20 lifetime guests, acquisition trend (last 12 months).
+- `generateGuestSummary(id)` — stub returning deterministic text now; Lovable AI wiring left as TODO comment (design-only per spec).
+- `listGuests` gains filters: `countries[]`, `minStays`, `dateRange`, existing tag filter; keeps backward-compatible defaults.
 
-Each domain has its own `components/`, `services/` (server fns), `types.ts`, `hooks/`, `schema.ts` (zod). Sprint 1 code stays in place; new code lands in `src/domains/` and existing files are re-exported (no moves this sprint) to preserve routes, imports, and the booking engine.
+**UI**
+- Profile page: add tabs **Experiences**, **Payments**, **Preferences**, **Documents** (empty-state), and a **Quick Actions** toolbar (Create reservation → prefilled `/book`, Add note, Add tag, Send email `mailto:`, Copy details, View invoices, View reviews, Generate summary).
+- Profile header: photo/initials, birthday/anniversary chips, marketing-consent badge, VIP-since.
+- New `RelationshipStats` card (metrics view).
+- `SmartTagPicker`: seed catalogue of tags on first render (idempotent) — VIP, Repeat Guest, Anniversary, Family, Corporate, Photographer, Birdwatcher, Luxury Traveller, Adventure Traveller, Safari Extension, Birthday, High Spender, Referral, Dietary Requirements.
+- Directory: country multi-select, min-stays slider, VIP toggle already exists → extend to combined filters; keep URL-driven state (search params) using zodValidator + fallback.
+- Admin dashboard: new widgets — Today's VIP Arrivals, Birthdays, Anniversaries, Top Countries, Acquisition Trend (sparkline), Guest Satisfaction (avg review rating last 90d), Recent Reviews (already exists → reuse).
 
-## 2. Module Registry — `src/domains/_platform/registry/`
+**Event bus integration**
+- Timeline server fn augmented to consume `activity_logs` rows tagged with `module='guests'` (Sprint 2+ Event Bus) in addition to existing booking/payment/review derivations. No new writers this sprint beyond `guest.preference_updated`, `guest.tag_added`, `guest.note_added`, `guest.summary_generated`.
 
-- `types.ts` — `ModuleDefinition` with: `id`, `name`, `description`, `icon` (LucideIcon), `route`, `parentId`, `order`, `landingRoute`, `requiredRoles: AppRole[]`, `featureFlag?: FeatureFlagKey`, `search?: SearchProvider`, `notifications?: NotificationProvider`, `widgets?: DashboardWidget[]`, `status: 'active' | 'beta' | 'hidden' | 'disabled'`.
-- `registry.ts` — `defineModule()` helper + `moduleRegistry` array (static, tree-shakeable, strongly typed).
-- `modules/*.module.ts` — one file per existing module (Reservations, Guests CRM, Reviews, Content, SEO, Staff, Settings, and hidden stubs for Housekeeping/Finance/Loyalty/Marketing/Multi-property/Concierge/Maintenance/Procurement/AI Assistant).
-- Hooks: `useVisibleModules()`, `useModule(id)`, `useModuleBreadcrumbs(pathname)`. These consult flags + roles + status.
-- Wire `AdminSidebar` and admin breadcrumbs to consume the registry (keeps current visual output; just data-driven).
+**Out of scope**
+- Actual document uploads, WhatsApp send UI, real AI generation, loyalty program, campaign engine. Architecture only.
 
-## 3. Feature Flags — `src/domains/_platform/flags/`
+### Technical notes
+- No new experience/payment tables — always derive from existing `bookings`, `booking_extras`, `payment_events`, `reviews`. Enforces "never duplicate".
+- All new tables get `GRANT SELECT,INSERT,UPDATE,DELETE ... TO authenticated` + `GRANT ALL ... TO service_role`, RLS staff-only via `is_any_staff(auth.uid())`.
+- Server fns use `requireSupabaseAuth`; called from `_authenticated` routes only.
+- Preferences UI is a simple key/value editor with category dropdown (room, dining, service, accessibility, other).
+- Metrics view is `SECURITY INVOKER` and staff-only via table RLS on underlying `guests`/`bookings`.
 
-- `types.ts` — `type FlagState = 'enabled' | 'disabled' | 'beta' | 'internal'`; `FeatureFlagKey` union.
-- `flags.ts` — single source of truth object: `{ [key]: { state, description, since } }`. Editable in code now; schema leaves room for a DB-backed override later.
-- `useFeatureFlag(key)` + `isFlagVisible(state, { roles })` — `beta` needs staff, `internal` needs admin/owner, `disabled` hides.
-- Registered flags: `guest_crm` (enabled), `housekeeping`, `finance`, `ai_assistant`, `loyalty`, `marketing_automation`, `multi_property`, `concierge`, `maintenance`, `procurement` (all `disabled` initially).
-- Route guard helper `assertFlagEnabled(key)` for future protected routes; not applied to Sprint 1 routes.
-
-## 4. Event Bus — `src/domains/_platform/events/`
-
-- `types.ts` — `PlatformEvent<TType, TMeta>` with `id`, `type`, `at`, `userId`, `module`, `entityType`, `entityId`, `meta`, `severity: 'info'|'warn'|'error'|'audit'`, `correlationId`.
-- Typed event catalogue: `EventTypeMap` union covering `reservation.created/updated/cancelled`, `guest.created/updated`, `payment.received`, `review.published`, `article.published`, `image.uploaded`, `user.login`, `user.role_changed`, `seo.updated`.
-- Client bus: in-memory `EventBus` with `on/off/emit`; SSR-safe (no window refs at module scope).
-- Server sink: `emitPlatformEvent` server fn writes to existing `activity_logs` table (module, action, entity_type, entity_id, metadata, severity, correlation_id). Adds a small DB migration to add missing columns (`module text`, `severity text default 'info'`, `correlation_id uuid`) if absent, plus grants/RLS aligned with current `activity_logs` policies. Activity Log UI reads from same table — no shape change to existing rows.
-- Adapters (thin, opt-in): `logReservationEvent`, `logGuestEvent`, etc. Existing writers keep working; new call sites use these adapters.
-
-## 5. Cross-service wiring
-
-- Registry entries reference `featureFlag` keys — resolved at render.
-- `useVisibleModules()` composes: `status !== 'disabled'` && flag visible for current user && `has_any_role(requiredRoles)`.
-- Search + notification providers are optional properties on the module def; central `searchRegistry`/`notificationRegistry` iterate visible modules.
-- Event Bus consumers subscribe by module id → no circular imports (platform never imports domain code; domains import platform).
-
-## 6. Verification
-
+### Verification
 - `bun run build:dev` passes.
-- Manual: existing sidebar still shows Reservations/Guests/Reviews/Content, protected routes still gated, booking flow unchanged, activity log page still renders.
-- Unit-testable: registry filter, flag resolver, and event serializer are pure functions with no I/O.
+- Manual: existing booking flow, existing directory search, existing profile tabs still work.
+- New tabs render with empty states for guests with no data.
 
-## 7. Handover report
-
-Delivered at end of sprint in `.lovable/sprint-2plus-handover.md` covering: files added, DB migration, new interfaces (`ModuleDefinition`, `FeatureFlag`, `PlatformEvent`), extension points (`defineModule`, `defineFlag`, `emitPlatformEvent`), limitations (in-memory bus only; no admin UI for flags yet; DDD reorg is additive, not a physical move), Sprint 3 readiness (CRM already lives under `src/domains/guests/` re-exports).
-
-## Out of scope
-
-- Physically moving Sprint 1 files into `src/domains/*` (only re-export shims to avoid regressions).
-- Admin UI for editing flags.
-- Persisting the event bus subscription graph.
-- Replacing Sprint 1 activity-log writers (adapters land, migration is opt-in per call site).
+### Deliverables order
+1. Migration (schema + views + grants + RLS).
+2. Server functions.
+3. UI components + new profile tabs + dashboard widgets.
+4. Build verification.
