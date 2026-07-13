@@ -309,6 +309,13 @@ export type Database = {
             foreignKeyName: "bookings_guest_id_fkey"
             columns: ["guest_id"]
             isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
+          },
+          {
+            foreignKeyName: "bookings_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
             referencedRelation: "guests"
             referencedColumns: ["id"]
           },
@@ -547,6 +554,71 @@ export type Database = {
             foreignKeyName: "guest_communications_guest_id_fkey"
             columns: ["guest_id"]
             isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
+          },
+          {
+            foreignKeyName: "guest_communications_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_documents: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          guest_id: string
+          id: string
+          kind: string
+          label: string | null
+          meta: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          guest_id: string
+          id?: string
+          kind: string
+          label?: string | null
+          meta?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          guest_id?: string
+          id?: string
+          kind?: string
+          label?: string | null
+          meta?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_documents_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_documents_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
+          },
+          {
+            foreignKeyName: "guest_documents_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
             referencedRelation: "guests"
             referencedColumns: ["id"]
           },
@@ -601,6 +673,71 @@ export type Database = {
             foreignKeyName: "guest_notes_guest_id_fkey"
             columns: ["guest_id"]
             isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
+          },
+          {
+            foreignKeyName: "guest_notes_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_preferences: {
+        Row: {
+          category: string
+          created_at: string
+          guest_id: string
+          id: string
+          key: string
+          source: string
+          updated_at: string
+          updated_by: string | null
+          value: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          guest_id: string
+          id?: string
+          key: string
+          source?: string
+          updated_at?: string
+          updated_by?: string | null
+          value: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          guest_id?: string
+          id?: string
+          key?: string
+          source?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_preferences_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_preferences_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
+          },
+          {
+            foreignKeyName: "guest_preferences_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
             referencedRelation: "guests"
             referencedColumns: ["id"]
           },
@@ -632,6 +769,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "guest_directory"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_tag_assignments_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
           },
           {
             foreignKeyName: "guest_tag_assignments_guest_id_fkey"
@@ -713,7 +857,11 @@ export type Database = {
       }
       guests: {
         Row: {
+          ai_summary: string | null
+          ai_summary_updated_at: string | null
+          anniversary: string | null
           avatar_url: string | null
+          birthday: string | null
           communication_preference: Database["public"]["Enums"]["communication_preference"]
           country: string | null
           created_at: string
@@ -722,6 +870,7 @@ export type Database = {
           id: string
           internal_notes: string | null
           is_deleted: boolean
+          marketing_consent: boolean
           merged_into: string | null
           nationality: string | null
           phone_e164: string | null
@@ -730,9 +879,14 @@ export type Database = {
           status_override: boolean
           time_zone: string | null
           updated_at: string
+          vip_since: string | null
         }
         Insert: {
+          ai_summary?: string | null
+          ai_summary_updated_at?: string | null
+          anniversary?: string | null
           avatar_url?: string | null
+          birthday?: string | null
           communication_preference?: Database["public"]["Enums"]["communication_preference"]
           country?: string | null
           created_at?: string
@@ -741,6 +895,7 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           is_deleted?: boolean
+          marketing_consent?: boolean
           merged_into?: string | null
           nationality?: string | null
           phone_e164?: string | null
@@ -749,9 +904,14 @@ export type Database = {
           status_override?: boolean
           time_zone?: string | null
           updated_at?: string
+          vip_since?: string | null
         }
         Update: {
+          ai_summary?: string | null
+          ai_summary_updated_at?: string | null
+          anniversary?: string | null
           avatar_url?: string | null
+          birthday?: string | null
           communication_preference?: Database["public"]["Enums"]["communication_preference"]
           country?: string | null
           created_at?: string
@@ -760,6 +920,7 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           is_deleted?: boolean
+          marketing_consent?: boolean
           merged_into?: string | null
           nationality?: string | null
           phone_e164?: string | null
@@ -768,6 +929,7 @@ export type Database = {
           status_override?: boolean
           time_zone?: string | null
           updated_at?: string
+          vip_since?: string | null
         }
         Relationships: [
           {
@@ -776,6 +938,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "guest_directory"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guests_merged_into_fkey"
+            columns: ["merged_into"]
+            isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
           },
           {
             foreignKeyName: "guests_merged_into_fkey"
@@ -1260,6 +1429,15 @@ export type Database = {
       }
     }
     Views: {
+      guest_country_stats: {
+        Row: {
+          country: string | null
+          guest_count: number | null
+          returning_count: number | null
+          vip_count: number | null
+        }
+        Relationships: []
+      }
       guest_directory: {
         Row: {
           avatar_url: string | null
@@ -1287,6 +1465,30 @@ export type Database = {
           updated_at: string | null
         }
         Relationships: []
+      }
+      guest_metrics: {
+        Row: {
+          avg_lead_time_days: number | null
+          avg_nights: number | null
+          avg_party_size: number | null
+          avg_spend: number | null
+          cancellation_rate: number | null
+          cancelled: number | null
+          favourite_experience: string | null
+          favourite_room_id: string | null
+          guest_id: string | null
+          is_repeat: boolean | null
+          stays: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_room_id_fkey"
+            columns: ["favourite_room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
