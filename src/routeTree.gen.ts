@@ -89,6 +89,7 @@ import { Route as AuthenticatedAdminOperationsTasksRouteImport } from './routes/
 import { Route as AuthenticatedAdminOperationsRoomsRouteImport } from './routes/_authenticated.admin.operations.rooms'
 import { Route as AuthenticatedAdminOperationsHousekeepingRouteImport } from './routes/_authenticated.admin.operations.housekeeping'
 import { Route as AuthenticatedAdminOperationsCalendarRouteImport } from './routes/_authenticated.admin.operations.calendar'
+import { Route as AuthenticatedAdminOperationsAlertsRouteImport } from './routes/_authenticated.admin.operations.alerts'
 import { Route as AuthenticatedAdminMarketingSeoRouteImport } from './routes/_authenticated.admin.marketing.seo'
 import { Route as AuthenticatedAdminMarketingCampaignsRouteImport } from './routes/_authenticated.admin.marketing.campaigns'
 import { Route as AuthenticatedAdminMarketingAnalyticsRouteImport } from './routes/_authenticated.admin.marketing.analytics'
@@ -538,6 +539,12 @@ const AuthenticatedAdminOperationsCalendarRoute =
     path: '/calendar',
     getParentRoute: () => AuthenticatedAdminOperationsRoute,
   } as any)
+const AuthenticatedAdminOperationsAlertsRoute =
+  AuthenticatedAdminOperationsAlertsRouteImport.update({
+    id: '/alerts',
+    path: '/alerts',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
 const AuthenticatedAdminMarketingSeoRoute =
   AuthenticatedAdminMarketingSeoRouteImport.update({
     id: '/marketing/seo',
@@ -715,6 +722,7 @@ export interface FileRoutesByFullPath {
   '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
   '/admin/marketing/seo': typeof AuthenticatedAdminMarketingSeoRoute
+  '/admin/operations/alerts': typeof AuthenticatedAdminOperationsAlertsRoute
   '/admin/operations/calendar': typeof AuthenticatedAdminOperationsCalendarRoute
   '/admin/operations/housekeeping': typeof AuthenticatedAdminOperationsHousekeepingRoute
   '/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
@@ -808,6 +816,7 @@ export interface FileRoutesByTo {
   '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
   '/admin/marketing/seo': typeof AuthenticatedAdminMarketingSeoRoute
+  '/admin/operations/alerts': typeof AuthenticatedAdminOperationsAlertsRoute
   '/admin/operations/calendar': typeof AuthenticatedAdminOperationsCalendarRoute
   '/admin/operations/housekeeping': typeof AuthenticatedAdminOperationsHousekeepingRoute
   '/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
@@ -907,6 +916,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/_authenticated/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
   '/_authenticated/admin/marketing/seo': typeof AuthenticatedAdminMarketingSeoRoute
+  '/_authenticated/admin/operations/alerts': typeof AuthenticatedAdminOperationsAlertsRoute
   '/_authenticated/admin/operations/calendar': typeof AuthenticatedAdminOperationsCalendarRoute
   '/_authenticated/admin/operations/housekeeping': typeof AuthenticatedAdminOperationsHousekeepingRoute
   '/_authenticated/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
@@ -1006,6 +1016,7 @@ export interface FileRouteTypes {
     | '/admin/marketing/analytics'
     | '/admin/marketing/campaigns'
     | '/admin/marketing/seo'
+    | '/admin/operations/alerts'
     | '/admin/operations/calendar'
     | '/admin/operations/housekeeping'
     | '/admin/operations/rooms'
@@ -1099,6 +1110,7 @@ export interface FileRouteTypes {
     | '/admin/marketing/analytics'
     | '/admin/marketing/campaigns'
     | '/admin/marketing/seo'
+    | '/admin/operations/alerts'
     | '/admin/operations/calendar'
     | '/admin/operations/housekeeping'
     | '/admin/operations/rooms'
@@ -1197,6 +1209,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/marketing/analytics'
     | '/_authenticated/admin/marketing/campaigns'
     | '/_authenticated/admin/marketing/seo'
+    | '/_authenticated/admin/operations/alerts'
     | '/_authenticated/admin/operations/calendar'
     | '/_authenticated/admin/operations/housekeeping'
     | '/_authenticated/admin/operations/rooms'
@@ -1829,6 +1842,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminOperationsCalendarRouteImport
       parentRoute: typeof AuthenticatedAdminOperationsRoute
     }
+    '/_authenticated/admin/operations/alerts': {
+      id: '/_authenticated/admin/operations/alerts'
+      path: '/alerts'
+      fullPath: '/admin/operations/alerts'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsAlertsRouteImport
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
     '/_authenticated/admin/marketing/seo': {
       id: '/_authenticated/admin/marketing/seo'
       path: '/marketing/seo'
@@ -1945,6 +1965,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminOperationsRouteChildren {
+  AuthenticatedAdminOperationsAlertsRoute: typeof AuthenticatedAdminOperationsAlertsRoute
   AuthenticatedAdminOperationsCalendarRoute: typeof AuthenticatedAdminOperationsCalendarRoute
   AuthenticatedAdminOperationsHousekeepingRoute: typeof AuthenticatedAdminOperationsHousekeepingRoute
   AuthenticatedAdminOperationsRoomsRoute: typeof AuthenticatedAdminOperationsRoomsRoute
@@ -1954,6 +1975,8 @@ interface AuthenticatedAdminOperationsRouteChildren {
 
 const AuthenticatedAdminOperationsRouteChildren: AuthenticatedAdminOperationsRouteChildren =
   {
+    AuthenticatedAdminOperationsAlertsRoute:
+      AuthenticatedAdminOperationsAlertsRoute,
     AuthenticatedAdminOperationsCalendarRoute:
       AuthenticatedAdminOperationsCalendarRoute,
     AuthenticatedAdminOperationsHousekeepingRoute:
