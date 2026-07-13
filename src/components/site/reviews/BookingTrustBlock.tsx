@@ -36,7 +36,7 @@ export function BookingTrustBlock() {
             </ul>
           </div>
 
-          <div className="lg:col-span-7">
+          <div className="min-w-0 lg:col-span-7">
             <Carousel
               opts={{ align: "start", containScroll: "trimSnaps", dragFree: false }}
               className="w-full"
@@ -45,7 +45,7 @@ export function BookingTrustBlock() {
                 {reviews.map((r) => (
                   <CarouselItem
                     key={r.id}
-                    className="basis-[82%] pl-4 sm:basis-1/2 lg:basis-1/2 xl:basis-1/3"
+                    className="basis-full pl-4 sm:basis-1/2 xl:basis-1/3"
                   >
                     <div className="h-full">
                       <ReviewCard review={r} compact />
