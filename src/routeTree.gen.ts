@@ -22,6 +22,7 @@ import { Route as RoomsRouteImport } from './routes/rooms'
 import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PlanningYourTanzaniaSafariWhereToStayInArushaRouteImport } from './routes/planning-your-tanzania-safari-where-to-stay-in-arusha'
 import { Route as PlanRouteImport } from './routes/plan'
 import { Route as MountKilimanjaroAccommodationArushaRouteImport } from './routes/mount-kilimanjaro-accommodation-arusha'
 import { Route as LodgeRouteImport } from './routes/lodge'
@@ -177,6 +178,12 @@ const PricingRoute = PricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlanningYourTanzaniaSafariWhereToStayInArushaRoute =
+  PlanningYourTanzaniaSafariWhereToStayInArushaRouteImport.update({
+    id: '/planning-your-tanzania-safari-where-to-stay-in-arusha',
+    path: '/planning-your-tanzania-safari-where-to-stay-in-arusha',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PlanRoute = PlanRouteImport.update({
   id: '/plan',
   path: '/plan',
@@ -689,6 +696,7 @@ export interface FileRoutesByFullPath {
   '/lodge': typeof LodgeRoute
   '/mount-kilimanjaro-accommodation-arusha': typeof MountKilimanjaroAccommodationArushaRoute
   '/plan': typeof PlanRoute
+  '/planning-your-tanzania-safari-where-to-stay-in-arusha': typeof PlanningYourTanzaniaSafariWhereToStayInArushaRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reviews': typeof ReviewsRoute
@@ -790,6 +798,7 @@ export interface FileRoutesByTo {
   '/lodge': typeof LodgeRoute
   '/mount-kilimanjaro-accommodation-arusha': typeof MountKilimanjaroAccommodationArushaRoute
   '/plan': typeof PlanRoute
+  '/planning-your-tanzania-safari-where-to-stay-in-arusha': typeof PlanningYourTanzaniaSafariWhereToStayInArushaRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reviews': typeof ReviewsRoute
@@ -891,6 +900,7 @@ export interface FileRoutesById {
   '/lodge': typeof LodgeRoute
   '/mount-kilimanjaro-accommodation-arusha': typeof MountKilimanjaroAccommodationArushaRoute
   '/plan': typeof PlanRoute
+  '/planning-your-tanzania-safari-where-to-stay-in-arusha': typeof PlanningYourTanzaniaSafariWhereToStayInArushaRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reviews': typeof ReviewsRoute
@@ -995,6 +1005,7 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/mount-kilimanjaro-accommodation-arusha'
     | '/plan'
+    | '/planning-your-tanzania-safari-where-to-stay-in-arusha'
     | '/pricing'
     | '/privacy'
     | '/reviews'
@@ -1096,6 +1107,7 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/mount-kilimanjaro-accommodation-arusha'
     | '/plan'
+    | '/planning-your-tanzania-safari-where-to-stay-in-arusha'
     | '/pricing'
     | '/privacy'
     | '/reviews'
@@ -1196,6 +1208,7 @@ export interface FileRouteTypes {
     | '/lodge'
     | '/mount-kilimanjaro-accommodation-arusha'
     | '/plan'
+    | '/planning-your-tanzania-safari-where-to-stay-in-arusha'
     | '/pricing'
     | '/privacy'
     | '/reviews'
@@ -1300,6 +1313,7 @@ export interface RootRouteChildren {
   LodgeRoute: typeof LodgeRoute
   MountKilimanjaroAccommodationArushaRoute: typeof MountKilimanjaroAccommodationArushaRoute
   PlanRoute: typeof PlanRoute
+  PlanningYourTanzaniaSafariWhereToStayInArushaRoute: typeof PlanningYourTanzaniaSafariWhereToStayInArushaRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ReviewsRoute: typeof ReviewsRoute
@@ -1423,6 +1437,13 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/planning-your-tanzania-safari-where-to-stay-in-arusha': {
+      id: '/planning-your-tanzania-safari-where-to-stay-in-arusha'
+      path: '/planning-your-tanzania-safari-where-to-stay-in-arusha'
+      fullPath: '/planning-your-tanzania-safari-where-to-stay-in-arusha'
+      preLoaderRoute: typeof PlanningYourTanzaniaSafariWhereToStayInArushaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/plan': {
@@ -2257,6 +2278,8 @@ const rootRouteChildren: RootRouteChildren = {
   MountKilimanjaroAccommodationArushaRoute:
     MountKilimanjaroAccommodationArushaRoute,
   PlanRoute: PlanRoute,
+  PlanningYourTanzaniaSafariWhereToStayInArushaRoute:
+    PlanningYourTanzaniaSafariWhereToStayInArushaRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ReviewsRoute: ReviewsRoute,
@@ -2291,13 +2314,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

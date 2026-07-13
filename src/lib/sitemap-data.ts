@@ -65,6 +65,7 @@ export const PAGE_ENTRIES: PageEntry[] = [
   { path: "/reviews", lastmod: TODAY, changefreq: "weekly", priority: "0.7" },
   { path: "/mount-kilimanjaro-accommodation-arusha", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
   { path: "/boutique-lodge-near-kilimanjaro-airport", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
+  { path: "/planning-your-tanzania-safari-where-to-stay-in-arusha", lastmod: TODAY, changefreq: "monthly", priority: "0.9" },
 ];
 
 /** Accommodation index + individual room pages. */
