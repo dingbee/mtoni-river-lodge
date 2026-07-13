@@ -1,4 +1,4 @@
-import { Award, Concierge as ConciergeIcon, Wrench, Package, Building2 } from "lucide-react";
+import { Award, BellRing, Wrench, Package, Building2 } from "lucide-react";
 import { defineModule } from "../registry";
 
 // Fully implemented registration; feature flags keep them hidden until enabled.
@@ -10,7 +10,7 @@ export const loyaltyModule = defineModule({
 });
 export const conciergeModule = defineModule({
   id: "guests.concierge", name: "Concierge", description: "Itineraries and requests",
-  icon: ConciergeIcon, route: "/admin/guests/concierge", parentId: "guests", order: 50,
+  icon: BellRing, route: "/admin/guests/concierge", parentId: "guests", order: 50,
   requiredRoles: ["owner","manager","reception","admin"],
   featureFlag: "concierge", status: "hidden",
 });
