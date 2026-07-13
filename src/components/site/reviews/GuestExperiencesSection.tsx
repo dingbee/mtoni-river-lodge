@@ -43,13 +43,13 @@ function CategoryCarousel({ items }: { items: Review[] }) {
   return (
     <Carousel
       opts={{ align: "start", containScroll: "trimSnaps", dragFree: false }}
-      className="w-full"
+      className="w-full min-w-0"
     >
       <CarouselContent className="-ml-4">
         {items.map((r) => (
           <CarouselItem
             key={r.id}
-            className="pl-4 basis-[82%] sm:basis-1/2 lg:basis-1/3 xl:basis-1/4"
+            className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-1/4"
           >
             <div className="h-full">
               <ReviewCard review={r} />
