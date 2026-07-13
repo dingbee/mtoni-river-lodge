@@ -105,6 +105,7 @@ import { Route as AuthenticatedAdminContentJournalRouteImport } from './routes/_
 import { Route as AuthenticatedAdminContentHomepageRouteImport } from './routes/_authenticated.admin.content.homepage'
 import { Route as AuthenticatedAdminContentGalleryRouteImport } from './routes/_authenticated.admin.content.gallery'
 import { Route as AuthenticatedAdminContentExperiencesRouteImport } from './routes/_authenticated.admin.content.experiences'
+import { Route as AuthenticatedAdminOperationsReservationsIdRouteImport } from './routes/_authenticated.admin.operations.reservations.$id'
 import { Route as AuthenticatedAdminGuestsCrmDuplicatesRouteImport } from './routes/_authenticated.admin.guests.crm.duplicates'
 import { Route as AuthenticatedAdminGuestsCrmIdRouteImport } from './routes/_authenticated.admin.guests.crm.$id'
 
@@ -636,6 +637,12 @@ const AuthenticatedAdminContentExperiencesRoute =
     path: '/content/experiences',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminOperationsReservationsIdRoute =
+  AuthenticatedAdminOperationsReservationsIdRouteImport.update({
+    id: '/reservations/$id',
+    path: '/reservations/$id',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
 const AuthenticatedAdminGuestsCrmDuplicatesRoute =
   AuthenticatedAdminGuestsCrmDuplicatesRouteImport.update({
     id: '/duplicates',
@@ -747,6 +754,7 @@ export interface FileRoutesByFullPath {
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
+  '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -842,6 +850,7 @@ export interface FileRoutesByTo {
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
+  '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -943,6 +952,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/_authenticated/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/_authenticated/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
+  '/_authenticated/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1044,6 +1054,7 @@ export interface FileRouteTypes {
     | '/admin/operations/'
     | '/admin/guests/crm/$id'
     | '/admin/guests/crm/duplicates'
+    | '/admin/operations/reservations/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1139,6 +1150,7 @@ export interface FileRouteTypes {
     | '/admin/operations'
     | '/admin/guests/crm/$id'
     | '/admin/guests/crm/duplicates'
+    | '/admin/operations/reservations/$id'
   id:
     | '__root__'
     | '/'
@@ -1239,6 +1251,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations/'
     | '/_authenticated/admin/guests/crm/$id'
     | '/_authenticated/admin/guests/crm/duplicates'
+    | '/_authenticated/admin/operations/reservations/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1967,6 +1980,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminContentExperiencesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/operations/reservations/$id': {
+      id: '/_authenticated/admin/operations/reservations/$id'
+      path: '/reservations/$id'
+      fullPath: '/admin/operations/reservations/$id'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsReservationsIdRouteImport
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
     '/_authenticated/admin/guests/crm/duplicates': {
       id: '/_authenticated/admin/guests/crm/duplicates'
       path: '/duplicates'
@@ -1992,6 +2012,7 @@ interface AuthenticatedAdminOperationsRouteChildren {
   AuthenticatedAdminOperationsTasksRoute: typeof AuthenticatedAdminOperationsTasksRoute
   AuthenticatedAdminOperationsTimelineRoute: typeof AuthenticatedAdminOperationsTimelineRoute
   AuthenticatedAdminOperationsIndexRoute: typeof AuthenticatedAdminOperationsIndexRoute
+  AuthenticatedAdminOperationsReservationsIdRoute: typeof AuthenticatedAdminOperationsReservationsIdRoute
 }
 
 const AuthenticatedAdminOperationsRouteChildren: AuthenticatedAdminOperationsRouteChildren =
@@ -2010,6 +2031,8 @@ const AuthenticatedAdminOperationsRouteChildren: AuthenticatedAdminOperationsRou
       AuthenticatedAdminOperationsTimelineRoute,
     AuthenticatedAdminOperationsIndexRoute:
       AuthenticatedAdminOperationsIndexRoute,
+    AuthenticatedAdminOperationsReservationsIdRoute:
+      AuthenticatedAdminOperationsReservationsIdRoute,
   }
 
 const AuthenticatedAdminOperationsRouteWithChildren =
