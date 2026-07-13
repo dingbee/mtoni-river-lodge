@@ -25,6 +25,7 @@ import {
   Settings,
   ClipboardCheck,
 } from "lucide-react";
+import { ListChecks, AlertTriangle, Activity } from "lucide-react";
 import type { ComponentType } from "react";
 
 export type NavItem = {
@@ -54,10 +55,15 @@ export const NAV: NavEntry[] = [
       label: "Operations",
       icon: Calendar,
       items: [
+        { id: "operations.dashboard", label: "Operations Centre", href: "/admin/operations", icon: LayoutDashboard },
         { id: "operations.reservations", label: "Reservations", href: "/admin/bookings", icon: Calendar },
         { id: "operations.calendar", label: "Calendar", href: "/admin/operations/calendar", icon: CalendarDays },
-        { id: "operations.rooms", label: "Rooms", href: "/admin/operations/rooms", icon: Bed },
-        { id: "operations.housekeeping", label: "Housekeeping", href: "/admin/front-desk", icon: ClipboardCheck },
+        { id: "operations.rooms", label: "Room Board", href: "/admin/operations/rooms", icon: Bed },
+        { id: "operations.housekeeping", label: "Housekeeping", href: "/admin/operations/housekeeping", icon: ClipboardCheck },
+        { id: "operations.tasks", label: "Tasks", href: "/admin/operations/tasks", icon: ListChecks },
+        { id: "operations.alerts", label: "Alerts", href: "/admin/operations/alerts", icon: AlertTriangle },
+        { id: "operations.timeline", label: "Live Timeline", href: "/admin/operations/timeline", icon: Activity },
+        { id: "operations.front-desk", label: "Front Desk", href: "/admin/front-desk", icon: ClipboardCheck },
       ],
     },
   },
