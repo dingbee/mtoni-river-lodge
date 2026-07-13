@@ -12,7 +12,13 @@ import { NotesPanel } from "@/components/os/crm/NotesPanel";
 import { ReservationList } from "@/components/os/crm/ReservationList";
 import { CommunicationHistory } from "@/components/os/crm/CommunicationHistory";
 import { Timeline } from "@/components/os/crm/Timeline";
-import { ArrowLeft, Mail, Phone, Globe, Languages } from "lucide-react";
+import { PreferencesPanel } from "@/components/os/crm/PreferencesPanel";
+import { ExperiencesList } from "@/components/os/crm/ExperiencesList";
+import { PaymentsPanel } from "@/components/os/crm/PaymentsPanel";
+import { DocumentsPanel } from "@/components/os/crm/DocumentsPanel";
+import { RelationshipStats } from "@/components/os/crm/RelationshipStats";
+import { QuickActions } from "@/components/os/crm/QuickActions";
+import { ArrowLeft, Mail, Phone, Globe, Languages, Cake, Heart } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/guests/crm/$id")({
   head: () => ({
@@ -76,6 +82,8 @@ function GuestProfilePage() {
         actions={<GuestStatusChip status={g.status} />}
       />
 
+      <QuickActions guestId={id} guest={g} />
+
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-4">
           <div className="rounded-lg border bg-card p-5">
@@ -104,6 +112,19 @@ function GuestProfilePage() {
                     <Languages className="size-3.5" /> <span>{g.preferred_language}</span>
                   </div>
                 )}
+                {g.birthday && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Cake className="size-3.5" /> <span>Birthday {new Date(g.birthday).toLocaleDateString()}</span>
+                  </div>
+                )}
+                {g.anniversary && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Heart className="size-3.5" /> <span>Anniversary {new Date(g.anniversary).toLocaleDateString()}</span>
+                  </div>
+                )}
+                {g.ai_summary && (
+                  <p className="mt-2 text-xs italic text-muted-foreground">{g.ai_summary}</p>
+                )}
               </div>
             </div>
             <div className="mt-4">
@@ -112,18 +133,31 @@ function GuestProfilePage() {
           </div>
 
           <Tabs defaultValue="reservations">
-            <TabsList>
+            <TabsList className="flex-wrap">
               <TabsTrigger value="reservations">Reservations</TabsTrigger>
+              <TabsTrigger value="experiences">Experiences</TabsTrigger>
+              <TabsTrigger value="payments">Payments</TabsTrigger>
               <TabsTrigger value="notes">Notes</TabsTrigger>
+              <TabsTrigger value="preferences">Preferences</TabsTrigger>
               <TabsTrigger value="communications">Communications</TabsTrigger>
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
+              <TabsTrigger value="documents">Documents</TabsTrigger>
               <TabsTrigger value="timeline">Timeline</TabsTrigger>
             </TabsList>
             <TabsContent value="reservations" className="pt-4">
               <ReservationList bookings={data.bookings} />
             </TabsContent>
+            <TabsContent value="experiences" className="pt-4">
+              <ExperiencesList guestId={id} />
+            </TabsContent>
+            <TabsContent value="payments" className="pt-4">
+              <PaymentsPanel guestId={id} />
+            </TabsContent>
             <TabsContent value="notes" className="pt-4">
               <NotesPanel guestId={id} notes={data.notes} />
+            </TabsContent>
+            <TabsContent value="preferences" className="pt-4">
+              <PreferencesPanel guestId={id} />
             </TabsContent>
             <TabsContent value="communications" className="pt-4">
               <CommunicationHistory guestId={id} items={data.communications} />
@@ -151,6 +185,9 @@ function GuestProfilePage() {
                 </ul>
               )}
             </TabsContent>
+            <TabsContent value="documents" className="pt-4">
+              <DocumentsPanel guestId={id} />
+            </TabsContent>
             <TabsContent value="timeline" className="pt-4">
               {timelineQ.isLoading ? (
                 <p className="text-sm text-muted-foreground">Loading timeline…</p>
@@ -172,9 +209,13 @@ function GuestProfilePage() {
               <div><dt className="text-muted-foreground">Last stay</dt><dd>{stats.last_stay ? new Date(stats.last_stay).toLocaleDateString() : "—"}</dd></div>
             </dl>
           </div>
+          <RelationshipStats guestId={id} />
           <div className="rounded-lg border bg-card p-4 text-sm">
             <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preferences</h3>
             <p className="mt-2 text-muted-foreground">Contact: {g.communication_preference}</p>
+            <p className="mt-1 text-muted-foreground">
+              Marketing consent: {g.marketing_consent ? "Yes" : "No"}
+            </p>
             {g.internal_notes && (
               <p className="mt-2 whitespace-pre-wrap text-muted-foreground">{g.internal_notes}</p>
             )}
