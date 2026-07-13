@@ -16,6 +16,7 @@ export const FEATURE_FLAGS: Record<FeatureFlagKey, FeatureFlag> = {
   concierge:            { key: "concierge",            state: "disabled", description: "Concierge & itineraries" },
   maintenance:          { key: "maintenance",          state: "disabled", description: "Maintenance ticketing" },
   procurement:          { key: "procurement",          state: "disabled", description: "Procurement & suppliers" },
+  operations_centre:    { key: "operations_centre",    state: "enabled",  description: "Operations Centre (Sprint 4)", since: "2026-07-13" },
 };
 
 const STAFF_ROLES = new Set(["owner","manager","reception","marketing","housekeeping","finance","admin","reservations","editor"]);
