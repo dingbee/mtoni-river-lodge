@@ -9,6 +9,13 @@ import { SiteFooterMinimal } from "@/components/site/SiteFooterMinimal";
 import { BreadcrumbsBar } from "@/components/site/Breadcrumbs";
 import { BookingTrustBlock } from "@/components/site/reviews/BookingTrustBlock";
 import { TrustBar } from "@/components/site/reviews/TrustBar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { WHATSAPP_URL } from "@/lib/contact";
 import { trackContactClick, trackGAEvent } from "@/lib/analytics";
 import {
@@ -833,21 +840,28 @@ function GuestStep(props: {
             <div className="sm:col-span-2"><label className={labelCls}>Country</label><input className={`mt-2 ${field}`} value={props.guest.country} onChange={(e) => props.setGuest({ ...props.guest, country: e.target.value })} /></div>
             <div className="sm:col-span-2">
               <label className={labelCls}>Purpose of Visit (optional)</label>
-              <select
-                className={`mt-2 ${field}`}
-                value={props.guest.purpose}
-                onChange={(e) => props.setGuest({ ...props.guest, purpose: e.target.value })}
+              <Select
+                value={props.guest.purpose || undefined}
+                onValueChange={(v) => props.setGuest({ ...props.guest, purpose: v })}
               >
-                <option value="">Select one (optional)</option>
-                <option value="Safari">Safari</option>
-                <option value="Mount Kilimanjaro Climb">Mount Kilimanjaro Climb</option>
-                <option value="Business Travel">Business Travel</option>
-                <option value="Retreat">Retreat</option>
-                <option value="Family Holiday">Family Holiday</option>
-                <option value="Honeymoon">Honeymoon</option>
-                <option value="Cultural Experience">Cultural Experience</option>
-                <option value="Other">Other</option>
-              </select>
+                <SelectTrigger className={`mt-2 ${field} justify-between`}>
+                  <SelectValue placeholder="Select one (optional)" />
+                </SelectTrigger>
+                <SelectContent className="z-[1000]">
+                  {[
+                    "Safari",
+                    "Mount Kilimanjaro Climb",
+                    "Business Travel",
+                    "Retreat",
+                    "Family Holiday",
+                    "Honeymoon",
+                    "Cultural Experience",
+                    "Other",
+                  ].map((opt) => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <p className="mt-1 text-[0.6rem] uppercase tracking-[0.18em] text-charcoal/50">Helps us tailor your arrival (early breakfast, transfers, etc.)</p>
             </div>
             <div className="sm:col-span-2"><label className={labelCls}>Special requests</label><textarea rows={3} className={`mt-2 ${field} resize-none`} value={props.guest.requests} onChange={(e) => props.setGuest({ ...props.guest, requests: e.target.value })} /></div>
