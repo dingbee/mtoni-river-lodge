@@ -99,6 +99,7 @@ import { Route as AuthenticatedAdminContentJournalRouteImport } from './routes/_
 import { Route as AuthenticatedAdminContentHomepageRouteImport } from './routes/_authenticated.admin.content.homepage'
 import { Route as AuthenticatedAdminContentGalleryRouteImport } from './routes/_authenticated.admin.content.gallery'
 import { Route as AuthenticatedAdminContentExperiencesRouteImport } from './routes/_authenticated.admin.content.experiences'
+import { Route as AuthenticatedAdminGuestsCrmIdRouteImport } from './routes/_authenticated.admin.guests.crm.$id'
 
 const VoteRoute = VoteRouteImport.update({
   id: '/vote',
@@ -592,6 +593,12 @@ const AuthenticatedAdminContentExperiencesRoute =
     path: '/content/experiences',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminGuestsCrmIdRoute =
+  AuthenticatedAdminGuestsCrmIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminGuestsCrmRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -667,7 +674,7 @@ export interface FileRoutesByFullPath {
   '/admin/finance/invoices': typeof AuthenticatedAdminFinanceInvoicesRoute
   '/admin/finance/payments': typeof AuthenticatedAdminFinancePaymentsRoute
   '/admin/finance/reports': typeof AuthenticatedAdminFinanceReportsRoute
-  '/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRoute
+  '/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
   '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
@@ -683,6 +690,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -755,7 +763,7 @@ export interface FileRoutesByTo {
   '/admin/finance/invoices': typeof AuthenticatedAdminFinanceInvoicesRoute
   '/admin/finance/payments': typeof AuthenticatedAdminFinancePaymentsRoute
   '/admin/finance/reports': typeof AuthenticatedAdminFinanceReportsRoute
-  '/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRoute
+  '/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
   '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
@@ -771,6 +779,7 @@ export interface FileRoutesByTo {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -848,7 +857,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/finance/invoices': typeof AuthenticatedAdminFinanceInvoicesRoute
   '/_authenticated/admin/finance/payments': typeof AuthenticatedAdminFinancePaymentsRoute
   '/_authenticated/admin/finance/reports': typeof AuthenticatedAdminFinanceReportsRoute
-  '/_authenticated/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRoute
+  '/_authenticated/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/_authenticated/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
   '/_authenticated/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/_authenticated/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
@@ -864,6 +873,7 @@ export interface FileRoutesById {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/_authenticated/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -957,6 +967,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/admin/guests/crm/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1045,6 +1056,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/admin/guests/crm/$id'
   id:
     | '__root__'
     | '/'
@@ -1137,6 +1149,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/_authenticated/admin/guests/crm/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1823,8 +1836,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminContentExperiencesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/guests/crm/$id': {
+      id: '/_authenticated/admin/guests/crm/$id'
+      path: '/$id'
+      fullPath: '/admin/guests/crm/$id'
+      preLoaderRoute: typeof AuthenticatedAdminGuestsCrmIdRouteImport
+      parentRoute: typeof AuthenticatedAdminGuestsCrmRoute
+    }
   }
 }
+
+interface AuthenticatedAdminGuestsCrmRouteChildren {
+  AuthenticatedAdminGuestsCrmIdRoute: typeof AuthenticatedAdminGuestsCrmIdRoute
+}
+
+const AuthenticatedAdminGuestsCrmRouteChildren: AuthenticatedAdminGuestsCrmRouteChildren =
+  {
+    AuthenticatedAdminGuestsCrmIdRoute: AuthenticatedAdminGuestsCrmIdRoute,
+  }
+
+const AuthenticatedAdminGuestsCrmRouteWithChildren =
+  AuthenticatedAdminGuestsCrmRoute._addFileChildren(
+    AuthenticatedAdminGuestsCrmRouteChildren,
+  )
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAutomationRoute: typeof AuthenticatedAdminAutomationRoute
@@ -1842,7 +1876,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminFinanceInvoicesRoute: typeof AuthenticatedAdminFinanceInvoicesRoute
   AuthenticatedAdminFinancePaymentsRoute: typeof AuthenticatedAdminFinancePaymentsRoute
   AuthenticatedAdminFinanceReportsRoute: typeof AuthenticatedAdminFinanceReportsRoute
-  AuthenticatedAdminGuestsCrmRoute: typeof AuthenticatedAdminGuestsCrmRoute
+  AuthenticatedAdminGuestsCrmRoute: typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   AuthenticatedAdminGuestsMessagesRoute: typeof AuthenticatedAdminGuestsMessagesRoute
   AuthenticatedAdminMarketingAnalyticsRoute: typeof AuthenticatedAdminMarketingAnalyticsRoute
   AuthenticatedAdminMarketingCampaignsRoute: typeof AuthenticatedAdminMarketingCampaignsRoute
@@ -1874,7 +1908,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminFinancePaymentsRoute:
     AuthenticatedAdminFinancePaymentsRoute,
   AuthenticatedAdminFinanceReportsRoute: AuthenticatedAdminFinanceReportsRoute,
-  AuthenticatedAdminGuestsCrmRoute: AuthenticatedAdminGuestsCrmRoute,
+  AuthenticatedAdminGuestsCrmRoute:
+    AuthenticatedAdminGuestsCrmRouteWithChildren,
   AuthenticatedAdminGuestsMessagesRoute: AuthenticatedAdminGuestsMessagesRoute,
   AuthenticatedAdminMarketingAnalyticsRoute:
     AuthenticatedAdminMarketingAnalyticsRoute,
