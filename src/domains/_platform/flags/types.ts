@@ -10,7 +10,8 @@ export type FeatureFlagKey =
   | "multi_property"
   | "concierge"
   | "maintenance"
-  | "procurement";
+  | "procurement"
+  | "operations_centre";
 
 export type FlagState = "enabled" | "disabled" | "beta" | "internal";
 

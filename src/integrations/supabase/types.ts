@@ -108,6 +108,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "booking_extras_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "booking_extras_extra_id_fkey"
             columns: ["extra_id"]
             isOneToOne: false
@@ -147,6 +154,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_nights_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
             referencedColumns: ["id"]
           },
           {
@@ -367,6 +381,13 @@ export type Database = {
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "email_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
         ]
       }
       email_send_log: {
@@ -541,6 +562,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_communications_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
             referencedColumns: ["id"]
           },
           {
@@ -853,6 +881,13 @@ export type Database = {
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "guest_threads_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
         ]
       }
       guests: {
@@ -955,10 +990,73 @@ export type Database = {
           },
         ]
       }
+      ops_alerts: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["ops_alert_kind"]
+          message: string
+          resolved_at: string | null
+          resolved_by: string | null
+          room_id: string | null
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["ops_alert_kind"]
+          message: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          room_id?: string | null
+          severity?: string
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["ops_alert_kind"]
+          message?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          room_id?: string | null
+          severity?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ops_alerts_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ops_alerts_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ops_alerts_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ops_tasks: {
         Row: {
           assigned_to: string | null
+          assignee_id: string | null
           booking_id: string | null
+          category: string | null
           completed_at: string | null
           created_at: string
           description: string | null
@@ -972,7 +1070,9 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          assignee_id?: string | null
           booking_id?: string | null
+          category?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
@@ -986,7 +1086,9 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          assignee_id?: string | null
           booking_id?: string | null
+          category?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
@@ -1004,6 +1106,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ops_tasks_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
             referencedColumns: ["id"]
           },
         ]
@@ -1059,6 +1168,13 @@ export type Database = {
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payment_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pending_notifications: {
@@ -1098,6 +1214,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_notifications_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
             referencedColumns: ["id"]
           },
         ]
@@ -1275,6 +1398,64 @@ export type Database = {
           },
         ]
       }
+      room_states: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          id: string
+          room_id: string
+          state: Database["public"]["Enums"]["room_state"]
+          state_note: string | null
+          unit_label: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          room_id: string
+          state?: Database["public"]["Enums"]["room_state"]
+          state_note?: string | null
+          unit_label: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          room_id?: string
+          state?: Database["public"]["Enums"]["room_state"]
+          state_note?: string | null
+          unit_label?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_states_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_states_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_states_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rooms: {
         Row: {
           base_price: number
@@ -1425,6 +1606,13 @@ export type Database = {
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "whatsapp_alerts_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -1489,6 +1677,88 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ops_outstanding_balances: {
+        Row: {
+          balance_amount: number | null
+          check_in: string | null
+          check_out: string | null
+          currency: string | null
+          guest_email: string | null
+          guest_id: string | null
+          guest_name: string | null
+          id: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"] | null
+          reference: string | null
+          status: Database["public"]["Enums"]["booking_status"] | null
+          total: number | null
+        }
+        Insert: {
+          balance_amount?: number | null
+          check_in?: string | null
+          check_out?: string | null
+          currency?: string | null
+          guest_email?: string | null
+          guest_id?: string | null
+          guest_name?: string | null
+          id?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          reference?: string | null
+          status?: Database["public"]["Enums"]["booking_status"] | null
+          total?: number | null
+        }
+        Update: {
+          balance_amount?: number | null
+          check_in?: string | null
+          check_out?: string | null
+          currency?: string | null
+          guest_email?: string | null
+          guest_id?: string | null
+          guest_name?: string | null
+          id?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          reference?: string | null
+          status?: Database["public"]["Enums"]["booking_status"] | null
+          total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
+          },
+          {
+            foreignKeyName: "bookings_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ops_today: {
+        Row: {
+          arrivals: number | null
+          departures: number | null
+          dirty_rooms: number | null
+          in_house: number | null
+          maintenance_rooms: number | null
+          occupied_rooms: number | null
+          outstanding_total: number | null
+          pending_check_in: number | null
+          pending_check_out: number | null
+          vacant_rooms: number | null
+        }
+        Relationships: []
       }
     }
     Functions: {
@@ -1650,6 +1920,12 @@ export type Database = {
         | "per_person_per_night"
       guest_status: "new" | "returning" | "vip"
       guest_type: "standard" | "vip" | "climber"
+      ops_alert_kind:
+        | "late_arrival"
+        | "overdue_departure"
+        | "payment_issue"
+        | "room_conflict"
+        | "maintenance_conflict"
       ops_task_status: "pending" | "in_progress" | "completed" | "cancelled"
       payment_status:
         | "unpaid"
@@ -1667,6 +1943,14 @@ export type Database = {
         | "overall_experience"
       review_source: "google" | "tripadvisor" | "direct"
       review_status: "pending" | "approved" | "archived"
+      room_state:
+        | "vacant_clean"
+        | "vacant_dirty"
+        | "occupied"
+        | "reserved"
+        | "inspection"
+        | "maintenance"
+        | "out_of_service"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1823,6 +2107,13 @@ export const Constants = {
       ],
       guest_status: ["new", "returning", "vip"],
       guest_type: ["standard", "vip", "climber"],
+      ops_alert_kind: [
+        "late_arrival",
+        "overdue_departure",
+        "payment_issue",
+        "room_conflict",
+        "maintenance_conflict",
+      ],
       ops_task_status: ["pending", "in_progress", "completed", "cancelled"],
       payment_status: [
         "unpaid",
@@ -1842,6 +2133,15 @@ export const Constants = {
       ],
       review_source: ["google", "tripadvisor", "direct"],
       review_status: ["pending", "approved", "archived"],
+      room_state: [
+        "vacant_clean",
+        "vacant_dirty",
+        "occupied",
+        "reserved",
+        "inspection",
+        "maintenance",
+        "out_of_service",
+      ],
     },
   },
 } as const

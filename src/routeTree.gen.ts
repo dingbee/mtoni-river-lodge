@@ -71,9 +71,11 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated.admin.settings'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
+import { Route as AuthenticatedAdminOperationsRouteImport } from './routes/_authenticated.admin.operations'
 import { Route as AuthenticatedAdminFrontDeskRouteImport } from './routes/_authenticated.admin.front-desk'
 import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authenticated.admin.bookings'
 import { Route as AuthenticatedAdminAutomationRouteImport } from './routes/_authenticated.admin.automation'
+import { Route as AuthenticatedAdminOperationsIndexRouteImport } from './routes/_authenticated.admin.operations.index'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -83,8 +85,12 @@ import { Route as ApiPublicOpsDrainRouteImport } from './routes/api/public/ops/d
 import { Route as AuthenticatedAdminStaffUsersRouteImport } from './routes/_authenticated.admin.staff.users'
 import { Route as AuthenticatedAdminStaffRolesRouteImport } from './routes/_authenticated.admin.staff.roles'
 import { Route as AuthenticatedAdminStaffActivityRouteImport } from './routes/_authenticated.admin.staff.activity'
+import { Route as AuthenticatedAdminOperationsTimelineRouteImport } from './routes/_authenticated.admin.operations.timeline'
+import { Route as AuthenticatedAdminOperationsTasksRouteImport } from './routes/_authenticated.admin.operations.tasks'
 import { Route as AuthenticatedAdminOperationsRoomsRouteImport } from './routes/_authenticated.admin.operations.rooms'
+import { Route as AuthenticatedAdminOperationsHousekeepingRouteImport } from './routes/_authenticated.admin.operations.housekeeping'
 import { Route as AuthenticatedAdminOperationsCalendarRouteImport } from './routes/_authenticated.admin.operations.calendar'
+import { Route as AuthenticatedAdminOperationsAlertsRouteImport } from './routes/_authenticated.admin.operations.alerts'
 import { Route as AuthenticatedAdminMarketingSeoRouteImport } from './routes/_authenticated.admin.marketing.seo'
 import { Route as AuthenticatedAdminMarketingCampaignsRouteImport } from './routes/_authenticated.admin.marketing.campaigns'
 import { Route as AuthenticatedAdminMarketingAnalyticsRouteImport } from './routes/_authenticated.admin.marketing.analytics'
@@ -99,6 +105,9 @@ import { Route as AuthenticatedAdminContentJournalRouteImport } from './routes/_
 import { Route as AuthenticatedAdminContentHomepageRouteImport } from './routes/_authenticated.admin.content.homepage'
 import { Route as AuthenticatedAdminContentGalleryRouteImport } from './routes/_authenticated.admin.content.gallery'
 import { Route as AuthenticatedAdminContentExperiencesRouteImport } from './routes/_authenticated.admin.content.experiences'
+import { Route as AuthenticatedAdminOperationsReservationsIdRouteImport } from './routes/_authenticated.admin.operations.reservations.$id'
+import { Route as AuthenticatedAdminOperationsCheckoutIdRouteImport } from './routes/_authenticated.admin.operations.checkout.$id'
+import { Route as AuthenticatedAdminOperationsCheckinIdRouteImport } from './routes/_authenticated.admin.operations.checkin.$id'
 import { Route as AuthenticatedAdminGuestsCrmDuplicatesRouteImport } from './routes/_authenticated.admin.guests.crm.duplicates'
 import { Route as AuthenticatedAdminGuestsCrmIdRouteImport } from './routes/_authenticated.admin.guests.crm.$id'
 
@@ -428,6 +437,12 @@ const AuthenticatedAdminReviewsRoute =
     path: '/reviews',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminOperationsRoute =
+  AuthenticatedAdminOperationsRouteImport.update({
+    id: '/operations',
+    path: '/operations',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminFrontDeskRoute =
   AuthenticatedAdminFrontDeskRouteImport.update({
     id: '/front-desk',
@@ -445,6 +460,12 @@ const AuthenticatedAdminAutomationRoute =
     id: '/automation',
     path: '/automation',
     getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminOperationsIndexRoute =
+  AuthenticatedAdminOperationsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
   } as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
@@ -498,17 +519,41 @@ const AuthenticatedAdminStaffActivityRoute =
     path: '/staff/activity',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminOperationsTimelineRoute =
+  AuthenticatedAdminOperationsTimelineRouteImport.update({
+    id: '/timeline',
+    path: '/timeline',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
+const AuthenticatedAdminOperationsTasksRoute =
+  AuthenticatedAdminOperationsTasksRouteImport.update({
+    id: '/tasks',
+    path: '/tasks',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
 const AuthenticatedAdminOperationsRoomsRoute =
   AuthenticatedAdminOperationsRoomsRouteImport.update({
-    id: '/operations/rooms',
-    path: '/operations/rooms',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/rooms',
+    path: '/rooms',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
+const AuthenticatedAdminOperationsHousekeepingRoute =
+  AuthenticatedAdminOperationsHousekeepingRouteImport.update({
+    id: '/housekeeping',
+    path: '/housekeeping',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
   } as any)
 const AuthenticatedAdminOperationsCalendarRoute =
   AuthenticatedAdminOperationsCalendarRouteImport.update({
-    id: '/operations/calendar',
-    path: '/operations/calendar',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/calendar',
+    path: '/calendar',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
+const AuthenticatedAdminOperationsAlertsRoute =
+  AuthenticatedAdminOperationsAlertsRouteImport.update({
+    id: '/alerts',
+    path: '/alerts',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
   } as any)
 const AuthenticatedAdminMarketingSeoRoute =
   AuthenticatedAdminMarketingSeoRouteImport.update({
@@ -594,6 +639,24 @@ const AuthenticatedAdminContentExperiencesRoute =
     path: '/content/experiences',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminOperationsReservationsIdRoute =
+  AuthenticatedAdminOperationsReservationsIdRouteImport.update({
+    id: '/reservations/$id',
+    path: '/reservations/$id',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
+const AuthenticatedAdminOperationsCheckoutIdRoute =
+  AuthenticatedAdminOperationsCheckoutIdRouteImport.update({
+    id: '/checkout/$id',
+    path: '/checkout/$id',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
+const AuthenticatedAdminOperationsCheckinIdRoute =
+  AuthenticatedAdminOperationsCheckinIdRouteImport.update({
+    id: '/checkin/$id',
+    path: '/checkin/$id',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
 const AuthenticatedAdminGuestsCrmDuplicatesRoute =
   AuthenticatedAdminGuestsCrmDuplicatesRouteImport.update({
     id: '/duplicates',
@@ -668,6 +731,7 @@ export interface FileRoutesByFullPath {
   '/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
+  '/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -686,8 +750,12 @@ export interface FileRoutesByFullPath {
   '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
   '/admin/marketing/seo': typeof AuthenticatedAdminMarketingSeoRoute
+  '/admin/operations/alerts': typeof AuthenticatedAdminOperationsAlertsRoute
   '/admin/operations/calendar': typeof AuthenticatedAdminOperationsCalendarRoute
+  '/admin/operations/housekeeping': typeof AuthenticatedAdminOperationsHousekeepingRoute
   '/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
+  '/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
+  '/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
@@ -697,8 +765,12 @@ export interface FileRoutesByFullPath {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
+  '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
+  '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
+  '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -776,8 +848,12 @@ export interface FileRoutesByTo {
   '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
   '/admin/marketing/seo': typeof AuthenticatedAdminMarketingSeoRoute
+  '/admin/operations/alerts': typeof AuthenticatedAdminOperationsAlertsRoute
   '/admin/operations/calendar': typeof AuthenticatedAdminOperationsCalendarRoute
+  '/admin/operations/housekeeping': typeof AuthenticatedAdminOperationsHousekeepingRoute
   '/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
+  '/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
+  '/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
@@ -787,8 +863,12 @@ export interface FileRoutesByTo {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
+  '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
+  '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
+  '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -853,6 +933,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/_authenticated/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
+  '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -871,8 +952,12 @@ export interface FileRoutesById {
   '/_authenticated/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/_authenticated/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
   '/_authenticated/admin/marketing/seo': typeof AuthenticatedAdminMarketingSeoRoute
+  '/_authenticated/admin/operations/alerts': typeof AuthenticatedAdminOperationsAlertsRoute
   '/_authenticated/admin/operations/calendar': typeof AuthenticatedAdminOperationsCalendarRoute
+  '/_authenticated/admin/operations/housekeeping': typeof AuthenticatedAdminOperationsHousekeepingRoute
   '/_authenticated/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
+  '/_authenticated/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
+  '/_authenticated/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
   '/_authenticated/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/_authenticated/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/_authenticated/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
@@ -882,8 +967,12 @@ export interface FileRoutesById {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/_authenticated/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/_authenticated/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
+  '/_authenticated/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
+  '/_authenticated/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
+  '/_authenticated/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -948,6 +1037,7 @@ export interface FileRouteTypes {
     | '/admin/automation'
     | '/admin/bookings'
     | '/admin/front-desk'
+    | '/admin/operations'
     | '/admin/reviews'
     | '/admin/settings'
     | '/lovable/email/suppression'
@@ -966,8 +1056,12 @@ export interface FileRouteTypes {
     | '/admin/marketing/analytics'
     | '/admin/marketing/campaigns'
     | '/admin/marketing/seo'
+    | '/admin/operations/alerts'
     | '/admin/operations/calendar'
+    | '/admin/operations/housekeeping'
     | '/admin/operations/rooms'
+    | '/admin/operations/tasks'
+    | '/admin/operations/timeline'
     | '/admin/staff/activity'
     | '/admin/staff/roles'
     | '/admin/staff/users'
@@ -977,8 +1071,12 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/admin/operations/'
     | '/admin/guests/crm/$id'
     | '/admin/guests/crm/duplicates'
+    | '/admin/operations/checkin/$id'
+    | '/admin/operations/checkout/$id'
+    | '/admin/operations/reservations/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1056,8 +1154,12 @@ export interface FileRouteTypes {
     | '/admin/marketing/analytics'
     | '/admin/marketing/campaigns'
     | '/admin/marketing/seo'
+    | '/admin/operations/alerts'
     | '/admin/operations/calendar'
+    | '/admin/operations/housekeeping'
     | '/admin/operations/rooms'
+    | '/admin/operations/tasks'
+    | '/admin/operations/timeline'
     | '/admin/staff/activity'
     | '/admin/staff/roles'
     | '/admin/staff/users'
@@ -1067,8 +1169,12 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/admin/operations'
     | '/admin/guests/crm/$id'
     | '/admin/guests/crm/duplicates'
+    | '/admin/operations/checkin/$id'
+    | '/admin/operations/checkout/$id'
+    | '/admin/operations/reservations/$id'
   id:
     | '__root__'
     | '/'
@@ -1132,6 +1238,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/automation'
     | '/_authenticated/admin/bookings'
     | '/_authenticated/admin/front-desk'
+    | '/_authenticated/admin/operations'
     | '/_authenticated/admin/reviews'
     | '/_authenticated/admin/settings'
     | '/lovable/email/suppression'
@@ -1150,8 +1257,12 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/marketing/analytics'
     | '/_authenticated/admin/marketing/campaigns'
     | '/_authenticated/admin/marketing/seo'
+    | '/_authenticated/admin/operations/alerts'
     | '/_authenticated/admin/operations/calendar'
+    | '/_authenticated/admin/operations/housekeeping'
     | '/_authenticated/admin/operations/rooms'
+    | '/_authenticated/admin/operations/tasks'
+    | '/_authenticated/admin/operations/timeline'
     | '/_authenticated/admin/staff/activity'
     | '/_authenticated/admin/staff/roles'
     | '/_authenticated/admin/staff/users'
@@ -1161,8 +1272,12 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/_authenticated/admin/operations/'
     | '/_authenticated/admin/guests/crm/$id'
     | '/_authenticated/admin/guests/crm/duplicates'
+    | '/_authenticated/admin/operations/checkin/$id'
+    | '/_authenticated/admin/operations/checkout/$id'
+    | '/_authenticated/admin/operations/reservations/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1653,6 +1768,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminReviewsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/operations': {
+      id: '/_authenticated/admin/operations'
+      path: '/operations'
+      fullPath: '/admin/operations'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/front-desk': {
       id: '/_authenticated/admin/front-desk'
       path: '/front-desk'
@@ -1673,6 +1795,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/automation'
       preLoaderRoute: typeof AuthenticatedAdminAutomationRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/operations/': {
+      id: '/_authenticated/admin/operations/'
+      path: '/'
+      fullPath: '/admin/operations/'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
     }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
@@ -1737,19 +1866,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminStaffActivityRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/operations/timeline': {
+      id: '/_authenticated/admin/operations/timeline'
+      path: '/timeline'
+      fullPath: '/admin/operations/timeline'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsTimelineRouteImport
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
+    '/_authenticated/admin/operations/tasks': {
+      id: '/_authenticated/admin/operations/tasks'
+      path: '/tasks'
+      fullPath: '/admin/operations/tasks'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsTasksRouteImport
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
     '/_authenticated/admin/operations/rooms': {
       id: '/_authenticated/admin/operations/rooms'
-      path: '/operations/rooms'
+      path: '/rooms'
       fullPath: '/admin/operations/rooms'
       preLoaderRoute: typeof AuthenticatedAdminOperationsRoomsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
+    '/_authenticated/admin/operations/housekeeping': {
+      id: '/_authenticated/admin/operations/housekeeping'
+      path: '/housekeeping'
+      fullPath: '/admin/operations/housekeeping'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsHousekeepingRouteImport
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
     }
     '/_authenticated/admin/operations/calendar': {
       id: '/_authenticated/admin/operations/calendar'
-      path: '/operations/calendar'
+      path: '/calendar'
       fullPath: '/admin/operations/calendar'
       preLoaderRoute: typeof AuthenticatedAdminOperationsCalendarRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
+    '/_authenticated/admin/operations/alerts': {
+      id: '/_authenticated/admin/operations/alerts'
+      path: '/alerts'
+      fullPath: '/admin/operations/alerts'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsAlertsRouteImport
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
     }
     '/_authenticated/admin/marketing/seo': {
       id: '/_authenticated/admin/marketing/seo'
@@ -1849,6 +2006,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminContentExperiencesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/operations/reservations/$id': {
+      id: '/_authenticated/admin/operations/reservations/$id'
+      path: '/reservations/$id'
+      fullPath: '/admin/operations/reservations/$id'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsReservationsIdRouteImport
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
+    '/_authenticated/admin/operations/checkout/$id': {
+      id: '/_authenticated/admin/operations/checkout/$id'
+      path: '/checkout/$id'
+      fullPath: '/admin/operations/checkout/$id'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsCheckoutIdRouteImport
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
+    '/_authenticated/admin/operations/checkin/$id': {
+      id: '/_authenticated/admin/operations/checkin/$id'
+      path: '/checkin/$id'
+      fullPath: '/admin/operations/checkin/$id'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsCheckinIdRouteImport
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
     '/_authenticated/admin/guests/crm/duplicates': {
       id: '/_authenticated/admin/guests/crm/duplicates'
       path: '/duplicates'
@@ -1865,6 +2043,48 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedAdminOperationsRouteChildren {
+  AuthenticatedAdminOperationsAlertsRoute: typeof AuthenticatedAdminOperationsAlertsRoute
+  AuthenticatedAdminOperationsCalendarRoute: typeof AuthenticatedAdminOperationsCalendarRoute
+  AuthenticatedAdminOperationsHousekeepingRoute: typeof AuthenticatedAdminOperationsHousekeepingRoute
+  AuthenticatedAdminOperationsRoomsRoute: typeof AuthenticatedAdminOperationsRoomsRoute
+  AuthenticatedAdminOperationsTasksRoute: typeof AuthenticatedAdminOperationsTasksRoute
+  AuthenticatedAdminOperationsTimelineRoute: typeof AuthenticatedAdminOperationsTimelineRoute
+  AuthenticatedAdminOperationsIndexRoute: typeof AuthenticatedAdminOperationsIndexRoute
+  AuthenticatedAdminOperationsCheckinIdRoute: typeof AuthenticatedAdminOperationsCheckinIdRoute
+  AuthenticatedAdminOperationsCheckoutIdRoute: typeof AuthenticatedAdminOperationsCheckoutIdRoute
+  AuthenticatedAdminOperationsReservationsIdRoute: typeof AuthenticatedAdminOperationsReservationsIdRoute
+}
+
+const AuthenticatedAdminOperationsRouteChildren: AuthenticatedAdminOperationsRouteChildren =
+  {
+    AuthenticatedAdminOperationsAlertsRoute:
+      AuthenticatedAdminOperationsAlertsRoute,
+    AuthenticatedAdminOperationsCalendarRoute:
+      AuthenticatedAdminOperationsCalendarRoute,
+    AuthenticatedAdminOperationsHousekeepingRoute:
+      AuthenticatedAdminOperationsHousekeepingRoute,
+    AuthenticatedAdminOperationsRoomsRoute:
+      AuthenticatedAdminOperationsRoomsRoute,
+    AuthenticatedAdminOperationsTasksRoute:
+      AuthenticatedAdminOperationsTasksRoute,
+    AuthenticatedAdminOperationsTimelineRoute:
+      AuthenticatedAdminOperationsTimelineRoute,
+    AuthenticatedAdminOperationsIndexRoute:
+      AuthenticatedAdminOperationsIndexRoute,
+    AuthenticatedAdminOperationsCheckinIdRoute:
+      AuthenticatedAdminOperationsCheckinIdRoute,
+    AuthenticatedAdminOperationsCheckoutIdRoute:
+      AuthenticatedAdminOperationsCheckoutIdRoute,
+    AuthenticatedAdminOperationsReservationsIdRoute:
+      AuthenticatedAdminOperationsReservationsIdRoute,
+  }
+
+const AuthenticatedAdminOperationsRouteWithChildren =
+  AuthenticatedAdminOperationsRoute._addFileChildren(
+    AuthenticatedAdminOperationsRouteChildren,
+  )
 
 interface AuthenticatedAdminGuestsCrmRouteChildren {
   AuthenticatedAdminGuestsCrmIdRoute: typeof AuthenticatedAdminGuestsCrmIdRoute
@@ -1887,6 +2107,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAutomationRoute: typeof AuthenticatedAdminAutomationRoute
   AuthenticatedAdminBookingsRoute: typeof AuthenticatedAdminBookingsRoute
   AuthenticatedAdminFrontDeskRoute: typeof AuthenticatedAdminFrontDeskRoute
+  AuthenticatedAdminOperationsRoute: typeof AuthenticatedAdminOperationsRouteWithChildren
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -1904,8 +2125,6 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminMarketingAnalyticsRoute: typeof AuthenticatedAdminMarketingAnalyticsRoute
   AuthenticatedAdminMarketingCampaignsRoute: typeof AuthenticatedAdminMarketingCampaignsRoute
   AuthenticatedAdminMarketingSeoRoute: typeof AuthenticatedAdminMarketingSeoRoute
-  AuthenticatedAdminOperationsCalendarRoute: typeof AuthenticatedAdminOperationsCalendarRoute
-  AuthenticatedAdminOperationsRoomsRoute: typeof AuthenticatedAdminOperationsRoomsRoute
   AuthenticatedAdminStaffActivityRoute: typeof AuthenticatedAdminStaffActivityRoute
   AuthenticatedAdminStaffRolesRoute: typeof AuthenticatedAdminStaffRolesRoute
   AuthenticatedAdminStaffUsersRoute: typeof AuthenticatedAdminStaffUsersRoute
@@ -1915,6 +2134,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAutomationRoute: AuthenticatedAdminAutomationRoute,
   AuthenticatedAdminBookingsRoute: AuthenticatedAdminBookingsRoute,
   AuthenticatedAdminFrontDeskRoute: AuthenticatedAdminFrontDeskRoute,
+  AuthenticatedAdminOperationsRoute:
+    AuthenticatedAdminOperationsRouteWithChildren,
   AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
@@ -1939,10 +2160,6 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminMarketingCampaignsRoute:
     AuthenticatedAdminMarketingCampaignsRoute,
   AuthenticatedAdminMarketingSeoRoute: AuthenticatedAdminMarketingSeoRoute,
-  AuthenticatedAdminOperationsCalendarRoute:
-    AuthenticatedAdminOperationsCalendarRoute,
-  AuthenticatedAdminOperationsRoomsRoute:
-    AuthenticatedAdminOperationsRoomsRoute,
   AuthenticatedAdminStaffActivityRoute: AuthenticatedAdminStaffActivityRoute,
   AuthenticatedAdminStaffRolesRoute: AuthenticatedAdminStaffRolesRoute,
   AuthenticatedAdminStaffUsersRoute: AuthenticatedAdminStaffUsersRoute,
@@ -2074,13 +2291,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
