@@ -73,6 +73,28 @@ export async function ensureIpn(baseUrl: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const env = pesapalEnv();
   const ipnUrl = `${baseUrl.replace(/\/$/, "")}/api/public/pesapal/ipn`;
+
+  // Preferred path: use a pre-provisioned IPN ID from the environment.
+  // This guarantees the ID belongs to the same Pesapal account as the
+  // consumer key/secret and avoids per-deploy re-registration.
+  const envIpnId = process.env.PESAPAL_IPN_ID?.trim();
+  if (envIpnId) {
+    console.info("[pesapal] using PESAPAL_IPN_ID from environment", {
+      env,
+      ipnUrl,
+      ipnIdSuffix: envIpnId.slice(-6),
+      ipnIdLength: envIpnId.length,
+    });
+    // Keep pesapal_settings in sync so ops tooling still reflects reality.
+    await supabaseAdmin
+      .from("pesapal_settings")
+      .upsert(
+        { env, ipn_id: envIpnId, ipn_url: ipnUrl, updated_at: new Date().toISOString() },
+        { onConflict: "env" },
+      );
+    return envIpnId;
+  }
+
   const { data: existing } = await supabaseAdmin
     .from("pesapal_settings")
     .select("ipn_id, ipn_url")
