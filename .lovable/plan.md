@@ -1,54 +1,138 @@
-## Sprint 3 — Guest CRM & 360° Guest Intelligence
+# Sprint 4 — Operations Centre (OC)
 
-Sprint 2 already delivered the CRM foundation: `guests` table, directory, profile page with tabs (reservations, notes, communications, reviews, timeline), tags, notes, duplicates finder, and CRM dashboard widgets. Sprint 3 builds the "intelligence" layer on top — preferences, smart tag catalogue, relationship metrics, quick actions, richer widgets, experience/payment tabs, and AI-ready summary hooks — without duplicating any existing records.
+Rename "Booking Ops Command Centre" → **Operations Centre (OC)**. All work sits on top of the existing custom booking engine, guest CRM, and Sprint 2+ platform (Module Registry, Feature Flags, Event Bus). No booking-engine redesign, no data duplication.
 
-### Scope (this sprint)
+## Domain layout (DDD)
 
-**Schema (single migration)**
-- `guest_preferences` (guest_id, key, value, category, source, updated_by) — keyed store for room/bed/dietary/service prefs; unique(guest_id,key).
-- `guests` new columns: `birthday date`, `anniversary date`, `marketing_consent bool`, `photo_url text`, `vip_since timestamptz`, `ai_summary text`, `ai_summary_updated_at timestamptz`.
-- `guest_metrics` view (per guest): repeat flag, avg_nights, avg_spend, favourite_room_id, favourite_experience, avg_lead_time_days, cancellation_rate, avg_party_size.
-- `guest_country_stats` view for dashboard.
-- `guest_documents` stub table (guest_id, kind, label, status, meta jsonb) — no uploads wired; RLS staff-only.
-- Extend `find_duplicate_guests` untouched. GRANTs + RLS for every new object.
+```
+src/domains/
+  operations/         ← NEW
+    rooms/            room status board + housekeeping
+    tasks/            ops_tasks CRUD + assignments
+    alerts/           derived alerts from event bus + queries
+    calendar/         day/week/month room calendar
+    checkin/          check-in flow orchestration
+    checkout/         check-out flow orchestration
+    dashboard/        live KPI + widget queries
+    timeline/         event feed derived from activity_logs
+    index.ts
+  reservations/       ← extended (workspace, filters, notes)
+```
 
-**Server functions (`src/lib/guests.functions.ts` + new `guest-intelligence.functions.ts`)**
-- `getGuestPreferences`, `upsertGuestPreference`, `deleteGuestPreference`.
-- `getGuestMetrics(id)` — reads `guest_metrics` view.
-- `getGuestExperiences(id)` — derives from existing `booking_extras` joined to `extras` (no new experience table).
-- `getGuestPayments(id)` — from existing `payment_events` + `bookings`.
-- `getDashboardIntelligence()` — VIP arrivals today, birthdays this week, anniversaries this week, top countries, top 20 lifetime guests, acquisition trend (last 12 months).
-- `generateGuestSummary(id)` — stub returning deterministic text now; Lovable AI wiring left as TODO comment (design-only per spec).
-- `listGuests` gains filters: `countries[]`, `minStays`, `dateRange`, existing tag filter; keeps backward-compatible defaults.
+Server functions live in `src/lib/operations.functions.ts` (client-safe module path) and `src/lib/operations-tasks.functions.ts`. Both re-exported through `domains/operations/*/index.ts` façades so components import from the domain.
 
-**UI**
-- Profile page: add tabs **Experiences**, **Payments**, **Preferences**, **Documents** (empty-state), and a **Quick Actions** toolbar (Create reservation → prefilled `/book`, Add note, Add tag, Send email `mailto:`, Copy details, View invoices, View reviews, Generate summary).
-- Profile header: photo/initials, birthday/anniversary chips, marketing-consent badge, VIP-since.
-- New `RelationshipStats` card (metrics view).
-- `SmartTagPicker`: seed catalogue of tags on first render (idempotent) — VIP, Repeat Guest, Anniversary, Family, Corporate, Photographer, Birdwatcher, Luxury Traveller, Adventure Traveller, Safari Extension, Birthday, High Spender, Referral, Dietary Requirements.
-- Directory: country multi-select, min-stays slider, VIP toggle already exists → extend to combined filters; keep URL-driven state (search params) using zodValidator + fallback.
-- Admin dashboard: new widgets — Today's VIP Arrivals, Birthdays, Anniversaries, Top Countries, Acquisition Trend (sparkline), Guest Satisfaction (avg review rating last 90d), Recent Reviews (already exists → reuse).
+## Schema (single migration)
 
-**Event bus integration**
-- Timeline server fn augmented to consume `activity_logs` rows tagged with `module='guests'` (Sprint 2+ Event Bus) in addition to existing booking/payment/review derivations. No new writers this sprint beyond `guest.preference_updated`, `guest.tag_added`, `guest.note_added`, `guest.summary_generated`.
+Additive only — no changes to existing booking/guest columns.
 
-**Out of scope**
-- Actual document uploads, WhatsApp send UI, real AI generation, loyalty program, campaign engine. Architecture only.
+- `public.room_states` — one row per physical room instance
+  - `id`, `room_id` (fk rooms), `unit_label` (e.g. "Riverfront #2"), `state` (enum: vacant_clean, vacant_dirty, occupied, reserved, inspection, maintenance, out_of_service), `state_note`, `updated_by`, `updated_at`, `booking_id` (nullable link to current stay)
+  - GRANTs authenticated + service_role; RLS staff-only (`is_any_staff(auth.uid())`)
+  - Trigger `set_updated_at`
+- `public.ops_tasks` **already exists** — extend with:
+  - `assignee_id uuid null references auth.users(id)`
+  - `status text default 'open'` (open, in_progress, done, cancelled)
+  - `category text` (housekeeping, concierge, maintenance, transport, fnb, other)
+  - Index on `(status, due_at)` and `(assignee_id, status)`
+- `public.ops_alerts` — derived/materialized-on-write alerts
+  - `id`, `kind` (late_arrival, overdue_departure, payment_issue, room_conflict, maintenance_conflict), `severity`, `booking_id`, `room_id`, `message`, `resolved_at`, `resolved_by`, `created_at`
+  - GRANTs + RLS staff-only
+- Views (SECURITY INVOKER):
+  - `ops_today` — arrivals, departures, in_house counts for `CURRENT_DATE`
+  - `ops_room_board` — join rooms × room_states × today's bookings
+  - `ops_outstanding_balances` — bookings with balance > 0
 
-### Technical notes
-- No new experience/payment tables — always derive from existing `bookings`, `booking_extras`, `payment_events`, `reviews`. Enforces "never duplicate".
-- All new tables get `GRANT SELECT,INSERT,UPDATE,DELETE ... TO authenticated` + `GRANT ALL ... TO service_role`, RLS staff-only via `is_any_staff(auth.uid())`.
-- Server fns use `requireSupabaseAuth`; called from `_authenticated` routes only.
-- Preferences UI is a simple key/value editor with category dropdown (room, dining, service, accessibility, other).
-- Metrics view is `SECURITY INVOKER` and staff-only via table RLS on underlying `guests`/`bookings`.
+Seed `room_states` from existing `rooms` on migration (one row per `total_units`) so the board renders immediately.
 
-### Verification
-- `bun run build:dev` passes.
-- Manual: existing booking flow, existing directory search, existing profile tabs still work.
-- New tabs render with empty states for guests with no data.
+## Server functions
 
-### Deliverables order
-1. Migration (schema + views + grants + RLS).
-2. Server functions.
-3. UI components + new profile tabs + dashboard widgets.
-4. Build verification.
+`src/lib/operations.functions.ts` (all `.middleware([requireSupabaseAuth])`):
+- `getOpsDashboard()` — today counts, occupancy, dirty/maint rooms, outstanding total
+- `getRoomBoard()` — room state grid data
+- `updateRoomState({id, state, note?})` — writes state + emits `room.state_changed`
+- `getReservationWorkspace({id})` — booking + guest CRM summary + payments + extras + tasks + timeline
+- `checkInBooking({bookingId, roomStateId, arrivalTime, notes})` — updates booking status → `checked_in`, room_state → `occupied`, emits `reservation.checked_in`
+- `checkOutBooking({bookingId, departureTime, notes})` — status → `checked_out`, room_state → `vacant_dirty`, creates housekeeping task, emits `reservation.checked_out`
+- `getOpsCalendar({from,to})` — bookings + inventory blocks per room per day
+- `assignRoom({bookingId, roomStateId})` — assigns a physical room to a reservation
+- `listOpsAlerts({resolved?})` / `resolveOpsAlert({id})`
+- `getOpsTimeline({limit})` — reads `activity_logs` where `module in (operations, reservations, guests, finance)`
+
+`src/lib/operations-tasks.functions.ts`:
+- `listOpsTasks({filters})`, `createOpsTask`, `updateOpsTask`, `assignOpsTask`, `completeOpsTask`
+- Emits `task.created`, `task.completed`
+
+All state-changing fns call `publishEvent(...)` from `@/domains/_platform/events` so timeline + alerts stay live.
+
+## Routes (all under `_authenticated/admin`)
+
+New:
+- `admin.operations.tsx` — layout with sub-nav (`<Outlet />`)
+- `admin.operations.index.tsx` — **Live Dashboard** (module 1 + 11 KPIs)
+- `admin.operations.rooms.tsx` — **already exists**, replace body with Room Status Board (module 2)
+- `admin.operations.calendar.tsx` — **already exists**, replace with interactive day/week/month calendar (module 7)
+- `admin.operations.housekeeping.tsx` — Housekeeping workspace (module 8)
+- `admin.operations.tasks.tsx` — Ops tasks board (module 6)
+- `admin.operations.alerts.tsx` — Alerts list (module 9)
+- `admin.operations.timeline.tsx` — Daily ops timeline (module 10)
+- `admin.operations.reservations.$id.tsx` — Reservation Workspace (module 3)
+- `admin.operations.checkin.$id.tsx` — Check-in wizard (module 4)
+- `admin.operations.checkout.$id.tsx` — Check-out wizard (module 5)
+
+Existing `admin.front-desk.tsx` and `admin.bookings.tsx` remain untouched (backward compat); the OC dashboard links into them as the authoritative reservation list.
+
+## Components (`src/components/os/operations/`)
+
+- `LiveDashboardGrid.tsx` — widgets with deep links
+- `RoomStatusBoard.tsx` + `RoomStateChip.tsx` (color-coded)
+- `ReservationWorkspaceLayout.tsx` (guest panel + payments + tasks + timeline)
+- `CheckInWizard.tsx`, `CheckOutWizard.tsx` (multi-step form, uses shadcn `Tabs`/`Stepper` pattern)
+- `TaskBoard.tsx` + `TaskCard.tsx` (kanban by status)
+- `RoomCalendar.tsx` with day/week/month toggle
+- `HousekeepingBoard.tsx` (columns: dirty, in progress, ready, inspection, maintenance)
+- `OpsAlertsList.tsx`
+- `OpsTimelineFeed.tsx` (consumes both `activity_logs` and live `subscribe("*")` for realtime updates)
+- `KpiCard.tsx` for module 11 metrics
+
+Reuse existing `PageHeader`, `SectionCard`, `StatCard`, `GuestStatusChip`, CRM panels.
+
+## Module Registry
+
+Register in `src/domains/_platform/registry/modules/operations.module.ts`:
+- `operations.dashboard`, `operations.rooms`, `operations.calendar`, `operations.housekeeping`, `operations.tasks`, `operations.alerts`, `operations.timeline`
+- Feature flag `operations_centre` (default enabled)
+- Roles: owner, manager, reception, admin; housekeeping module also visible to `housekeeping` role.
+
+Update `nav-config.ts` to add the Operations Centre group (backward-compatible; existing Front Desk / Bookings entries stay).
+
+## Event Bus
+
+Extend `PlatformEventType` union with:
+- `room.state_changed`, `reservation.checked_in`, `reservation.checked_out`, `task.created`, `task.assigned`, `task.completed`, `ops.alert_raised`, `ops.alert_resolved`
+
+Alert generator: `admin.operations.alerts.tsx` loader triggers `refreshOpsAlerts()` server fn that computes late arrivals (check_in < today AND status='confirmed'), overdue departures (check_out < today AND status='checked_in'), payment issues (balance > 0 AND check_in <= today), and upserts into `ops_alerts`.
+
+## What we deliberately do NOT build (leave stubs / TODO)
+
+- Drag-and-drop calendar reassignment → calendar renders read-only in day/week/month; drag hooks stubbed with TODO
+- Mobile housekeeping app
+- Automated review request queueing (Module 5 last bullet) — noted in code as future automation
+- SMS/push alert delivery (only in-app alerts)
+
+## Verification
+
+- `bun run build:dev` passes
+- Existing routes (`/admin/bookings`, `/admin/front-desk`, `/admin/guests/crm/*`, `/book`, booking form) unchanged
+- New OC nav visible; each widget deep-links correctly
+- Check-in updates `bookings.status` and `room_states.state` atomically; timeline reflects both
+
+## Rollout order
+
+1. Migration (schema + seed + grants + RLS)
+2. Server functions + event type extensions
+3. Registry + nav
+4. Layout route + dashboard + KPIs
+5. Room board + housekeeping
+6. Reservation workspace
+7. Check-in / check-out wizards
+8. Tasks + alerts + timeline + calendar
