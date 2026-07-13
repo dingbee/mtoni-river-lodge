@@ -99,6 +99,7 @@ import { Route as AuthenticatedAdminContentJournalRouteImport } from './routes/_
 import { Route as AuthenticatedAdminContentHomepageRouteImport } from './routes/_authenticated.admin.content.homepage'
 import { Route as AuthenticatedAdminContentGalleryRouteImport } from './routes/_authenticated.admin.content.gallery'
 import { Route as AuthenticatedAdminContentExperiencesRouteImport } from './routes/_authenticated.admin.content.experiences'
+import { Route as AuthenticatedAdminGuestsCrmDuplicatesRouteImport } from './routes/_authenticated.admin.guests.crm.duplicates'
 import { Route as AuthenticatedAdminGuestsCrmIdRouteImport } from './routes/_authenticated.admin.guests.crm.$id'
 
 const VoteRoute = VoteRouteImport.update({
@@ -593,6 +594,12 @@ const AuthenticatedAdminContentExperiencesRoute =
     path: '/content/experiences',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminGuestsCrmDuplicatesRoute =
+  AuthenticatedAdminGuestsCrmDuplicatesRouteImport.update({
+    id: '/duplicates',
+    path: '/duplicates',
+    getParentRoute: () => AuthenticatedAdminGuestsCrmRoute,
+  } as any)
 const AuthenticatedAdminGuestsCrmIdRoute =
   AuthenticatedAdminGuestsCrmIdRouteImport.update({
     id: '/$id',
@@ -691,6 +698,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
+  '/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -780,6 +788,7 @@ export interface FileRoutesByTo {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
+  '/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -874,6 +883,7 @@ export interface FileRoutesById {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/_authenticated/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
+  '/_authenticated/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -968,6 +978,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/admin/guests/crm/$id'
+    | '/admin/guests/crm/duplicates'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1057,6 +1068,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/admin/guests/crm/$id'
+    | '/admin/guests/crm/duplicates'
   id:
     | '__root__'
     | '/'
@@ -1150,6 +1162,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/_authenticated/admin/guests/crm/$id'
+    | '/_authenticated/admin/guests/crm/duplicates'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1836,6 +1849,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminContentExperiencesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/guests/crm/duplicates': {
+      id: '/_authenticated/admin/guests/crm/duplicates'
+      path: '/duplicates'
+      fullPath: '/admin/guests/crm/duplicates'
+      preLoaderRoute: typeof AuthenticatedAdminGuestsCrmDuplicatesRouteImport
+      parentRoute: typeof AuthenticatedAdminGuestsCrmRoute
+    }
     '/_authenticated/admin/guests/crm/$id': {
       id: '/_authenticated/admin/guests/crm/$id'
       path: '/$id'
@@ -1848,11 +1868,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminGuestsCrmRouteChildren {
   AuthenticatedAdminGuestsCrmIdRoute: typeof AuthenticatedAdminGuestsCrmIdRoute
+  AuthenticatedAdminGuestsCrmDuplicatesRoute: typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
 }
 
 const AuthenticatedAdminGuestsCrmRouteChildren: AuthenticatedAdminGuestsCrmRouteChildren =
   {
     AuthenticatedAdminGuestsCrmIdRoute: AuthenticatedAdminGuestsCrmIdRoute,
+    AuthenticatedAdminGuestsCrmDuplicatesRoute:
+      AuthenticatedAdminGuestsCrmDuplicatesRoute,
   }
 
 const AuthenticatedAdminGuestsCrmRouteWithChildren =
