@@ -1,111 +1,105 @@
 
-## Mtoni OS Sprint 1 — Platform Shell & Core Architecture
+# Sprint 2 — Guest CRM Foundation
 
-Transforms the existing `/admin/*` area into a proper application shell without touching the public marketing site, the booking engine, review/CMS logic, or any current URLs. Existing pages (`/admin/bookings`, `/admin/front-desk`, `/admin/reviews`) keep their routes and get re-linked from the new sidebar.
+Build a Guest CRM as an enrichment layer over the existing `bookings` table. Bookings stay the source of truth for reservations, payments, and reviews; the CRM adds a stable guest identity, notes, tags, and a communications/timeline view on top.
 
----
+## 1. Data model (backend)
 
-### 1. Route architecture
+New tables in `public` (all with GRANTs + RLS + `has_any_role`-based staff policies):
 
-New layout route:
-- `src/routes/_authenticated/admin.tsx` — Mtoni OS shell (sidebar + top bar + breadcrumbs + `<Outlet />`).
+- `guests` — canonical guest identity
+  - `id`, `email` (citext, unique), `phone_e164`, `full_name`, `country`, `preferred_language`, `nationality`, `time_zone`, `communication_preference` (`email|whatsapp|sms|none`), `avatar_url`, `status` (`new|returning|vip`, derived + overridable), `internal_notes` (short pinned field), `created_at`, `updated_at`.
+- `guest_notes` — staff notes with soft delete + edit history
+  - `id`, `guest_id`, `author_id`, `body`, `is_deleted`, `deleted_at`, `history` jsonb (array of `{at, author_id, body}`), `created_at`, `updated_at`.
+- `guest_tags` — tag catalog (`id`, `slug`, `label`, `color`, `created_by`).
+- `guest_tag_assignments` — join (`guest_id`, `tag_id`, `assigned_by`, `assigned_at`), unique.
+- `guest_communications` — manual + system entries (`id`, `guest_id`, `booking_id?`, `channel` `email|whatsapp|sms|note|system`, `direction` `in|out|internal`, `subject`, `body`, `occurred_at`, `author_id?`, `meta jsonb`).
 
-Move current admin leaves under it (URL unchanged because `_authenticated` and pathless segments don't affect the URL):
-- rename `_authenticated.admin.bookings.tsx` → `_authenticated/admin.bookings.tsx`
-- rename `_authenticated.admin.front-desk.tsx` → `_authenticated/admin.front-desk.tsx`
-- rename `_authenticated.admin.reviews.tsx` → `_authenticated/admin.reviews.tsx`
+Add to existing `bookings`: nullable `guest_id uuid references guests(id)`. Do not remove existing guest_* columns — keep for backward compat.
 
-New leaf routes:
-- `admin.index.tsx` → `/admin` dashboard
-- `admin.operations.calendar.tsx`, `admin.operations.rooms.tsx`, `admin.operations.housekeeping.tsx`
-- `admin.guests.crm.tsx`, `admin.guests.messages.tsx`
-- `admin.content.homepage.tsx`, `admin.content.rooms.tsx`, `admin.content.experiences.tsx`, `admin.content.journal.tsx`, `admin.content.gallery.tsx`, `admin.content.media.tsx`
-- `admin.marketing.seo.tsx`, `admin.marketing.campaigns.tsx`, `admin.marketing.analytics.tsx`
-- `admin.finance.payments.tsx`, `admin.finance.invoices.tsx`, `admin.finance.reports.tsx`
-- `admin.staff.users.tsx`, `admin.staff.roles.tsx`, `admin.staff.activity.tsx` (re-uses existing activity log viewer)
-- `admin.automation.tsx`, `admin.settings.tsx`
+Backfill migration:
+- Group existing `bookings` by lower(email), create one `guests` row per unique email (fall back to phone when email missing), set `full_name` from most recent booking, populate `country`, `first_stay`, `last_stay` derived on read (see below).
+- Update `bookings.guest_id` to link.
+- Trigger `bookings_link_guest`: on insert/update of `bookings`, upsert a `guests` row by email/phone and set `guest_id`.
 
-Sidebar labels re-map existing routes:
-- Reservations → `/admin/bookings`
-- Reviews → `/admin/reviews`
-- Front Desk (housekeeping/tasks card too) links to `/admin/front-desk`
+Derived aggregates (SQL view or RPC, not stored):
+- `guest_stats(guest_id)` → `total_stays`, `total_nights`, `first_stay`, `last_stay`, `lifetime_spend`, `cancelled_count` from `bookings`.
+- `guest_directory` view: `guests` LEFT JOIN aggregates + tag array.
 
-Non-implemented leaves render the shared `<ComingSoon />` component.
+Duplicate detection RPC `find_duplicate_guests()`:
+- Groups by normalized email, normalized phone, and `soundex(full_name)+country`. Returns candidate clusters with a similarity score. No auto-merge.
 
-### 2. Shell components
+RLS policies: staff-only via `has_any_role(auth.uid(), ARRAY['owner','manager','reception','marketing','finance','housekeeping','admin'])`. Column-level exposure enforced in server fns per role (marketing gets contact only, housekeeping gets stay info only, etc.).
 
-Under `src/components/os/`:
-- `AdminShell.tsx` — desktop grid (sidebar + main), mobile drawer via `Sheet`, persists collapsed state in `localStorage`, respects `pb-safe`.
-- `AdminSidebar.tsx` — grouped nav from a single `nav-config.ts`, active state via `useRouterState`, collapsible groups, role-gated items.
-- `AdminTopbar.tsx` — page title, breadcrumbs (derived from route match tree), global search trigger (`⌘K`), notifications bell, user menu (sign out reuses existing flow).
-- `Breadcrumbs.tsx` — reads `useMatches()` and per-route `staticData.crumb`.
-- `CommandPalette.tsx` — `cmdk` dialog with pluggable providers (`searchProviders.ts`); providers registered for Bookings, Reviews, Journal, Rooms, Settings; each provider is a stub returning nav links plus a `TODO: Supabase query` comment.
-- `NotificationsPanel.tsx` — slide-over sheet reading from a `useNotifications()` hook that returns an empty array + typed shape; ready for Sprint 2 wiring.
-- `ComingSoon.tsx` — reusable empty state.
-- `PageHeader.tsx`, `StatCard.tsx`, `SectionCard.tsx`, `DataTable.tsx` (thin wrapper over `@tanstack/react-table` if already present, else simple `Table` wrapper), `EmptyState.tsx`, `LoadingState.tsx`, `ErrorState.tsx`.
+## 2. Server functions (`src/lib/guests.functions.ts`)
 
-All use existing shadcn primitives and design tokens in `src/styles.css` — no hard-coded colors.
+All `.middleware([requireSupabaseAuth])` with a role-based visibility helper:
 
-### 3. Dashboard `/admin`
+- `listGuests({ q, status, tagIds, sort, page, pageSize })` — reads `guest_directory` view; server-side search on name/email/phone/country; returns `{ rows, total }`.
+- `getGuest({ id })` — profile: guest row, stats, tags, notes (non-deleted), recent bookings (id, reference, dates, status, total), payments summary, reviews (join by email), communications.
+- `getGuestTimeline({ id })` — merges: booking created/confirmed/cancelled events (from `bookings` + status timestamps), payment_events, email_events, whatsapp_alerts, guest_communications, guest_notes. Returns sorted list `{ at, type, title, description, meta }`.
+- `upsertGuest`, `updateGuestStatus`, `updateGuestPreferences`.
+- `createNote`, `updateNote` (records `history`), `deleteNote` (soft).
+- `listTags`, `createTag`, `assignTag`, `unassignTag`.
+- `logCommunication({ guestId, channel, direction, subject, body, occurredAt })`.
+- `findDuplicateGuests()` — wraps RPC.
+- `mergeGuests({ primaryId, mergeIds })` — reassigns bookings/notes/tags/communications to primary, soft-deletes merged rows. Owner/manager only.
 
-`StatCard` grid: Occupancy, Today's arrivals, Today's departures, Pending bookings, Revenue (MTD), Reviews (avg + count), Website traffic, Notifications. Data comes from a `useDashboardMetrics()` hook that returns placeholder values with a clear `// TODO(sprint-2): wire to Supabase` marker per card. Two side panels: recent activity (already wired to `activity_logs`) and upcoming arrivals (placeholder).
+Role gating helper: `assertGuestAccess(roles, scope)` where `scope` ∈ `read|contact|stay|payment|write|merge`.
 
-### 4. Permissions framework
+## 3. UI
 
-DB migration adds new roles to the `app_role` enum and helpers:
+New route tree under `/_authenticated/admin/guests/`:
 
-```sql
-ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'owner';
-ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'manager';
-ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'reception';
-ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'marketing';
-ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'housekeeping';
-ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'finance';
-ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'editor';
+- `crm.tsx` — Guest Directory (replaces existing ComingSoon)
+- `crm.$id.tsx` — Guest Profile
+- `crm.duplicates.tsx` — Duplicate suggestions
 
--- helper: any-of check + module capability map
-CREATE OR REPLACE FUNCTION public.has_any_role(_user_id uuid, _roles app_role[])
-RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
-  SELECT EXISTS(SELECT 1 FROM public.user_roles WHERE user_id=_user_id AND role = ANY(_roles))
-$$;
-```
+Reusable components in `src/components/os/crm/`:
+- `GuestCard`, `GuestSummary`, `GuestHeader`, `QuickActions`
+- `ReservationList` (reads existing bookings)
+- `Timeline`
+- `GuestTags` (chips + add/remove popover)
+- `NotesPanel` (create, edit-with-history, soft-delete)
+- `CommunicationHistory`
+- `DirectoryTable` (search, filter, sort, pagination, keyboard nav)
+- `DuplicateSuggestionCard`
 
-`is_staff()` extended to include `owner` and `manager`. Existing `admin` role is preserved and treated as `owner` in the client capability map. No changes to existing RLS policies — everything currently gated on `admin` keeps working.
+Directory features: debounced search, filter by status + tags + country, sort by name/last_stay/total_stays/lifetime_spend, page size 25/50/100.
 
-Client-side: `src/lib/permissions.ts` exports a `MODULE_ROLES` map and a `useCurrentUserRoles()` hook (server function backed by `user_roles`). Sidebar items and route `beforeLoad` guards use it; unauthorised nav items are hidden and direct URL access redirects to `/admin`.
+Profile tabs: Overview · Reservations · Payments · Reviews · Experiences · Communications · Timeline · Notes.
 
-### 5. Notification + search frameworks
+## 4. Dashboard integration
 
-- `src/lib/notifications.ts` — typed `Notification` shape (`booking_created`, `payment_received`, `review_submitted`, `form_submission`, `room_maintenance`, `task_assigned`), `useNotifications()` hook stubbed to `[]`, `useUnreadCount()`. Panel UI renders empty state today, ready for Sprint 2 subscription to `pending_notifications`.
-- `src/lib/search/registry.ts` — `SearchProvider` interface (`id`, `label`, `icon`, `search(query): Promise<SearchResult[]>`). Registered stubs for each entity; command palette merges results.
+Extend `admin/index.tsx` with widgets driven by new server fns:
+- Recent Guests (last 14 days)
+- Returning Guests (>=2 stays)
+- VIP Guests
+- Recent Reviews (existing reviews joined to `guests`)
+- Upcoming Arrivals (existing bookings, next 7 days) linking to guest profile.
 
-### 6. Design system
+## 5. Permissions
 
-Add to `src/styles.css` (admin-scoped tokens, no impact on marketing pages):
-- `--admin-bg`, `--admin-surface`, `--admin-sidebar`, `--admin-border`, `--admin-accent` mapped via `@theme inline`.
-- Utility variants (`status-success`, `status-warning`, `status-danger`, `status-info`) as `@utility` blocks used by `StatusChip`.
+`MODULE_ROLES` update in `src/lib/permissions.ts`:
+- `guests.crm`: owner, manager, reception, marketing, housekeeping, finance, admin
+- `guests.crm.merge`: owner, manager, admin (used by client to hide merge UI)
 
-`StatusChip`, `PageHeader`, `SectionCard`, `EmptyState`, `LoadingState`, `ErrorState`, `StatCard` all live in `src/components/os/` and are used across every new page.
+Server fns re-check via `assertGuestAccess`; scoped column projection per role.
 
-### 7. Preserved functionality
+## 6. Non-functional
 
-- `src/routes/_authenticated.tsx` gate unchanged.
-- Public site, booking engine, `/admin/bookings`, `/admin/front-desk`, `/admin/reviews` code untouched aside from the file move — the components are re-exported as-is inside the new shell.
-- `src/start.ts`, `auth-attacher`, `auth-middleware`, all server functions untouched.
+- Indexes: `guests(email)`, `guests(phone_e164)`, `guests(status)`, `guest_tag_assignments(tag_id)`, `bookings(guest_id)`, GIN on `guests(full_name gin_trgm_ops)` for fuzzy search.
+- All directory reads paginated (server-side), no unbounded selects.
+- Accessible tables: proper `<th scope>`, row focus ring, ARIA labels on actions, keyboard shortcut `/` focuses search.
+- Activity logging: every write server fn calls existing `logActivity` helper.
 
-### 8. Verification
+## 7. Verification
 
-- `tsgo --noEmit` after all edits.
-- Playwright smoke run against `http://localhost:8080/admin` with the injected Supabase session: screenshot dashboard, click into Reservations, Reviews, Front Desk, a coming-soon page, toggle sidebar collapse, open command palette, verify no console errors.
-- Manual regression check against public routes `/`, `/reviews`, `/book` (screenshot only, no interaction).
+- Run existing booking flow (create booking on `/book`) → confirm trigger links to a guest row and the guest appears in the directory.
+- Existing `bookings` list, `/booking.return`, reviews, and auth flows unchanged.
+- `bun run build:dev` passes.
+- Smoke Playwright: sign in as staff, open `/admin/guests/crm`, search, open a profile, add a note + tag, verify timeline entry.
 
-### 9. Out of scope for this sprint
+## 8. Out of scope for this sprint
 
-- Real data wiring for occupancy/revenue/traffic cards.
-- Live notifications subscription.
-- Search provider implementations (only interface + stubs).
-- Housekeeping / calendar / CRM / SEO / campaigns / finance business logic.
-
----
-
-Approve and I'll start with the DB migration for roles, then land the shell, route skeleton, dashboard, and framework stubs in one pass.
+Loyalty tiers, gift vouchers, AI recommendations, marketing campaign send, multi-property — data model leaves room (status enum extensible, tags free-form, communications generic) but no UI/logic shipped.
