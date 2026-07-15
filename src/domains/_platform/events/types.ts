@@ -20,7 +20,14 @@ export type PlatformEventType =
   | "task.assigned"
   | "task.completed"
   | "ops.alert_raised"
-  | "ops.alert_resolved";
+  | "ops.alert_resolved"
+  | "content.page.published"
+  | "content.article.published"
+  | "media.asset.uploaded"
+  | "seo.override.changed"
+  | "campaign.created"
+  | "ai.suggestion.created"
+  | "ai.suggestion.approved";
 
 export type EventSeverity = "info" | "warn" | "error" | "audit";
 

@@ -17,6 +17,15 @@ export const FEATURE_FLAGS: Record<FeatureFlagKey, FeatureFlag> = {
   maintenance:          { key: "maintenance",          state: "disabled", description: "Maintenance ticketing" },
   procurement:          { key: "procurement",          state: "disabled", description: "Procurement & suppliers" },
   operations_centre:    { key: "operations_centre",    state: "enabled",  description: "Operations Centre (Sprint 4)", since: "2026-07-13" },
+  cms_pages:            { key: "cms_pages",            state: "beta",     description: "CMS pages workflow (Sprint 5)",       since: "2026-07-15" },
+  page_builder:         { key: "page_builder",         state: "beta",     description: "Block-based page builder (Sprint 5)", since: "2026-07-15" },
+  seo_centre:           { key: "seo_centre",           state: "beta",     description: "Per-route SEO overrides (Sprint 5)",   since: "2026-07-15" },
+  ai_seo_assistant:     { key: "ai_seo_assistant",     state: "beta",     description: "AI SEO / content suggestions",         since: "2026-07-15" },
+  media_library_v2:     { key: "media_library_v2",     state: "beta",     description: "Media Library 2.0",                    since: "2026-07-15" },
+  brand_centre:         { key: "brand_centre",         state: "beta",     description: "Brand tokens & guidelines",            since: "2026-07-15" },
+  content_calendar:     { key: "content_calendar",     state: "beta",     description: "Unified content calendar",             since: "2026-07-15" },
+  reviews_centre_v2:    { key: "reviews_centre_v2",    state: "beta",     description: "Reviews & Reputation Centre",          since: "2026-07-15" },
+  website_analytics:    { key: "website_analytics",    state: "beta",     description: "Website analytics framework",          since: "2026-07-15" },
 };
 
 const STAFF_ROLES = new Set(["owner","manager","reception","marketing","housekeeping","finance","admin","reservations","editor"]);
