@@ -1,138 +1,123 @@
-# Sprint 4 — Operations Centre (OC)
+# Sprint 5 — Content & Marketing Intelligence Suite (CMIS)
 
-Rename "Booking Ops Command Centre" → **Operations Centre (OC)**. All work sits on top of the existing custom booking engine, guest CRM, and Sprint 2+ platform (Module Registry, Feature Flags, Event Bus). No booking-engine redesign, no data duplication.
+Sprint 5 is very large (11 modules). To keep it shippable, verifiable, and non-regressive, I'll deliver it in **4 phases**, each independently useful and mergeable. Every phase respects the Module Registry, Feature Flags, Event Bus, and DDD conventions established in Sprints 1–4.
 
-## Domain layout (DDD)
+## Guiding principles
 
-```
+- **No public URL changes.** Existing site routes, SEO, and canonical URLs are preserved.
+- **Registry-first.** Every new admin surface registers through `src/domains/_platform/registry/modules/*.module.ts` and gets a feature flag.
+- **DDD.** New code lives under `src/domains/content/` and `src/domains/marketing/`.
+- **Server functions, not raw HTTP.** All CMIS writes go through `createServerFn` + `requireSupabaseAuth` with role checks. RLS + GRANTs on every new table.
+- **AI-ready interface contract.** Every new domain module exports a standard object:
+  ```ts
+  { summarize?, suggest?, analyze?, predict?, recommend? }
+  ```
+  Initial implementations return deterministic placeholders; wired to Lovable AI Gateway (`google/gemini-3-flash-preview`) where useful.
+- **No SEO regression.** Editable metadata falls back to current hard-coded values when a CMS override is absent.
+
+## Technical architecture
+
+```text
 src/domains/
-  operations/         ← NEW
-    rooms/            room status board + housekeeping
-    tasks/            ops_tasks CRUD + assignments
-    alerts/           derived alerts from event bus + queries
-    calendar/         day/week/month room calendar
-    checkin/          check-in flow orchestration
-    checkout/         check-out flow orchestration
-    dashboard/        live KPI + widget queries
-    timeline/         event feed derived from activity_logs
-    index.ts
-  reservations/       ← extended (workspace, filters, notes)
+  content/
+    pages/         (CMS pages + versions + blocks)
+    journal/       (articles, categories, tags, authors)
+    media/         (assets, folders, usage)
+    brand/         (brand tokens)
+    ai/            (AI assistant server fns)
+  marketing/
+    seo/           (per-route SEO overrides + audit)
+    campaigns/
+    calendar/
+    analytics/
+    reviews/       (extends existing reviews)
 ```
 
-Server functions live in `src/lib/operations.functions.ts` (client-safe module path) and `src/lib/operations-tasks.functions.ts`. Both re-exported through `domains/operations/*/index.ts` façades so components import from the domain.
+Shared tables (new, all with GRANTs + RLS + `staff`-scoped policies):
 
-## Schema (single migration)
+- `cms_pages`, `cms_page_versions`, `cms_blocks`
+- `journal_articles`, `journal_categories`, `journal_tags`, `journal_article_tags`, `journal_authors`
+- `media_assets`, `media_folders`, `media_usage`
+- `seo_overrides` (keyed by route path)
+- `campaigns`, `campaign_utm`
+- `content_calendar_entries`
+- `brand_tokens`
+- `ai_suggestions` (pending approval queue)
 
-Additive only — no changes to existing booking/guest columns.
+Legacy static content (`src/lib/journal.ts`, hard-coded route heads) stays as a **fallback**. A resolver reads DB overrides first, then falls back — so nothing regresses if a page has no CMS entry.
 
-- `public.room_states` — one row per physical room instance
-  - `id`, `room_id` (fk rooms), `unit_label` (e.g. "Riverfront #2"), `state` (enum: vacant_clean, vacant_dirty, occupied, reserved, inspection, maintenance, out_of_service), `state_note`, `updated_by`, `updated_at`, `booking_id` (nullable link to current stay)
-  - GRANTs authenticated + service_role; RLS staff-only (`is_any_staff(auth.uid())`)
-  - Trigger `set_updated_at`
-- `public.ops_tasks` **already exists** — extend with:
-  - `assignee_id uuid null references auth.users(id)`
-  - `status text default 'open'` (open, in_progress, done, cancelled)
-  - `category text` (housekeeping, concierge, maintenance, transport, fnb, other)
-  - Index on `(status, due_at)` and `(assignee_id, status)`
-- `public.ops_alerts` — derived/materialized-on-write alerts
-  - `id`, `kind` (late_arrival, overdue_departure, payment_issue, room_conflict, maintenance_conflict), `severity`, `booking_id`, `room_id`, `message`, `resolved_at`, `resolved_by`, `created_at`
-  - GRANTs + RLS staff-only
-- Views (SECURITY INVOKER):
-  - `ops_today` — arrivals, departures, in_house counts for `CURRENT_DATE`
-  - `ops_room_board` — join rooms × room_states × today's bookings
-  - `ops_outstanding_balances` — bookings with balance > 0
+## Phase 1 — Foundations (this sprint delivery batch #1)
 
-Seed `room_states` from existing `rooms` on migration (one row per `total_units`) so the board renders immediately.
+Ship the plumbing everything else depends on.
 
-## Server functions
+1. **DB migration**: `cms_pages`, `cms_page_versions`, `cms_blocks`, `seo_overrides`, `media_assets`, `media_folders`, `media_usage`, `brand_tokens`, `ai_suggestions`. GRANTs + RLS + staff policies.
+2. **Feature flags**: `cms_pages`, `page_builder`, `seo_centre`, `ai_seo_assistant`, `media_library_v2`, `brand_centre`, `campaigns`, `content_calendar`, `reviews_centre_v2`, `website_analytics`.
+3. **Registry modules** for all 11 surfaces under `content.*` and `marketing.*` (marked `beta`, gated by their flag). Nav appears immediately as "Coming Soon" placeholders where UI isn't built yet — matches Sprint 1–4 pattern.
+4. **Event Bus events**: `content.page.published`, `content.article.published`, `media.asset.uploaded`, `seo.override.changed`, `campaign.created`.
+5. **AI-ready interface** helper: `defineAiInterface({ summarize, suggest, analyze, predict, recommend })` in `src/domains/_platform/ai/`.
+6. **SEO resolver**: `resolvePageSeo(routePath)` — DB → static fallback. Used by public route `head()` opt-in; no existing head() is rewritten yet.
 
-`src/lib/operations.functions.ts` (all `.middleware([requireSupabaseAuth])`):
-- `getOpsDashboard()` — today counts, occupancy, dirty/maint rooms, outstanding total
-- `getRoomBoard()` — room state grid data
-- `updateRoomState({id, state, note?})` — writes state + emits `room.state_changed`
-- `getReservationWorkspace({id})` — booking + guest CRM summary + payments + extras + tasks + timeline
-- `checkInBooking({bookingId, roomStateId, arrivalTime, notes})` — updates booking status → `checked_in`, room_state → `occupied`, emits `reservation.checked_in`
-- `checkOutBooking({bookingId, departureTime, notes})` — status → `checked_out`, room_state → `vacant_dirty`, creates housekeeping task, emits `reservation.checked_out`
-- `getOpsCalendar({from,to})` — bookings + inventory blocks per room per day
-- `assignRoom({bookingId, roomStateId})` — assigns a physical room to a reservation
-- `listOpsAlerts({resolved?})` / `resolveOpsAlert({id})`
-- `getOpsTimeline({limit})` — reads `activity_logs` where `module in (operations, reservations, guests, finance)`
+## Phase 2 — CMS + Page Builder + Journal (batch #2)
 
-`src/lib/operations-tasks.functions.ts`:
-- `listOpsTasks({filters})`, `createOpsTask`, `updateOpsTask`, `assignOpsTask`, `completeOpsTask`
-- Emits `task.created`, `task.completed`
+- `/admin/content/pages` — list, draft/review/publish/schedule/archive, version history + restore.
+- `/admin/content/pages/$id` — block-based editor: hero, rich text, gallery, CTA, reviews, rooms, experiences, FAQ, video, stats, contact, map. Drag-and-drop reorder (dnd-kit).
+- Live preview panel (renders block components in an iframe-like preview).
+- Upgrade `/admin/content/journal` from ComingSoon to a real editor: rich text (Tiptap), categories, tags, authors, scheduling, featured toggle, reading time, TOC generator, canonical, version history.
+- Journal resolver merges DB articles + static `src/lib/journal.ts` entries. Homepage Featured Articles + `/journal` read from the resolver.
 
-All state-changing fns call `publishEvent(...)` from `@/domains/_platform/events` so timeline + alerts stay live.
+## Phase 3 — SEO Centre + AI Assistant + Media Library 2.0 (batch #3)
 
-## Routes (all under `_authenticated/admin`)
+- `/admin/marketing/seo` — per-route table: title, description, keywords, canonical, OG, Twitter, robots, index status, schema type. Character counters, missing-field warnings, computed SEO score.
+- **AI SEO Assistant** panel per page: suggest titles, improve meta, recommend keywords, missing internal links, suggested FAQs, alt text, testimonial summaries, related articles. Suggestions land in `ai_suggestions` for approval; approval writes to the target table + emits a `content.suggestion.approved` event.
+- `/admin/content/media` — folders, search, bulk upload, bulk rename, WebP auto-convert (client-side canvas), duplicate hash detection, alt-text editor, usage tracking. Deletion blocked when `media_usage` is non-empty; shows exact usage list.
 
-New:
-- `admin.operations.tsx` — layout with sub-nav (`<Outlet />`)
-- `admin.operations.index.tsx` — **Live Dashboard** (module 1 + 11 KPIs)
-- `admin.operations.rooms.tsx` — **already exists**, replace body with Room Status Board (module 2)
-- `admin.operations.calendar.tsx` — **already exists**, replace with interactive day/week/month calendar (module 7)
-- `admin.operations.housekeeping.tsx` — Housekeeping workspace (module 8)
-- `admin.operations.tasks.tsx` — Ops tasks board (module 6)
-- `admin.operations.alerts.tsx` — Alerts list (module 9)
-- `admin.operations.timeline.tsx` — Daily ops timeline (module 10)
-- `admin.operations.reservations.$id.tsx` — Reservation Workspace (module 3)
-- `admin.operations.checkin.$id.tsx` — Check-in wizard (module 4)
-- `admin.operations.checkout.$id.tsx` — Check-out wizard (module 5)
+## Phase 4 — Campaigns + Analytics + Reviews + Calendar + Brand (batch #4)
 
-Existing `admin.front-desk.tsx` and `admin.bookings.tsx` remain untouched (backward compat); the OC dashboard links into them as the authoritative reservation list.
+- `/admin/marketing/campaigns` — CRUD with UTM builder, status pipeline.
+- `/admin/marketing/analytics` — framework page with placeholder cards for sessions, users, conversion rate, funnel, top/exit pages, queries, sources, devices, countries. Wired to a `getAnalyticsSnapshot()` server fn that returns deterministic mock data until a live provider is connected.
+- `/admin/reviews` upgrade — trend chart, volume, platform comparison, response status, moderation, featured selection.
+- `/admin/content/calendar` — unified drag-and-drop calendar across articles / homepage / campaigns / promotions / social.
+- `/admin/content/brand` — logos, font tokens, color palette, tone/photo/copy guidelines. Exposes `getBrandContext()` for future AI calls.
 
-## Components (`src/components/os/operations/`)
+## Acceptance for THIS delivery (Phase 1)
 
-- `LiveDashboardGrid.tsx` — widgets with deep links
-- `RoomStatusBoard.tsx` + `RoomStateChip.tsx` (color-coded)
-- `ReservationWorkspaceLayout.tsx` (guest panel + payments + tasks + timeline)
-- `CheckInWizard.tsx`, `CheckOutWizard.tsx` (multi-step form, uses shadcn `Tabs`/`Stepper` pattern)
-- `TaskBoard.tsx` + `TaskCard.tsx` (kanban by status)
-- `RoomCalendar.tsx` with day/week/month toggle
-- `HousekeepingBoard.tsx` (columns: dirty, in progress, ready, inspection, maintenance)
-- `OpsAlertsList.tsx`
-- `OpsTimelineFeed.tsx` (consumes both `activity_logs` and live `subscribe("*")` for realtime updates)
-- `KpiCard.tsx` for module 11 metrics
+- Migration applied; all new tables have GRANTs, RLS, and staff policies.
+- All 11 modules appear in the admin sidebar under Content or Marketing, gated by their feature flag (owner/manager visible by default in dev).
+- SEO resolver exists and is a no-op fallback on every existing public route (zero head() edits required now — Phase 3 opts routes in).
+- AI-ready interface helper published from `_platform`.
+- Zero regressions to public site, booking, payments, operations centre, or existing journal routes.
 
-Reuse existing `PageHeader`, `SectionCard`, `StatCard`, `GuestStatusChip`, CRM panels.
+## Phase 1 file map (this batch)
 
-## Module Registry
+```text
+supabase/migrations/<ts>_cmis_phase1.sql
+src/domains/_platform/ai/interface.ts
+src/domains/_platform/flags/flags.ts        (edit — add flags)
+src/domains/_platform/events/types.ts       (edit — add events)
+src/domains/_platform/registry/modules/cmis.module.ts
+src/domains/_platform/registry/registry.ts  (edit — register)
+src/domains/content/index.ts
+src/domains/content/pages/pages.functions.ts
+src/domains/content/media/media.functions.ts
+src/domains/content/brand/brand.functions.ts
+src/domains/marketing/seo/seo.functions.ts
+src/domains/marketing/seo/resolver.ts       (fallback-safe head resolver)
+src/domains/marketing/campaigns/campaigns.functions.ts
+src/domains/marketing/ai/ai-assistant.functions.ts
+src/lib/permissions.ts                      (edit — role scoping)
+src/routes/_authenticated.admin.content.pages.tsx           (ComingSoon → placeholder)
+src/routes/_authenticated.admin.content.brand.tsx           (new placeholder)
+src/routes/_authenticated.admin.content.calendar.tsx        (new placeholder)
+src/routes/_authenticated.admin.marketing.reviews.tsx       (new placeholder)
+# existing SEO / campaigns / analytics / journal / media / gallery ComingSoon pages stay
+```
 
-Register in `src/domains/_platform/registry/modules/operations.module.ts`:
-- `operations.dashboard`, `operations.rooms`, `operations.calendar`, `operations.housekeeping`, `operations.tasks`, `operations.alerts`, `operations.timeline`
-- Feature flag `operations_centre` (default enabled)
-- Roles: owner, manager, reception, admin; housekeeping module also visible to `housekeeping` role.
+## Ask before I start
 
-Update `nav-config.ts` to add the Operations Centre group (backward-compatible; existing Front Desk / Bookings entries stay).
+Sprint 5 as written is 3–4× the scope of Sprint 4. To keep quality high and each change verifiable, I want to confirm:
 
-## Event Bus
+1. **Approve the 4-phase split** (ship Phase 1 now; Phases 2–4 as follow-up sprints)?
+2. Or do you want **Phase 1 + full Phase 2 (CMS + Page Builder + Journal)** in this delivery, and defer 3–4?
+3. Any module you want promoted or dropped from Phase 1?
 
-Extend `PlatformEventType` union with:
-- `room.state_changed`, `reservation.checked_in`, `reservation.checked_out`, `task.created`, `task.assigned`, `task.completed`, `ops.alert_raised`, `ops.alert_resolved`
-
-Alert generator: `admin.operations.alerts.tsx` loader triggers `refreshOpsAlerts()` server fn that computes late arrivals (check_in < today AND status='confirmed'), overdue departures (check_out < today AND status='checked_in'), payment issues (balance > 0 AND check_in <= today), and upserts into `ops_alerts`.
-
-## What we deliberately do NOT build (leave stubs / TODO)
-
-- Drag-and-drop calendar reassignment → calendar renders read-only in day/week/month; drag hooks stubbed with TODO
-- Mobile housekeeping app
-- Automated review request queueing (Module 5 last bullet) — noted in code as future automation
-- SMS/push alert delivery (only in-app alerts)
-
-## Verification
-
-- `bun run build:dev` passes
-- Existing routes (`/admin/bookings`, `/admin/front-desk`, `/admin/guests/crm/*`, `/book`, booking form) unchanged
-- New OC nav visible; each widget deep-links correctly
-- Check-in updates `bookings.status` and `room_states.state` atomically; timeline reflects both
-
-## Rollout order
-
-1. Migration (schema + seed + grants + RLS)
-2. Server functions + event type extensions
-3. Registry + nav
-4. Layout route + dashboard + KPIs
-5. Room board + housekeeping
-6. Reservation workspace
-7. Check-in / check-out wizards
-8. Tasks + alerts + timeline + calendar
+Once you confirm, I'll implement the selected batch end-to-end with migration, server fns, registry, flags, and route stubs, then verify types and the build.

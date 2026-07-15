@@ -71,6 +71,51 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_suggestions: {
+        Row: {
+          created_at: string
+          id: string
+          input: Json
+          kind: Database["public"]["Enums"]["ai_suggestion_kind"]
+          requested_by: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["ai_suggestion_status"]
+          suggestion: Json
+          target_id: string
+          target_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          input?: Json
+          kind: Database["public"]["Enums"]["ai_suggestion_kind"]
+          requested_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["ai_suggestion_status"]
+          suggestion?: Json
+          target_id: string
+          target_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          input?: Json
+          kind?: Database["public"]["Enums"]["ai_suggestion_kind"]
+          requested_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["ai_suggestion_status"]
+          suggestion?: Json
+          target_id?: string
+          target_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       booking_extras: {
         Row: {
           booking_id: string
@@ -341,6 +386,280 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      brand_tokens: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          key: string
+          label: string
+          notes: string | null
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          key: string
+          label: string
+          notes?: string | null
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          key?: string
+          label?: string
+          notes?: string | null
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      campaigns: {
+        Row: {
+          associated_content: Json
+          audience: string | null
+          budget: number | null
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          end_date: string | null
+          id: string
+          landing_page: string | null
+          name: string
+          notes: string | null
+          objective: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["campaign_status"]
+          updated_at: string
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          associated_content?: Json
+          audience?: string | null
+          budget?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          end_date?: string | null
+          id?: string
+          landing_page?: string | null
+          name: string
+          notes?: string | null
+          objective?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["campaign_status"]
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          associated_content?: Json
+          audience?: string | null
+          budget?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          end_date?: string | null
+          id?: string
+          landing_page?: string | null
+          name?: string
+          notes?: string | null
+          objective?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["campaign_status"]
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: []
+      }
+      cms_blocks: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          is_visible: boolean
+          kind: Database["public"]["Enums"]["cms_block_kind"]
+          page_id: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          is_visible?: boolean
+          kind: Database["public"]["Enums"]["cms_block_kind"]
+          page_id: string
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          is_visible?: boolean
+          kind?: Database["public"]["Enums"]["cms_block_kind"]
+          page_id?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_blocks_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "cms_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cms_page_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          page_id: string
+          snapshot: Json
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          page_id: string
+          snapshot?: Json
+          version: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          page_id?: string
+          snapshot?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_page_versions_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "cms_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cms_pages: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          published_at: string | null
+          route_path: string | null
+          scheduled_at: string | null
+          slug: string
+          status: Database["public"]["Enums"]["cms_page_status"]
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          published_at?: string | null
+          route_path?: string | null
+          scheduled_at?: string | null
+          slug: string
+          status?: Database["public"]["Enums"]["cms_page_status"]
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          published_at?: string | null
+          route_path?: string | null
+          scheduled_at?: string | null
+          slug?: string
+          status?: Database["public"]["Enums"]["cms_page_status"]
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      content_calendar_entries: {
+        Row: {
+          created_at: string
+          ends_at: string | null
+          entry_type: Database["public"]["Enums"]["calendar_entry_type"]
+          id: string
+          linked_id: string | null
+          linked_type: string | null
+          notes: string | null
+          owner: string | null
+          scheduled_at: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at?: string | null
+          entry_type: Database["public"]["Enums"]["calendar_entry_type"]
+          id?: string
+          linked_id?: string | null
+          linked_type?: string | null
+          notes?: string | null
+          owner?: string | null
+          scheduled_at: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string | null
+          entry_type?: Database["public"]["Enums"]["calendar_entry_type"]
+          id?: string
+          linked_id?: string | null
+          linked_type?: string | null
+          notes?: string | null
+          owner?: string | null
+          scheduled_at?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       email_events: {
         Row: {
@@ -990,6 +1309,138 @@ export type Database = {
           },
         ]
       }
+      media_assets: {
+        Row: {
+          alt_text: string | null
+          caption: string | null
+          content_hash: string | null
+          created_at: string
+          filename: string
+          folder_id: string | null
+          height: number | null
+          id: string
+          mime_type: string | null
+          size_bytes: number | null
+          tags: string[] | null
+          updated_at: string
+          uploaded_by: string | null
+          url: string
+          width: number | null
+        }
+        Insert: {
+          alt_text?: string | null
+          caption?: string | null
+          content_hash?: string | null
+          created_at?: string
+          filename: string
+          folder_id?: string | null
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          tags?: string[] | null
+          updated_at?: string
+          uploaded_by?: string | null
+          url: string
+          width?: number | null
+        }
+        Update: {
+          alt_text?: string | null
+          caption?: string | null
+          content_hash?: string | null
+          created_at?: string
+          filename?: string
+          folder_id?: string | null
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          tags?: string[] | null
+          updated_at?: string
+          uploaded_by?: string | null
+          url?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_assets_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "media_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          parent_id: string | null
+          path: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          parent_id?: string | null
+          path: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "media_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_usage: {
+        Row: {
+          asset_id: string
+          created_at: string
+          field: string | null
+          id: string
+          used_in_id: string
+          used_in_type: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          field?: string | null
+          id?: string
+          used_in_id: string
+          used_in_type: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          field?: string | null
+          id?: string
+          used_in_id?: string
+          used_in_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_usage_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "media_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ops_alerts: {
         Row: {
           booking_id: string | null
@@ -1513,6 +1964,75 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_overrides: {
+        Row: {
+          canonical_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          index_status: boolean
+          keywords: string[] | null
+          notes: string | null
+          og_description: string | null
+          og_image: string | null
+          og_title: string | null
+          robots: string | null
+          route_path: string
+          schema_type: string | null
+          title: string | null
+          twitter_card: string | null
+          twitter_description: string | null
+          twitter_image: string | null
+          twitter_title: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          canonical_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          index_status?: boolean
+          keywords?: string[] | null
+          notes?: string | null
+          og_description?: string | null
+          og_image?: string | null
+          og_title?: string | null
+          robots?: string | null
+          route_path: string
+          schema_type?: string | null
+          title?: string | null
+          twitter_card?: string | null
+          twitter_description?: string | null
+          twitter_image?: string | null
+          twitter_title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          canonical_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          index_status?: boolean
+          keywords?: string[] | null
+          notes?: string | null
+          og_description?: string | null
+          og_image?: string | null
+          og_title?: string | null
+          robots?: string | null
+          route_path?: string
+          schema_type?: string | null
+          title?: string | null
+          twitter_card?: string | null
+          twitter_description?: string | null
+          twitter_image?: string | null
+          twitter_title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
@@ -1894,6 +2414,17 @@ export type Database = {
       }
     }
     Enums: {
+      ai_suggestion_kind:
+        | "seo_title"
+        | "seo_meta"
+        | "seo_keywords"
+        | "internal_links"
+        | "faq"
+        | "alt_text"
+        | "testimonial_summary"
+        | "related_articles"
+        | "other"
+      ai_suggestion_status: "pending" | "approved" | "rejected" | "applied"
       app_role:
         | "admin"
         | "reservations"
@@ -1912,6 +2443,39 @@ export type Database = {
         | "completed"
         | "no_show"
         | "checked_in"
+      calendar_entry_type:
+        | "journal"
+        | "homepage"
+        | "campaign"
+        | "promotion"
+        | "social"
+        | "other"
+      campaign_status:
+        | "draft"
+        | "scheduled"
+        | "running"
+        | "paused"
+        | "completed"
+        | "archived"
+      cms_block_kind:
+        | "hero"
+        | "rich_text"
+        | "image_gallery"
+        | "cta"
+        | "reviews"
+        | "rooms"
+        | "experiences"
+        | "faq"
+        | "video"
+        | "statistics"
+        | "contact"
+        | "map"
+      cms_page_status:
+        | "draft"
+        | "review"
+        | "scheduled"
+        | "published"
+        | "archived"
       communication_preference: "email" | "whatsapp" | "sms" | "none"
       extra_unit:
         | "per_stay"
@@ -2078,6 +2642,18 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ai_suggestion_kind: [
+        "seo_title",
+        "seo_meta",
+        "seo_keywords",
+        "internal_links",
+        "faq",
+        "alt_text",
+        "testimonial_summary",
+        "related_articles",
+        "other",
+      ],
+      ai_suggestion_status: ["pending", "approved", "rejected", "applied"],
       app_role: [
         "admin",
         "reservations",
@@ -2097,6 +2673,43 @@ export const Constants = {
         "completed",
         "no_show",
         "checked_in",
+      ],
+      calendar_entry_type: [
+        "journal",
+        "homepage",
+        "campaign",
+        "promotion",
+        "social",
+        "other",
+      ],
+      campaign_status: [
+        "draft",
+        "scheduled",
+        "running",
+        "paused",
+        "completed",
+        "archived",
+      ],
+      cms_block_kind: [
+        "hero",
+        "rich_text",
+        "image_gallery",
+        "cta",
+        "reviews",
+        "rooms",
+        "experiences",
+        "faq",
+        "video",
+        "statistics",
+        "contact",
+        "map",
+      ],
+      cms_page_status: [
+        "draft",
+        "review",
+        "scheduled",
+        "published",
+        "archived",
       ],
       communication_preference: ["email", "whatsapp", "sms", "none"],
       extra_unit: [

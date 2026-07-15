@@ -29,6 +29,12 @@ import {
   opsAlertsModule,
   opsTimelineModule,
 } from "./modules/operations.module";
+import {
+  contentPagesModule,
+  contentBrandModule,
+  contentCalendarModule,
+  marketingReviewsModule,
+} from "./modules/cmis.module";
 
 export const MODULE_REGISTRY: ModuleDefinition[] = [
   dashboardModule,
@@ -37,9 +43,12 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
   opsTasksModule, opsAlertsModule, opsTimelineModule,
   housekeepingModule,
   guestsCrmModule, guestsReviewsModule, guestsMessagesModule,
+  contentPagesModule,
   contentHomepageModule, contentRoomsModule, contentExperiencesModule,
   contentJournalModule, contentGalleryModule, contentMediaModule,
+  contentBrandModule, contentCalendarModule,
   marketingSeoModule, marketingCampaignsModule, marketingAnalyticsModule,
+  marketingReviewsModule,
   financePaymentsModule, financeInvoicesModule, financeReportsModule,
   staffUsersModule, staffRolesModule, staffActivityModule,
   automationModule, aiAssistantModule,

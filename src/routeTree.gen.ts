@@ -93,6 +93,7 @@ import { Route as AuthenticatedAdminOperationsHousekeepingRouteImport } from './
 import { Route as AuthenticatedAdminOperationsCalendarRouteImport } from './routes/_authenticated.admin.operations.calendar'
 import { Route as AuthenticatedAdminOperationsAlertsRouteImport } from './routes/_authenticated.admin.operations.alerts'
 import { Route as AuthenticatedAdminMarketingSeoRouteImport } from './routes/_authenticated.admin.marketing.seo'
+import { Route as AuthenticatedAdminMarketingReviewsRouteImport } from './routes/_authenticated.admin.marketing.reviews'
 import { Route as AuthenticatedAdminMarketingCampaignsRouteImport } from './routes/_authenticated.admin.marketing.campaigns'
 import { Route as AuthenticatedAdminMarketingAnalyticsRouteImport } from './routes/_authenticated.admin.marketing.analytics'
 import { Route as AuthenticatedAdminGuestsMessagesRouteImport } from './routes/_authenticated.admin.guests.messages'
@@ -101,11 +102,14 @@ import { Route as AuthenticatedAdminFinanceReportsRouteImport } from './routes/_
 import { Route as AuthenticatedAdminFinancePaymentsRouteImport } from './routes/_authenticated.admin.finance.payments'
 import { Route as AuthenticatedAdminFinanceInvoicesRouteImport } from './routes/_authenticated.admin.finance.invoices'
 import { Route as AuthenticatedAdminContentRoomsRouteImport } from './routes/_authenticated.admin.content.rooms'
+import { Route as AuthenticatedAdminContentPagesRouteImport } from './routes/_authenticated.admin.content.pages'
 import { Route as AuthenticatedAdminContentMediaRouteImport } from './routes/_authenticated.admin.content.media'
 import { Route as AuthenticatedAdminContentJournalRouteImport } from './routes/_authenticated.admin.content.journal'
 import { Route as AuthenticatedAdminContentHomepageRouteImport } from './routes/_authenticated.admin.content.homepage'
 import { Route as AuthenticatedAdminContentGalleryRouteImport } from './routes/_authenticated.admin.content.gallery'
 import { Route as AuthenticatedAdminContentExperiencesRouteImport } from './routes/_authenticated.admin.content.experiences'
+import { Route as AuthenticatedAdminContentCalendarRouteImport } from './routes/_authenticated.admin.content.calendar'
+import { Route as AuthenticatedAdminContentBrandRouteImport } from './routes/_authenticated.admin.content.brand'
 import { Route as AuthenticatedAdminOperationsReservationsIdRouteImport } from './routes/_authenticated.admin.operations.reservations.$id'
 import { Route as AuthenticatedAdminOperationsCheckoutIdRouteImport } from './routes/_authenticated.admin.operations.checkout.$id'
 import { Route as AuthenticatedAdminOperationsCheckinIdRouteImport } from './routes/_authenticated.admin.operations.checkin.$id'
@@ -568,6 +572,12 @@ const AuthenticatedAdminMarketingSeoRoute =
     path: '/marketing/seo',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminMarketingReviewsRoute =
+  AuthenticatedAdminMarketingReviewsRouteImport.update({
+    id: '/marketing/reviews',
+    path: '/marketing/reviews',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminMarketingCampaignsRoute =
   AuthenticatedAdminMarketingCampaignsRouteImport.update({
     id: '/marketing/campaigns',
@@ -616,6 +626,12 @@ const AuthenticatedAdminContentRoomsRoute =
     path: '/content/rooms',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminContentPagesRoute =
+  AuthenticatedAdminContentPagesRouteImport.update({
+    id: '/content/pages',
+    path: '/content/pages',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminContentMediaRoute =
   AuthenticatedAdminContentMediaRouteImport.update({
     id: '/content/media',
@@ -644,6 +660,18 @@ const AuthenticatedAdminContentExperiencesRoute =
   AuthenticatedAdminContentExperiencesRouteImport.update({
     id: '/content/experiences',
     path: '/content/experiences',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminContentCalendarRoute =
+  AuthenticatedAdminContentCalendarRouteImport.update({
+    id: '/content/calendar',
+    path: '/content/calendar',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminContentBrandRoute =
+  AuthenticatedAdminContentBrandRouteImport.update({
+    id: '/content/brand',
+    path: '/content/brand',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminOperationsReservationsIdRoute =
@@ -744,11 +772,14 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/content/brand': typeof AuthenticatedAdminContentBrandRoute
+  '/admin/content/calendar': typeof AuthenticatedAdminContentCalendarRoute
   '/admin/content/experiences': typeof AuthenticatedAdminContentExperiencesRoute
   '/admin/content/gallery': typeof AuthenticatedAdminContentGalleryRoute
   '/admin/content/homepage': typeof AuthenticatedAdminContentHomepageRoute
   '/admin/content/journal': typeof AuthenticatedAdminContentJournalRoute
   '/admin/content/media': typeof AuthenticatedAdminContentMediaRoute
+  '/admin/content/pages': typeof AuthenticatedAdminContentPagesRoute
   '/admin/content/rooms': typeof AuthenticatedAdminContentRoomsRoute
   '/admin/finance/invoices': typeof AuthenticatedAdminFinanceInvoicesRoute
   '/admin/finance/payments': typeof AuthenticatedAdminFinancePaymentsRoute
@@ -757,6 +788,7 @@ export interface FileRoutesByFullPath {
   '/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
   '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
+  '/admin/marketing/reviews': typeof AuthenticatedAdminMarketingReviewsRoute
   '/admin/marketing/seo': typeof AuthenticatedAdminMarketingSeoRoute
   '/admin/operations/alerts': typeof AuthenticatedAdminOperationsAlertsRoute
   '/admin/operations/calendar': typeof AuthenticatedAdminOperationsCalendarRoute
@@ -843,11 +875,14 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/content/brand': typeof AuthenticatedAdminContentBrandRoute
+  '/admin/content/calendar': typeof AuthenticatedAdminContentCalendarRoute
   '/admin/content/experiences': typeof AuthenticatedAdminContentExperiencesRoute
   '/admin/content/gallery': typeof AuthenticatedAdminContentGalleryRoute
   '/admin/content/homepage': typeof AuthenticatedAdminContentHomepageRoute
   '/admin/content/journal': typeof AuthenticatedAdminContentJournalRoute
   '/admin/content/media': typeof AuthenticatedAdminContentMediaRoute
+  '/admin/content/pages': typeof AuthenticatedAdminContentPagesRoute
   '/admin/content/rooms': typeof AuthenticatedAdminContentRoomsRoute
   '/admin/finance/invoices': typeof AuthenticatedAdminFinanceInvoicesRoute
   '/admin/finance/payments': typeof AuthenticatedAdminFinancePaymentsRoute
@@ -856,6 +891,7 @@ export interface FileRoutesByTo {
   '/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
   '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
+  '/admin/marketing/reviews': typeof AuthenticatedAdminMarketingReviewsRoute
   '/admin/marketing/seo': typeof AuthenticatedAdminMarketingSeoRoute
   '/admin/operations/alerts': typeof AuthenticatedAdminOperationsAlertsRoute
   '/admin/operations/calendar': typeof AuthenticatedAdminOperationsCalendarRoute
@@ -948,11 +984,14 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/content/brand': typeof AuthenticatedAdminContentBrandRoute
+  '/_authenticated/admin/content/calendar': typeof AuthenticatedAdminContentCalendarRoute
   '/_authenticated/admin/content/experiences': typeof AuthenticatedAdminContentExperiencesRoute
   '/_authenticated/admin/content/gallery': typeof AuthenticatedAdminContentGalleryRoute
   '/_authenticated/admin/content/homepage': typeof AuthenticatedAdminContentHomepageRoute
   '/_authenticated/admin/content/journal': typeof AuthenticatedAdminContentJournalRoute
   '/_authenticated/admin/content/media': typeof AuthenticatedAdminContentMediaRoute
+  '/_authenticated/admin/content/pages': typeof AuthenticatedAdminContentPagesRoute
   '/_authenticated/admin/content/rooms': typeof AuthenticatedAdminContentRoomsRoute
   '/_authenticated/admin/finance/invoices': typeof AuthenticatedAdminFinanceInvoicesRoute
   '/_authenticated/admin/finance/payments': typeof AuthenticatedAdminFinancePaymentsRoute
@@ -961,6 +1000,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
   '/_authenticated/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/_authenticated/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
+  '/_authenticated/admin/marketing/reviews': typeof AuthenticatedAdminMarketingReviewsRoute
   '/_authenticated/admin/marketing/seo': typeof AuthenticatedAdminMarketingSeoRoute
   '/_authenticated/admin/operations/alerts': typeof AuthenticatedAdminOperationsAlertsRoute
   '/_authenticated/admin/operations/calendar': typeof AuthenticatedAdminOperationsCalendarRoute
@@ -1053,11 +1093,14 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/lovable/email/suppression'
     | '/admin/'
+    | '/admin/content/brand'
+    | '/admin/content/calendar'
     | '/admin/content/experiences'
     | '/admin/content/gallery'
     | '/admin/content/homepage'
     | '/admin/content/journal'
     | '/admin/content/media'
+    | '/admin/content/pages'
     | '/admin/content/rooms'
     | '/admin/finance/invoices'
     | '/admin/finance/payments'
@@ -1066,6 +1109,7 @@ export interface FileRouteTypes {
     | '/admin/guests/messages'
     | '/admin/marketing/analytics'
     | '/admin/marketing/campaigns'
+    | '/admin/marketing/reviews'
     | '/admin/marketing/seo'
     | '/admin/operations/alerts'
     | '/admin/operations/calendar'
@@ -1152,11 +1196,14 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/lovable/email/suppression'
     | '/admin'
+    | '/admin/content/brand'
+    | '/admin/content/calendar'
     | '/admin/content/experiences'
     | '/admin/content/gallery'
     | '/admin/content/homepage'
     | '/admin/content/journal'
     | '/admin/content/media'
+    | '/admin/content/pages'
     | '/admin/content/rooms'
     | '/admin/finance/invoices'
     | '/admin/finance/payments'
@@ -1165,6 +1212,7 @@ export interface FileRouteTypes {
     | '/admin/guests/messages'
     | '/admin/marketing/analytics'
     | '/admin/marketing/campaigns'
+    | '/admin/marketing/reviews'
     | '/admin/marketing/seo'
     | '/admin/operations/alerts'
     | '/admin/operations/calendar'
@@ -1256,11 +1304,14 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/content/brand'
+    | '/_authenticated/admin/content/calendar'
     | '/_authenticated/admin/content/experiences'
     | '/_authenticated/admin/content/gallery'
     | '/_authenticated/admin/content/homepage'
     | '/_authenticated/admin/content/journal'
     | '/_authenticated/admin/content/media'
+    | '/_authenticated/admin/content/pages'
     | '/_authenticated/admin/content/rooms'
     | '/_authenticated/admin/finance/invoices'
     | '/_authenticated/admin/finance/payments'
@@ -1269,6 +1320,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/guests/messages'
     | '/_authenticated/admin/marketing/analytics'
     | '/_authenticated/admin/marketing/campaigns'
+    | '/_authenticated/admin/marketing/reviews'
     | '/_authenticated/admin/marketing/seo'
     | '/_authenticated/admin/operations/alerts'
     | '/_authenticated/admin/operations/calendar'
@@ -1936,6 +1988,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMarketingSeoRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/marketing/reviews': {
+      id: '/_authenticated/admin/marketing/reviews'
+      path: '/marketing/reviews'
+      fullPath: '/admin/marketing/reviews'
+      preLoaderRoute: typeof AuthenticatedAdminMarketingReviewsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/marketing/campaigns': {
       id: '/_authenticated/admin/marketing/campaigns'
       path: '/marketing/campaigns'
@@ -1992,6 +2051,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminContentRoomsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/content/pages': {
+      id: '/_authenticated/admin/content/pages'
+      path: '/content/pages'
+      fullPath: '/admin/content/pages'
+      preLoaderRoute: typeof AuthenticatedAdminContentPagesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/content/media': {
       id: '/_authenticated/admin/content/media'
       path: '/content/media'
@@ -2025,6 +2091,20 @@ declare module '@tanstack/react-router' {
       path: '/content/experiences'
       fullPath: '/admin/content/experiences'
       preLoaderRoute: typeof AuthenticatedAdminContentExperiencesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/content/calendar': {
+      id: '/_authenticated/admin/content/calendar'
+      path: '/content/calendar'
+      fullPath: '/admin/content/calendar'
+      preLoaderRoute: typeof AuthenticatedAdminContentCalendarRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/content/brand': {
+      id: '/_authenticated/admin/content/brand'
+      path: '/content/brand'
+      fullPath: '/admin/content/brand'
+      preLoaderRoute: typeof AuthenticatedAdminContentBrandRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/operations/reservations/$id': {
@@ -2132,11 +2212,14 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAdminContentBrandRoute: typeof AuthenticatedAdminContentBrandRoute
+  AuthenticatedAdminContentCalendarRoute: typeof AuthenticatedAdminContentCalendarRoute
   AuthenticatedAdminContentExperiencesRoute: typeof AuthenticatedAdminContentExperiencesRoute
   AuthenticatedAdminContentGalleryRoute: typeof AuthenticatedAdminContentGalleryRoute
   AuthenticatedAdminContentHomepageRoute: typeof AuthenticatedAdminContentHomepageRoute
   AuthenticatedAdminContentJournalRoute: typeof AuthenticatedAdminContentJournalRoute
   AuthenticatedAdminContentMediaRoute: typeof AuthenticatedAdminContentMediaRoute
+  AuthenticatedAdminContentPagesRoute: typeof AuthenticatedAdminContentPagesRoute
   AuthenticatedAdminContentRoomsRoute: typeof AuthenticatedAdminContentRoomsRoute
   AuthenticatedAdminFinanceInvoicesRoute: typeof AuthenticatedAdminFinanceInvoicesRoute
   AuthenticatedAdminFinancePaymentsRoute: typeof AuthenticatedAdminFinancePaymentsRoute
@@ -2145,6 +2228,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminGuestsMessagesRoute: typeof AuthenticatedAdminGuestsMessagesRoute
   AuthenticatedAdminMarketingAnalyticsRoute: typeof AuthenticatedAdminMarketingAnalyticsRoute
   AuthenticatedAdminMarketingCampaignsRoute: typeof AuthenticatedAdminMarketingCampaignsRoute
+  AuthenticatedAdminMarketingReviewsRoute: typeof AuthenticatedAdminMarketingReviewsRoute
   AuthenticatedAdminMarketingSeoRoute: typeof AuthenticatedAdminMarketingSeoRoute
   AuthenticatedAdminStaffActivityRoute: typeof AuthenticatedAdminStaffActivityRoute
   AuthenticatedAdminStaffRolesRoute: typeof AuthenticatedAdminStaffRolesRoute
@@ -2160,6 +2244,9 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAdminContentBrandRoute: AuthenticatedAdminContentBrandRoute,
+  AuthenticatedAdminContentCalendarRoute:
+    AuthenticatedAdminContentCalendarRoute,
   AuthenticatedAdminContentExperiencesRoute:
     AuthenticatedAdminContentExperiencesRoute,
   AuthenticatedAdminContentGalleryRoute: AuthenticatedAdminContentGalleryRoute,
@@ -2167,6 +2254,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
     AuthenticatedAdminContentHomepageRoute,
   AuthenticatedAdminContentJournalRoute: AuthenticatedAdminContentJournalRoute,
   AuthenticatedAdminContentMediaRoute: AuthenticatedAdminContentMediaRoute,
+  AuthenticatedAdminContentPagesRoute: AuthenticatedAdminContentPagesRoute,
   AuthenticatedAdminContentRoomsRoute: AuthenticatedAdminContentRoomsRoute,
   AuthenticatedAdminFinanceInvoicesRoute:
     AuthenticatedAdminFinanceInvoicesRoute,
@@ -2180,6 +2268,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
     AuthenticatedAdminMarketingAnalyticsRoute,
   AuthenticatedAdminMarketingCampaignsRoute:
     AuthenticatedAdminMarketingCampaignsRoute,
+  AuthenticatedAdminMarketingReviewsRoute:
+    AuthenticatedAdminMarketingReviewsRoute,
   AuthenticatedAdminMarketingSeoRoute: AuthenticatedAdminMarketingSeoRoute,
   AuthenticatedAdminStaffActivityRoute: AuthenticatedAdminStaffActivityRoute,
   AuthenticatedAdminStaffRolesRoute: AuthenticatedAdminStaffRolesRoute,
@@ -2314,13 +2404,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

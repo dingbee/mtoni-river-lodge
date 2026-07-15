@@ -11,7 +11,16 @@ export type FeatureFlagKey =
   | "concierge"
   | "maintenance"
   | "procurement"
-  | "operations_centre";
+  | "operations_centre"
+  | "cms_pages"
+  | "page_builder"
+  | "seo_centre"
+  | "ai_seo_assistant"
+  | "media_library_v2"
+  | "brand_centre"
+  | "content_calendar"
+  | "reviews_centre_v2"
+  | "website_analytics";
 
 export type FlagState = "enabled" | "disabled" | "beta" | "internal";
 
