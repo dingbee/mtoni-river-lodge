@@ -10,8 +10,8 @@ export const createAiSuggestion = createServerFn({ method: "POST" })
       | "faq" | "alt_text" | "testimonial_summary" | "related_articles" | "other";
     targetType: string;
     targetId: string;
-    input?: Record<string, unknown>;
-    suggestion: Record<string, unknown>;
+    input?: unknown;
+    suggestion: unknown;
   }) => input)
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
@@ -20,8 +20,8 @@ export const createAiSuggestion = createServerFn({ method: "POST" })
         kind: data.kind,
         target_type: data.targetType,
         target_id: data.targetId,
-        input: data.input ?? {},
-        suggestion: data.suggestion,
+        input: (data.input ?? {}) as never,
+        suggestion: data.suggestion as never,
         requested_by: context.userId,
       })
       .select("*")

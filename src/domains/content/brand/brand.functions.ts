@@ -17,14 +17,14 @@ export const listBrandTokens = createServerFn({ method: "GET" })
 /** Public brand context helper — deterministic today; future AI calls will consume it. */
 export const getBrandContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .handler(async ({ context }): Promise<Record<string, Array<{ key: string; label: string; value: unknown }>>> => {
     const { data, error } = await context.supabase.from("brand_tokens").select("key, category, label, value");
     if (error) throw error;
     const grouped: Record<string, Array<{ key: string; label: string; value: unknown }>> = {};
     for (const row of data ?? []) {
       (grouped[row.category] ??= []).push({ key: row.key, label: row.label, value: row.value });
     }
-    return grouped;
+    return grouped as unknown as Record<string, Array<{ key: string; label: string; value: unknown }>>;
   });
 
 export const brandAi = defineAiInterface({
