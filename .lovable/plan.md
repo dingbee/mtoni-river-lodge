@@ -1,123 +1,69 @@
-# Sprint 5 — Content & Marketing Intelligence Suite (CMIS)
+# Sprint 5 · Phase 2 — CMS, Page Builder & Journal Editor
 
-Sprint 5 is very large (11 modules). To keep it shippable, verifiable, and non-regressive, I'll deliver it in **4 phases**, each independently useful and mergeable. Every phase respects the Module Registry, Feature Flags, Event Bus, and DDD conventions established in Sprints 1–4.
+Phase 1 laid the DB tables (`cms_pages`, `cms_page_versions`, `cms_blocks`, `media_assets`, etc.), registry modules, feature flags, and AI-ready interfaces. Phase 2 turns those foundations into working admin surfaces without touching any public-site routes, SEO, or booking/reservation logic.
 
-## Guiding principles
+## Scope
 
-- **No public URL changes.** Existing site routes, SEO, and canonical URLs are preserved.
-- **Registry-first.** Every new admin surface registers through `src/domains/_platform/registry/modules/*.module.ts` and gets a feature flag.
-- **DDD.** New code lives under `src/domains/content/` and `src/domains/marketing/`.
-- **Server functions, not raw HTTP.** All CMIS writes go through `createServerFn` + `requireSupabaseAuth` with role checks. RLS + GRANTs on every new table.
-- **AI-ready interface contract.** Every new domain module exports a standard object:
-  ```ts
-  { summarize?, suggest?, analyze?, predict?, recommend? }
-  ```
-  Initial implementations return deterministic placeholders; wired to Lovable AI Gateway (`google/gemini-3-flash-preview`) where useful.
-- **No SEO regression.** Editable metadata falls back to current hard-coded values when a CMS override is absent.
+### 1. CMS Pages module (`/admin/content/pages`)
+- List view: title, slug, status (draft/scheduled/published/archived), route_path, updated_at, author, quick filters + search.
+- Create / edit page metadata (title, slug, description, route_path, status, scheduled_at, SEO fields via `seo_overrides` join).
+- Draft → Publish → Schedule → Archive lifecycle with confirmation dialogs.
+- Version history panel: list `cms_page_versions`, view a snapshot, restore into current draft.
+- Server functions: `listCmsPages` (exists), `getCmsPage` (exists), plus new `upsertCmsPage`, `deleteCmsPage`, `publishCmsPage`, `schedulePublish`, `archiveCmsPage`, `restoreVersion`, `createVersionSnapshot`.
+- All server fns use `requireSupabaseAuth` and check `staff` role.
 
-## Technical architecture
+### 2. Block-based Page Builder (`/admin/content/pages/$id`)
+- Left panel: block palette (Hero, Rich Text, Image, Gallery, Two-Column, CTA, FAQ, Quote, Spacer, Embed).
+- Center: sortable stack of blocks (drag-and-drop via `@dnd-kit`), each with inline edit affordances.
+- Right panel: selected block's properties form (typed per block via discriminated union in `src/domains/content/pages/blocks.ts`).
+- Live preview toggle: renders blocks with the same components used server-side (`renderBlock(block)` shared module).
+- Autosave debounced to `cms_blocks` (position, type, data JSON).
+- "Create version snapshot" button writes to `cms_page_versions` before major edits/publish.
+- No public-route wiring in this phase — builder output is stored, not yet served to visitors (Phase 3 will add the resolver + dynamic route mount).
 
-```text
-src/domains/
-  content/
-    pages/         (CMS pages + versions + blocks)
-    journal/       (articles, categories, tags, authors)
-    media/         (assets, folders, usage)
-    brand/         (brand tokens)
-    ai/            (AI assistant server fns)
-  marketing/
-    seo/           (per-route SEO overrides + audit)
-    campaigns/
-    calendar/
-    analytics/
-    reviews/       (extends existing reviews)
-```
+### 3. Full Journal editor (`/admin/content/journal`)
+- List view of journal articles backed by DB (new table `journal_articles`) with status + scheduled publishing.
+- Tiptap-powered rich editor with: headings, bold/italic/underline, links, lists, blockquote, code, image (from Media Library), embed, horizontal rule, table of contents auto-generation.
+- Metadata sidebar: slug, excerpt, cover image, category, tags, author, read time, publishedAt, scheduledAt, SEO title/description/OG image.
+- Draft / Publish / Schedule / Archive lifecycle mirroring CMS Pages.
+- Server functions in `src/domains/content/journal/journal.functions.ts`.
+- Public site continues to read from static `src/lib/journal.ts` in Phase 2 — a bridge function `getPublishedJournalArticles()` is added but existing homepage/journal index consumers stay untouched. Phase 3 will migrate the public reads with a fallback so no article ever disappears.
 
-Shared tables (new, all with GRANTs + RLS + `staff`-scoped policies):
+### 4. Shared infrastructure
+- `src/domains/content/pages/blocks.ts` — block type registry + Zod schemas.
+- `src/domains/content/pages/renderBlock.tsx` — SSR-safe renderer used by builder preview (and later, public pages).
+- `src/components/os/content/` — `PageList`, `PageEditor`, `BlockPalette`, `BlockCanvas`, `BlockInspector`, `VersionHistoryDrawer`, `PublishBar`, `JournalList`, `JournalEditor`, `TiptapToolbar`.
+- Uses existing `AdminShell`, `PageHeader`, `SectionCard`, `StatusChip`, `EmptyState`, `LoadingState`, `ErrorState`.
 
-- `cms_pages`, `cms_page_versions`, `cms_blocks`
-- `journal_articles`, `journal_categories`, `journal_tags`, `journal_article_tags`, `journal_authors`
-- `media_assets`, `media_folders`, `media_usage`
-- `seo_overrides` (keyed by route path)
-- `campaigns`, `campaign_utm`
-- `content_calendar_entries`
-- `brand_tokens`
-- `ai_suggestions` (pending approval queue)
+### 5. Database
+One migration adds `journal_articles`, `journal_categories`, `journal_tags`, `journal_article_tags`, `journal_authors` with GRANTs, RLS (staff full access; anon SELECT only published rows on articles/categories/tags/authors), timestamps + update trigger. Seeds categories/authors from existing static data.
 
-Legacy static content (`src/lib/journal.ts`, hard-coded route heads) stays as a **fallback**. A resolver reads DB overrides first, then falls back — so nothing regresses if a page has no CMS entry.
+### 6. Dependencies
+- `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`
+- `@tiptap/react`, `@tiptap/pm`, `@tiptap/starter-kit`, `@tiptap/extension-link`, `@tiptap/extension-image`, `@tiptap/extension-placeholder`, `@tiptap/extension-table` (+ row/cell/header), `@tiptap/extension-underline`
+- Installed via `bun add` in a single batch.
 
-## Phase 1 — Foundations (this sprint delivery batch #1)
+## Out of scope (deferred)
+- Public dynamic route mount for CMS pages (Phase 3).
+- Public journal reads switching to DB (Phase 3 — needs a fallback strategy so no live article disappears).
+- SEO Centre UI, Media Library 2.0 UI, AI SEO Assistant (Phase 3).
+- Campaigns, Analytics, Reviews, Calendar, Brand Centre (Phase 4).
 
-Ship the plumbing everything else depends on.
+## Guarantees
+- No changes to public routes, SEO, booking/reservation/payment logic, or Pesapal.
+- No changes to `src/lib/journal.ts` public API — homepage + journal index continue to render.
+- All new server fns are auth-gated; all new tables have RLS + GRANTs in the migration.
+- AI-ready interface exports (`pagesAi`, `journalAi`) extended with deterministic placeholders for `summarize`, `suggest`, `analyze`.
 
-1. **DB migration**: `cms_pages`, `cms_page_versions`, `cms_blocks`, `seo_overrides`, `media_assets`, `media_folders`, `media_usage`, `brand_tokens`, `ai_suggestions`. GRANTs + RLS + staff policies.
-2. **Feature flags**: `cms_pages`, `page_builder`, `seo_centre`, `ai_seo_assistant`, `media_library_v2`, `brand_centre`, `campaigns`, `content_calendar`, `reviews_centre_v2`, `website_analytics`.
-3. **Registry modules** for all 11 surfaces under `content.*` and `marketing.*` (marked `beta`, gated by their flag). Nav appears immediately as "Coming Soon" placeholders where UI isn't built yet — matches Sprint 1–4 pattern.
-4. **Event Bus events**: `content.page.published`, `content.article.published`, `media.asset.uploaded`, `seo.override.changed`, `campaign.created`.
-5. **AI-ready interface** helper: `defineAiInterface({ summarize, suggest, analyze, predict, recommend })` in `src/domains/_platform/ai/`.
-6. **SEO resolver**: `resolvePageSeo(routePath)` — DB → static fallback. Used by public route `head()` opt-in; no existing head() is rewritten yet.
+## Deliverables checklist
+1. DB migration for journal_* tables.
+2. `bun add` for dnd-kit + Tiptap.
+3. Block registry + renderer + Zod schemas.
+4. Pages server fns (CRUD + lifecycle + versions).
+5. Journal server fns (CRUD + lifecycle).
+6. `/admin/content/pages` list + `/admin/content/pages/$id` editor.
+7. `/admin/content/journal` list + `/admin/content/journal/$id` editor.
+8. Feature flags `cms_pages` and `journal_editor` flipped to `beta` for staff.
+9. Registry route entries updated (journal points at real editor, no longer ComingSoon).
 
-## Phase 2 — CMS + Page Builder + Journal (batch #2)
-
-- `/admin/content/pages` — list, draft/review/publish/schedule/archive, version history + restore.
-- `/admin/content/pages/$id` — block-based editor: hero, rich text, gallery, CTA, reviews, rooms, experiences, FAQ, video, stats, contact, map. Drag-and-drop reorder (dnd-kit).
-- Live preview panel (renders block components in an iframe-like preview).
-- Upgrade `/admin/content/journal` from ComingSoon to a real editor: rich text (Tiptap), categories, tags, authors, scheduling, featured toggle, reading time, TOC generator, canonical, version history.
-- Journal resolver merges DB articles + static `src/lib/journal.ts` entries. Homepage Featured Articles + `/journal` read from the resolver.
-
-## Phase 3 — SEO Centre + AI Assistant + Media Library 2.0 (batch #3)
-
-- `/admin/marketing/seo` — per-route table: title, description, keywords, canonical, OG, Twitter, robots, index status, schema type. Character counters, missing-field warnings, computed SEO score.
-- **AI SEO Assistant** panel per page: suggest titles, improve meta, recommend keywords, missing internal links, suggested FAQs, alt text, testimonial summaries, related articles. Suggestions land in `ai_suggestions` for approval; approval writes to the target table + emits a `content.suggestion.approved` event.
-- `/admin/content/media` — folders, search, bulk upload, bulk rename, WebP auto-convert (client-side canvas), duplicate hash detection, alt-text editor, usage tracking. Deletion blocked when `media_usage` is non-empty; shows exact usage list.
-
-## Phase 4 — Campaigns + Analytics + Reviews + Calendar + Brand (batch #4)
-
-- `/admin/marketing/campaigns` — CRUD with UTM builder, status pipeline.
-- `/admin/marketing/analytics` — framework page with placeholder cards for sessions, users, conversion rate, funnel, top/exit pages, queries, sources, devices, countries. Wired to a `getAnalyticsSnapshot()` server fn that returns deterministic mock data until a live provider is connected.
-- `/admin/reviews` upgrade — trend chart, volume, platform comparison, response status, moderation, featured selection.
-- `/admin/content/calendar` — unified drag-and-drop calendar across articles / homepage / campaigns / promotions / social.
-- `/admin/content/brand` — logos, font tokens, color palette, tone/photo/copy guidelines. Exposes `getBrandContext()` for future AI calls.
-
-## Acceptance for THIS delivery (Phase 1)
-
-- Migration applied; all new tables have GRANTs, RLS, and staff policies.
-- All 11 modules appear in the admin sidebar under Content or Marketing, gated by their feature flag (owner/manager visible by default in dev).
-- SEO resolver exists and is a no-op fallback on every existing public route (zero head() edits required now — Phase 3 opts routes in).
-- AI-ready interface helper published from `_platform`.
-- Zero regressions to public site, booking, payments, operations centre, or existing journal routes.
-
-## Phase 1 file map (this batch)
-
-```text
-supabase/migrations/<ts>_cmis_phase1.sql
-src/domains/_platform/ai/interface.ts
-src/domains/_platform/flags/flags.ts        (edit — add flags)
-src/domains/_platform/events/types.ts       (edit — add events)
-src/domains/_platform/registry/modules/cmis.module.ts
-src/domains/_platform/registry/registry.ts  (edit — register)
-src/domains/content/index.ts
-src/domains/content/pages/pages.functions.ts
-src/domains/content/media/media.functions.ts
-src/domains/content/brand/brand.functions.ts
-src/domains/marketing/seo/seo.functions.ts
-src/domains/marketing/seo/resolver.ts       (fallback-safe head resolver)
-src/domains/marketing/campaigns/campaigns.functions.ts
-src/domains/marketing/ai/ai-assistant.functions.ts
-src/lib/permissions.ts                      (edit — role scoping)
-src/routes/_authenticated.admin.content.pages.tsx           (ComingSoon → placeholder)
-src/routes/_authenticated.admin.content.brand.tsx           (new placeholder)
-src/routes/_authenticated.admin.content.calendar.tsx        (new placeholder)
-src/routes/_authenticated.admin.marketing.reviews.tsx       (new placeholder)
-# existing SEO / campaigns / analytics / journal / media / gallery ComingSoon pages stay
-```
-
-## Ask before I start
-
-Sprint 5 as written is 3–4× the scope of Sprint 4. To keep quality high and each change verifiable, I want to confirm:
-
-1. **Approve the 4-phase split** (ship Phase 1 now; Phases 2–4 as follow-up sprints)?
-2. Or do you want **Phase 1 + full Phase 2 (CMS + Page Builder + Journal)** in this delivery, and defer 3–4?
-3. Any module you want promoted or dropped from Phase 1?
-
-Once you confirm, I'll implement the selected batch end-to-end with migration, server fns, registry, flags, and route stubs, then verify types and the build.
+Approve to proceed — I'll ship migration first, then packages, then code in parallel batches.
