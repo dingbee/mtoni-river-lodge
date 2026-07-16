@@ -82,10 +82,14 @@ export const deleteCmsPage = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export type CmsBlockKind =
+  | "hero" | "rich_text" | "image_gallery" | "cta" | "reviews" | "rooms"
+  | "experiences" | "faq" | "video" | "statistics" | "contact" | "map";
+
 export interface CmsBlockPatch {
   id?: string;
   page_id: string;
-  type: string;
+  kind: CmsBlockKind;
   position: number;
   data: Record<string, unknown>;
 }
@@ -99,7 +103,7 @@ export const saveCmsBlocks = createServerFn({ method: "POST" })
       const { error } = await context.supabase.from("cms_blocks").insert(
         data.blocks.map((b, i) => ({
           page_id: data.pageId,
-          type: b.type,
+          kind: b.kind,
           position: i,
           data: b.data as never,
         })),
