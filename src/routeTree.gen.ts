@@ -115,7 +115,6 @@ import { Route as AuthenticatedAdminOperationsCheckoutIdRouteImport } from './ro
 import { Route as AuthenticatedAdminOperationsCheckinIdRouteImport } from './routes/_authenticated.admin.operations.checkin.$id'
 import { Route as AuthenticatedAdminGuestsCrmDuplicatesRouteImport } from './routes/_authenticated.admin.guests.crm.duplicates'
 import { Route as AuthenticatedAdminGuestsCrmIdRouteImport } from './routes/_authenticated.admin.guests.crm.$id'
-import { Route as AuthenticatedAdminContentPagesIdRouteImport } from './routes/_authenticated.admin.content.pages.$id'
 import { Route as AuthenticatedAdminContentJournalIdRouteImport } from './routes/_authenticated.admin.content.journal.$id'
 
 const VoteRoute = VoteRouteImport.update({
@@ -706,12 +705,6 @@ const AuthenticatedAdminGuestsCrmIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedAdminGuestsCrmRoute,
   } as any)
-const AuthenticatedAdminContentPagesIdRoute =
-  AuthenticatedAdminContentPagesIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
-    getParentRoute: () => AuthenticatedAdminContentPagesRoute,
-  } as any)
 const AuthenticatedAdminContentJournalIdRoute =
   AuthenticatedAdminContentJournalIdRouteImport.update({
     id: '/$id',
@@ -793,7 +786,7 @@ export interface FileRoutesByFullPath {
   '/admin/content/homepage': typeof AuthenticatedAdminContentHomepageRoute
   '/admin/content/journal': typeof AuthenticatedAdminContentJournalRouteWithChildren
   '/admin/content/media': typeof AuthenticatedAdminContentMediaRoute
-  '/admin/content/pages': typeof AuthenticatedAdminContentPagesRouteWithChildren
+  '/admin/content/pages': typeof AuthenticatedAdminContentPagesRoute
   '/admin/content/rooms': typeof AuthenticatedAdminContentRoomsRoute
   '/admin/finance/invoices': typeof AuthenticatedAdminFinanceInvoicesRoute
   '/admin/finance/payments': typeof AuthenticatedAdminFinancePaymentsRoute
@@ -821,7 +814,6 @@ export interface FileRoutesByFullPath {
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
-  '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRoute
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
@@ -898,7 +890,7 @@ export interface FileRoutesByTo {
   '/admin/content/homepage': typeof AuthenticatedAdminContentHomepageRoute
   '/admin/content/journal': typeof AuthenticatedAdminContentJournalRouteWithChildren
   '/admin/content/media': typeof AuthenticatedAdminContentMediaRoute
-  '/admin/content/pages': typeof AuthenticatedAdminContentPagesRouteWithChildren
+  '/admin/content/pages': typeof AuthenticatedAdminContentPagesRoute
   '/admin/content/rooms': typeof AuthenticatedAdminContentRoomsRoute
   '/admin/finance/invoices': typeof AuthenticatedAdminFinanceInvoicesRoute
   '/admin/finance/payments': typeof AuthenticatedAdminFinancePaymentsRoute
@@ -926,7 +918,6 @@ export interface FileRoutesByTo {
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
-  '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRoute
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
@@ -1009,7 +1000,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/content/homepage': typeof AuthenticatedAdminContentHomepageRoute
   '/_authenticated/admin/content/journal': typeof AuthenticatedAdminContentJournalRouteWithChildren
   '/_authenticated/admin/content/media': typeof AuthenticatedAdminContentMediaRoute
-  '/_authenticated/admin/content/pages': typeof AuthenticatedAdminContentPagesRouteWithChildren
+  '/_authenticated/admin/content/pages': typeof AuthenticatedAdminContentPagesRoute
   '/_authenticated/admin/content/rooms': typeof AuthenticatedAdminContentRoomsRoute
   '/_authenticated/admin/finance/invoices': typeof AuthenticatedAdminFinanceInvoicesRoute
   '/_authenticated/admin/finance/payments': typeof AuthenticatedAdminFinancePaymentsRoute
@@ -1037,7 +1028,6 @@ export interface FileRoutesById {
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/_authenticated/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
-  '/_authenticated/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRoute
   '/_authenticated/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/_authenticated/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
   '/_authenticated/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
@@ -1148,7 +1138,6 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/send'
     | '/admin/operations/'
     | '/admin/content/journal/$id'
-    | '/admin/content/pages/$id'
     | '/admin/guests/crm/$id'
     | '/admin/guests/crm/duplicates'
     | '/admin/operations/checkin/$id'
@@ -1253,7 +1242,6 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/send'
     | '/admin/operations'
     | '/admin/content/journal/$id'
-    | '/admin/content/pages/$id'
     | '/admin/guests/crm/$id'
     | '/admin/guests/crm/duplicates'
     | '/admin/operations/checkin/$id'
@@ -1363,7 +1351,6 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/send'
     | '/_authenticated/admin/operations/'
     | '/_authenticated/admin/content/journal/$id'
-    | '/_authenticated/admin/content/pages/$id'
     | '/_authenticated/admin/guests/crm/$id'
     | '/_authenticated/admin/guests/crm/duplicates'
     | '/_authenticated/admin/operations/checkin/$id'
@@ -2168,13 +2155,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminGuestsCrmIdRouteImport
       parentRoute: typeof AuthenticatedAdminGuestsCrmRoute
     }
-    '/_authenticated/admin/content/pages/$id': {
-      id: '/_authenticated/admin/content/pages/$id'
-      path: '/$id'
-      fullPath: '/admin/content/pages/$id'
-      preLoaderRoute: typeof AuthenticatedAdminContentPagesIdRouteImport
-      parentRoute: typeof AuthenticatedAdminContentPagesRoute
-    }
     '/_authenticated/admin/content/journal/$id': {
       id: '/_authenticated/admin/content/journal/$id'
       path: '/$id'
@@ -2242,21 +2222,6 @@ const AuthenticatedAdminContentJournalRouteWithChildren =
     AuthenticatedAdminContentJournalRouteChildren,
   )
 
-interface AuthenticatedAdminContentPagesRouteChildren {
-  AuthenticatedAdminContentPagesIdRoute: typeof AuthenticatedAdminContentPagesIdRoute
-}
-
-const AuthenticatedAdminContentPagesRouteChildren: AuthenticatedAdminContentPagesRouteChildren =
-  {
-    AuthenticatedAdminContentPagesIdRoute:
-      AuthenticatedAdminContentPagesIdRoute,
-  }
-
-const AuthenticatedAdminContentPagesRouteWithChildren =
-  AuthenticatedAdminContentPagesRoute._addFileChildren(
-    AuthenticatedAdminContentPagesRouteChildren,
-  )
-
 interface AuthenticatedAdminGuestsCrmRouteChildren {
   AuthenticatedAdminGuestsCrmIdRoute: typeof AuthenticatedAdminGuestsCrmIdRoute
   AuthenticatedAdminGuestsCrmDuplicatesRoute: typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
@@ -2289,7 +2254,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminContentHomepageRoute: typeof AuthenticatedAdminContentHomepageRoute
   AuthenticatedAdminContentJournalRoute: typeof AuthenticatedAdminContentJournalRouteWithChildren
   AuthenticatedAdminContentMediaRoute: typeof AuthenticatedAdminContentMediaRoute
-  AuthenticatedAdminContentPagesRoute: typeof AuthenticatedAdminContentPagesRouteWithChildren
+  AuthenticatedAdminContentPagesRoute: typeof AuthenticatedAdminContentPagesRoute
   AuthenticatedAdminContentRoomsRoute: typeof AuthenticatedAdminContentRoomsRoute
   AuthenticatedAdminFinanceInvoicesRoute: typeof AuthenticatedAdminFinanceInvoicesRoute
   AuthenticatedAdminFinancePaymentsRoute: typeof AuthenticatedAdminFinancePaymentsRoute
@@ -2325,8 +2290,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminContentJournalRoute:
     AuthenticatedAdminContentJournalRouteWithChildren,
   AuthenticatedAdminContentMediaRoute: AuthenticatedAdminContentMediaRoute,
-  AuthenticatedAdminContentPagesRoute:
-    AuthenticatedAdminContentPagesRouteWithChildren,
+  AuthenticatedAdminContentPagesRoute: AuthenticatedAdminContentPagesRoute,
   AuthenticatedAdminContentRoomsRoute: AuthenticatedAdminContentRoomsRoute,
   AuthenticatedAdminFinanceInvoicesRoute:
     AuthenticatedAdminFinanceInvoicesRoute,
