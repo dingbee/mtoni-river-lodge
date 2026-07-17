@@ -50,7 +50,7 @@ function parseJson<T = unknown>(s: string): T | null {
 }
 
 async function queueSuggestion(context: { supabase: any; userId: string | null }, args: {
-  kind: SuggestionKind; targetType: string; targetId: string; input: unknown; suggestion: unknown;
+  kind: SuggestionKind; targetType: string; targetId: string; input?: unknown; suggestion: unknown;
 }) {
   const { data, error } = await context.supabase
     .from("ai_suggestions")
