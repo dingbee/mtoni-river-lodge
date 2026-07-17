@@ -144,7 +144,22 @@ export const NAV: NavEntry[] = [
       ],
     },
   },
-  { kind: "item", item: { id: "automation", label: "Automation", href: "/admin/automation", icon: Bot } },
+  {
+    kind: "group",
+    group: {
+      id: "automation",
+      label: "Automation",
+      icon: Bot,
+      items: [
+        { id: "automation.overview", label: "Overview", href: "/admin/automation", icon: LayoutDashboard },
+        { id: "automation.workflows", label: "Workflows", href: "/admin/automation/workflows", icon: Bot },
+        { id: "automation.monitor", label: "Monitor", href: "/admin/automation/monitor", icon: Activity },
+        { id: "automation.notifications", label: "Notifications", href: "/admin/automation/notifications", icon: AlertTriangle },
+        { id: "automation.scheduled", label: "Scheduled Jobs", href: "/admin/automation/scheduled", icon: CalendarDays },
+        { id: "automation.approvals", label: "Approvals", href: "/admin/automation/approvals", icon: ShieldCheck },
+      ],
+    },
+  },
   { kind: "item", item: { id: "settings", label: "Settings", href: "/admin/settings", icon: Settings } },
 ];
 

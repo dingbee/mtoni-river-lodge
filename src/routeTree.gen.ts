@@ -88,6 +88,7 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as ApiPublicPesapalIpnRouteImport } from './routes/api/public/pesapal.ipn'
 import { Route as ApiPublicOpsMorningDigestRouteImport } from './routes/api/public/ops/morning-digest'
 import { Route as ApiPublicOpsDrainRouteImport } from './routes/api/public/ops/drain'
+import { Route as ApiPublicHooksScheduledJobsRouteImport } from './routes/api/public/hooks/scheduled-jobs'
 import { Route as AuthenticatedAdminStaffUsersRouteImport } from './routes/_authenticated.admin.staff.users'
 import { Route as AuthenticatedAdminStaffRolesRouteImport } from './routes/_authenticated.admin.staff.roles'
 import { Route as AuthenticatedAdminStaffActivityRouteImport } from './routes/_authenticated.admin.staff.activity'
@@ -559,6 +560,12 @@ const ApiPublicOpsDrainRoute = ApiPublicOpsDrainRouteImport.update({
   path: '/api/public/ops/drain',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksScheduledJobsRoute =
+  ApiPublicHooksScheduledJobsRouteImport.update({
+    id: '/api/public/hooks/scheduled-jobs',
+    path: '/api/public/hooks/scheduled-jobs',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAdminStaffUsersRoute =
   AuthenticatedAdminStaffUsersRouteImport.update({
     id: '/staff/users',
@@ -951,6 +958,7 @@ export interface FileRoutesByFullPath {
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
+  '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
@@ -1073,6 +1081,7 @@ export interface FileRoutesByTo {
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
+  '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
@@ -1202,6 +1211,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/_authenticated/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/_authenticated/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
+  '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
@@ -1331,6 +1341,7 @@ export interface FileRouteTypes {
     | '/admin/staff/activity'
     | '/admin/staff/roles'
     | '/admin/staff/users'
+    | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
@@ -1453,6 +1464,7 @@ export interface FileRouteTypes {
     | '/admin/staff/activity'
     | '/admin/staff/roles'
     | '/admin/staff/users'
+    | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
@@ -1581,6 +1593,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/staff/activity'
     | '/_authenticated/admin/staff/roles'
     | '/_authenticated/admin/staff/users'
+    | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
@@ -1647,6 +1660,7 @@ export interface RootRouteChildren {
   WpIncludesSplatRoute: typeof WpIncludesSplatRoute
   WpJsonSplatRoute: typeof WpJsonSplatRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicHooksScheduledJobsRoute: typeof ApiPublicHooksScheduledJobsRoute
   ApiPublicOpsDrainRoute: typeof ApiPublicOpsDrainRoute
   ApiPublicOpsMorningDigestRoute: typeof ApiPublicOpsMorningDigestRoute
   ApiPublicPesapalIpnRoute: typeof ApiPublicPesapalIpnRoute
@@ -2208,6 +2222,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/ops/drain'
       fullPath: '/api/public/ops/drain'
       preLoaderRoute: typeof ApiPublicOpsDrainRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/scheduled-jobs': {
+      id: '/api/public/hooks/scheduled-jobs'
+      path: '/api/public/hooks/scheduled-jobs'
+      fullPath: '/api/public/hooks/scheduled-jobs'
+      preLoaderRoute: typeof ApiPublicHooksScheduledJobsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/staff/users': {
@@ -2920,6 +2941,7 @@ const rootRouteChildren: RootRouteChildren = {
   WpIncludesSplatRoute: WpIncludesSplatRoute,
   WpJsonSplatRoute: WpJsonSplatRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicHooksScheduledJobsRoute: ApiPublicHooksScheduledJobsRoute,
   ApiPublicOpsDrainRoute: ApiPublicOpsDrainRoute,
   ApiPublicOpsMorningDigestRoute: ApiPublicOpsMorningDigestRoute,
   ApiPublicPesapalIpnRoute: ApiPublicPesapalIpnRoute,
