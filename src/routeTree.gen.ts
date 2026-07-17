@@ -125,6 +125,7 @@ import { Route as AuthenticatedAdminAutomationWorkflowsRouteImport } from './rou
 import { Route as AuthenticatedAdminAutomationScheduledRouteImport } from './routes/_authenticated.admin.automation.scheduled'
 import { Route as AuthenticatedAdminAutomationNotificationsRouteImport } from './routes/_authenticated.admin.automation.notifications'
 import { Route as AuthenticatedAdminAutomationMonitorRouteImport } from './routes/_authenticated.admin.automation.monitor'
+import { Route as AuthenticatedAdminAutomationApprovalsRouteImport } from './routes/_authenticated.admin.automation.approvals'
 import { Route as AuthenticatedAdminOperationsReservationsIdRouteImport } from './routes/_authenticated.admin.operations.reservations.$id'
 import { Route as AuthenticatedAdminOperationsCheckoutIdRouteImport } from './routes/_authenticated.admin.operations.checkout.$id'
 import { Route as AuthenticatedAdminOperationsCheckinIdRouteImport } from './routes/_authenticated.admin.operations.checkin.$id'
@@ -780,6 +781,12 @@ const AuthenticatedAdminAutomationMonitorRoute =
     path: '/monitor',
     getParentRoute: () => AuthenticatedAdminAutomationRoute,
   } as any)
+const AuthenticatedAdminAutomationApprovalsRoute =
+  AuthenticatedAdminAutomationApprovalsRouteImport.update({
+    id: '/approvals',
+    path: '/approvals',
+    getParentRoute: () => AuthenticatedAdminAutomationRoute,
+  } as any)
 const AuthenticatedAdminOperationsReservationsIdRoute =
   AuthenticatedAdminOperationsReservationsIdRouteImport.update({
     id: '/reservations/$id',
@@ -906,6 +913,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/automation/approvals': typeof AuthenticatedAdminAutomationApprovalsRoute
   '/admin/automation/monitor': typeof AuthenticatedAdminAutomationMonitorRoute
   '/admin/automation/notifications': typeof AuthenticatedAdminAutomationNotificationsRoute
   '/admin/automation/scheduled': typeof AuthenticatedAdminAutomationScheduledRoute
@@ -1027,6 +1035,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/automation/approvals': typeof AuthenticatedAdminAutomationApprovalsRoute
   '/admin/automation/monitor': typeof AuthenticatedAdminAutomationMonitorRoute
   '/admin/automation/notifications': typeof AuthenticatedAdminAutomationNotificationsRoute
   '/admin/automation/scheduled': typeof AuthenticatedAdminAutomationScheduledRoute
@@ -1155,6 +1164,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/automation/approvals': typeof AuthenticatedAdminAutomationApprovalsRoute
   '/_authenticated/admin/automation/monitor': typeof AuthenticatedAdminAutomationMonitorRoute
   '/_authenticated/admin/automation/notifications': typeof AuthenticatedAdminAutomationNotificationsRoute
   '/_authenticated/admin/automation/scheduled': typeof AuthenticatedAdminAutomationScheduledRoute
@@ -1283,6 +1293,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/lovable/email/suppression'
     | '/admin/'
+    | '/admin/automation/approvals'
     | '/admin/automation/monitor'
     | '/admin/automation/notifications'
     | '/admin/automation/scheduled'
@@ -1404,6 +1415,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/lovable/email/suppression'
     | '/admin'
+    | '/admin/automation/approvals'
     | '/admin/automation/monitor'
     | '/admin/automation/notifications'
     | '/admin/automation/scheduled'
@@ -1531,6 +1543,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/automation/approvals'
     | '/_authenticated/admin/automation/monitor'
     | '/_authenticated/admin/automation/notifications'
     | '/_authenticated/admin/automation/scheduled'
@@ -2456,6 +2469,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAutomationMonitorRouteImport
       parentRoute: typeof AuthenticatedAdminAutomationRoute
     }
+    '/_authenticated/admin/automation/approvals': {
+      id: '/_authenticated/admin/automation/approvals'
+      path: '/approvals'
+      fullPath: '/admin/automation/approvals'
+      preLoaderRoute: typeof AuthenticatedAdminAutomationApprovalsRouteImport
+      parentRoute: typeof AuthenticatedAdminAutomationRoute
+    }
     '/_authenticated/admin/operations/reservations/$id': {
       id: '/_authenticated/admin/operations/reservations/$id'
       path: '/reservations/$id'
@@ -2538,6 +2558,7 @@ const AuthenticatedAdminAutomationWorkflowsRouteWithChildren =
   )
 
 interface AuthenticatedAdminAutomationRouteChildren {
+  AuthenticatedAdminAutomationApprovalsRoute: typeof AuthenticatedAdminAutomationApprovalsRoute
   AuthenticatedAdminAutomationMonitorRoute: typeof AuthenticatedAdminAutomationMonitorRoute
   AuthenticatedAdminAutomationNotificationsRoute: typeof AuthenticatedAdminAutomationNotificationsRoute
   AuthenticatedAdminAutomationScheduledRoute: typeof AuthenticatedAdminAutomationScheduledRoute
@@ -2547,6 +2568,8 @@ interface AuthenticatedAdminAutomationRouteChildren {
 
 const AuthenticatedAdminAutomationRouteChildren: AuthenticatedAdminAutomationRouteChildren =
   {
+    AuthenticatedAdminAutomationApprovalsRoute:
+      AuthenticatedAdminAutomationApprovalsRoute,
     AuthenticatedAdminAutomationMonitorRoute:
       AuthenticatedAdminAutomationMonitorRoute,
     AuthenticatedAdminAutomationNotificationsRoute:
