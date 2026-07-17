@@ -46,16 +46,24 @@ function fmt(d: string | null | undefined) {
 
 function KnowledgeHealth() {
   const qc = useQueryClient();
-  const health = useQuery({ queryKey: ["ki.health"], queryFn: () => useServerFn(getKnowledgeHealth)() });
-  // useQuery+useServerFn pattern
-  const fresh = useQuery({ queryKey: ["ki.fresh"], queryFn: () => useServerFn(getFreshnessReport)() });
-  const gaps = useQuery({ queryKey: ["ki.gaps"], queryFn: () => useServerFn(getKnowledgeGaps)() });
-  const cov = useQuery({ queryKey: ["ki.cov"], queryFn: () => useServerFn(getKnowledgeCoverage)() });
-  const recs = useQuery({ queryKey: ["ki.recs"], queryFn: () => useServerFn(getContentRecommendations)() });
-  const quality = useQuery({ queryKey: ["ki.quality"], queryFn: () => useServerFn(getSourceQualityList)({ data: { limit: 25 } }) });
-  const notifs = useQuery({ queryKey: ["ki.notifs"], queryFn: () => useServerFn(listKnowledgeNotifications)({ data: { status: "open" } }) });
-  const runs = useQuery({ queryKey: ["ki.runs"], queryFn: () => useServerFn(listSyncRuns)() });
-  const cfg = useQuery({ queryKey: ["ki.cfg"], queryFn: () => useServerFn(getSchedulerConfig)() });
+  const healthFn = useServerFn(getKnowledgeHealth);
+  const freshFn = useServerFn(getFreshnessReport);
+  const gapsFn = useServerFn(getKnowledgeGaps);
+  const covFn = useServerFn(getKnowledgeCoverage);
+  const recsFn = useServerFn(getContentRecommendations);
+  const qualityFn = useServerFn(getSourceQualityList);
+  const notifsFn = useServerFn(listKnowledgeNotifications);
+  const runsFn = useServerFn(listSyncRuns);
+  const cfgFn = useServerFn(getSchedulerConfig);
+  const health = useQuery({ queryKey: ["ki.health"], queryFn: () => healthFn() });
+  const fresh = useQuery({ queryKey: ["ki.fresh"], queryFn: () => freshFn() });
+  const gaps = useQuery({ queryKey: ["ki.gaps"], queryFn: () => gapsFn() });
+  const cov = useQuery({ queryKey: ["ki.cov"], queryFn: () => covFn() });
+  const recs = useQuery({ queryKey: ["ki.recs"], queryFn: () => recsFn() });
+  const quality = useQuery({ queryKey: ["ki.quality"], queryFn: () => qualityFn({ data: { limit: 25 } }) });
+  const notifs = useQuery({ queryKey: ["ki.notifs"], queryFn: () => notifsFn({ data: { status: "open" } }) });
+  const runs = useQuery({ queryKey: ["ki.runs"], queryFn: () => runsFn() });
+  const cfg = useQuery({ queryKey: ["ki.cfg"], queryFn: () => cfgFn() });
 
   const dismissFn = useServerFn(dismissKnowledgeNotification);
   const triggerFn = useServerFn(triggerScheduledSync);
@@ -239,7 +247,7 @@ function KnowledgeHealth() {
           )}
         </SectionCard>
 
-        <SectionCard title="Notifications" description="Informational alerts — no auto-actions" icon={<Bell className="size-4" />}>
+        <SectionCard title="Notifications" description="Informational alerts — no auto-actions">
           {notifs.isLoading ? <LoadingState /> : (
             <div className="max-h-80 overflow-auto divide-y">
               {(notifs.data ?? []).length === 0 ? (
