@@ -176,6 +176,75 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_executive_briefings: {
+        Row: {
+          briefing_date: string
+          created_at: string
+          evidence: Json
+          generated_by: string | null
+          id: string
+          model: string
+          sections: Json
+          summary: string
+          top_recommendations: Json
+          updated_at: string
+        }
+        Insert: {
+          briefing_date?: string
+          created_at?: string
+          evidence?: Json
+          generated_by?: string | null
+          id?: string
+          model?: string
+          sections?: Json
+          summary: string
+          top_recommendations?: Json
+          updated_at?: string
+        }
+        Update: {
+          briefing_date?: string
+          created_at?: string
+          evidence?: Json
+          generated_by?: string | null
+          id?: string
+          model?: string
+          sections?: Json
+          summary?: string
+          top_recommendations?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_executive_kpi_snapshots: {
+        Row: {
+          created_at: string
+          evidence: Json
+          id: string
+          kpis: Json
+          period: string
+          period_end: string
+          period_start: string
+        }
+        Insert: {
+          created_at?: string
+          evidence?: Json
+          id?: string
+          kpis?: Json
+          period: string
+          period_end: string
+          period_start: string
+        }
+        Update: {
+          created_at?: string
+          evidence?: Json
+          id?: string
+          kpis?: Json
+          period?: string
+          period_end?: string
+          period_start?: string
+        }
+        Relationships: []
+      }
       ai_guest_alerts: {
         Row: {
           assigned_to: string | null
@@ -771,6 +840,54 @@ export type Database = {
           kind?: string
           model?: string | null
           recommended_action?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_strategic_risks: {
+        Row: {
+          created_at: string
+          detected_at: string
+          domains: string[]
+          evidence: Json
+          id: string
+          reasoning: string
+          resolved_at: string | null
+          resolved_by: string | null
+          risk_type: string
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          detected_at?: string
+          domains?: string[]
+          evidence?: Json
+          id?: string
+          reasoning: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          risk_type: string
+          severity: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          detected_at?: string
+          domains?: string[]
+          evidence?: Json
+          id?: string
+          reasoning?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          risk_type?: string
+          severity?: string
           status?: string
           title?: string
           updated_at?: string
