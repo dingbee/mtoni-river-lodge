@@ -91,6 +91,16 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
+  const { data: cms } = usePublicCms("homepage");
+  const { data: dbJournalRows } = useQuery<DbJournalRow[]>({
+    queryKey: ["journal.public.list"],
+    queryFn: () => listPublishedJournalArticles(),
+    staleTime: 60_000,
+  });
+  const latestJournal = mergeJournalPosts(dbJournalRows).slice(0, 4);
+
+  if (hasCmsBody(cms)) return <CmsBody blocks={cms.blocks} overlayHeader />;
+
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader overlay />
