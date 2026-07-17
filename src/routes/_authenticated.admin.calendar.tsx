@@ -246,18 +246,61 @@ function UnifiedCalendarPage() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="In-house today" value={String(bookingsToday)} icon={CalendarDays} />
-        <StatCard label="Active holds" value={String(activeHolds.length)} icon={Timer} />
+        <StatCard label="Arrivals today" value={String(arrivalsCount)} icon={CalendarDays} />
+        <StatCard label="Departures today" value={String(departuresCount)} icon={CalendarDays} />
         <StatCard
           label="Blocked days"
           value={String((d.inventory as any[]).filter((i) => i.is_blocked).length)}
           icon={Ban}
         />
-        <StatCard label="Rooms" value={String(d.rooms.length)} icon={Wrench} />
       </div>
 
+      <SectionCard title="Filters" description="Narrow the calendar and stat cards.">
+        <div className="flex flex-wrap items-center gap-3">
+          {[
+            { k: "arrivalsToday" as const, label: "Arrivals today" },
+            { k: "departuresToday" as const, label: "Departures today" },
+            { k: "vip" as const, label: "VIP / climbers" },
+            { k: "holds" as const, label: "Show holds only" },
+          ].map((f) => (
+            <label key={f.k} className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={filters[f.k]}
+                onCheckedChange={(v) => setFilters((s) => ({ ...s, [f.k]: Boolean(v) }))}
+              />
+              {f.label}
+            </label>
+          ))}
+          <div className="ml-4 flex flex-wrap items-center gap-1 text-xs">
+            <span className="text-muted-foreground mr-1">Rooms:</span>
+            {(d.rooms as any[]).map((r) => (
+              <button
+                key={r.id}
+                onClick={() => toggleRoomFilter(r.slug)}
+                className={`rounded-full border px-2 py-0.5 ${
+                  filters.roomSlugs.has(r.slug)
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {r.name}
+              </button>
+            ))}
+            {filters.roomSlugs.size > 0 && (
+              <button
+                onClick={() => setFilters((s) => ({ ...s, roomSlugs: new Set() }))}
+                className="ml-2 text-muted-foreground hover:underline"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        </div>
+      </SectionCard>
+
       <SectionCard
-        title="Grid"
-        description="Reservations are blue, blocks are red, active holds are amber. Click a room name to block/unblock a range."
+        title="Reservation timeline"
+        description="Reservations are blue, blocks are red, active holds are amber. Drag a reservation onto another room row to reassign it. Click a room name to block/unblock a range."
       >
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-md border p-0.5 text-xs">
@@ -297,8 +340,25 @@ function UnifiedCalendarPage() {
                 </tr>
               </thead>
               <tbody>
-                {d.rooms.map((r: any) => (
-                  <tr key={r.id}>
+                {visibleRooms.map((r: any) => (
+                  <tr
+                    key={r.id}
+                    onDragOver={(e) => { if (dragBookingId) e.preventDefault(); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (!dragBookingId) return;
+                      const src = (d.bookings as any[]).find((x) => x.id === dragBookingId);
+                      if (!src || src.room_id === r.id) return;
+                      const fromRoom = (d.rooms as any[]).find((x) => x.id === src.room_id);
+                      setReassignCtx({
+                        bookingId: src.id,
+                        fromRoomName: fromRoom?.name ?? "current room",
+                        toRoomId: r.id,
+                        toRoomName: r.name,
+                      });
+                      setDragBookingId(null);
+                    }}
+                  >
                     <td className="sticky left-0 z-10 border-r bg-card px-2 py-1 font-medium">
                       <button
                         className="text-left hover:underline"
@@ -311,12 +371,15 @@ function UnifiedCalendarPage() {
                       </button>
                     </td>
                     {days.map((day) => {
-                      const b = (d.bookings as any[]).find(
+                      const b = visibleBookings.find(
                         (bk) => bk.room_id === r.id && bk.check_in <= day && bk.check_out > day,
                       );
                       const inv = (d.inventory as any[]).find((i) => i.room_id === r.id && i.date === day);
                       const blocked = inv?.is_blocked;
                       const held = activeHoldsByRoomDate[`${r.id}:${day}`]?.size ?? 0;
+                      if (filters.holds && !held) {
+                        return <td key={day} className="border-r px-1 py-1 text-center opacity-30">·</td>;
+                      }
                       return (
                         <td
                           key={day}
@@ -334,13 +397,34 @@ function UnifiedCalendarPage() {
                           }
                         >
                           {b ? (
-                            <Link
-                              to="/admin/operations/reservations/$id"
-                              params={{ id: b.id }}
-                              className="block truncate text-[10px] hover:underline"
+                            <div
+                              draggable
+                              onDragStart={(e) => {
+                                setDragBookingId(b.id);
+                                e.dataTransfer.setData("text/plain", b.id);
+                                e.dataTransfer.effectAllowed = "move";
+                              }}
+                              onDragEnd={() => setDragBookingId(null)}
+                              className="group flex items-center justify-center gap-1 cursor-grab active:cursor-grabbing"
+                              title={`Drag to reassign · ${b.guest_name} · ${b.reference}`}
                             >
-                              {b.guest_name.split(" ")[0]}
-                            </Link>
+                              <Link
+                                to="/admin/operations/reservations/$id"
+                                params={{ id: b.id }}
+                                className="truncate text-[10px] hover:underline"
+                                onClick={(e) => { if (dragBookingId) e.preventDefault(); }}
+                              >
+                                {b.guest_name.split(" ")[0]}
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setSuggestForBooking(b.id); }}
+                                className="opacity-0 group-hover:opacity-100 text-primary"
+                                title="Suggest a better room"
+                              >
+                                <Sparkles className="h-3 w-3" />
+                              </button>
+                            </div>
                           ) : blocked ? (
                             "×"
                           ) : held ? (
