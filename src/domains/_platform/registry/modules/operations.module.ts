@@ -32,7 +32,7 @@ export const opsCalendarModule = defineModule({
   name: "Room Calendar",
   description: "Day/week/month reservation grid",
   icon: CalendarDays,
-  route: "/admin/operations/calendar",
+  route: "/admin/calendar",
   parentId: "operations",
   order: 22,
   requiredRoles: ["owner","manager","reception","admin","reservations"],

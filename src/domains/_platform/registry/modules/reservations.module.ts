@@ -18,7 +18,7 @@ export const reservationsCalendarModule = defineModule({
   name: "Calendar",
   description: "Availability and arrivals calendar",
   icon: CalendarDays,
-  route: "/admin/operations/calendar",
+  route: "/admin/calendar",
   parentId: "operations",
   order: 20,
   requiredRoles: ["owner","manager","reception","admin","reservations"],
