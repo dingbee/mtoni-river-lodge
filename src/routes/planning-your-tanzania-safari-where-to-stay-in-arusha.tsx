@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { ArticleLayout } from "@/components/site/ArticleLayout";
-import hero from "@/assets/lodge-hero-aerial.jpg";
+import hero from "@/assets/mtoni-entrance-hero.webp";
 import { absoluteUrl, buildBreadcrumbJsonLd } from "@/lib/seo-schema";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
 
@@ -98,7 +98,7 @@ export const Route = createFileRoute(
       {
         property: "og:image:alt",
         content:
-          "Aerial view of Mtoni River Lodge in Arusha — a peaceful base before a Tanzania safari",
+          "Stone entrance to Mtoni River Lodge in Arusha — a peaceful base before a Tanzania safari",
       },
       { property: "og:type", content: "article" },
       { property: "og:url", content: URL },
@@ -124,7 +124,7 @@ export const Route = createFileRoute(
             "@type": "ImageObject",
             url: HERO_URL,
             caption:
-              "Aerial view of Mtoni River Lodge — a peaceful base before and after a Tanzania safari",
+              "The entrance to Mtoni River Lodge — a peaceful base before and after a Tanzania safari",
           },
           datePublished: PUBLISHED,
           dateModified: PUBLISHED,
@@ -204,8 +204,8 @@ function ArticlePage() {
       title={TITLE}
       intro="Where you begin — and end — a Tanzania safari shapes the whole journey. A practical, honest guide to why Arusha is the smart base, how many nights to plan, and what to look for in a lodge before you ride out to the parks."
       image={hero}
-      imageAlt="Aerial view of Mtoni River Lodge in Arusha, a peaceful boutique base before and after a Tanzania safari"
-      caption="Mtoni River Lodge from above — Gomba Estate, Arusha"
+      imageAlt="Stone entrance to Mtoni River Lodge with carved wooden doors, surrounded by tropical garden"
+      caption="The entrance to Mtoni River Lodge — Gomba Estate, Arusha"
       relatedReading={RELATED}
     >
       <Reveal>

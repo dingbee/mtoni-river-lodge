@@ -1,4 +1,5 @@
 import aerial from "@/assets/aerial-lodge.jpg";
+import mtoniEntrance from "@/assets/mtoni-entrance-hero.webp";
 import river from "@/assets/hero-river.jpg";
 import reception from "@/assets/hero-reception-interior.jpg";
 import suite from "@/assets/suite-interior.jpg";
@@ -51,6 +52,7 @@ export type GalleryImage = {
 
 export const GALLERY: GalleryImage[] = [
   { src: aerial, alt: "Aerial view of Mtoni River Lodge along the Nduruma River", category: "Dining" },
+  { src: mtoniEntrance, alt: "Stone entrance to Mtoni River Lodge with carved wooden doors and tropical garden", category: "Architecture" },
   { src: reception, alt: "Warm stone reception with beaded chandelier and arched doorways", category: "Architecture" },
   { src: bomaThatch, alt: "Boma-inspired thatched room", category: "Architecture" },
   { src: forestCottage.url, alt: "Thatched cottage surrounded by tall forest trees at Mtoni River Lodge", category: "Architecture" },

@@ -6,6 +6,7 @@ import aerial from "@/assets/aerial-lodge.jpg";
 import cottage from "@/assets/hero-cottage-exterior.jpg";
 import poolAerialAsset from "@/assets/pool-aerial-slow-living.jpg.asset.json";
 import lodgeAerial from "@/assets/lodge-hero-aerial.jpg";
+import safariEntrance from "@/assets/mtoni-entrance-hero.webp";
 import receptionFeatured from "@/assets/mtoni-reception-featured.webp.asset.json";
 
 export type JournalPostHref =
@@ -49,7 +50,7 @@ const POSTS: JournalPost[] = [
       "Planning Your Tanzania Safari? Here's Why Your Stay in Arusha Matters More Than You Think",
     excerpt:
       "Planning a safari in Tanzania? Discover why staying in Arusha before and after your safari makes your journey smoother, more comfortable, and more memorable.",
-    img: lodgeAerial,
+    img: safariEntrance,
     href: "/planning-your-tanzania-safari-where-to-stay-in-arusha",
   },
   {
