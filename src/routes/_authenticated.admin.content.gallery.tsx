@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ComingSoon } from "@/components/os/ComingSoon";
+import { SlugPageRedirector } from "@/components/os/content/SlugPageRedirector";
 
 export const Route = createFileRoute("/_authenticated/admin/content/gallery")({
   head: () => ({ meta: [{ title: "Gallery — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
-  component: () => <ComingSoon title="Gallery" description="Manage the public gallery collections." />,
+  component: () => (
+    <SlugPageRedirector slug="gallery-landing" title="Gallery" route_path="/gallery" description="Gallery landing page." />
+  ),
 });

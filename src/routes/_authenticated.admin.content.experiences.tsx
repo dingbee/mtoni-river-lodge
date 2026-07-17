@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ComingSoon } from "@/components/os/ComingSoon";
+import { SlugPageRedirector } from "@/components/os/content/SlugPageRedirector";
 
 export const Route = createFileRoute("/_authenticated/admin/content/experiences")({
   head: () => ({ meta: [{ title: "Experiences — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
-  component: () => <ComingSoon title="Experiences" description="Curate on-site and destination experiences." />,
+  component: () => (
+    <SlugPageRedirector slug="experiences-landing" title="Experiences" route_path="/experiences" description="Experiences landing page." />
+  ),
 });
