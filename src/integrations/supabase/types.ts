@@ -328,6 +328,233 @@ export type Database = {
           },
         ]
       }
+      ai_pricing_recommendations: {
+        Row: {
+          action: string
+          action_task_id: string | null
+          actioned_at: string | null
+          actioned_by: string | null
+          confidence: number
+          created_at: string
+          current_rate: number | null
+          delta_pct: number | null
+          evidence: Json
+          expected_impact: number | null
+          id: string
+          model: string | null
+          reasoning: string
+          room_id: string | null
+          status: string
+          suggested_rate: number | null
+          updated_at: string
+          window_from: string
+          window_to: string
+        }
+        Insert: {
+          action: string
+          action_task_id?: string | null
+          actioned_at?: string | null
+          actioned_by?: string | null
+          confidence?: number
+          created_at?: string
+          current_rate?: number | null
+          delta_pct?: number | null
+          evidence?: Json
+          expected_impact?: number | null
+          id?: string
+          model?: string | null
+          reasoning: string
+          room_id?: string | null
+          status?: string
+          suggested_rate?: number | null
+          updated_at?: string
+          window_from: string
+          window_to: string
+        }
+        Update: {
+          action?: string
+          action_task_id?: string | null
+          actioned_at?: string | null
+          actioned_by?: string | null
+          confidence?: number
+          created_at?: string
+          current_rate?: number | null
+          delta_pct?: number | null
+          evidence?: Json
+          expected_impact?: number | null
+          id?: string
+          model?: string | null
+          reasoning?: string
+          room_id?: string | null
+          status?: string
+          suggested_rate?: number | null
+          updated_at?: string
+          window_from?: string
+          window_to?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_pricing_recommendations_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_revenue_alerts: {
+        Row: {
+          action_task_id: string | null
+          actioned_at: string | null
+          actioned_by: string | null
+          assigned_to: string | null
+          created_at: string
+          detail: string | null
+          evidence: Json
+          id: string
+          kind: string
+          metric: Json
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          action_task_id?: string | null
+          actioned_at?: string | null
+          actioned_by?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          detail?: string | null
+          evidence?: Json
+          id?: string
+          kind: string
+          metric?: Json
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          action_task_id?: string | null
+          actioned_at?: string | null
+          actioned_by?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          detail?: string | null
+          evidence?: Json
+          id?: string
+          kind?: string
+          metric?: Json
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_revenue_forecasts: {
+        Row: {
+          assumptions: Json
+          breakdown: Json
+          confidence: number
+          created_at: string
+          evidence: Json
+          expected_occupancy: number
+          expected_revenue: number
+          from_date: string
+          generated_by: string | null
+          horizon_days: number
+          id: string
+          model: string | null
+          to_date: string
+        }
+        Insert: {
+          assumptions?: Json
+          breakdown?: Json
+          confidence?: number
+          created_at?: string
+          evidence?: Json
+          expected_occupancy?: number
+          expected_revenue?: number
+          from_date: string
+          generated_by?: string | null
+          horizon_days: number
+          id?: string
+          model?: string | null
+          to_date: string
+        }
+        Update: {
+          assumptions?: Json
+          breakdown?: Json
+          confidence?: number
+          created_at?: string
+          evidence?: Json
+          expected_occupancy?: number
+          expected_revenue?: number
+          from_date?: string
+          generated_by?: string | null
+          horizon_days?: number
+          id?: string
+          model?: string | null
+          to_date?: string
+        }
+        Relationships: []
+      }
+      ai_revenue_opportunities: {
+        Row: {
+          action_task_id: string | null
+          actioned_at: string | null
+          actioned_by: string | null
+          confidence: number
+          created_at: string
+          detail: string | null
+          estimated_impact: number | null
+          evidence: Json
+          id: string
+          kind: string
+          model: string | null
+          recommended_action: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          action_task_id?: string | null
+          actioned_at?: string | null
+          actioned_by?: string | null
+          confidence?: number
+          created_at?: string
+          detail?: string | null
+          estimated_impact?: number | null
+          evidence?: Json
+          id?: string
+          kind: string
+          model?: string | null
+          recommended_action?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          action_task_id?: string | null
+          actioned_at?: string | null
+          actioned_by?: string | null
+          confidence?: number
+          created_at?: string
+          detail?: string | null
+          estimated_impact?: number | null
+          evidence?: Json
+          id?: string
+          kind?: string
+          model?: string | null
+          recommended_action?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_suggestions: {
         Row: {
           created_at: string
