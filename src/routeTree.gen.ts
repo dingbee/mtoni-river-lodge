@@ -99,6 +99,7 @@ import { Route as ApiPublicConciergeLeadRouteImport } from './routes/api/public/
 import { Route as ApiPublicConciergeFeedbackRouteImport } from './routes/api/public/concierge.feedback'
 import { Route as ApiPublicConciergeChatRouteImport } from './routes/api/public/concierge.chat'
 import { Route as ApiPublicConciergeAttributionRouteImport } from './routes/api/public/concierge.attribution'
+import { Route as AuthenticatedAdminSystemHealthRouteImport } from './routes/_authenticated.admin.system.health'
 import { Route as AuthenticatedAdminStaffUsersRouteImport } from './routes/_authenticated.admin.staff.users'
 import { Route as AuthenticatedAdminStaffRolesRouteImport } from './routes/_authenticated.admin.staff.roles'
 import { Route as AuthenticatedAdminStaffActivityRouteImport } from './routes/_authenticated.admin.staff.activity'
@@ -702,6 +703,12 @@ const ApiPublicConciergeAttributionRoute =
     id: '/api/public/concierge/attribution',
     path: '/api/public/concierge/attribution',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedAdminSystemHealthRoute =
+  AuthenticatedAdminSystemHealthRouteImport.update({
+    id: '/system/health',
+    path: '/system/health',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminStaffUsersRoute =
   AuthenticatedAdminStaffUsersRouteImport.update({
@@ -1546,6 +1553,7 @@ export interface FileRoutesByFullPath {
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
+  '/admin/system/health': typeof AuthenticatedAdminSystemHealthRoute
   '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
   '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
@@ -1743,6 +1751,7 @@ export interface FileRoutesByTo {
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
+  '/admin/system/health': typeof AuthenticatedAdminSystemHealthRoute
   '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
   '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
@@ -1954,6 +1963,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/_authenticated/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/_authenticated/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
+  '/_authenticated/admin/system/health': typeof AuthenticatedAdminSystemHealthRoute
   '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
   '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
@@ -2165,6 +2175,7 @@ export interface FileRouteTypes {
     | '/admin/staff/activity'
     | '/admin/staff/roles'
     | '/admin/staff/users'
+    | '/admin/system/health'
     | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
     | '/api/public/concierge/feedback'
@@ -2362,6 +2373,7 @@ export interface FileRouteTypes {
     | '/admin/staff/activity'
     | '/admin/staff/roles'
     | '/admin/staff/users'
+    | '/admin/system/health'
     | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
     | '/api/public/concierge/feedback'
@@ -2572,6 +2584,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/staff/activity'
     | '/_authenticated/admin/staff/roles'
     | '/_authenticated/admin/staff/users'
+    | '/_authenticated/admin/system/health'
     | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
     | '/api/public/concierge/feedback'
@@ -3341,6 +3354,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/concierge/attribution'
       preLoaderRoute: typeof ApiPublicConciergeAttributionRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin/system/health': {
+      id: '/_authenticated/admin/system/health'
+      path: '/system/health'
+      fullPath: '/admin/system/health'
+      preLoaderRoute: typeof AuthenticatedAdminSystemHealthRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/staff/users': {
       id: '/_authenticated/admin/staff/users'
@@ -4623,6 +4643,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminStaffActivityRoute: typeof AuthenticatedAdminStaffActivityRoute
   AuthenticatedAdminStaffRolesRoute: typeof AuthenticatedAdminStaffRolesRoute
   AuthenticatedAdminStaffUsersRoute: typeof AuthenticatedAdminStaffUsersRoute
+  AuthenticatedAdminSystemHealthRoute: typeof AuthenticatedAdminSystemHealthRoute
   AuthenticatedAdminFinanceIndexRoute: typeof AuthenticatedAdminFinanceIndexRoute
   AuthenticatedAdminContentJournalIdRoute: typeof AuthenticatedAdminContentJournalIdRoute
   AuthenticatedAdminContentJournalIndexRoute: typeof AuthenticatedAdminContentJournalIndexRoute
@@ -4682,6 +4703,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminStaffActivityRoute: AuthenticatedAdminStaffActivityRoute,
   AuthenticatedAdminStaffRolesRoute: AuthenticatedAdminStaffRolesRoute,
   AuthenticatedAdminStaffUsersRoute: AuthenticatedAdminStaffUsersRoute,
+  AuthenticatedAdminSystemHealthRoute: AuthenticatedAdminSystemHealthRoute,
   AuthenticatedAdminFinanceIndexRoute: AuthenticatedAdminFinanceIndexRoute,
   AuthenticatedAdminContentJournalIdRoute:
     AuthenticatedAdminContentJournalIdRoute,
