@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
@@ -8,24 +8,15 @@ import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
 import { getPublicJournalArticle, getPublicRelatedArticles } from "@/domains/content/journal/journal-public.functions";
 import { computeReadMinutes, extractToc, injectHeadingIds } from "@/lib/journal-utils";
 
-const articleOpts = (slug: string) =>
-  queryOptions({
-    queryKey: ["journal.public", slug],
-    queryFn: () => getPublicJournalArticle({ data: { slug } }),
-  });
-
-const relatedOpts = (articleId: string) =>
-  queryOptions({
-    queryKey: ["journal.public.related", articleId],
-    queryFn: () => getPublicRelatedArticles({ data: { articleId, limit: 3 } }),
-  });
-
 export const Route = createFileRoute("/journal/$slug")({
-  loader: async ({ params, context }) => {
-    const data = await context.queryClient.ensureQueryData(articleOpts(params.slug));
+  loader: async ({ params }) => {
+    const data = await getPublicJournalArticle({ data: { slug: params.slug } });
     if (!data) throw notFound();
-    context.queryClient.prefetchQuery(relatedOpts(data.article.id));
-    return { title: data.article.seo_title ?? data.article.title, description: data.article.seo_description ?? data.article.excerpt ?? "", ogImage: data.article.seo_og_image ?? data.article.cover_image_url ?? "" };
+    return {
+      title: data.article.seo_title ?? data.article.title,
+      description: data.article.seo_description ?? data.article.excerpt ?? "",
+      ogImage: data.article.seo_og_image ?? data.article.cover_image_url ?? "",
+    };
   },
   head: ({ loaderData, params }) => {
     if (!loaderData) return { meta: [{ title: "Journal — Mtoni River Lodge" }] };
@@ -66,7 +57,10 @@ export const Route = createFileRoute("/journal/$slug")({
 
 function PublicJournalArticle() {
   const { slug } = Route.useParams();
-  const { data } = useSuspenseQuery(articleOpts(slug));
+  const { data } = useQuery({
+    queryKey: ["journal.public", slug],
+    queryFn: () => getPublicJournalArticle({ data: { slug } }),
+  });
   if (!data) return null;
   const { article, author, category, tags } = data;
   const contentHtml = injectHeadingIds(article.content_html ?? "");
@@ -162,7 +156,10 @@ function PublicJournalArticle() {
 }
 
 function RelatedSection({ articleId }: { articleId: string }) {
-  const { data } = useSuspenseQuery(relatedOpts(articleId));
+  const { data } = useQuery({
+    queryKey: ["journal.public.related", articleId],
+    queryFn: () => getPublicRelatedArticles({ data: { articleId, limit: 3 } }),
+  });
   if (!data || data.length === 0) return null;
   return (
     <section className="border-t border-charcoal/10 px-6 py-20 lg:px-12">
