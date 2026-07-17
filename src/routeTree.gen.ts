@@ -143,6 +143,7 @@ import { Route as AuthenticatedAdminGuestsCrmDuplicatesRouteImport } from './rou
 import { Route as AuthenticatedAdminGuestsCrmIdRouteImport } from './routes/_authenticated.admin.guests.crm.$id'
 import { Route as AuthenticatedAdminContentJournalIdRouteImport } from './routes/_authenticated.admin.content.journal.$id'
 import { Route as AuthenticatedAdminAutomationWorkflowsIdRouteImport } from './routes/_authenticated.admin.automation.workflows.$id'
+import { Route as AuthenticatedAdminAiRevenuePricingRouteImport } from './routes/_authenticated.admin.ai.revenue.pricing'
 import { Route as AuthenticatedAdminAiRevenueForecastRouteImport } from './routes/_authenticated.admin.ai.revenue.forecast'
 import { Route as AuthenticatedAdminAiGuestsDashboardRouteImport } from './routes/_authenticated.admin.ai.guests.dashboard'
 import { Route as AuthenticatedAdminAiGuestsBookingIdRouteImport } from './routes/_authenticated.admin.ai.guests.$bookingId'
@@ -901,6 +902,12 @@ const AuthenticatedAdminAutomationWorkflowsIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedAdminAutomationWorkflowsRoute,
   } as any)
+const AuthenticatedAdminAiRevenuePricingRoute =
+  AuthenticatedAdminAiRevenuePricingRouteImport.update({
+    id: '/pricing',
+    path: '/pricing',
+    getParentRoute: () => AuthenticatedAdminAiRevenueRoute,
+  } as any)
 const AuthenticatedAdminAiRevenueForecastRoute =
   AuthenticatedAdminAiRevenueForecastRouteImport.update({
     id: '/forecast',
@@ -1059,6 +1066,7 @@ export interface FileRoutesByFullPath {
   '/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
   '/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
   '/admin/ai/revenue/forecast': typeof AuthenticatedAdminAiRevenueForecastRoute
+  '/admin/ai/revenue/pricing': typeof AuthenticatedAdminAiRevenuePricingRoute
   '/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
@@ -1192,6 +1200,7 @@ export interface FileRoutesByTo {
   '/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
   '/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
   '/admin/ai/revenue/forecast': typeof AuthenticatedAdminAiRevenueForecastRoute
+  '/admin/ai/revenue/pricing': typeof AuthenticatedAdminAiRevenuePricingRoute
   '/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
@@ -1334,6 +1343,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
   '/_authenticated/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
   '/_authenticated/admin/ai/revenue/forecast': typeof AuthenticatedAdminAiRevenueForecastRoute
+  '/_authenticated/admin/ai/revenue/pricing': typeof AuthenticatedAdminAiRevenuePricingRoute
   '/_authenticated/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/_authenticated/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
   '/_authenticated/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
@@ -1476,6 +1486,7 @@ export interface FileRouteTypes {
     | '/admin/ai/guests/$bookingId'
     | '/admin/ai/guests/dashboard'
     | '/admin/ai/revenue/forecast'
+    | '/admin/ai/revenue/pricing'
     | '/admin/automation/workflows/$id'
     | '/admin/content/journal/$id'
     | '/admin/guests/crm/$id'
@@ -1609,6 +1620,7 @@ export interface FileRouteTypes {
     | '/admin/ai/guests/$bookingId'
     | '/admin/ai/guests/dashboard'
     | '/admin/ai/revenue/forecast'
+    | '/admin/ai/revenue/pricing'
     | '/admin/automation/workflows/$id'
     | '/admin/content/journal/$id'
     | '/admin/guests/crm/$id'
@@ -1750,6 +1762,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/ai/guests/$bookingId'
     | '/_authenticated/admin/ai/guests/dashboard'
     | '/_authenticated/admin/ai/revenue/forecast'
+    | '/_authenticated/admin/ai/revenue/pricing'
     | '/_authenticated/admin/automation/workflows/$id'
     | '/_authenticated/admin/content/journal/$id'
     | '/_authenticated/admin/guests/crm/$id'
@@ -2760,6 +2773,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAutomationWorkflowsIdRouteImport
       parentRoute: typeof AuthenticatedAdminAutomationWorkflowsRoute
     }
+    '/_authenticated/admin/ai/revenue/pricing': {
+      id: '/_authenticated/admin/ai/revenue/pricing'
+      path: '/pricing'
+      fullPath: '/admin/ai/revenue/pricing'
+      preLoaderRoute: typeof AuthenticatedAdminAiRevenuePricingRouteImport
+      parentRoute: typeof AuthenticatedAdminAiRevenueRoute
+    }
     '/_authenticated/admin/ai/revenue/forecast': {
       id: '/_authenticated/admin/ai/revenue/forecast'
       path: '/forecast'
@@ -2818,6 +2838,7 @@ const AuthenticatedAdminAiGuestsRouteWithChildren =
 
 interface AuthenticatedAdminAiRevenueRouteChildren {
   AuthenticatedAdminAiRevenueForecastRoute: typeof AuthenticatedAdminAiRevenueForecastRoute
+  AuthenticatedAdminAiRevenuePricingRoute: typeof AuthenticatedAdminAiRevenuePricingRoute
   AuthenticatedAdminAiRevenueIndexRoute: typeof AuthenticatedAdminAiRevenueIndexRoute
 }
 
@@ -2825,6 +2846,8 @@ const AuthenticatedAdminAiRevenueRouteChildren: AuthenticatedAdminAiRevenueRoute
   {
     AuthenticatedAdminAiRevenueForecastRoute:
       AuthenticatedAdminAiRevenueForecastRoute,
+    AuthenticatedAdminAiRevenuePricingRoute:
+      AuthenticatedAdminAiRevenuePricingRoute,
     AuthenticatedAdminAiRevenueIndexRoute:
       AuthenticatedAdminAiRevenueIndexRoute,
   }
