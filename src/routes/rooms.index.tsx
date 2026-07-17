@@ -10,6 +10,8 @@ import { ROOMS, getRoomPath, type Room } from "@/lib/rooms";
 import { FAQ } from "@/components/FAQ";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
 import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
+import { getPublicSeoOverride } from "@/domains/marketing/seo/seo-public.functions";
+import { resolveSeo, seoMeta, seoSchemaScript } from "@/lib/seo-head";
 import roomImg from "@/assets/suite-interior.jpg";
 import { usePublicCms } from "@/lib/use-public-cms";
 import { CmsBody, hasCmsBody } from "@/components/site/CmsBody";
@@ -42,25 +44,41 @@ const ROOMS_FAQS: FAQItem[] = [
 ];
 
 export const Route = createFileRoute("/rooms/")({
-  head: () => ({
-    meta: [
-      { title: "Rooms — Mtoni River Lodge" },
-      { name: "description", content: "Earth-and-thatch rooms by the river at Mtoni River Lodge — accommodations inspired by Maasai boma design, grounded in natural materials and quiet luxury." },
-      { property: "og:title", content: "Rooms — Mtoni River Lodge" },
-      { property: "og:description", content: "Discover earth-and-thatch rooms by the river at Mtoni River Lodge, each inspired by Maasai boma design with its own private atmosphere." },
-      { property: "og:image", content: roomImg },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: roomImg },
-    ],
-    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/rooms" }],
-    scripts: [
+  loader: async () => ({
+    seoOverride: await getPublicSeoOverride({ data: { routePath: "/rooms" } }),
+  }),
+  head: ({ loaderData }) => {
+    const seo = resolveSeo(
+      {
+        title: "Rooms — Mtoni River Lodge",
+        description:
+          "Earth-and-thatch rooms by the river at Mtoni River Lodge — accommodations inspired by Maasai boma design, grounded in natural materials and quiet luxury.",
+        canonical: "https://mtoniriverlodge.com/rooms",
+        ogTitle: "Rooms — Mtoni River Lodge",
+        ogDescription:
+          "Discover earth-and-thatch rooms by the river at Mtoni River Lodge, each inspired by Maasai boma design with its own private atmosphere.",
+        ogImage: roomImg,
+        twitterImage: roomImg,
+      },
+      loaderData?.seoOverride ?? null,
+    );
+    const schema = seoSchemaScript(seo);
+    const scripts = [
       buildFAQJsonLd(ROOMS_FAQS),
       buildBreadcrumbJsonLd([
         { name: "Home", path: "/" },
         { name: "Accommodation", path: "/rooms" },
       ]),
-    ],
-  }),
+    ];
+    if (schema) scripts.push(schema);
+    return {
+      meta: seoMeta(seo),
+      links: [{ rel: "canonical", href: seo.canonical }],
+      scripts,
+    };
+  },
+  errorComponent: () => null,
+  notFoundComponent: () => null,
   component: RoomsIndexPage,
 });
 

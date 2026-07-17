@@ -8,21 +8,37 @@ import { Lightbox } from "@/components/site/Lightbox";
 import { GALLERY, GALLERY_CATEGORIES, type GalleryCategory } from "@/lib/gallery";
 import { usePublicCms } from "@/lib/use-public-cms";
 import { CmsBody, hasCmsBody } from "@/components/site/CmsBody";
+import { getPublicSeoOverride } from "@/domains/marketing/seo/seo-public.functions";
+import { resolveSeo, seoMeta, seoSchemaScript } from "@/lib/seo-head";
 import heroImg from "@/assets/aerial-lodge.jpg";
 
 export const Route = createFileRoute("/gallery")({
-  head: () => ({
-    meta: [
-      { title: "Gallery — Mtoni River Lodge" },
-      { name: "description", content: "An immersive gallery of Mtoni River Lodge — architecture, rooms, dining, nature, and quiet rituals along the Nduruma River in Arusha, Tanzania." },
-      { property: "og:title", content: "Gallery — Mtoni River Lodge" },
-      { property: "og:description", content: "Architecture, rooms, dining, and nature at Mtoni River Lodge." },
-      { property: "og:image", content: heroImg },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: heroImg },
-    ],
-    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/gallery" }],
+  loader: async () => ({
+    seoOverride: await getPublicSeoOverride({ data: { routePath: "/gallery" } }),
   }),
+  head: ({ loaderData }) => {
+    const seo = resolveSeo(
+      {
+        title: "Gallery — Mtoni River Lodge",
+        description:
+          "An immersive gallery of Mtoni River Lodge — architecture, rooms, dining, nature, and quiet rituals along the Nduruma River in Arusha, Tanzania.",
+        canonical: "https://mtoniriverlodge.com/gallery",
+        ogTitle: "Gallery — Mtoni River Lodge",
+        ogDescription: "Architecture, rooms, dining, and nature at Mtoni River Lodge.",
+        ogImage: heroImg,
+        twitterImage: heroImg,
+      },
+      loaderData?.seoOverride ?? null,
+    );
+    const schema = seoSchemaScript(seo);
+    return {
+      meta: seoMeta(seo),
+      links: [{ rel: "canonical", href: seo.canonical }],
+      scripts: schema ? [schema] : [],
+    };
+  },
+  errorComponent: () => null,
+  notFoundComponent: () => null,
   component: GalleryPage,
 });
 

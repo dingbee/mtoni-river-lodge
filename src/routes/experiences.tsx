@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { RESERVATIONS_NOTE } from "@/lib/contact";
 import { trackCheckAvailabilityClick } from "@/lib/analytics";
 import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
+import { getPublicSeoOverride } from "@/domains/marketing/seo/seo-public.functions";
+import { resolveSeo, seoMeta, seoSchemaScript } from "@/lib/seo-head";
 import { usePublicCms } from "@/lib/use-public-cms";
 import { CmsBody, hasCmsBody } from "@/components/site/CmsBody";
 import cycling from "@/assets/xp-cycling.jpg";
@@ -89,20 +91,36 @@ const xp: Xp[] = [
 ];
 
 export const Route = createFileRoute("/experiences")({
-  head: () => ({
-    meta: [
-      { title: "Experiences — Mtoni River Lodge" },
-      { name: "description", content: "Authentic experiences at Mtoni River Lodge — cycling, guided river walks, off-road adventures, live cooking, bonfires, local markets and canoeing on Lake Duluti." },
-      { property: "og:image", content: riverWalk },
-    ],
-    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/experiences" }],
-    scripts: [
+  loader: async () => ({
+    seoOverride: await getPublicSeoOverride({ data: { routePath: "/experiences" } }),
+  }),
+  head: ({ loaderData }) => {
+    const seo = resolveSeo(
+      {
+        title: "Experiences — Mtoni River Lodge",
+        description:
+          "Authentic experiences at Mtoni River Lodge — cycling, guided river walks, off-road adventures, live cooking, bonfires, local markets and canoeing on Lake Duluti.",
+        canonical: "https://mtoniriverlodge.com/experiences",
+        ogImage: riverWalk,
+      },
+      loaderData?.seoOverride ?? null,
+    );
+    const schema = seoSchemaScript(seo);
+    const scripts = [
       buildBreadcrumbJsonLd([
         { name: "Home", path: "/" },
         { name: "Experiences", path: "/experiences" },
       ]),
-    ],
-  }),
+    ];
+    if (schema) scripts.push(schema);
+    return {
+      meta: seoMeta(seo),
+      links: [{ rel: "canonical", href: seo.canonical }],
+      scripts,
+    };
+  },
+  errorComponent: () => null,
+  notFoundComponent: () => null,
   component: ExperiencesPage,
 });
 

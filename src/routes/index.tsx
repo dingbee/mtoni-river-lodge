@@ -10,6 +10,8 @@ import { WhyMtoni } from "@/components/site/WhyMtoni";
 import { GuestExperiencesSection } from "@/components/site/reviews/GuestExperiencesSection";
 import { FAQ } from "@/components/FAQ";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
+import { getPublicSeoOverride } from "@/domains/marketing/seo/seo-public.functions";
+import { resolveSeo, seoMeta, seoSchemaScript } from "@/lib/seo-head";
 import { RESERVATIONS_NOTE } from "@/lib/contact";
 import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics";
 import { usePublicCms } from "@/lib/use-public-cms";
@@ -61,33 +63,40 @@ const HOME_FAQS: FAQItem[] = [
 ];
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Mtoni River Lodge — Riverfront Sanctuary in Arusha, Tanzania" },
-      {
-        name: "description",
-        content:
-          "An intimate luxury eco-lodge on the banks of the Nduruma River. 24 riverfront rooms in Arusha, Tanzania, fireside dining, and curated journeys into the heart of the country.",
-      },
-      { property: "og:image", content: heroImg },
-    ],
-    links: [
-      // Preload the LCP hero image; the browser picks the matching variant
-      // via the imagesrcset + media query, so mobile fetches ~35 KB instead
-      // of the full-res JPG.
-      {
-        rel: "preload",
-        as: "image",
-        href: heroImg800,
-        type: "image/webp",
-        imagesrcset: `${heroImg800} 800w, ${heroImg1600} 1600w`,
-        imagesizes: "100vw",
-        fetchpriority: "high",
-      },
-      { rel: "canonical", href: "https://mtoniriverlodge.com/" },
-    ],
-    scripts: [buildFAQJsonLd(HOME_FAQS)],
+  loader: async () => ({
+    seoOverride: await getPublicSeoOverride({ data: { routePath: "/" } }),
   }),
+  head: ({ loaderData }) => {
+    const seo = resolveSeo(
+      {
+        title: "Mtoni River Lodge — Riverfront Sanctuary in Arusha, Tanzania",
+        description:
+          "An intimate luxury eco-lodge on the banks of the Nduruma River. 24 riverfront rooms in Arusha, Tanzania, fireside dining, and curated journeys into the heart of the country.",
+        canonical: "https://mtoniriverlodge.com/",
+        ogImage: heroImg,
+      },
+      loaderData?.seoOverride ?? null,
+    );
+    const schema = seoSchemaScript(seo);
+    return {
+      meta: seoMeta(seo),
+      links: [
+        {
+          rel: "preload",
+          as: "image",
+          href: heroImg800,
+          type: "image/webp",
+          imagesrcset: `${heroImg800} 800w, ${heroImg1600} 1600w`,
+          imagesizes: "100vw",
+          fetchpriority: "high",
+        },
+        { rel: "canonical", href: seo.canonical },
+      ],
+      scripts: schema ? [buildFAQJsonLd(HOME_FAQS), schema] : [buildFAQJsonLd(HOME_FAQS)],
+    };
+  },
+  errorComponent: () => null,
+  notFoundComponent: () => null,
   component: HomePage,
 });
 
