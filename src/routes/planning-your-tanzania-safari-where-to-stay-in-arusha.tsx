@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Reveal } from "@/components/site/Reveal";
 import { ArticleLayout } from "@/components/site/ArticleLayout";
-import hero from "@/assets/lodge-hero-aerial.jpg";
+import hero from "@/assets/mtoni-entrance-hero.webp";
 import { absoluteUrl, buildBreadcrumbJsonLd } from "@/lib/seo-schema";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
 

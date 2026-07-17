@@ -1,4 +1,5 @@
 import aerial from "@/assets/aerial-lodge.jpg";
+import mtoniEntrance from "@/assets/mtoni-entrance-hero.webp";
 import river from "@/assets/hero-river.jpg";
 import reception from "@/assets/hero-reception-interior.jpg";
 import suite from "@/assets/suite-interior.jpg";

@@ -5,7 +5,7 @@ import villa from "@/assets/boma-thatch-room.jpg";
 import aerial from "@/assets/aerial-lodge.jpg";
 import cottage from "@/assets/hero-cottage-exterior.jpg";
 import poolAerialAsset from "@/assets/pool-aerial-slow-living.jpg.asset.json";
-import lodgeAerial from "@/assets/lodge-hero-aerial.jpg";
+import lodgeAerial from "@/assets/mtoni-entrance-hero.webp";
 import receptionFeatured from "@/assets/mtoni-reception-featured.webp.asset.json";
 
 export type JournalPostHref =
