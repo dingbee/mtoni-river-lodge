@@ -164,6 +164,7 @@ import { Route as AuthenticatedAdminAiRevenuePatternsRouteImport } from './route
 import { Route as AuthenticatedAdminAiRevenueOpportunitiesRouteImport } from './routes/_authenticated.admin.ai.revenue.opportunities'
 import { Route as AuthenticatedAdminAiRevenueForecastRouteImport } from './routes/_authenticated.admin.ai.revenue.forecast'
 import { Route as AuthenticatedAdminAiRevenueAlertsRouteImport } from './routes/_authenticated.admin.ai.revenue.alerts'
+import { Route as AuthenticatedAdminAiOperationsTimelineRouteImport } from './routes/_authenticated.admin.ai.operations.timeline'
 import { Route as AuthenticatedAdminAiOperationsTasksRouteImport } from './routes/_authenticated.admin.ai.operations.tasks'
 import { Route as AuthenticatedAdminAiOperationsMaintenanceRouteImport } from './routes/_authenticated.admin.ai.operations.maintenance'
 import { Route as AuthenticatedAdminAiOperationsKnowledgeRouteImport } from './routes/_authenticated.admin.ai.operations.knowledge'
@@ -1070,6 +1071,12 @@ const AuthenticatedAdminAiRevenueAlertsRoute =
     path: '/alerts',
     getParentRoute: () => AuthenticatedAdminAiRevenueRoute,
   } as any)
+const AuthenticatedAdminAiOperationsTimelineRoute =
+  AuthenticatedAdminAiOperationsTimelineRouteImport.update({
+    id: '/timeline',
+    path: '/timeline',
+    getParentRoute: () => AuthenticatedAdminAiOperationsRoute,
+  } as any)
 const AuthenticatedAdminAiOperationsTasksRoute =
   AuthenticatedAdminAiOperationsTasksRouteImport.update({
     id: '/tasks',
@@ -1408,6 +1415,7 @@ export interface FileRoutesByFullPath {
   '/admin/ai/operations/knowledge': typeof AuthenticatedAdminAiOperationsKnowledgeRoute
   '/admin/ai/operations/maintenance': typeof AuthenticatedAdminAiOperationsMaintenanceRoute
   '/admin/ai/operations/tasks': typeof AuthenticatedAdminAiOperationsTasksRoute
+  '/admin/ai/operations/timeline': typeof AuthenticatedAdminAiOperationsTimelineRoute
   '/admin/ai/revenue/alerts': typeof AuthenticatedAdminAiRevenueAlertsRoute
   '/admin/ai/revenue/forecast': typeof AuthenticatedAdminAiRevenueForecastRoute
   '/admin/ai/revenue/opportunities': typeof AuthenticatedAdminAiRevenueOpportunitiesRoute
@@ -1582,6 +1590,7 @@ export interface FileRoutesByTo {
   '/admin/ai/operations/knowledge': typeof AuthenticatedAdminAiOperationsKnowledgeRoute
   '/admin/ai/operations/maintenance': typeof AuthenticatedAdminAiOperationsMaintenanceRoute
   '/admin/ai/operations/tasks': typeof AuthenticatedAdminAiOperationsTasksRoute
+  '/admin/ai/operations/timeline': typeof AuthenticatedAdminAiOperationsTimelineRoute
   '/admin/ai/revenue/alerts': typeof AuthenticatedAdminAiRevenueAlertsRoute
   '/admin/ai/revenue/forecast': typeof AuthenticatedAdminAiRevenueForecastRoute
   '/admin/ai/revenue/opportunities': typeof AuthenticatedAdminAiRevenueOpportunitiesRoute
@@ -1769,6 +1778,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/ai/operations/knowledge': typeof AuthenticatedAdminAiOperationsKnowledgeRoute
   '/_authenticated/admin/ai/operations/maintenance': typeof AuthenticatedAdminAiOperationsMaintenanceRoute
   '/_authenticated/admin/ai/operations/tasks': typeof AuthenticatedAdminAiOperationsTasksRoute
+  '/_authenticated/admin/ai/operations/timeline': typeof AuthenticatedAdminAiOperationsTimelineRoute
   '/_authenticated/admin/ai/revenue/alerts': typeof AuthenticatedAdminAiRevenueAlertsRoute
   '/_authenticated/admin/ai/revenue/forecast': typeof AuthenticatedAdminAiRevenueForecastRoute
   '/_authenticated/admin/ai/revenue/opportunities': typeof AuthenticatedAdminAiRevenueOpportunitiesRoute
@@ -1956,6 +1966,7 @@ export interface FileRouteTypes {
     | '/admin/ai/operations/knowledge'
     | '/admin/ai/operations/maintenance'
     | '/admin/ai/operations/tasks'
+    | '/admin/ai/operations/timeline'
     | '/admin/ai/revenue/alerts'
     | '/admin/ai/revenue/forecast'
     | '/admin/ai/revenue/opportunities'
@@ -2130,6 +2141,7 @@ export interface FileRouteTypes {
     | '/admin/ai/operations/knowledge'
     | '/admin/ai/operations/maintenance'
     | '/admin/ai/operations/tasks'
+    | '/admin/ai/operations/timeline'
     | '/admin/ai/revenue/alerts'
     | '/admin/ai/revenue/forecast'
     | '/admin/ai/revenue/opportunities'
@@ -2316,6 +2328,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/ai/operations/knowledge'
     | '/_authenticated/admin/ai/operations/maintenance'
     | '/_authenticated/admin/ai/operations/tasks'
+    | '/_authenticated/admin/ai/operations/timeline'
     | '/_authenticated/admin/ai/revenue/alerts'
     | '/_authenticated/admin/ai/revenue/forecast'
     | '/_authenticated/admin/ai/revenue/opportunities'
@@ -3486,6 +3499,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiRevenueAlertsRouteImport
       parentRoute: typeof AuthenticatedAdminAiRevenueRoute
     }
+    '/_authenticated/admin/ai/operations/timeline': {
+      id: '/_authenticated/admin/ai/operations/timeline'
+      path: '/timeline'
+      fullPath: '/admin/ai/operations/timeline'
+      preLoaderRoute: typeof AuthenticatedAdminAiOperationsTimelineRouteImport
+      parentRoute: typeof AuthenticatedAdminAiOperationsRoute
+    }
     '/_authenticated/admin/ai/operations/tasks': {
       id: '/_authenticated/admin/ai/operations/tasks'
       path: '/tasks'
@@ -3819,6 +3839,7 @@ interface AuthenticatedAdminAiOperationsRouteChildren {
   AuthenticatedAdminAiOperationsKnowledgeRoute: typeof AuthenticatedAdminAiOperationsKnowledgeRoute
   AuthenticatedAdminAiOperationsMaintenanceRoute: typeof AuthenticatedAdminAiOperationsMaintenanceRoute
   AuthenticatedAdminAiOperationsTasksRoute: typeof AuthenticatedAdminAiOperationsTasksRoute
+  AuthenticatedAdminAiOperationsTimelineRoute: typeof AuthenticatedAdminAiOperationsTimelineRoute
   AuthenticatedAdminAiOperationsIndexRoute: typeof AuthenticatedAdminAiOperationsIndexRoute
 }
 
@@ -3836,6 +3857,8 @@ const AuthenticatedAdminAiOperationsRouteChildren: AuthenticatedAdminAiOperation
       AuthenticatedAdminAiOperationsMaintenanceRoute,
     AuthenticatedAdminAiOperationsTasksRoute:
       AuthenticatedAdminAiOperationsTasksRoute,
+    AuthenticatedAdminAiOperationsTimelineRoute:
+      AuthenticatedAdminAiOperationsTimelineRoute,
     AuthenticatedAdminAiOperationsIndexRoute:
       AuthenticatedAdminAiOperationsIndexRoute,
   }

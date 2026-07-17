@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
-import { Sparkles, BarChart3, FileText, History, Settings, Users, TrendingUp, Megaphone, LayoutDashboard, ShieldCheck, Activity, Search, MessageCircle, Inbox, Brain, Plane, MessagesSquare, PenSquare, AlertTriangle, Radio, LineChart } from "lucide-react";
+import { Sparkles, BarChart3, FileText, History, Settings, Users, TrendingUp, Megaphone, LayoutDashboard, ShieldCheck, Activity, Search, MessageCircle, Inbox, Brain, Plane, MessagesSquare, PenSquare, AlertTriangle, Radio, LineChart, ClipboardList } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/ai")({
   head: () => ({ meta: [{ title: "Mtoni AI — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -12,6 +12,7 @@ const TABS = [
   { to: "/admin/ai/guests",    label: "Guest Intelligence AI", icon: Users },
   { to: "/admin/ai/revenue",   label: "Revenue Intelligence AI", icon: TrendingUp },
   { to: "/admin/ai/marketing", label: "Marketing Intelligence AI", icon: Megaphone },
+  { to: "/admin/ai/operations", label: "Operations AI", icon: ClipboardList },
   { to: "/admin/ai/concierge", label: "AI Concierge",       icon: MessageCircle },
   { to: "/admin/ai/concierge/analytics", label: "Concierge Analytics", icon: LineChart },
   { to: "/admin/ai/concierge/conversations", label: "Conversations", icon: MessagesSquare },
