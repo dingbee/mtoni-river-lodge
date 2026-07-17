@@ -122,6 +122,212 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_guest_alerts: {
+        Row: {
+          assigned_to: string | null
+          booking_id: string | null
+          created_at: string
+          detail: string | null
+          dismissed_at: string | null
+          dismissed_by: string | null
+          evidence: Json
+          guest_id: string | null
+          id: string
+          kind: string
+          severity: string
+          status: string
+          task_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          booking_id?: string | null
+          created_at?: string
+          detail?: string | null
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          evidence?: Json
+          guest_id?: string | null
+          id?: string
+          kind: string
+          severity?: string
+          status?: string
+          task_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          booking_id?: string | null
+          created_at?: string
+          detail?: string | null
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          evidence?: Json
+          guest_id?: string | null
+          id?: string
+          kind?: string
+          severity?: string
+          status?: string
+          task_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_guest_alerts_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_guest_alerts_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_guest_alerts_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_guest_alerts_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
+          },
+          {
+            foreignKeyName: "ai_guest_alerts_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_guest_alerts_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "ops_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_guest_recommendations: {
+        Row: {
+          action_task_id: string | null
+          actioned_at: string | null
+          actioned_by: string | null
+          body: string | null
+          booking_id: string | null
+          category: string | null
+          confidence: number | null
+          created_at: string
+          created_by: string | null
+          evidence: Json
+          expected_value: number | null
+          guest_id: string | null
+          id: string
+          kind: string
+          model: string | null
+          reasoning: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          action_task_id?: string | null
+          actioned_at?: string | null
+          actioned_by?: string | null
+          body?: string | null
+          booking_id?: string | null
+          category?: string | null
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence?: Json
+          expected_value?: number | null
+          guest_id?: string | null
+          id?: string
+          kind: string
+          model?: string | null
+          reasoning?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          action_task_id?: string | null
+          actioned_at?: string | null
+          actioned_by?: string | null
+          body?: string | null
+          booking_id?: string | null
+          category?: string | null
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence?: Json
+          expected_value?: number | null
+          guest_id?: string | null
+          id?: string
+          kind?: string
+          model?: string | null
+          reasoning?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_guest_recommendations_action_task_id_fkey"
+            columns: ["action_task_id"]
+            isOneToOne: false
+            referencedRelation: "ops_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_guest_recommendations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_guest_recommendations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_guest_recommendations_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_guest_recommendations_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
+          },
+          {
+            foreignKeyName: "ai_guest_recommendations_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_suggestions: {
         Row: {
           created_at: string

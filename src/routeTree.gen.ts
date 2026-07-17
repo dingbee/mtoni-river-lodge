@@ -130,6 +130,7 @@ import { Route as AuthenticatedAdminAutomationApprovalsRouteImport } from './rou
 import { Route as AuthenticatedAdminAiSettingsRouteImport } from './routes/_authenticated.admin.ai.settings'
 import { Route as AuthenticatedAdminAiKnowledgeRouteImport } from './routes/_authenticated.admin.ai.knowledge'
 import { Route as AuthenticatedAdminAiInsightsRouteImport } from './routes/_authenticated.admin.ai.insights'
+import { Route as AuthenticatedAdminAiGuestsRouteImport } from './routes/_authenticated.admin.ai.guests'
 import { Route as AuthenticatedAdminAiActivityRouteImport } from './routes/_authenticated.admin.ai.activity'
 import { Route as AuthenticatedAdminContentPagesIndexRouteImport } from './routes/_authenticated.admin.content.pages.index'
 import { Route as AuthenticatedAdminContentJournalIndexRouteImport } from './routes/_authenticated.admin.content.journal.index'
@@ -140,6 +141,8 @@ import { Route as AuthenticatedAdminGuestsCrmDuplicatesRouteImport } from './rou
 import { Route as AuthenticatedAdminGuestsCrmIdRouteImport } from './routes/_authenticated.admin.guests.crm.$id'
 import { Route as AuthenticatedAdminContentJournalIdRouteImport } from './routes/_authenticated.admin.content.journal.$id'
 import { Route as AuthenticatedAdminAutomationWorkflowsIdRouteImport } from './routes/_authenticated.admin.automation.workflows.$id'
+import { Route as AuthenticatedAdminAiGuestsDashboardRouteImport } from './routes/_authenticated.admin.ai.guests.dashboard'
+import { Route as AuthenticatedAdminAiGuestsBookingIdRouteImport } from './routes/_authenticated.admin.ai.guests.$bookingId'
 import { Route as AuthenticatedAdminContentPagesIdIndexRouteImport } from './routes/_authenticated.admin.content.pages.$id.index'
 import { Route as AuthenticatedAdminContentPagesIdPreviewRouteImport } from './routes/_authenticated.admin.content.pages.$id.preview'
 
@@ -817,6 +820,12 @@ const AuthenticatedAdminAiInsightsRoute =
     path: '/insights',
     getParentRoute: () => AuthenticatedAdminAiRoute,
   } as any)
+const AuthenticatedAdminAiGuestsRoute =
+  AuthenticatedAdminAiGuestsRouteImport.update({
+    id: '/guests',
+    path: '/guests',
+    getParentRoute: () => AuthenticatedAdminAiRoute,
+  } as any)
 const AuthenticatedAdminAiActivityRoute =
   AuthenticatedAdminAiActivityRouteImport.update({
     id: '/activity',
@@ -876,6 +885,18 @@ const AuthenticatedAdminAutomationWorkflowsIdRoute =
     id: '/$id',
     path: '/$id',
     getParentRoute: () => AuthenticatedAdminAutomationWorkflowsRoute,
+  } as any)
+const AuthenticatedAdminAiGuestsDashboardRoute =
+  AuthenticatedAdminAiGuestsDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => AuthenticatedAdminAiGuestsRoute,
+  } as any)
+const AuthenticatedAdminAiGuestsBookingIdRoute =
+  AuthenticatedAdminAiGuestsBookingIdRouteImport.update({
+    id: '/$bookingId',
+    path: '/$bookingId',
+    getParentRoute: () => AuthenticatedAdminAiGuestsRoute,
   } as any)
 const AuthenticatedAdminContentPagesIdIndexRoute =
   AuthenticatedAdminContentPagesIdIndexRouteImport.update({
@@ -962,6 +983,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
+  '/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRouteWithChildren
   '/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
   '/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
   '/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
@@ -1012,6 +1034,8 @@ export interface FileRoutesByFullPath {
   '/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
   '/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
+  '/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
+  '/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
   '/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
@@ -1090,6 +1114,7 @@ export interface FileRoutesByTo {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
+  '/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRouteWithChildren
   '/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
   '/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
   '/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
@@ -1140,6 +1165,8 @@ export interface FileRoutesByTo {
   '/admin/automation': typeof AuthenticatedAdminAutomationIndexRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
+  '/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
+  '/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
   '/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
@@ -1226,6 +1253,7 @@ export interface FileRoutesById {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
+  '/_authenticated/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRouteWithChildren
   '/_authenticated/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
   '/_authenticated/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
   '/_authenticated/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
@@ -1276,6 +1304,8 @@ export interface FileRoutesById {
   '/_authenticated/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
   '/_authenticated/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
+  '/_authenticated/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
+  '/_authenticated/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
   '/_authenticated/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/_authenticated/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
   '/_authenticated/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
@@ -1362,6 +1392,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/admin/'
     | '/admin/ai/activity'
+    | '/admin/ai/guests'
     | '/admin/ai/insights'
     | '/admin/ai/knowledge'
     | '/admin/ai/settings'
@@ -1412,6 +1443,8 @@ export interface FileRouteTypes {
     | '/admin/automation/'
     | '/admin/finance/'
     | '/admin/operations/'
+    | '/admin/ai/guests/$bookingId'
+    | '/admin/ai/guests/dashboard'
     | '/admin/automation/workflows/$id'
     | '/admin/content/journal/$id'
     | '/admin/guests/crm/$id'
@@ -1490,6 +1523,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/admin'
     | '/admin/ai/activity'
+    | '/admin/ai/guests'
     | '/admin/ai/insights'
     | '/admin/ai/knowledge'
     | '/admin/ai/settings'
@@ -1540,6 +1574,8 @@ export interface FileRouteTypes {
     | '/admin/automation'
     | '/admin/finance'
     | '/admin/operations'
+    | '/admin/ai/guests/$bookingId'
+    | '/admin/ai/guests/dashboard'
     | '/admin/automation/workflows/$id'
     | '/admin/content/journal/$id'
     | '/admin/guests/crm/$id'
@@ -1625,6 +1661,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
     | '/_authenticated/admin/ai/activity'
+    | '/_authenticated/admin/ai/guests'
     | '/_authenticated/admin/ai/insights'
     | '/_authenticated/admin/ai/knowledge'
     | '/_authenticated/admin/ai/settings'
@@ -1675,6 +1712,8 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/automation/'
     | '/_authenticated/admin/finance/'
     | '/_authenticated/admin/operations/'
+    | '/_authenticated/admin/ai/guests/$bookingId'
+    | '/_authenticated/admin/ai/guests/dashboard'
     | '/_authenticated/admin/automation/workflows/$id'
     | '/_authenticated/admin/content/journal/$id'
     | '/_authenticated/admin/guests/crm/$id'
@@ -2593,6 +2632,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiInsightsRouteImport
       parentRoute: typeof AuthenticatedAdminAiRoute
     }
+    '/_authenticated/admin/ai/guests': {
+      id: '/_authenticated/admin/ai/guests'
+      path: '/guests'
+      fullPath: '/admin/ai/guests'
+      preLoaderRoute: typeof AuthenticatedAdminAiGuestsRouteImport
+      parentRoute: typeof AuthenticatedAdminAiRoute
+    }
     '/_authenticated/admin/ai/activity': {
       id: '/_authenticated/admin/ai/activity'
       path: '/activity'
@@ -2663,6 +2709,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAutomationWorkflowsIdRouteImport
       parentRoute: typeof AuthenticatedAdminAutomationWorkflowsRoute
     }
+    '/_authenticated/admin/ai/guests/dashboard': {
+      id: '/_authenticated/admin/ai/guests/dashboard'
+      path: '/dashboard'
+      fullPath: '/admin/ai/guests/dashboard'
+      preLoaderRoute: typeof AuthenticatedAdminAiGuestsDashboardRouteImport
+      parentRoute: typeof AuthenticatedAdminAiGuestsRoute
+    }
+    '/_authenticated/admin/ai/guests/$bookingId': {
+      id: '/_authenticated/admin/ai/guests/$bookingId'
+      path: '/$bookingId'
+      fullPath: '/admin/ai/guests/$bookingId'
+      preLoaderRoute: typeof AuthenticatedAdminAiGuestsBookingIdRouteImport
+      parentRoute: typeof AuthenticatedAdminAiGuestsRoute
+    }
     '/_authenticated/admin/content/pages/$id/': {
       id: '/_authenticated/admin/content/pages/$id/'
       path: '/content/pages/$id'
@@ -2680,8 +2740,27 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedAdminAiGuestsRouteChildren {
+  AuthenticatedAdminAiGuestsBookingIdRoute: typeof AuthenticatedAdminAiGuestsBookingIdRoute
+  AuthenticatedAdminAiGuestsDashboardRoute: typeof AuthenticatedAdminAiGuestsDashboardRoute
+}
+
+const AuthenticatedAdminAiGuestsRouteChildren: AuthenticatedAdminAiGuestsRouteChildren =
+  {
+    AuthenticatedAdminAiGuestsBookingIdRoute:
+      AuthenticatedAdminAiGuestsBookingIdRoute,
+    AuthenticatedAdminAiGuestsDashboardRoute:
+      AuthenticatedAdminAiGuestsDashboardRoute,
+  }
+
+const AuthenticatedAdminAiGuestsRouteWithChildren =
+  AuthenticatedAdminAiGuestsRoute._addFileChildren(
+    AuthenticatedAdminAiGuestsRouteChildren,
+  )
+
 interface AuthenticatedAdminAiRouteChildren {
   AuthenticatedAdminAiActivityRoute: typeof AuthenticatedAdminAiActivityRoute
+  AuthenticatedAdminAiGuestsRoute: typeof AuthenticatedAdminAiGuestsRouteWithChildren
   AuthenticatedAdminAiInsightsRoute: typeof AuthenticatedAdminAiInsightsRoute
   AuthenticatedAdminAiKnowledgeRoute: typeof AuthenticatedAdminAiKnowledgeRoute
   AuthenticatedAdminAiSettingsRoute: typeof AuthenticatedAdminAiSettingsRoute
@@ -2690,6 +2769,7 @@ interface AuthenticatedAdminAiRouteChildren {
 
 const AuthenticatedAdminAiRouteChildren: AuthenticatedAdminAiRouteChildren = {
   AuthenticatedAdminAiActivityRoute: AuthenticatedAdminAiActivityRoute,
+  AuthenticatedAdminAiGuestsRoute: AuthenticatedAdminAiGuestsRouteWithChildren,
   AuthenticatedAdminAiInsightsRoute: AuthenticatedAdminAiInsightsRoute,
   AuthenticatedAdminAiKnowledgeRoute: AuthenticatedAdminAiKnowledgeRoute,
   AuthenticatedAdminAiSettingsRoute: AuthenticatedAdminAiSettingsRoute,
