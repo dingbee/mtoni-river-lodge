@@ -130,6 +130,7 @@ import { Route as AuthenticatedAdminAutomationApprovalsRouteImport } from './rou
 import { Route as AuthenticatedAdminAiSettingsRouteImport } from './routes/_authenticated.admin.ai.settings'
 import { Route as AuthenticatedAdminAiKnowledgeRouteImport } from './routes/_authenticated.admin.ai.knowledge'
 import { Route as AuthenticatedAdminAiInsightsRouteImport } from './routes/_authenticated.admin.ai.insights'
+import { Route as AuthenticatedAdminAiGuestsRouteImport } from './routes/_authenticated.admin.ai.guests'
 import { Route as AuthenticatedAdminAiActivityRouteImport } from './routes/_authenticated.admin.ai.activity'
 import { Route as AuthenticatedAdminContentPagesIndexRouteImport } from './routes/_authenticated.admin.content.pages.index'
 import { Route as AuthenticatedAdminContentJournalIndexRouteImport } from './routes/_authenticated.admin.content.journal.index'
@@ -817,6 +818,12 @@ const AuthenticatedAdminAiInsightsRoute =
     path: '/insights',
     getParentRoute: () => AuthenticatedAdminAiRoute,
   } as any)
+const AuthenticatedAdminAiGuestsRoute =
+  AuthenticatedAdminAiGuestsRouteImport.update({
+    id: '/guests',
+    path: '/guests',
+    getParentRoute: () => AuthenticatedAdminAiRoute,
+  } as any)
 const AuthenticatedAdminAiActivityRoute =
   AuthenticatedAdminAiActivityRouteImport.update({
     id: '/activity',
@@ -962,6 +969,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
+  '/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRoute
   '/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
   '/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
   '/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
@@ -1090,6 +1098,7 @@ export interface FileRoutesByTo {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
+  '/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRoute
   '/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
   '/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
   '/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
@@ -1226,6 +1235,7 @@ export interface FileRoutesById {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
+  '/_authenticated/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRoute
   '/_authenticated/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
   '/_authenticated/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
   '/_authenticated/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
@@ -1362,6 +1372,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/admin/'
     | '/admin/ai/activity'
+    | '/admin/ai/guests'
     | '/admin/ai/insights'
     | '/admin/ai/knowledge'
     | '/admin/ai/settings'
@@ -1490,6 +1501,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/admin'
     | '/admin/ai/activity'
+    | '/admin/ai/guests'
     | '/admin/ai/insights'
     | '/admin/ai/knowledge'
     | '/admin/ai/settings'
@@ -1625,6 +1637,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
     | '/_authenticated/admin/ai/activity'
+    | '/_authenticated/admin/ai/guests'
     | '/_authenticated/admin/ai/insights'
     | '/_authenticated/admin/ai/knowledge'
     | '/_authenticated/admin/ai/settings'
@@ -2593,6 +2606,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiInsightsRouteImport
       parentRoute: typeof AuthenticatedAdminAiRoute
     }
+    '/_authenticated/admin/ai/guests': {
+      id: '/_authenticated/admin/ai/guests'
+      path: '/guests'
+      fullPath: '/admin/ai/guests'
+      preLoaderRoute: typeof AuthenticatedAdminAiGuestsRouteImport
+      parentRoute: typeof AuthenticatedAdminAiRoute
+    }
     '/_authenticated/admin/ai/activity': {
       id: '/_authenticated/admin/ai/activity'
       path: '/activity'
@@ -2682,6 +2702,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminAiRouteChildren {
   AuthenticatedAdminAiActivityRoute: typeof AuthenticatedAdminAiActivityRoute
+  AuthenticatedAdminAiGuestsRoute: typeof AuthenticatedAdminAiGuestsRoute
   AuthenticatedAdminAiInsightsRoute: typeof AuthenticatedAdminAiInsightsRoute
   AuthenticatedAdminAiKnowledgeRoute: typeof AuthenticatedAdminAiKnowledgeRoute
   AuthenticatedAdminAiSettingsRoute: typeof AuthenticatedAdminAiSettingsRoute
@@ -2690,6 +2711,7 @@ interface AuthenticatedAdminAiRouteChildren {
 
 const AuthenticatedAdminAiRouteChildren: AuthenticatedAdminAiRouteChildren = {
   AuthenticatedAdminAiActivityRoute: AuthenticatedAdminAiActivityRoute,
+  AuthenticatedAdminAiGuestsRoute: AuthenticatedAdminAiGuestsRoute,
   AuthenticatedAdminAiInsightsRoute: AuthenticatedAdminAiInsightsRoute,
   AuthenticatedAdminAiKnowledgeRoute: AuthenticatedAdminAiKnowledgeRoute,
   AuthenticatedAdminAiSettingsRoute: AuthenticatedAdminAiSettingsRoute,
