@@ -139,6 +139,7 @@ import { Route as AuthenticatedAdminAiInsightsRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminAiGuestsRouteImport } from './routes/_authenticated.admin.ai.guests'
 import { Route as AuthenticatedAdminAiGovernanceRouteImport } from './routes/_authenticated.admin.ai.governance'
 import { Route as AuthenticatedAdminAiExecutiveRouteImport } from './routes/_authenticated.admin.ai.executive'
+import { Route as AuthenticatedAdminAiConciergeRouteImport } from './routes/_authenticated.admin.ai.concierge'
 import { Route as AuthenticatedAdminAiAuditRouteImport } from './routes/_authenticated.admin.ai.audit'
 import { Route as AuthenticatedAdminAiActivityRouteImport } from './routes/_authenticated.admin.ai.activity'
 import { Route as AuthenticatedAdminContentPagesIndexRouteImport } from './routes/_authenticated.admin.content.pages.index'
@@ -901,6 +902,12 @@ const AuthenticatedAdminAiExecutiveRoute =
     path: '/executive',
     getParentRoute: () => AuthenticatedAdminAiRoute,
   } as any)
+const AuthenticatedAdminAiConciergeRoute =
+  AuthenticatedAdminAiConciergeRouteImport.update({
+    id: '/concierge',
+    path: '/concierge',
+    getParentRoute: () => AuthenticatedAdminAiRoute,
+  } as any)
 const AuthenticatedAdminAiAuditRoute =
   AuthenticatedAdminAiAuditRouteImport.update({
     id: '/audit',
@@ -945,9 +952,9 @@ const AuthenticatedAdminAiExecutiveIndexRoute =
   } as any)
 const AuthenticatedAdminAiConciergeIndexRoute =
   AuthenticatedAdminAiConciergeIndexRouteImport.update({
-    id: '/concierge/',
-    path: '/concierge/',
-    getParentRoute: () => AuthenticatedAdminAiRoute,
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminAiConciergeRoute,
   } as any)
 const AuthenticatedAdminOperationsReservationsIdRoute =
   AuthenticatedAdminOperationsReservationsIdRouteImport.update({
@@ -1185,6 +1192,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
   '/admin/ai/audit': typeof AuthenticatedAdminAiAuditRoute
+  '/admin/ai/concierge': typeof AuthenticatedAdminAiConciergeRouteWithChildren
   '/admin/ai/executive': typeof AuthenticatedAdminAiExecutiveRouteWithChildren
   '/admin/ai/governance': typeof AuthenticatedAdminAiGovernanceRoute
   '/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRouteWithChildren
@@ -1510,6 +1518,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
   '/_authenticated/admin/ai/audit': typeof AuthenticatedAdminAiAuditRoute
+  '/_authenticated/admin/ai/concierge': typeof AuthenticatedAdminAiConciergeRouteWithChildren
   '/_authenticated/admin/ai/executive': typeof AuthenticatedAdminAiExecutiveRouteWithChildren
   '/_authenticated/admin/ai/governance': typeof AuthenticatedAdminAiGovernanceRoute
   '/_authenticated/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRouteWithChildren
@@ -1678,6 +1687,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/admin/ai/activity'
     | '/admin/ai/audit'
+    | '/admin/ai/concierge'
     | '/admin/ai/executive'
     | '/admin/ai/governance'
     | '/admin/ai/guests'
@@ -2002,6 +2012,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/'
     | '/_authenticated/admin/ai/activity'
     | '/_authenticated/admin/ai/audit'
+    | '/_authenticated/admin/ai/concierge'
     | '/_authenticated/admin/ai/executive'
     | '/_authenticated/admin/ai/governance'
     | '/_authenticated/admin/ai/guests'
@@ -3066,6 +3077,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiExecutiveRouteImport
       parentRoute: typeof AuthenticatedAdminAiRoute
     }
+    '/_authenticated/admin/ai/concierge': {
+      id: '/_authenticated/admin/ai/concierge'
+      path: '/concierge'
+      fullPath: '/admin/ai/concierge'
+      preLoaderRoute: typeof AuthenticatedAdminAiConciergeRouteImport
+      parentRoute: typeof AuthenticatedAdminAiRoute
+    }
     '/_authenticated/admin/ai/audit': {
       id: '/_authenticated/admin/ai/audit'
       path: '/audit'
@@ -3117,10 +3135,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/admin/ai/concierge/': {
       id: '/_authenticated/admin/ai/concierge/'
-      path: '/concierge'
+      path: '/'
       fullPath: '/admin/ai/concierge/'
       preLoaderRoute: typeof AuthenticatedAdminAiConciergeIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminAiRoute
+      parentRoute: typeof AuthenticatedAdminAiConciergeRoute
     }
     '/_authenticated/admin/operations/reservations/$id': {
       id: '/_authenticated/admin/operations/reservations/$id'
@@ -3314,6 +3332,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedAdminAiConciergeRouteChildren {
+  AuthenticatedAdminAiConciergeIndexRoute: typeof AuthenticatedAdminAiConciergeIndexRoute
+}
+
+const AuthenticatedAdminAiConciergeRouteChildren: AuthenticatedAdminAiConciergeRouteChildren =
+  {
+    AuthenticatedAdminAiConciergeIndexRoute:
+      AuthenticatedAdminAiConciergeIndexRoute,
+  }
+
+const AuthenticatedAdminAiConciergeRouteWithChildren =
+  AuthenticatedAdminAiConciergeRoute._addFileChildren(
+    AuthenticatedAdminAiConciergeRouteChildren,
+  )
+
 interface AuthenticatedAdminAiExecutiveRouteChildren {
   AuthenticatedAdminAiExecutiveBriefingRoute: typeof AuthenticatedAdminAiExecutiveBriefingRoute
   AuthenticatedAdminAiExecutiveDecisionsRoute: typeof AuthenticatedAdminAiExecutiveDecisionsRoute
@@ -3428,6 +3461,7 @@ const AuthenticatedAdminAiRevenueRouteWithChildren =
 interface AuthenticatedAdminAiRouteChildren {
   AuthenticatedAdminAiActivityRoute: typeof AuthenticatedAdminAiActivityRoute
   AuthenticatedAdminAiAuditRoute: typeof AuthenticatedAdminAiAuditRoute
+  AuthenticatedAdminAiConciergeRoute: typeof AuthenticatedAdminAiConciergeRouteWithChildren
   AuthenticatedAdminAiExecutiveRoute: typeof AuthenticatedAdminAiExecutiveRouteWithChildren
   AuthenticatedAdminAiGovernanceRoute: typeof AuthenticatedAdminAiGovernanceRoute
   AuthenticatedAdminAiGuestsRoute: typeof AuthenticatedAdminAiGuestsRouteWithChildren
@@ -3439,12 +3473,13 @@ interface AuthenticatedAdminAiRouteChildren {
   AuthenticatedAdminAiRevenueRoute: typeof AuthenticatedAdminAiRevenueRouteWithChildren
   AuthenticatedAdminAiSettingsRoute: typeof AuthenticatedAdminAiSettingsRoute
   AuthenticatedAdminAiIndexRoute: typeof AuthenticatedAdminAiIndexRoute
-  AuthenticatedAdminAiConciergeIndexRoute: typeof AuthenticatedAdminAiConciergeIndexRoute
 }
 
 const AuthenticatedAdminAiRouteChildren: AuthenticatedAdminAiRouteChildren = {
   AuthenticatedAdminAiActivityRoute: AuthenticatedAdminAiActivityRoute,
   AuthenticatedAdminAiAuditRoute: AuthenticatedAdminAiAuditRoute,
+  AuthenticatedAdminAiConciergeRoute:
+    AuthenticatedAdminAiConciergeRouteWithChildren,
   AuthenticatedAdminAiExecutiveRoute:
     AuthenticatedAdminAiExecutiveRouteWithChildren,
   AuthenticatedAdminAiGovernanceRoute: AuthenticatedAdminAiGovernanceRoute,
@@ -3459,8 +3494,6 @@ const AuthenticatedAdminAiRouteChildren: AuthenticatedAdminAiRouteChildren = {
     AuthenticatedAdminAiRevenueRouteWithChildren,
   AuthenticatedAdminAiSettingsRoute: AuthenticatedAdminAiSettingsRoute,
   AuthenticatedAdminAiIndexRoute: AuthenticatedAdminAiIndexRoute,
-  AuthenticatedAdminAiConciergeIndexRoute:
-    AuthenticatedAdminAiConciergeIndexRoute,
 }
 
 const AuthenticatedAdminAiRouteWithChildren =
