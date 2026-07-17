@@ -31,6 +31,7 @@ import {
 } from "@/lib/booking.functions";
 import { initiatePayment } from "@/lib/payments.functions";
 import { newBookingSessionId } from "@/lib/booking-session";
+import { createBookingHold, releaseBookingHold } from "@/lib/availability.functions";
 import { calculateBookingTotal, calculateNightlyRate, buildPriceBreakdown, getRoomPricing } from "@/lib/pricing";
 
 export const Route = createFileRoute("/book")({
