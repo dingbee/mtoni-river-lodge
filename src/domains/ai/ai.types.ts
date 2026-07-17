@@ -41,6 +41,7 @@ export interface AiResponse {
   tool?: AiToolId;
   data?: any;
   model: string;
+  citations?: AiKnowledgeCitation[];
 }
 
 export interface AiActivityRow {
