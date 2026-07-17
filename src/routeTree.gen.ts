@@ -77,6 +77,7 @@ import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
 import { Route as AuthenticatedAdminOperationsRouteImport } from './routes/_authenticated.admin.operations'
 import { Route as AuthenticatedAdminFrontDeskRouteImport } from './routes/_authenticated.admin.front-desk'
+import { Route as AuthenticatedAdminFinanceRouteImport } from './routes/_authenticated.admin.finance'
 import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authenticated.admin.bookings'
 import { Route as AuthenticatedAdminAutomationRouteImport } from './routes/_authenticated.admin.automation'
 import { Route as AuthenticatedAdminOperationsIndexRouteImport } from './routes/_authenticated.admin.operations.index'
@@ -482,6 +483,12 @@ const AuthenticatedAdminFrontDeskRoute =
     path: '/front-desk',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminFinanceRoute =
+  AuthenticatedAdminFinanceRouteImport.update({
+    id: '/finance',
+    path: '/finance',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminBookingsRoute =
   AuthenticatedAdminBookingsRouteImport.update({
     id: '/bookings',
@@ -632,21 +639,21 @@ const AuthenticatedAdminGuestsCrmRoute =
   } as any)
 const AuthenticatedAdminFinanceReportsRoute =
   AuthenticatedAdminFinanceReportsRouteImport.update({
-    id: '/finance/reports',
-    path: '/finance/reports',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/reports',
+    path: '/reports',
+    getParentRoute: () => AuthenticatedAdminFinanceRoute,
   } as any)
 const AuthenticatedAdminFinancePaymentsRoute =
   AuthenticatedAdminFinancePaymentsRouteImport.update({
-    id: '/finance/payments',
-    path: '/finance/payments',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/payments',
+    path: '/payments',
+    getParentRoute: () => AuthenticatedAdminFinanceRoute,
   } as any)
 const AuthenticatedAdminFinanceInvoicesRoute =
   AuthenticatedAdminFinanceInvoicesRouteImport.update({
-    id: '/finance/invoices',
-    path: '/finance/invoices',
-    getParentRoute: () => AuthenticatedAdminRoute,
+    id: '/invoices',
+    path: '/invoices',
+    getParentRoute: () => AuthenticatedAdminFinanceRoute,
   } as any)
 const AuthenticatedAdminContentRoomsRoute =
   AuthenticatedAdminContentRoomsRouteImport.update({
@@ -815,6 +822,7 @@ export interface FileRoutesByFullPath {
   '/rooms/': typeof RoomsIndexRoute
   '/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
+  '/admin/finance': typeof AuthenticatedAdminFinanceRouteWithChildren
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
@@ -926,6 +934,7 @@ export interface FileRoutesByTo {
   '/rooms': typeof RoomsIndexRoute
   '/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
+  '/admin/finance': typeof AuthenticatedAdminFinanceRouteWithChildren
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -1041,6 +1050,7 @@ export interface FileRoutesById {
   '/rooms/': typeof RoomsIndexRoute
   '/_authenticated/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
+  '/_authenticated/admin/finance': typeof AuthenticatedAdminFinanceRouteWithChildren
   '/_authenticated/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
@@ -1157,6 +1167,7 @@ export interface FileRouteTypes {
     | '/rooms/'
     | '/admin/automation'
     | '/admin/bookings'
+    | '/admin/finance'
     | '/admin/front-desk'
     | '/admin/operations'
     | '/admin/reviews'
@@ -1268,6 +1279,7 @@ export interface FileRouteTypes {
     | '/rooms'
     | '/admin/automation'
     | '/admin/bookings'
+    | '/admin/finance'
     | '/admin/front-desk'
     | '/admin/reviews'
     | '/admin/settings'
@@ -1382,6 +1394,7 @@ export interface FileRouteTypes {
     | '/rooms/'
     | '/_authenticated/admin/automation'
     | '/_authenticated/admin/bookings'
+    | '/_authenticated/admin/finance'
     | '/_authenticated/admin/front-desk'
     | '/_authenticated/admin/operations'
     | '/_authenticated/admin/reviews'
@@ -1966,6 +1979,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFrontDeskRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/finance': {
+      id: '/_authenticated/admin/finance'
+      path: '/finance'
+      fullPath: '/admin/finance'
+      preLoaderRoute: typeof AuthenticatedAdminFinanceRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/bookings': {
       id: '/_authenticated/admin/bookings'
       path: '/bookings'
@@ -2143,24 +2163,24 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/admin/finance/reports': {
       id: '/_authenticated/admin/finance/reports'
-      path: '/finance/reports'
+      path: '/reports'
       fullPath: '/admin/finance/reports'
       preLoaderRoute: typeof AuthenticatedAdminFinanceReportsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminFinanceRoute
     }
     '/_authenticated/admin/finance/payments': {
       id: '/_authenticated/admin/finance/payments'
-      path: '/finance/payments'
+      path: '/payments'
       fullPath: '/admin/finance/payments'
       preLoaderRoute: typeof AuthenticatedAdminFinancePaymentsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminFinanceRoute
     }
     '/_authenticated/admin/finance/invoices': {
       id: '/_authenticated/admin/finance/invoices'
-      path: '/finance/invoices'
+      path: '/invoices'
       fullPath: '/admin/finance/invoices'
       preLoaderRoute: typeof AuthenticatedAdminFinanceInvoicesRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+      parentRoute: typeof AuthenticatedAdminFinanceRoute
     }
     '/_authenticated/admin/content/rooms': {
       id: '/_authenticated/admin/content/rooms'
@@ -2284,6 +2304,27 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedAdminFinanceRouteChildren {
+  AuthenticatedAdminFinanceInvoicesRoute: typeof AuthenticatedAdminFinanceInvoicesRoute
+  AuthenticatedAdminFinancePaymentsRoute: typeof AuthenticatedAdminFinancePaymentsRoute
+  AuthenticatedAdminFinanceReportsRoute: typeof AuthenticatedAdminFinanceReportsRoute
+}
+
+const AuthenticatedAdminFinanceRouteChildren: AuthenticatedAdminFinanceRouteChildren =
+  {
+    AuthenticatedAdminFinanceInvoicesRoute:
+      AuthenticatedAdminFinanceInvoicesRoute,
+    AuthenticatedAdminFinancePaymentsRoute:
+      AuthenticatedAdminFinancePaymentsRoute,
+    AuthenticatedAdminFinanceReportsRoute:
+      AuthenticatedAdminFinanceReportsRoute,
+  }
+
+const AuthenticatedAdminFinanceRouteWithChildren =
+  AuthenticatedAdminFinanceRoute._addFileChildren(
+    AuthenticatedAdminFinanceRouteChildren,
+  )
+
 interface AuthenticatedAdminOperationsRouteChildren {
   AuthenticatedAdminOperationsAlertsRoute: typeof AuthenticatedAdminOperationsAlertsRoute
   AuthenticatedAdminOperationsCalendarRoute: typeof AuthenticatedAdminOperationsCalendarRoute
@@ -2391,6 +2432,7 @@ const AuthenticatedAdminGuestsCrmRouteWithChildren =
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAutomationRoute: typeof AuthenticatedAdminAutomationRoute
   AuthenticatedAdminBookingsRoute: typeof AuthenticatedAdminBookingsRoute
+  AuthenticatedAdminFinanceRoute: typeof AuthenticatedAdminFinanceRouteWithChildren
   AuthenticatedAdminFrontDeskRoute: typeof AuthenticatedAdminFrontDeskRoute
   AuthenticatedAdminOperationsRoute: typeof AuthenticatedAdminOperationsRouteWithChildren
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
@@ -2405,9 +2447,6 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminContentMediaRoute: typeof AuthenticatedAdminContentMediaRoute
   AuthenticatedAdminContentPagesRoute: typeof AuthenticatedAdminContentPagesRouteWithChildren
   AuthenticatedAdminContentRoomsRoute: typeof AuthenticatedAdminContentRoomsRoute
-  AuthenticatedAdminFinanceInvoicesRoute: typeof AuthenticatedAdminFinanceInvoicesRoute
-  AuthenticatedAdminFinancePaymentsRoute: typeof AuthenticatedAdminFinancePaymentsRoute
-  AuthenticatedAdminFinanceReportsRoute: typeof AuthenticatedAdminFinanceReportsRoute
   AuthenticatedAdminGuestsCrmRoute: typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   AuthenticatedAdminGuestsMessagesRoute: typeof AuthenticatedAdminGuestsMessagesRoute
   AuthenticatedAdminMarketingAiAssistantRoute: typeof AuthenticatedAdminMarketingAiAssistantRoute
@@ -2423,6 +2462,7 @@ interface AuthenticatedAdminRouteChildren {
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAutomationRoute: AuthenticatedAdminAutomationRoute,
   AuthenticatedAdminBookingsRoute: AuthenticatedAdminBookingsRoute,
+  AuthenticatedAdminFinanceRoute: AuthenticatedAdminFinanceRouteWithChildren,
   AuthenticatedAdminFrontDeskRoute: AuthenticatedAdminFrontDeskRoute,
   AuthenticatedAdminOperationsRoute:
     AuthenticatedAdminOperationsRouteWithChildren,
@@ -2443,11 +2483,6 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminContentPagesRoute:
     AuthenticatedAdminContentPagesRouteWithChildren,
   AuthenticatedAdminContentRoomsRoute: AuthenticatedAdminContentRoomsRoute,
-  AuthenticatedAdminFinanceInvoicesRoute:
-    AuthenticatedAdminFinanceInvoicesRoute,
-  AuthenticatedAdminFinancePaymentsRoute:
-    AuthenticatedAdminFinancePaymentsRoute,
-  AuthenticatedAdminFinanceReportsRoute: AuthenticatedAdminFinanceReportsRoute,
   AuthenticatedAdminGuestsCrmRoute:
     AuthenticatedAdminGuestsCrmRouteWithChildren,
   AuthenticatedAdminGuestsMessagesRoute: AuthenticatedAdminGuestsMessagesRoute,
