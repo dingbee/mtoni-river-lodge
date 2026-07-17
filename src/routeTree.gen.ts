@@ -152,6 +152,7 @@ import { Route as AuthenticatedAdminAiRevenueForecastRouteImport } from './route
 import { Route as AuthenticatedAdminAiRevenueAlertsRouteImport } from './routes/_authenticated.admin.ai.revenue.alerts'
 import { Route as AuthenticatedAdminAiMarketingSeoRouteImport } from './routes/_authenticated.admin.ai.marketing.seo'
 import { Route as AuthenticatedAdminAiMarketingContentRouteImport } from './routes/_authenticated.admin.ai.marketing.content'
+import { Route as AuthenticatedAdminAiMarketingCampaignsRouteImport } from './routes/_authenticated.admin.ai.marketing.campaigns'
 import { Route as AuthenticatedAdminAiGuestsDashboardRouteImport } from './routes/_authenticated.admin.ai.guests.dashboard'
 import { Route as AuthenticatedAdminAiGuestsBookingIdRouteImport } from './routes/_authenticated.admin.ai.guests.$bookingId'
 import { Route as AuthenticatedAdminContentPagesIdIndexRouteImport } from './routes/_authenticated.admin.content.pages.$id.index'
@@ -963,6 +964,12 @@ const AuthenticatedAdminAiMarketingContentRoute =
     path: '/content',
     getParentRoute: () => AuthenticatedAdminAiMarketingRoute,
   } as any)
+const AuthenticatedAdminAiMarketingCampaignsRoute =
+  AuthenticatedAdminAiMarketingCampaignsRouteImport.update({
+    id: '/campaigns',
+    path: '/campaigns',
+    getParentRoute: () => AuthenticatedAdminAiMarketingRoute,
+  } as any)
 const AuthenticatedAdminAiGuestsDashboardRoute =
   AuthenticatedAdminAiGuestsDashboardRouteImport.update({
     id: '/dashboard',
@@ -1115,6 +1122,7 @@ export interface FileRoutesByFullPath {
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
   '/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
+  '/admin/ai/marketing/campaigns': typeof AuthenticatedAdminAiMarketingCampaignsRoute
   '/admin/ai/marketing/content': typeof AuthenticatedAdminAiMarketingContentRoute
   '/admin/ai/marketing/seo': typeof AuthenticatedAdminAiMarketingSeoRoute
   '/admin/ai/revenue/alerts': typeof AuthenticatedAdminAiRevenueAlertsRoute
@@ -1255,6 +1263,7 @@ export interface FileRoutesByTo {
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
   '/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
+  '/admin/ai/marketing/campaigns': typeof AuthenticatedAdminAiMarketingCampaignsRoute
   '/admin/ai/marketing/content': typeof AuthenticatedAdminAiMarketingContentRoute
   '/admin/ai/marketing/seo': typeof AuthenticatedAdminAiMarketingSeoRoute
   '/admin/ai/revenue/alerts': typeof AuthenticatedAdminAiRevenueAlertsRoute
@@ -1405,6 +1414,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/_authenticated/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
   '/_authenticated/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
+  '/_authenticated/admin/ai/marketing/campaigns': typeof AuthenticatedAdminAiMarketingCampaignsRoute
   '/_authenticated/admin/ai/marketing/content': typeof AuthenticatedAdminAiMarketingContentRoute
   '/_authenticated/admin/ai/marketing/seo': typeof AuthenticatedAdminAiMarketingSeoRoute
   '/_authenticated/admin/ai/revenue/alerts': typeof AuthenticatedAdminAiRevenueAlertsRoute
@@ -1555,6 +1565,7 @@ export interface FileRouteTypes {
     | '/admin/operations/'
     | '/admin/ai/guests/$bookingId'
     | '/admin/ai/guests/dashboard'
+    | '/admin/ai/marketing/campaigns'
     | '/admin/ai/marketing/content'
     | '/admin/ai/marketing/seo'
     | '/admin/ai/revenue/alerts'
@@ -1695,6 +1706,7 @@ export interface FileRouteTypes {
     | '/admin/operations'
     | '/admin/ai/guests/$bookingId'
     | '/admin/ai/guests/dashboard'
+    | '/admin/ai/marketing/campaigns'
     | '/admin/ai/marketing/content'
     | '/admin/ai/marketing/seo'
     | '/admin/ai/revenue/alerts'
@@ -1844,6 +1856,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations/'
     | '/_authenticated/admin/ai/guests/$bookingId'
     | '/_authenticated/admin/ai/guests/dashboard'
+    | '/_authenticated/admin/ai/marketing/campaigns'
     | '/_authenticated/admin/ai/marketing/content'
     | '/_authenticated/admin/ai/marketing/seo'
     | '/_authenticated/admin/ai/revenue/alerts'
@@ -2925,6 +2938,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiMarketingContentRouteImport
       parentRoute: typeof AuthenticatedAdminAiMarketingRoute
     }
+    '/_authenticated/admin/ai/marketing/campaigns': {
+      id: '/_authenticated/admin/ai/marketing/campaigns'
+      path: '/campaigns'
+      fullPath: '/admin/ai/marketing/campaigns'
+      preLoaderRoute: typeof AuthenticatedAdminAiMarketingCampaignsRouteImport
+      parentRoute: typeof AuthenticatedAdminAiMarketingRoute
+    }
     '/_authenticated/admin/ai/guests/dashboard': {
       id: '/_authenticated/admin/ai/guests/dashboard'
       path: '/dashboard'
@@ -2975,6 +2995,7 @@ const AuthenticatedAdminAiGuestsRouteWithChildren =
   )
 
 interface AuthenticatedAdminAiMarketingRouteChildren {
+  AuthenticatedAdminAiMarketingCampaignsRoute: typeof AuthenticatedAdminAiMarketingCampaignsRoute
   AuthenticatedAdminAiMarketingContentRoute: typeof AuthenticatedAdminAiMarketingContentRoute
   AuthenticatedAdminAiMarketingSeoRoute: typeof AuthenticatedAdminAiMarketingSeoRoute
   AuthenticatedAdminAiMarketingIndexRoute: typeof AuthenticatedAdminAiMarketingIndexRoute
@@ -2982,6 +3003,8 @@ interface AuthenticatedAdminAiMarketingRouteChildren {
 
 const AuthenticatedAdminAiMarketingRouteChildren: AuthenticatedAdminAiMarketingRouteChildren =
   {
+    AuthenticatedAdminAiMarketingCampaignsRoute:
+      AuthenticatedAdminAiMarketingCampaignsRoute,
     AuthenticatedAdminAiMarketingContentRoute:
       AuthenticatedAdminAiMarketingContentRoute,
     AuthenticatedAdminAiMarketingSeoRoute:
