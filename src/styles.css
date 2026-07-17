@@ -111,7 +111,10 @@
 
   html {
     scroll-behavior: smooth;
+    /* Root scaling — consistent across Android Chrome, Samsung Internet, Safari, Firefox. */
     -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     overflow-x: hidden;
     max-width: 100%;
   }
@@ -138,165 +141,145 @@
   img, video, picture, canvas { height: auto; }
 
   /* ============================================================
-     MOBILE / TABLET RESPONSIVE SYSTEM ( ≤ 767px )
-     Goal: polished Android experience, PageSpeed ≥ 90, no overflow,
-     fluid typography via clamp(), tighter padding, capped icons.
-     Desktop ( ≥ 768px ) is intentionally untouched.
+     MOBILE-FIRST RESPONSIVE ARCHITECTURE
+     ------------------------------------------------------------
+     Sprint 5+ refactor. Replaces the earlier desktop-first
+     corrective layers (which lived inside `@media (max-width:…)`
+     blocks) with a continuous fluid system that scales from
+     320 → 1920 px with no dead zones.
+
+     Breakpoints (Tailwind defaults) are used only for coarse
+     grid/layout swaps in components — never for base typography
+     or spacing. Those scale via clamp() at all widths.
+
+     Tokens:
+       Typography → --fs-* (fluid font sizes)
+       Spacing    → --space-* (fluid gaps / padding)
+       Section    → --section-y, --section-x, --hero-pt
      ============================================================ */
 
-  /* Phones — fluid editorial typography with clamp().
-     Min target ≈ 360px viewport, max target ≈ 480px. */
-  @media (max-width: 480px) {
-    body { font-size: 15px; line-height: 1.65; }
+  /* ---------- Fluid design tokens ---------- */
+  :root {
+    /* Typography — clamp(mobile-min, viewport-scaled, desktop-max).
+       vw factor tuned so growth crosses 640→1024 smoothly. */
+    --fs-xs:   clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem);
+    --fs-sm:   clamp(0.8125rem, 0.78rem + 0.2vw,  0.875rem);
+    --fs-base: clamp(0.9375rem, 0.9rem + 0.25vw,  1rem);
+    --fs-lg:   clamp(1rem,     0.95rem + 0.35vw,  1.125rem);
+    --fs-xl:   clamp(1.0625rem, 0.98rem + 0.55vw, 1.25rem);
+    --fs-2xl:  clamp(1.25rem, 1.1rem + 0.9vw,     1.5rem);
+    --fs-3xl:  clamp(1.5rem,  1.28rem + 1.2vw,    1.875rem);
+    --fs-4xl:  clamp(1.75rem, 1.45rem + 1.6vw,    2.25rem);
+    --fs-5xl:  clamp(2rem,    1.65rem + 2.2vw,    3rem);
+    --fs-6xl:  clamp(2.25rem, 1.75rem + 3vw,      3.75rem);
+    --fs-7xl:  clamp(2.5rem,  1.9rem + 4vw,       4.5rem);
+    --fs-8xl:  clamp(2.75rem, 2rem + 5vw,         6rem);
+    --fs-9xl:  clamp(3rem,    2.2rem + 6.5vw,     8rem);
 
-    /* Display + headings */
-    .font-display.text-7xl,
-    .font-display.text-8xl,
-    .font-display.text-9xl    { font-size: clamp(2.25rem, 8.5vw, 3rem) !important; line-height: 1.08 !important; letter-spacing: -0.02em !important; }
-    h1,
-    .font-display.text-6xl    { font-size: clamp(2rem, 7.5vw, 2.625rem) !important;  line-height: 1.1  !important; }
-    h2,
-    .text-5xl                  { font-size: clamp(1.75rem, 6.5vw, 2.25rem) !important; line-height: 1.15 !important; }
-    h3,
-    .text-4xl                  { font-size: clamp(1.4rem, 5.5vw, 1.85rem) !important; line-height: 1.2  !important; }
-    .text-3xl                  { font-size: clamp(1.25rem, 4.8vw, 1.5rem) !important; line-height: 1.25 !important; }
-    .text-2xl                  { font-size: clamp(1.125rem, 4.2vw, 1.35rem) !important; line-height: 1.3 !important; }
-    .text-xl                   { font-size: clamp(1rem, 3.8vw, 1.15rem) !important; }
-    .text-lg                   { font-size: 1rem !important; }
+    /* Spacing — fluid gaps / paddings.
+       Small → mid → large ranges suitable for gap-*, mt-*, py-* usage. */
+    --space-4:  clamp(0.75rem, 0.7rem + 0.25vw, 1rem);
+    --space-6:  clamp(1rem,   0.9rem + 0.5vw,   1.5rem);
+    --space-8:  clamp(1.25rem, 1.1rem + 0.75vw, 2rem);
+    --space-10: clamp(1.5rem, 1.25rem + 1.25vw, 2.5rem);
+    --space-12: clamp(1.75rem, 1.4rem + 1.75vw, 3rem);
+    --space-16: clamp(2rem,   1.5rem + 2.5vw,   4rem);
+    --space-20: clamp(2.25rem, 1.65rem + 3vw,   5rem);
+    --space-24: clamp(2.5rem, 1.75rem + 3.75vw, 6rem);
+    --space-28: clamp(2.75rem, 1.85rem + 4.5vw, 7rem);
+    --space-32: clamp(3rem,   2rem + 5vw,       8rem);
 
-    /* Tighter horizontal section padding. */
-    .px-12 { padding-left: 1rem  !important; padding-right: 1rem  !important; }
-    .px-10 { padding-left: 1rem  !important; padding-right: 1rem  !important; }
-    .px-8  { padding-left: 1rem  !important; padding-right: 1rem  !important; }
-    .px-6  { padding-left: 1rem  !important; padding-right: 1rem  !important; }
-    .px-5  { padding-left: 0.875rem !important; padding-right: 0.875rem !important; }
-
-    /* Reduce excessive vertical section spacing on small screens. */
-    .py-32 { padding-top: 3rem   !important; padding-bottom: 3rem   !important; }
-    .py-28 { padding-top: 2.75rem !important; padding-bottom: 2.75rem !important; }
-    .py-24 { padding-top: 2.5rem  !important; padding-bottom: 2.5rem  !important; }
-    .py-20 { padding-top: 2.25rem !important; padding-bottom: 2.25rem !important; }
-    .py-16 { padding-top: 2rem    !important; padding-bottom: 2rem    !important; }
-    .pt-32 { padding-top: 3rem    !important; }
-    .pt-28 { padding-top: 2.75rem !important; }
-    .pt-24 { padding-top: 2.5rem  !important; }
-    .pt-20 { padding-top: 2.25rem !important; }
-    .pt-16 { padding-top: 2rem    !important; }
-    .pb-32 { padding-bottom: 3rem    !important; }
-    .pb-28 { padding-bottom: 2.75rem !important; }
-    .pb-24 { padding-bottom: 2.5rem  !important; }
-    .pb-20 { padding-bottom: 2.25rem !important; }
-    .pb-16 { padding-bottom: 2rem    !important; }
-
-    /* Tighten outsized gaps. */
-    .gap-16 { gap: 1.5rem !important; }
-    .gap-12 { gap: 1.25rem !important; }
-    .gap-10 { gap: 1.25rem !important; }
-
-    /* Outsized vertical margins. */
-    .mt-24 { margin-top: 2rem !important; }
-    .mt-20 { margin-top: 1.75rem !important; }
-    .mt-16 { margin-top: 1.5rem !important; }
-    .mb-24 { margin-bottom: 2rem !important; }
-    .mb-20 { margin-bottom: 1.75rem !important; }
-    .mb-16 { margin-bottom: 1.5rem !important; }
+    /* Section / hero layout */
+    --section-x: clamp(1rem, 0.5rem + 2.5vw, 3rem);
+    --section-y: clamp(2.5rem, 1.5rem + 5vw, 6rem);
+    --hero-pt:   clamp(4.5rem, 3rem + 6vw, 7rem);
   }
 
-  /* Tablets (≤ 767px including larger phones in landscape). */
-  @media (min-width: 481px) and (max-width: 767px) {
-    .px-12 { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
-    .py-32 { padding-top: 4rem !important; padding-bottom: 4rem !important; }
-    .py-28 { padding-top: 3.5rem !important; padding-bottom: 3.5rem !important; }
-    .py-24 { padding-top: 3rem !important; padding-bottom: 3rem !important; }
-    .py-20 { padding-top: 2.75rem !important; padding-bottom: 2.75rem !important; }
+  /* ---------- Global fluid typography (mobile-first) ----------
+     Overrides Tailwind's static text-* utilities with clamp()
+     tokens so headings scale continuously between 320 → 1920 px.
+     No corrective media queries required. */
+  .text-xs   { font-size: var(--fs-xs); }
+  .text-sm   { font-size: var(--fs-sm); }
+  .text-base { font-size: var(--fs-base); }
+  .text-lg   { font-size: var(--fs-lg); }
+  .text-xl   { font-size: var(--fs-xl); }
+  .text-2xl  { font-size: var(--fs-2xl); line-height: 1.25; }
+  .text-3xl  { font-size: var(--fs-3xl); line-height: 1.2; }
+  .text-4xl  { font-size: var(--fs-4xl); line-height: 1.18; }
+  .text-5xl  { font-size: var(--fs-5xl); line-height: 1.14; }
+  .text-6xl  { font-size: var(--fs-6xl); line-height: 1.1;  }
+  .text-7xl  { font-size: var(--fs-7xl); line-height: 1.08; }
+  .text-8xl  { font-size: var(--fs-8xl); line-height: 1.06; }
+  .text-9xl  { font-size: var(--fs-9xl); line-height: 1.04; }
 
-    .font-display.text-7xl,
-    .font-display.text-8xl,
-    .font-display.text-9xl { font-size: clamp(2.75rem, 7vw, 3.5rem) !important; line-height: 1.1 !important; }
-    h1, .font-display.text-6xl { font-size: clamp(2.25rem, 6vw, 3rem) !important; line-height: 1.12 !important; }
-    h2, .text-5xl { font-size: clamp(2rem, 5vw, 2.5rem) !important; line-height: 1.15 !important; }
+  /* ---------- Global fluid spacing utilities ----------
+     Applied to Tailwind's static spacing scale so section padding,
+     gaps, and margins breathe naturally across viewports.
+     Only the historically-oversized values are fluidised; small
+     values (< 4) stay static so component layouts remain precise. */
+  .py-16 { padding-top: var(--space-16); padding-bottom: var(--space-16); }
+  .py-20 { padding-top: var(--space-20); padding-bottom: var(--space-20); }
+  .py-24 { padding-top: var(--space-24); padding-bottom: var(--space-24); }
+  .py-28 { padding-top: var(--space-28); padding-bottom: var(--space-28); }
+  .py-32 { padding-top: var(--space-32); padding-bottom: var(--space-32); }
+  .pt-16 { padding-top: var(--space-16); }
+  .pt-20 { padding-top: var(--space-20); }
+  .pt-24 { padding-top: var(--space-24); }
+  .pt-28 { padding-top: var(--space-28); }
+  .pt-32 { padding-top: var(--space-32); }
+  .pb-16 { padding-bottom: var(--space-16); }
+  .pb-20 { padding-bottom: var(--space-20); }
+  .pb-24 { padding-bottom: var(--space-24); }
+  .pb-28 { padding-bottom: var(--space-28); }
+  .pb-32 { padding-bottom: var(--space-32); }
+  .px-8  { padding-left: var(--space-8);  padding-right: var(--space-8);  }
+  .px-10 { padding-left: var(--space-10); padding-right: var(--space-10); }
+  .px-12 { padding-left: var(--space-12); padding-right: var(--space-12); }
+  .gap-10 { gap: var(--space-10); }
+  .gap-12 { gap: var(--space-12); }
+  .gap-16 { gap: var(--space-16); }
+  .mt-16 { margin-top: var(--space-16); }
+  .mt-20 { margin-top: var(--space-20); }
+  .mt-24 { margin-top: var(--space-24); }
+  .mb-16 { margin-bottom: var(--space-16); }
+  .mb-20 { margin-bottom: var(--space-20); }
+  .mb-24 { margin-bottom: var(--space-24); }
+
+  /* ---------- Hero secondary hierarchy (all viewports) ----------
+     Non-structural visual weighting — kept from previous system
+     but expressed against `[data-hero]` (stable attribute) rather
+     than fragile `class*=` string matches. */
+  [data-hero] .eyebrow,
+  section[class*="h-[75svh]"] .eyebrow,
+  section[class*="h-[85svh]"] .eyebrow {
+    opacity: 0.75;
   }
-
-  /* ============================================================
-     MOBILE HIERARCHY CORRECTION LAYER ( ≤ 767px )
-     Non-structural visual weighting. No DOM changes, no desktop
-     impact, no token changes — only attention sequencing,
-     density rhythm, and CTA consolidation.
-     ============================================================ */
   @media (max-width: 767px) {
-    /* 1 — Hero hierarchy compression.
-       Headline + primary CTA keep full weight; eyebrow,
-       breadcrumbs, subtitle recede so the first viewport reads
-       title → action. Targets the unified PageHero/HeroCinematic
-       structure without restructuring DOM. */
-    section[class*="h-[75svh]"] .eyebrow,
-    section[class*="h-[85svh]"] .eyebrow,
-    [data-hero] .eyebrow {
-      opacity: 0.7;
-    }
+    [data-hero] nav[aria-label="Breadcrumb"],
     section[class*="h-[75svh]"] nav[aria-label="Breadcrumb"],
-    section[class*="h-[85svh]"] nav[aria-label="Breadcrumb"],
-    [data-hero] nav[aria-label="Breadcrumb"] {
-      opacity: 0.6;
+    section[class*="h-[85svh]"] nav[aria-label="Breadcrumb"] {
+      opacity: 0.7;
       transform: scale(0.94);
       transform-origin: left center;
     }
-    section[class*="h-[75svh]"] h1,
-    section[class*="h-[85svh]"] h1 { margin-top: 0.5rem !important; }
-    section[class*="h-[75svh]"] h1 ~ p,
-    section[class*="h-[85svh]"] h1 ~ p { opacity: 0.85; margin-top: 0.75rem !important; }
-    /* Primary hero CTA — explicit full weight to dominate the viewport. */
-    section[class*="h-[75svh]"] a.bg-ivory,
-    section[class*="h-[85svh]"] a.bg-ivory,
-    section[class*="h-[75svh]"] button.bg-ivory,
-    section[class*="h-[85svh]"] button.bg-ivory { opacity: 1 !important; }
-
-    /* 2 — Visual rhythm / density control.
-       Prevent two consecutive image-heavy sections from stacking
-       into a single dense wall on mobile. */
-    main > section + section { margin-top: 0.25rem; }
-    main > section:has(img):has(+ section:has(img)) {
-      padding-bottom: 2rem !important;
-    }
-
-    /* 3 — CTA consolidation: when a section has multiple primary
-       CTAs, the duplicates downgrade to secondary text links.
-       Content/DOM unchanged — visual hierarchy only. */
-    section a.bg-ivory ~ a.bg-ivory,
-    section a.bg-charcoal ~ a.bg-charcoal,
-    section button.bg-ivory ~ button.bg-ivory,
-    section button.bg-charcoal ~ button.bg-charcoal {
-      background: transparent !important;
-      border-color: transparent !important;
-      color: inherit !important;
-      padding-left: 0 !important;
-      padding-right: 0 !important;
-      text-decoration: underline;
-      text-underline-offset: 4px;
-      opacity: 0.8;
-    }
   }
 
-  /* Icon-size cap on mobile — target Lucide icons (the project's
-     icon system) so brand logos, wordmarks, and decorative SVG art
-     are not affected. Opt out per-icon with `.icon-decorative`. */
+  /* ---------- Mobile-only ergonomics (≤ 767px) ----------
+     Kept intentionally: touch targets, icon cap, hero heading
+     balance. Everything else scales fluidly via clamp(). */
   @media (max-width: 767px) {
     svg.lucide:not(.icon-decorative) {
-      max-width: 32px !important;
-      max-height: 32px !important;
+      max-width: 32px;
+      max-height: 32px;
       width: auto;
       height: auto;
     }
-
-    /* Touch-target safety: interactive elements stay ≥ 44px tall
-       so capped icons remain comfortably tappable. */
     button:not(.no-min-touch),
     a[role="button"],
     [role="button"]:not(.no-min-touch) {
       min-height: 44px;
     }
-
-    /* Prevent awkward hero heading wrapping. */
     .hero h1, [data-hero] h1 { text-wrap: balance; }
   }
 
@@ -308,12 +291,6 @@
     overflow-wrap: break-word;
     word-wrap: break-word;
     hyphens: auto;
-  }
-
-  /* Mobile: keep original editorial typography. Only prevent overflow —
-     do NOT rescale heading sizes or strip forced line breaks. */
-  @media (max-width: 767px) {
-    h1, h2, h3, .font-display { text-wrap: balance; hyphens: manual; }
   }
 
   p {
