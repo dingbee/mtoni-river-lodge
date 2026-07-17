@@ -17,6 +17,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SitemapPagesDotxmlRouteImport } from './routes/sitemap-pages[.]xml'
 import { Route as SitemapJournalDotxmlRouteImport } from './routes/sitemap-journal[.]xml'
 import { Route as SitemapImagesDotxmlRouteImport } from './routes/sitemap-images[.]xml'
+import { Route as SitemapCmsDotxmlRouteImport } from './routes/sitemap-cms[.]xml'
 import { Route as SitemapAccommodationDotxmlRouteImport } from './routes/sitemap-accommodation[.]xml'
 import { Route as RoomsRouteImport } from './routes/rooms'
 import { Route as ReviewsRouteImport } from './routes/reviews'
@@ -52,6 +53,7 @@ import { Route as TagSplatRouteImport } from './routes/tag.$'
 import { Route as RoomsStandardRiverRouteImport } from './routes/rooms.standard-river'
 import { Route as RoomsRiverfrontDeluxeRouteImport } from './routes/rooms.riverfront-deluxe'
 import { Route as RoomsFamilyRoomRouteImport } from './routes/rooms.family-room'
+import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as JournalWhereToStayBeforeClimbingMountKilimanjaroRouteImport } from './routes/journal.where-to-stay-before-climbing-mount-kilimanjaro'
 import { Route as JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport } from './routes/journal.what-the-river-has-taught-us-about-time'
 import { Route as JournalTheArchitectureOfDisappearingRouteImport } from './routes/journal.the-architecture-of-disappearing'
@@ -159,6 +161,11 @@ const SitemapJournalDotxmlRoute = SitemapJournalDotxmlRouteImport.update({
 const SitemapImagesDotxmlRoute = SitemapImagesDotxmlRouteImport.update({
   id: '/sitemap-images.xml',
   path: '/sitemap-images.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapCmsDotxmlRoute = SitemapCmsDotxmlRouteImport.update({
+  id: '/sitemap-cms.xml',
+  path: '/sitemap-cms.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapAccommodationDotxmlRoute =
@@ -338,6 +345,11 @@ const RoomsFamilyRoomRoute = RoomsFamilyRoomRouteImport.update({
   id: '/family-room',
   path: '/family-room',
   getParentRoute: () => RoomsRoute,
+} as any)
+const PSlugRoute = PSlugRouteImport.update({
+  id: '/p/$slug',
+  path: '/p/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const JournalWhereToStayBeforeClimbingMountKilimanjaroRoute =
   JournalWhereToStayBeforeClimbingMountKilimanjaroRouteImport.update({
@@ -764,6 +776,7 @@ export interface FileRoutesByFullPath {
   '/reviews': typeof ReviewsRoute
   '/rooms': typeof RoomsRouteWithChildren
   '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
+  '/sitemap-cms.xml': typeof SitemapCmsDotxmlRoute
   '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
   '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
   '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
@@ -789,6 +802,7 @@ export interface FileRoutesByFullPath {
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/journal/where-to-stay-before-climbing-mount-kilimanjaro': typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRoute
+  '/p/$slug': typeof PSlugRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
@@ -874,6 +888,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/reviews': typeof ReviewsRoute
   '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
+  '/sitemap-cms.xml': typeof SitemapCmsDotxmlRoute
   '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
   '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
   '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
@@ -898,6 +913,7 @@ export interface FileRoutesByTo {
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/journal/where-to-stay-before-climbing-mount-kilimanjaro': typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRoute
+  '/p/$slug': typeof PSlugRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
@@ -986,6 +1002,7 @@ export interface FileRoutesById {
   '/reviews': typeof ReviewsRoute
   '/rooms': typeof RoomsRouteWithChildren
   '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
+  '/sitemap-cms.xml': typeof SitemapCmsDotxmlRoute
   '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
   '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
   '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
@@ -1011,6 +1028,7 @@ export interface FileRoutesById {
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/journal/where-to-stay-before-climbing-mount-kilimanjaro': typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRoute
+  '/p/$slug': typeof PSlugRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
@@ -1100,6 +1118,7 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/rooms'
     | '/sitemap-accommodation.xml'
+    | '/sitemap-cms.xml'
     | '/sitemap-images.xml'
     | '/sitemap-journal.xml'
     | '/sitemap-pages.xml'
@@ -1125,6 +1144,7 @@ export interface FileRouteTypes {
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
+    | '/p/$slug'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
@@ -1210,6 +1230,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/reviews'
     | '/sitemap-accommodation.xml'
+    | '/sitemap-cms.xml'
     | '/sitemap-images.xml'
     | '/sitemap-journal.xml'
     | '/sitemap-pages.xml'
@@ -1234,6 +1255,7 @@ export interface FileRouteTypes {
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
+    | '/p/$slug'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
@@ -1321,6 +1343,7 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/rooms'
     | '/sitemap-accommodation.xml'
+    | '/sitemap-cms.xml'
     | '/sitemap-images.xml'
     | '/sitemap-journal.xml'
     | '/sitemap-pages.xml'
@@ -1346,6 +1369,7 @@ export interface FileRouteTypes {
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
+    | '/p/$slug'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
@@ -1435,6 +1459,7 @@ export interface RootRouteChildren {
   ReviewsRoute: typeof ReviewsRoute
   RoomsRoute: typeof RoomsRouteWithChildren
   SitemapAccommodationDotxmlRoute: typeof SitemapAccommodationDotxmlRoute
+  SitemapCmsDotxmlRoute: typeof SitemapCmsDotxmlRoute
   SitemapImagesDotxmlRoute: typeof SitemapImagesDotxmlRoute
   SitemapJournalDotxmlRoute: typeof SitemapJournalDotxmlRoute
   SitemapPagesDotxmlRoute: typeof SitemapPagesDotxmlRoute
@@ -1448,6 +1473,7 @@ export interface RootRouteChildren {
   CategorySplatRoute: typeof CategorySplatRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   FeedSplatRoute: typeof FeedSplatRoute
+  PSlugRoute: typeof PSlugRoute
   TagSplatRoute: typeof TagSplatRoute
   WpAdminSplatRoute: typeof WpAdminSplatRoute
   WpContentSplatRoute: typeof WpContentSplatRoute
@@ -1518,6 +1544,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap-images.xml'
       fullPath: '/sitemap-images.xml'
       preLoaderRoute: typeof SitemapImagesDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap-cms.xml': {
+      id: '/sitemap-cms.xml'
+      path: '/sitemap-cms.xml'
+      fullPath: '/sitemap-cms.xml'
+      preLoaderRoute: typeof SitemapCmsDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap-accommodation.xml': {
@@ -1764,6 +1797,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/rooms/family-room'
       preLoaderRoute: typeof RoomsFamilyRoomRouteImport
       parentRoute: typeof RoomsRoute
+    }
+    '/p/$slug': {
+      id: '/p/$slug'
+      path: '/p/$slug'
+      fullPath: '/p/$slug'
+      preLoaderRoute: typeof PSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/journal/where-to-stay-before-climbing-mount-kilimanjaro': {
       id: '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
@@ -2526,6 +2566,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReviewsRoute: ReviewsRoute,
   RoomsRoute: RoomsRouteWithChildren,
   SitemapAccommodationDotxmlRoute: SitemapAccommodationDotxmlRoute,
+  SitemapCmsDotxmlRoute: SitemapCmsDotxmlRoute,
   SitemapImagesDotxmlRoute: SitemapImagesDotxmlRoute,
   SitemapJournalDotxmlRoute: SitemapJournalDotxmlRoute,
   SitemapPagesDotxmlRoute: SitemapPagesDotxmlRoute,
@@ -2539,6 +2580,7 @@ const rootRouteChildren: RootRouteChildren = {
   CategorySplatRoute: CategorySplatRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   FeedSplatRoute: FeedSplatRoute,
+  PSlugRoute: PSlugRoute,
   TagSplatRoute: TagSplatRoute,
   WpAdminSplatRoute: WpAdminSplatRoute,
   WpContentSplatRoute: WpContentSplatRoute,
