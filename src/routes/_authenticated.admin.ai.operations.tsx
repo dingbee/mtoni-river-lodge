@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
-import { LayoutDashboard, Users, ClipboardCheck, Wrench, ListChecks, BookOpen, Activity, AlertTriangle } from "lucide-react";
+import { LayoutDashboard, Users, ClipboardCheck, Wrench, ListChecks, BookOpen, Activity, AlertTriangle, Heart, TrendingUp, UserCog, DoorOpen } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/operations")({
   head: () => ({
@@ -12,7 +12,11 @@ const TABS = [
   { to: "/admin/ai/operations", label: "Command Centre", icon: LayoutDashboard, exact: true },
   { to: "/admin/ai/operations/frontdesk", label: "Front Desk", icon: Users },
   { to: "/admin/ai/operations/housekeeping", label: "Housekeeping", icon: ClipboardCheck },
+  { to: "/admin/ai/operations/readiness", label: "Room Readiness", icon: DoorOpen },
   { to: "/admin/ai/operations/maintenance", label: "Maintenance", icon: Wrench },
+  { to: "/admin/ai/operations/service-quality", label: "Service Recovery", icon: Heart },
+  { to: "/admin/ai/operations/patterns", label: "Patterns", icon: TrendingUp },
+  { to: "/admin/ai/operations/staff", label: "Staff Insights", icon: UserCog },
   { to: "/admin/ai/operations/tasks", label: "Task Intelligence", icon: ListChecks },
   { to: "/admin/ai/operations/alerts", label: "Alerts", icon: AlertTriangle },
   { to: "/admin/ai/operations/knowledge", label: "Knowledge", icon: BookOpen },
