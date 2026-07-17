@@ -144,6 +144,7 @@ import { Route as AuthenticatedAdminGuestsCrmIdRouteImport } from './routes/_aut
 import { Route as AuthenticatedAdminContentJournalIdRouteImport } from './routes/_authenticated.admin.content.journal.$id'
 import { Route as AuthenticatedAdminAutomationWorkflowsIdRouteImport } from './routes/_authenticated.admin.automation.workflows.$id'
 import { Route as AuthenticatedAdminAiRevenuePricingRouteImport } from './routes/_authenticated.admin.ai.revenue.pricing'
+import { Route as AuthenticatedAdminAiRevenuePatternsRouteImport } from './routes/_authenticated.admin.ai.revenue.patterns'
 import { Route as AuthenticatedAdminAiRevenueOpportunitiesRouteImport } from './routes/_authenticated.admin.ai.revenue.opportunities'
 import { Route as AuthenticatedAdminAiRevenueForecastRouteImport } from './routes/_authenticated.admin.ai.revenue.forecast'
 import { Route as AuthenticatedAdminAiRevenueAlertsRouteImport } from './routes/_authenticated.admin.ai.revenue.alerts'
@@ -910,6 +911,12 @@ const AuthenticatedAdminAiRevenuePricingRoute =
     path: '/pricing',
     getParentRoute: () => AuthenticatedAdminAiRevenueRoute,
   } as any)
+const AuthenticatedAdminAiRevenuePatternsRoute =
+  AuthenticatedAdminAiRevenuePatternsRouteImport.update({
+    id: '/patterns',
+    path: '/patterns',
+    getParentRoute: () => AuthenticatedAdminAiRevenueRoute,
+  } as any)
 const AuthenticatedAdminAiRevenueOpportunitiesRoute =
   AuthenticatedAdminAiRevenueOpportunitiesRouteImport.update({
     id: '/opportunities',
@@ -1082,6 +1089,7 @@ export interface FileRoutesByFullPath {
   '/admin/ai/revenue/alerts': typeof AuthenticatedAdminAiRevenueAlertsRoute
   '/admin/ai/revenue/forecast': typeof AuthenticatedAdminAiRevenueForecastRoute
   '/admin/ai/revenue/opportunities': typeof AuthenticatedAdminAiRevenueOpportunitiesRoute
+  '/admin/ai/revenue/patterns': typeof AuthenticatedAdminAiRevenuePatternsRoute
   '/admin/ai/revenue/pricing': typeof AuthenticatedAdminAiRevenuePricingRoute
   '/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
@@ -1218,6 +1226,7 @@ export interface FileRoutesByTo {
   '/admin/ai/revenue/alerts': typeof AuthenticatedAdminAiRevenueAlertsRoute
   '/admin/ai/revenue/forecast': typeof AuthenticatedAdminAiRevenueForecastRoute
   '/admin/ai/revenue/opportunities': typeof AuthenticatedAdminAiRevenueOpportunitiesRoute
+  '/admin/ai/revenue/patterns': typeof AuthenticatedAdminAiRevenuePatternsRoute
   '/admin/ai/revenue/pricing': typeof AuthenticatedAdminAiRevenuePricingRoute
   '/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
@@ -1363,6 +1372,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/ai/revenue/alerts': typeof AuthenticatedAdminAiRevenueAlertsRoute
   '/_authenticated/admin/ai/revenue/forecast': typeof AuthenticatedAdminAiRevenueForecastRoute
   '/_authenticated/admin/ai/revenue/opportunities': typeof AuthenticatedAdminAiRevenueOpportunitiesRoute
+  '/_authenticated/admin/ai/revenue/patterns': typeof AuthenticatedAdminAiRevenuePatternsRoute
   '/_authenticated/admin/ai/revenue/pricing': typeof AuthenticatedAdminAiRevenuePricingRoute
   '/_authenticated/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/_authenticated/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
@@ -1508,6 +1518,7 @@ export interface FileRouteTypes {
     | '/admin/ai/revenue/alerts'
     | '/admin/ai/revenue/forecast'
     | '/admin/ai/revenue/opportunities'
+    | '/admin/ai/revenue/patterns'
     | '/admin/ai/revenue/pricing'
     | '/admin/automation/workflows/$id'
     | '/admin/content/journal/$id'
@@ -1644,6 +1655,7 @@ export interface FileRouteTypes {
     | '/admin/ai/revenue/alerts'
     | '/admin/ai/revenue/forecast'
     | '/admin/ai/revenue/opportunities'
+    | '/admin/ai/revenue/patterns'
     | '/admin/ai/revenue/pricing'
     | '/admin/automation/workflows/$id'
     | '/admin/content/journal/$id'
@@ -1788,6 +1800,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/ai/revenue/alerts'
     | '/_authenticated/admin/ai/revenue/forecast'
     | '/_authenticated/admin/ai/revenue/opportunities'
+    | '/_authenticated/admin/ai/revenue/patterns'
     | '/_authenticated/admin/ai/revenue/pricing'
     | '/_authenticated/admin/automation/workflows/$id'
     | '/_authenticated/admin/content/journal/$id'
@@ -2806,6 +2819,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiRevenuePricingRouteImport
       parentRoute: typeof AuthenticatedAdminAiRevenueRoute
     }
+    '/_authenticated/admin/ai/revenue/patterns': {
+      id: '/_authenticated/admin/ai/revenue/patterns'
+      path: '/patterns'
+      fullPath: '/admin/ai/revenue/patterns'
+      preLoaderRoute: typeof AuthenticatedAdminAiRevenuePatternsRouteImport
+      parentRoute: typeof AuthenticatedAdminAiRevenueRoute
+    }
     '/_authenticated/admin/ai/revenue/opportunities': {
       id: '/_authenticated/admin/ai/revenue/opportunities'
       path: '/opportunities'
@@ -2880,6 +2900,7 @@ interface AuthenticatedAdminAiRevenueRouteChildren {
   AuthenticatedAdminAiRevenueAlertsRoute: typeof AuthenticatedAdminAiRevenueAlertsRoute
   AuthenticatedAdminAiRevenueForecastRoute: typeof AuthenticatedAdminAiRevenueForecastRoute
   AuthenticatedAdminAiRevenueOpportunitiesRoute: typeof AuthenticatedAdminAiRevenueOpportunitiesRoute
+  AuthenticatedAdminAiRevenuePatternsRoute: typeof AuthenticatedAdminAiRevenuePatternsRoute
   AuthenticatedAdminAiRevenuePricingRoute: typeof AuthenticatedAdminAiRevenuePricingRoute
   AuthenticatedAdminAiRevenueIndexRoute: typeof AuthenticatedAdminAiRevenueIndexRoute
 }
@@ -2892,6 +2913,8 @@ const AuthenticatedAdminAiRevenueRouteChildren: AuthenticatedAdminAiRevenueRoute
       AuthenticatedAdminAiRevenueForecastRoute,
     AuthenticatedAdminAiRevenueOpportunitiesRoute:
       AuthenticatedAdminAiRevenueOpportunitiesRoute,
+    AuthenticatedAdminAiRevenuePatternsRoute:
+      AuthenticatedAdminAiRevenuePatternsRoute,
     AuthenticatedAdminAiRevenuePricingRoute:
       AuthenticatedAdminAiRevenuePricingRoute,
     AuthenticatedAdminAiRevenueIndexRoute:
