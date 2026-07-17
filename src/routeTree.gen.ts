@@ -121,6 +121,7 @@ import { Route as AuthenticatedAdminContentGalleryRouteImport } from './routes/_
 import { Route as AuthenticatedAdminContentExperiencesRouteImport } from './routes/_authenticated.admin.content.experiences'
 import { Route as AuthenticatedAdminContentCalendarRouteImport } from './routes/_authenticated.admin.content.calendar'
 import { Route as AuthenticatedAdminContentBrandRouteImport } from './routes/_authenticated.admin.content.brand'
+import { Route as AuthenticatedAdminAutomationWorkflowsRouteImport } from './routes/_authenticated.admin.automation.workflows'
 import { Route as AuthenticatedAdminOperationsReservationsIdRouteImport } from './routes/_authenticated.admin.operations.reservations.$id'
 import { Route as AuthenticatedAdminOperationsCheckoutIdRouteImport } from './routes/_authenticated.admin.operations.checkout.$id'
 import { Route as AuthenticatedAdminOperationsCheckinIdRouteImport } from './routes/_authenticated.admin.operations.checkin.$id'
@@ -751,6 +752,12 @@ const AuthenticatedAdminContentBrandRoute =
     path: '/content/brand',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminAutomationWorkflowsRoute =
+  AuthenticatedAdminAutomationWorkflowsRouteImport.update({
+    id: '/workflows',
+    path: '/workflows',
+    getParentRoute: () => AuthenticatedAdminAutomationRoute,
+  } as any)
 const AuthenticatedAdminOperationsReservationsIdRoute =
   AuthenticatedAdminOperationsReservationsIdRouteImport.update({
     id: '/reservations/$id',
@@ -871,6 +878,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/automation/workflows': typeof AuthenticatedAdminAutomationWorkflowsRoute
   '/admin/content/brand': typeof AuthenticatedAdminContentBrandRoute
   '/admin/content/calendar': typeof AuthenticatedAdminContentCalendarRoute
   '/admin/content/experiences': typeof AuthenticatedAdminContentExperiencesRoute
@@ -987,6 +995,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/automation/workflows': typeof AuthenticatedAdminAutomationWorkflowsRoute
   '/admin/content/brand': typeof AuthenticatedAdminContentBrandRoute
   '/admin/content/calendar': typeof AuthenticatedAdminContentCalendarRoute
   '/admin/content/experiences': typeof AuthenticatedAdminContentExperiencesRoute
@@ -1110,6 +1119,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/automation/workflows': typeof AuthenticatedAdminAutomationWorkflowsRoute
   '/_authenticated/admin/content/brand': typeof AuthenticatedAdminContentBrandRoute
   '/_authenticated/admin/content/calendar': typeof AuthenticatedAdminContentCalendarRoute
   '/_authenticated/admin/content/experiences': typeof AuthenticatedAdminContentExperiencesRoute
@@ -1233,6 +1243,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/lovable/email/suppression'
     | '/admin/'
+    | '/admin/automation/workflows'
     | '/admin/content/brand'
     | '/admin/content/calendar'
     | '/admin/content/experiences'
@@ -1349,6 +1360,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/lovable/email/suppression'
     | '/admin'
+    | '/admin/automation/workflows'
     | '/admin/content/brand'
     | '/admin/content/calendar'
     | '/admin/content/experiences'
@@ -1471,6 +1483,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/automation/workflows'
     | '/_authenticated/admin/content/brand'
     | '/_authenticated/admin/content/calendar'
     | '/_authenticated/admin/content/experiences'
@@ -2363,6 +2376,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminContentBrandRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/automation/workflows': {
+      id: '/_authenticated/admin/automation/workflows'
+      path: '/workflows'
+      fullPath: '/admin/automation/workflows'
+      preLoaderRoute: typeof AuthenticatedAdminAutomationWorkflowsRouteImport
+      parentRoute: typeof AuthenticatedAdminAutomationRoute
+    }
     '/_authenticated/admin/operations/reservations/$id': {
       id: '/_authenticated/admin/operations/reservations/$id'
       path: '/reservations/$id'
@@ -2423,11 +2443,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminAutomationRouteChildren {
+  AuthenticatedAdminAutomationWorkflowsRoute: typeof AuthenticatedAdminAutomationWorkflowsRoute
   AuthenticatedAdminAutomationIndexRoute: typeof AuthenticatedAdminAutomationIndexRoute
 }
 
 const AuthenticatedAdminAutomationRouteChildren: AuthenticatedAdminAutomationRouteChildren =
   {
+    AuthenticatedAdminAutomationWorkflowsRoute:
+      AuthenticatedAdminAutomationWorkflowsRoute,
     AuthenticatedAdminAutomationIndexRoute:
       AuthenticatedAdminAutomationIndexRoute,
   }

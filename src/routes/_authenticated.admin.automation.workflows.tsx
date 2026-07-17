@@ -53,7 +53,7 @@ function WorkflowsPage() {
             {active.map((w) => (
               <li key={w.id} className="flex items-center justify-between gap-3 p-3">
                 <div className="min-w-0">
-                  <Link to={"/admin/automation/workflows/$id" as any} params={{ id: w.id }} className="font-medium hover:underline">{w.name}</Link>
+                  <a href={`/admin/automation/workflows/${w.id}`} className="font-medium hover:underline">{w.name}</a>
                   <div className="text-xs text-muted-foreground truncate">{w.trigger_event} · {(w.actions ?? []).length} actions {w.requires_approval && "· approval required"}</div>
                 </div>
                 <div className="flex items-center gap-2">
