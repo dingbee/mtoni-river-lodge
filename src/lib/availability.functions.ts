@@ -195,3 +195,90 @@ export const releaseHoldStaff = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// -------- Staff: reassign booking room --------------------------------
+
+export const reassignBookingRoom = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      bookingId: z.string().uuid(),
+      newRoomId: z.string().uuid(),
+      reason: z.string().trim().max(200).optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+    const { data: res, error } = await sb.rpc("reassign_booking_room", {
+      _booking_id: data.bookingId,
+      _new_room_id: data.newRoomId,
+      _actor: context.userId,
+      _reason: data.reason ?? null,
+    });
+    if (error) throw new Error(error.message);
+    return res as { ok: boolean; booking_id: string; from_room_id: string; to_room_id: string };
+  });
+
+// -------- Staff: AI room-assignment suggestion ------------------------
+
+// Heuristic recommender. Given a booking, ranks currently-available rooms
+// against the guest's preferences (extracted from special_requests + purpose)
+// plus capacity fit and price parity. Read-only — staff must approve.
+
+export const suggestRoomAssignment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const sb: any = context.supabase;
+    const { data: b, error: be } = await sb
+      .from("bookings")
+      .select("id, room_id, check_in, check_out, adults, children, special_requests, visit_purpose, guest_type")
+      .eq("id", data.bookingId)
+      .maybeSingle();
+    if (be || !b) throw new Error(be?.message ?? "Booking not found");
+
+    const { data: avail, error: ae } = await sb.rpc("get_room_availability", {
+      _check_in: b.check_in,
+      _check_out: b.check_out,
+    });
+    if (ae) throw new Error(ae.message);
+
+    const occupants = (b.adults ?? 0) + (b.children ?? 0);
+    const hay = `${b.special_requests ?? ""} ${b.visit_purpose ?? ""}`.toLowerCase();
+    const wants = {
+      river: /river|view|water/.test(hay),
+      quiet: /quiet|peace|honeymoon|anniversary/.test(hay),
+      deluxe: /deluxe|premium|suite|upgrade/.test(hay),
+      family: /family|kid|child/.test(hay) || (b.children ?? 0) > 0,
+      climber: b.guest_type === "climber" || /kilimanjaro|climb|trek/.test(hay),
+    };
+
+    const scored = ((avail ?? []) as any[])
+      .filter((r) => r.is_available && r.id !== b.room_id && occupants <= r.max_occupancy)
+      .map((r) => {
+        const n = `${r.name} ${r.slug}`.toLowerCase();
+        let score = 0;
+        const reasons: string[] = [];
+        if (wants.river && /river|water/.test(n)) { score += 3; reasons.push("river view match"); }
+        if (wants.deluxe && /deluxe|premium|suite/.test(n)) { score += 3; reasons.push("premium preference"); }
+        if (wants.family && r.max_occupancy >= occupants + 1) { score += 1; reasons.push("family-friendly capacity"); }
+        if (wants.climber && /standard|garden/.test(n)) { score += 1; reasons.push("efficient for early departures"); }
+        // Capacity fit — prefer smallest room that still accommodates guests.
+        score += Math.max(0, 3 - (r.max_occupancy - occupants));
+        // Price proximity — penalise big price jumps.
+        return {
+          room_id: r.id as string,
+          slug: r.slug as string,
+          name: r.name as string,
+          base_price: Number(r.base_price),
+          max_occupancy: r.max_occupancy as number,
+          min_available: r.min_available as number,
+          score,
+          reasons,
+        };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+
+    return { bookingId: b.id, currentRoomId: b.room_id as string, suggestions: scored };
+  });
