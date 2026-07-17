@@ -137,8 +137,16 @@ function SystemHealthPage() {
                     <div className="mt-1 text-xs text-destructive line-clamp-2">{j.last_error}</div>
                   )}
                 </div>
-                <Badge variant={j.status === "success" ? "secondary" : j.status === "failed" ? "destructive" : "outline"}>
-                  {j.status ?? "unknown"}
+                <Badge
+                  variant={
+                    j.last_status === "success"
+                      ? "secondary"
+                      : j.last_status === "failed"
+                        ? "destructive"
+                        : "outline"
+                  }
+                >
+                  {j.enabled ? j.last_status ?? "pending" : "disabled"}
                 </Badge>
               </div>
             ))}

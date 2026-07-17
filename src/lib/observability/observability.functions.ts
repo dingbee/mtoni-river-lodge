@@ -41,7 +41,7 @@ export const getSystemHealth = createServerFn({ method: "GET" })
         .gte("occurred_at", since1h),
       context.supabase
         .from("scheduled_jobs")
-        .select("id,name,status,last_run_at,next_run_at,last_error")
+        .select("id,name,last_status,last_run_at,next_run_at,last_error,enabled")
         .order("last_run_at", { ascending: false, nullsFirst: false })
         .limit(20),
       context.supabase
