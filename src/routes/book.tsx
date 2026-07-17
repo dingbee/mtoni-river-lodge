@@ -323,6 +323,8 @@ function BookPage() {
   const listExtrasFn = useServerFn(listExtras);
   const createBookingFn = useServerFn(createBooking);
   const initiatePaymentFn = useServerFn(initiatePayment);
+  const createHoldFn = useServerFn(createBookingHold);
+  const releaseHoldFn = useServerFn(releaseBookingHold);
 
   const search = useMutation({
     mutationFn: async () => {
