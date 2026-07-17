@@ -373,6 +373,8 @@ function BookPage() {
           specialRequests: guest.requests,
           visitPurpose: guest.purpose,
           extras: selectedExtras,
+          holdId: hold && hold.roomSlug === selectedRoom.slug ? hold.id : undefined,
+          sessionId,
         },
       });
       trackGAEvent("begin_payment", {
