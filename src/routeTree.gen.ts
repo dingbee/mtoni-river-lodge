@@ -133,6 +133,7 @@ import { Route as AuthenticatedAdminAiMarketingRouteImport } from './routes/_aut
 import { Route as AuthenticatedAdminAiKnowledgeRouteImport } from './routes/_authenticated.admin.ai.knowledge'
 import { Route as AuthenticatedAdminAiInsightsRouteImport } from './routes/_authenticated.admin.ai.insights'
 import { Route as AuthenticatedAdminAiGuestsRouteImport } from './routes/_authenticated.admin.ai.guests'
+import { Route as AuthenticatedAdminAiGovernanceRouteImport } from './routes/_authenticated.admin.ai.governance'
 import { Route as AuthenticatedAdminAiExecutiveRouteImport } from './routes/_authenticated.admin.ai.executive'
 import { Route as AuthenticatedAdminAiActivityRouteImport } from './routes/_authenticated.admin.ai.activity'
 import { Route as AuthenticatedAdminContentPagesIndexRouteImport } from './routes/_authenticated.admin.content.pages.index'
@@ -860,6 +861,12 @@ const AuthenticatedAdminAiGuestsRoute =
     path: '/guests',
     getParentRoute: () => AuthenticatedAdminAiRoute,
   } as any)
+const AuthenticatedAdminAiGovernanceRoute =
+  AuthenticatedAdminAiGovernanceRouteImport.update({
+    id: '/governance',
+    path: '/governance',
+    getParentRoute: () => AuthenticatedAdminAiRoute,
+  } as any)
 const AuthenticatedAdminAiExecutiveRoute =
   AuthenticatedAdminAiExecutiveRouteImport.update({
     id: '/executive',
@@ -1138,6 +1145,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
   '/admin/ai/executive': typeof AuthenticatedAdminAiExecutiveRouteWithChildren
+  '/admin/ai/governance': typeof AuthenticatedAdminAiGovernanceRoute
   '/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRouteWithChildren
   '/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
   '/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
@@ -1290,6 +1298,7 @@ export interface FileRoutesByTo {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
+  '/admin/ai/governance': typeof AuthenticatedAdminAiGovernanceRoute
   '/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRouteWithChildren
   '/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
   '/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
@@ -1449,6 +1458,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
   '/_authenticated/admin/ai/executive': typeof AuthenticatedAdminAiExecutiveRouteWithChildren
+  '/_authenticated/admin/ai/governance': typeof AuthenticatedAdminAiGovernanceRoute
   '/_authenticated/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRouteWithChildren
   '/_authenticated/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
   '/_authenticated/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
@@ -1610,6 +1620,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/admin/ai/activity'
     | '/admin/ai/executive'
+    | '/admin/ai/governance'
     | '/admin/ai/guests'
     | '/admin/ai/insights'
     | '/admin/ai/knowledge'
@@ -1762,6 +1773,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/admin'
     | '/admin/ai/activity'
+    | '/admin/ai/governance'
     | '/admin/ai/guests'
     | '/admin/ai/insights'
     | '/admin/ai/knowledge'
@@ -1920,6 +1932,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/'
     | '/_authenticated/admin/ai/activity'
     | '/_authenticated/admin/ai/executive'
+    | '/_authenticated/admin/ai/governance'
     | '/_authenticated/admin/ai/guests'
     | '/_authenticated/admin/ai/insights'
     | '/_authenticated/admin/ai/knowledge'
@@ -2933,6 +2946,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiGuestsRouteImport
       parentRoute: typeof AuthenticatedAdminAiRoute
     }
+    '/_authenticated/admin/ai/governance': {
+      id: '/_authenticated/admin/ai/governance'
+      path: '/governance'
+      fullPath: '/admin/ai/governance'
+      preLoaderRoute: typeof AuthenticatedAdminAiGovernanceRouteImport
+      parentRoute: typeof AuthenticatedAdminAiRoute
+    }
     '/_authenticated/admin/ai/executive': {
       id: '/_authenticated/admin/ai/executive'
       path: '/executive'
@@ -3288,6 +3308,7 @@ const AuthenticatedAdminAiRevenueRouteWithChildren =
 interface AuthenticatedAdminAiRouteChildren {
   AuthenticatedAdminAiActivityRoute: typeof AuthenticatedAdminAiActivityRoute
   AuthenticatedAdminAiExecutiveRoute: typeof AuthenticatedAdminAiExecutiveRouteWithChildren
+  AuthenticatedAdminAiGovernanceRoute: typeof AuthenticatedAdminAiGovernanceRoute
   AuthenticatedAdminAiGuestsRoute: typeof AuthenticatedAdminAiGuestsRouteWithChildren
   AuthenticatedAdminAiInsightsRoute: typeof AuthenticatedAdminAiInsightsRoute
   AuthenticatedAdminAiKnowledgeRoute: typeof AuthenticatedAdminAiKnowledgeRoute
@@ -3301,6 +3322,7 @@ const AuthenticatedAdminAiRouteChildren: AuthenticatedAdminAiRouteChildren = {
   AuthenticatedAdminAiActivityRoute: AuthenticatedAdminAiActivityRoute,
   AuthenticatedAdminAiExecutiveRoute:
     AuthenticatedAdminAiExecutiveRouteWithChildren,
+  AuthenticatedAdminAiGovernanceRoute: AuthenticatedAdminAiGovernanceRoute,
   AuthenticatedAdminAiGuestsRoute: AuthenticatedAdminAiGuestsRouteWithChildren,
   AuthenticatedAdminAiInsightsRoute: AuthenticatedAdminAiInsightsRoute,
   AuthenticatedAdminAiKnowledgeRoute: AuthenticatedAdminAiKnowledgeRoute,
