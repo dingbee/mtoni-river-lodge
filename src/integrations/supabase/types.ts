@@ -1476,6 +1476,90 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_knowledge_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          metadata: Json
+          notification_type: string
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          metadata?: Json
+          notification_type: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          metadata?: Json
+          notification_type?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_knowledge_scheduler_config: {
+        Row: {
+          confidence_threshold: number
+          created_at: string
+          cron_expression: string
+          enabled: boolean
+          freshness_rules: Json
+          id: number
+          last_error: string | null
+          last_run_at: string | null
+          last_status: string | null
+          tasks: Json
+          updated_at: string
+        }
+        Insert: {
+          confidence_threshold?: number
+          created_at?: string
+          cron_expression?: string
+          enabled?: boolean
+          freshness_rules?: Json
+          id?: number
+          last_error?: string | null
+          last_run_at?: string | null
+          last_status?: string | null
+          tasks?: Json
+          updated_at?: string
+        }
+        Update: {
+          confidence_threshold?: number
+          created_at?: string
+          cron_expression?: string
+          enabled?: boolean
+          freshness_rules?: Json
+          id?: number
+          last_error?: string | null
+          last_run_at?: string | null
+          last_status?: string | null
+          tasks?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_knowledge_search_log: {
         Row: {
           asked_by: string | null
@@ -1508,61 +1592,121 @@ export type Database = {
       }
       ai_knowledge_sources: {
         Row: {
+          completeness_score: number | null
+          confidence_score: number | null
           content: string
           content_tsv: unknown
           created_at: string
           created_by: string | null
           external_ref: string | null
+          freshness_score: number | null
           id: string
           indexed_at: string | null
           last_synced_at: string | null
+          last_used_at: string | null
           metadata: Json
+          quality_score: number | null
           reviewed_at: string | null
           reviewed_by: string | null
           source_type: string
+          source_updated_at: string | null
           status: string
           summary: string | null
           title: string
           updated_at: string
           url: string | null
+          usage_count: number
+          usage_score: number | null
         }
         Insert: {
+          completeness_score?: number | null
+          confidence_score?: number | null
           content?: string
           content_tsv?: unknown
           created_at?: string
           created_by?: string | null
           external_ref?: string | null
+          freshness_score?: number | null
           id?: string
           indexed_at?: string | null
           last_synced_at?: string | null
+          last_used_at?: string | null
           metadata?: Json
+          quality_score?: number | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           source_type: string
+          source_updated_at?: string | null
           status?: string
           summary?: string | null
           title: string
           updated_at?: string
           url?: string | null
+          usage_count?: number
+          usage_score?: number | null
         }
         Update: {
+          completeness_score?: number | null
+          confidence_score?: number | null
           content?: string
           content_tsv?: unknown
           created_at?: string
           created_by?: string | null
           external_ref?: string | null
+          freshness_score?: number | null
           id?: string
           indexed_at?: string | null
           last_synced_at?: string | null
+          last_used_at?: string | null
           metadata?: Json
+          quality_score?: number | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           source_type?: string
+          source_updated_at?: string | null
           status?: string
           summary?: string | null
           title?: string
           updated_at?: string
           url?: string | null
+          usage_count?: number
+          usage_score?: number | null
+        }
+        Relationships: []
+      }
+      ai_knowledge_sync_runs: {
+        Row: {
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          result: Json
+          started_at: string
+          status: string
+          tasks: Json
+          triggered_by: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          result?: Json
+          started_at?: string
+          status?: string
+          tasks?: Json
+          triggered_by?: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          result?: Json
+          started_at?: string
+          status?: string
+          tasks?: Json
+          triggered_by?: string
         }
         Relationships: []
       }

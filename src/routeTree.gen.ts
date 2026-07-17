@@ -91,6 +91,7 @@ import { Route as ApiPublicPesapalIpnRouteImport } from './routes/api/public/pes
 import { Route as ApiPublicOpsMorningDigestRouteImport } from './routes/api/public/ops/morning-digest'
 import { Route as ApiPublicOpsDrainRouteImport } from './routes/api/public/ops/drain'
 import { Route as ApiPublicHooksScheduledJobsRouteImport } from './routes/api/public/hooks/scheduled-jobs'
+import { Route as ApiPublicHooksKnowledgeSyncRouteImport } from './routes/api/public/hooks/knowledge-sync'
 import { Route as ApiPublicConciergeLeadRouteImport } from './routes/api/public/concierge.lead'
 import { Route as ApiPublicConciergeFeedbackRouteImport } from './routes/api/public/concierge.feedback'
 import { Route as ApiPublicConciergeChatRouteImport } from './routes/api/public/concierge.chat'
@@ -183,6 +184,7 @@ import { Route as AuthenticatedAdminAiMarketingCampaignsRouteImport } from './ro
 import { Route as AuthenticatedAdminAiMarketingBrandRouteImport } from './routes/_authenticated.admin.ai.marketing.brand'
 import { Route as AuthenticatedAdminAiKnowledgeTestRouteImport } from './routes/_authenticated.admin.ai.knowledge.test'
 import { Route as AuthenticatedAdminAiKnowledgeSyncRouteImport } from './routes/_authenticated.admin.ai.knowledge.sync'
+import { Route as AuthenticatedAdminAiKnowledgeHealthRouteImport } from './routes/_authenticated.admin.ai.knowledge.health'
 import { Route as AuthenticatedAdminAiKnowledgeAnalyticsRouteImport } from './routes/_authenticated.admin.ai.knowledge.analytics'
 import { Route as AuthenticatedAdminAiGuestsDashboardRouteImport } from './routes/_authenticated.admin.ai.guests.dashboard'
 import { Route as AuthenticatedAdminAiGuestsBookingIdRouteImport } from './routes/_authenticated.admin.ai.guests.$bookingId'
@@ -640,6 +642,12 @@ const ApiPublicHooksScheduledJobsRoute =
   ApiPublicHooksScheduledJobsRouteImport.update({
     id: '/api/public/hooks/scheduled-jobs',
     path: '/api/public/hooks/scheduled-jobs',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksKnowledgeSyncRoute =
+  ApiPublicHooksKnowledgeSyncRouteImport.update({
+    id: '/api/public/hooks/knowledge-sync',
+    path: '/api/public/hooks/knowledge-sync',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicConciergeLeadRoute = ApiPublicConciergeLeadRouteImport.update({
@@ -1192,6 +1200,12 @@ const AuthenticatedAdminAiKnowledgeSyncRoute =
     path: '/sync',
     getParentRoute: () => AuthenticatedAdminAiKnowledgeRoute,
   } as any)
+const AuthenticatedAdminAiKnowledgeHealthRoute =
+  AuthenticatedAdminAiKnowledgeHealthRouteImport.update({
+    id: '/health',
+    path: '/health',
+    getParentRoute: () => AuthenticatedAdminAiKnowledgeRoute,
+  } as any)
 const AuthenticatedAdminAiKnowledgeAnalyticsRoute =
   AuthenticatedAdminAiKnowledgeAnalyticsRouteImport.update({
     id: '/analytics',
@@ -1426,6 +1440,7 @@ export interface FileRoutesByFullPath {
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
   '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
   '/api/public/concierge/lead': typeof ApiPublicConciergeLeadRoute
+  '/api/public/hooks/knowledge-sync': typeof ApiPublicHooksKnowledgeSyncRoute
   '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
@@ -1453,6 +1468,7 @@ export interface FileRoutesByFullPath {
   '/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
   '/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
   '/admin/ai/knowledge/analytics': typeof AuthenticatedAdminAiKnowledgeAnalyticsRoute
+  '/admin/ai/knowledge/health': typeof AuthenticatedAdminAiKnowledgeHealthRoute
   '/admin/ai/knowledge/sync': typeof AuthenticatedAdminAiKnowledgeSyncRoute
   '/admin/ai/knowledge/test': typeof AuthenticatedAdminAiKnowledgeTestRoute
   '/admin/ai/marketing/brand': typeof AuthenticatedAdminAiMarketingBrandRoute
@@ -1608,6 +1624,7 @@ export interface FileRoutesByTo {
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
   '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
   '/api/public/concierge/lead': typeof ApiPublicConciergeLeadRoute
+  '/api/public/hooks/knowledge-sync': typeof ApiPublicHooksKnowledgeSyncRoute
   '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
@@ -1635,6 +1652,7 @@ export interface FileRoutesByTo {
   '/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
   '/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
   '/admin/ai/knowledge/analytics': typeof AuthenticatedAdminAiKnowledgeAnalyticsRoute
+  '/admin/ai/knowledge/health': typeof AuthenticatedAdminAiKnowledgeHealthRoute
   '/admin/ai/knowledge/sync': typeof AuthenticatedAdminAiKnowledgeSyncRoute
   '/admin/ai/knowledge/test': typeof AuthenticatedAdminAiKnowledgeTestRoute
   '/admin/ai/marketing/brand': typeof AuthenticatedAdminAiMarketingBrandRoute
@@ -1803,6 +1821,7 @@ export interface FileRoutesById {
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
   '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
   '/api/public/concierge/lead': typeof ApiPublicConciergeLeadRoute
+  '/api/public/hooks/knowledge-sync': typeof ApiPublicHooksKnowledgeSyncRoute
   '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
@@ -1830,6 +1849,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
   '/_authenticated/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
   '/_authenticated/admin/ai/knowledge/analytics': typeof AuthenticatedAdminAiKnowledgeAnalyticsRoute
+  '/_authenticated/admin/ai/knowledge/health': typeof AuthenticatedAdminAiKnowledgeHealthRoute
   '/_authenticated/admin/ai/knowledge/sync': typeof AuthenticatedAdminAiKnowledgeSyncRoute
   '/_authenticated/admin/ai/knowledge/test': typeof AuthenticatedAdminAiKnowledgeTestRoute
   '/_authenticated/admin/ai/marketing/brand': typeof AuthenticatedAdminAiMarketingBrandRoute
@@ -1998,6 +2018,7 @@ export interface FileRouteTypes {
     | '/api/public/concierge/chat'
     | '/api/public/concierge/feedback'
     | '/api/public/concierge/lead'
+    | '/api/public/hooks/knowledge-sync'
     | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
@@ -2025,6 +2046,7 @@ export interface FileRouteTypes {
     | '/admin/ai/guests/$bookingId'
     | '/admin/ai/guests/dashboard'
     | '/admin/ai/knowledge/analytics'
+    | '/admin/ai/knowledge/health'
     | '/admin/ai/knowledge/sync'
     | '/admin/ai/knowledge/test'
     | '/admin/ai/marketing/brand'
@@ -2180,6 +2202,7 @@ export interface FileRouteTypes {
     | '/api/public/concierge/chat'
     | '/api/public/concierge/feedback'
     | '/api/public/concierge/lead'
+    | '/api/public/hooks/knowledge-sync'
     | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
@@ -2207,6 +2230,7 @@ export interface FileRouteTypes {
     | '/admin/ai/guests/$bookingId'
     | '/admin/ai/guests/dashboard'
     | '/admin/ai/knowledge/analytics'
+    | '/admin/ai/knowledge/health'
     | '/admin/ai/knowledge/sync'
     | '/admin/ai/knowledge/test'
     | '/admin/ai/marketing/brand'
@@ -2374,6 +2398,7 @@ export interface FileRouteTypes {
     | '/api/public/concierge/chat'
     | '/api/public/concierge/feedback'
     | '/api/public/concierge/lead'
+    | '/api/public/hooks/knowledge-sync'
     | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
@@ -2401,6 +2426,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/ai/guests/$bookingId'
     | '/_authenticated/admin/ai/guests/dashboard'
     | '/_authenticated/admin/ai/knowledge/analytics'
+    | '/_authenticated/admin/ai/knowledge/health'
     | '/_authenticated/admin/ai/knowledge/sync'
     | '/_authenticated/admin/ai/knowledge/test'
     | '/_authenticated/admin/ai/marketing/brand'
@@ -2494,6 +2520,7 @@ export interface RootRouteChildren {
   ApiPublicConciergeChatRoute: typeof ApiPublicConciergeChatRoute
   ApiPublicConciergeFeedbackRoute: typeof ApiPublicConciergeFeedbackRoute
   ApiPublicConciergeLeadRoute: typeof ApiPublicConciergeLeadRoute
+  ApiPublicHooksKnowledgeSyncRoute: typeof ApiPublicHooksKnowledgeSyncRoute
   ApiPublicHooksScheduledJobsRoute: typeof ApiPublicHooksScheduledJobsRoute
   ApiPublicOpsDrainRoute: typeof ApiPublicOpsDrainRoute
   ApiPublicOpsMorningDigestRoute: typeof ApiPublicOpsMorningDigestRoute
@@ -3077,6 +3104,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/scheduled-jobs'
       fullPath: '/api/public/hooks/scheduled-jobs'
       preLoaderRoute: typeof ApiPublicHooksScheduledJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/knowledge-sync': {
+      id: '/api/public/hooks/knowledge-sync'
+      path: '/api/public/hooks/knowledge-sync'
+      fullPath: '/api/public/hooks/knowledge-sync'
+      preLoaderRoute: typeof ApiPublicHooksKnowledgeSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/concierge/lead': {
@@ -3723,6 +3757,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiKnowledgeSyncRouteImport
       parentRoute: typeof AuthenticatedAdminAiKnowledgeRoute
     }
+    '/_authenticated/admin/ai/knowledge/health': {
+      id: '/_authenticated/admin/ai/knowledge/health'
+      path: '/health'
+      fullPath: '/admin/ai/knowledge/health'
+      preLoaderRoute: typeof AuthenticatedAdminAiKnowledgeHealthRouteImport
+      parentRoute: typeof AuthenticatedAdminAiKnowledgeRoute
+    }
     '/_authenticated/admin/ai/knowledge/analytics': {
       id: '/_authenticated/admin/ai/knowledge/analytics'
       path: '/analytics'
@@ -3941,6 +3982,7 @@ const AuthenticatedAdminAiGuestsRouteWithChildren =
 
 interface AuthenticatedAdminAiKnowledgeRouteChildren {
   AuthenticatedAdminAiKnowledgeAnalyticsRoute: typeof AuthenticatedAdminAiKnowledgeAnalyticsRoute
+  AuthenticatedAdminAiKnowledgeHealthRoute: typeof AuthenticatedAdminAiKnowledgeHealthRoute
   AuthenticatedAdminAiKnowledgeSyncRoute: typeof AuthenticatedAdminAiKnowledgeSyncRoute
   AuthenticatedAdminAiKnowledgeTestRoute: typeof AuthenticatedAdminAiKnowledgeTestRoute
 }
@@ -3949,6 +3991,8 @@ const AuthenticatedAdminAiKnowledgeRouteChildren: AuthenticatedAdminAiKnowledgeR
   {
     AuthenticatedAdminAiKnowledgeAnalyticsRoute:
       AuthenticatedAdminAiKnowledgeAnalyticsRoute,
+    AuthenticatedAdminAiKnowledgeHealthRoute:
+      AuthenticatedAdminAiKnowledgeHealthRoute,
     AuthenticatedAdminAiKnowledgeSyncRoute:
       AuthenticatedAdminAiKnowledgeSyncRoute,
     AuthenticatedAdminAiKnowledgeTestRoute:
@@ -4450,6 +4494,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicConciergeChatRoute: ApiPublicConciergeChatRoute,
   ApiPublicConciergeFeedbackRoute: ApiPublicConciergeFeedbackRoute,
   ApiPublicConciergeLeadRoute: ApiPublicConciergeLeadRoute,
+  ApiPublicHooksKnowledgeSyncRoute: ApiPublicHooksKnowledgeSyncRoute,
   ApiPublicHooksScheduledJobsRoute: ApiPublicHooksScheduledJobsRoute,
   ApiPublicOpsDrainRoute: ApiPublicOpsDrainRoute,
   ApiPublicOpsMorningDigestRoute: ApiPublicOpsMorningDigestRoute,

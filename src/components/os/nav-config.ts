@@ -177,6 +177,7 @@ export const NAV: NavEntry[] = [
         { id: "ai.audit",     label: "Audit",       href: "/admin/ai/audit", icon: History },
         { id: "ai.insights",  label: "Insights",       href: "/admin/ai/insights",  icon: BarChart3 },
         { id: "ai.knowledge", label: "Knowledge Base", href: "/admin/ai/knowledge", icon: FileText },
+        { id: "ai.knowledge.health", label: "Knowledge Health", href: "/admin/ai/knowledge/health", icon: Activity },
         { id: "ai.activity",  label: "AI Activity",    href: "/admin/ai/activity",  icon: History },
         { id: "ai.settings",  label: "Settings",       href: "/admin/ai/settings",  icon: Settings },
       ],
