@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { RESERVATIONS_NOTE } from "@/lib/contact";
 import { trackCheckAvailabilityClick } from "@/lib/analytics";
 import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
+import { usePublicCms } from "@/lib/use-public-cms";
+import { CmsBody, hasCmsBody } from "@/components/site/CmsBody";
 import cycling from "@/assets/xp-cycling.jpg";
 import riverWalk from "@/assets/xp-river-walk.jpg";
 import cooking from "@/assets/xp-cooking.jpg";
@@ -105,6 +107,9 @@ export const Route = createFileRoute("/experiences")({
 });
 
 function ExperiencesPage() {
+  const { data: cms } = usePublicCms("experiences-landing");
+  if (hasCmsBody(cms)) return <CmsBody blocks={cms.blocks} overlayHeader />;
+
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader overlay />
