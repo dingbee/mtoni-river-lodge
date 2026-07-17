@@ -127,6 +127,10 @@ import { Route as AuthenticatedAdminAutomationScheduledRouteImport } from './rou
 import { Route as AuthenticatedAdminAutomationNotificationsRouteImport } from './routes/_authenticated.admin.automation.notifications'
 import { Route as AuthenticatedAdminAutomationMonitorRouteImport } from './routes/_authenticated.admin.automation.monitor'
 import { Route as AuthenticatedAdminAutomationApprovalsRouteImport } from './routes/_authenticated.admin.automation.approvals'
+import { Route as AuthenticatedAdminAiSettingsRouteImport } from './routes/_authenticated.admin.ai.settings'
+import { Route as AuthenticatedAdminAiKnowledgeRouteImport } from './routes/_authenticated.admin.ai.knowledge'
+import { Route as AuthenticatedAdminAiInsightsRouteImport } from './routes/_authenticated.admin.ai.insights'
+import { Route as AuthenticatedAdminAiActivityRouteImport } from './routes/_authenticated.admin.ai.activity'
 import { Route as AuthenticatedAdminContentPagesIndexRouteImport } from './routes/_authenticated.admin.content.pages.index'
 import { Route as AuthenticatedAdminContentJournalIndexRouteImport } from './routes/_authenticated.admin.content.journal.index'
 import { Route as AuthenticatedAdminOperationsReservationsIdRouteImport } from './routes/_authenticated.admin.operations.reservations.$id'
@@ -795,6 +799,30 @@ const AuthenticatedAdminAutomationApprovalsRoute =
     path: '/approvals',
     getParentRoute: () => AuthenticatedAdminAutomationRoute,
   } as any)
+const AuthenticatedAdminAiSettingsRoute =
+  AuthenticatedAdminAiSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminAiRoute,
+  } as any)
+const AuthenticatedAdminAiKnowledgeRoute =
+  AuthenticatedAdminAiKnowledgeRouteImport.update({
+    id: '/knowledge',
+    path: '/knowledge',
+    getParentRoute: () => AuthenticatedAdminAiRoute,
+  } as any)
+const AuthenticatedAdminAiInsightsRoute =
+  AuthenticatedAdminAiInsightsRouteImport.update({
+    id: '/insights',
+    path: '/insights',
+    getParentRoute: () => AuthenticatedAdminAiRoute,
+  } as any)
+const AuthenticatedAdminAiActivityRoute =
+  AuthenticatedAdminAiActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => AuthenticatedAdminAiRoute,
+  } as any)
 const AuthenticatedAdminContentPagesIndexRoute =
   AuthenticatedAdminContentPagesIndexRouteImport.update({
     id: '/content/pages/',
@@ -933,6 +961,10 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
+  '/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
+  '/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
+  '/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
   '/admin/automation/approvals': typeof AuthenticatedAdminAutomationApprovalsRoute
   '/admin/automation/monitor': typeof AuthenticatedAdminAutomationMonitorRoute
   '/admin/automation/notifications': typeof AuthenticatedAdminAutomationNotificationsRoute
@@ -1057,6 +1089,10 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
+  '/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
+  '/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
+  '/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
   '/admin/automation/approvals': typeof AuthenticatedAdminAutomationApprovalsRoute
   '/admin/automation/monitor': typeof AuthenticatedAdminAutomationMonitorRoute
   '/admin/automation/notifications': typeof AuthenticatedAdminAutomationNotificationsRoute
@@ -1189,6 +1225,10 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
+  '/_authenticated/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
+  '/_authenticated/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
+  '/_authenticated/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
   '/_authenticated/admin/automation/approvals': typeof AuthenticatedAdminAutomationApprovalsRoute
   '/_authenticated/admin/automation/monitor': typeof AuthenticatedAdminAutomationMonitorRoute
   '/_authenticated/admin/automation/notifications': typeof AuthenticatedAdminAutomationNotificationsRoute
@@ -1321,6 +1361,10 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/lovable/email/suppression'
     | '/admin/'
+    | '/admin/ai/activity'
+    | '/admin/ai/insights'
+    | '/admin/ai/knowledge'
+    | '/admin/ai/settings'
     | '/admin/automation/approvals'
     | '/admin/automation/monitor'
     | '/admin/automation/notifications'
@@ -1445,6 +1489,10 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/lovable/email/suppression'
     | '/admin'
+    | '/admin/ai/activity'
+    | '/admin/ai/insights'
+    | '/admin/ai/knowledge'
+    | '/admin/ai/settings'
     | '/admin/automation/approvals'
     | '/admin/automation/monitor'
     | '/admin/automation/notifications'
@@ -1576,6 +1624,10 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/ai/activity'
+    | '/_authenticated/admin/ai/insights'
+    | '/_authenticated/admin/ai/knowledge'
+    | '/_authenticated/admin/ai/settings'
     | '/_authenticated/admin/automation/approvals'
     | '/_authenticated/admin/automation/monitor'
     | '/_authenticated/admin/automation/notifications'
@@ -2520,6 +2572,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAutomationApprovalsRouteImport
       parentRoute: typeof AuthenticatedAdminAutomationRoute
     }
+    '/_authenticated/admin/ai/settings': {
+      id: '/_authenticated/admin/ai/settings'
+      path: '/settings'
+      fullPath: '/admin/ai/settings'
+      preLoaderRoute: typeof AuthenticatedAdminAiSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminAiRoute
+    }
+    '/_authenticated/admin/ai/knowledge': {
+      id: '/_authenticated/admin/ai/knowledge'
+      path: '/knowledge'
+      fullPath: '/admin/ai/knowledge'
+      preLoaderRoute: typeof AuthenticatedAdminAiKnowledgeRouteImport
+      parentRoute: typeof AuthenticatedAdminAiRoute
+    }
+    '/_authenticated/admin/ai/insights': {
+      id: '/_authenticated/admin/ai/insights'
+      path: '/insights'
+      fullPath: '/admin/ai/insights'
+      preLoaderRoute: typeof AuthenticatedAdminAiInsightsRouteImport
+      parentRoute: typeof AuthenticatedAdminAiRoute
+    }
+    '/_authenticated/admin/ai/activity': {
+      id: '/_authenticated/admin/ai/activity'
+      path: '/activity'
+      fullPath: '/admin/ai/activity'
+      preLoaderRoute: typeof AuthenticatedAdminAiActivityRouteImport
+      parentRoute: typeof AuthenticatedAdminAiRoute
+    }
     '/_authenticated/admin/content/pages/': {
       id: '/_authenticated/admin/content/pages/'
       path: '/content/pages'
@@ -2601,10 +2681,18 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminAiRouteChildren {
+  AuthenticatedAdminAiActivityRoute: typeof AuthenticatedAdminAiActivityRoute
+  AuthenticatedAdminAiInsightsRoute: typeof AuthenticatedAdminAiInsightsRoute
+  AuthenticatedAdminAiKnowledgeRoute: typeof AuthenticatedAdminAiKnowledgeRoute
+  AuthenticatedAdminAiSettingsRoute: typeof AuthenticatedAdminAiSettingsRoute
   AuthenticatedAdminAiIndexRoute: typeof AuthenticatedAdminAiIndexRoute
 }
 
 const AuthenticatedAdminAiRouteChildren: AuthenticatedAdminAiRouteChildren = {
+  AuthenticatedAdminAiActivityRoute: AuthenticatedAdminAiActivityRoute,
+  AuthenticatedAdminAiInsightsRoute: AuthenticatedAdminAiInsightsRoute,
+  AuthenticatedAdminAiKnowledgeRoute: AuthenticatedAdminAiKnowledgeRoute,
+  AuthenticatedAdminAiSettingsRoute: AuthenticatedAdminAiSettingsRoute,
   AuthenticatedAdminAiIndexRoute: AuthenticatedAdminAiIndexRoute,
 }
 
