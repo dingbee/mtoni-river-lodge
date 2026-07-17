@@ -835,6 +835,75 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_alerts: {
+        Row: {
+          alert_type: string
+          amount: number | null
+          booking_id: string | null
+          created_at: string
+          currency: string | null
+          detail: string | null
+          id: string
+          metadata: Json
+          reference: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          alert_type: string
+          amount?: number | null
+          booking_id?: string | null
+          created_at?: string
+          currency?: string | null
+          detail?: string | null
+          id?: string
+          metadata?: Json
+          reference?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          alert_type?: string
+          amount?: number | null
+          booking_id?: string | null
+          created_at?: string
+          currency?: string | null
+          detail?: string | null
+          id?: string
+          metadata?: Json
+          reference?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_alerts_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_alerts_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_communications: {
         Row: {
           author_id: string | null
@@ -1929,6 +1998,74 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pricing_rules: {
+        Row: {
+          active: boolean
+          adjust_kind: string | null
+          adjust_value: number | null
+          code: string | null
+          created_at: string
+          ends_on: string | null
+          id: string
+          min_stay_nights: number | null
+          name: string
+          notes: string | null
+          priority: number
+          room_id: string | null
+          rule_type: string
+          scope: string
+          starts_on: string | null
+          updated_at: string
+          weekdays: number[] | null
+        }
+        Insert: {
+          active?: boolean
+          adjust_kind?: string | null
+          adjust_value?: number | null
+          code?: string | null
+          created_at?: string
+          ends_on?: string | null
+          id?: string
+          min_stay_nights?: number | null
+          name: string
+          notes?: string | null
+          priority?: number
+          room_id?: string | null
+          rule_type: string
+          scope?: string
+          starts_on?: string | null
+          updated_at?: string
+          weekdays?: number[] | null
+        }
+        Update: {
+          active?: boolean
+          adjust_kind?: string | null
+          adjust_value?: number | null
+          code?: string | null
+          created_at?: string
+          ends_on?: string | null
+          id?: string
+          min_stay_nights?: number | null
+          name?: string
+          notes?: string | null
+          priority?: number
+          room_id?: string | null
+          rule_type?: string
+          scope?: string
+          starts_on?: string | null
+          updated_at?: string
+          weekdays?: number[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_rules_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       review_statistics: {
         Row: {
