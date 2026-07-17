@@ -163,6 +163,7 @@ export const NAV: NavEntry[] = [
   { kind: "item", item: { id: "settings", label: "Settings", href: "/admin/settings", icon: Settings } },
 ];
 
+
 export function findNavByHref(href: string): { group?: NavGroup; item?: NavItem } {
   for (const entry of NAV) {
     if (entry.kind === "item" && entry.item.href === href) return { item: entry.item };
