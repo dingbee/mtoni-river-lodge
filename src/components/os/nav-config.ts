@@ -183,6 +183,27 @@ export const NAV: NavEntry[] = [
       ],
     },
   },
+  {
+    kind: "group",
+    group: {
+      id: "analytics",
+      label: "Analytics",
+      icon: BarChart3,
+      items: [
+        { id: "analytics.hub", label: "Hub", href: "/admin/analytics", icon: LayoutDashboard },
+        { id: "analytics.bookings", label: "Bookings", href: "/admin/analytics/bookings", icon: Calendar },
+        { id: "analytics.website", label: "Website", href: "/admin/analytics/website", icon: BarChart3 },
+        { id: "analytics.revenue", label: "Revenue", href: "/admin/analytics/revenue", icon: TrendingUp },
+        { id: "analytics.marketing", label: "Marketing", href: "/admin/analytics/marketing", icon: Megaphone },
+        { id: "analytics.operations", label: "Operations", href: "/admin/analytics/operations", icon: ClipboardCheck },
+        { id: "analytics.ai", label: "AI", href: "/admin/analytics/ai", icon: Bot },
+        { id: "analytics.executive", label: "Executive", href: "/admin/analytics/executive", icon: LayoutDashboard },
+        { id: "analytics.trends", label: "Trends", href: "/admin/analytics/trends", icon: Activity },
+        { id: "analytics.recs", label: "Recommendations", href: "/admin/analytics/recommendations", icon: Sparkles },
+        { id: "analytics.reports", label: "Reports", href: "/admin/analytics/reports", icon: FileText },
+      ],
+    },
+  },
   { kind: "item", item: { id: "settings", label: "Settings", href: "/admin/settings", icon: Settings } },
 ];
 

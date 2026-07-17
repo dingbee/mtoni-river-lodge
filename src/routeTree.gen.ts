@@ -79,10 +79,12 @@ import { Route as AuthenticatedAdminOperationsRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminFrontDeskRouteImport } from './routes/_authenticated.admin.front-desk'
 import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authenticated.admin.bookings'
 import { Route as AuthenticatedAdminAutomationRouteImport } from './routes/_authenticated.admin.automation'
+import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated.admin.analytics'
 import { Route as AuthenticatedAdminAiRouteImport } from './routes/_authenticated.admin.ai'
 import { Route as AuthenticatedAdminOperationsIndexRouteImport } from './routes/_authenticated.admin.operations.index'
 import { Route as AuthenticatedAdminFinanceIndexRouteImport } from './routes/_authenticated.admin.finance.index'
 import { Route as AuthenticatedAdminAutomationIndexRouteImport } from './routes/_authenticated.admin.automation.index'
+import { Route as AuthenticatedAdminAnalyticsIndexRouteImport } from './routes/_authenticated.admin.analytics.index'
 import { Route as AuthenticatedAdminAiIndexRouteImport } from './routes/_authenticated.admin.ai.index'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -132,6 +134,16 @@ import { Route as AuthenticatedAdminAutomationScheduledRouteImport } from './rou
 import { Route as AuthenticatedAdminAutomationNotificationsRouteImport } from './routes/_authenticated.admin.automation.notifications'
 import { Route as AuthenticatedAdminAutomationMonitorRouteImport } from './routes/_authenticated.admin.automation.monitor'
 import { Route as AuthenticatedAdminAutomationApprovalsRouteImport } from './routes/_authenticated.admin.automation.approvals'
+import { Route as AuthenticatedAdminAnalyticsWebsiteRouteImport } from './routes/_authenticated.admin.analytics.website'
+import { Route as AuthenticatedAdminAnalyticsTrendsRouteImport } from './routes/_authenticated.admin.analytics.trends'
+import { Route as AuthenticatedAdminAnalyticsRevenueRouteImport } from './routes/_authenticated.admin.analytics.revenue'
+import { Route as AuthenticatedAdminAnalyticsReportsRouteImport } from './routes/_authenticated.admin.analytics.reports'
+import { Route as AuthenticatedAdminAnalyticsRecommendationsRouteImport } from './routes/_authenticated.admin.analytics.recommendations'
+import { Route as AuthenticatedAdminAnalyticsOperationsRouteImport } from './routes/_authenticated.admin.analytics.operations'
+import { Route as AuthenticatedAdminAnalyticsMarketingRouteImport } from './routes/_authenticated.admin.analytics.marketing'
+import { Route as AuthenticatedAdminAnalyticsExecutiveRouteImport } from './routes/_authenticated.admin.analytics.executive'
+import { Route as AuthenticatedAdminAnalyticsBookingsRouteImport } from './routes/_authenticated.admin.analytics.bookings'
+import { Route as AuthenticatedAdminAnalyticsAiRouteImport } from './routes/_authenticated.admin.analytics.ai'
 import { Route as AuthenticatedAdminAiSettingsRouteImport } from './routes/_authenticated.admin.ai.settings'
 import { Route as AuthenticatedAdminAiRevenueRouteImport } from './routes/_authenticated.admin.ai.revenue'
 import { Route as AuthenticatedAdminAiPerformanceRouteImport } from './routes/_authenticated.admin.ai.performance'
@@ -576,6 +588,12 @@ const AuthenticatedAdminAutomationRoute =
     path: '/automation',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminAnalyticsRoute =
+  AuthenticatedAdminAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminAiRoute = AuthenticatedAdminAiRouteImport.update({
   id: '/ai',
   path: '/ai',
@@ -598,6 +616,12 @@ const AuthenticatedAdminAutomationIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => AuthenticatedAdminAutomationRoute,
+  } as any)
+const AuthenticatedAdminAnalyticsIndexRoute =
+  AuthenticatedAdminAnalyticsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminAnalyticsRoute,
   } as any)
 const AuthenticatedAdminAiIndexRoute =
   AuthenticatedAdminAiIndexRouteImport.update({
@@ -888,6 +912,66 @@ const AuthenticatedAdminAutomationApprovalsRoute =
     id: '/approvals',
     path: '/approvals',
     getParentRoute: () => AuthenticatedAdminAutomationRoute,
+  } as any)
+const AuthenticatedAdminAnalyticsWebsiteRoute =
+  AuthenticatedAdminAnalyticsWebsiteRouteImport.update({
+    id: '/website',
+    path: '/website',
+    getParentRoute: () => AuthenticatedAdminAnalyticsRoute,
+  } as any)
+const AuthenticatedAdminAnalyticsTrendsRoute =
+  AuthenticatedAdminAnalyticsTrendsRouteImport.update({
+    id: '/trends',
+    path: '/trends',
+    getParentRoute: () => AuthenticatedAdminAnalyticsRoute,
+  } as any)
+const AuthenticatedAdminAnalyticsRevenueRoute =
+  AuthenticatedAdminAnalyticsRevenueRouteImport.update({
+    id: '/revenue',
+    path: '/revenue',
+    getParentRoute: () => AuthenticatedAdminAnalyticsRoute,
+  } as any)
+const AuthenticatedAdminAnalyticsReportsRoute =
+  AuthenticatedAdminAnalyticsReportsRouteImport.update({
+    id: '/reports',
+    path: '/reports',
+    getParentRoute: () => AuthenticatedAdminAnalyticsRoute,
+  } as any)
+const AuthenticatedAdminAnalyticsRecommendationsRoute =
+  AuthenticatedAdminAnalyticsRecommendationsRouteImport.update({
+    id: '/recommendations',
+    path: '/recommendations',
+    getParentRoute: () => AuthenticatedAdminAnalyticsRoute,
+  } as any)
+const AuthenticatedAdminAnalyticsOperationsRoute =
+  AuthenticatedAdminAnalyticsOperationsRouteImport.update({
+    id: '/operations',
+    path: '/operations',
+    getParentRoute: () => AuthenticatedAdminAnalyticsRoute,
+  } as any)
+const AuthenticatedAdminAnalyticsMarketingRoute =
+  AuthenticatedAdminAnalyticsMarketingRouteImport.update({
+    id: '/marketing',
+    path: '/marketing',
+    getParentRoute: () => AuthenticatedAdminAnalyticsRoute,
+  } as any)
+const AuthenticatedAdminAnalyticsExecutiveRoute =
+  AuthenticatedAdminAnalyticsExecutiveRouteImport.update({
+    id: '/executive',
+    path: '/executive',
+    getParentRoute: () => AuthenticatedAdminAnalyticsRoute,
+  } as any)
+const AuthenticatedAdminAnalyticsBookingsRoute =
+  AuthenticatedAdminAnalyticsBookingsRouteImport.update({
+    id: '/bookings',
+    path: '/bookings',
+    getParentRoute: () => AuthenticatedAdminAnalyticsRoute,
+  } as any)
+const AuthenticatedAdminAnalyticsAiRoute =
+  AuthenticatedAdminAnalyticsAiRouteImport.update({
+    id: '/ai',
+    path: '/ai',
+    getParentRoute: () => AuthenticatedAdminAnalyticsRoute,
   } as any)
 const AuthenticatedAdminAiSettingsRoute =
   AuthenticatedAdminAiSettingsRouteImport.update({
@@ -1385,6 +1469,7 @@ export interface FileRoutesByFullPath {
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
   '/admin/ai': typeof AuthenticatedAdminAiRouteWithChildren
+  '/admin/analytics': typeof AuthenticatedAdminAnalyticsRouteWithChildren
   '/admin/automation': typeof AuthenticatedAdminAutomationRouteWithChildren
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
@@ -1408,6 +1493,16 @@ export interface FileRoutesByFullPath {
   '/admin/ai/performance': typeof AuthenticatedAdminAiPerformanceRoute
   '/admin/ai/revenue': typeof AuthenticatedAdminAiRevenueRouteWithChildren
   '/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
+  '/admin/analytics/ai': typeof AuthenticatedAdminAnalyticsAiRoute
+  '/admin/analytics/bookings': typeof AuthenticatedAdminAnalyticsBookingsRoute
+  '/admin/analytics/executive': typeof AuthenticatedAdminAnalyticsExecutiveRoute
+  '/admin/analytics/marketing': typeof AuthenticatedAdminAnalyticsMarketingRoute
+  '/admin/analytics/operations': typeof AuthenticatedAdminAnalyticsOperationsRoute
+  '/admin/analytics/recommendations': typeof AuthenticatedAdminAnalyticsRecommendationsRoute
+  '/admin/analytics/reports': typeof AuthenticatedAdminAnalyticsReportsRoute
+  '/admin/analytics/revenue': typeof AuthenticatedAdminAnalyticsRevenueRoute
+  '/admin/analytics/trends': typeof AuthenticatedAdminAnalyticsTrendsRoute
+  '/admin/analytics/website': typeof AuthenticatedAdminAnalyticsWebsiteRoute
   '/admin/automation/approvals': typeof AuthenticatedAdminAutomationApprovalsRoute
   '/admin/automation/monitor': typeof AuthenticatedAdminAutomationMonitorRoute
   '/admin/automation/notifications': typeof AuthenticatedAdminAutomationNotificationsRoute
@@ -1457,6 +1552,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/admin/ai/': typeof AuthenticatedAdminAiIndexRoute
+  '/admin/analytics/': typeof AuthenticatedAdminAnalyticsIndexRoute
   '/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
   '/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
@@ -1593,6 +1689,16 @@ export interface FileRoutesByTo {
   '/admin/ai/leads': typeof AuthenticatedAdminAiLeadsRoute
   '/admin/ai/performance': typeof AuthenticatedAdminAiPerformanceRoute
   '/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
+  '/admin/analytics/ai': typeof AuthenticatedAdminAnalyticsAiRoute
+  '/admin/analytics/bookings': typeof AuthenticatedAdminAnalyticsBookingsRoute
+  '/admin/analytics/executive': typeof AuthenticatedAdminAnalyticsExecutiveRoute
+  '/admin/analytics/marketing': typeof AuthenticatedAdminAnalyticsMarketingRoute
+  '/admin/analytics/operations': typeof AuthenticatedAdminAnalyticsOperationsRoute
+  '/admin/analytics/recommendations': typeof AuthenticatedAdminAnalyticsRecommendationsRoute
+  '/admin/analytics/reports': typeof AuthenticatedAdminAnalyticsReportsRoute
+  '/admin/analytics/revenue': typeof AuthenticatedAdminAnalyticsRevenueRoute
+  '/admin/analytics/trends': typeof AuthenticatedAdminAnalyticsTrendsRoute
+  '/admin/analytics/website': typeof AuthenticatedAdminAnalyticsWebsiteRoute
   '/admin/automation/approvals': typeof AuthenticatedAdminAutomationApprovalsRoute
   '/admin/automation/monitor': typeof AuthenticatedAdminAutomationMonitorRoute
   '/admin/automation/notifications': typeof AuthenticatedAdminAutomationNotificationsRoute
@@ -1642,6 +1748,7 @@ export interface FileRoutesByTo {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/admin/ai': typeof AuthenticatedAdminAiIndexRoute
+  '/admin/analytics': typeof AuthenticatedAdminAnalyticsIndexRoute
   '/admin/automation': typeof AuthenticatedAdminAutomationIndexRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
@@ -1768,6 +1875,7 @@ export interface FileRoutesById {
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
   '/_authenticated/admin/ai': typeof AuthenticatedAdminAiRouteWithChildren
+  '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRouteWithChildren
   '/_authenticated/admin/automation': typeof AuthenticatedAdminAutomationRouteWithChildren
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/_authenticated/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
@@ -1791,6 +1899,16 @@ export interface FileRoutesById {
   '/_authenticated/admin/ai/performance': typeof AuthenticatedAdminAiPerformanceRoute
   '/_authenticated/admin/ai/revenue': typeof AuthenticatedAdminAiRevenueRouteWithChildren
   '/_authenticated/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
+  '/_authenticated/admin/analytics/ai': typeof AuthenticatedAdminAnalyticsAiRoute
+  '/_authenticated/admin/analytics/bookings': typeof AuthenticatedAdminAnalyticsBookingsRoute
+  '/_authenticated/admin/analytics/executive': typeof AuthenticatedAdminAnalyticsExecutiveRoute
+  '/_authenticated/admin/analytics/marketing': typeof AuthenticatedAdminAnalyticsMarketingRoute
+  '/_authenticated/admin/analytics/operations': typeof AuthenticatedAdminAnalyticsOperationsRoute
+  '/_authenticated/admin/analytics/recommendations': typeof AuthenticatedAdminAnalyticsRecommendationsRoute
+  '/_authenticated/admin/analytics/reports': typeof AuthenticatedAdminAnalyticsReportsRoute
+  '/_authenticated/admin/analytics/revenue': typeof AuthenticatedAdminAnalyticsRevenueRoute
+  '/_authenticated/admin/analytics/trends': typeof AuthenticatedAdminAnalyticsTrendsRoute
+  '/_authenticated/admin/analytics/website': typeof AuthenticatedAdminAnalyticsWebsiteRoute
   '/_authenticated/admin/automation/approvals': typeof AuthenticatedAdminAutomationApprovalsRoute
   '/_authenticated/admin/automation/monitor': typeof AuthenticatedAdminAutomationMonitorRoute
   '/_authenticated/admin/automation/notifications': typeof AuthenticatedAdminAutomationNotificationsRoute
@@ -1840,6 +1958,7 @@ export interface FileRoutesById {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/_authenticated/admin/ai/': typeof AuthenticatedAdminAiIndexRoute
+  '/_authenticated/admin/analytics/': typeof AuthenticatedAdminAnalyticsIndexRoute
   '/_authenticated/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
   '/_authenticated/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
@@ -1966,6 +2085,7 @@ export interface FileRouteTypes {
     | '/journal/'
     | '/rooms/'
     | '/admin/ai'
+    | '/admin/analytics'
     | '/admin/automation'
     | '/admin/bookings'
     | '/admin/front-desk'
@@ -1989,6 +2109,16 @@ export interface FileRouteTypes {
     | '/admin/ai/performance'
     | '/admin/ai/revenue'
     | '/admin/ai/settings'
+    | '/admin/analytics/ai'
+    | '/admin/analytics/bookings'
+    | '/admin/analytics/executive'
+    | '/admin/analytics/marketing'
+    | '/admin/analytics/operations'
+    | '/admin/analytics/recommendations'
+    | '/admin/analytics/reports'
+    | '/admin/analytics/revenue'
+    | '/admin/analytics/trends'
+    | '/admin/analytics/website'
     | '/admin/automation/approvals'
     | '/admin/automation/monitor'
     | '/admin/automation/notifications'
@@ -2038,6 +2168,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/admin/ai/'
+    | '/admin/analytics/'
     | '/admin/automation/'
     | '/admin/finance/'
     | '/admin/operations/'
@@ -2174,6 +2305,16 @@ export interface FileRouteTypes {
     | '/admin/ai/leads'
     | '/admin/ai/performance'
     | '/admin/ai/settings'
+    | '/admin/analytics/ai'
+    | '/admin/analytics/bookings'
+    | '/admin/analytics/executive'
+    | '/admin/analytics/marketing'
+    | '/admin/analytics/operations'
+    | '/admin/analytics/recommendations'
+    | '/admin/analytics/reports'
+    | '/admin/analytics/revenue'
+    | '/admin/analytics/trends'
+    | '/admin/analytics/website'
     | '/admin/automation/approvals'
     | '/admin/automation/monitor'
     | '/admin/automation/notifications'
@@ -2223,6 +2364,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/admin/ai'
+    | '/admin/analytics'
     | '/admin/automation'
     | '/admin/finance'
     | '/admin/operations'
@@ -2348,6 +2490,7 @@ export interface FileRouteTypes {
     | '/journal/'
     | '/rooms/'
     | '/_authenticated/admin/ai'
+    | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/automation'
     | '/_authenticated/admin/bookings'
     | '/_authenticated/admin/front-desk'
@@ -2371,6 +2514,16 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/ai/performance'
     | '/_authenticated/admin/ai/revenue'
     | '/_authenticated/admin/ai/settings'
+    | '/_authenticated/admin/analytics/ai'
+    | '/_authenticated/admin/analytics/bookings'
+    | '/_authenticated/admin/analytics/executive'
+    | '/_authenticated/admin/analytics/marketing'
+    | '/_authenticated/admin/analytics/operations'
+    | '/_authenticated/admin/analytics/recommendations'
+    | '/_authenticated/admin/analytics/reports'
+    | '/_authenticated/admin/analytics/revenue'
+    | '/_authenticated/admin/analytics/trends'
+    | '/_authenticated/admin/analytics/website'
     | '/_authenticated/admin/automation/approvals'
     | '/_authenticated/admin/automation/monitor'
     | '/_authenticated/admin/automation/notifications'
@@ -2420,6 +2573,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/_authenticated/admin/ai/'
+    | '/_authenticated/admin/analytics/'
     | '/_authenticated/admin/automation/'
     | '/_authenticated/admin/finance/'
     | '/_authenticated/admin/operations/'
@@ -3035,6 +3189,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAutomationRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/analytics': {
+      id: '/_authenticated/admin/analytics'
+      path: '/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/ai': {
       id: '/_authenticated/admin/ai'
       path: '/ai'
@@ -3062,6 +3223,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/automation/'
       preLoaderRoute: typeof AuthenticatedAdminAutomationIndexRouteImport
       parentRoute: typeof AuthenticatedAdminAutomationRoute
+    }
+    '/_authenticated/admin/analytics/': {
+      id: '/_authenticated/admin/analytics/'
+      path: '/'
+      fullPath: '/admin/analytics/'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminAnalyticsRoute
     }
     '/_authenticated/admin/ai/': {
       id: '/_authenticated/admin/ai/'
@@ -3405,6 +3573,76 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/automation/approvals'
       preLoaderRoute: typeof AuthenticatedAdminAutomationApprovalsRouteImport
       parentRoute: typeof AuthenticatedAdminAutomationRoute
+    }
+    '/_authenticated/admin/analytics/website': {
+      id: '/_authenticated/admin/analytics/website'
+      path: '/website'
+      fullPath: '/admin/analytics/website'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsWebsiteRouteImport
+      parentRoute: typeof AuthenticatedAdminAnalyticsRoute
+    }
+    '/_authenticated/admin/analytics/trends': {
+      id: '/_authenticated/admin/analytics/trends'
+      path: '/trends'
+      fullPath: '/admin/analytics/trends'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsTrendsRouteImport
+      parentRoute: typeof AuthenticatedAdminAnalyticsRoute
+    }
+    '/_authenticated/admin/analytics/revenue': {
+      id: '/_authenticated/admin/analytics/revenue'
+      path: '/revenue'
+      fullPath: '/admin/analytics/revenue'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsRevenueRouteImport
+      parentRoute: typeof AuthenticatedAdminAnalyticsRoute
+    }
+    '/_authenticated/admin/analytics/reports': {
+      id: '/_authenticated/admin/analytics/reports'
+      path: '/reports'
+      fullPath: '/admin/analytics/reports'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsReportsRouteImport
+      parentRoute: typeof AuthenticatedAdminAnalyticsRoute
+    }
+    '/_authenticated/admin/analytics/recommendations': {
+      id: '/_authenticated/admin/analytics/recommendations'
+      path: '/recommendations'
+      fullPath: '/admin/analytics/recommendations'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsRecommendationsRouteImport
+      parentRoute: typeof AuthenticatedAdminAnalyticsRoute
+    }
+    '/_authenticated/admin/analytics/operations': {
+      id: '/_authenticated/admin/analytics/operations'
+      path: '/operations'
+      fullPath: '/admin/analytics/operations'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsOperationsRouteImport
+      parentRoute: typeof AuthenticatedAdminAnalyticsRoute
+    }
+    '/_authenticated/admin/analytics/marketing': {
+      id: '/_authenticated/admin/analytics/marketing'
+      path: '/marketing'
+      fullPath: '/admin/analytics/marketing'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsMarketingRouteImport
+      parentRoute: typeof AuthenticatedAdminAnalyticsRoute
+    }
+    '/_authenticated/admin/analytics/executive': {
+      id: '/_authenticated/admin/analytics/executive'
+      path: '/executive'
+      fullPath: '/admin/analytics/executive'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsExecutiveRouteImport
+      parentRoute: typeof AuthenticatedAdminAnalyticsRoute
+    }
+    '/_authenticated/admin/analytics/bookings': {
+      id: '/_authenticated/admin/analytics/bookings'
+      path: '/bookings'
+      fullPath: '/admin/analytics/bookings'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsBookingsRouteImport
+      parentRoute: typeof AuthenticatedAdminAnalyticsRoute
+    }
+    '/_authenticated/admin/analytics/ai': {
+      id: '/_authenticated/admin/analytics/ai'
+      path: '/ai'
+      fullPath: '/admin/analytics/ai'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsAiRouteImport
+      parentRoute: typeof AuthenticatedAdminAnalyticsRoute
     }
     '/_authenticated/admin/ai/settings': {
       id: '/_authenticated/admin/ai/settings'
@@ -4182,6 +4420,50 @@ const AuthenticatedAdminAiRouteChildren: AuthenticatedAdminAiRouteChildren = {
 const AuthenticatedAdminAiRouteWithChildren =
   AuthenticatedAdminAiRoute._addFileChildren(AuthenticatedAdminAiRouteChildren)
 
+interface AuthenticatedAdminAnalyticsRouteChildren {
+  AuthenticatedAdminAnalyticsAiRoute: typeof AuthenticatedAdminAnalyticsAiRoute
+  AuthenticatedAdminAnalyticsBookingsRoute: typeof AuthenticatedAdminAnalyticsBookingsRoute
+  AuthenticatedAdminAnalyticsExecutiveRoute: typeof AuthenticatedAdminAnalyticsExecutiveRoute
+  AuthenticatedAdminAnalyticsMarketingRoute: typeof AuthenticatedAdminAnalyticsMarketingRoute
+  AuthenticatedAdminAnalyticsOperationsRoute: typeof AuthenticatedAdminAnalyticsOperationsRoute
+  AuthenticatedAdminAnalyticsRecommendationsRoute: typeof AuthenticatedAdminAnalyticsRecommendationsRoute
+  AuthenticatedAdminAnalyticsReportsRoute: typeof AuthenticatedAdminAnalyticsReportsRoute
+  AuthenticatedAdminAnalyticsRevenueRoute: typeof AuthenticatedAdminAnalyticsRevenueRoute
+  AuthenticatedAdminAnalyticsTrendsRoute: typeof AuthenticatedAdminAnalyticsTrendsRoute
+  AuthenticatedAdminAnalyticsWebsiteRoute: typeof AuthenticatedAdminAnalyticsWebsiteRoute
+  AuthenticatedAdminAnalyticsIndexRoute: typeof AuthenticatedAdminAnalyticsIndexRoute
+}
+
+const AuthenticatedAdminAnalyticsRouteChildren: AuthenticatedAdminAnalyticsRouteChildren =
+  {
+    AuthenticatedAdminAnalyticsAiRoute: AuthenticatedAdminAnalyticsAiRoute,
+    AuthenticatedAdminAnalyticsBookingsRoute:
+      AuthenticatedAdminAnalyticsBookingsRoute,
+    AuthenticatedAdminAnalyticsExecutiveRoute:
+      AuthenticatedAdminAnalyticsExecutiveRoute,
+    AuthenticatedAdminAnalyticsMarketingRoute:
+      AuthenticatedAdminAnalyticsMarketingRoute,
+    AuthenticatedAdminAnalyticsOperationsRoute:
+      AuthenticatedAdminAnalyticsOperationsRoute,
+    AuthenticatedAdminAnalyticsRecommendationsRoute:
+      AuthenticatedAdminAnalyticsRecommendationsRoute,
+    AuthenticatedAdminAnalyticsReportsRoute:
+      AuthenticatedAdminAnalyticsReportsRoute,
+    AuthenticatedAdminAnalyticsRevenueRoute:
+      AuthenticatedAdminAnalyticsRevenueRoute,
+    AuthenticatedAdminAnalyticsTrendsRoute:
+      AuthenticatedAdminAnalyticsTrendsRoute,
+    AuthenticatedAdminAnalyticsWebsiteRoute:
+      AuthenticatedAdminAnalyticsWebsiteRoute,
+    AuthenticatedAdminAnalyticsIndexRoute:
+      AuthenticatedAdminAnalyticsIndexRoute,
+  }
+
+const AuthenticatedAdminAnalyticsRouteWithChildren =
+  AuthenticatedAdminAnalyticsRoute._addFileChildren(
+    AuthenticatedAdminAnalyticsRouteChildren,
+  )
+
 interface AuthenticatedAdminAutomationWorkflowsRouteChildren {
   AuthenticatedAdminAutomationWorkflowsIdRoute: typeof AuthenticatedAdminAutomationWorkflowsIdRoute
 }
@@ -4288,6 +4570,7 @@ const AuthenticatedAdminGuestsCrmRouteWithChildren =
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAiRoute: typeof AuthenticatedAdminAiRouteWithChildren
+  AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRouteWithChildren
   AuthenticatedAdminAutomationRoute: typeof AuthenticatedAdminAutomationRouteWithChildren
   AuthenticatedAdminBookingsRoute: typeof AuthenticatedAdminBookingsRoute
   AuthenticatedAdminFrontDeskRoute: typeof AuthenticatedAdminFrontDeskRoute
@@ -4330,6 +4613,8 @@ interface AuthenticatedAdminRouteChildren {
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAiRoute: AuthenticatedAdminAiRouteWithChildren,
+  AuthenticatedAdminAnalyticsRoute:
+    AuthenticatedAdminAnalyticsRouteWithChildren,
   AuthenticatedAdminAutomationRoute:
     AuthenticatedAdminAutomationRouteWithChildren,
   AuthenticatedAdminBookingsRoute: AuthenticatedAdminBookingsRoute,
