@@ -198,7 +198,7 @@ export const syncJournalArticles = createServerFn({ method: "POST" })
     const sb: any = context.supabase;
     const { data: articles, error } = await sb
       .from("journal_articles")
-      .select("id, slug, title, excerpt, content, status, published_at, updated_at, seo_title, seo_description")
+      .select("id, slug, title, excerpt, content_html, status, published_at, updated_at, seo_title, seo_description")
       .eq("status", "published")
       .order("published_at", { ascending: false })
       .limit(500);
@@ -207,7 +207,7 @@ export const syncJournalArticles = createServerFn({ method: "POST" })
     let upserted = 0;
     for (const a of articles ?? []) {
       const url = `/journal/${a.slug}`;
-      const contentText = stripHtml(String(a.content ?? "")).slice(0, 180_000);
+      const contentText = stripHtml(String(a.content_html ?? "")).slice(0, 180_000);
       const summary = a.excerpt ?? a.seo_description ?? null;
       const { error: upErr } = await sb.from("ai_knowledge_sources").upsert(
         {
@@ -262,9 +262,9 @@ export const syncCmsPages = createServerFn({ method: "POST" })
     for (const p of pages ?? []) {
       const { data: blocks } = await sb
         .from("cms_blocks")
-        .select("data, sort_order, type")
+        .select("data, position, kind")
         .eq("page_id", p.id)
-        .order("sort_order", { ascending: true });
+        .order("position", { ascending: true });
       const content = (blocks ?? [])
         .map((b: any) => extractBlockText(b))
         .filter(Boolean)
@@ -309,12 +309,12 @@ export const syncRoomsAndExperiences = createServerFn({ method: "POST" })
     const sb: any = context.supabase;
     const { data: rooms } = await sb
       .from("rooms")
-      .select("id, slug, name, description, base_price, currency, capacity_adults, capacity_children, max_occupancy, status")
+      .select("id, slug, name, short_description, base_price, currency, capacity_adults, capacity_children, max_occupancy, status")
       .eq("status", "active");
     let upserted = 0;
     for (const r of rooms ?? []) {
       const content = [
-        r.description,
+        r.short_description,
         `Capacity: up to ${r.max_occupancy} guests (${r.capacity_adults} adults, ${r.capacity_children} children).`,
         `Base rate: ${r.currency} ${r.base_price}.`,
       ]
@@ -326,7 +326,7 @@ export const syncRoomsAndExperiences = createServerFn({ method: "POST" })
           external_ref: r.id,
           title: r.name,
           url: `/rooms/${r.slug}`,
-          summary: r.description?.slice(0, 240) ?? null,
+          summary: r.short_description?.slice(0, 240) ?? null,
           content,
           metadata: { slug: r.slug, base_price: r.base_price, currency: r.currency },
           status: "approved",
