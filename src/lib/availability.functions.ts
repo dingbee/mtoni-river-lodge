@@ -44,7 +44,9 @@ export const createBookingHold = createServerFn({ method: "POST" })
       _ttl_seconds: data.ttlSeconds ?? 900,
     } as never);
     if (error) throw new Error(error.message);
-    const row = Array.isArray(rows) ? rows[0] : rows;
+    const row = (Array.isArray(rows) ? rows[0] : rows) as {
+      hold_id: string; expires_at: string; room_id: string;
+    };
     return {
       holdId: row.hold_id as string,
       expiresAt: row.expires_at as string,
@@ -143,7 +145,7 @@ export const listCalendarEvents = createServerFn({ method: "POST" })
     return (rows ?? []) as Array<{
       id: string; event_type: string; room_id: string | null; booking_id: string | null;
       hold_id: string | null; date_from: string | null; date_to: string | null;
-      payload: Record<string, unknown>; created_at: string;
+      payload: unknown; created_at: string;
     }>;
   });
 
