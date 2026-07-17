@@ -173,6 +173,20 @@ function TurnBubble({ turn }: { turn: Turn }) {
           ))}
         </div>
       )}
+      {r?.citations && r.citations.length > 0 && (
+        <div className="rounded-md border bg-muted/30 p-2 text-xs">
+          <div className="mb-1 font-medium text-muted-foreground">Knowledge sources</div>
+          <ol className="space-y-1 list-decimal pl-4">
+            {r.citations.map((c, i) => (
+              <li key={i}>
+                <span className="font-medium">{c.document_title}</span>
+                {c.category_slug && <span className="text-muted-foreground"> · {c.category_slug}</span>}
+                <div className="text-muted-foreground line-clamp-2">{c.excerpt}</div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
     </div>
   );
 }

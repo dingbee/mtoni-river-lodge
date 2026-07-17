@@ -6,15 +6,15 @@ import type { AiDomain, AiToolId } from "./ai.types";
  * rejected before any data is read.
  */
 const ROLE_DOMAINS: Record<string, AiDomain[]> = {
-  owner:        ["guests", "reservations", "finance", "operations", "marketing"],
-  admin:        ["guests", "reservations", "finance", "operations", "marketing"],
-  manager:      ["guests", "reservations", "finance", "operations", "marketing"],
-  reception:    ["guests", "reservations"],
-  reservations: ["guests", "reservations"],
-  finance:      ["finance"],
-  marketing:    ["marketing"],
-  housekeeping: ["operations"],
-  editor:       ["marketing"],
+  owner:        ["guests", "reservations", "finance", "operations", "marketing", "knowledge"],
+  admin:        ["guests", "reservations", "finance", "operations", "marketing", "knowledge"],
+  manager:      ["guests", "reservations", "finance", "operations", "marketing", "knowledge"],
+  reception:    ["guests", "reservations", "knowledge"],
+  reservations: ["guests", "reservations", "knowledge"],
+  finance:      ["finance", "knowledge"],
+  marketing:    ["marketing", "knowledge"],
+  housekeeping: ["operations", "knowledge"],
+  editor:       ["marketing", "knowledge"],
 };
 
 export function allowedDomainsForRoles(roles: readonly string[]): AiDomain[] {
@@ -38,6 +38,7 @@ const TOOL_DOMAIN: Record<AiToolId, AiDomain> = {
   "operations.alerts": "operations",
   "marketing.latest_articles": "marketing",
   "marketing.seo_status": "marketing",
+  "knowledge.search": "knowledge",
 };
 
 export function toolDomain(tool: AiToolId): AiDomain {

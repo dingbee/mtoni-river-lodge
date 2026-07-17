@@ -1715,6 +1715,200 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_categories: {
+        Row: {
+          allowed_roles: Database["public"]["Enums"]["app_role"][]
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          allowed_roles?: Database["public"]["Enums"]["app_role"][]
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          allowed_roles?: Database["public"]["Enums"]["app_role"][]
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string
+          document_id: string
+          id: string
+          tsv: unknown
+          version: number
+        }
+        Insert: {
+          chunk_index: number
+          content: string
+          created_at?: string
+          document_id: string
+          id?: string
+          tsv?: unknown
+          version: number
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          document_id?: string
+          id?: string
+          tsv?: unknown
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_document_versions: {
+        Row: {
+          byte_size: number | null
+          change_note: string | null
+          checksum: string | null
+          content_text: string
+          created_at: string
+          created_by: string | null
+          document_id: string
+          id: string
+          version: number
+        }
+        Insert: {
+          byte_size?: number | null
+          change_note?: string | null
+          checksum?: string | null
+          content_text: string
+          created_at?: string
+          created_by?: string | null
+          document_id: string
+          id?: string
+          version: number
+        }
+        Update: {
+          byte_size?: number | null
+          change_note?: string | null
+          checksum?: string | null
+          content_text?: string
+          created_at?: string
+          created_by?: string | null
+          document_id?: string
+          id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_documents: {
+        Row: {
+          allowed_roles: Database["public"]["Enums"]["app_role"][] | null
+          byte_size: number | null
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          current_version: number
+          id: string
+          slug: string
+          source_type: string
+          source_url: string | null
+          status: string
+          storage_path: string | null
+          summary: string | null
+          tags: string[]
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allowed_roles?: Database["public"]["Enums"]["app_role"][] | null
+          byte_size?: number | null
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          id?: string
+          slug: string
+          source_type?: string
+          source_url?: string | null
+          status?: string
+          storage_path?: string | null
+          summary?: string | null
+          tags?: string[]
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allowed_roles?: Database["public"]["Enums"]["app_role"][] | null
+          byte_size?: number | null
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          id?: string
+          slug?: string
+          source_type?: string
+          source_url?: string | null
+          status?: string
+          storage_path?: string | null
+          summary?: string | null
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_documents_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media_assets: {
         Row: {
           alt_text: string | null
@@ -3107,6 +3301,23 @@ export type Database = {
       }
       is_any_staff: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      knowledge_can_read_document: {
+        Args: { _doc_id: string }
+        Returns: boolean
+      }
+      knowledge_search: {
+        Args: { _limit?: number; _query: string }
+        Returns: {
+          category_slug: string
+          chunk_id: string
+          chunk_index: number
+          content: string
+          document_id: string
+          document_slug: string
+          document_title: string
+          rank: number
+        }[]
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string

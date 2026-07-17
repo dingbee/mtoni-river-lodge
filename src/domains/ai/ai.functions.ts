@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { AI_TOOLS } from "./ai.tools";
 import { canUseTool, toolDomain } from "./ai.permissions";
 import { allowedToolsForRoles, buildAnswerSystemPrompt, buildRouterSystemPrompt } from "./ai.context";
-import type { AiResponse, AiToolId } from "./ai.types";
+import type { AiKnowledgeCitation, AiResponse, AiToolId } from "./ai.types";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-2.5-flash";
@@ -83,12 +83,50 @@ export const askAi = createServerFn({ method: "POST" })
       }
     }
 
+    // Always attempt a knowledge lookup so answers can cite SOPs/policies
+    // alongside live data. RLS filters by role automatically.
+    let citations: AiKnowledgeCitation[] = [];
+    let kbSummary = "";
+    if (toolId !== "knowledge.search") {
+      try {
+        const { data: kbRows } = await context.supabase.rpc("knowledge_search", {
+          _query: data.question,
+          _limit: 4,
+        });
+        const rows = (kbRows ?? []) as Array<any>;
+        if (rows.length > 0) {
+          citations = rows.map((r) => ({
+            document_id: r.document_id,
+            document_title: r.document_title,
+            document_slug: r.document_slug,
+            category_slug: r.category_slug ?? null,
+            chunk_index: r.chunk_index,
+            excerpt: String(r.content ?? "").slice(0, 400),
+          }));
+          kbSummary = rows
+            .map((r, i) => `[K${i + 1}] ${r.document_title}${r.category_slug ? ` (${r.category_slug})` : ""}: ${String(r.content ?? "").slice(0, 500)}`)
+            .join("\n");
+        }
+      } catch { /* knowledge is best-effort */ }
+    } else if (Array.isArray(toolResult?.data)) {
+      const rows = toolResult!.data as Array<any>;
+      citations = rows.map((r) => ({
+        document_id: r.document_id,
+        document_title: r.document_title,
+        document_slug: r.document_slug,
+        category_slug: r.category_slug ?? null,
+        chunk_index: r.chunk_index,
+        excerpt: String(r.content ?? "").slice(0, 400),
+      }));
+    }
+
     // Step 2 — compose answer
     const answerUser = [
       `Question: ${data.question}`,
       toolId ? `Tool used: ${toolId}` : "Tool used: none",
       toolResult ? `Tool summary: ${toolResult.summary}` : "",
       toolResult ? `Tool data (JSON, truncated): ${JSON.stringify(toolResult.data).slice(0, 4000)}` : "",
+      kbSummary ? `Knowledge base excerpts:\n${kbSummary}` : "",
     ].filter(Boolean).join("\n");
     const answerRaw = await chat(buildAnswerSystemPrompt(), answerUser);
     const answer = tryJson<{ answer: string; recommendation: string | null }>(answerRaw) ?? {
@@ -96,15 +134,21 @@ export const askAi = createServerFn({ method: "POST" })
       recommendation: null,
     };
 
+    const evidence: AiResponse["evidence"] = toolId && toolResult
+      ? [{ domain: toolDomain(toolId), tool: toolId, count: toolResult.count, window: toolResult.window }]
+      : [];
+    if (citations.length > 0 && toolId !== "knowledge.search") {
+      evidence.push({ domain: "knowledge", tool: "knowledge.search", count: citations.length });
+    }
+
     const response: AiResponse = {
       answer: answer.answer,
       recommendation: answer.recommendation ?? undefined,
       tool: toolId ?? undefined,
       data: toolResult?.data ?? null,
       model: MODEL,
-      evidence: toolId && toolResult
-        ? [{ domain: toolDomain(toolId), tool: toolId, count: toolResult.count, window: toolResult.window }]
-        : [],
+      evidence,
+      citations,
     };
 
     // Audit log
@@ -112,7 +156,7 @@ export const askAi = createServerFn({ method: "POST" })
     await context.supabase.from("ai_activity_logs").insert({
       user_id: context.userId,
       question: data.question,
-      domains_accessed: toolId ? [toolDomain(toolId)] : [],
+      domains_accessed: Array.from(new Set(evidence.map((e) => e.domain))),
       tool_called: toolId,
       tool_args: (router.args ?? {}) as never,
       response: response.answer,

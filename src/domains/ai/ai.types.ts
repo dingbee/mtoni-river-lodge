@@ -12,9 +12,19 @@ export type AiToolId =
   | "operations.open_tasks"
   | "operations.alerts"
   | "marketing.latest_articles"
-  | "marketing.seo_status";
+  | "marketing.seo_status"
+  | "knowledge.search";
 
-export type AiDomain = "guests" | "reservations" | "finance" | "operations" | "marketing";
+export type AiDomain = "guests" | "reservations" | "finance" | "operations" | "marketing" | "knowledge";
+
+export interface AiKnowledgeCitation {
+  document_id: string;
+  document_title: string;
+  document_slug: string;
+  category_slug: string | null;
+  chunk_index: number;
+  excerpt: string;
+}
 
 export interface AiEvidenceSource {
   domain: AiDomain;
@@ -31,6 +41,7 @@ export interface AiResponse {
   tool?: AiToolId;
   data?: any;
   model: string;
+  citations?: AiKnowledgeCitation[];
 }
 
 export interface AiActivityRow {
