@@ -122,6 +122,60 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_brand_reviews: {
+        Row: {
+          brand_score: number
+          consistency_score: number
+          content_sample: string
+          created_at: string
+          evidence: Json
+          generated_by: string | null
+          id: string
+          issues: Json
+          model: string | null
+          readability_score: number
+          subject_id: string | null
+          subject_label: string | null
+          subject_type: string
+          suggestions: Json
+          tone_score: number
+        }
+        Insert: {
+          brand_score?: number
+          consistency_score?: number
+          content_sample: string
+          created_at?: string
+          evidence?: Json
+          generated_by?: string | null
+          id?: string
+          issues?: Json
+          model?: string | null
+          readability_score?: number
+          subject_id?: string | null
+          subject_label?: string | null
+          subject_type: string
+          suggestions?: Json
+          tone_score?: number
+        }
+        Update: {
+          brand_score?: number
+          consistency_score?: number
+          content_sample?: string
+          created_at?: string
+          evidence?: Json
+          generated_by?: string | null
+          id?: string
+          issues?: Json
+          model?: string | null
+          readability_score?: number
+          subject_id?: string | null
+          subject_label?: string | null
+          subject_type?: string
+          suggestions?: Json
+          tone_score?: number
+        }
+        Relationships: []
+      }
       ai_guest_alerts: {
         Row: {
           assigned_to: string | null
@@ -328,6 +382,114 @@ export type Database = {
           },
         ]
       }
+      ai_marketing_priorities: {
+        Row: {
+          confidence: number
+          created_at: string
+          evidence: Json
+          generated_by: string | null
+          id: string
+          model: string | null
+          priorities: Json
+          summary: string | null
+          week_start: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          evidence?: Json
+          generated_by?: string | null
+          id?: string
+          model?: string | null
+          priorities?: Json
+          summary?: string | null
+          week_start: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          evidence?: Json
+          generated_by?: string | null
+          id?: string
+          model?: string | null
+          priorities?: Json
+          summary?: string | null
+          week_start?: string
+        }
+        Relationships: []
+      }
+      ai_marketing_recommendations: {
+        Row: {
+          action: string
+          action_task_id: string | null
+          actioned_at: string | null
+          actioned_by: string | null
+          confidence: number
+          created_at: string
+          evidence: Json
+          expected_impact: string | null
+          generated_by: string | null
+          id: string
+          impact_score: number | null
+          kind: string
+          model: string | null
+          reasoning: string
+          status: string
+          suggested_payload: Json
+          target_id: string | null
+          target_label: string | null
+          target_route: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          action_task_id?: string | null
+          actioned_at?: string | null
+          actioned_by?: string | null
+          confidence?: number
+          created_at?: string
+          evidence?: Json
+          expected_impact?: string | null
+          generated_by?: string | null
+          id?: string
+          impact_score?: number | null
+          kind: string
+          model?: string | null
+          reasoning: string
+          status?: string
+          suggested_payload?: Json
+          target_id?: string | null
+          target_label?: string | null
+          target_route?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          action_task_id?: string | null
+          actioned_at?: string | null
+          actioned_by?: string | null
+          confidence?: number
+          created_at?: string
+          evidence?: Json
+          expected_impact?: string | null
+          generated_by?: string | null
+          id?: string
+          impact_score?: number | null
+          kind?: string
+          model?: string | null
+          reasoning?: string
+          status?: string
+          suggested_payload?: Json
+          target_id?: string | null
+          target_label?: string | null
+          target_route?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_pricing_recommendations: {
         Row: {
           action: string
@@ -401,6 +563,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ai_reputation_insights: {
+        Row: {
+          complaints: Json
+          compliments: Json
+          confidence: number
+          created_at: string
+          evidence: Json
+          generated_by: string | null
+          id: string
+          model: string | null
+          period_from: string | null
+          period_to: string | null
+          recommendations: Json
+          response_drafts: Json
+          scope: string
+          sentiment_score: number | null
+          source: string | null
+          summary: string
+          themes: Json
+        }
+        Insert: {
+          complaints?: Json
+          compliments?: Json
+          confidence?: number
+          created_at?: string
+          evidence?: Json
+          generated_by?: string | null
+          id?: string
+          model?: string | null
+          period_from?: string | null
+          period_to?: string | null
+          recommendations?: Json
+          response_drafts?: Json
+          scope?: string
+          sentiment_score?: number | null
+          source?: string | null
+          summary: string
+          themes?: Json
+        }
+        Update: {
+          complaints?: Json
+          compliments?: Json
+          confidence?: number
+          created_at?: string
+          evidence?: Json
+          generated_by?: string | null
+          id?: string
+          model?: string | null
+          period_from?: string | null
+          period_to?: string | null
+          recommendations?: Json
+          response_drafts?: Json
+          scope?: string
+          sentiment_score?: number | null
+          source?: string | null
+          summary?: string
+          themes?: Json
+        }
+        Relationships: []
       }
       ai_revenue_alerts: {
         Row: {
