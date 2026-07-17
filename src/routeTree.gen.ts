@@ -154,6 +154,7 @@ import { Route as AuthenticatedAdminAiMarketingSeoRouteImport } from './routes/_
 import { Route as AuthenticatedAdminAiMarketingReputationRouteImport } from './routes/_authenticated.admin.ai.marketing.reputation'
 import { Route as AuthenticatedAdminAiMarketingContentRouteImport } from './routes/_authenticated.admin.ai.marketing.content'
 import { Route as AuthenticatedAdminAiMarketingCampaignsRouteImport } from './routes/_authenticated.admin.ai.marketing.campaigns'
+import { Route as AuthenticatedAdminAiMarketingBrandRouteImport } from './routes/_authenticated.admin.ai.marketing.brand'
 import { Route as AuthenticatedAdminAiGuestsDashboardRouteImport } from './routes/_authenticated.admin.ai.guests.dashboard'
 import { Route as AuthenticatedAdminAiGuestsBookingIdRouteImport } from './routes/_authenticated.admin.ai.guests.$bookingId'
 import { Route as AuthenticatedAdminContentPagesIdIndexRouteImport } from './routes/_authenticated.admin.content.pages.$id.index'
@@ -977,6 +978,12 @@ const AuthenticatedAdminAiMarketingCampaignsRoute =
     path: '/campaigns',
     getParentRoute: () => AuthenticatedAdminAiMarketingRoute,
   } as any)
+const AuthenticatedAdminAiMarketingBrandRoute =
+  AuthenticatedAdminAiMarketingBrandRouteImport.update({
+    id: '/brand',
+    path: '/brand',
+    getParentRoute: () => AuthenticatedAdminAiMarketingRoute,
+  } as any)
 const AuthenticatedAdminAiGuestsDashboardRoute =
   AuthenticatedAdminAiGuestsDashboardRouteImport.update({
     id: '/dashboard',
@@ -1129,6 +1136,7 @@ export interface FileRoutesByFullPath {
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
   '/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
+  '/admin/ai/marketing/brand': typeof AuthenticatedAdminAiMarketingBrandRoute
   '/admin/ai/marketing/campaigns': typeof AuthenticatedAdminAiMarketingCampaignsRoute
   '/admin/ai/marketing/content': typeof AuthenticatedAdminAiMarketingContentRoute
   '/admin/ai/marketing/reputation': typeof AuthenticatedAdminAiMarketingReputationRoute
@@ -1271,6 +1279,7 @@ export interface FileRoutesByTo {
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
   '/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
+  '/admin/ai/marketing/brand': typeof AuthenticatedAdminAiMarketingBrandRoute
   '/admin/ai/marketing/campaigns': typeof AuthenticatedAdminAiMarketingCampaignsRoute
   '/admin/ai/marketing/content': typeof AuthenticatedAdminAiMarketingContentRoute
   '/admin/ai/marketing/reputation': typeof AuthenticatedAdminAiMarketingReputationRoute
@@ -1423,6 +1432,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/_authenticated/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
   '/_authenticated/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
+  '/_authenticated/admin/ai/marketing/brand': typeof AuthenticatedAdminAiMarketingBrandRoute
   '/_authenticated/admin/ai/marketing/campaigns': typeof AuthenticatedAdminAiMarketingCampaignsRoute
   '/_authenticated/admin/ai/marketing/content': typeof AuthenticatedAdminAiMarketingContentRoute
   '/_authenticated/admin/ai/marketing/reputation': typeof AuthenticatedAdminAiMarketingReputationRoute
@@ -1575,6 +1585,7 @@ export interface FileRouteTypes {
     | '/admin/operations/'
     | '/admin/ai/guests/$bookingId'
     | '/admin/ai/guests/dashboard'
+    | '/admin/ai/marketing/brand'
     | '/admin/ai/marketing/campaigns'
     | '/admin/ai/marketing/content'
     | '/admin/ai/marketing/reputation'
@@ -1717,6 +1728,7 @@ export interface FileRouteTypes {
     | '/admin/operations'
     | '/admin/ai/guests/$bookingId'
     | '/admin/ai/guests/dashboard'
+    | '/admin/ai/marketing/brand'
     | '/admin/ai/marketing/campaigns'
     | '/admin/ai/marketing/content'
     | '/admin/ai/marketing/reputation'
@@ -1868,6 +1880,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations/'
     | '/_authenticated/admin/ai/guests/$bookingId'
     | '/_authenticated/admin/ai/guests/dashboard'
+    | '/_authenticated/admin/ai/marketing/brand'
     | '/_authenticated/admin/ai/marketing/campaigns'
     | '/_authenticated/admin/ai/marketing/content'
     | '/_authenticated/admin/ai/marketing/reputation'
@@ -2965,6 +2978,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiMarketingCampaignsRouteImport
       parentRoute: typeof AuthenticatedAdminAiMarketingRoute
     }
+    '/_authenticated/admin/ai/marketing/brand': {
+      id: '/_authenticated/admin/ai/marketing/brand'
+      path: '/brand'
+      fullPath: '/admin/ai/marketing/brand'
+      preLoaderRoute: typeof AuthenticatedAdminAiMarketingBrandRouteImport
+      parentRoute: typeof AuthenticatedAdminAiMarketingRoute
+    }
     '/_authenticated/admin/ai/guests/dashboard': {
       id: '/_authenticated/admin/ai/guests/dashboard'
       path: '/dashboard'
@@ -3015,6 +3035,7 @@ const AuthenticatedAdminAiGuestsRouteWithChildren =
   )
 
 interface AuthenticatedAdminAiMarketingRouteChildren {
+  AuthenticatedAdminAiMarketingBrandRoute: typeof AuthenticatedAdminAiMarketingBrandRoute
   AuthenticatedAdminAiMarketingCampaignsRoute: typeof AuthenticatedAdminAiMarketingCampaignsRoute
   AuthenticatedAdminAiMarketingContentRoute: typeof AuthenticatedAdminAiMarketingContentRoute
   AuthenticatedAdminAiMarketingReputationRoute: typeof AuthenticatedAdminAiMarketingReputationRoute
@@ -3024,6 +3045,8 @@ interface AuthenticatedAdminAiMarketingRouteChildren {
 
 const AuthenticatedAdminAiMarketingRouteChildren: AuthenticatedAdminAiMarketingRouteChildren =
   {
+    AuthenticatedAdminAiMarketingBrandRoute:
+      AuthenticatedAdminAiMarketingBrandRoute,
     AuthenticatedAdminAiMarketingCampaignsRoute:
       AuthenticatedAdminAiMarketingCampaignsRoute,
     AuthenticatedAdminAiMarketingContentRoute:
