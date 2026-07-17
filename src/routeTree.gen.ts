@@ -90,6 +90,7 @@ import { Route as AuthenticatedAdminAiIndexRouteImport } from './routes/_authent
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
+import { Route as ApiPublicRoomsStatusRouteImport } from './routes/api/public/rooms.status'
 import { Route as ApiPublicPesapalIpnRouteImport } from './routes/api/public/pesapal.ipn'
 import { Route as ApiPublicOpsMorningDigestRouteImport } from './routes/api/public/ops/morning-digest'
 import { Route as ApiPublicOpsDrainRouteImport } from './routes/api/public/ops/drain'
@@ -654,6 +655,11 @@ const LovableEmailQueueProcessRoute =
     path: '/lovable/email/queue/process',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicRoomsStatusRoute = ApiPublicRoomsStatusRouteImport.update({
+  id: '/api/public/rooms/status',
+  path: '/api/public/rooms/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPesapalIpnRoute = ApiPublicPesapalIpnRouteImport.update({
   id: '/api/public/pesapal/ipn',
   path: '/api/public/pesapal/ipn',
@@ -1563,6 +1569,7 @@ export interface FileRoutesByFullPath {
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
+  '/api/public/rooms/status': typeof ApiPublicRoomsStatusRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -1761,6 +1768,7 @@ export interface FileRoutesByTo {
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
+  '/api/public/rooms/status': typeof ApiPublicRoomsStatusRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -1973,6 +1981,7 @@ export interface FileRoutesById {
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
+  '/api/public/rooms/status': typeof ApiPublicRoomsStatusRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -2185,6 +2194,7 @@ export interface FileRouteTypes {
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
+    | '/api/public/rooms/status'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -2383,6 +2393,7 @@ export interface FileRouteTypes {
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
+    | '/api/public/rooms/status'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -2594,6 +2605,7 @@ export interface FileRouteTypes {
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
+    | '/api/public/rooms/status'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -2718,6 +2730,7 @@ export interface RootRouteChildren {
   ApiPublicOpsDrainRoute: typeof ApiPublicOpsDrainRoute
   ApiPublicOpsMorningDigestRoute: typeof ApiPublicOpsMorningDigestRoute
   ApiPublicPesapalIpnRoute: typeof ApiPublicPesapalIpnRoute
+  ApiPublicRoomsStatusRoute: typeof ApiPublicRoomsStatusRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
   LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
@@ -3290,6 +3303,13 @@ declare module '@tanstack/react-router' {
       path: '/lovable/email/queue/process'
       fullPath: '/lovable/email/queue/process'
       preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/rooms/status': {
+      id: '/api/public/rooms/status'
+      path: '/api/public/rooms/status'
+      fullPath: '/api/public/rooms/status'
+      preLoaderRoute: typeof ApiPublicRoomsStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/pesapal/ipn': {
@@ -4849,6 +4869,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicOpsDrainRoute: ApiPublicOpsDrainRoute,
   ApiPublicOpsMorningDigestRoute: ApiPublicOpsMorningDigestRoute,
   ApiPublicPesapalIpnRoute: ApiPublicPesapalIpnRoute,
+  ApiPublicRoomsStatusRoute: ApiPublicRoomsStatusRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
   LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
