@@ -100,6 +100,7 @@ import { Route as ApiPublicConciergeLeadRouteImport } from './routes/api/public/
 import { Route as ApiPublicConciergeFeedbackRouteImport } from './routes/api/public/concierge.feedback'
 import { Route as ApiPublicConciergeChatRouteImport } from './routes/api/public/concierge.chat'
 import { Route as ApiPublicConciergeAttributionRouteImport } from './routes/api/public/concierge.attribution'
+import { Route as ApiPublicAvailabilitySearchRouteImport } from './routes/api/public/availability.search'
 import { Route as AuthenticatedAdminSystemHealthRouteImport } from './routes/_authenticated.admin.system.health'
 import { Route as AuthenticatedAdminStaffUsersRouteImport } from './routes/_authenticated.admin.staff.users'
 import { Route as AuthenticatedAdminStaffRolesRouteImport } from './routes/_authenticated.admin.staff.roles'
@@ -708,6 +709,12 @@ const ApiPublicConciergeAttributionRoute =
   ApiPublicConciergeAttributionRouteImport.update({
     id: '/api/public/concierge/attribution',
     path: '/api/public/concierge/attribution',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicAvailabilitySearchRoute =
+  ApiPublicAvailabilitySearchRouteImport.update({
+    id: '/api/public/availability/search',
+    path: '/api/public/availability/search',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedAdminSystemHealthRoute =
@@ -1560,6 +1567,7 @@ export interface FileRoutesByFullPath {
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
   '/admin/system/health': typeof AuthenticatedAdminSystemHealthRoute
+  '/api/public/availability/search': typeof ApiPublicAvailabilitySearchRoute
   '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
   '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
@@ -1759,6 +1767,7 @@ export interface FileRoutesByTo {
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
   '/admin/system/health': typeof AuthenticatedAdminSystemHealthRoute
+  '/api/public/availability/search': typeof ApiPublicAvailabilitySearchRoute
   '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
   '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
@@ -1972,6 +1981,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/_authenticated/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
   '/_authenticated/admin/system/health': typeof AuthenticatedAdminSystemHealthRoute
+  '/api/public/availability/search': typeof ApiPublicAvailabilitySearchRoute
   '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
   '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
@@ -2185,6 +2195,7 @@ export interface FileRouteTypes {
     | '/admin/staff/roles'
     | '/admin/staff/users'
     | '/admin/system/health'
+    | '/api/public/availability/search'
     | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
     | '/api/public/concierge/feedback'
@@ -2384,6 +2395,7 @@ export interface FileRouteTypes {
     | '/admin/staff/roles'
     | '/admin/staff/users'
     | '/admin/system/health'
+    | '/api/public/availability/search'
     | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
     | '/api/public/concierge/feedback'
@@ -2596,6 +2608,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/staff/roles'
     | '/_authenticated/admin/staff/users'
     | '/_authenticated/admin/system/health'
+    | '/api/public/availability/search'
     | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
     | '/api/public/concierge/feedback'
@@ -2721,6 +2734,7 @@ export interface RootRouteChildren {
   WpJsonSplatRoute: typeof WpJsonSplatRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicAvailabilitySearchRoute: typeof ApiPublicAvailabilitySearchRoute
   ApiPublicConciergeAttributionRoute: typeof ApiPublicConciergeAttributionRoute
   ApiPublicConciergeChatRoute: typeof ApiPublicConciergeChatRoute
   ApiPublicConciergeFeedbackRoute: typeof ApiPublicConciergeFeedbackRoute
@@ -3373,6 +3387,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/concierge/attribution'
       fullPath: '/api/public/concierge/attribution'
       preLoaderRoute: typeof ApiPublicConciergeAttributionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/availability/search': {
+      id: '/api/public/availability/search'
+      path: '/api/public/availability/search'
+      fullPath: '/api/public/availability/search'
+      preLoaderRoute: typeof ApiPublicAvailabilitySearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/system/health': {
@@ -4860,6 +4881,7 @@ const rootRouteChildren: RootRouteChildren = {
   WpJsonSplatRoute: WpJsonSplatRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicAvailabilitySearchRoute: ApiPublicAvailabilitySearchRoute,
   ApiPublicConciergeAttributionRoute: ApiPublicConciergeAttributionRoute,
   ApiPublicConciergeChatRoute: ApiPublicConciergeChatRoute,
   ApiPublicConciergeFeedbackRoute: ApiPublicConciergeFeedbackRoute,
