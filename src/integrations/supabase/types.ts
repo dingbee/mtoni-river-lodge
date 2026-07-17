@@ -176,6 +176,143 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_concierge_insights: {
+        Row: {
+          bucket_date: string
+          created_at: string
+          escalation_count: number
+          id: string
+          question_count: number
+          sample_questions: Json
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          bucket_date: string
+          created_at?: string
+          escalation_count?: number
+          id?: string
+          question_count?: number
+          sample_questions?: Json
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          bucket_date?: string
+          created_at?: string
+          escalation_count?: number
+          id?: string
+          question_count?: number
+          sample_questions?: Json
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_concierge_messages: {
+        Row: {
+          citations: Json
+          confidence: number | null
+          content: string
+          created_at: string
+          escalated: boolean
+          id: string
+          latency_ms: number | null
+          model: string | null
+          role: string
+          session_id: string
+          tool_calls: Json
+        }
+        Insert: {
+          citations?: Json
+          confidence?: number | null
+          content: string
+          created_at?: string
+          escalated?: boolean
+          id?: string
+          latency_ms?: number | null
+          model?: string | null
+          role: string
+          session_id: string
+          tool_calls?: Json
+        }
+        Update: {
+          citations?: Json
+          confidence?: number | null
+          content?: string
+          created_at?: string
+          escalated?: boolean
+          id?: string
+          latency_ms?: number | null
+          model?: string | null
+          role?: string
+          session_id?: string
+          tool_calls?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_concierge_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_concierge_sessions: {
+        Row: {
+          created_at: string
+          escalated: boolean
+          escalation_channel: string | null
+          guest_email: string | null
+          guest_name: string | null
+          guest_phone: string | null
+          id: string
+          last_active_at: string
+          locale: string | null
+          message_count: number
+          page_context: Json
+          referer: string | null
+          session_token: string
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          escalated?: boolean
+          escalation_channel?: string | null
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
+          id?: string
+          last_active_at?: string
+          locale?: string | null
+          message_count?: number
+          page_context?: Json
+          referer?: string | null
+          session_token: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          escalated?: boolean
+          escalation_channel?: string | null
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
+          id?: string
+          last_active_at?: string
+          locale?: string | null
+          message_count?: number
+          page_context?: Json
+          referer?: string | null
+          session_token?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       ai_configurations: {
         Row: {
           created_at: string
@@ -2884,6 +3021,7 @@ export type Database = {
           created_by: string | null
           current_version: number
           id: string
+          is_guest_visible: boolean
           slug: string
           source_type: string
           source_url: string | null
@@ -2903,6 +3041,7 @@ export type Database = {
           created_by?: string | null
           current_version?: number
           id?: string
+          is_guest_visible?: boolean
           slug: string
           source_type?: string
           source_url?: string | null
@@ -2922,6 +3061,7 @@ export type Database = {
           created_by?: string | null
           current_version?: number
           id?: string
+          is_guest_visible?: boolean
           slug?: string
           source_type?: string
           source_url?: string | null
