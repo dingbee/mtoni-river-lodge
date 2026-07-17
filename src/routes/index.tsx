@@ -33,7 +33,7 @@ import palmGarden1600 from "@/assets/palm-garden-1600w.webp.asset.json";
 import diningCandleJpg from "@/assets/hero-dining-candlelit.jpg.asset.json";
 import diningCandle800 from "@/assets/hero-dining-candlelit-800w.webp.asset.json";
 import diningCandle1600 from "@/assets/hero-dining-candlelit-1600w.webp.asset.json";
-import diningImg from "@/assets/dining.jpg";
+import diningImg from "@/assets/mtoni-reception-featured.webp.asset.json";
 
 const HOME_FAQS: FAQItem[] = [
   {
@@ -253,7 +253,7 @@ function HomePage() {
       {/* DINING — full bleed quote */}
       <section className="relative h-[90svh] w-full overflow-hidden">
         <img
-          src={diningImg}
+          src={diningImg.url}
           alt="Stone lobby entrance with beaded chandelier and arched doorways at Mtoni River Lodge"
           className="h-full w-full object-cover"
           loading="lazy"
