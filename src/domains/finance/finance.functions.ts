@@ -258,7 +258,7 @@ export const listPayments = createServerFn({ method: "POST" })
       )
       .order("created_at", { ascending: false })
       .limit(data.limit);
-    if (data.status) q = q.eq("payment_status", data.status);
+    if (data.status) q = q.eq("payment_status", data.status as never);
     if (data.search)
       q = q.or(`reference.ilike.%${data.search}%,guest_email.ilike.%${data.search}%,guest_name.ilike.%${data.search}%`);
     if (data.from) q = q.gte("created_at", data.from);
@@ -331,11 +331,11 @@ export const recordManualPayment = createServerFn({ method: "POST" })
     const newPaid = Number(booking.paid_amount ?? 0) + signed;
     const total = Number(booking.total ?? 0);
     const balance = Math.max(0, total - newPaid);
-    let newStatus: string = booking.payment_status;
+    let newStatus: "unpaid" | "paid" | "deposit_paid" | "payment_mismatch" | "refunded" =
+      booking.payment_status;
     if (newPaid <= 0) newStatus = "unpaid";
     else if (newPaid >= total) newStatus = "paid";
     else if (newPaid >= Number(booking.deposit_amount ?? 0)) newStatus = "deposit_paid";
-    else newStatus = "partial";
 
     await context.supabase
       .from("bookings")
