@@ -7,15 +7,17 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { formatDistanceToNow } from "date-fns";
-import { Ban, CalendarDays, RefreshCw, ShieldOff, Timer, Wrench } from "lucide-react";
+import { Ban, CalendarDays, RefreshCw, ShieldOff, Sparkles, Timer, Wrench } from "lucide-react";
 import { toast } from "sonner";
 
 import { getOpsCalendar } from "@/lib/operations.functions";
 import {
   listActiveHolds,
   listCalendarEvents,
+  reassignBookingRoom,
   releaseHoldStaff,
   setRoomBlock,
+  suggestRoomAssignment,
 } from "@/lib/availability.functions";
 
 import { PageHeader } from "@/components/os/PageHeader";
@@ -30,6 +32,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/_authenticated/admin/calendar")({
   head: () => ({
