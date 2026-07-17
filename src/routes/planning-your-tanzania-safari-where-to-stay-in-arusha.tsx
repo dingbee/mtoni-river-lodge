@@ -98,7 +98,7 @@ export const Route = createFileRoute(
       {
         property: "og:image:alt",
         content:
-          "Aerial view of Mtoni River Lodge in Arusha — a peaceful base before a Tanzania safari",
+          "Stone entrance to Mtoni River Lodge in Arusha — a peaceful base before a Tanzania safari",
       },
       { property: "og:type", content: "article" },
       { property: "og:url", content: URL },
@@ -124,7 +124,7 @@ export const Route = createFileRoute(
             "@type": "ImageObject",
             url: HERO_URL,
             caption:
-              "Aerial view of Mtoni River Lodge — a peaceful base before and after a Tanzania safari",
+              "The entrance to Mtoni River Lodge — a peaceful base before and after a Tanzania safari",
           },
           datePublished: PUBLISHED,
           dateModified: PUBLISHED,
