@@ -20,6 +20,7 @@ const TABS = [
   { to: "/admin/ai/concierge/channels", label: "Channels", icon: Radio },
   { to: "/admin/ai/concierge/memory", label: "Guest Memory", icon: Brain },
   { to: "/admin/ai/concierge/pre-arrival", label: "Pre-Arrival", icon: Plane },
+  { to: "/admin/ai/concierge/recommendations", label: "Recommendations", icon: Sparkles },
   { to: "/admin/ai/leads",     label: "Concierge Leads",    icon: Inbox },
   { to: "/admin/ai/governance",label: "Governance",     icon: ShieldCheck },
   { to: "/admin/ai/performance",label:"Performance",    icon: Activity },
