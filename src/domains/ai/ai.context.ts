@@ -17,6 +17,7 @@ export function allowedToolsForRoles(roles: readonly string[]): AiToolId[] {
       finance: "finance",
       operations: "operations",
       marketing: "marketing",
+      knowledge: "knowledge",
     };
     return domains.has(map[d] as any);
   });
