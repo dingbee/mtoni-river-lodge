@@ -49,9 +49,8 @@ function Page() {
       <PageHeader
         title="SEO Intelligence"
         description="Scans seo_overrides + CMS pages for missing metadata, weak titles, missing schema, duplicate titles, and social preview gaps. Nothing is edited automatically."
-      >
-        <Button onClick={run}>Run SEO analysis</Button>
-      </PageHeader>
+        actions={<Button onClick={run}>Run SEO analysis</Button>}
+      />
       <SectionCard title="Methodology">
         <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
           <li>Missing title or description → high-impact rewrite.</li>
