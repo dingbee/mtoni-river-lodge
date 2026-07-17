@@ -134,7 +134,7 @@ export const askAi = createServerFn({ method: "POST" })
       recommendation: null,
     };
 
-    const evidence = toolId && toolResult
+    const evidence: AiResponse["evidence"] = toolId && toolResult
       ? [{ domain: toolDomain(toolId), tool: toolId, count: toolResult.count, window: toolResult.window }]
       : [];
     if (citations.length > 0 && toolId !== "knowledge.search") {
