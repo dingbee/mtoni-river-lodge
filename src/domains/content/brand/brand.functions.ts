@@ -14,6 +14,49 @@ export const listBrandTokens = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+export type BrandTokenInput = {
+  id?: string;
+  key: string;
+  category: string;
+  label: string;
+  value: unknown;
+  notes?: string | null;
+};
+
+export const saveBrandToken = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: BrandTokenInput) => d)
+  .handler(async ({ data, context }) => {
+    const payload = {
+      key: data.key,
+      category: data.category,
+      label: data.label,
+      value: (data.value ?? {}) as never,
+      notes: data.notes ?? null,
+    };
+    if (data.id) {
+      const { data: row, error } = await context.supabase
+        .from("brand_tokens").update(payload).eq("id", data.id).select("*").single();
+      if (error) throw error;
+      return row;
+    }
+    const { data: row, error } = await context.supabase
+      .from("brand_tokens")
+      .upsert(payload, { onConflict: "key" })
+      .select("*").single();
+    if (error) throw error;
+    return row;
+  });
+
+export const deleteBrandToken = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("brand_tokens").delete().eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
 /** Public brand context helper — deterministic today; future AI calls will consume it. */
 export const getBrandContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

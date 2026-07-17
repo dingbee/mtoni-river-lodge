@@ -93,6 +93,8 @@ export const NAV: NavEntry[] = [
         { id: "content.journal", label: "Journal", href: "/admin/content/journal", icon: Newspaper },
         { id: "content.gallery", label: "Gallery", href: "/admin/content/gallery", icon: ImageIcon },
         { id: "content.media", label: "Media Library", href: "/admin/content/media", icon: FolderOpen },
+        { id: "content.brand", label: "Brand Centre", href: "/admin/content/brand", icon: Sparkles },
+        { id: "content.calendar", label: "Content Calendar", href: "/admin/content/calendar", icon: CalendarDays },
       ],
     },
   },
