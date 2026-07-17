@@ -29,7 +29,7 @@ export interface AiResponse {
   evidence: AiEvidenceSource[];
   recommendation?: string;
   tool?: AiToolId;
-  data?: unknown;
+  data?: any;
   model: string;
 }
 
