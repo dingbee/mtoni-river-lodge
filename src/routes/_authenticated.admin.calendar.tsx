@@ -89,6 +89,39 @@ function UnifiedCalendarPage() {
   const fetchEvents = useServerFn(listCalendarEvents);
   const blockFn = useServerFn(setRoomBlock);
   const releaseFn = useServerFn(releaseHoldStaff);
+  const reassignFn = useServerFn(reassignBookingRoom);
+  const suggestFn = useServerFn(suggestRoomAssignment);
+
+  // ---- Filters -------------------------------------------------------
+  const [filters, setFilters] = useState({
+    arrivalsToday: false,
+    departuresToday: false,
+    vip: false,
+    blocked: false,
+    holds: false,
+    roomSlugs: new Set<string>(),
+  });
+  const toggleRoomFilter = (slug: string) =>
+    setFilters((f) => {
+      const s = new Set(f.roomSlugs);
+      if (s.has(slug)) s.delete(slug); else s.add(slug);
+      return { ...f, roomSlugs: s };
+    });
+
+  // ---- Drag-and-drop state ------------------------------------------
+  const [dragBookingId, setDragBookingId] = useState<string | null>(null);
+  const [reassignCtx, setReassignCtx] = useState<{
+    bookingId: string; fromRoomName: string; toRoomId: string; toRoomName: string;
+  } | null>(null);
+  const [reassignReason, setReassignReason] = useState("");
+
+  // ---- AI suggestion state ------------------------------------------
+  const [suggestForBooking, setSuggestForBooking] = useState<string | null>(null);
+  const suggestions = useQuery({
+    queryKey: ["calendar", "suggestions", suggestForBooking],
+    enabled: !!suggestForBooking,
+    queryFn: () => suggestFn({ data: { bookingId: suggestForBooking! } }),
+  });
 
   const ops = useQuery({
     queryKey: ["calendar", "ops", range.from, range.to],
