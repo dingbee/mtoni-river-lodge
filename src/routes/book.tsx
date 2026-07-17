@@ -487,6 +487,22 @@ function BookPage() {
                 // already bound to — just proceed to guest details.
                 if (!currentRoomContext || currentRoomContext === r.slug) {
                   setSelectedRoom(r);
+                  // Fire-and-forget hold acquisition — 15-minute inventory lock.
+                  // Failures are non-blocking; createBooking still runs the same
+                  // atomic availability check server-side.
+                  void createHoldFn({
+                    data: {
+                      roomSlug: r.slug,
+                      checkIn,
+                      checkOut,
+                      sessionId,
+                      guestEmail: guest.email || undefined,
+                    },
+                  })
+                    .then((h) => setHold({ id: h.holdId, expiresAt: h.expiresAt, roomSlug: r.slug }))
+                    .catch((e) => {
+                      console.warn("[book] hold acquire failed", e);
+                    });
                   trackRoomSelected({
                     room_slug: r.slug,
                     room_name: r.name,
