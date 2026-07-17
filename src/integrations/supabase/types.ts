@@ -1476,6 +1476,96 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_knowledge_search_log: {
+        Row: {
+          asked_by: string | null
+          confidence: number | null
+          created_at: string
+          id: string
+          matched_source_ids: string[]
+          query: string
+          result_count: number
+        }
+        Insert: {
+          asked_by?: string | null
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          matched_source_ids?: string[]
+          query: string
+          result_count?: number
+        }
+        Update: {
+          asked_by?: string | null
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          matched_source_ids?: string[]
+          query?: string
+          result_count?: number
+        }
+        Relationships: []
+      }
+      ai_knowledge_sources: {
+        Row: {
+          content: string
+          content_tsv: unknown
+          created_at: string
+          created_by: string | null
+          external_ref: string | null
+          id: string
+          indexed_at: string | null
+          last_synced_at: string | null
+          metadata: Json
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_type: string
+          status: string
+          summary: string | null
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          content?: string
+          content_tsv?: unknown
+          created_at?: string
+          created_by?: string | null
+          external_ref?: string | null
+          id?: string
+          indexed_at?: string | null
+          last_synced_at?: string | null
+          metadata?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_type: string
+          status?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          content?: string
+          content_tsv?: unknown
+          created_at?: string
+          created_by?: string | null
+          external_ref?: string | null
+          id?: string
+          indexed_at?: string | null
+          last_synced_at?: string | null
+          metadata?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_type?: string
+          status?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       ai_marketing_priorities: {
         Row: {
           confidence: number
@@ -5460,6 +5550,18 @@ export type Database = {
       }
     }
     Functions: {
+      ai_knowledge_sources_search: {
+        Args: { _limit?: number; _query: string }
+        Returns: {
+          content: string
+          id: string
+          rank: number
+          source_type: string
+          summary: string
+          title: string
+          url: string
+        }[]
+      }
       create_booking:
         | {
             Args: {
