@@ -62,6 +62,7 @@ import { Route as JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRo
 import { Route as JournalDiscoverMtoniRiverLodgeArushaRouteImport } from './routes/journal.discover-mtoni-river-lodge-arusha'
 import { Route as JournalBuildingWithTheCommunityRouteImport } from './routes/journal.building-with-the-community'
 import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './routes/journal.a-morning-with-the-beekeepers-of-gomba'
+import { Route as JournalSlugRouteImport } from './routes/journal.$slug'
 import { Route as FeedSplatRouteImport } from './routes/feed.$'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CategorySplatRouteImport } from './routes/category.$'
@@ -399,6 +400,11 @@ const JournalAMorningWithTheBeekeepersOfGombaRoute =
     path: '/a-morning-with-the-beekeepers-of-gomba',
     getParentRoute: () => JournalRoute,
   } as any)
+const JournalSlugRoute = JournalSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => JournalRoute,
+} as any)
 const FeedSplatRoute = FeedSplatRouteImport.update({
   id: '/feed/$',
   path: '/feed/$',
@@ -765,6 +771,7 @@ export interface FileRoutesByFullPath {
   '/category/$': typeof CategorySplatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/feed/$': typeof FeedSplatRoute
+  '/journal/$slug': typeof JournalSlugRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discover-mtoni-river-lodge-arusha': typeof JournalDiscoverMtoniRiverLodgeArushaRoute
@@ -872,6 +879,7 @@ export interface FileRoutesByTo {
   '/category/$': typeof CategorySplatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/feed/$': typeof FeedSplatRoute
+  '/journal/$slug': typeof JournalSlugRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discover-mtoni-river-lodge-arusha': typeof JournalDiscoverMtoniRiverLodgeArushaRoute
@@ -983,6 +991,7 @@ export interface FileRoutesById {
   '/category/$': typeof CategorySplatRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/feed/$': typeof FeedSplatRoute
+  '/journal/$slug': typeof JournalSlugRoute
   '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
   '/journal/discover-mtoni-river-lodge-arusha': typeof JournalDiscoverMtoniRiverLodgeArushaRoute
@@ -1095,6 +1104,7 @@ export interface FileRouteTypes {
     | '/category/$'
     | '/email/unsubscribe'
     | '/feed/$'
+    | '/journal/$slug'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/building-with-the-community'
     | '/journal/discover-mtoni-river-lodge-arusha'
@@ -1202,6 +1212,7 @@ export interface FileRouteTypes {
     | '/category/$'
     | '/email/unsubscribe'
     | '/feed/$'
+    | '/journal/$slug'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/building-with-the-community'
     | '/journal/discover-mtoni-river-lodge-arusha'
@@ -1312,6 +1323,7 @@ export interface FileRouteTypes {
     | '/category/$'
     | '/email/unsubscribe'
     | '/feed/$'
+    | '/journal/$slug'
     | '/journal/a-morning-with-the-beekeepers-of-gomba'
     | '/journal/building-with-the-community'
     | '/journal/discover-mtoni-river-lodge-arusha'
@@ -1808,6 +1820,13 @@ declare module '@tanstack/react-router' {
       path: '/a-morning-with-the-beekeepers-of-gomba'
       fullPath: '/journal/a-morning-with-the-beekeepers-of-gomba'
       preLoaderRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRouteImport
+      parentRoute: typeof JournalRoute
+    }
+    '/journal/$slug': {
+      id: '/journal/$slug'
+      path: '/$slug'
+      fullPath: '/journal/$slug'
+      preLoaderRoute: typeof JournalSlugRouteImport
       parentRoute: typeof JournalRoute
     }
     '/feed/$': {
@@ -2399,6 +2418,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 )
 
 interface JournalRouteChildren {
+  JournalSlugRoute: typeof JournalSlugRoute
   JournalAMorningWithTheBeekeepersOfGombaRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRoute
   JournalBuildingWithTheCommunityRoute: typeof JournalBuildingWithTheCommunityRoute
   JournalDiscoverMtoniRiverLodgeArushaRoute: typeof JournalDiscoverMtoniRiverLodgeArushaRoute
@@ -2413,6 +2433,7 @@ interface JournalRouteChildren {
 }
 
 const JournalRouteChildren: JournalRouteChildren = {
+  JournalSlugRoute: JournalSlugRoute,
   JournalAMorningWithTheBeekeepersOfGombaRoute:
     JournalAMorningWithTheBeekeepersOfGombaRoute,
   JournalBuildingWithTheCommunityRoute: JournalBuildingWithTheCommunityRoute,
