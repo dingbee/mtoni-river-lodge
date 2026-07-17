@@ -128,6 +128,7 @@ import { Route as AuthenticatedAdminAutomationNotificationsRouteImport } from '.
 import { Route as AuthenticatedAdminAutomationMonitorRouteImport } from './routes/_authenticated.admin.automation.monitor'
 import { Route as AuthenticatedAdminAutomationApprovalsRouteImport } from './routes/_authenticated.admin.automation.approvals'
 import { Route as AuthenticatedAdminAiSettingsRouteImport } from './routes/_authenticated.admin.ai.settings'
+import { Route as AuthenticatedAdminAiRevenueRouteImport } from './routes/_authenticated.admin.ai.revenue'
 import { Route as AuthenticatedAdminAiKnowledgeRouteImport } from './routes/_authenticated.admin.ai.knowledge'
 import { Route as AuthenticatedAdminAiInsightsRouteImport } from './routes/_authenticated.admin.ai.insights'
 import { Route as AuthenticatedAdminAiGuestsRouteImport } from './routes/_authenticated.admin.ai.guests'
@@ -808,6 +809,12 @@ const AuthenticatedAdminAiSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedAdminAiRoute,
   } as any)
+const AuthenticatedAdminAiRevenueRoute =
+  AuthenticatedAdminAiRevenueRouteImport.update({
+    id: '/revenue',
+    path: '/revenue',
+    getParentRoute: () => AuthenticatedAdminAiRoute,
+  } as any)
 const AuthenticatedAdminAiKnowledgeRoute =
   AuthenticatedAdminAiKnowledgeRouteImport.update({
     id: '/knowledge',
@@ -986,6 +993,7 @@ export interface FileRoutesByFullPath {
   '/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRouteWithChildren
   '/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
   '/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
+  '/admin/ai/revenue': typeof AuthenticatedAdminAiRevenueRoute
   '/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
   '/admin/automation/approvals': typeof AuthenticatedAdminAutomationApprovalsRoute
   '/admin/automation/monitor': typeof AuthenticatedAdminAutomationMonitorRoute
@@ -1117,6 +1125,7 @@ export interface FileRoutesByTo {
   '/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRouteWithChildren
   '/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
   '/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
+  '/admin/ai/revenue': typeof AuthenticatedAdminAiRevenueRoute
   '/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
   '/admin/automation/approvals': typeof AuthenticatedAdminAutomationApprovalsRoute
   '/admin/automation/monitor': typeof AuthenticatedAdminAutomationMonitorRoute
@@ -1256,6 +1265,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRouteWithChildren
   '/_authenticated/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
   '/_authenticated/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
+  '/_authenticated/admin/ai/revenue': typeof AuthenticatedAdminAiRevenueRoute
   '/_authenticated/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
   '/_authenticated/admin/automation/approvals': typeof AuthenticatedAdminAutomationApprovalsRoute
   '/_authenticated/admin/automation/monitor': typeof AuthenticatedAdminAutomationMonitorRoute
@@ -1395,6 +1405,7 @@ export interface FileRouteTypes {
     | '/admin/ai/guests'
     | '/admin/ai/insights'
     | '/admin/ai/knowledge'
+    | '/admin/ai/revenue'
     | '/admin/ai/settings'
     | '/admin/automation/approvals'
     | '/admin/automation/monitor'
@@ -1526,6 +1537,7 @@ export interface FileRouteTypes {
     | '/admin/ai/guests'
     | '/admin/ai/insights'
     | '/admin/ai/knowledge'
+    | '/admin/ai/revenue'
     | '/admin/ai/settings'
     | '/admin/automation/approvals'
     | '/admin/automation/monitor'
@@ -1664,6 +1676,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/ai/guests'
     | '/_authenticated/admin/ai/insights'
     | '/_authenticated/admin/ai/knowledge'
+    | '/_authenticated/admin/ai/revenue'
     | '/_authenticated/admin/ai/settings'
     | '/_authenticated/admin/automation/approvals'
     | '/_authenticated/admin/automation/monitor'
@@ -2618,6 +2631,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiSettingsRouteImport
       parentRoute: typeof AuthenticatedAdminAiRoute
     }
+    '/_authenticated/admin/ai/revenue': {
+      id: '/_authenticated/admin/ai/revenue'
+      path: '/revenue'
+      fullPath: '/admin/ai/revenue'
+      preLoaderRoute: typeof AuthenticatedAdminAiRevenueRouteImport
+      parentRoute: typeof AuthenticatedAdminAiRoute
+    }
     '/_authenticated/admin/ai/knowledge': {
       id: '/_authenticated/admin/ai/knowledge'
       path: '/knowledge'
@@ -2763,6 +2783,7 @@ interface AuthenticatedAdminAiRouteChildren {
   AuthenticatedAdminAiGuestsRoute: typeof AuthenticatedAdminAiGuestsRouteWithChildren
   AuthenticatedAdminAiInsightsRoute: typeof AuthenticatedAdminAiInsightsRoute
   AuthenticatedAdminAiKnowledgeRoute: typeof AuthenticatedAdminAiKnowledgeRoute
+  AuthenticatedAdminAiRevenueRoute: typeof AuthenticatedAdminAiRevenueRoute
   AuthenticatedAdminAiSettingsRoute: typeof AuthenticatedAdminAiSettingsRoute
   AuthenticatedAdminAiIndexRoute: typeof AuthenticatedAdminAiIndexRoute
 }
@@ -2772,6 +2793,7 @@ const AuthenticatedAdminAiRouteChildren: AuthenticatedAdminAiRouteChildren = {
   AuthenticatedAdminAiGuestsRoute: AuthenticatedAdminAiGuestsRouteWithChildren,
   AuthenticatedAdminAiInsightsRoute: AuthenticatedAdminAiInsightsRoute,
   AuthenticatedAdminAiKnowledgeRoute: AuthenticatedAdminAiKnowledgeRoute,
+  AuthenticatedAdminAiRevenueRoute: AuthenticatedAdminAiRevenueRoute,
   AuthenticatedAdminAiSettingsRoute: AuthenticatedAdminAiSettingsRoute,
   AuthenticatedAdminAiIndexRoute: AuthenticatedAdminAiIndexRoute,
 }
