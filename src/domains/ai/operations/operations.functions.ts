@@ -321,7 +321,10 @@ export const getTaskIntelligence = createServerFn({ method: "GET" })
     const overdue = tasks.filter((t: any) => t.due_at && new Date(t.due_at).getTime() < now);
     const highImpact = tasks.filter((t: any) => t.priority === 1);
     const byCategory: Record<string, number> = {};
-    for (const t of tasks) byCategory[t.category] = (byCategory[t.category] ?? 0) + 1;
+    for (const t of tasks) {
+      const cat = String((t as any).category ?? "other");
+      byCategory[cat] = (byCategory[cat] ?? 0) + 1;
+    }
     const bottleneck = Object.entries(byCategory)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
@@ -509,12 +512,13 @@ export const askOperationsKnowledge = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     await assertStaff(context.supabase, context.userId);
-    const { data: results, error } = await context.supabase.rpc("knowledge_search", {
+    const sb: any = context.supabase;
+    const { data: results, error } = await sb.rpc("knowledge_search", {
       _query: data.query,
       _limit: 5,
     });
     if (error) throw new Error(error.message);
-    await context.supabase.from("ai_activity_logs").insert({
+    await sb.from("ai_activity_logs").insert({
       user_id: context.userId,
       tool_called: "operations.knowledge_search",
       tool_args: { query: data.query },
