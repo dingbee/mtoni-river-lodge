@@ -584,6 +584,93 @@ function UnifiedCalendarPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reassign confirmation */}
+      <Dialog open={!!reassignCtx} onOpenChange={(o) => !o && setReassignCtx(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reassign reservation</DialogTitle>
+            <DialogDescription>
+              Move this booking from <strong>{reassignCtx?.fromRoomName}</strong> to{" "}
+              <strong>{reassignCtx?.toRoomName}</strong>. Availability is re-checked before the swap; the audit log is
+              updated automatically.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Reason (optional)</Label>
+            <Textarea
+              rows={2}
+              value={reassignReason}
+              onChange={(e) => setReassignReason(e.target.value)}
+              placeholder="e.g. Upgrade for anniversary stay"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReassignCtx(null)}>Cancel</Button>
+            <Button
+              disabled={doReassign.isPending}
+              onClick={() =>
+                reassignCtx &&
+                doReassign.mutate({
+                  bookingId: reassignCtx.bookingId,
+                  newRoomId: reassignCtx.toRoomId,
+                  reason: reassignReason || undefined,
+                })
+              }
+            >
+              Confirm reassignment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI room suggestion */}
+      <Dialog open={!!suggestForBooking} onOpenChange={(o) => !o && setSuggestForBooking(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Suggested rooms</DialogTitle>
+            <DialogDescription>
+              Ranked by availability, capacity fit, and guest preferences. Staff approves — nothing changes until you
+              confirm.
+            </DialogDescription>
+          </DialogHeader>
+          {suggestions.isLoading ? (
+            <LoadingState label="Analysing preferences…" />
+          ) : (suggestions.data?.suggestions ?? []).length === 0 ? (
+            <EmptyState title="No better match" description="No other available rooms fit this booking right now." />
+          ) : (
+            <div className="space-y-2">
+              {suggestions.data!.suggestions.map((s) => (
+                <div key={s.room_id} className="flex items-start justify-between rounded-md border p-3">
+                  <div className="min-w-0">
+                    <div className="font-medium">{s.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Sleeps {s.max_occupancy} · {s.min_available} available · from {s.base_price.toLocaleString()}
+                    </div>
+                    {s.reasons.length > 0 && (
+                      <div className="mt-1 text-xs">{s.reasons.join(" · ")}</div>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const from = (d.rooms as any[]).find((r) => r.id === suggestions.data!.currentRoomId);
+                      setReassignCtx({
+                        bookingId: suggestForBooking!,
+                        fromRoomName: from?.name ?? "current room",
+                        toRoomId: s.room_id,
+                        toRoomName: s.name,
+                      });
+                    }}
+                  >
+                    Move here
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
