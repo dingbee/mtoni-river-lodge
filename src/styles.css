@@ -363,6 +363,15 @@
     max-width: 100%;
   }
 
+  /* ---------- iOS / Android safe-area helpers ----------
+     Sprint 5+ Part III. Consumed by floating CTAs, footer, and any
+     bottom-anchored surface via `pb-safe` / inline `env(...)`. */
+  .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+  .pt-safe { padding-top: env(safe-area-inset-top); }
+  .pl-safe { padding-left: env(safe-area-inset-left); }
+  .pr-safe { padding-right: env(safe-area-inset-right); }
+  .inset-safe-x { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+
   /* Constrain long-form prose for readability */
   .prose-measure { max-width: 68ch; }
   .prose-measure-narrow { max-width: 56ch; }
