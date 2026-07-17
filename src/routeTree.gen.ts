@@ -77,10 +77,10 @@ import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
 import { Route as AuthenticatedAdminOperationsRouteImport } from './routes/_authenticated.admin.operations'
 import { Route as AuthenticatedAdminFrontDeskRouteImport } from './routes/_authenticated.admin.front-desk'
-import { Route as AuthenticatedAdminFinanceRouteImport } from './routes/_authenticated.admin.finance'
 import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authenticated.admin.bookings'
 import { Route as AuthenticatedAdminAutomationRouteImport } from './routes/_authenticated.admin.automation'
 import { Route as AuthenticatedAdminOperationsIndexRouteImport } from './routes/_authenticated.admin.operations.index'
+import { Route as AuthenticatedAdminFinanceIndexRouteImport } from './routes/_authenticated.admin.finance.index'
 import { Route as AuthenticatedAdminAutomationIndexRouteImport } from './routes/_authenticated.admin.automation.index'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -496,12 +496,6 @@ const AuthenticatedAdminFrontDeskRoute =
     path: '/front-desk',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminFinanceRoute =
-  AuthenticatedAdminFinanceRouteImport.update({
-    id: '/finance',
-    path: '/finance',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
 const AuthenticatedAdminBookingsRoute =
   AuthenticatedAdminBookingsRouteImport.update({
     id: '/bookings',
@@ -519,6 +513,12 @@ const AuthenticatedAdminOperationsIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
+const AuthenticatedAdminFinanceIndexRoute =
+  AuthenticatedAdminFinanceIndexRouteImport.update({
+    id: '/finance/',
+    path: '/finance/',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminAutomationIndexRoute =
   AuthenticatedAdminAutomationIndexRouteImport.update({
@@ -664,51 +664,51 @@ const AuthenticatedAdminGuestsCrmRoute =
   } as any)
 const AuthenticatedAdminFinanceReportsRoute =
   AuthenticatedAdminFinanceReportsRouteImport.update({
-    id: '/reports',
-    path: '/reports',
-    getParentRoute: () => AuthenticatedAdminFinanceRoute,
+    id: '/finance/reports',
+    path: '/finance/reports',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminFinanceReconciliationRoute =
   AuthenticatedAdminFinanceReconciliationRouteImport.update({
-    id: '/reconciliation',
-    path: '/reconciliation',
-    getParentRoute: () => AuthenticatedAdminFinanceRoute,
+    id: '/finance/reconciliation',
+    path: '/finance/reconciliation',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminFinancePricingRoute =
   AuthenticatedAdminFinancePricingRouteImport.update({
-    id: '/pricing',
-    path: '/pricing',
-    getParentRoute: () => AuthenticatedAdminFinanceRoute,
+    id: '/finance/pricing',
+    path: '/finance/pricing',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminFinancePaymentsRoute =
   AuthenticatedAdminFinancePaymentsRouteImport.update({
-    id: '/payments',
-    path: '/payments',
-    getParentRoute: () => AuthenticatedAdminFinanceRoute,
+    id: '/finance/payments',
+    path: '/finance/payments',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminFinanceInvoicesRoute =
   AuthenticatedAdminFinanceInvoicesRouteImport.update({
-    id: '/invoices',
-    path: '/invoices',
-    getParentRoute: () => AuthenticatedAdminFinanceRoute,
+    id: '/finance/invoices',
+    path: '/finance/invoices',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminFinanceForecastRoute =
   AuthenticatedAdminFinanceForecastRouteImport.update({
-    id: '/forecast',
-    path: '/forecast',
-    getParentRoute: () => AuthenticatedAdminFinanceRoute,
+    id: '/finance/forecast',
+    path: '/finance/forecast',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminFinanceAnalyticsRoute =
   AuthenticatedAdminFinanceAnalyticsRouteImport.update({
-    id: '/analytics',
-    path: '/analytics',
-    getParentRoute: () => AuthenticatedAdminFinanceRoute,
+    id: '/finance/analytics',
+    path: '/finance/analytics',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminFinanceAlertsRoute =
   AuthenticatedAdminFinanceAlertsRouteImport.update({
-    id: '/alerts',
-    path: '/alerts',
-    getParentRoute: () => AuthenticatedAdminFinanceRoute,
+    id: '/finance/alerts',
+    path: '/finance/alerts',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminContentRoomsRoute =
   AuthenticatedAdminContentRoomsRouteImport.update({
@@ -913,7 +913,6 @@ export interface FileRoutesByFullPath {
   '/rooms/': typeof RoomsIndexRoute
   '/admin/automation': typeof AuthenticatedAdminAutomationRouteWithChildren
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
-  '/admin/finance': typeof AuthenticatedAdminFinanceRouteWithChildren
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
@@ -964,6 +963,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
+  '/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
@@ -1037,7 +1037,6 @@ export interface FileRoutesByTo {
   '/journal': typeof JournalIndexRoute
   '/rooms': typeof RoomsIndexRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
-  '/admin/finance': typeof AuthenticatedAdminFinanceRouteWithChildren
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -1087,6 +1086,7 @@ export interface FileRoutesByTo {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/admin/automation': typeof AuthenticatedAdminAutomationIndexRoute
+  '/admin/finance': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
@@ -1166,7 +1166,6 @@ export interface FileRoutesById {
   '/rooms/': typeof RoomsIndexRoute
   '/_authenticated/admin/automation': typeof AuthenticatedAdminAutomationRouteWithChildren
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
-  '/_authenticated/admin/finance': typeof AuthenticatedAdminFinanceRouteWithChildren
   '/_authenticated/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
@@ -1217,6 +1216,7 @@ export interface FileRoutesById {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/_authenticated/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
+  '/_authenticated/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/_authenticated/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/_authenticated/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
@@ -1296,7 +1296,6 @@ export interface FileRouteTypes {
     | '/rooms/'
     | '/admin/automation'
     | '/admin/bookings'
-    | '/admin/finance'
     | '/admin/front-desk'
     | '/admin/operations'
     | '/admin/reviews'
@@ -1347,6 +1346,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/admin/automation/'
+    | '/admin/finance/'
     | '/admin/operations/'
     | '/admin/automation/workflows/$id'
     | '/admin/content/journal/$id'
@@ -1420,7 +1420,6 @@ export interface FileRouteTypes {
     | '/journal'
     | '/rooms'
     | '/admin/bookings'
-    | '/admin/finance'
     | '/admin/front-desk'
     | '/admin/reviews'
     | '/admin/settings'
@@ -1470,6 +1469,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/admin/automation'
+    | '/admin/finance'
     | '/admin/operations'
     | '/admin/automation/workflows/$id'
     | '/admin/content/journal/$id'
@@ -1548,7 +1548,6 @@ export interface FileRouteTypes {
     | '/rooms/'
     | '/_authenticated/admin/automation'
     | '/_authenticated/admin/bookings'
-    | '/_authenticated/admin/finance'
     | '/_authenticated/admin/front-desk'
     | '/_authenticated/admin/operations'
     | '/_authenticated/admin/reviews'
@@ -1599,6 +1598,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/_authenticated/admin/automation/'
+    | '/_authenticated/admin/finance/'
     | '/_authenticated/admin/operations/'
     | '/_authenticated/admin/automation/workflows/$id'
     | '/_authenticated/admin/content/journal/$id'
@@ -2147,13 +2147,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFrontDeskRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/finance': {
-      id: '/_authenticated/admin/finance'
-      path: '/finance'
-      fullPath: '/admin/finance'
-      preLoaderRoute: typeof AuthenticatedAdminFinanceRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
     '/_authenticated/admin/bookings': {
       id: '/_authenticated/admin/bookings'
       path: '/bookings'
@@ -2174,6 +2167,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/operations/'
       preLoaderRoute: typeof AuthenticatedAdminOperationsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
+    '/_authenticated/admin/finance/': {
+      id: '/_authenticated/admin/finance/'
+      path: '/finance'
+      fullPath: '/admin/finance/'
+      preLoaderRoute: typeof AuthenticatedAdminFinanceIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/automation/': {
       id: '/_authenticated/admin/automation/'
@@ -2345,59 +2345,59 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/admin/finance/reports': {
       id: '/_authenticated/admin/finance/reports'
-      path: '/reports'
+      path: '/finance/reports'
       fullPath: '/admin/finance/reports'
       preLoaderRoute: typeof AuthenticatedAdminFinanceReportsRouteImport
-      parentRoute: typeof AuthenticatedAdminFinanceRoute
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/finance/reconciliation': {
       id: '/_authenticated/admin/finance/reconciliation'
-      path: '/reconciliation'
+      path: '/finance/reconciliation'
       fullPath: '/admin/finance/reconciliation'
       preLoaderRoute: typeof AuthenticatedAdminFinanceReconciliationRouteImport
-      parentRoute: typeof AuthenticatedAdminFinanceRoute
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/finance/pricing': {
       id: '/_authenticated/admin/finance/pricing'
-      path: '/pricing'
+      path: '/finance/pricing'
       fullPath: '/admin/finance/pricing'
       preLoaderRoute: typeof AuthenticatedAdminFinancePricingRouteImport
-      parentRoute: typeof AuthenticatedAdminFinanceRoute
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/finance/payments': {
       id: '/_authenticated/admin/finance/payments'
-      path: '/payments'
+      path: '/finance/payments'
       fullPath: '/admin/finance/payments'
       preLoaderRoute: typeof AuthenticatedAdminFinancePaymentsRouteImport
-      parentRoute: typeof AuthenticatedAdminFinanceRoute
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/finance/invoices': {
       id: '/_authenticated/admin/finance/invoices'
-      path: '/invoices'
+      path: '/finance/invoices'
       fullPath: '/admin/finance/invoices'
       preLoaderRoute: typeof AuthenticatedAdminFinanceInvoicesRouteImport
-      parentRoute: typeof AuthenticatedAdminFinanceRoute
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/finance/forecast': {
       id: '/_authenticated/admin/finance/forecast'
-      path: '/forecast'
+      path: '/finance/forecast'
       fullPath: '/admin/finance/forecast'
       preLoaderRoute: typeof AuthenticatedAdminFinanceForecastRouteImport
-      parentRoute: typeof AuthenticatedAdminFinanceRoute
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/finance/analytics': {
       id: '/_authenticated/admin/finance/analytics'
-      path: '/analytics'
+      path: '/finance/analytics'
       fullPath: '/admin/finance/analytics'
       preLoaderRoute: typeof AuthenticatedAdminFinanceAnalyticsRouteImport
-      parentRoute: typeof AuthenticatedAdminFinanceRoute
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/finance/alerts': {
       id: '/_authenticated/admin/finance/alerts'
-      path: '/alerts'
+      path: '/finance/alerts'
       fullPath: '/admin/finance/alerts'
       preLoaderRoute: typeof AuthenticatedAdminFinanceAlertsRouteImport
-      parentRoute: typeof AuthenticatedAdminFinanceRoute
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/content/rooms': {
       id: '/_authenticated/admin/content/rooms'
@@ -2608,41 +2608,6 @@ const AuthenticatedAdminAutomationRouteWithChildren =
     AuthenticatedAdminAutomationRouteChildren,
   )
 
-interface AuthenticatedAdminFinanceRouteChildren {
-  AuthenticatedAdminFinanceAlertsRoute: typeof AuthenticatedAdminFinanceAlertsRoute
-  AuthenticatedAdminFinanceAnalyticsRoute: typeof AuthenticatedAdminFinanceAnalyticsRoute
-  AuthenticatedAdminFinanceForecastRoute: typeof AuthenticatedAdminFinanceForecastRoute
-  AuthenticatedAdminFinanceInvoicesRoute: typeof AuthenticatedAdminFinanceInvoicesRoute
-  AuthenticatedAdminFinancePaymentsRoute: typeof AuthenticatedAdminFinancePaymentsRoute
-  AuthenticatedAdminFinancePricingRoute: typeof AuthenticatedAdminFinancePricingRoute
-  AuthenticatedAdminFinanceReconciliationRoute: typeof AuthenticatedAdminFinanceReconciliationRoute
-  AuthenticatedAdminFinanceReportsRoute: typeof AuthenticatedAdminFinanceReportsRoute
-}
-
-const AuthenticatedAdminFinanceRouteChildren: AuthenticatedAdminFinanceRouteChildren =
-  {
-    AuthenticatedAdminFinanceAlertsRoute: AuthenticatedAdminFinanceAlertsRoute,
-    AuthenticatedAdminFinanceAnalyticsRoute:
-      AuthenticatedAdminFinanceAnalyticsRoute,
-    AuthenticatedAdminFinanceForecastRoute:
-      AuthenticatedAdminFinanceForecastRoute,
-    AuthenticatedAdminFinanceInvoicesRoute:
-      AuthenticatedAdminFinanceInvoicesRoute,
-    AuthenticatedAdminFinancePaymentsRoute:
-      AuthenticatedAdminFinancePaymentsRoute,
-    AuthenticatedAdminFinancePricingRoute:
-      AuthenticatedAdminFinancePricingRoute,
-    AuthenticatedAdminFinanceReconciliationRoute:
-      AuthenticatedAdminFinanceReconciliationRoute,
-    AuthenticatedAdminFinanceReportsRoute:
-      AuthenticatedAdminFinanceReportsRoute,
-  }
-
-const AuthenticatedAdminFinanceRouteWithChildren =
-  AuthenticatedAdminFinanceRoute._addFileChildren(
-    AuthenticatedAdminFinanceRouteChildren,
-  )
-
 interface AuthenticatedAdminOperationsRouteChildren {
   AuthenticatedAdminOperationsAlertsRoute: typeof AuthenticatedAdminOperationsAlertsRoute
   AuthenticatedAdminOperationsCalendarRoute: typeof AuthenticatedAdminOperationsCalendarRoute
@@ -2705,7 +2670,6 @@ const AuthenticatedAdminGuestsCrmRouteWithChildren =
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAutomationRoute: typeof AuthenticatedAdminAutomationRouteWithChildren
   AuthenticatedAdminBookingsRoute: typeof AuthenticatedAdminBookingsRoute
-  AuthenticatedAdminFinanceRoute: typeof AuthenticatedAdminFinanceRouteWithChildren
   AuthenticatedAdminFrontDeskRoute: typeof AuthenticatedAdminFrontDeskRoute
   AuthenticatedAdminOperationsRoute: typeof AuthenticatedAdminOperationsRouteWithChildren
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
@@ -2718,6 +2682,14 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminContentHomepageRoute: typeof AuthenticatedAdminContentHomepageRoute
   AuthenticatedAdminContentMediaRoute: typeof AuthenticatedAdminContentMediaRoute
   AuthenticatedAdminContentRoomsRoute: typeof AuthenticatedAdminContentRoomsRoute
+  AuthenticatedAdminFinanceAlertsRoute: typeof AuthenticatedAdminFinanceAlertsRoute
+  AuthenticatedAdminFinanceAnalyticsRoute: typeof AuthenticatedAdminFinanceAnalyticsRoute
+  AuthenticatedAdminFinanceForecastRoute: typeof AuthenticatedAdminFinanceForecastRoute
+  AuthenticatedAdminFinanceInvoicesRoute: typeof AuthenticatedAdminFinanceInvoicesRoute
+  AuthenticatedAdminFinancePaymentsRoute: typeof AuthenticatedAdminFinancePaymentsRoute
+  AuthenticatedAdminFinancePricingRoute: typeof AuthenticatedAdminFinancePricingRoute
+  AuthenticatedAdminFinanceReconciliationRoute: typeof AuthenticatedAdminFinanceReconciliationRoute
+  AuthenticatedAdminFinanceReportsRoute: typeof AuthenticatedAdminFinanceReportsRoute
   AuthenticatedAdminGuestsCrmRoute: typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   AuthenticatedAdminGuestsMessagesRoute: typeof AuthenticatedAdminGuestsMessagesRoute
   AuthenticatedAdminMarketingAiAssistantRoute: typeof AuthenticatedAdminMarketingAiAssistantRoute
@@ -2728,6 +2700,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminStaffActivityRoute: typeof AuthenticatedAdminStaffActivityRoute
   AuthenticatedAdminStaffRolesRoute: typeof AuthenticatedAdminStaffRolesRoute
   AuthenticatedAdminStaffUsersRoute: typeof AuthenticatedAdminStaffUsersRoute
+  AuthenticatedAdminFinanceIndexRoute: typeof AuthenticatedAdminFinanceIndexRoute
   AuthenticatedAdminContentJournalIdRoute: typeof AuthenticatedAdminContentJournalIdRoute
   AuthenticatedAdminContentJournalIndexRoute: typeof AuthenticatedAdminContentJournalIndexRoute
   AuthenticatedAdminContentPagesIndexRoute: typeof AuthenticatedAdminContentPagesIndexRoute
@@ -2739,7 +2712,6 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAutomationRoute:
     AuthenticatedAdminAutomationRouteWithChildren,
   AuthenticatedAdminBookingsRoute: AuthenticatedAdminBookingsRoute,
-  AuthenticatedAdminFinanceRoute: AuthenticatedAdminFinanceRouteWithChildren,
   AuthenticatedAdminFrontDeskRoute: AuthenticatedAdminFrontDeskRoute,
   AuthenticatedAdminOperationsRoute:
     AuthenticatedAdminOperationsRouteWithChildren,
@@ -2756,6 +2728,19 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
     AuthenticatedAdminContentHomepageRoute,
   AuthenticatedAdminContentMediaRoute: AuthenticatedAdminContentMediaRoute,
   AuthenticatedAdminContentRoomsRoute: AuthenticatedAdminContentRoomsRoute,
+  AuthenticatedAdminFinanceAlertsRoute: AuthenticatedAdminFinanceAlertsRoute,
+  AuthenticatedAdminFinanceAnalyticsRoute:
+    AuthenticatedAdminFinanceAnalyticsRoute,
+  AuthenticatedAdminFinanceForecastRoute:
+    AuthenticatedAdminFinanceForecastRoute,
+  AuthenticatedAdminFinanceInvoicesRoute:
+    AuthenticatedAdminFinanceInvoicesRoute,
+  AuthenticatedAdminFinancePaymentsRoute:
+    AuthenticatedAdminFinancePaymentsRoute,
+  AuthenticatedAdminFinancePricingRoute: AuthenticatedAdminFinancePricingRoute,
+  AuthenticatedAdminFinanceReconciliationRoute:
+    AuthenticatedAdminFinanceReconciliationRoute,
+  AuthenticatedAdminFinanceReportsRoute: AuthenticatedAdminFinanceReportsRoute,
   AuthenticatedAdminGuestsCrmRoute:
     AuthenticatedAdminGuestsCrmRouteWithChildren,
   AuthenticatedAdminGuestsMessagesRoute: AuthenticatedAdminGuestsMessagesRoute,
@@ -2771,6 +2756,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminStaffActivityRoute: AuthenticatedAdminStaffActivityRoute,
   AuthenticatedAdminStaffRolesRoute: AuthenticatedAdminStaffRolesRoute,
   AuthenticatedAdminStaffUsersRoute: AuthenticatedAdminStaffUsersRoute,
+  AuthenticatedAdminFinanceIndexRoute: AuthenticatedAdminFinanceIndexRoute,
   AuthenticatedAdminContentJournalIdRoute:
     AuthenticatedAdminContentJournalIdRoute,
   AuthenticatedAdminContentJournalIndexRoute:

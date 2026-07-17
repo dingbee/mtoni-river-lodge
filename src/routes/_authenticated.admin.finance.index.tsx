@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { getRevenueDashboard, getRevenueHealth } from "@/domains/finance/finance.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/finance")({
+export const Route = createFileRoute("/_authenticated/admin/finance/")({
   head: () => ({
     meta: [
       { title: "Revenue Dashboard — Mtoni OS" },
