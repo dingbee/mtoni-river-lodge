@@ -160,6 +160,21 @@ export const NAV: NavEntry[] = [
       ],
     },
   },
+  {
+    kind: "group",
+    group: {
+      id: "ai",
+      label: "Mtoni AI",
+      icon: Bot,
+      items: [
+        { id: "ai.command",   label: "Command Centre", href: "/admin/ai",           icon: Sparkles },
+        { id: "ai.insights",  label: "Insights",       href: "/admin/ai/insights",  icon: BarChart3 },
+        { id: "ai.knowledge", label: "Knowledge Base", href: "/admin/ai/knowledge", icon: FileText },
+        { id: "ai.activity",  label: "AI Activity",    href: "/admin/ai/activity",  icon: History },
+        { id: "ai.settings",  label: "Settings",       href: "/admin/ai/settings",  icon: Settings },
+      ],
+    },
+  },
   { kind: "item", item: { id: "settings", label: "Settings", href: "/admin/settings", icon: Settings } },
 ];
 
