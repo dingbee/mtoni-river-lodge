@@ -26,10 +26,6 @@ function weekStart(d = new Date()) {
   const w = new Date(d); w.setUTCDate(d.getUTCDate() + diff);
   return w.toISOString().slice(0, 10);
 }
-function wordCount(s: string | null | undefined) {
-  return (s ?? "").trim().split(/\s+/).filter(Boolean).length;
-}
-
 async function logActivity(supabase: any, userId: string, tool: string, question: string, response: string, domains: string[]) {
   await supabase.from("ai_activity_logs").insert({
     user_id: userId,
