@@ -79,6 +79,7 @@ import { Route as AuthenticatedAdminOperationsRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminFrontDeskRouteImport } from './routes/_authenticated.admin.front-desk'
 import { Route as AuthenticatedAdminFinanceRouteImport } from './routes/_authenticated.admin.finance'
 import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authenticated.admin.bookings'
+import { Route as AuthenticatedAdminAutomationRouteImport } from './routes/_authenticated.admin.automation'
 import { Route as AuthenticatedAdminOperationsIndexRouteImport } from './routes/_authenticated.admin.operations.index'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -499,6 +500,12 @@ const AuthenticatedAdminBookingsRoute =
     path: '/bookings',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminAutomationRoute =
+  AuthenticatedAdminAutomationRouteImport.update({
+    id: '/automation',
+    path: '/automation',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminOperationsIndexRoute =
   AuthenticatedAdminOperationsIndexRouteImport.update({
     id: '/',
@@ -848,6 +855,7 @@ export interface FileRoutesByFullPath {
   '/wp-json/$': typeof WpJsonSplatRoute
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
+  '/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceRouteWithChildren
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
@@ -964,6 +972,7 @@ export interface FileRoutesByTo {
   '/wp-json/$': typeof WpJsonSplatRoute
   '/journal': typeof JournalIndexRoute
   '/rooms': typeof RoomsIndexRoute
+  '/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceRouteWithChildren
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
@@ -1084,6 +1093,7 @@ export interface FileRoutesById {
   '/wp-json/$': typeof WpJsonSplatRoute
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
+  '/_authenticated/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/_authenticated/admin/finance': typeof AuthenticatedAdminFinanceRouteWithChildren
   '/_authenticated/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
@@ -1205,6 +1215,7 @@ export interface FileRouteTypes {
     | '/wp-json/$'
     | '/journal/'
     | '/rooms/'
+    | '/admin/automation'
     | '/admin/bookings'
     | '/admin/finance'
     | '/admin/front-desk'
@@ -1321,6 +1332,7 @@ export interface FileRouteTypes {
     | '/wp-json/$'
     | '/journal'
     | '/rooms'
+    | '/admin/automation'
     | '/admin/bookings'
     | '/admin/finance'
     | '/admin/front-desk'
@@ -1440,6 +1452,7 @@ export interface FileRouteTypes {
     | '/wp-json/$'
     | '/journal/'
     | '/rooms/'
+    | '/_authenticated/admin/automation'
     | '/_authenticated/admin/bookings'
     | '/_authenticated/admin/finance'
     | '/_authenticated/admin/front-desk'
@@ -2045,6 +2058,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminBookingsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/automation': {
+      id: '/_authenticated/admin/automation'
+      path: '/automation'
+      fullPath: '/admin/automation'
+      preLoaderRoute: typeof AuthenticatedAdminAutomationRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/operations/': {
       id: '/_authenticated/admin/operations/'
       path: '/'
@@ -2524,6 +2544,7 @@ const AuthenticatedAdminGuestsCrmRouteWithChildren =
   )
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminAutomationRoute: typeof AuthenticatedAdminAutomationRoute
   AuthenticatedAdminBookingsRoute: typeof AuthenticatedAdminBookingsRoute
   AuthenticatedAdminFinanceRoute: typeof AuthenticatedAdminFinanceRouteWithChildren
   AuthenticatedAdminFrontDeskRoute: typeof AuthenticatedAdminFrontDeskRoute
@@ -2553,6 +2574,7 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminAutomationRoute: AuthenticatedAdminAutomationRoute,
   AuthenticatedAdminBookingsRoute: AuthenticatedAdminBookingsRoute,
   AuthenticatedAdminFinanceRoute: AuthenticatedAdminFinanceRouteWithChildren,
   AuthenticatedAdminFrontDeskRoute: AuthenticatedAdminFrontDeskRoute,
