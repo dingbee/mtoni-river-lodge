@@ -65,7 +65,7 @@ export const getExecutiveOverview = createServerFn({ method: "GET" })
       s.from("bookings").select("total, nights").gte("check_in", today()).lte("check_in", daysFromNow(30)).in("status", ["confirmed","pending","checked_in"]),
       s.from("bookings").select("balance_due, currency").gt("balance_due", 0).in("status", ["confirmed","checked_in","completed"]),
       s.from("ops_tasks").select("id, priority").is("completed_at", null),
-      s.from("ops_alerts").select("id, severity").eq("status", "open"),
+      s.from("ops_alerts").select("id, severity").is("resolved_at", null),
       s.from("room_states").select("state"),
       s.from("ai_guest_recommendations").select("id").eq("status", "pending"),
       s.from("ai_pricing_recommendations").select("id").eq("status", "pending"),
@@ -184,7 +184,7 @@ export const generateExecutiveBriefing = createServerFn({ method: "POST" })
       s.from("bookings").select("id, reference, guest_name, guest_type, room_id, adults, children, special_requests").eq("check_in", today()).in("status", ["confirmed","checked_in"]),
       s.from("bookings").select("id, reference, guest_name, balance_due").eq("check_out", today()).in("status", ["confirmed","checked_in","completed"]),
       s.from("ops_tasks").select("id, title, priority").is("completed_at", null).order("priority", { ascending: true }).limit(20),
-      s.from("ops_alerts").select("id, message, severity").eq("status", "open").order("created_at", { ascending: false }).limit(20),
+      s.from("ops_alerts").select("id, message, severity").is("resolved_at", null).order("created_at", { ascending: false }).limit(20),
       s.from("ai_guest_recommendations").select("id, title, reasoning, confidence, impact_score, kind").eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
       s.from("ai_guest_alerts").select("id, title, severity, reasoning").eq("status","open").order("severity",{ ascending: false }).limit(10),
       s.from("ai_pricing_recommendations").select("id, title, reasoning, confidence, impact_score, action").eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
@@ -385,8 +385,7 @@ export const decideExecutiveItem = createServerFn({ method: "POST" })
       : data.action === "convert" ? "converted"
       : "assigned";
 
-    const { data: row, error } = await s
-      .from(table)
+    const { data: row, error } = await (s.from(table as any) as any)
       .update({ status: newStatus, reviewed_by: context.userId, reviewed_at: new Date().toISOString(), review_note: data.note ?? null })
       .eq("id", data.id)
       .select("*")
