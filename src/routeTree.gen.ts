@@ -114,9 +114,7 @@ import { Route as AuthenticatedAdminFinanceForecastRouteImport } from './routes/
 import { Route as AuthenticatedAdminFinanceAnalyticsRouteImport } from './routes/_authenticated.admin.finance.analytics'
 import { Route as AuthenticatedAdminFinanceAlertsRouteImport } from './routes/_authenticated.admin.finance.alerts'
 import { Route as AuthenticatedAdminContentRoomsRouteImport } from './routes/_authenticated.admin.content.rooms'
-import { Route as AuthenticatedAdminContentPagesRouteImport } from './routes/_authenticated.admin.content.pages'
 import { Route as AuthenticatedAdminContentMediaRouteImport } from './routes/_authenticated.admin.content.media'
-import { Route as AuthenticatedAdminContentJournalRouteImport } from './routes/_authenticated.admin.content.journal'
 import { Route as AuthenticatedAdminContentHomepageRouteImport } from './routes/_authenticated.admin.content.homepage'
 import { Route as AuthenticatedAdminContentGalleryRouteImport } from './routes/_authenticated.admin.content.gallery'
 import { Route as AuthenticatedAdminContentExperiencesRouteImport } from './routes/_authenticated.admin.content.experiences'
@@ -127,14 +125,16 @@ import { Route as AuthenticatedAdminAutomationScheduledRouteImport } from './rou
 import { Route as AuthenticatedAdminAutomationNotificationsRouteImport } from './routes/_authenticated.admin.automation.notifications'
 import { Route as AuthenticatedAdminAutomationMonitorRouteImport } from './routes/_authenticated.admin.automation.monitor'
 import { Route as AuthenticatedAdminAutomationApprovalsRouteImport } from './routes/_authenticated.admin.automation.approvals'
+import { Route as AuthenticatedAdminContentPagesIndexRouteImport } from './routes/_authenticated.admin.content.pages.index'
+import { Route as AuthenticatedAdminContentJournalIndexRouteImport } from './routes/_authenticated.admin.content.journal.index'
 import { Route as AuthenticatedAdminOperationsReservationsIdRouteImport } from './routes/_authenticated.admin.operations.reservations.$id'
 import { Route as AuthenticatedAdminOperationsCheckoutIdRouteImport } from './routes/_authenticated.admin.operations.checkout.$id'
 import { Route as AuthenticatedAdminOperationsCheckinIdRouteImport } from './routes/_authenticated.admin.operations.checkin.$id'
 import { Route as AuthenticatedAdminGuestsCrmDuplicatesRouteImport } from './routes/_authenticated.admin.guests.crm.duplicates'
 import { Route as AuthenticatedAdminGuestsCrmIdRouteImport } from './routes/_authenticated.admin.guests.crm.$id'
-import { Route as AuthenticatedAdminContentPagesIdRouteImport } from './routes/_authenticated.admin.content.pages.$id'
 import { Route as AuthenticatedAdminContentJournalIdRouteImport } from './routes/_authenticated.admin.content.journal.$id'
 import { Route as AuthenticatedAdminAutomationWorkflowsIdRouteImport } from './routes/_authenticated.admin.automation.workflows.$id'
+import { Route as AuthenticatedAdminContentPagesIdIndexRouteImport } from './routes/_authenticated.admin.content.pages.$id.index'
 import { Route as AuthenticatedAdminContentPagesIdPreviewRouteImport } from './routes/_authenticated.admin.content.pages.$id.preview'
 
 const VoteRoute = VoteRouteImport.update({
@@ -716,22 +716,10 @@ const AuthenticatedAdminContentRoomsRoute =
     path: '/content/rooms',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminContentPagesRoute =
-  AuthenticatedAdminContentPagesRouteImport.update({
-    id: '/content/pages',
-    path: '/content/pages',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
 const AuthenticatedAdminContentMediaRoute =
   AuthenticatedAdminContentMediaRouteImport.update({
     id: '/content/media',
     path: '/content/media',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminContentJournalRoute =
-  AuthenticatedAdminContentJournalRouteImport.update({
-    id: '/content/journal',
-    path: '/content/journal',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminContentHomepageRoute =
@@ -794,6 +782,18 @@ const AuthenticatedAdminAutomationApprovalsRoute =
     path: '/approvals',
     getParentRoute: () => AuthenticatedAdminAutomationRoute,
   } as any)
+const AuthenticatedAdminContentPagesIndexRoute =
+  AuthenticatedAdminContentPagesIndexRouteImport.update({
+    id: '/content/pages/',
+    path: '/content/pages/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminContentJournalIndexRoute =
+  AuthenticatedAdminContentJournalIndexRouteImport.update({
+    id: '/content/journal/',
+    path: '/content/journal/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminOperationsReservationsIdRoute =
   AuthenticatedAdminOperationsReservationsIdRouteImport.update({
     id: '/reservations/$id',
@@ -824,17 +824,11 @@ const AuthenticatedAdminGuestsCrmIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedAdminGuestsCrmRoute,
   } as any)
-const AuthenticatedAdminContentPagesIdRoute =
-  AuthenticatedAdminContentPagesIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
-    getParentRoute: () => AuthenticatedAdminContentPagesRoute,
-  } as any)
 const AuthenticatedAdminContentJournalIdRoute =
   AuthenticatedAdminContentJournalIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
-    getParentRoute: () => AuthenticatedAdminContentJournalRoute,
+    id: '/content/journal/$id',
+    path: '/content/journal/$id',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminAutomationWorkflowsIdRoute =
   AuthenticatedAdminAutomationWorkflowsIdRouteImport.update({
@@ -842,11 +836,17 @@ const AuthenticatedAdminAutomationWorkflowsIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedAdminAutomationWorkflowsRoute,
   } as any)
+const AuthenticatedAdminContentPagesIdIndexRoute =
+  AuthenticatedAdminContentPagesIdIndexRouteImport.update({
+    id: '/content/pages/$id/',
+    path: '/content/pages/$id/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminContentPagesIdPreviewRoute =
   AuthenticatedAdminContentPagesIdPreviewRouteImport.update({
-    id: '/preview',
-    path: '/preview',
-    getParentRoute: () => AuthenticatedAdminContentPagesIdRoute,
+    id: '/content/pages/$id/preview',
+    path: '/content/pages/$id/preview',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -930,9 +930,7 @@ export interface FileRoutesByFullPath {
   '/admin/content/experiences': typeof AuthenticatedAdminContentExperiencesRoute
   '/admin/content/gallery': typeof AuthenticatedAdminContentGalleryRoute
   '/admin/content/homepage': typeof AuthenticatedAdminContentHomepageRoute
-  '/admin/content/journal': typeof AuthenticatedAdminContentJournalRouteWithChildren
   '/admin/content/media': typeof AuthenticatedAdminContentMediaRoute
-  '/admin/content/pages': typeof AuthenticatedAdminContentPagesRouteWithChildren
   '/admin/content/rooms': typeof AuthenticatedAdminContentRoomsRoute
   '/admin/finance/alerts': typeof AuthenticatedAdminFinanceAlertsRoute
   '/admin/finance/analytics': typeof AuthenticatedAdminFinanceAnalyticsRoute
@@ -969,13 +967,15 @@ export interface FileRoutesByFullPath {
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
-  '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRouteWithChildren
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
+  '/admin/content/journal/': typeof AuthenticatedAdminContentJournalIndexRoute
+  '/admin/content/pages/': typeof AuthenticatedAdminContentPagesIndexRoute
   '/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
+  '/admin/content/pages/$id/': typeof AuthenticatedAdminContentPagesIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1053,9 +1053,7 @@ export interface FileRoutesByTo {
   '/admin/content/experiences': typeof AuthenticatedAdminContentExperiencesRoute
   '/admin/content/gallery': typeof AuthenticatedAdminContentGalleryRoute
   '/admin/content/homepage': typeof AuthenticatedAdminContentHomepageRoute
-  '/admin/content/journal': typeof AuthenticatedAdminContentJournalRouteWithChildren
   '/admin/content/media': typeof AuthenticatedAdminContentMediaRoute
-  '/admin/content/pages': typeof AuthenticatedAdminContentPagesRouteWithChildren
   '/admin/content/rooms': typeof AuthenticatedAdminContentRoomsRoute
   '/admin/finance/alerts': typeof AuthenticatedAdminFinanceAlertsRoute
   '/admin/finance/analytics': typeof AuthenticatedAdminFinanceAnalyticsRoute
@@ -1092,13 +1090,15 @@ export interface FileRoutesByTo {
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
-  '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRouteWithChildren
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
+  '/admin/content/journal': typeof AuthenticatedAdminContentJournalIndexRoute
+  '/admin/content/pages': typeof AuthenticatedAdminContentPagesIndexRoute
   '/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
+  '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1183,9 +1183,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/content/experiences': typeof AuthenticatedAdminContentExperiencesRoute
   '/_authenticated/admin/content/gallery': typeof AuthenticatedAdminContentGalleryRoute
   '/_authenticated/admin/content/homepage': typeof AuthenticatedAdminContentHomepageRoute
-  '/_authenticated/admin/content/journal': typeof AuthenticatedAdminContentJournalRouteWithChildren
   '/_authenticated/admin/content/media': typeof AuthenticatedAdminContentMediaRoute
-  '/_authenticated/admin/content/pages': typeof AuthenticatedAdminContentPagesRouteWithChildren
   '/_authenticated/admin/content/rooms': typeof AuthenticatedAdminContentRoomsRoute
   '/_authenticated/admin/finance/alerts': typeof AuthenticatedAdminFinanceAlertsRoute
   '/_authenticated/admin/finance/analytics': typeof AuthenticatedAdminFinanceAnalyticsRoute
@@ -1222,13 +1220,15 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/_authenticated/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/_authenticated/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
-  '/_authenticated/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRouteWithChildren
   '/_authenticated/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/_authenticated/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
   '/_authenticated/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/_authenticated/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/_authenticated/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
+  '/_authenticated/admin/content/journal/': typeof AuthenticatedAdminContentJournalIndexRoute
+  '/_authenticated/admin/content/pages/': typeof AuthenticatedAdminContentPagesIndexRoute
   '/_authenticated/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
+  '/_authenticated/admin/content/pages/$id/': typeof AuthenticatedAdminContentPagesIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1313,9 +1313,7 @@ export interface FileRouteTypes {
     | '/admin/content/experiences'
     | '/admin/content/gallery'
     | '/admin/content/homepage'
-    | '/admin/content/journal'
     | '/admin/content/media'
-    | '/admin/content/pages'
     | '/admin/content/rooms'
     | '/admin/finance/alerts'
     | '/admin/finance/analytics'
@@ -1352,13 +1350,15 @@ export interface FileRouteTypes {
     | '/admin/operations/'
     | '/admin/automation/workflows/$id'
     | '/admin/content/journal/$id'
-    | '/admin/content/pages/$id'
     | '/admin/guests/crm/$id'
     | '/admin/guests/crm/duplicates'
     | '/admin/operations/checkin/$id'
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
+    | '/admin/content/journal/'
+    | '/admin/content/pages/'
     | '/admin/content/pages/$id/preview'
+    | '/admin/content/pages/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1436,9 +1436,7 @@ export interface FileRouteTypes {
     | '/admin/content/experiences'
     | '/admin/content/gallery'
     | '/admin/content/homepage'
-    | '/admin/content/journal'
     | '/admin/content/media'
-    | '/admin/content/pages'
     | '/admin/content/rooms'
     | '/admin/finance/alerts'
     | '/admin/finance/analytics'
@@ -1475,13 +1473,15 @@ export interface FileRouteTypes {
     | '/admin/operations'
     | '/admin/automation/workflows/$id'
     | '/admin/content/journal/$id'
-    | '/admin/content/pages/$id'
     | '/admin/guests/crm/$id'
     | '/admin/guests/crm/duplicates'
     | '/admin/operations/checkin/$id'
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
+    | '/admin/content/journal'
+    | '/admin/content/pages'
     | '/admin/content/pages/$id/preview'
+    | '/admin/content/pages/$id'
   id:
     | '__root__'
     | '/'
@@ -1565,9 +1565,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/content/experiences'
     | '/_authenticated/admin/content/gallery'
     | '/_authenticated/admin/content/homepage'
-    | '/_authenticated/admin/content/journal'
     | '/_authenticated/admin/content/media'
-    | '/_authenticated/admin/content/pages'
     | '/_authenticated/admin/content/rooms'
     | '/_authenticated/admin/finance/alerts'
     | '/_authenticated/admin/finance/analytics'
@@ -1604,13 +1602,15 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations/'
     | '/_authenticated/admin/automation/workflows/$id'
     | '/_authenticated/admin/content/journal/$id'
-    | '/_authenticated/admin/content/pages/$id'
     | '/_authenticated/admin/guests/crm/$id'
     | '/_authenticated/admin/guests/crm/duplicates'
     | '/_authenticated/admin/operations/checkin/$id'
     | '/_authenticated/admin/operations/checkout/$id'
     | '/_authenticated/admin/operations/reservations/$id'
+    | '/_authenticated/admin/content/journal/'
+    | '/_authenticated/admin/content/pages/'
     | '/_authenticated/admin/content/pages/$id/preview'
+    | '/_authenticated/admin/content/pages/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -2406,25 +2406,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminContentRoomsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/content/pages': {
-      id: '/_authenticated/admin/content/pages'
-      path: '/content/pages'
-      fullPath: '/admin/content/pages'
-      preLoaderRoute: typeof AuthenticatedAdminContentPagesRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
     '/_authenticated/admin/content/media': {
       id: '/_authenticated/admin/content/media'
       path: '/content/media'
       fullPath: '/admin/content/media'
       preLoaderRoute: typeof AuthenticatedAdminContentMediaRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/content/journal': {
-      id: '/_authenticated/admin/content/journal'
-      path: '/content/journal'
-      fullPath: '/admin/content/journal'
-      preLoaderRoute: typeof AuthenticatedAdminContentJournalRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/content/homepage': {
@@ -2497,6 +2483,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAutomationApprovalsRouteImport
       parentRoute: typeof AuthenticatedAdminAutomationRoute
     }
+    '/_authenticated/admin/content/pages/': {
+      id: '/_authenticated/admin/content/pages/'
+      path: '/content/pages'
+      fullPath: '/admin/content/pages/'
+      preLoaderRoute: typeof AuthenticatedAdminContentPagesIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/content/journal/': {
+      id: '/_authenticated/admin/content/journal/'
+      path: '/content/journal'
+      fullPath: '/admin/content/journal/'
+      preLoaderRoute: typeof AuthenticatedAdminContentJournalIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/operations/reservations/$id': {
       id: '/_authenticated/admin/operations/reservations/$id'
       path: '/reservations/$id'
@@ -2532,19 +2532,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminGuestsCrmIdRouteImport
       parentRoute: typeof AuthenticatedAdminGuestsCrmRoute
     }
-    '/_authenticated/admin/content/pages/$id': {
-      id: '/_authenticated/admin/content/pages/$id'
-      path: '/$id'
-      fullPath: '/admin/content/pages/$id'
-      preLoaderRoute: typeof AuthenticatedAdminContentPagesIdRouteImport
-      parentRoute: typeof AuthenticatedAdminContentPagesRoute
-    }
     '/_authenticated/admin/content/journal/$id': {
       id: '/_authenticated/admin/content/journal/$id'
-      path: '/$id'
+      path: '/content/journal/$id'
       fullPath: '/admin/content/journal/$id'
       preLoaderRoute: typeof AuthenticatedAdminContentJournalIdRouteImport
-      parentRoute: typeof AuthenticatedAdminContentJournalRoute
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/automation/workflows/$id': {
       id: '/_authenticated/admin/automation/workflows/$id'
@@ -2553,12 +2546,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAutomationWorkflowsIdRouteImport
       parentRoute: typeof AuthenticatedAdminAutomationWorkflowsRoute
     }
+    '/_authenticated/admin/content/pages/$id/': {
+      id: '/_authenticated/admin/content/pages/$id/'
+      path: '/content/pages/$id'
+      fullPath: '/admin/content/pages/$id/'
+      preLoaderRoute: typeof AuthenticatedAdminContentPagesIdIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/content/pages/$id/preview': {
       id: '/_authenticated/admin/content/pages/$id/preview'
-      path: '/preview'
+      path: '/content/pages/$id/preview'
       fullPath: '/admin/content/pages/$id/preview'
       preLoaderRoute: typeof AuthenticatedAdminContentPagesIdPreviewRouteImport
-      parentRoute: typeof AuthenticatedAdminContentPagesIdRoute
+      parentRoute: typeof AuthenticatedAdminRoute
     }
   }
 }
@@ -2685,51 +2685,6 @@ const AuthenticatedAdminOperationsRouteWithChildren =
     AuthenticatedAdminOperationsRouteChildren,
   )
 
-interface AuthenticatedAdminContentJournalRouteChildren {
-  AuthenticatedAdminContentJournalIdRoute: typeof AuthenticatedAdminContentJournalIdRoute
-}
-
-const AuthenticatedAdminContentJournalRouteChildren: AuthenticatedAdminContentJournalRouteChildren =
-  {
-    AuthenticatedAdminContentJournalIdRoute:
-      AuthenticatedAdminContentJournalIdRoute,
-  }
-
-const AuthenticatedAdminContentJournalRouteWithChildren =
-  AuthenticatedAdminContentJournalRoute._addFileChildren(
-    AuthenticatedAdminContentJournalRouteChildren,
-  )
-
-interface AuthenticatedAdminContentPagesIdRouteChildren {
-  AuthenticatedAdminContentPagesIdPreviewRoute: typeof AuthenticatedAdminContentPagesIdPreviewRoute
-}
-
-const AuthenticatedAdminContentPagesIdRouteChildren: AuthenticatedAdminContentPagesIdRouteChildren =
-  {
-    AuthenticatedAdminContentPagesIdPreviewRoute:
-      AuthenticatedAdminContentPagesIdPreviewRoute,
-  }
-
-const AuthenticatedAdminContentPagesIdRouteWithChildren =
-  AuthenticatedAdminContentPagesIdRoute._addFileChildren(
-    AuthenticatedAdminContentPagesIdRouteChildren,
-  )
-
-interface AuthenticatedAdminContentPagesRouteChildren {
-  AuthenticatedAdminContentPagesIdRoute: typeof AuthenticatedAdminContentPagesIdRouteWithChildren
-}
-
-const AuthenticatedAdminContentPagesRouteChildren: AuthenticatedAdminContentPagesRouteChildren =
-  {
-    AuthenticatedAdminContentPagesIdRoute:
-      AuthenticatedAdminContentPagesIdRouteWithChildren,
-  }
-
-const AuthenticatedAdminContentPagesRouteWithChildren =
-  AuthenticatedAdminContentPagesRoute._addFileChildren(
-    AuthenticatedAdminContentPagesRouteChildren,
-  )
-
 interface AuthenticatedAdminGuestsCrmRouteChildren {
   AuthenticatedAdminGuestsCrmIdRoute: typeof AuthenticatedAdminGuestsCrmIdRoute
   AuthenticatedAdminGuestsCrmDuplicatesRoute: typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
@@ -2761,9 +2716,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminContentExperiencesRoute: typeof AuthenticatedAdminContentExperiencesRoute
   AuthenticatedAdminContentGalleryRoute: typeof AuthenticatedAdminContentGalleryRoute
   AuthenticatedAdminContentHomepageRoute: typeof AuthenticatedAdminContentHomepageRoute
-  AuthenticatedAdminContentJournalRoute: typeof AuthenticatedAdminContentJournalRouteWithChildren
   AuthenticatedAdminContentMediaRoute: typeof AuthenticatedAdminContentMediaRoute
-  AuthenticatedAdminContentPagesRoute: typeof AuthenticatedAdminContentPagesRouteWithChildren
   AuthenticatedAdminContentRoomsRoute: typeof AuthenticatedAdminContentRoomsRoute
   AuthenticatedAdminGuestsCrmRoute: typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   AuthenticatedAdminGuestsMessagesRoute: typeof AuthenticatedAdminGuestsMessagesRoute
@@ -2775,6 +2728,11 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminStaffActivityRoute: typeof AuthenticatedAdminStaffActivityRoute
   AuthenticatedAdminStaffRolesRoute: typeof AuthenticatedAdminStaffRolesRoute
   AuthenticatedAdminStaffUsersRoute: typeof AuthenticatedAdminStaffUsersRoute
+  AuthenticatedAdminContentJournalIdRoute: typeof AuthenticatedAdminContentJournalIdRoute
+  AuthenticatedAdminContentJournalIndexRoute: typeof AuthenticatedAdminContentJournalIndexRoute
+  AuthenticatedAdminContentPagesIndexRoute: typeof AuthenticatedAdminContentPagesIndexRoute
+  AuthenticatedAdminContentPagesIdPreviewRoute: typeof AuthenticatedAdminContentPagesIdPreviewRoute
+  AuthenticatedAdminContentPagesIdIndexRoute: typeof AuthenticatedAdminContentPagesIdIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
@@ -2796,11 +2754,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminContentGalleryRoute: AuthenticatedAdminContentGalleryRoute,
   AuthenticatedAdminContentHomepageRoute:
     AuthenticatedAdminContentHomepageRoute,
-  AuthenticatedAdminContentJournalRoute:
-    AuthenticatedAdminContentJournalRouteWithChildren,
   AuthenticatedAdminContentMediaRoute: AuthenticatedAdminContentMediaRoute,
-  AuthenticatedAdminContentPagesRoute:
-    AuthenticatedAdminContentPagesRouteWithChildren,
   AuthenticatedAdminContentRoomsRoute: AuthenticatedAdminContentRoomsRoute,
   AuthenticatedAdminGuestsCrmRoute:
     AuthenticatedAdminGuestsCrmRouteWithChildren,
@@ -2817,6 +2771,16 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminStaffActivityRoute: AuthenticatedAdminStaffActivityRoute,
   AuthenticatedAdminStaffRolesRoute: AuthenticatedAdminStaffRolesRoute,
   AuthenticatedAdminStaffUsersRoute: AuthenticatedAdminStaffUsersRoute,
+  AuthenticatedAdminContentJournalIdRoute:
+    AuthenticatedAdminContentJournalIdRoute,
+  AuthenticatedAdminContentJournalIndexRoute:
+    AuthenticatedAdminContentJournalIndexRoute,
+  AuthenticatedAdminContentPagesIndexRoute:
+    AuthenticatedAdminContentPagesIndexRoute,
+  AuthenticatedAdminContentPagesIdPreviewRoute:
+    AuthenticatedAdminContentPagesIdPreviewRoute,
+  AuthenticatedAdminContentPagesIdIndexRoute:
+    AuthenticatedAdminContentPagesIdIndexRoute,
 }
 
 const AuthenticatedAdminRouteWithChildren =

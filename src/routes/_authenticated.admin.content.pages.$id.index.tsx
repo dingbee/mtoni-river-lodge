@@ -30,7 +30,7 @@ import { BlockCanvas } from "@/components/os/content/BlockCanvas";
 import { BlockInspector } from "@/components/os/content/BlockInspector";
 import type { BlockDraft } from "@/components/os/content/types";
 
-export const Route = createFileRoute("/_authenticated/admin/content/pages/$id")({
+export const Route = createFileRoute("/_authenticated/admin/content/pages/$id/")({
   head: () => ({ meta: [{ title: "Edit Page — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: PageEditor,
 });
