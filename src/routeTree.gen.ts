@@ -83,6 +83,7 @@ import { Route as AuthenticatedAdminAiRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAdminOperationsIndexRouteImport } from './routes/_authenticated.admin.operations.index'
 import { Route as AuthenticatedAdminFinanceIndexRouteImport } from './routes/_authenticated.admin.finance.index'
 import { Route as AuthenticatedAdminAutomationIndexRouteImport } from './routes/_authenticated.admin.automation.index'
+import { Route as AuthenticatedAdminAiIndexRouteImport } from './routes/_authenticated.admin.ai.index'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -532,6 +533,12 @@ const AuthenticatedAdminAutomationIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAdminAutomationRoute,
   } as any)
+const AuthenticatedAdminAiIndexRoute =
+  AuthenticatedAdminAiIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminAiRoute,
+  } as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -917,7 +924,7 @@ export interface FileRoutesByFullPath {
   '/wp-json/$': typeof WpJsonSplatRoute
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
-  '/admin/ai': typeof AuthenticatedAdminAiRoute
+  '/admin/ai': typeof AuthenticatedAdminAiRouteWithChildren
   '/admin/automation': typeof AuthenticatedAdminAutomationRouteWithChildren
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
@@ -969,6 +976,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/admin/ai/': typeof AuthenticatedAdminAiIndexRoute
   '/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
   '/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
@@ -1043,7 +1051,6 @@ export interface FileRoutesByTo {
   '/wp-json/$': typeof WpJsonSplatRoute
   '/journal': typeof JournalIndexRoute
   '/rooms': typeof RoomsIndexRoute
-  '/admin/ai': typeof AuthenticatedAdminAiRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
@@ -1093,6 +1100,7 @@ export interface FileRoutesByTo {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/admin/ai': typeof AuthenticatedAdminAiIndexRoute
   '/admin/automation': typeof AuthenticatedAdminAutomationIndexRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
@@ -1172,7 +1180,7 @@ export interface FileRoutesById {
   '/wp-json/$': typeof WpJsonSplatRoute
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
-  '/_authenticated/admin/ai': typeof AuthenticatedAdminAiRoute
+  '/_authenticated/admin/ai': typeof AuthenticatedAdminAiRouteWithChildren
   '/_authenticated/admin/automation': typeof AuthenticatedAdminAutomationRouteWithChildren
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/_authenticated/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
@@ -1224,6 +1232,7 @@ export interface FileRoutesById {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/_authenticated/admin/ai/': typeof AuthenticatedAdminAiIndexRoute
   '/_authenticated/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
   '/_authenticated/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
@@ -1355,6 +1364,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/admin/ai/'
     | '/admin/automation/'
     | '/admin/finance/'
     | '/admin/operations/'
@@ -1429,7 +1439,6 @@ export interface FileRouteTypes {
     | '/wp-json/$'
     | '/journal'
     | '/rooms'
-    | '/admin/ai'
     | '/admin/bookings'
     | '/admin/front-desk'
     | '/admin/reviews'
@@ -1479,6 +1488,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/admin/ai'
     | '/admin/automation'
     | '/admin/finance'
     | '/admin/operations'
@@ -1609,6 +1619,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/_authenticated/admin/ai/'
     | '/_authenticated/admin/automation/'
     | '/_authenticated/admin/finance/'
     | '/_authenticated/admin/operations/'
@@ -2201,6 +2212,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAutomationIndexRouteImport
       parentRoute: typeof AuthenticatedAdminAutomationRoute
     }
+    '/_authenticated/admin/ai/': {
+      id: '/_authenticated/admin/ai/'
+      path: '/'
+      fullPath: '/admin/ai/'
+      preLoaderRoute: typeof AuthenticatedAdminAiIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminAiRoute
+    }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
       path: '/lovable/email/transactional/send'
@@ -2582,6 +2600,17 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedAdminAiRouteChildren {
+  AuthenticatedAdminAiIndexRoute: typeof AuthenticatedAdminAiIndexRoute
+}
+
+const AuthenticatedAdminAiRouteChildren: AuthenticatedAdminAiRouteChildren = {
+  AuthenticatedAdminAiIndexRoute: AuthenticatedAdminAiIndexRoute,
+}
+
+const AuthenticatedAdminAiRouteWithChildren =
+  AuthenticatedAdminAiRoute._addFileChildren(AuthenticatedAdminAiRouteChildren)
+
 interface AuthenticatedAdminAutomationWorkflowsRouteChildren {
   AuthenticatedAdminAutomationWorkflowsIdRoute: typeof AuthenticatedAdminAutomationWorkflowsIdRoute
 }
@@ -2687,7 +2716,7 @@ const AuthenticatedAdminGuestsCrmRouteWithChildren =
   )
 
 interface AuthenticatedAdminRouteChildren {
-  AuthenticatedAdminAiRoute: typeof AuthenticatedAdminAiRoute
+  AuthenticatedAdminAiRoute: typeof AuthenticatedAdminAiRouteWithChildren
   AuthenticatedAdminAutomationRoute: typeof AuthenticatedAdminAutomationRouteWithChildren
   AuthenticatedAdminBookingsRoute: typeof AuthenticatedAdminBookingsRoute
   AuthenticatedAdminFrontDeskRoute: typeof AuthenticatedAdminFrontDeskRoute
@@ -2729,7 +2758,7 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
-  AuthenticatedAdminAiRoute: AuthenticatedAdminAiRoute,
+  AuthenticatedAdminAiRoute: AuthenticatedAdminAiRouteWithChildren,
   AuthenticatedAdminAutomationRoute:
     AuthenticatedAdminAutomationRouteWithChildren,
   AuthenticatedAdminBookingsRoute: AuthenticatedAdminBookingsRoute,
