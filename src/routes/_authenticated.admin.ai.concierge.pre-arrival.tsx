@@ -1,10 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { listPreArrivalGuests } from "@/domains/ai/concierge/prearrival.functions";
+import { generatePreArrivalRecommendations } from "@/domains/ai/concierge/proactive.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/concierge/pre-arrival")({
   head: () => ({
@@ -15,13 +17,29 @@ export const Route = createFileRoute("/_authenticated/admin/ai/concierge/pre-arr
 
 function PreArrivalPage() {
   const fn = useServerFn(listPreArrivalGuests);
+  const genFn = useServerFn(generatePreArrivalRecommendations);
+  const qc = useQueryClient();
   const q = useQuery({ queryKey: ["prearrival"], queryFn: () => fn() });
+  const generate = useMutation({
+    mutationFn: () => genFn(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["concierge.recs"] }),
+  });
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Pre-Arrival Concierge"
         description="Upcoming arrivals with AI preparation suggestions. Suggestions only — nothing is sent automatically."
+        actions={
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => generate.mutate()} disabled={generate.isPending}>
+              {generate.isPending ? "Generating…" : "Generate recommendations"}
+            </Button>
+            <Button size="sm" variant="ghost" asChild>
+              <Link to="/admin/ai/concierge/recommendations">Review queue</Link>
+            </Button>
+          </div>
+        }
       />
       <SectionCard title="Next 14 days">
         {q.isLoading ? (
