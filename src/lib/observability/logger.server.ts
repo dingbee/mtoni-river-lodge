@@ -76,7 +76,7 @@ export async function captureError(input: CaptureErrorInput): Promise<void> {
       function_name: input.fn ?? null,
       message: message.slice(0, 2000),
       stack: stack?.slice(0, 8000) ?? null,
-      context: (input.context ?? {}) as Record<string, unknown>,
+      context: JSON.parse(JSON.stringify(input.context ?? {})),
       request_id: input.requestId ?? null,
       user_id: input.userId ?? null,
     });
