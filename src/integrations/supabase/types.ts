@@ -1884,6 +1884,66 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_operations_patterns: {
+        Row: {
+          confidence: number
+          created_at: string
+          description: string
+          evidence: Json
+          generated_by: string | null
+          id: string
+          metric_change: number | null
+          notes: string | null
+          occurrences: number
+          pattern_type: string
+          recommendation: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          timeframe_days: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          description: string
+          evidence?: Json
+          generated_by?: string | null
+          id?: string
+          metric_change?: number | null
+          notes?: string | null
+          occurrences?: number
+          pattern_type: string
+          recommendation?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          timeframe_days?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          description?: string
+          evidence?: Json
+          generated_by?: string | null
+          id?: string
+          metric_change?: number | null
+          notes?: string | null
+          occurrences?: number
+          pattern_type?: string
+          recommendation?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          timeframe_days?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_organisations: {
         Row: {
           created_at: string
@@ -2334,6 +2394,238 @@ export type Database = {
           kind?: string
           model?: string | null
           recommended_action?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_room_readiness_insights: {
+        Row: {
+          booking_id: string | null
+          confidence: number
+          created_at: string
+          evidence: Json
+          generated_by: string | null
+          id: string
+          insight_type: string
+          notes: string | null
+          priority: string
+          reasoning: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          room_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          booking_id?: string | null
+          confidence?: number
+          created_at?: string
+          evidence?: Json
+          generated_by?: string | null
+          id?: string
+          insight_type: string
+          notes?: string | null
+          priority?: string
+          reasoning: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          room_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string | null
+          confidence?: number
+          created_at?: string
+          evidence?: Json
+          generated_by?: string | null
+          id?: string
+          insight_type?: string
+          notes?: string | null
+          priority?: string
+          reasoning?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          room_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_room_readiness_insights_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_room_readiness_insights_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_room_readiness_insights_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_service_recovery_insights: {
+        Row: {
+          booking_id: string | null
+          confidence: number
+          created_at: string
+          evidence: Json
+          generated_by: string | null
+          guest_id: string | null
+          id: string
+          notes: string | null
+          recommendation: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity: string
+          signal: string
+          signal_source: string
+          source_ref: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          booking_id?: string | null
+          confidence?: number
+          created_at?: string
+          evidence?: Json
+          generated_by?: string | null
+          guest_id?: string | null
+          id?: string
+          notes?: string | null
+          recommendation: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          signal: string
+          signal_source: string
+          source_ref?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string | null
+          confidence?: number
+          created_at?: string
+          evidence?: Json
+          generated_by?: string | null
+          guest_id?: string | null
+          id?: string
+          notes?: string | null
+          recommendation?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          signal?: string
+          signal_source?: string
+          source_ref?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_service_recovery_insights_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_service_recovery_insights_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_service_recovery_insights_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_service_recovery_insights_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
+          },
+          {
+            foreignKeyName: "ai_service_recovery_insights_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_staff_operations_insights: {
+        Row: {
+          affected_area: string | null
+          confidence: number
+          created_at: string
+          evidence: Json
+          generated_by: string | null
+          id: string
+          insight_type: string
+          notes: string | null
+          reasoning: string
+          recommendation: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          affected_area?: string | null
+          confidence?: number
+          created_at?: string
+          evidence?: Json
+          generated_by?: string | null
+          id?: string
+          insight_type: string
+          notes?: string | null
+          reasoning: string
+          recommendation: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          affected_area?: string | null
+          confidence?: number
+          created_at?: string
+          evidence?: Json
+          generated_by?: string | null
+          id?: string
+          insight_type?: string
+          notes?: string | null
+          reasoning?: string
+          recommendation?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           title?: string
           updated_at?: string
