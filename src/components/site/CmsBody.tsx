@@ -1,7 +1,7 @@
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { renderBlock } from "@/domains/content/pages/renderBlock";
-import type { CmsBlockKind } from "@/domains/content/pages/pages.functions";
+import type { CmsBlockKind } from "@/domains/content/pages/blocks";
 
 export interface CmsBlockRow {
   id: string;
