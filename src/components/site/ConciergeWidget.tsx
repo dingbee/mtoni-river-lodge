@@ -205,8 +205,8 @@ export function ConciergeWidget() {
                 {m.content}
                 {m.citations && m.citations.length > 0 && (
                   <div className="mt-2 border-t border-border/60 pt-2 text-[11px] opacity-80">
-                    <p className="font-medium">References</p>
-                    <ul className="mt-1 space-y-0.5">
+                    <p className="font-medium">Source: Mtoni Lodge Information</p>
+                    <ul className="mt-1 space-y-0.5 opacity-80">
                       {m.citations.map((c, j) => (
                         <li key={j}>· {c.document_title}</li>
                       ))}
@@ -276,6 +276,13 @@ export function ConciergeWidget() {
                       href={c.url}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={() => {
+                        if (c.type === "whatsapp") {
+                          trackWhatsAppClick({ buttonText: c.label, location: "concierge_escalation", destinationUrl: c.url });
+                        } else {
+                          trackGAEvent("concierge_escalation_click", { event_category: "concierge", channel: c.type });
+                        }
+                      }}
                       className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground hover:brightness-110"
                     >
                       {c.label} <ExternalLink className="size-3" />
