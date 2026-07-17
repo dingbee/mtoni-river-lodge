@@ -164,6 +164,19 @@ function UnifiedCalendarPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const doReassign = useMutation({
+    mutationFn: (v: { bookingId: string; newRoomId: string; reason?: string }) =>
+      reassignFn({ data: v }),
+    onSuccess: () => {
+      toast.success("Booking reassigned — inventory & audit updated");
+      qc.invalidateQueries({ queryKey: ["calendar"] });
+      setReassignCtx(null);
+      setReassignReason("");
+      setSuggestForBooking(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const d: any = ops.data ?? { rooms: [], bookings: [], inventory: [] };
 
   const activeHolds = holds.data ?? [];
