@@ -268,9 +268,12 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
     run: async ({ supabase }, args) => {
       const q = String(args.query ?? "").trim();
       if (!q) return { summary: "No query provided.", data: [], count: 0 };
-      const { data, error } = await supabase.rpc("knowledge_search", { _query: q, _limit: 6 });
-      if (error) throw error;
-      const rows = (data ?? []) as Array<any>;
+      const { memoizeTTL } = await import("@/lib/perf-cache");
+      const rows = await memoizeTTL(`kb:tools:${q.toLowerCase()}:6`, 60_000, async () => {
+        const { data, error } = await supabase.rpc("knowledge_search", { _query: q, _limit: 6 });
+        if (error) throw error;
+        return (data ?? []) as Array<any>;
+      });
       return {
         summary: rows.length
           ? `Found ${rows.length} knowledge excerpt(s) for "${q}".`

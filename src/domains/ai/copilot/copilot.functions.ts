@@ -189,7 +189,12 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
     // Always try knowledge fusion if not already done
     if (!toolIds.includes("knowledge.search") && allowed.has("knowledge.search")) {
       try {
-        const { data: kb } = await context.supabase.rpc("knowledge_search", { _query: data.question, _limit: 4 });
+        const { memoizeTTL } = await import("@/lib/perf-cache");
+        const q = String(data.question ?? "").trim().toLowerCase();
+        const kb = await memoizeTTL(`kb:copilot:${q}:4`, 60_000, async () => {
+          const { data: r } = await context.supabase.rpc("knowledge_search", { _query: data.question, _limit: 4 });
+          return r;
+        });
         const rows = (kb ?? []) as any[];
         if (rows.length) {
           citations = rows.map((r) => ({
