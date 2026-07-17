@@ -142,11 +142,18 @@ export const listCalendarEvents = createServerFn({ method: "POST" })
     if (data.types?.length) q = q.in("event_type", data.types);
     const { data: rows, error } = await q.order("created_at", { ascending: false }).limit(data.limit ?? 100);
     if (error) throw new Error(error.message);
-    return (rows ?? []) as Array<{
-      id: string; event_type: string; room_id: string | null; booking_id: string | null;
-      hold_id: string | null; date_from: string | null; date_to: string | null;
-      payload: unknown; created_at: string;
-    }>;
+    // Payload is jsonb; serialize as string for RPC transport safety.
+    return ((rows ?? []) as Array<Record<string, unknown>>).map((r) => ({
+      id: r.id as string,
+      event_type: r.event_type as string,
+      room_id: (r.room_id as string | null) ?? null,
+      booking_id: (r.booking_id as string | null) ?? null,
+      hold_id: (r.hold_id as string | null) ?? null,
+      date_from: (r.date_from as string | null) ?? null,
+      date_to: (r.date_to as string | null) ?? null,
+      payload_json: JSON.stringify(r.payload ?? {}),
+      created_at: r.created_at as string,
+    }));
   });
 
 export const listActiveHolds = createServerFn({ method: "POST" })
