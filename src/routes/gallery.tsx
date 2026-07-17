@@ -6,6 +6,8 @@ import { PageHero } from "@/components/site/PageHero";
 import { Reveal } from "@/components/site/Reveal";
 import { Lightbox } from "@/components/site/Lightbox";
 import { GALLERY, GALLERY_CATEGORIES, type GalleryCategory } from "@/lib/gallery";
+import { usePublicCms } from "@/lib/use-public-cms";
+import { CmsBody, hasCmsBody } from "@/components/site/CmsBody";
 import heroImg from "@/assets/aerial-lodge.jpg";
 
 export const Route = createFileRoute("/gallery")({
@@ -25,6 +27,9 @@ export const Route = createFileRoute("/gallery")({
 });
 
 function GalleryPage() {
+  const { data: cms } = usePublicCms("gallery-landing");
+  if (hasCmsBody(cms)) return <CmsBody blocks={cms.blocks} overlayHeader />;
+
   const [filter, setFilter] = useState<"All" | GalleryCategory>("All");
   const [open, setOpen] = useState(false);
   const [startIndex, setStartIndex] = useState(0);

@@ -11,6 +11,8 @@ import { FAQ } from "@/components/FAQ";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
 import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
 import roomImg from "@/assets/suite-interior.jpg";
+import { usePublicCms } from "@/lib/use-public-cms";
+import { CmsBody, hasCmsBody } from "@/components/site/CmsBody";
 
 const ROOMS_FAQS: FAQItem[] = [
   {
@@ -63,6 +65,9 @@ export const Route = createFileRoute("/rooms/")({
 });
 
 function RoomsIndexPage() {
+  const { data: cms } = usePublicCms("rooms-landing");
+  if (hasCmsBody(cms)) return <CmsBody blocks={cms.blocks} overlayHeader />;
+
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader overlay />

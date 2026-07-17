@@ -3,7 +3,7 @@ import type {} from "@tanstack/react-start";
 import {
   ACCOMMODATION_ENTRIES,
   PAGE_ENTRIES,
-  getJournalEntries,
+  getJournalEntriesAsync,
   urlsetXml,
   xmlResponse,
 } from "@/lib/sitemap-data";
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/sitemap.xml")({
         const entries = [
           ...PAGE_ENTRIES,
           ...ACCOMMODATION_ENTRIES,
-          ...getJournalEntries(),
+          ...(await getJournalEntriesAsync()),
         ];
         return xmlResponse(urlsetXml(entries));
       },

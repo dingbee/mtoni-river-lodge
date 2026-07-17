@@ -12,7 +12,12 @@ import { FAQ } from "@/components/FAQ";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
 import { RESERVATIONS_NOTE } from "@/lib/contact";
 import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics";
-import { getLatestJournalPosts } from "@/lib/journal";
+import { usePublicCms } from "@/lib/use-public-cms";
+import { CmsBody, hasCmsBody } from "@/components/site/CmsBody";
+import { useQuery } from "@tanstack/react-query";
+import { listPublishedJournalArticles } from "@/domains/content/journal/journal-public.functions";
+import { mergeJournalPosts, type DbJournalRow } from "@/lib/journal-merged";
+import type { JournalPost } from "@/lib/journal";
 import { ROOMS, getRoomPath } from "@/lib/rooms";
 import heroImg from "@/assets/hero-river.jpg";
 import heroImg800 from "@/assets/hero-river-800w.webp";
@@ -87,6 +92,16 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
+  const { data: cms } = usePublicCms("homepage");
+  const { data: dbJournalRows } = useQuery<DbJournalRow[]>({
+    queryKey: ["journal.public.list"],
+    queryFn: () => listPublishedJournalArticles(),
+    staleTime: 60_000,
+  });
+  const latestJournal = mergeJournalPosts(dbJournalRows).slice(0, 4);
+
+  if (hasCmsBody(cms)) return <CmsBody blocks={cms.blocks} overlayHeader />;
+
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader overlay />
@@ -332,7 +347,7 @@ function HomePage() {
             </Link>
           </Reveal>
           {(() => {
-            const [featured, ...secondary] = getLatestJournalPosts(4);
+            const [featured, ...secondary] = latestJournal as JournalPost[];
             if (!featured) return null;
             return (
               <>
@@ -368,7 +383,7 @@ function HomePage() {
                 </Reveal>
                 {secondary.length > 0 && (
                   <div className="mt-20 grid gap-12 border-t border-charcoal/10 pt-16 md:grid-cols-3">
-                    {secondary.map((p, i) => (
+                    {secondary.map((p: JournalPost, i: number) => (
                       <Reveal key={p.title} delay={i * 120}>
                         <Link to={p.href} className="group flex h-full flex-col">
                           <div className="mb-6 overflow-hidden">

@@ -1,4 +1,6 @@
 import { getJournalPosts } from "@/lib/journal";
+import { listPublishedJournalArticles } from "@/domains/content/journal/journal-public.functions";
+import { mergeJournalPosts, type DbJournalRow } from "@/lib/journal-merged";
 import heroRiver from "@/assets/hero-river.jpg";
 import heroCottage from "@/assets/hero-cottage-exterior.jpg";
 import heroReception from "@/assets/hero-reception-interior.jpg";
@@ -79,6 +81,25 @@ export const ACCOMMODATION_ENTRIES: PageEntry[] = [
 /** Journal entries derived from the journal data source — auto-updates on publish. */
 export function getJournalEntries(): PageEntry[] {
   return getJournalPosts().map((p) => ({
+    path: p.href,
+    lastmod: p.publishedAt,
+    changefreq: "monthly",
+    priority: "0.7",
+  }));
+}
+
+/**
+ * Merged sitemap entries: published DB articles overlaid on the static list.
+ * Falls back to the static list when the database is unreachable.
+ */
+export async function getJournalEntriesAsync(): Promise<PageEntry[]> {
+  let rows: DbJournalRow[] = [];
+  try {
+    rows = (await listPublishedJournalArticles()) as DbJournalRow[];
+  } catch {
+    rows = [];
+  }
+  return mergeJournalPosts(rows).map((p) => ({
     path: p.href,
     lastmod: p.publishedAt,
     changefreq: "monthly",
