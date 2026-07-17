@@ -92,7 +92,9 @@ import { Route as ApiPublicOpsMorningDigestRouteImport } from './routes/api/publ
 import { Route as ApiPublicOpsDrainRouteImport } from './routes/api/public/ops/drain'
 import { Route as ApiPublicHooksScheduledJobsRouteImport } from './routes/api/public/hooks/scheduled-jobs'
 import { Route as ApiPublicConciergeLeadRouteImport } from './routes/api/public/concierge.lead'
+import { Route as ApiPublicConciergeFeedbackRouteImport } from './routes/api/public/concierge.feedback'
 import { Route as ApiPublicConciergeChatRouteImport } from './routes/api/public/concierge.chat'
+import { Route as ApiPublicConciergeAttributionRouteImport } from './routes/api/public/concierge.attribution'
 import { Route as AuthenticatedAdminStaffUsersRouteImport } from './routes/_authenticated.admin.staff.users'
 import { Route as AuthenticatedAdminStaffRolesRouteImport } from './routes/_authenticated.admin.staff.roles'
 import { Route as AuthenticatedAdminStaffActivityRouteImport } from './routes/_authenticated.admin.staff.activity'
@@ -627,11 +629,23 @@ const ApiPublicConciergeLeadRoute = ApiPublicConciergeLeadRouteImport.update({
   path: '/api/public/concierge/lead',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicConciergeFeedbackRoute =
+  ApiPublicConciergeFeedbackRouteImport.update({
+    id: '/api/public/concierge/feedback',
+    path: '/api/public/concierge/feedback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicConciergeChatRoute = ApiPublicConciergeChatRouteImport.update({
   id: '/api/public/concierge/chat',
   path: '/api/public/concierge/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicConciergeAttributionRoute =
+  ApiPublicConciergeAttributionRouteImport.update({
+    id: '/api/public/concierge/attribution',
+    path: '/api/public/concierge/attribution',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAdminStaffUsersRoute =
   AuthenticatedAdminStaffUsersRouteImport.update({
     id: '/staff/users',
@@ -1281,7 +1295,9 @@ export interface FileRoutesByFullPath {
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
+  '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
+  '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
   '/api/public/concierge/lead': typeof ApiPublicConciergeLeadRoute
   '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
@@ -1444,7 +1460,9 @@ export interface FileRoutesByTo {
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
+  '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
+  '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
   '/api/public/concierge/lead': typeof ApiPublicConciergeLeadRoute
   '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
@@ -1619,7 +1637,9 @@ export interface FileRoutesById {
   '/_authenticated/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/_authenticated/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/_authenticated/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
+  '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
+  '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
   '/api/public/concierge/lead': typeof ApiPublicConciergeLeadRoute
   '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
@@ -1794,7 +1814,9 @@ export interface FileRouteTypes {
     | '/admin/staff/activity'
     | '/admin/staff/roles'
     | '/admin/staff/users'
+    | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
+    | '/api/public/concierge/feedback'
     | '/api/public/concierge/lead'
     | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
@@ -1957,7 +1979,9 @@ export interface FileRouteTypes {
     | '/admin/staff/activity'
     | '/admin/staff/roles'
     | '/admin/staff/users'
+    | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
+    | '/api/public/concierge/feedback'
     | '/api/public/concierge/lead'
     | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
@@ -2131,7 +2155,9 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/staff/activity'
     | '/_authenticated/admin/staff/roles'
     | '/_authenticated/admin/staff/users'
+    | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
+    | '/api/public/concierge/feedback'
     | '/api/public/concierge/lead'
     | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
@@ -2232,7 +2258,9 @@ export interface RootRouteChildren {
   WpIncludesSplatRoute: typeof WpIncludesSplatRoute
   WpJsonSplatRoute: typeof WpJsonSplatRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicConciergeAttributionRoute: typeof ApiPublicConciergeAttributionRoute
   ApiPublicConciergeChatRoute: typeof ApiPublicConciergeChatRoute
+  ApiPublicConciergeFeedbackRoute: typeof ApiPublicConciergeFeedbackRoute
   ApiPublicConciergeLeadRoute: typeof ApiPublicConciergeLeadRoute
   ApiPublicHooksScheduledJobsRoute: typeof ApiPublicHooksScheduledJobsRoute
   ApiPublicOpsDrainRoute: typeof ApiPublicOpsDrainRoute
@@ -2826,11 +2854,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicConciergeLeadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/concierge/feedback': {
+      id: '/api/public/concierge/feedback'
+      path: '/api/public/concierge/feedback'
+      fullPath: '/api/public/concierge/feedback'
+      preLoaderRoute: typeof ApiPublicConciergeFeedbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/concierge/chat': {
       id: '/api/public/concierge/chat'
       path: '/api/public/concierge/chat'
       fullPath: '/api/public/concierge/chat'
       preLoaderRoute: typeof ApiPublicConciergeChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/concierge/attribution': {
+      id: '/api/public/concierge/attribution'
+      path: '/api/public/concierge/attribution'
+      fullPath: '/api/public/concierge/attribution'
+      preLoaderRoute: typeof ApiPublicConciergeAttributionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/staff/users': {
@@ -3967,7 +4009,9 @@ const rootRouteChildren: RootRouteChildren = {
   WpIncludesSplatRoute: WpIncludesSplatRoute,
   WpJsonSplatRoute: WpJsonSplatRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicConciergeAttributionRoute: ApiPublicConciergeAttributionRoute,
   ApiPublicConciergeChatRoute: ApiPublicConciergeChatRoute,
+  ApiPublicConciergeFeedbackRoute: ApiPublicConciergeFeedbackRoute,
   ApiPublicConciergeLeadRoute: ApiPublicConciergeLeadRoute,
   ApiPublicHooksScheduledJobsRoute: ApiPublicHooksScheduledJobsRoute,
   ApiPublicOpsDrainRoute: ApiPublicOpsDrainRoute,
