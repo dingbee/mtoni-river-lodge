@@ -176,6 +176,122 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_communication_drafts: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          body: string
+          booking_id: string | null
+          channel: string
+          created_at: string
+          created_by: string | null
+          draft_type: string
+          guest_id: string | null
+          id: string
+          notes: string | null
+          reasoning: string | null
+          sent_at: string | null
+          session_id: string | null
+          status: string
+          subject: string | null
+          supporting_context: Json
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          body: string
+          booking_id?: string | null
+          channel: string
+          created_at?: string
+          created_by?: string | null
+          draft_type: string
+          guest_id?: string | null
+          id?: string
+          notes?: string | null
+          reasoning?: string | null
+          sent_at?: string | null
+          session_id?: string | null
+          status?: string
+          subject?: string | null
+          supporting_context?: Json
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          body?: string
+          booking_id?: string | null
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          draft_type?: string
+          guest_id?: string | null
+          id?: string
+          notes?: string | null
+          reasoning?: string | null
+          sent_at?: string | null
+          session_id?: string | null
+          status?: string
+          subject?: string | null
+          supporting_context?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_communication_drafts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_concierge_channels: {
+        Row: {
+          channel: string
+          configuration: Json
+          created_at: string
+          display_name: string
+          id: string
+          inbound_enabled: boolean
+          notes: string | null
+          outbound_enabled: boolean
+          provider: string | null
+          requires_approval: boolean
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          channel: string
+          configuration?: Json
+          created_at?: string
+          display_name: string
+          id?: string
+          inbound_enabled?: boolean
+          notes?: string | null
+          outbound_enabled?: boolean
+          provider?: string | null
+          requires_approval?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          configuration?: Json
+          created_at?: string
+          display_name?: string
+          id?: string
+          inbound_enabled?: boolean
+          notes?: string | null
+          outbound_enabled?: boolean
+          provider?: string | null
+          requires_approval?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_concierge_insights: {
         Row: {
           bucket_date: string
@@ -431,6 +547,8 @@ export type Database = {
       }
       ai_concierge_sessions: {
         Row: {
+          channel: string
+          channel_thread_id: string | null
           created_at: string
           escalated: boolean
           escalation_channel: string | null
@@ -439,6 +557,7 @@ export type Database = {
           guest_name: string | null
           guest_phone: string | null
           id: string
+          identity_confidence: number
           last_active_at: string
           locale: string | null
           message_count: number
@@ -449,6 +568,8 @@ export type Database = {
           user_agent: string | null
         }
         Insert: {
+          channel?: string
+          channel_thread_id?: string | null
           created_at?: string
           escalated?: boolean
           escalation_channel?: string | null
@@ -457,6 +578,7 @@ export type Database = {
           guest_name?: string | null
           guest_phone?: string | null
           id?: string
+          identity_confidence?: number
           last_active_at?: string
           locale?: string | null
           message_count?: number
@@ -467,6 +589,8 @@ export type Database = {
           user_agent?: string | null
         }
         Update: {
+          channel?: string
+          channel_thread_id?: string | null
           created_at?: string
           escalated?: boolean
           escalation_channel?: string | null
@@ -475,6 +599,7 @@ export type Database = {
           guest_name?: string | null
           guest_phone?: string | null
           id?: string
+          identity_confidence?: number
           last_active_at?: string
           locale?: string | null
           message_count?: number
@@ -546,6 +671,112 @@ export type Database = {
           version?: number
         }
         Relationships: []
+      }
+      ai_conversation_participants: {
+        Row: {
+          channel: string
+          confidence: number
+          created_at: string
+          guest_id: string | null
+          id: string
+          identifier_type: string
+          identifier_value: string
+          session_id: string
+          updated_at: string
+          verified: boolean
+        }
+        Insert: {
+          channel: string
+          confidence?: number
+          created_at?: string
+          guest_id?: string | null
+          id?: string
+          identifier_type: string
+          identifier_value: string
+          session_id: string
+          updated_at?: string
+          verified?: boolean
+        }
+        Update: {
+          channel?: string
+          confidence?: number
+          created_at?: string
+          guest_id?: string | null
+          id?: string
+          identifier_type?: string
+          identifier_value?: string
+          session_id?: string
+          updated_at?: string
+          verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversation_participants_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_escalations: {
+        Row: {
+          ai_confidence: number | null
+          assigned_to: string | null
+          channel: string
+          created_at: string
+          guest_id: string | null
+          id: string
+          priority: number
+          reason: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          session_id: string
+          status: string
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_confidence?: number | null
+          assigned_to?: string | null
+          channel: string
+          created_at?: string
+          guest_id?: string | null
+          id?: string
+          priority?: number
+          reason: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          session_id: string
+          status?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_confidence?: number | null
+          assigned_to?: string | null
+          channel?: string
+          created_at?: string
+          guest_id?: string | null
+          id?: string
+          priority?: number
+          reason?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          session_id?: string
+          status?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_escalations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_executive_briefings: {
         Row: {
