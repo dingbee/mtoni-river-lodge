@@ -176,6 +176,7 @@ function BookPage() {
   const [selectedExtras, setSelectedExtras] = useState<SelectedExtra[]>(p.selectedExtras ?? []);
   const [guest, setGuest] = useState(p.guest ?? { name: "", email: "", phone: "", country: "", requests: "", purpose: "" });
   const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string } | null>(null);
+  const [hold, setHold] = useState<{ id: string; expiresAt: string; roomSlug: string } | null>(null);
 
   // Mirror critical state in refs so the validation guard can read the
   // freshest values immediately after a navigate(), even if React hasn't
