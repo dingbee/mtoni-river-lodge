@@ -12,6 +12,7 @@ declare global {
 import appCss from "../styles.css?url";
 import { BackToTop } from "@/components/site/BackToTop";
 import { PWALifecycle } from "@/components/site/PWALifecycle";
+import { ConciergeWidget } from "@/components/site/ConciergeWidget";
 import { Toaster } from "@/components/ui/sonner";
 import { trackPageView } from "@/lib/analytics";
 
@@ -257,6 +258,9 @@ function GoogleAnalytics() {
 }
 
 function RootComponent() {
+  const router = useRouter();
+  const pathname = router.state.location.pathname;
+  const isAdmin = pathname.startsWith("/admin") || pathname.startsWith("/auth") || pathname.startsWith("/api");
   return (
     <QueryClientProvider client={fallbackQueryClient}>
       <Outlet />
@@ -264,6 +268,7 @@ function RootComponent() {
       <GoogleAnalytics />
       <PWALifecycle />
       <Toaster position="top-center" richColors />
+      {!isAdmin && <ConciergeWidget />}
     </QueryClientProvider>
   );
 }

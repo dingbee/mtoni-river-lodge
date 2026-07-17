@@ -21,7 +21,8 @@ export type FeatureFlagKey =
   | "content_calendar"
   | "reviews_centre_v2"
   | "website_analytics"
-  | "mtoni_ai_command_centre";
+  | "mtoni_ai_command_centre"
+  | "mtoni_ai_concierge";
 
 export type FlagState = "enabled" | "disabled" | "beta" | "internal";
 
