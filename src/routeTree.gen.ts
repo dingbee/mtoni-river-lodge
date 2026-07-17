@@ -164,6 +164,7 @@ import { Route as AuthenticatedAdminAiRevenuePatternsRouteImport } from './route
 import { Route as AuthenticatedAdminAiRevenueOpportunitiesRouteImport } from './routes/_authenticated.admin.ai.revenue.opportunities'
 import { Route as AuthenticatedAdminAiRevenueForecastRouteImport } from './routes/_authenticated.admin.ai.revenue.forecast'
 import { Route as AuthenticatedAdminAiRevenueAlertsRouteImport } from './routes/_authenticated.admin.ai.revenue.alerts'
+import { Route as AuthenticatedAdminAiOperationsMaintenanceRouteImport } from './routes/_authenticated.admin.ai.operations.maintenance'
 import { Route as AuthenticatedAdminAiOperationsHousekeepingRouteImport } from './routes/_authenticated.admin.ai.operations.housekeeping'
 import { Route as AuthenticatedAdminAiOperationsFrontdeskRouteImport } from './routes/_authenticated.admin.ai.operations.frontdesk'
 import { Route as AuthenticatedAdminAiMarketingSeoRouteImport } from './routes/_authenticated.admin.ai.marketing.seo'
@@ -1066,6 +1067,12 @@ const AuthenticatedAdminAiRevenueAlertsRoute =
     path: '/alerts',
     getParentRoute: () => AuthenticatedAdminAiRevenueRoute,
   } as any)
+const AuthenticatedAdminAiOperationsMaintenanceRoute =
+  AuthenticatedAdminAiOperationsMaintenanceRouteImport.update({
+    id: '/maintenance',
+    path: '/maintenance',
+    getParentRoute: () => AuthenticatedAdminAiOperationsRoute,
+  } as any)
 const AuthenticatedAdminAiOperationsHousekeepingRoute =
   AuthenticatedAdminAiOperationsHousekeepingRouteImport.update({
     id: '/housekeeping',
@@ -1376,6 +1383,7 @@ export interface FileRoutesByFullPath {
   '/admin/ai/marketing/seo': typeof AuthenticatedAdminAiMarketingSeoRoute
   '/admin/ai/operations/frontdesk': typeof AuthenticatedAdminAiOperationsFrontdeskRoute
   '/admin/ai/operations/housekeeping': typeof AuthenticatedAdminAiOperationsHousekeepingRoute
+  '/admin/ai/operations/maintenance': typeof AuthenticatedAdminAiOperationsMaintenanceRoute
   '/admin/ai/revenue/alerts': typeof AuthenticatedAdminAiRevenueAlertsRoute
   '/admin/ai/revenue/forecast': typeof AuthenticatedAdminAiRevenueForecastRoute
   '/admin/ai/revenue/opportunities': typeof AuthenticatedAdminAiRevenueOpportunitiesRoute
@@ -1546,6 +1554,7 @@ export interface FileRoutesByTo {
   '/admin/ai/marketing/seo': typeof AuthenticatedAdminAiMarketingSeoRoute
   '/admin/ai/operations/frontdesk': typeof AuthenticatedAdminAiOperationsFrontdeskRoute
   '/admin/ai/operations/housekeeping': typeof AuthenticatedAdminAiOperationsHousekeepingRoute
+  '/admin/ai/operations/maintenance': typeof AuthenticatedAdminAiOperationsMaintenanceRoute
   '/admin/ai/revenue/alerts': typeof AuthenticatedAdminAiRevenueAlertsRoute
   '/admin/ai/revenue/forecast': typeof AuthenticatedAdminAiRevenueForecastRoute
   '/admin/ai/revenue/opportunities': typeof AuthenticatedAdminAiRevenueOpportunitiesRoute
@@ -1729,6 +1738,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/ai/marketing/seo': typeof AuthenticatedAdminAiMarketingSeoRoute
   '/_authenticated/admin/ai/operations/frontdesk': typeof AuthenticatedAdminAiOperationsFrontdeskRoute
   '/_authenticated/admin/ai/operations/housekeeping': typeof AuthenticatedAdminAiOperationsHousekeepingRoute
+  '/_authenticated/admin/ai/operations/maintenance': typeof AuthenticatedAdminAiOperationsMaintenanceRoute
   '/_authenticated/admin/ai/revenue/alerts': typeof AuthenticatedAdminAiRevenueAlertsRoute
   '/_authenticated/admin/ai/revenue/forecast': typeof AuthenticatedAdminAiRevenueForecastRoute
   '/_authenticated/admin/ai/revenue/opportunities': typeof AuthenticatedAdminAiRevenueOpportunitiesRoute
@@ -1912,6 +1922,7 @@ export interface FileRouteTypes {
     | '/admin/ai/marketing/seo'
     | '/admin/ai/operations/frontdesk'
     | '/admin/ai/operations/housekeeping'
+    | '/admin/ai/operations/maintenance'
     | '/admin/ai/revenue/alerts'
     | '/admin/ai/revenue/forecast'
     | '/admin/ai/revenue/opportunities'
@@ -2082,6 +2093,7 @@ export interface FileRouteTypes {
     | '/admin/ai/marketing/seo'
     | '/admin/ai/operations/frontdesk'
     | '/admin/ai/operations/housekeeping'
+    | '/admin/ai/operations/maintenance'
     | '/admin/ai/revenue/alerts'
     | '/admin/ai/revenue/forecast'
     | '/admin/ai/revenue/opportunities'
@@ -2264,6 +2276,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/ai/marketing/seo'
     | '/_authenticated/admin/ai/operations/frontdesk'
     | '/_authenticated/admin/ai/operations/housekeeping'
+    | '/_authenticated/admin/ai/operations/maintenance'
     | '/_authenticated/admin/ai/revenue/alerts'
     | '/_authenticated/admin/ai/revenue/forecast'
     | '/_authenticated/admin/ai/revenue/opportunities'
@@ -3434,6 +3447,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiRevenueAlertsRouteImport
       parentRoute: typeof AuthenticatedAdminAiRevenueRoute
     }
+    '/_authenticated/admin/ai/operations/maintenance': {
+      id: '/_authenticated/admin/ai/operations/maintenance'
+      path: '/maintenance'
+      fullPath: '/admin/ai/operations/maintenance'
+      preLoaderRoute: typeof AuthenticatedAdminAiOperationsMaintenanceRouteImport
+      parentRoute: typeof AuthenticatedAdminAiOperationsRoute
+    }
     '/_authenticated/admin/ai/operations/housekeeping': {
       id: '/_authenticated/admin/ai/operations/housekeeping'
       path: '/housekeeping'
@@ -3735,6 +3755,7 @@ const AuthenticatedAdminAiMarketingRouteWithChildren =
 interface AuthenticatedAdminAiOperationsRouteChildren {
   AuthenticatedAdminAiOperationsFrontdeskRoute: typeof AuthenticatedAdminAiOperationsFrontdeskRoute
   AuthenticatedAdminAiOperationsHousekeepingRoute: typeof AuthenticatedAdminAiOperationsHousekeepingRoute
+  AuthenticatedAdminAiOperationsMaintenanceRoute: typeof AuthenticatedAdminAiOperationsMaintenanceRoute
   AuthenticatedAdminAiOperationsIndexRoute: typeof AuthenticatedAdminAiOperationsIndexRoute
 }
 
@@ -3744,6 +3765,8 @@ const AuthenticatedAdminAiOperationsRouteChildren: AuthenticatedAdminAiOperation
       AuthenticatedAdminAiOperationsFrontdeskRoute,
     AuthenticatedAdminAiOperationsHousekeepingRoute:
       AuthenticatedAdminAiOperationsHousekeepingRoute,
+    AuthenticatedAdminAiOperationsMaintenanceRoute:
+      AuthenticatedAdminAiOperationsMaintenanceRoute,
     AuthenticatedAdminAiOperationsIndexRoute:
       AuthenticatedAdminAiOperationsIndexRoute,
   }
