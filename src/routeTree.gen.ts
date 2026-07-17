@@ -117,6 +117,7 @@ import { Route as AuthenticatedAdminGuestsCrmDuplicatesRouteImport } from './rou
 import { Route as AuthenticatedAdminGuestsCrmIdRouteImport } from './routes/_authenticated.admin.guests.crm.$id'
 import { Route as AuthenticatedAdminContentPagesIdRouteImport } from './routes/_authenticated.admin.content.pages.$id'
 import { Route as AuthenticatedAdminContentJournalIdRouteImport } from './routes/_authenticated.admin.content.journal.$id'
+import { Route as AuthenticatedAdminContentPagesIdPreviewRouteImport } from './routes/_authenticated.admin.content.pages.$id.preview'
 
 const VoteRoute = VoteRouteImport.update({
   id: '/vote',
@@ -718,6 +719,12 @@ const AuthenticatedAdminContentJournalIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedAdminContentJournalRoute,
   } as any)
+const AuthenticatedAdminContentPagesIdPreviewRoute =
+  AuthenticatedAdminContentPagesIdPreviewRouteImport.update({
+    id: '/preview',
+    path: '/preview',
+    getParentRoute: () => AuthenticatedAdminContentPagesIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -821,12 +828,13 @@ export interface FileRoutesByFullPath {
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
-  '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRoute
+  '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRouteWithChildren
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
+  '/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -926,12 +934,13 @@ export interface FileRoutesByTo {
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
-  '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRoute
+  '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRouteWithChildren
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
+  '/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1037,12 +1046,13 @@ export interface FileRoutesById {
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/_authenticated/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
-  '/_authenticated/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRoute
+  '/_authenticated/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRouteWithChildren
   '/_authenticated/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/_authenticated/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
   '/_authenticated/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/_authenticated/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/_authenticated/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
+  '/_authenticated/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1154,6 +1164,7 @@ export interface FileRouteTypes {
     | '/admin/operations/checkin/$id'
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
+    | '/admin/content/pages/$id/preview'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1259,6 +1270,7 @@ export interface FileRouteTypes {
     | '/admin/operations/checkin/$id'
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
+    | '/admin/content/pages/$id/preview'
   id:
     | '__root__'
     | '/'
@@ -1369,6 +1381,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations/checkin/$id'
     | '/_authenticated/admin/operations/checkout/$id'
     | '/_authenticated/admin/operations/reservations/$id'
+    | '/_authenticated/admin/content/pages/$id/preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -2182,6 +2195,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminContentJournalIdRouteImport
       parentRoute: typeof AuthenticatedAdminContentJournalRoute
     }
+    '/_authenticated/admin/content/pages/$id/preview': {
+      id: '/_authenticated/admin/content/pages/$id/preview'
+      path: '/preview'
+      fullPath: '/admin/content/pages/$id/preview'
+      preLoaderRoute: typeof AuthenticatedAdminContentPagesIdPreviewRouteImport
+      parentRoute: typeof AuthenticatedAdminContentPagesIdRoute
+    }
   }
 }
 
@@ -2242,14 +2262,29 @@ const AuthenticatedAdminContentJournalRouteWithChildren =
     AuthenticatedAdminContentJournalRouteChildren,
   )
 
+interface AuthenticatedAdminContentPagesIdRouteChildren {
+  AuthenticatedAdminContentPagesIdPreviewRoute: typeof AuthenticatedAdminContentPagesIdPreviewRoute
+}
+
+const AuthenticatedAdminContentPagesIdRouteChildren: AuthenticatedAdminContentPagesIdRouteChildren =
+  {
+    AuthenticatedAdminContentPagesIdPreviewRoute:
+      AuthenticatedAdminContentPagesIdPreviewRoute,
+  }
+
+const AuthenticatedAdminContentPagesIdRouteWithChildren =
+  AuthenticatedAdminContentPagesIdRoute._addFileChildren(
+    AuthenticatedAdminContentPagesIdRouteChildren,
+  )
+
 interface AuthenticatedAdminContentPagesRouteChildren {
-  AuthenticatedAdminContentPagesIdRoute: typeof AuthenticatedAdminContentPagesIdRoute
+  AuthenticatedAdminContentPagesIdRoute: typeof AuthenticatedAdminContentPagesIdRouteWithChildren
 }
 
 const AuthenticatedAdminContentPagesRouteChildren: AuthenticatedAdminContentPagesRouteChildren =
   {
     AuthenticatedAdminContentPagesIdRoute:
-      AuthenticatedAdminContentPagesIdRoute,
+      AuthenticatedAdminContentPagesIdRouteWithChildren,
   }
 
 const AuthenticatedAdminContentPagesRouteWithChildren =

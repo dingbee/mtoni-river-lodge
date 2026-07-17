@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ComingSoon } from "@/components/os/ComingSoon";
+import { SlugPageRedirector } from "@/components/os/content/SlugPageRedirector";
 
 export const Route = createFileRoute("/_authenticated/admin/content/homepage")({
   head: () => ({ meta: [{ title: "Homepage — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
-  component: () => <ComingSoon title="Homepage" description="Manage the marketing homepage sections." />,
+  component: () => (
+    <SlugPageRedirector slug="homepage" title="Homepage" route_path="/" description="Marketing homepage sections." />
+  ),
 });
