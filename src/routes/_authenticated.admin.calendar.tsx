@@ -198,6 +198,29 @@ function UnifiedCalendarPage() {
     return (d.bookings as any[]).filter((b) => b.check_in <= today && b.check_out > today).length;
   }, [d.bookings]);
 
+  // Derived views after filter application.
+  const today = iso(new Date());
+  const visibleBookings = useMemo(() => {
+    return (d.bookings as any[]).filter((b) => {
+      if (filters.arrivalsToday && b.check_in !== today) return false;
+      if (filters.departuresToday && b.check_out !== today) return false;
+      if (filters.vip) {
+        const gt = (b.guest_type || "").toString();
+        if (gt !== "vip" && gt !== "climber") return false;
+      }
+      return true;
+    });
+  }, [d.bookings, filters, today]);
+
+  const visibleRooms = useMemo(() => {
+    const rooms = (d.rooms as any[]);
+    if (filters.roomSlugs.size === 0) return rooms;
+    return rooms.filter((r) => filters.roomSlugs.has(r.slug));
+  }, [d.rooms, filters.roomSlugs]);
+
+  const arrivalsCount = (d.bookings as any[]).filter((b) => b.check_in === today).length;
+  const departuresCount = (d.bookings as any[]).filter((b) => b.check_out === today).length;
+
   return (
     <div className="space-y-6">
       <PageHeader
