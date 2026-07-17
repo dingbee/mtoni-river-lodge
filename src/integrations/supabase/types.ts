@@ -122,6 +122,54 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_analytics_recommendations: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          domain: string
+          evidence: Json
+          id: string
+          impact: string | null
+          reasoning: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          suggested_action: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          domain: string
+          evidence?: Json
+          id?: string
+          impact?: string | null
+          reasoning?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_action?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          domain?: string
+          evidence?: Json
+          id?: string
+          impact?: string | null
+          reasoning?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_action?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_brand_reviews: {
         Row: {
           brand_score: number
@@ -3086,6 +3134,51 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_trend_snapshots: {
+        Row: {
+          captured_at: string
+          created_at: string
+          current_value: number | null
+          delta_pct: number | null
+          direction: string | null
+          domain: string
+          evidence: Json
+          id: string
+          metric: string
+          previous_value: number | null
+          updated_at: string
+          window_days: number
+        }
+        Insert: {
+          captured_at?: string
+          created_at?: string
+          current_value?: number | null
+          delta_pct?: number | null
+          direction?: string | null
+          domain: string
+          evidence?: Json
+          id?: string
+          metric: string
+          previous_value?: number | null
+          updated_at?: string
+          window_days: number
+        }
+        Update: {
+          captured_at?: string
+          created_at?: string
+          current_value?: number | null
+          delta_pct?: number | null
+          direction?: string | null
+          domain?: string
+          evidence?: Json
+          id?: string
+          metric?: string
+          previous_value?: number | null
+          updated_at?: string
+          window_days?: number
+        }
+        Relationships: []
+      }
       ai_usage_metrics: {
         Row: {
           created_at: string
@@ -3127,6 +3220,173 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      analytics_dashboards: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_default: boolean
+          layout: Json
+          name: string
+          owner_id: string | null
+          scope: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          layout?: Json
+          name: string
+          owner_id?: string | null
+          scope?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          layout?: Json
+          name?: string
+          owner_id?: string | null
+          scope?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      analytics_reports: {
+        Row: {
+          created_at: string
+          generated_by: string | null
+          id: string
+          kind: string
+          payload: Json
+          period: string
+          period_end: string
+          period_start: string
+          status: string
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          generated_by?: string | null
+          id?: string
+          kind: string
+          payload?: Json
+          period: string
+          period_end: string
+          period_start: string
+          status?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          generated_by?: string | null
+          id?: string
+          kind?: string
+          payload?: Json
+          period?: string
+          period_end?: string
+          period_start?: string
+          status?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      analytics_snapshots: {
+        Row: {
+          created_at: string
+          dimensions: Json
+          domain: string
+          id: string
+          metric: string
+          period: string
+          period_end: string | null
+          period_start: string
+          source: string | null
+          updated_at: string
+          value: number | null
+          value_text: string | null
+        }
+        Insert: {
+          created_at?: string
+          dimensions?: Json
+          domain: string
+          id?: string
+          metric: string
+          period?: string
+          period_end?: string | null
+          period_start?: string
+          source?: string | null
+          updated_at?: string
+          value?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          created_at?: string
+          dimensions?: Json
+          domain?: string
+          id?: string
+          metric?: string
+          period?: string
+          period_end?: string | null
+          period_start?: string
+          source?: string | null
+          updated_at?: string
+          value?: number | null
+          value_text?: string | null
+        }
+        Relationships: []
+      }
+      analytics_widgets: {
+        Row: {
+          config: Json
+          created_at: string
+          dashboard_id: string
+          id: string
+          kind: string
+          position: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          dashboard_id: string
+          id?: string
+          kind: string
+          position?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          dashboard_id?: string
+          id?: string
+          kind?: string
+          position?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_widgets_dashboard_id_fkey"
+            columns: ["dashboard_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_dashboards"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       approval_requests: {
         Row: {
