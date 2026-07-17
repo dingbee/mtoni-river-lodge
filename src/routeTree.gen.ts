@@ -97,6 +97,7 @@ import { Route as AuthenticatedAdminMarketingSeoRouteImport } from './routes/_au
 import { Route as AuthenticatedAdminMarketingReviewsRouteImport } from './routes/_authenticated.admin.marketing.reviews'
 import { Route as AuthenticatedAdminMarketingCampaignsRouteImport } from './routes/_authenticated.admin.marketing.campaigns'
 import { Route as AuthenticatedAdminMarketingAnalyticsRouteImport } from './routes/_authenticated.admin.marketing.analytics'
+import { Route as AuthenticatedAdminMarketingAiAssistantRouteImport } from './routes/_authenticated.admin.marketing.ai-assistant'
 import { Route as AuthenticatedAdminGuestsMessagesRouteImport } from './routes/_authenticated.admin.guests.messages'
 import { Route as AuthenticatedAdminGuestsCrmRouteImport } from './routes/_authenticated.admin.guests.crm'
 import { Route as AuthenticatedAdminFinanceReportsRouteImport } from './routes/_authenticated.admin.finance.reports'
@@ -599,6 +600,12 @@ const AuthenticatedAdminMarketingAnalyticsRoute =
     path: '/marketing/analytics',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminMarketingAiAssistantRoute =
+  AuthenticatedAdminMarketingAiAssistantRouteImport.update({
+    id: '/marketing/ai-assistant',
+    path: '/marketing/ai-assistant',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminGuestsMessagesRoute =
   AuthenticatedAdminGuestsMessagesRouteImport.update({
     id: '/guests/messages',
@@ -814,6 +821,7 @@ export interface FileRoutesByFullPath {
   '/admin/finance/reports': typeof AuthenticatedAdminFinanceReportsRoute
   '/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
+  '/admin/marketing/ai-assistant': typeof AuthenticatedAdminMarketingAiAssistantRoute
   '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
   '/admin/marketing/reviews': typeof AuthenticatedAdminMarketingReviewsRoute
@@ -921,6 +929,7 @@ export interface FileRoutesByTo {
   '/admin/finance/reports': typeof AuthenticatedAdminFinanceReportsRoute
   '/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
+  '/admin/marketing/ai-assistant': typeof AuthenticatedAdminMarketingAiAssistantRoute
   '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
   '/admin/marketing/reviews': typeof AuthenticatedAdminMarketingReviewsRoute
@@ -1034,6 +1043,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/finance/reports': typeof AuthenticatedAdminFinanceReportsRoute
   '/_authenticated/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/_authenticated/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
+  '/_authenticated/admin/marketing/ai-assistant': typeof AuthenticatedAdminMarketingAiAssistantRoute
   '/_authenticated/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/_authenticated/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
   '/_authenticated/admin/marketing/reviews': typeof AuthenticatedAdminMarketingReviewsRoute
@@ -1147,6 +1157,7 @@ export interface FileRouteTypes {
     | '/admin/finance/reports'
     | '/admin/guests/crm'
     | '/admin/guests/messages'
+    | '/admin/marketing/ai-assistant'
     | '/admin/marketing/analytics'
     | '/admin/marketing/campaigns'
     | '/admin/marketing/reviews'
@@ -1254,6 +1265,7 @@ export interface FileRouteTypes {
     | '/admin/finance/reports'
     | '/admin/guests/crm'
     | '/admin/guests/messages'
+    | '/admin/marketing/ai-assistant'
     | '/admin/marketing/analytics'
     | '/admin/marketing/campaigns'
     | '/admin/marketing/reviews'
@@ -1366,6 +1378,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/finance/reports'
     | '/_authenticated/admin/guests/crm'
     | '/_authenticated/admin/guests/messages'
+    | '/_authenticated/admin/marketing/ai-assistant'
     | '/_authenticated/admin/marketing/analytics'
     | '/_authenticated/admin/marketing/campaigns'
     | '/_authenticated/admin/marketing/reviews'
@@ -2067,6 +2080,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMarketingAnalyticsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/marketing/ai-assistant': {
+      id: '/_authenticated/admin/marketing/ai-assistant'
+      path: '/marketing/ai-assistant'
+      fullPath: '/admin/marketing/ai-assistant'
+      preLoaderRoute: typeof AuthenticatedAdminMarketingAiAssistantRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/guests/messages': {
       id: '/_authenticated/admin/guests/messages'
       path: '/guests/messages'
@@ -2350,6 +2370,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminFinanceReportsRoute: typeof AuthenticatedAdminFinanceReportsRoute
   AuthenticatedAdminGuestsCrmRoute: typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   AuthenticatedAdminGuestsMessagesRoute: typeof AuthenticatedAdminGuestsMessagesRoute
+  AuthenticatedAdminMarketingAiAssistantRoute: typeof AuthenticatedAdminMarketingAiAssistantRoute
   AuthenticatedAdminMarketingAnalyticsRoute: typeof AuthenticatedAdminMarketingAnalyticsRoute
   AuthenticatedAdminMarketingCampaignsRoute: typeof AuthenticatedAdminMarketingCampaignsRoute
   AuthenticatedAdminMarketingReviewsRoute: typeof AuthenticatedAdminMarketingReviewsRoute
@@ -2390,6 +2411,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminGuestsCrmRoute:
     AuthenticatedAdminGuestsCrmRouteWithChildren,
   AuthenticatedAdminGuestsMessagesRoute: AuthenticatedAdminGuestsMessagesRoute,
+  AuthenticatedAdminMarketingAiAssistantRoute:
+    AuthenticatedAdminMarketingAiAssistantRoute,
   AuthenticatedAdminMarketingAnalyticsRoute:
     AuthenticatedAdminMarketingAnalyticsRoute,
   AuthenticatedAdminMarketingCampaignsRoute:

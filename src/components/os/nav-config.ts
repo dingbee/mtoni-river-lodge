@@ -104,6 +104,7 @@ export const NAV: NavEntry[] = [
       icon: Megaphone,
       items: [
         { id: "marketing.seo", label: "SEO", href: "/admin/marketing/seo", icon: Search },
+        { id: "marketing.ai-assistant", label: "AI Assistant", href: "/admin/marketing/ai-assistant", icon: Bot },
         { id: "marketing.campaigns", label: "Campaigns", href: "/admin/marketing/campaigns", icon: Sparkles },
         { id: "marketing.analytics", label: "Analytics", href: "/admin/marketing/analytics", icon: BarChart3 },
       ],
