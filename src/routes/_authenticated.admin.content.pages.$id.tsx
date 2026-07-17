@@ -2,19 +2,27 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Save, Send, Monitor, Tablet, Smartphone } from "lucide-react";
+import { ArrowLeft, Save, Send, Monitor, Tablet, Smartphone, Eye, Archive, RotateCcw, CalendarClock, History } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { LoadingState } from "@/components/os/LoadingState";
 import { StatusChip, type StatusTone } from "@/components/os/StatusChip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   getCmsPage,
   upsertCmsPage,
   publishCmsPage,
   saveCmsBlocks,
+  scheduleCmsPage,
+  archiveCmsPage,
+  restoreCmsPage,
+  snapshotCmsPage,
+  restoreCmsPageVersion,
 } from "@/domains/content/pages/pages.functions";
 import { BLOCK_REGISTRY, type CmsBlockKind } from "@/domains/content/pages/blocks";
 import { BlockPalette } from "@/components/os/content/BlockPalette";
@@ -45,6 +53,11 @@ function PageEditor() {
   const saveFn = useServerFn(upsertCmsPage);
   const publishFn = useServerFn(publishCmsPage);
   const saveBlocksFn = useServerFn(saveCmsBlocks);
+  const scheduleFn = useServerFn(scheduleCmsPage);
+  const archiveFn = useServerFn(archiveCmsPage);
+  const restoreFn = useServerFn(restoreCmsPage);
+  const snapshotFn = useServerFn(snapshotCmsPage);
+  const restoreVersionFn = useServerFn(restoreCmsPageVersion);
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -56,6 +69,9 @@ function PageEditor() {
   const [blocks, setBlocks] = useState<BlockDraft[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState<PreviewMode>("desktop");
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduleAt, setScheduleAt] = useState("");
+  const [versionsOpen, setVersionsOpen] = useState(false);
 
   useEffect(() => {
     if (!data?.page) return;
@@ -100,6 +116,7 @@ function PageEditor() {
   const publishMut = useMutation({
     mutationFn: async () => {
       await saveMut.mutateAsync();
+      await snapshotFn({ data: { id, note: "Auto-snapshot on publish" } });
       return publishFn({ data: { id } });
     },
     onSuccess: () => {
@@ -109,7 +126,45 @@ function PageEditor() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const scheduleMut = useMutation({
+    mutationFn: async () => {
+      await saveMut.mutateAsync();
+      return scheduleFn({ data: { id, scheduled_at: new Date(scheduleAt).toISOString() } });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin.cms.page", id] });
+      setScheduleOpen(false);
+      toast.success("Scheduled");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const archiveMut = useMutation({
+    mutationFn: () => archiveFn({ data: { id } }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin.cms.page", id] }); toast.success("Archived"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const restoreMut = useMutation({
+    mutationFn: () => restoreFn({ data: { id } }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin.cms.page", id] }); toast.success("Restored to draft"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const snapshotMut = useMutation({
+    mutationFn: async () => {
+      await saveMut.mutateAsync();
+      return snapshotFn({ data: { id, note: "Manual snapshot" } });
+    },
+    onSuccess: (r) => { qc.invalidateQueries({ queryKey: ["admin.cms.page", id] }); toast.success(`Snapshot v${r.version} saved`); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const restoreVersionMut = useMutation({
+    mutationFn: (versionId: string) => restoreVersionFn({ data: { versionId } }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin.cms.page", id] }); setVersionsOpen(false); toast.success("Version restored"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   if (isLoading || !data?.page) return <LoadingState />;
+  const isArchived = data.page.status === "archived";
 
   const addBlock = (kind: CmsBlockKind) => {
     const next: BlockDraft = { uid: makeUid(), kind, data: BLOCK_REGISTRY[kind].defaults() };
@@ -146,6 +201,27 @@ function PageEditor() {
             <Button variant="ghost" size="sm" asChild>
               <Link to="/admin/content/pages"><ArrowLeft className="mr-1 h-4 w-4" /> Back</Link>
             </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/admin/content/pages/$id/preview" params={{ id }}><Eye className="mr-1 h-4 w-4" /> Preview</Link>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setVersionsOpen(true)}>
+              <History className="mr-1 h-4 w-4" /> Versions
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => snapshotMut.mutate()} disabled={snapshotMut.isPending}>
+              Snapshot
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setScheduleOpen(true)}>
+              <CalendarClock className="mr-1 h-4 w-4" /> Schedule
+            </Button>
+            {isArchived ? (
+              <Button variant="ghost" size="sm" onClick={() => restoreMut.mutate()} disabled={restoreMut.isPending}>
+                <RotateCcw className="mr-1 h-4 w-4" /> Restore
+              </Button>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={() => { if (confirm("Archive this page?")) archiveMut.mutate(); }} disabled={archiveMut.isPending}>
+                <Archive className="mr-1 h-4 w-4" /> Archive
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
               <Save className="mr-1 h-4 w-4" /> Save
             </Button>
@@ -191,6 +267,47 @@ function PageEditor() {
           </aside>
         </div>
       </div>
+
+      <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Schedule publish</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground">Publish at</label>
+            <Input type="datetime-local" value={scheduleAt} onChange={(e) => setScheduleAt(e.target.value)} />
+            <p className="text-xs text-muted-foreground">The page stays in <em>scheduled</em> until you publish it.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setScheduleOpen(false)}>Cancel</Button>
+            <Button onClick={() => scheduleMut.mutate()} disabled={!scheduleAt || scheduleMut.isPending}>Schedule</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={versionsOpen} onOpenChange={setVersionsOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Version history</DialogTitle></DialogHeader>
+          <div className="max-h-[420px] space-y-1 overflow-y-auto">
+            {(data.versions ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No snapshots yet. Use <em>Snapshot</em> or publish to create one.</p>
+            ) : (
+              (data.versions ?? []).map((v) => (
+                <div key={v.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
+                  <div>
+                    <div className="font-medium">v{v.version}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(v.created_at).toLocaleString()} {v.note ? `· ${v.note}` : ""}
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => { if (confirm(`Restore v${v.version}? Current blocks will be replaced.`)) restoreVersionMut.mutate(v.id); }} disabled={restoreVersionMut.isPending}>
+                    Restore
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter><Button variant="ghost" onClick={() => setVersionsOpen(false)}>Close</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
