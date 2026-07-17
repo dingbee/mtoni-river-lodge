@@ -188,7 +188,7 @@ export const classifyConciergeOutcomes = createServerFn({ method: "POST" })
       session_id: string;
       outcome_type: string;
       confidence: number;
-      evidence: Record<string, unknown>;
+      evidence: any;
     }> = [];
     for (const sess of sessions) {
       if (done.has(sess.id)) continue;
@@ -201,7 +201,7 @@ export const classifyConciergeOutcomes = createServerFn({ method: "POST" })
 
       let outcome = "information_request";
       let confidence = 0.6;
-      const evidence: Record<string, unknown> = {};
+      const evidence: Record<string, any> = {};
 
       if (attr === "assisted_booking" || attr === "direct_booking") {
         outcome = "converted"; confidence = 0.95; evidence.attribution = attr;
@@ -308,7 +308,9 @@ export const updateConciergeInsight = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    const patch: { status?: string; recommended_action?: string | null; updated_at: string } = {
+      updated_at: new Date().toISOString(),
+    };
     if (data.status) patch.status = data.status;
     if (typeof data.recommended_action !== "undefined") patch.recommended_action = data.recommended_action;
     const { error } = await context.supabase.from("ai_concierge_insights").update(patch).eq("id", data.id);
