@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MessageCircle, X, Send, ExternalLink, Calendar, Users, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { trackGAEvent, trackBookingClick, trackWhatsAppClick } from "@/lib/analytics";
 import type {
   ConciergeMessage,
   ConciergeReply,
@@ -44,7 +45,7 @@ export function ConciergeWidget() {
     () => ({
       role: "assistant",
       content:
-        "Karibu — I'm Mtoni's concierge. Ask about our rooms, experiences, or how to plan your stay in Arusha. For live availability I'll connect you with our reservations team.",
+        "Karibu — welcome to Mtoni River Lodge. I'm your AI Concierge. I can help you discover rooms, explore experiences, check availability, and plan your stay in Arusha.",
     }),
     [],
   );
@@ -52,6 +53,7 @@ export function ConciergeWidget() {
   useEffect(() => {
     if (open) {
       requestAnimationFrame(() => inputRef.current?.focus());
+      trackGAEvent("concierge_opened", { event_category: "concierge" });
     }
   }, [open]);
 
@@ -68,6 +70,10 @@ export function ConciergeWidget() {
     setEscalation(null);
     const userMsg: ChatMessage = { role: "user", content: text };
     setMessages((prev) => [...prev, userMsg]);
+    trackGAEvent("concierge_message_sent", {
+      event_category: "concierge",
+      message_length: text.length,
+    });
     try {
       const res = await fetch("/api/public/concierge/chat", {
         method: "POST",
@@ -83,7 +89,19 @@ export function ConciergeWidget() {
       if (!res.ok || data.error) throw new Error(data.error ?? "Concierge unavailable.");
       if (data.session_token) save(data.session_token);
       setMessages((prev) => [...prev, data.message]);
-      if (data.escalation) setEscalation(data.escalation);
+      if (data.message.intent === "high" || data.message.plan) {
+        trackGAEvent("concierge_booking_intent", {
+          event_category: "concierge",
+          intent: data.message.intent ?? "plan",
+        });
+      }
+      if (data.escalation) {
+        setEscalation(data.escalation);
+        trackGAEvent("concierge_escalation", {
+          event_category: "concierge",
+          reason: data.escalation.reason,
+        });
+      }
     } catch (err: any) {
       setMessages((prev) => [
         ...prev,
@@ -139,7 +157,13 @@ export function ConciergeWidget() {
   const shown: ChatMessage[] = messages.length === 0 ? [greeting] : [greeting, ...messages];
   const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
   const quickActions = messages.length === 0
-    ? ["Which room suits a couple?", "What experiences do you offer?", "Do you have family rooms?"]
+    ? [
+        "Find my room",
+        "Explore experiences",
+        "Check availability",
+        "Ask a question",
+        "Contact Mtoni team",
+      ]
     : [];
 
   return (
@@ -148,19 +172,20 @@ export function ConciergeWidget() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Open Mtoni Concierge"
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-primary-foreground shadow-lg transition hover:brightness-110"
+          aria-label="Open Mtoni AI Concierge"
+          className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-primary-foreground shadow-xl ring-1 ring-[color:var(--gold)]/40 transition-all duration-300 hover:scale-105 hover:brightness-110 sm:bottom-6 sm:right-6"
+          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
         >
           <MessageCircle className="size-5" />
-          <span className="hidden text-sm font-medium sm:inline">Concierge</span>
+          <span className="hidden text-sm font-medium sm:inline">Mtoni AI Concierge</span>
         </button>
       )}
       {open && (
-        <div className="fixed bottom-6 right-6 z-50 flex h-[min(600px,80vh)] w-[min(380px,92vw)] flex-col overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
-          <header className="flex items-center justify-between border-b border-border bg-primary px-4 py-3 text-primary-foreground">
+        <div className="fixed inset-0 z-50 flex flex-col overflow-hidden border-border bg-background shadow-2xl sm:inset-auto sm:bottom-6 sm:right-6 sm:h-[min(640px,82vh)] sm:w-[min(400px,92vw)] sm:rounded-2xl sm:border">
+          <header className="flex items-center justify-between border-b border-border bg-primary px-4 py-3 text-primary-foreground" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
             <div>
-              <p className="text-sm font-semibold">Mtoni Concierge</p>
-              <p className="text-[11px] opacity-80">Ask about rooms, experiences, or planning your stay.</p>
+              <p className="font-serif text-base font-semibold tracking-wide">Mtoni AI Concierge</p>
+              <p className="text-[11px] opacity-80">Rooms · Experiences · Plan your stay</p>
             </div>
             <button type="button" onClick={() => setOpen(false)} aria-label="Close concierge" className="rounded p-1 hover:bg-white/10">
               <X className="size-4" />
@@ -201,13 +226,16 @@ export function ConciergeWidget() {
               <div className="mr-auto max-w-[85%] rounded-lg bg-muted px-3 py-2 text-muted-foreground">Thinking…</div>
             )}
             {quickActions.length > 0 && !busy && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 pt-1">
                 {quickActions.map((q) => (
                   <button
                     key={q}
                     type="button"
-                    onClick={() => void sendText(q)}
-                    className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] hover:bg-muted"
+                    onClick={() => {
+                      trackGAEvent("concierge_quick_action", { event_category: "concierge", action: q });
+                      void sendText(q);
+                    }}
+                    className="rounded-full border border-[color:var(--gold)]/50 bg-[color:var(--ivory)]/60 px-3 py-1.5 text-[11px] font-medium text-foreground transition hover:bg-[color:var(--gold)]/20"
                   >
                     {q}
                   </button>
@@ -257,7 +285,7 @@ export function ConciergeWidget() {
               </div>
             )}
           </div>
-          <div className="border-t border-border p-2">
+          <div className="border-t border-border p-2" style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}>
             <div className="flex items-end gap-2">
               <textarea
                 ref={inputRef}
@@ -286,7 +314,7 @@ export function ConciergeWidget() {
               </button>
             </div>
             <p className="mt-1 px-1 text-[10px] text-muted-foreground">
-              Concierge answers are AI-generated. For bookings please use the online booking form.
+              AI-generated responses. For confirmed bookings please use the secure booking form.
             </p>
           </div>
         </div>
@@ -305,6 +333,7 @@ function RecommendationsList({ recs }: { recs: ConciergeRecommendation[] }) {
         <a
           key={`${r.type}-${r.slug}`}
           href={r.type === "room" ? `/rooms/${r.slug}` : "/experiences"}
+          onClick={() => trackGAEvent("concierge_recommendation_click", { event_category: "concierge", rec_type: r.type, slug: r.slug })}
           className="block rounded-md bg-background/60 px-2 py-1.5 hover:bg-background"
         >
           <div className="flex items-center justify-between gap-2">
@@ -338,21 +367,22 @@ function AvailabilityList({ rooms }: { rooms: ConciergeAvailabilityRoom[] }) {
 
 function BookingPlanCard({ plan }: { plan: ConciergeBookingPlan }) {
   return (
-    <div className="mt-2 rounded-md border border-primary/30 bg-primary/5 p-2 text-[11px]">
-      <p className="font-medium">Your booking plan</p>
+    <div className="mt-2 rounded-lg border border-[color:var(--gold)]/50 bg-[color:var(--ivory)]/70 p-3 text-[11px] shadow-sm">
+      <p className="font-serif text-sm font-semibold text-primary">Your Mtoni stay plan</p>
       <p className="mt-0.5 flex items-center gap-1 opacity-80">
         <Calendar className="size-3" /> {plan.check_in} → {plan.check_out} · {plan.nights}n
       </p>
       <p className="flex items-center gap-1 opacity-80">
         <Users className="size-3" /> {plan.adults} adults{plan.children ? ` · ${plan.children} children` : ""}
       </p>
-      {plan.room && <p className="mt-1">Room: <strong>{plan.room.name}</strong> — US${plan.room.nightly_total_usd}</p>}
+      {plan.room && <p className="mt-1">Suggested: <strong>{plan.room.name}</strong> — US${plan.room.nightly_total_usd}</p>}
       {plan.experiences.length > 0 && (
         <p className="mt-0.5 opacity-80">Experiences: {plan.experiences.map((e) => e.name).join(", ")}</p>
       )}
       <a
         href={plan.booking_url}
-        className="mt-2 inline-flex items-center gap-1 rounded bg-primary px-2.5 py-1 text-primary-foreground hover:brightness-110"
+        onClick={() => trackBookingClick({ buttonText: "Continue Booking", location: "concierge_plan", destinationUrl: plan.booking_url })}
+        className="mt-2 inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground shadow-sm hover:brightness-110"
       >
         Continue to booking <ExternalLink className="size-3" />
       </a>
