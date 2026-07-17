@@ -31,6 +31,7 @@ import {
 } from "@/lib/booking.functions";
 import { initiatePayment } from "@/lib/payments.functions";
 import { newBookingSessionId } from "@/lib/booking-session";
+import { createBookingHold, releaseBookingHold } from "@/lib/availability.functions";
 import { calculateBookingTotal, calculateNightlyRate, buildPriceBreakdown, getRoomPricing } from "@/lib/pricing";
 
 export const Route = createFileRoute("/book")({
@@ -175,6 +176,7 @@ function BookPage() {
   const [selectedExtras, setSelectedExtras] = useState<SelectedExtra[]>(p.selectedExtras ?? []);
   const [guest, setGuest] = useState(p.guest ?? { name: "", email: "", phone: "", country: "", requests: "", purpose: "" });
   const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string } | null>(null);
+  const [hold, setHold] = useState<{ id: string; expiresAt: string; roomSlug: string } | null>(null);
 
   // Mirror critical state in refs so the validation guard can read the
   // freshest values immediately after a navigate(), even if React hasn't
@@ -321,6 +323,8 @@ function BookPage() {
   const listExtrasFn = useServerFn(listExtras);
   const createBookingFn = useServerFn(createBooking);
   const initiatePaymentFn = useServerFn(initiatePayment);
+  const createHoldFn = useServerFn(createBookingHold);
+  const releaseHoldFn = useServerFn(releaseBookingHold);
 
   const search = useMutation({
     mutationFn: async () => {
@@ -369,6 +373,8 @@ function BookPage() {
           specialRequests: guest.requests,
           visitPurpose: guest.purpose,
           extras: selectedExtras,
+          holdId: hold && hold.roomSlug === selectedRoom.slug ? hold.id : undefined,
+          sessionId,
         },
       });
       trackGAEvent("begin_payment", {
@@ -481,6 +487,22 @@ function BookPage() {
                 // already bound to — just proceed to guest details.
                 if (!currentRoomContext || currentRoomContext === r.slug) {
                   setSelectedRoom(r);
+                  // Fire-and-forget hold acquisition — 15-minute inventory lock.
+                  // Failures are non-blocking; createBooking still runs the same
+                  // atomic availability check server-side.
+                  void createHoldFn({
+                    data: {
+                      roomSlug: r.slug,
+                      checkIn,
+                      checkOut,
+                      sessionId,
+                      guestEmail: guest.email || undefined,
+                    },
+                  })
+                    .then((h) => setHold({ id: h.holdId, expiresAt: h.expiresAt, roomSlug: r.slug }))
+                    .catch((e) => {
+                      console.warn("[book] hold acquire failed", e);
+                    });
                   trackRoomSelected({
                     room_slug: r.slug,
                     room_name: r.name,
@@ -508,6 +530,10 @@ function BookPage() {
                   if (typeof window !== "undefined")
                     window.sessionStorage.removeItem(STORAGE_KEY);
                 } catch {}
+                if (hold) {
+                  void releaseHoldFn({ data: { holdId: hold.id, sessionId } }).catch(() => undefined);
+                  setHold(null);
+                }
                 const fresh = newBookingSessionId();
                 trackGAEvent("booking_room_switch_reset", {
                   event_category: "conversion",

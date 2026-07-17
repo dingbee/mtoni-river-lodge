@@ -78,6 +78,7 @@ import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
 import { Route as AuthenticatedAdminOperationsRouteImport } from './routes/_authenticated.admin.operations'
 import { Route as AuthenticatedAdminFrontDeskRouteImport } from './routes/_authenticated.admin.front-desk'
+import { Route as AuthenticatedAdminCalendarRouteImport } from './routes/_authenticated.admin.calendar'
 import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authenticated.admin.bookings'
 import { Route as AuthenticatedAdminAutomationRouteImport } from './routes/_authenticated.admin.automation'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated.admin.analytics'
@@ -90,6 +91,7 @@ import { Route as AuthenticatedAdminAiIndexRouteImport } from './routes/_authent
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
+import { Route as ApiPublicRoomsStatusRouteImport } from './routes/api/public/rooms.status'
 import { Route as ApiPublicPesapalIpnRouteImport } from './routes/api/public/pesapal.ipn'
 import { Route as ApiPublicOpsMorningDigestRouteImport } from './routes/api/public/ops/morning-digest'
 import { Route as ApiPublicOpsDrainRouteImport } from './routes/api/public/ops/drain'
@@ -99,6 +101,7 @@ import { Route as ApiPublicConciergeLeadRouteImport } from './routes/api/public/
 import { Route as ApiPublicConciergeFeedbackRouteImport } from './routes/api/public/concierge.feedback'
 import { Route as ApiPublicConciergeChatRouteImport } from './routes/api/public/concierge.chat'
 import { Route as ApiPublicConciergeAttributionRouteImport } from './routes/api/public/concierge.attribution'
+import { Route as ApiPublicAvailabilitySearchRouteImport } from './routes/api/public/availability.search'
 import { Route as AuthenticatedAdminSystemHealthRouteImport } from './routes/_authenticated.admin.system.health'
 import { Route as AuthenticatedAdminStaffUsersRouteImport } from './routes/_authenticated.admin.staff.users'
 import { Route as AuthenticatedAdminStaffRolesRouteImport } from './routes/_authenticated.admin.staff.roles'
@@ -583,6 +586,12 @@ const AuthenticatedAdminFrontDeskRoute =
     path: '/front-desk',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminCalendarRoute =
+  AuthenticatedAdminCalendarRouteImport.update({
+    id: '/calendar',
+    path: '/calendar',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminBookingsRoute =
   AuthenticatedAdminBookingsRouteImport.update({
     id: '/bookings',
@@ -654,6 +663,11 @@ const LovableEmailQueueProcessRoute =
     path: '/lovable/email/queue/process',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicRoomsStatusRoute = ApiPublicRoomsStatusRouteImport.update({
+  id: '/api/public/rooms/status',
+  path: '/api/public/rooms/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPesapalIpnRoute = ApiPublicPesapalIpnRouteImport.update({
   id: '/api/public/pesapal/ipn',
   path: '/api/public/pesapal/ipn',
@@ -702,6 +716,12 @@ const ApiPublicConciergeAttributionRoute =
   ApiPublicConciergeAttributionRouteImport.update({
     id: '/api/public/concierge/attribution',
     path: '/api/public/concierge/attribution',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicAvailabilitySearchRoute =
+  ApiPublicAvailabilitySearchRouteImport.update({
+    id: '/api/public/availability/search',
+    path: '/api/public/availability/search',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedAdminSystemHealthRoute =
@@ -1485,6 +1505,7 @@ export interface FileRoutesByFullPath {
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRouteWithChildren
   '/admin/automation': typeof AuthenticatedAdminAutomationRouteWithChildren
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
+  '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
@@ -1554,6 +1575,7 @@ export interface FileRoutesByFullPath {
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
   '/admin/system/health': typeof AuthenticatedAdminSystemHealthRoute
+  '/api/public/availability/search': typeof ApiPublicAvailabilitySearchRoute
   '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
   '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
@@ -1563,6 +1585,7 @@ export interface FileRoutesByFullPath {
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
+  '/api/public/rooms/status': typeof ApiPublicRoomsStatusRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -1689,6 +1712,7 @@ export interface FileRoutesByTo {
   '/journal': typeof JournalIndexRoute
   '/rooms': typeof RoomsIndexRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
+  '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -1752,6 +1776,7 @@ export interface FileRoutesByTo {
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
   '/admin/system/health': typeof AuthenticatedAdminSystemHealthRoute
+  '/api/public/availability/search': typeof ApiPublicAvailabilitySearchRoute
   '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
   '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
@@ -1761,6 +1786,7 @@ export interface FileRoutesByTo {
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
+  '/api/public/rooms/status': typeof ApiPublicRoomsStatusRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -1895,6 +1921,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRouteWithChildren
   '/_authenticated/admin/automation': typeof AuthenticatedAdminAutomationRouteWithChildren
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
+  '/_authenticated/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/_authenticated/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
@@ -1964,6 +1991,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/_authenticated/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
   '/_authenticated/admin/system/health': typeof AuthenticatedAdminSystemHealthRoute
+  '/api/public/availability/search': typeof ApiPublicAvailabilitySearchRoute
   '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
   '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
@@ -1973,6 +2001,7 @@ export interface FileRoutesById {
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
+  '/api/public/rooms/status': typeof ApiPublicRoomsStatusRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -2107,6 +2136,7 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/automation'
     | '/admin/bookings'
+    | '/admin/calendar'
     | '/admin/front-desk'
     | '/admin/operations'
     | '/admin/reviews'
@@ -2176,6 +2206,7 @@ export interface FileRouteTypes {
     | '/admin/staff/roles'
     | '/admin/staff/users'
     | '/admin/system/health'
+    | '/api/public/availability/search'
     | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
     | '/api/public/concierge/feedback'
@@ -2185,6 +2216,7 @@ export interface FileRouteTypes {
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
+    | '/api/public/rooms/status'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -2311,6 +2343,7 @@ export interface FileRouteTypes {
     | '/journal'
     | '/rooms'
     | '/admin/bookings'
+    | '/admin/calendar'
     | '/admin/front-desk'
     | '/admin/reviews'
     | '/admin/settings'
@@ -2374,6 +2407,7 @@ export interface FileRouteTypes {
     | '/admin/staff/roles'
     | '/admin/staff/users'
     | '/admin/system/health'
+    | '/api/public/availability/search'
     | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
     | '/api/public/concierge/feedback'
@@ -2383,6 +2417,7 @@ export interface FileRouteTypes {
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
+    | '/api/public/rooms/status'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -2516,6 +2551,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/automation'
     | '/_authenticated/admin/bookings'
+    | '/_authenticated/admin/calendar'
     | '/_authenticated/admin/front-desk'
     | '/_authenticated/admin/operations'
     | '/_authenticated/admin/reviews'
@@ -2585,6 +2621,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/staff/roles'
     | '/_authenticated/admin/staff/users'
     | '/_authenticated/admin/system/health'
+    | '/api/public/availability/search'
     | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
     | '/api/public/concierge/feedback'
@@ -2594,6 +2631,7 @@ export interface FileRouteTypes {
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
+    | '/api/public/rooms/status'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -2709,6 +2747,7 @@ export interface RootRouteChildren {
   WpJsonSplatRoute: typeof WpJsonSplatRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicAvailabilitySearchRoute: typeof ApiPublicAvailabilitySearchRoute
   ApiPublicConciergeAttributionRoute: typeof ApiPublicConciergeAttributionRoute
   ApiPublicConciergeChatRoute: typeof ApiPublicConciergeChatRoute
   ApiPublicConciergeFeedbackRoute: typeof ApiPublicConciergeFeedbackRoute
@@ -2718,6 +2757,7 @@ export interface RootRouteChildren {
   ApiPublicOpsDrainRoute: typeof ApiPublicOpsDrainRoute
   ApiPublicOpsMorningDigestRoute: typeof ApiPublicOpsMorningDigestRoute
   ApiPublicPesapalIpnRoute: typeof ApiPublicPesapalIpnRoute
+  ApiPublicRoomsStatusRoute: typeof ApiPublicRoomsStatusRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
   LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
@@ -3208,6 +3248,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFrontDeskRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/calendar': {
+      id: '/_authenticated/admin/calendar'
+      path: '/calendar'
+      fullPath: '/admin/calendar'
+      preLoaderRoute: typeof AuthenticatedAdminCalendarRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/bookings': {
       id: '/_authenticated/admin/bookings'
       path: '/bookings'
@@ -3292,6 +3339,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/rooms/status': {
+      id: '/api/public/rooms/status'
+      path: '/api/public/rooms/status'
+      fullPath: '/api/public/rooms/status'
+      preLoaderRoute: typeof ApiPublicRoomsStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/pesapal/ipn': {
       id: '/api/public/pesapal/ipn'
       path: '/api/public/pesapal/ipn'
@@ -3353,6 +3407,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/concierge/attribution'
       fullPath: '/api/public/concierge/attribution'
       preLoaderRoute: typeof ApiPublicConciergeAttributionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/availability/search': {
+      id: '/api/public/availability/search'
+      path: '/api/public/availability/search'
+      fullPath: '/api/public/availability/search'
+      preLoaderRoute: typeof ApiPublicAvailabilitySearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/system/health': {
@@ -4613,6 +4674,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRouteWithChildren
   AuthenticatedAdminAutomationRoute: typeof AuthenticatedAdminAutomationRouteWithChildren
   AuthenticatedAdminBookingsRoute: typeof AuthenticatedAdminBookingsRoute
+  AuthenticatedAdminCalendarRoute: typeof AuthenticatedAdminCalendarRoute
   AuthenticatedAdminFrontDeskRoute: typeof AuthenticatedAdminFrontDeskRoute
   AuthenticatedAdminOperationsRoute: typeof AuthenticatedAdminOperationsRouteWithChildren
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
@@ -4659,6 +4721,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAutomationRoute:
     AuthenticatedAdminAutomationRouteWithChildren,
   AuthenticatedAdminBookingsRoute: AuthenticatedAdminBookingsRoute,
+  AuthenticatedAdminCalendarRoute: AuthenticatedAdminCalendarRoute,
   AuthenticatedAdminFrontDeskRoute: AuthenticatedAdminFrontDeskRoute,
   AuthenticatedAdminOperationsRoute:
     AuthenticatedAdminOperationsRouteWithChildren,
@@ -4840,6 +4903,7 @@ const rootRouteChildren: RootRouteChildren = {
   WpJsonSplatRoute: WpJsonSplatRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicAvailabilitySearchRoute: ApiPublicAvailabilitySearchRoute,
   ApiPublicConciergeAttributionRoute: ApiPublicConciergeAttributionRoute,
   ApiPublicConciergeChatRoute: ApiPublicConciergeChatRoute,
   ApiPublicConciergeFeedbackRoute: ApiPublicConciergeFeedbackRoute,
@@ -4849,6 +4913,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicOpsDrainRoute: ApiPublicOpsDrainRoute,
   ApiPublicOpsMorningDigestRoute: ApiPublicOpsMorningDigestRoute,
   ApiPublicPesapalIpnRoute: ApiPublicPesapalIpnRoute,
+  ApiPublicRoomsStatusRoute: ApiPublicRoomsStatusRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
   LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,

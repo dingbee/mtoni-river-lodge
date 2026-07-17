@@ -3496,6 +3496,73 @@ export type Database = {
           },
         ]
       }
+      booking_holds: {
+        Row: {
+          check_in: string
+          check_out: string
+          converted_booking_id: string | null
+          created_at: string
+          expires_at: string
+          guest_email: string | null
+          id: string
+          metadata: Json
+          room_id: string
+          session_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          check_in: string
+          check_out: string
+          converted_booking_id?: string | null
+          created_at?: string
+          expires_at: string
+          guest_email?: string | null
+          id?: string
+          metadata?: Json
+          room_id: string
+          session_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          check_in?: string
+          check_out?: string
+          converted_booking_id?: string | null
+          created_at?: string
+          expires_at?: string
+          guest_email?: string | null
+          id?: string
+          metadata?: Json
+          room_id?: string
+          session_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_holds_converted_booking_id_fkey"
+            columns: ["converted_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_holds_converted_booking_id_fkey"
+            columns: ["converted_booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_holds_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_nights: {
         Row: {
           booking_id: string
@@ -3747,6 +3814,74 @@ export type Database = {
           value?: Json
         }
         Relationships: []
+      }
+      calendar_events: {
+        Row: {
+          actor_id: string | null
+          booking_id: string | null
+          created_at: string
+          date_from: string | null
+          date_to: string | null
+          event_type: string
+          hold_id: string | null
+          id: string
+          payload: Json
+          room_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          booking_id?: string | null
+          created_at?: string
+          date_from?: string | null
+          date_to?: string | null
+          event_type: string
+          hold_id?: string | null
+          id?: string
+          payload?: Json
+          room_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          booking_id?: string | null
+          created_at?: string
+          date_from?: string | null
+          date_to?: string | null
+          event_type?: string
+          hold_id?: string | null
+          id?: string
+          payload?: Json
+          room_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_hold_id_fkey"
+            columns: ["hold_id"]
+            isOneToOne: false
+            referencedRelation: "booking_holds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campaigns: {
         Row: {
@@ -6550,6 +6685,46 @@ export type Database = {
               total: number
             }[]
           }
+        | {
+            Args: {
+              _adults: number
+              _check_in: string
+              _check_out: string
+              _children: number
+              _children_7_plus?: number
+              _children_below_6?: number
+              _country: string
+              _extras?: Json
+              _guest_email: string
+              _guest_name: string
+              _guest_phone: string
+              _hold_id?: string
+              _room_slug: string
+              _session_id?: string
+              _special_requests: string
+            }
+            Returns: {
+              booking_id: string
+              currency: string
+              reference: string
+              total: number
+            }[]
+          }
+      create_booking_hold: {
+        Args: {
+          _check_in: string
+          _check_out: string
+          _guest_email?: string
+          _room_slug: string
+          _session_id: string
+          _ttl_seconds?: number
+        }
+        Returns: {
+          expires_at: string
+          hold_id: string
+          room_id: string
+        }[]
+      }
       current_user_roles: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"][]
@@ -6567,6 +6742,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      expire_booking_holds: { Args: never; Returns: number }
       find_duplicate_guests: {
         Args: never
         Returns: {
@@ -6635,6 +6811,18 @@ export type Database = {
           rank: number
         }[]
       }
+      log_calendar_event: {
+        Args: {
+          _booking_id: string
+          _event_type: string
+          _from: string
+          _hold_id: string
+          _payload: Json
+          _room_id: string
+          _to: string
+        }
+        Returns: string
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -6651,6 +6839,20 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      release_booking_hold: {
+        Args: { _hold_id: string; _session_id: string }
+        Returns: boolean
+      }
+      set_room_block: {
+        Args: {
+          _blocked: boolean
+          _from: string
+          _reason?: string
+          _room_id: string
+          _to: string
+        }
+        Returns: number
       }
       system_observability_trim: { Args: never; Returns: undefined }
     }

@@ -94,6 +94,8 @@ const createBookingSchema = z.object({
   specialRequests: z.string().trim().max(1000).optional().or(z.literal("")),
   visitPurpose: z.string().trim().max(80).optional().or(z.literal("")),
   extras: z.array(extraSchema).max(20).default([]),
+  holdId: z.string().uuid().optional(),
+  sessionId: z.string().min(6).max(120).optional(),
 });
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
@@ -119,6 +121,8 @@ export const createBooking = createServerFn({ method: "POST" })
       _country: (data.country || null) as unknown as string,
       _special_requests: (data.specialRequests || null) as unknown as string,
       _extras: data.extras,
+      _hold_id: (data.holdId || null) as unknown as string,
+      _session_id: (data.sessionId || null) as unknown as string,
     } as never);
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
