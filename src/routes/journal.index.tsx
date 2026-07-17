@@ -1,13 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
 import { BreadcrumbsBar } from "@/components/site/Breadcrumbs";
 import river from "@/assets/nduruma-river-flow.jpg";
-import { getJournalPosts } from "@/lib/journal";
 import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
-
-const posts = getJournalPosts();
+import { listPublishedJournalArticles } from "@/domains/content/journal/journal-public.functions";
+import { mergeJournalPosts, type DbJournalRow } from "@/lib/journal-merged";
 
 export const Route = createFileRoute("/journal/")({
   head: () => ({
@@ -38,6 +38,13 @@ export const Route = createFileRoute("/journal/")({
 });
 
 function JournalPage() {
+  const { data: dbRows } = useQuery<DbJournalRow[]>({
+    queryKey: ["journal.public.list"],
+    queryFn: () => listPublishedJournalArticles(),
+    staleTime: 60_000,
+  });
+  const posts = mergeJournalPosts(dbRows);
+  if (posts.length === 0) return null;
   return (
     <div className="bg-ivory text-charcoal">
       <SiteHeader />
