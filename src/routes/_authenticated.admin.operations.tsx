@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_authenticated/admin/operations")({
 const TABS = [
   { to: "/admin/operations", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/operations/rooms", label: "Room Board", icon: Bed },
-  { to: "/admin/operations/calendar", label: "Calendar", icon: CalendarDays },
+  { to: "/admin/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/admin/operations/housekeeping", label: "Housekeeping", icon: ClipboardCheck },
   { to: "/admin/operations/tasks", label: "Tasks", icon: ListChecks },
   { to: "/admin/operations/alerts", label: "Alerts", icon: AlertTriangle },
