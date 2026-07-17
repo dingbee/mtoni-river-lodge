@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { listCmsPages, createCmsPage, deleteCmsPage } from "@/domains/content/pages/pages.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/content/pages")({
+export const Route = createFileRoute("/_authenticated/admin/content/pages/")({
   head: () => ({ meta: [{ title: "Pages — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: PagesListPage,
 });

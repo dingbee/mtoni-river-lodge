@@ -16,7 +16,7 @@ import {
   deleteJournalArticle,
 } from "@/domains/content/journal/journal.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/content/journal")({
+export const Route = createFileRoute("/_authenticated/admin/content/journal/")({
   head: () => ({ meta: [{ title: "Journal — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: JournalListPage,
 });
