@@ -919,6 +919,133 @@ export type Database = {
           },
         ]
       }
+      ai_copilot_feedback: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string
+          note: string | null
+          rating: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id: string
+          note?: string | null
+          rating: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string
+          note?: string | null
+          rating?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_copilot_feedback_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_copilot_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_copilot_messages: {
+        Row: {
+          citations: Json
+          confidence: number | null
+          content: string
+          created_at: string
+          domains_used: string[] | null
+          duration_ms: number | null
+          evidence: Json
+          id: string
+          model: string | null
+          recommendation: string | null
+          role: string
+          session_id: string
+          tools_used: string[] | null
+          user_id: string
+        }
+        Insert: {
+          citations?: Json
+          confidence?: number | null
+          content: string
+          created_at?: string
+          domains_used?: string[] | null
+          duration_ms?: number | null
+          evidence?: Json
+          id?: string
+          model?: string | null
+          recommendation?: string | null
+          role: string
+          session_id: string
+          tools_used?: string[] | null
+          user_id: string
+        }
+        Update: {
+          citations?: Json
+          confidence?: number | null
+          content?: string
+          created_at?: string
+          domains_used?: string[] | null
+          duration_ms?: number | null
+          evidence?: Json
+          id?: string
+          model?: string | null
+          recommendation?: string | null
+          role?: string
+          session_id?: string
+          tools_used?: string[] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_copilot_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_copilot_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_copilot_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string | null
+          message_count: number
+          role_snapshot: string[] | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          message_count?: number
+          role_snapshot?: string[] | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          message_count?: number
+          role_snapshot?: string[] | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_escalations: {
         Row: {
           ai_confidence: number | null
@@ -2247,6 +2374,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ai_prompt_library: {
+        Row: {
+          allowed_roles: string[] | null
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          prompt: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          allowed_roles?: string[] | null
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          prompt: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          allowed_roles?: string[] | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          prompt?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       ai_prompt_versions: {
         Row: {
