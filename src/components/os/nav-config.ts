@@ -57,8 +57,7 @@ export const NAV: NavEntry[] = [
       items: [
         { id: "operations.dashboard", label: "Operations Centre", href: "/admin/operations", icon: LayoutDashboard },
         { id: "operations.reservations", label: "Reservations", href: "/admin/bookings", icon: Calendar },
-        { id: "operations.availability", label: "Availability Calendar", href: "/admin/calendar", icon: CalendarDays },
-        { id: "operations.calendar", label: "Ops Calendar (legacy)", href: "/admin/operations/calendar", icon: CalendarDays },
+        { id: "operations.availability", label: "Calendar", href: "/admin/calendar", icon: CalendarDays },
         { id: "operations.rooms", label: "Room Board", href: "/admin/operations/rooms", icon: Bed },
         { id: "operations.housekeeping", label: "Housekeeping", href: "/admin/operations/housekeeping", icon: ClipboardCheck },
         { id: "operations.tasks", label: "Tasks", href: "/admin/operations/tasks", icon: ListChecks },
