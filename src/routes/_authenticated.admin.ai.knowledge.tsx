@@ -69,10 +69,10 @@ function KnowledgeAdmin() {
   const del = useMutation({
     mutationFn: (id: string) => deleteFn({ data: { id } }),
     onSuccess: () => {
-      toast({ title: "Document deleted" });
+      toast.success("Document deleted");
       qc.invalidateQueries({ queryKey: ["kb.documents"] });
     },
-    onError: (e: any) => toast({ title: "Delete failed", description: e?.message, variant: "destructive" }),
+    onError: (e: any) => toast.error(e?.message ?? "Delete failed"),
   });
 
   return (
@@ -257,8 +257,8 @@ function DocumentDialog({
         change_note: changeNote || null,
       } });
     },
-    onSuccess: () => { toast({ title: "Saved" }); onSaved(); },
-    onError: (e: any) => toast({ title: "Save failed", description: e?.message, variant: "destructive" }),
+    onSuccess: () => { toast.success("Saved"); onSaved(); },
+    onError: (e: any) => toast.error(e?.message ?? "Save failed"),
   });
 
   async function handleFile(file: File) {
@@ -279,14 +279,14 @@ function DocumentDialog({
         setSourceType(/\.(md|markdown)$/i.test(file.name) ? "markdown" : "text");
       } else if (/\.pdf$/i.test(file.name)) {
         setSourceType("pdf");
-        toast({ title: "File uploaded", description: "PDF stored. Paste extracted text below so Mtoni AI can index it." });
+        toast("File uploaded", { description: "PDF stored. Paste extracted text below so Mtoni AI can index it." });
       } else if (/\.docx$/i.test(file.name)) {
         setSourceType("docx");
-        toast({ title: "File uploaded", description: "DOCX stored. Paste extracted text below so Mtoni AI can index it." });
+        toast("File uploaded", { description: "DOCX stored. Paste extracted text below so Mtoni AI can index it." });
       }
       if (!title) setTitle(file.name.replace(/\.[^.]+$/, ""));
     } catch (e: any) {
-      toast({ title: "Upload failed", description: e?.message, variant: "destructive" });
+      toast.error(e?.message ?? "Upload failed");
     } finally {
       setUploading(false);
     }
