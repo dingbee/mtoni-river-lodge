@@ -634,42 +634,101 @@ export type Database = {
       }
       ai_concierge_recommendations: {
         Row: {
+          booking_id: string | null
           confidence: number
           created_at: string
           evidence: Json | null
+          guest_id: string | null
           id: string
           item_name: string
           item_slug: string
           message_id: string | null
+          notes: string | null
           reasoning: string
           recommendation_type: string
+          reviewed_at: string | null
+          reviewed_by: string | null
           session_id: string
+          status: string
+          title: string | null
+          updated_at: string
         }
         Insert: {
+          booking_id?: string | null
           confidence?: number
           created_at?: string
           evidence?: Json | null
+          guest_id?: string | null
           id?: string
           item_name: string
           item_slug: string
           message_id?: string | null
+          notes?: string | null
           reasoning: string
           recommendation_type: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           session_id: string
+          status?: string
+          title?: string | null
+          updated_at?: string
         }
         Update: {
+          booking_id?: string | null
           confidence?: number
           created_at?: string
           evidence?: Json | null
+          guest_id?: string | null
           id?: string
           item_name?: string
           item_slug?: string
           message_id?: string | null
+          notes?: string | null
           reasoning?: string
           recommendation_type?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           session_id?: string
+          status?: string
+          title?: string | null
+          updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ai_concierge_recommendations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_concierge_recommendations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_concierge_recommendations_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_concierge_recommendations_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
+          },
+          {
+            foreignKeyName: "ai_concierge_recommendations_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ai_concierge_recommendations_message_id_fkey"
             columns: ["message_id"]
@@ -1119,6 +1178,78 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "ops_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_guest_journey_events: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          event_type: string
+          guest_id: string | null
+          id: string
+          metadata: Json
+          occurred_at: string
+          source: string
+          title: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          event_type: string
+          guest_id?: string | null
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          source?: string
+          title?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          event_type?: string
+          guest_id?: string | null
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          source?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_guest_journey_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_guest_journey_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_guest_journey_events_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_guest_journey_events_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
+          },
+          {
+            foreignKeyName: "ai_guest_journey_events_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
             referencedColumns: ["id"]
           },
         ]
@@ -1946,6 +2077,57 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      ai_stay_insights: {
+        Row: {
+          booking_id: string
+          confidence: number | null
+          content: string
+          created_at: string
+          evidence: Json
+          id: string
+          insight_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          booking_id: string
+          confidence?: number | null
+          content: string
+          created_at?: string
+          evidence?: Json
+          id?: string
+          insight_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string
+          confidence?: number | null
+          content?: string
+          created_at?: string
+          evidence?: Json
+          id?: string
+          insight_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_stay_insights_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_stay_insights_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_strategic_risks: {
         Row: {
