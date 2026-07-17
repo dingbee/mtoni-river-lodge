@@ -104,8 +104,13 @@ import { Route as AuthenticatedAdminMarketingAiAssistantRouteImport } from './ro
 import { Route as AuthenticatedAdminGuestsMessagesRouteImport } from './routes/_authenticated.admin.guests.messages'
 import { Route as AuthenticatedAdminGuestsCrmRouteImport } from './routes/_authenticated.admin.guests.crm'
 import { Route as AuthenticatedAdminFinanceReportsRouteImport } from './routes/_authenticated.admin.finance.reports'
+import { Route as AuthenticatedAdminFinanceReconciliationRouteImport } from './routes/_authenticated.admin.finance.reconciliation'
+import { Route as AuthenticatedAdminFinancePricingRouteImport } from './routes/_authenticated.admin.finance.pricing'
 import { Route as AuthenticatedAdminFinancePaymentsRouteImport } from './routes/_authenticated.admin.finance.payments'
 import { Route as AuthenticatedAdminFinanceInvoicesRouteImport } from './routes/_authenticated.admin.finance.invoices'
+import { Route as AuthenticatedAdminFinanceForecastRouteImport } from './routes/_authenticated.admin.finance.forecast'
+import { Route as AuthenticatedAdminFinanceAnalyticsRouteImport } from './routes/_authenticated.admin.finance.analytics'
+import { Route as AuthenticatedAdminFinanceAlertsRouteImport } from './routes/_authenticated.admin.finance.alerts'
 import { Route as AuthenticatedAdminContentRoomsRouteImport } from './routes/_authenticated.admin.content.rooms'
 import { Route as AuthenticatedAdminContentPagesRouteImport } from './routes/_authenticated.admin.content.pages'
 import { Route as AuthenticatedAdminContentMediaRouteImport } from './routes/_authenticated.admin.content.media'
@@ -643,6 +648,18 @@ const AuthenticatedAdminFinanceReportsRoute =
     path: '/reports',
     getParentRoute: () => AuthenticatedAdminFinanceRoute,
   } as any)
+const AuthenticatedAdminFinanceReconciliationRoute =
+  AuthenticatedAdminFinanceReconciliationRouteImport.update({
+    id: '/reconciliation',
+    path: '/reconciliation',
+    getParentRoute: () => AuthenticatedAdminFinanceRoute,
+  } as any)
+const AuthenticatedAdminFinancePricingRoute =
+  AuthenticatedAdminFinancePricingRouteImport.update({
+    id: '/pricing',
+    path: '/pricing',
+    getParentRoute: () => AuthenticatedAdminFinanceRoute,
+  } as any)
 const AuthenticatedAdminFinancePaymentsRoute =
   AuthenticatedAdminFinancePaymentsRouteImport.update({
     id: '/payments',
@@ -653,6 +670,24 @@ const AuthenticatedAdminFinanceInvoicesRoute =
   AuthenticatedAdminFinanceInvoicesRouteImport.update({
     id: '/invoices',
     path: '/invoices',
+    getParentRoute: () => AuthenticatedAdminFinanceRoute,
+  } as any)
+const AuthenticatedAdminFinanceForecastRoute =
+  AuthenticatedAdminFinanceForecastRouteImport.update({
+    id: '/forecast',
+    path: '/forecast',
+    getParentRoute: () => AuthenticatedAdminFinanceRoute,
+  } as any)
+const AuthenticatedAdminFinanceAnalyticsRoute =
+  AuthenticatedAdminFinanceAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedAdminFinanceRoute,
+  } as any)
+const AuthenticatedAdminFinanceAlertsRoute =
+  AuthenticatedAdminFinanceAlertsRouteImport.update({
+    id: '/alerts',
+    path: '/alerts',
     getParentRoute: () => AuthenticatedAdminFinanceRoute,
   } as any)
 const AuthenticatedAdminContentRoomsRoute =
@@ -838,8 +873,13 @@ export interface FileRoutesByFullPath {
   '/admin/content/media': typeof AuthenticatedAdminContentMediaRoute
   '/admin/content/pages': typeof AuthenticatedAdminContentPagesRouteWithChildren
   '/admin/content/rooms': typeof AuthenticatedAdminContentRoomsRoute
+  '/admin/finance/alerts': typeof AuthenticatedAdminFinanceAlertsRoute
+  '/admin/finance/analytics': typeof AuthenticatedAdminFinanceAnalyticsRoute
+  '/admin/finance/forecast': typeof AuthenticatedAdminFinanceForecastRoute
   '/admin/finance/invoices': typeof AuthenticatedAdminFinanceInvoicesRoute
   '/admin/finance/payments': typeof AuthenticatedAdminFinancePaymentsRoute
+  '/admin/finance/pricing': typeof AuthenticatedAdminFinancePricingRoute
+  '/admin/finance/reconciliation': typeof AuthenticatedAdminFinanceReconciliationRoute
   '/admin/finance/reports': typeof AuthenticatedAdminFinanceReportsRoute
   '/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
@@ -949,8 +989,13 @@ export interface FileRoutesByTo {
   '/admin/content/media': typeof AuthenticatedAdminContentMediaRoute
   '/admin/content/pages': typeof AuthenticatedAdminContentPagesRouteWithChildren
   '/admin/content/rooms': typeof AuthenticatedAdminContentRoomsRoute
+  '/admin/finance/alerts': typeof AuthenticatedAdminFinanceAlertsRoute
+  '/admin/finance/analytics': typeof AuthenticatedAdminFinanceAnalyticsRoute
+  '/admin/finance/forecast': typeof AuthenticatedAdminFinanceForecastRoute
   '/admin/finance/invoices': typeof AuthenticatedAdminFinanceInvoicesRoute
   '/admin/finance/payments': typeof AuthenticatedAdminFinancePaymentsRoute
+  '/admin/finance/pricing': typeof AuthenticatedAdminFinancePricingRoute
+  '/admin/finance/reconciliation': typeof AuthenticatedAdminFinanceReconciliationRoute
   '/admin/finance/reports': typeof AuthenticatedAdminFinanceReportsRoute
   '/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
@@ -1066,8 +1111,13 @@ export interface FileRoutesById {
   '/_authenticated/admin/content/media': typeof AuthenticatedAdminContentMediaRoute
   '/_authenticated/admin/content/pages': typeof AuthenticatedAdminContentPagesRouteWithChildren
   '/_authenticated/admin/content/rooms': typeof AuthenticatedAdminContentRoomsRoute
+  '/_authenticated/admin/finance/alerts': typeof AuthenticatedAdminFinanceAlertsRoute
+  '/_authenticated/admin/finance/analytics': typeof AuthenticatedAdminFinanceAnalyticsRoute
+  '/_authenticated/admin/finance/forecast': typeof AuthenticatedAdminFinanceForecastRoute
   '/_authenticated/admin/finance/invoices': typeof AuthenticatedAdminFinanceInvoicesRoute
   '/_authenticated/admin/finance/payments': typeof AuthenticatedAdminFinancePaymentsRoute
+  '/_authenticated/admin/finance/pricing': typeof AuthenticatedAdminFinancePricingRoute
+  '/_authenticated/admin/finance/reconciliation': typeof AuthenticatedAdminFinanceReconciliationRoute
   '/_authenticated/admin/finance/reports': typeof AuthenticatedAdminFinanceReportsRoute
   '/_authenticated/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/_authenticated/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
@@ -1183,8 +1233,13 @@ export interface FileRouteTypes {
     | '/admin/content/media'
     | '/admin/content/pages'
     | '/admin/content/rooms'
+    | '/admin/finance/alerts'
+    | '/admin/finance/analytics'
+    | '/admin/finance/forecast'
     | '/admin/finance/invoices'
     | '/admin/finance/payments'
+    | '/admin/finance/pricing'
+    | '/admin/finance/reconciliation'
     | '/admin/finance/reports'
     | '/admin/guests/crm'
     | '/admin/guests/messages'
@@ -1294,8 +1349,13 @@ export interface FileRouteTypes {
     | '/admin/content/media'
     | '/admin/content/pages'
     | '/admin/content/rooms'
+    | '/admin/finance/alerts'
+    | '/admin/finance/analytics'
+    | '/admin/finance/forecast'
     | '/admin/finance/invoices'
     | '/admin/finance/payments'
+    | '/admin/finance/pricing'
+    | '/admin/finance/reconciliation'
     | '/admin/finance/reports'
     | '/admin/guests/crm'
     | '/admin/guests/messages'
@@ -1410,8 +1470,13 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/content/media'
     | '/_authenticated/admin/content/pages'
     | '/_authenticated/admin/content/rooms'
+    | '/_authenticated/admin/finance/alerts'
+    | '/_authenticated/admin/finance/analytics'
+    | '/_authenticated/admin/finance/forecast'
     | '/_authenticated/admin/finance/invoices'
     | '/_authenticated/admin/finance/payments'
+    | '/_authenticated/admin/finance/pricing'
+    | '/_authenticated/admin/finance/reconciliation'
     | '/_authenticated/admin/finance/reports'
     | '/_authenticated/admin/guests/crm'
     | '/_authenticated/admin/guests/messages'
@@ -2168,6 +2233,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFinanceReportsRouteImport
       parentRoute: typeof AuthenticatedAdminFinanceRoute
     }
+    '/_authenticated/admin/finance/reconciliation': {
+      id: '/_authenticated/admin/finance/reconciliation'
+      path: '/reconciliation'
+      fullPath: '/admin/finance/reconciliation'
+      preLoaderRoute: typeof AuthenticatedAdminFinanceReconciliationRouteImport
+      parentRoute: typeof AuthenticatedAdminFinanceRoute
+    }
+    '/_authenticated/admin/finance/pricing': {
+      id: '/_authenticated/admin/finance/pricing'
+      path: '/pricing'
+      fullPath: '/admin/finance/pricing'
+      preLoaderRoute: typeof AuthenticatedAdminFinancePricingRouteImport
+      parentRoute: typeof AuthenticatedAdminFinanceRoute
+    }
     '/_authenticated/admin/finance/payments': {
       id: '/_authenticated/admin/finance/payments'
       path: '/payments'
@@ -2180,6 +2259,27 @@ declare module '@tanstack/react-router' {
       path: '/invoices'
       fullPath: '/admin/finance/invoices'
       preLoaderRoute: typeof AuthenticatedAdminFinanceInvoicesRouteImport
+      parentRoute: typeof AuthenticatedAdminFinanceRoute
+    }
+    '/_authenticated/admin/finance/forecast': {
+      id: '/_authenticated/admin/finance/forecast'
+      path: '/forecast'
+      fullPath: '/admin/finance/forecast'
+      preLoaderRoute: typeof AuthenticatedAdminFinanceForecastRouteImport
+      parentRoute: typeof AuthenticatedAdminFinanceRoute
+    }
+    '/_authenticated/admin/finance/analytics': {
+      id: '/_authenticated/admin/finance/analytics'
+      path: '/analytics'
+      fullPath: '/admin/finance/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminFinanceAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedAdminFinanceRoute
+    }
+    '/_authenticated/admin/finance/alerts': {
+      id: '/_authenticated/admin/finance/alerts'
+      path: '/alerts'
+      fullPath: '/admin/finance/alerts'
+      preLoaderRoute: typeof AuthenticatedAdminFinanceAlertsRouteImport
       parentRoute: typeof AuthenticatedAdminFinanceRoute
     }
     '/_authenticated/admin/content/rooms': {
@@ -2305,17 +2405,31 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminFinanceRouteChildren {
+  AuthenticatedAdminFinanceAlertsRoute: typeof AuthenticatedAdminFinanceAlertsRoute
+  AuthenticatedAdminFinanceAnalyticsRoute: typeof AuthenticatedAdminFinanceAnalyticsRoute
+  AuthenticatedAdminFinanceForecastRoute: typeof AuthenticatedAdminFinanceForecastRoute
   AuthenticatedAdminFinanceInvoicesRoute: typeof AuthenticatedAdminFinanceInvoicesRoute
   AuthenticatedAdminFinancePaymentsRoute: typeof AuthenticatedAdminFinancePaymentsRoute
+  AuthenticatedAdminFinancePricingRoute: typeof AuthenticatedAdminFinancePricingRoute
+  AuthenticatedAdminFinanceReconciliationRoute: typeof AuthenticatedAdminFinanceReconciliationRoute
   AuthenticatedAdminFinanceReportsRoute: typeof AuthenticatedAdminFinanceReportsRoute
 }
 
 const AuthenticatedAdminFinanceRouteChildren: AuthenticatedAdminFinanceRouteChildren =
   {
+    AuthenticatedAdminFinanceAlertsRoute: AuthenticatedAdminFinanceAlertsRoute,
+    AuthenticatedAdminFinanceAnalyticsRoute:
+      AuthenticatedAdminFinanceAnalyticsRoute,
+    AuthenticatedAdminFinanceForecastRoute:
+      AuthenticatedAdminFinanceForecastRoute,
     AuthenticatedAdminFinanceInvoicesRoute:
       AuthenticatedAdminFinanceInvoicesRoute,
     AuthenticatedAdminFinancePaymentsRoute:
       AuthenticatedAdminFinancePaymentsRoute,
+    AuthenticatedAdminFinancePricingRoute:
+      AuthenticatedAdminFinancePricingRoute,
+    AuthenticatedAdminFinanceReconciliationRoute:
+      AuthenticatedAdminFinanceReconciliationRoute,
     AuthenticatedAdminFinanceReportsRoute:
       AuthenticatedAdminFinanceReportsRoute,
   }
