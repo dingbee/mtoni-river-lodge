@@ -96,7 +96,7 @@ function SortableBlockItem({
     transition,
     opacity: isDragging ? 0.6 : 1,
   };
-  const label = BLOCK_REGISTRY[block.kind]?.label ?? block.kind;
+  const label = BLOCK_REGISTRY[block.kind as keyof typeof BLOCK_REGISTRY]?.label ?? block.kind;
   return (
     <div
       ref={setNodeRef}
