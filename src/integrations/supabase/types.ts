@@ -6042,6 +6042,87 @@ export type Database = {
         }
         Relationships: []
       }
+      system_errors: {
+        Row: {
+          context: Json
+          created_at: string
+          function_name: string | null
+          id: string
+          message: string
+          module: string | null
+          occurred_at: string
+          request_id: string | null
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          source: string
+          stack: string | null
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          function_name?: string | null
+          id?: string
+          message: string
+          module?: string | null
+          occurred_at?: string
+          request_id?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          source?: string
+          stack?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          function_name?: string | null
+          id?: string
+          message?: string
+          module?: string | null
+          occurred_at?: string
+          request_id?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          source?: string
+          stack?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      system_health_probes: {
+        Row: {
+          checked_at: string
+          details: Json
+          id: string
+          latency_ms: number | null
+          probe_name: string
+          status: string
+        }
+        Insert: {
+          checked_at?: string
+          details?: Json
+          id?: string
+          latency_ms?: number | null
+          probe_name: string
+          status: string
+        }
+        Update: {
+          checked_at?: string
+          details?: Json
+          id?: string
+          latency_ms?: number | null
+          probe_name?: string
+          status?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -6571,6 +6652,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      system_observability_trim: { Args: never; Returns: undefined }
     }
     Enums: {
       ai_suggestion_kind:
