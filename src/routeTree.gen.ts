@@ -179,6 +179,7 @@ import { Route as AuthenticatedAdminAiMarketingCampaignsRouteImport } from './ro
 import { Route as AuthenticatedAdminAiMarketingBrandRouteImport } from './routes/_authenticated.admin.ai.marketing.brand'
 import { Route as AuthenticatedAdminAiKnowledgeTestRouteImport } from './routes/_authenticated.admin.ai.knowledge.test'
 import { Route as AuthenticatedAdminAiKnowledgeSyncRouteImport } from './routes/_authenticated.admin.ai.knowledge.sync'
+import { Route as AuthenticatedAdminAiKnowledgeAnalyticsRouteImport } from './routes/_authenticated.admin.ai.knowledge.analytics'
 import { Route as AuthenticatedAdminAiGuestsDashboardRouteImport } from './routes/_authenticated.admin.ai.guests.dashboard'
 import { Route as AuthenticatedAdminAiGuestsBookingIdRouteImport } from './routes/_authenticated.admin.ai.guests.$bookingId'
 import { Route as AuthenticatedAdminAiExecutiveTimelineRouteImport } from './routes/_authenticated.admin.ai.executive.timeline'
@@ -1163,6 +1164,12 @@ const AuthenticatedAdminAiKnowledgeSyncRoute =
     path: '/sync',
     getParentRoute: () => AuthenticatedAdminAiKnowledgeRoute,
   } as any)
+const AuthenticatedAdminAiKnowledgeAnalyticsRoute =
+  AuthenticatedAdminAiKnowledgeAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedAdminAiKnowledgeRoute,
+  } as any)
 const AuthenticatedAdminAiGuestsDashboardRoute =
   AuthenticatedAdminAiGuestsDashboardRouteImport.update({
     id: '/dashboard',
@@ -1417,6 +1424,7 @@ export interface FileRoutesByFullPath {
   '/admin/ai/executive/timeline': typeof AuthenticatedAdminAiExecutiveTimelineRoute
   '/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
   '/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
+  '/admin/ai/knowledge/analytics': typeof AuthenticatedAdminAiKnowledgeAnalyticsRoute
   '/admin/ai/knowledge/sync': typeof AuthenticatedAdminAiKnowledgeSyncRoute
   '/admin/ai/knowledge/test': typeof AuthenticatedAdminAiKnowledgeTestRoute
   '/admin/ai/marketing/brand': typeof AuthenticatedAdminAiMarketingBrandRoute
@@ -1594,6 +1602,7 @@ export interface FileRoutesByTo {
   '/admin/ai/executive/timeline': typeof AuthenticatedAdminAiExecutiveTimelineRoute
   '/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
   '/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
+  '/admin/ai/knowledge/analytics': typeof AuthenticatedAdminAiKnowledgeAnalyticsRoute
   '/admin/ai/knowledge/sync': typeof AuthenticatedAdminAiKnowledgeSyncRoute
   '/admin/ai/knowledge/test': typeof AuthenticatedAdminAiKnowledgeTestRoute
   '/admin/ai/marketing/brand': typeof AuthenticatedAdminAiMarketingBrandRoute
@@ -1784,6 +1793,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/ai/executive/timeline': typeof AuthenticatedAdminAiExecutiveTimelineRoute
   '/_authenticated/admin/ai/guests/$bookingId': typeof AuthenticatedAdminAiGuestsBookingIdRoute
   '/_authenticated/admin/ai/guests/dashboard': typeof AuthenticatedAdminAiGuestsDashboardRoute
+  '/_authenticated/admin/ai/knowledge/analytics': typeof AuthenticatedAdminAiKnowledgeAnalyticsRoute
   '/_authenticated/admin/ai/knowledge/sync': typeof AuthenticatedAdminAiKnowledgeSyncRoute
   '/_authenticated/admin/ai/knowledge/test': typeof AuthenticatedAdminAiKnowledgeTestRoute
   '/_authenticated/admin/ai/marketing/brand': typeof AuthenticatedAdminAiMarketingBrandRoute
@@ -1974,6 +1984,7 @@ export interface FileRouteTypes {
     | '/admin/ai/executive/timeline'
     | '/admin/ai/guests/$bookingId'
     | '/admin/ai/guests/dashboard'
+    | '/admin/ai/knowledge/analytics'
     | '/admin/ai/knowledge/sync'
     | '/admin/ai/knowledge/test'
     | '/admin/ai/marketing/brand'
@@ -2151,6 +2162,7 @@ export interface FileRouteTypes {
     | '/admin/ai/executive/timeline'
     | '/admin/ai/guests/$bookingId'
     | '/admin/ai/guests/dashboard'
+    | '/admin/ai/knowledge/analytics'
     | '/admin/ai/knowledge/sync'
     | '/admin/ai/knowledge/test'
     | '/admin/ai/marketing/brand'
@@ -2340,6 +2352,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/ai/executive/timeline'
     | '/_authenticated/admin/ai/guests/$bookingId'
     | '/_authenticated/admin/ai/guests/dashboard'
+    | '/_authenticated/admin/ai/knowledge/analytics'
     | '/_authenticated/admin/ai/knowledge/sync'
     | '/_authenticated/admin/ai/knowledge/test'
     | '/_authenticated/admin/ai/marketing/brand'
@@ -3630,6 +3643,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiKnowledgeSyncRouteImport
       parentRoute: typeof AuthenticatedAdminAiKnowledgeRoute
     }
+    '/_authenticated/admin/ai/knowledge/analytics': {
+      id: '/_authenticated/admin/ai/knowledge/analytics'
+      path: '/analytics'
+      fullPath: '/admin/ai/knowledge/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminAiKnowledgeAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedAdminAiKnowledgeRoute
+    }
     '/_authenticated/admin/ai/guests/dashboard': {
       id: '/_authenticated/admin/ai/guests/dashboard'
       path: '/dashboard'
@@ -3840,12 +3860,15 @@ const AuthenticatedAdminAiGuestsRouteWithChildren =
   )
 
 interface AuthenticatedAdminAiKnowledgeRouteChildren {
+  AuthenticatedAdminAiKnowledgeAnalyticsRoute: typeof AuthenticatedAdminAiKnowledgeAnalyticsRoute
   AuthenticatedAdminAiKnowledgeSyncRoute: typeof AuthenticatedAdminAiKnowledgeSyncRoute
   AuthenticatedAdminAiKnowledgeTestRoute: typeof AuthenticatedAdminAiKnowledgeTestRoute
 }
 
 const AuthenticatedAdminAiKnowledgeRouteChildren: AuthenticatedAdminAiKnowledgeRouteChildren =
   {
+    AuthenticatedAdminAiKnowledgeAnalyticsRoute:
+      AuthenticatedAdminAiKnowledgeAnalyticsRoute,
     AuthenticatedAdminAiKnowledgeSyncRoute:
       AuthenticatedAdminAiKnowledgeSyncRoute,
     AuthenticatedAdminAiKnowledgeTestRoute:
