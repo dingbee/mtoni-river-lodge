@@ -35,7 +35,7 @@ export interface ChannelRow {
   inbound_enabled: boolean;
   outbound_enabled: boolean;
   requires_approval: boolean;
-  configuration: Record<string, unknown>;
+  configuration: unknown;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -51,7 +51,7 @@ export interface CommunicationDraftRow {
   subject: string | null;
   body: string;
   reasoning: string | null;
-  supporting_context: Record<string, unknown>;
+  supporting_context: unknown;
   status: CommunicationDraftStatus;
   approved_by: string | null;
   approved_at: string | null;
