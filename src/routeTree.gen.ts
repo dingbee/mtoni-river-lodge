@@ -148,6 +148,7 @@ import { Route as AuthenticatedAdminAiActivityRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminContentPagesIndexRouteImport } from './routes/_authenticated.admin.content.pages.index'
 import { Route as AuthenticatedAdminContentJournalIndexRouteImport } from './routes/_authenticated.admin.content.journal.index'
 import { Route as AuthenticatedAdminAiRevenueIndexRouteImport } from './routes/_authenticated.admin.ai.revenue.index'
+import { Route as AuthenticatedAdminAiOperationsIndexRouteImport } from './routes/_authenticated.admin.ai.operations.index'
 import { Route as AuthenticatedAdminAiMarketingIndexRouteImport } from './routes/_authenticated.admin.ai.marketing.index'
 import { Route as AuthenticatedAdminAiExecutiveIndexRouteImport } from './routes/_authenticated.admin.ai.executive.index'
 import { Route as AuthenticatedAdminAiConciergeIndexRouteImport } from './routes/_authenticated.admin.ai.concierge.index'
@@ -967,6 +968,12 @@ const AuthenticatedAdminAiRevenueIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAdminAiRevenueRoute,
   } as any)
+const AuthenticatedAdminAiOperationsIndexRoute =
+  AuthenticatedAdminAiOperationsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminAiOperationsRoute,
+  } as any)
 const AuthenticatedAdminAiMarketingIndexRoute =
   AuthenticatedAdminAiMarketingIndexRouteImport.update({
     id: '/',
@@ -1277,7 +1284,7 @@ export interface FileRoutesByFullPath {
   '/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
   '/admin/ai/leads': typeof AuthenticatedAdminAiLeadsRoute
   '/admin/ai/marketing': typeof AuthenticatedAdminAiMarketingRouteWithChildren
-  '/admin/ai/operations': typeof AuthenticatedAdminAiOperationsRoute
+  '/admin/ai/operations': typeof AuthenticatedAdminAiOperationsRouteWithChildren
   '/admin/ai/performance': typeof AuthenticatedAdminAiPerformanceRoute
   '/admin/ai/revenue': typeof AuthenticatedAdminAiRevenueRouteWithChildren
   '/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
@@ -1368,6 +1375,7 @@ export interface FileRoutesByFullPath {
   '/admin/ai/concierge/': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/admin/ai/executive/': typeof AuthenticatedAdminAiExecutiveIndexRoute
   '/admin/ai/marketing/': typeof AuthenticatedAdminAiMarketingIndexRoute
+  '/admin/ai/operations/': typeof AuthenticatedAdminAiOperationsIndexRoute
   '/admin/ai/revenue/': typeof AuthenticatedAdminAiRevenueIndexRoute
   '/admin/content/journal/': typeof AuthenticatedAdminContentJournalIndexRoute
   '/admin/content/pages/': typeof AuthenticatedAdminContentPagesIndexRoute
@@ -1446,7 +1454,6 @@ export interface FileRoutesByTo {
   '/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
   '/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
   '/admin/ai/leads': typeof AuthenticatedAdminAiLeadsRoute
-  '/admin/ai/operations': typeof AuthenticatedAdminAiOperationsRoute
   '/admin/ai/performance': typeof AuthenticatedAdminAiPerformanceRoute
   '/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
   '/admin/automation/approvals': typeof AuthenticatedAdminAutomationApprovalsRoute
@@ -1536,6 +1543,7 @@ export interface FileRoutesByTo {
   '/admin/ai/concierge': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/admin/ai/executive': typeof AuthenticatedAdminAiExecutiveIndexRoute
   '/admin/ai/marketing': typeof AuthenticatedAdminAiMarketingIndexRoute
+  '/admin/ai/operations': typeof AuthenticatedAdminAiOperationsIndexRoute
   '/admin/ai/revenue': typeof AuthenticatedAdminAiRevenueIndexRoute
   '/admin/content/journal': typeof AuthenticatedAdminContentJournalIndexRoute
   '/admin/content/pages': typeof AuthenticatedAdminContentPagesIndexRoute
@@ -1625,7 +1633,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/ai/knowledge': typeof AuthenticatedAdminAiKnowledgeRoute
   '/_authenticated/admin/ai/leads': typeof AuthenticatedAdminAiLeadsRoute
   '/_authenticated/admin/ai/marketing': typeof AuthenticatedAdminAiMarketingRouteWithChildren
-  '/_authenticated/admin/ai/operations': typeof AuthenticatedAdminAiOperationsRoute
+  '/_authenticated/admin/ai/operations': typeof AuthenticatedAdminAiOperationsRouteWithChildren
   '/_authenticated/admin/ai/performance': typeof AuthenticatedAdminAiPerformanceRoute
   '/_authenticated/admin/ai/revenue': typeof AuthenticatedAdminAiRevenueRouteWithChildren
   '/_authenticated/admin/ai/settings': typeof AuthenticatedAdminAiSettingsRoute
@@ -1716,6 +1724,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/ai/concierge/': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/_authenticated/admin/ai/executive/': typeof AuthenticatedAdminAiExecutiveIndexRoute
   '/_authenticated/admin/ai/marketing/': typeof AuthenticatedAdminAiMarketingIndexRoute
+  '/_authenticated/admin/ai/operations/': typeof AuthenticatedAdminAiOperationsIndexRoute
   '/_authenticated/admin/ai/revenue/': typeof AuthenticatedAdminAiRevenueIndexRoute
   '/_authenticated/admin/content/journal/': typeof AuthenticatedAdminContentJournalIndexRoute
   '/_authenticated/admin/content/pages/': typeof AuthenticatedAdminContentPagesIndexRoute
@@ -1896,6 +1905,7 @@ export interface FileRouteTypes {
     | '/admin/ai/concierge/'
     | '/admin/ai/executive/'
     | '/admin/ai/marketing/'
+    | '/admin/ai/operations/'
     | '/admin/ai/revenue/'
     | '/admin/content/journal/'
     | '/admin/content/pages/'
@@ -1974,7 +1984,6 @@ export interface FileRouteTypes {
     | '/admin/ai/insights'
     | '/admin/ai/knowledge'
     | '/admin/ai/leads'
-    | '/admin/ai/operations'
     | '/admin/ai/performance'
     | '/admin/ai/settings'
     | '/admin/automation/approvals'
@@ -2064,6 +2073,7 @@ export interface FileRouteTypes {
     | '/admin/ai/concierge'
     | '/admin/ai/executive'
     | '/admin/ai/marketing'
+    | '/admin/ai/operations'
     | '/admin/ai/revenue'
     | '/admin/content/journal'
     | '/admin/content/pages'
@@ -2243,6 +2253,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/ai/concierge/'
     | '/_authenticated/admin/ai/executive/'
     | '/_authenticated/admin/ai/marketing/'
+    | '/_authenticated/admin/ai/operations/'
     | '/_authenticated/admin/ai/revenue/'
     | '/_authenticated/admin/content/journal/'
     | '/_authenticated/admin/content/pages/'
@@ -3285,6 +3296,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiRevenueIndexRouteImport
       parentRoute: typeof AuthenticatedAdminAiRevenueRoute
     }
+    '/_authenticated/admin/ai/operations/': {
+      id: '/_authenticated/admin/ai/operations/'
+      path: '/'
+      fullPath: '/admin/ai/operations/'
+      preLoaderRoute: typeof AuthenticatedAdminAiOperationsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminAiOperationsRoute
+    }
     '/_authenticated/admin/ai/marketing/': {
       id: '/_authenticated/admin/ai/marketing/'
       path: '/'
@@ -3674,6 +3692,21 @@ const AuthenticatedAdminAiMarketingRouteWithChildren =
     AuthenticatedAdminAiMarketingRouteChildren,
   )
 
+interface AuthenticatedAdminAiOperationsRouteChildren {
+  AuthenticatedAdminAiOperationsIndexRoute: typeof AuthenticatedAdminAiOperationsIndexRoute
+}
+
+const AuthenticatedAdminAiOperationsRouteChildren: AuthenticatedAdminAiOperationsRouteChildren =
+  {
+    AuthenticatedAdminAiOperationsIndexRoute:
+      AuthenticatedAdminAiOperationsIndexRoute,
+  }
+
+const AuthenticatedAdminAiOperationsRouteWithChildren =
+  AuthenticatedAdminAiOperationsRoute._addFileChildren(
+    AuthenticatedAdminAiOperationsRouteChildren,
+  )
+
 interface AuthenticatedAdminAiRevenueRouteChildren {
   AuthenticatedAdminAiRevenueAlertsRoute: typeof AuthenticatedAdminAiRevenueAlertsRoute
   AuthenticatedAdminAiRevenueForecastRoute: typeof AuthenticatedAdminAiRevenueForecastRoute
@@ -3715,7 +3748,7 @@ interface AuthenticatedAdminAiRouteChildren {
   AuthenticatedAdminAiKnowledgeRoute: typeof AuthenticatedAdminAiKnowledgeRoute
   AuthenticatedAdminAiLeadsRoute: typeof AuthenticatedAdminAiLeadsRoute
   AuthenticatedAdminAiMarketingRoute: typeof AuthenticatedAdminAiMarketingRouteWithChildren
-  AuthenticatedAdminAiOperationsRoute: typeof AuthenticatedAdminAiOperationsRoute
+  AuthenticatedAdminAiOperationsRoute: typeof AuthenticatedAdminAiOperationsRouteWithChildren
   AuthenticatedAdminAiPerformanceRoute: typeof AuthenticatedAdminAiPerformanceRoute
   AuthenticatedAdminAiRevenueRoute: typeof AuthenticatedAdminAiRevenueRouteWithChildren
   AuthenticatedAdminAiSettingsRoute: typeof AuthenticatedAdminAiSettingsRoute
@@ -3736,7 +3769,8 @@ const AuthenticatedAdminAiRouteChildren: AuthenticatedAdminAiRouteChildren = {
   AuthenticatedAdminAiLeadsRoute: AuthenticatedAdminAiLeadsRoute,
   AuthenticatedAdminAiMarketingRoute:
     AuthenticatedAdminAiMarketingRouteWithChildren,
-  AuthenticatedAdminAiOperationsRoute: AuthenticatedAdminAiOperationsRoute,
+  AuthenticatedAdminAiOperationsRoute:
+    AuthenticatedAdminAiOperationsRouteWithChildren,
   AuthenticatedAdminAiPerformanceRoute: AuthenticatedAdminAiPerformanceRoute,
   AuthenticatedAdminAiRevenueRoute:
     AuthenticatedAdminAiRevenueRouteWithChildren,
