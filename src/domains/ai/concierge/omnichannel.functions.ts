@@ -63,7 +63,7 @@ export const updateConciergeChannel = createServerFn({ method: "POST" })
     }
     const { error } = await context.supabase
       .from("ai_concierge_channels")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -245,7 +245,7 @@ export const updateCommunicationDraft = createServerFn({ method: "POST" })
     }
     const { error } = await context.supabase
       .from("ai_communication_drafts")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -327,7 +327,7 @@ export const updateEscalation = createServerFn({ method: "POST" })
     if (data.resolution_notes !== undefined) patch.resolution_notes = data.resolution_notes;
     const { error } = await context.supabase
       .from("ai_escalations")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
