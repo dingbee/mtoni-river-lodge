@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
-import { Sparkles, BarChart3, FileText, History, Settings } from "lucide-react";
+import { Sparkles, BarChart3, FileText, History, Settings, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/ai")({
   head: () => ({ meta: [{ title: "Mtoni AI — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -8,6 +8,7 @@ export const Route = createFileRoute("/_authenticated/admin/ai")({
 
 const TABS = [
   { to: "/admin/ai",           label: "Command Centre", icon: Sparkles, exact: true },
+  { to: "/admin/ai/guests",    label: "Guest Intelligence AI", icon: Users },
   { to: "/admin/ai/insights",  label: "Insights",       icon: BarChart3 },
   { to: "/admin/ai/knowledge", label: "Knowledge Base", icon: FileText },
   { to: "/admin/ai/activity",  label: "AI Activity",    icon: History },
