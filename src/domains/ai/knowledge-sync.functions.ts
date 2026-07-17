@@ -36,7 +36,7 @@ export interface AiKnowledgeSource {
   url: string | null;
   summary: string | null;
   content: string;
-  metadata: Record<string, unknown>;
+  metadata: any;
   status: (typeof STATUSES)[number];
   last_synced_at: string | null;
   indexed_at: string | null;
