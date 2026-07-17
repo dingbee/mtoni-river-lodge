@@ -253,7 +253,6 @@
   .shadow-token-md { box-shadow: var(--shadow-md); }
   .shadow-token-lg { box-shadow: var(--shadow-lg); }
   .shadow-token-xl { box-shadow: var(--shadow-xl); }
-  }
 
   /* ---------- Global fluid typography (mobile-first) ----------
      Overrides Tailwind's static text-* utilities with clamp()
