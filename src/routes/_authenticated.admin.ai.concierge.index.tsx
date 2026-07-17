@@ -14,7 +14,7 @@ import {
   getConciergeStats,
 } from "@/domains/ai/concierge/concierge.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/ai/concierge")({
+export const Route = createFileRoute("/_authenticated/admin/ai/concierge/")({
   head: () => ({
     meta: [{ title: "AI Concierge — Mtoni AI" }, { name: "robots", content: "noindex,nofollow" }],
   }),
