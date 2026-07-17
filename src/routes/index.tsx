@@ -346,7 +346,7 @@ function HomePage() {
             </Link>
           </Reveal>
           {(() => {
-            const [featured, ...secondary] = getLatestJournalPosts(4);
+            const [featured, ...secondary] = latestJournal;
             if (!featured) return null;
             return (
               <>
