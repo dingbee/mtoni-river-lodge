@@ -209,6 +209,122 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_concierge_intents: {
+        Row: {
+          confidence: number
+          created_at: string
+          detected_context: Json | null
+          id: string
+          intent_level: string
+          keywords: string[] | null
+          message_id: string | null
+          session_id: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          detected_context?: Json | null
+          id?: string
+          intent_level: string
+          keywords?: string[] | null
+          message_id?: string | null
+          session_id: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          detected_context?: Json | null
+          id?: string
+          intent_level?: string
+          keywords?: string[] | null
+          message_id?: string | null
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_concierge_intents_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_concierge_intents_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_concierge_leads: {
+        Row: {
+          assigned_to: string | null
+          country: string | null
+          created_at: string
+          email: string | null
+          id: string
+          intent_level: string
+          interests: string[] | null
+          name: string | null
+          notes: string | null
+          party_adults: number | null
+          party_children: number | null
+          phone: string | null
+          session_id: string | null
+          status: string
+          travel_period_end: string | null
+          travel_period_start: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          intent_level?: string
+          interests?: string[] | null
+          name?: string | null
+          notes?: string | null
+          party_adults?: number | null
+          party_children?: number | null
+          phone?: string | null
+          session_id?: string | null
+          status?: string
+          travel_period_end?: string | null
+          travel_period_start?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          intent_level?: string
+          interests?: string[] | null
+          name?: string | null
+          notes?: string | null
+          party_adults?: number | null
+          party_children?: number | null
+          phone?: string | null
+          session_id?: string | null
+          status?: string
+          travel_period_end?: string | null
+          travel_period_start?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_concierge_leads_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_concierge_messages: {
         Row: {
           citations: Json
@@ -252,6 +368,60 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ai_concierge_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_concierge_recommendations: {
+        Row: {
+          confidence: number
+          created_at: string
+          evidence: Json | null
+          id: string
+          item_name: string
+          item_slug: string
+          message_id: string | null
+          reasoning: string
+          recommendation_type: string
+          session_id: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          evidence?: Json | null
+          id?: string
+          item_name: string
+          item_slug: string
+          message_id?: string | null
+          reasoning: string
+          recommendation_type: string
+          session_id: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          evidence?: Json | null
+          id?: string
+          item_name?: string
+          item_slug?: string
+          message_id?: string | null
+          reasoning?: string
+          recommendation_type?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_concierge_recommendations_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_concierge_recommendations_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "ai_concierge_sessions"

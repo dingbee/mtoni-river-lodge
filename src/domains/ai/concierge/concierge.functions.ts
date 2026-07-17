@@ -50,3 +50,32 @@ export const getConciergeStats = createServerFn({ method: "GET" })
       escalations_30d: escalations.count ?? 0,
     };
   });
+
+export const listConciergeLeads = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("ai_concierge_leads")
+      .select("id, session_id, name, email, phone, country, travel_period_start, travel_period_end, party_adults, party_children, interests, intent_level, status, notes, created_at, updated_at")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const updateConciergeLead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string; status?: string; notes?: string | null }) => {
+    if (!input?.id) throw new Error("id required");
+    const allowed = new Set(["new", "contacted", "qualified", "converted", "closed"]);
+    if (input.status && !allowed.has(input.status)) throw new Error("invalid status");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const patch: { status?: string; notes?: string | null } = {};
+    if (data.status) patch.status = data.status;
+    if (typeof data.notes !== "undefined") patch.notes = data.notes;
+    const { error } = await context.supabase.from("ai_concierge_leads").update(patch).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

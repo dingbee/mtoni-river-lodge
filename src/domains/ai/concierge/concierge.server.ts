@@ -1,7 +1,18 @@
-import type { ConciergeCitation, ConciergeChatInput, ConciergeMessage, ConciergeReply } from "./concierge.types";
+import type {
+  ConciergeCitation,
+  ConciergeChatInput,
+  ConciergeMessage,
+  ConciergeReply,
+  ConciergeRecommendation,
+  ConciergeAvailabilityRoom,
+  ConciergeBookingPlan,
+} from "./concierge.types";
 import { ROOMS } from "@/lib/rooms";
 import { getBasePriceUsd } from "@/lib/pricing";
 import { WHATSAPP_URL } from "@/lib/contact";
+import { classifyIntent } from "./concierge.intent";
+import { combinedRecommendations } from "./concierge.recommendations";
+import { searchAvailability, buildBookingPlan } from "./concierge.tools";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-2.5-flash";
@@ -33,15 +44,23 @@ Mtoni River Lodge is an intimate riverfront eco-lodge on the banks of the Ndurum
 - Amenities: free WiFi, airport transfers on request, riverfront setting, curated experiences (river walks, canoe, bonfire dining).
 `;
 
-function buildSystemPrompt(pageContext: string | null, roomsCtx: string, knowledge: string) {
+function buildSystemPrompt(
+  pageContext: string | null,
+  roomsCtx: string,
+  knowledge: string,
+  intentCtx: string,
+  recsCtx: string,
+  availabilityCtx: string,
+) {
   return [
-    "You are the Mtoni River Lodge Concierge, a warm, professional hospitality assistant for prospective and current guests visiting the public website.",
+    "You are the Mtoni River Lodge Concierge, a warm, professional hospitality assistant that helps prospective guests move from discovery to booking on the public website.",
     "Tone: calm, gracious, concise. Prefer short paragraphs. No emojis unless the guest uses them first.",
     "Rules:",
     "- Only answer using the lodge facts, room information, and knowledge excerpts provided below. If the answer is not covered, say so honestly and offer to connect the guest with the reservations team via WhatsApp or email.",
-    "- Never invent prices, availability, policies, or dates. If a guest asks whether specific dates are available, tell them you cannot see live availability and direct them to the online booking page at /book or the reservations team.",
+    "- Use the provided Availability section as the source of truth for whether specific dates and rooms are available. Never invent prices, availability, policies, or dates outside what is given.",
+    "- When the guest shows booking intent, guide them naturally: recommend a suitable room (using the Recommendations section), suggest 1–2 experiences if relevant, and invite them to continue on /book. Do NOT try to collect payment or complete the booking yourself.",
     "- Never share internal operational details, staff information, financial data, or anything not in the provided context.",
-    "- For booking, always link the guest to /book on the website.",
+    "- For booking, always link the guest to /book on the website (or the booking_url provided in the Plan section, which pre-fills their dates).",
     "- Return STRICT JSON: {\"answer\": string, \"confidence\": number between 0 and 1, \"escalate\": boolean, \"citations\": [{document_id, document_title, chunk_index}]}. Set escalate=true when the guest asks about live availability, complex custom itineraries, complaints, medical/safety issues, or anything outside the provided knowledge.",
     "",
     "== Lodge facts ==",
@@ -51,6 +70,10 @@ function buildSystemPrompt(pageContext: string | null, roomsCtx: string, knowled
     roomsCtx,
     "",
     pageContext ? `== Guest is currently viewing ==\n${pageContext}` : "",
+    "",
+    intentCtx ? `== Detected intent ==\n${intentCtx}` : "",
+    recsCtx ? `== Recommendations ==\n${recsCtx}` : "",
+    availabilityCtx ? `== Availability ==\n${availabilityCtx}` : "",
     "",
     knowledge ? `== Knowledge excerpts ==\n${knowledge}` : "== Knowledge excerpts ==\n(none)",
   ].filter(Boolean).join("\n");
@@ -191,8 +214,45 @@ export async function handleConciergeChat(
     // Knowledge lookup is best-effort.
   }
 
+  // 4b. Intent classification (heuristic, deterministic)
+  const historyText = history.map((h) => h.content);
+  const intent = classifyIntent(message, historyText);
+
+  // 4c. Recommendations from intent
+  const recommendations: ConciergeRecommendation[] =
+    intent.level !== "low" ? combinedRecommendations(intent) : [];
+
+  // 4d. Availability tool — only when guest supplied a real date range
+  let availability: ConciergeAvailabilityRoom[] = [];
+  let plan: ConciergeBookingPlan | null = null;
+  if (intent.detected.check_in && intent.detected.check_out) {
+    try {
+      availability = await searchAvailability({
+        check_in: intent.detected.check_in,
+        check_out: intent.detected.check_out,
+      });
+      plan = buildBookingPlan(
+        intent,
+        availability,
+        recommendations.find((r) => r.type === "room")?.slug,
+      );
+    } catch {
+      // best-effort
+    }
+  }
+
   // 5. Call model
-  const system = buildSystemPrompt(page, buildRoomsContext(), knowledgeCtx);
+  const intentCtx = `level=${intent.level} confidence=${intent.confidence.toFixed(2)}; ` +
+    `dates=${intent.detected.check_in ?? "?"} → ${intent.detected.check_out ?? "?"}; ` +
+    `party=${intent.detected.adults ?? "?"} adults / ${intent.detected.children ?? 0} children; ` +
+    `interests=${(intent.detected.interests ?? []).join(",") || "none"}`;
+  const recsCtx = recommendations
+    .map((r) => `- [${r.type}] ${r.name} (slug: ${r.slug}, conf ${r.confidence.toFixed(2)}): ${r.reasoning.join(" ")}`)
+    .join("\n");
+  const availabilityCtx = availability
+    .map((a) => `- ${a.name} (slug: ${a.slug}) — ${a.is_available ? `available (${a.min_available} left)` : "not available"} for ${a.nights} night(s), total US$${a.nightly_total_usd}`)
+    .join("\n") + (plan?.booking_url ? `\nbooking_url: ${plan.booking_url}` : "");
+  const system = buildSystemPrompt(page, buildRoomsContext(), knowledgeCtx, intentCtx, recsCtx, availabilityCtx);
   const { raw, latency } = await callModel(system, history, message);
   const parsed = tryJson<{ answer?: string; confidence?: number; escalate?: boolean; citations?: any[] }>(raw) ?? {};
   const answer = (parsed.answer ?? "I'm sorry, I couldn't put together an answer just now. Please reach us on WhatsApp and we'll help right away.").trim();
@@ -215,6 +275,35 @@ export async function handleConciergeChat(
     .select("id, created_at")
     .single();
 
+  // 6b. Persist intent + recommendations (best-effort)
+  const assistantMessageId = assistantRow?.id ?? null;
+  try {
+    await supabaseAdmin.from("ai_concierge_intents").insert({
+      session_id: sessionId,
+      message_id: assistantMessageId,
+      intent_level: intent.level,
+      confidence: intent.confidence,
+      keywords: intent.keywords,
+      detected_context: intent.detected as any,
+    });
+    if (recommendations.length > 0) {
+      await supabaseAdmin.from("ai_concierge_recommendations").insert(
+        recommendations.map((r) => ({
+          session_id: sessionId,
+          message_id: assistantMessageId,
+          recommendation_type: r.type,
+          item_slug: r.slug,
+          item_name: r.name,
+          reasoning: r.reasoning.join(" "),
+          confidence: r.confidence,
+          evidence: (r.type === "room" ? { from_price_usd: r.from_price_usd } : {}) as any,
+        })),
+      );
+    }
+  } catch {
+    // best-effort
+  }
+
   // 7. Update session counters
   await supabaseAdmin
     .from("ai_concierge_sessions")
@@ -235,6 +324,10 @@ export async function handleConciergeChat(
       citations,
       confidence,
       escalated: shouldEscalate,
+      intent: intent.level,
+      recommendations: recommendations.length > 0 ? recommendations : undefined,
+      availability: availability.length > 0 ? availability : undefined,
+      plan: plan ?? undefined,
       created_at: assistantRow?.created_at,
     },
   };

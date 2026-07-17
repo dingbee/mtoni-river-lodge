@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageCircle, X, Send, ExternalLink } from "lucide-react";
+import { MessageCircle, X, Send, ExternalLink, Calendar, Users, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ConciergeMessage, ConciergeReply } from "@/domains/ai/concierge/concierge.types";
+import type {
+  ConciergeMessage,
+  ConciergeReply,
+  ConciergeRecommendation,
+  ConciergeAvailabilityRoom,
+  ConciergeBookingPlan,
+} from "@/domains/ai/concierge/concierge.types";
 
 const STORAGE_KEY = "mtoni.concierge.session";
 
@@ -28,6 +34,11 @@ export function ConciergeWidget() {
   const { token, save } = useSessionToken();
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const [leadOpen, setLeadOpen] = useState(false);
+  const [leadSent, setLeadSent] = useState(false);
+  const [lead, setLead] = useState({ name: "", email: "", travel_period_start: "", travel_period_end: "", adults: "2", notes: "" });
+  const [leadBusy, setLeadBusy] = useState(false);
+  const [leadError, setLeadError] = useState<string | null>(null);
 
   const greeting = useMemo<ChatMessage>(
     () => ({
@@ -49,8 +60,8 @@ export function ConciergeWidget() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, open, busy]);
 
-  async function send() {
-    const text = input.trim();
+  async function sendText(raw: string) {
+    const text = raw.trim();
     if (!text || busy) return;
     setInput("");
     setBusy(true);
@@ -97,7 +108,39 @@ export function ConciergeWidget() {
     }
   }
 
+  async function send() { await sendText(input); }
+
+  async function submitLead() {
+    setLeadBusy(true); setLeadError(null);
+    try {
+      const res = await fetch("/api/public/concierge/lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_token: token,
+          name: lead.name || null,
+          email: lead.email || null,
+          travel_period_start: lead.travel_period_start || null,
+          travel_period_end: lead.travel_period_end || null,
+          adults: lead.adults ? Number(lead.adults) : null,
+          notes: lead.notes || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error ?? "Could not save your details.");
+      setLeadSent(true);
+    } catch (err: any) {
+      setLeadError(err?.message ?? "Something went wrong.");
+    } finally {
+      setLeadBusy(false);
+    }
+  }
+
   const shown: ChatMessage[] = messages.length === 0 ? [greeting] : [greeting, ...messages];
+  const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+  const quickActions = messages.length === 0
+    ? ["Which room suits a couple?", "What experiences do you offer?", "Do you have family rooms?"]
+    : [];
 
   return (
     <>
@@ -145,10 +188,55 @@ export function ConciergeWidget() {
                     </ul>
                   </div>
                 )}
+                {m.recommendations && m.recommendations.length > 0 && (
+                  <RecommendationsList recs={m.recommendations} />
+                )}
+                {m.availability && m.availability.length > 0 && (
+                  <AvailabilityList rooms={m.availability} />
+                )}
+                {m.plan && <BookingPlanCard plan={m.plan} />}
               </div>
             ))}
             {busy && (
               <div className="mr-auto max-w-[85%] rounded-lg bg-muted px-3 py-2 text-muted-foreground">Thinking…</div>
+            )}
+            {quickActions.length > 0 && !busy && (
+              <div className="flex flex-wrap gap-1.5">
+                {quickActions.map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => void sendText(q)}
+                    className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] hover:bg-muted"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
+            {lastAssistant && (lastAssistant.intent === "high" || lastAssistant.plan) && !leadOpen && !leadSent && (
+              <button
+                type="button"
+                onClick={() => setLeadOpen(true)}
+                className="mr-auto inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
+              >
+                <Sparkles className="size-3" /> Save my details for our reservations team
+              </button>
+            )}
+            {leadOpen && !leadSent && (
+              <LeadForm
+                value={lead}
+                onChange={setLead}
+                busy={leadBusy}
+                error={leadError}
+                onSubmit={submitLead}
+                onCancel={() => setLeadOpen(false)}
+              />
+            )}
+            {leadSent && (
+              <div className="mr-auto max-w-[95%] rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+                Asante — we've shared your details with the reservations team. They'll be in touch shortly.
+              </div>
             )}
             {escalation && (
               <div className="mr-auto max-w-[95%] rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
@@ -208,3 +296,100 @@ export function ConciergeWidget() {
 }
 
 export default ConciergeWidget;
+
+function RecommendationsList({ recs }: { recs: ConciergeRecommendation[] }) {
+  return (
+    <div className="mt-2 space-y-1.5 border-t border-border/60 pt-2 text-[11px]">
+      <p className="font-medium opacity-80">Recommended for you</p>
+      {recs.map((r) => (
+        <a
+          key={`${r.type}-${r.slug}`}
+          href={r.type === "room" ? `/rooms/${r.slug}` : "/experiences"}
+          className="block rounded-md bg-background/60 px-2 py-1.5 hover:bg-background"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium">{r.name}</span>
+            {r.type === "room" && (
+              <span className="whitespace-nowrap text-muted-foreground">from US${r.from_price_usd}</span>
+            )}
+          </div>
+          <p className="opacity-70">{r.reasoning[0]}</p>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function AvailabilityList({ rooms }: { rooms: ConciergeAvailabilityRoom[] }) {
+  return (
+    <div className="mt-2 space-y-1 border-t border-border/60 pt-2 text-[11px]">
+      <p className="flex items-center gap-1 font-medium opacity-80"><Calendar className="size-3" /> Live availability</p>
+      {rooms.map((r) => (
+        <div key={r.slug} className="flex items-center justify-between gap-2">
+          <span>{r.name}</span>
+          <span className={cn("whitespace-nowrap", r.is_available ? "text-primary" : "text-muted-foreground line-through")}>
+            {r.is_available ? `US$${r.nightly_total_usd} · ${r.nights}n` : "Unavailable"}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BookingPlanCard({ plan }: { plan: ConciergeBookingPlan }) {
+  return (
+    <div className="mt-2 rounded-md border border-primary/30 bg-primary/5 p-2 text-[11px]">
+      <p className="font-medium">Your booking plan</p>
+      <p className="mt-0.5 flex items-center gap-1 opacity-80">
+        <Calendar className="size-3" /> {plan.check_in} → {plan.check_out} · {plan.nights}n
+      </p>
+      <p className="flex items-center gap-1 opacity-80">
+        <Users className="size-3" /> {plan.adults} adults{plan.children ? ` · ${plan.children} children` : ""}
+      </p>
+      {plan.room && <p className="mt-1">Room: <strong>{plan.room.name}</strong> — US${plan.room.nightly_total_usd}</p>}
+      {plan.experiences.length > 0 && (
+        <p className="mt-0.5 opacity-80">Experiences: {plan.experiences.map((e) => e.name).join(", ")}</p>
+      )}
+      <a
+        href={plan.booking_url}
+        className="mt-2 inline-flex items-center gap-1 rounded bg-primary px-2.5 py-1 text-primary-foreground hover:brightness-110"
+      >
+        Continue to booking <ExternalLink className="size-3" />
+      </a>
+    </div>
+  );
+}
+
+function LeadForm(props: {
+  value: { name: string; email: string; travel_period_start: string; travel_period_end: string; adults: string; notes: string };
+  onChange: (v: LeadFormValue) => void;
+  busy: boolean;
+  error: string | null;
+  onSubmit: () => void;
+  onCancel: () => void;
+}) {
+  const v = props.value;
+  const set = (k: keyof LeadFormValue, val: string) => props.onChange({ ...v, [k]: val });
+  return (
+    <div className="mr-auto w-full max-w-[95%] space-y-1.5 rounded-md border border-border bg-background p-2 text-xs">
+      <p className="font-medium">Share your details</p>
+      <input className="w-full rounded border bg-background px-2 py-1" placeholder="Name" value={v.name} onChange={(e) => set("name", e.target.value)} />
+      <input className="w-full rounded border bg-background px-2 py-1" placeholder="Email" value={v.email} onChange={(e) => set("email", e.target.value)} />
+      <div className="flex gap-1.5">
+        <input type="date" className="w-full rounded border bg-background px-2 py-1" value={v.travel_period_start} onChange={(e) => set("travel_period_start", e.target.value)} />
+        <input type="date" className="w-full rounded border bg-background px-2 py-1" value={v.travel_period_end} onChange={(e) => set("travel_period_end", e.target.value)} />
+      </div>
+      <input type="number" min="1" max="10" className="w-full rounded border bg-background px-2 py-1" placeholder="Adults" value={v.adults} onChange={(e) => set("adults", e.target.value)} />
+      <textarea className="w-full rounded border bg-background px-2 py-1" placeholder="Notes (optional)" rows={2} value={v.notes} onChange={(e) => set("notes", e.target.value)} />
+      {props.error && <p className="text-destructive">{props.error}</p>}
+      <div className="flex justify-end gap-1.5">
+        <button type="button" onClick={props.onCancel} className="rounded px-2 py-1 hover:bg-muted">Cancel</button>
+        <button type="button" disabled={props.busy} onClick={props.onSubmit} className="rounded bg-primary px-2.5 py-1 text-primary-foreground disabled:opacity-50">
+          {props.busy ? "Sending…" : "Send"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+type LeadFormValue = { name: string; email: string; travel_period_start: string; travel_period_end: string; adults: string; notes: string };
