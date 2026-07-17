@@ -204,8 +204,8 @@ function ArticlePage() {
       title={TITLE}
       intro="Where you begin — and end — a Tanzania safari shapes the whole journey. A practical, honest guide to why Arusha is the smart base, how many nights to plan, and what to look for in a lodge before you ride out to the parks."
       image={hero}
-      imageAlt="Aerial view of Mtoni River Lodge in Arusha, a peaceful boutique base before and after a Tanzania safari"
-      caption="Mtoni River Lodge from above — Gomba Estate, Arusha"
+      imageAlt="Stone entrance to Mtoni River Lodge with carved wooden doors, surrounded by tropical garden"
+      caption="The entrance to Mtoni River Lodge — Gomba Estate, Arusha"
       relatedReading={RELATED}
     >
       <Reveal>
