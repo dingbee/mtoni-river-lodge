@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageCircle, X, Send, ExternalLink, Calendar, Users, Sparkles } from "lucide-react";
+import { MessageCircle, X, Send, ExternalLink, Calendar, Users, Sparkles, ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trackGAEvent, trackBookingClick, trackWhatsAppClick } from "@/lib/analytics";
 import type {
@@ -11,6 +11,18 @@ import type {
 } from "@/domains/ai/concierge/concierge.types";
 
 const STORAGE_KEY = "mtoni.concierge.session";
+const FEEDBACK_KEY = "mtoni.concierge.feedback";
+
+function postBeacon(url: string, body: unknown) {
+  try {
+    const data = JSON.stringify(body);
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(url, new Blob([data], { type: "application/json" }));
+      return;
+    }
+    void fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: data, keepalive: true });
+  } catch { /* noop */ }
+}
 
 type ChatMessage = ConciergeMessage & { pending?: boolean };
 
@@ -40,6 +52,22 @@ export function ConciergeWidget() {
   const [lead, setLead] = useState({ name: "", email: "", travel_period_start: "", travel_period_end: "", adults: "2", notes: "" });
   const [leadBusy, setLeadBusy] = useState(false);
   const [leadError, setLeadError] = useState<string | null>(null);
+  const [feedbackSent, setFeedbackSent] = useState<null | "helpful" | "not_helpful">(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(FEEDBACK_KEY);
+      if (saved === "helpful" || saved === "not_helpful") setFeedbackSent(saved);
+    } catch { /* noop */ }
+  }, []);
+
+  function sendFeedback(rating: "helpful" | "not_helpful") {
+    if (feedbackSent || !token) return;
+    setFeedbackSent(rating);
+    try { localStorage.setItem(FEEDBACK_KEY, rating); } catch { /* noop */ }
+    postBeacon("/api/public/concierge/feedback", { session_token: token, rating });
+    trackGAEvent("concierge_feedback", { event_category: "concierge", rating });
+  }
 
   const greeting = useMemo<ChatMessage>(
     () => ({
@@ -266,6 +294,20 @@ export function ConciergeWidget() {
                 Asante — we've shared your details with the reservations team. They'll be in touch shortly.
               </div>
             )}
+            {messages.length >= 2 && !feedbackSent && (
+              <div className="mr-auto flex items-center gap-2 rounded-md border border-border bg-background/60 px-2 py-1 text-[11px] text-muted-foreground">
+                <span>Was this helpful?</span>
+                <button type="button" onClick={() => sendFeedback("helpful")} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-muted" aria-label="Helpful">
+                  <ThumbsUp className="size-3" />
+                </button>
+                <button type="button" onClick={() => sendFeedback("not_helpful")} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-muted" aria-label="Not helpful">
+                  <ThumbsDown className="size-3" />
+                </button>
+              </div>
+            )}
+            {feedbackSent && (
+              <p className="mr-auto text-[11px] text-muted-foreground">Asante — thank you for your feedback.</p>
+            )}
             {escalation && (
               <div className="mr-auto max-w-[95%] rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
                 <p className="font-medium">{escalation.reason}</p>
@@ -388,7 +430,21 @@ function BookingPlanCard({ plan }: { plan: ConciergeBookingPlan }) {
       )}
       <a
         href={plan.booking_url}
-        onClick={() => trackBookingClick({ buttonText: "Continue Booking", location: "concierge_plan", destinationUrl: plan.booking_url })}
+        onClick={() => {
+          trackBookingClick({ buttonText: "Continue Booking", location: "concierge_plan", destinationUrl: plan.booking_url });
+          try {
+            const t = localStorage.getItem(STORAGE_KEY);
+            if (t) {
+              const data = JSON.stringify({ session_token: t, conversion_type: "booking_click", metadata: { location: "concierge_plan" } });
+              if (navigator.sendBeacon) {
+                navigator.sendBeacon("/api/public/concierge/attribution", new Blob([data], { type: "application/json" }));
+              } else {
+                void fetch("/api/public/concierge/attribution", { method: "POST", headers: { "Content-Type": "application/json" }, body: data, keepalive: true });
+              }
+            }
+          } catch { /* noop */ }
+          trackGAEvent("concierge_booking_click", { event_category: "concierge", location: "concierge_plan" });
+        }}
         className="mt-2 inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground shadow-sm hover:brightness-110"
       >
         Continue to booking <ExternalLink className="size-3" />

@@ -247,6 +247,55 @@ export type Database = {
           },
         ]
       }
+      ai_concierge_attributions: {
+        Row: {
+          booking_id: string | null
+          conversion_type: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          session_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          conversion_type?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          session_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          conversion_type?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_concierge_attributions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_concierge_attributions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_concierge_attributions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_concierge_channels: {
         Row: {
           channel: string
@@ -292,34 +341,91 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_concierge_feedback: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          message_id: string | null
+          rating: string
+          session_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          rating: string
+          session_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          rating?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_concierge_feedback_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_concierge_feedback_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_concierge_insights: {
         Row: {
           bucket_date: string
+          category: string | null
           created_at: string
           escalation_count: number
+          evidence: Json | null
           id: string
+          impact_score: number | null
           question_count: number
+          recommended_action: string | null
           sample_questions: Json
+          status: string | null
           topic: string
           updated_at: string
         }
         Insert: {
           bucket_date: string
+          category?: string | null
           created_at?: string
           escalation_count?: number
+          evidence?: Json | null
           id?: string
+          impact_score?: number | null
           question_count?: number
+          recommended_action?: string | null
           sample_questions?: Json
+          status?: string | null
           topic: string
           updated_at?: string
         }
         Update: {
           bucket_date?: string
+          category?: string | null
           created_at?: string
           escalation_count?: number
+          evidence?: Json | null
           id?: string
+          impact_score?: number | null
           question_count?: number
+          recommended_action?: string | null
           sample_questions?: Json
+          status?: string | null
           topic?: string
           updated_at?: string
         }
@@ -484,6 +590,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ai_concierge_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_concierge_outcomes: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          evidence: Json | null
+          id: string
+          outcome_type: string
+          session_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          evidence?: Json | null
+          id?: string
+          outcome_type: string
+          session_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          evidence?: Json | null
+          id?: string
+          outcome_type?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_concierge_outcomes_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "ai_concierge_sessions"

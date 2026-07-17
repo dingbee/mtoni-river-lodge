@@ -92,7 +92,9 @@ import { Route as ApiPublicOpsMorningDigestRouteImport } from './routes/api/publ
 import { Route as ApiPublicOpsDrainRouteImport } from './routes/api/public/ops/drain'
 import { Route as ApiPublicHooksScheduledJobsRouteImport } from './routes/api/public/hooks/scheduled-jobs'
 import { Route as ApiPublicConciergeLeadRouteImport } from './routes/api/public/concierge.lead'
+import { Route as ApiPublicConciergeFeedbackRouteImport } from './routes/api/public/concierge.feedback'
 import { Route as ApiPublicConciergeChatRouteImport } from './routes/api/public/concierge.chat'
+import { Route as ApiPublicConciergeAttributionRouteImport } from './routes/api/public/concierge.attribution'
 import { Route as AuthenticatedAdminStaffUsersRouteImport } from './routes/_authenticated.admin.staff.users'
 import { Route as AuthenticatedAdminStaffRolesRouteImport } from './routes/_authenticated.admin.staff.roles'
 import { Route as AuthenticatedAdminStaffActivityRouteImport } from './routes/_authenticated.admin.staff.activity'
@@ -179,6 +181,7 @@ import { Route as AuthenticatedAdminAiConciergeEscalationsRouteImport } from './
 import { Route as AuthenticatedAdminAiConciergeDraftsRouteImport } from './routes/_authenticated.admin.ai.concierge.drafts'
 import { Route as AuthenticatedAdminAiConciergeConversationsRouteImport } from './routes/_authenticated.admin.ai.concierge.conversations'
 import { Route as AuthenticatedAdminAiConciergeChannelsRouteImport } from './routes/_authenticated.admin.ai.concierge.channels'
+import { Route as AuthenticatedAdminAiConciergeAnalyticsRouteImport } from './routes/_authenticated.admin.ai.concierge.analytics'
 import { Route as AuthenticatedAdminContentPagesIdIndexRouteImport } from './routes/_authenticated.admin.content.pages.$id.index'
 import { Route as AuthenticatedAdminContentPagesIdPreviewRouteImport } from './routes/_authenticated.admin.content.pages.$id.preview'
 
@@ -627,11 +630,23 @@ const ApiPublicConciergeLeadRoute = ApiPublicConciergeLeadRouteImport.update({
   path: '/api/public/concierge/lead',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicConciergeFeedbackRoute =
+  ApiPublicConciergeFeedbackRouteImport.update({
+    id: '/api/public/concierge/feedback',
+    path: '/api/public/concierge/feedback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicConciergeChatRoute = ApiPublicConciergeChatRouteImport.update({
   id: '/api/public/concierge/chat',
   path: '/api/public/concierge/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicConciergeAttributionRoute =
+  ApiPublicConciergeAttributionRouteImport.update({
+    id: '/api/public/concierge/attribution',
+    path: '/api/public/concierge/attribution',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAdminStaffUsersRoute =
   AuthenticatedAdminStaffUsersRouteImport.update({
     id: '/staff/users',
@@ -1148,6 +1163,12 @@ const AuthenticatedAdminAiConciergeChannelsRoute =
     path: '/channels',
     getParentRoute: () => AuthenticatedAdminAiConciergeRoute,
   } as any)
+const AuthenticatedAdminAiConciergeAnalyticsRoute =
+  AuthenticatedAdminAiConciergeAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedAdminAiConciergeRoute,
+  } as any)
 const AuthenticatedAdminContentPagesIdIndexRoute =
   AuthenticatedAdminContentPagesIdIndexRouteImport.update({
     id: '/content/pages/$id/',
@@ -1281,7 +1302,9 @@ export interface FileRoutesByFullPath {
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
+  '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
+  '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
   '/api/public/concierge/lead': typeof ApiPublicConciergeLeadRoute
   '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
@@ -1294,6 +1317,7 @@ export interface FileRoutesByFullPath {
   '/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
   '/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
+  '/admin/ai/concierge/analytics': typeof AuthenticatedAdminAiConciergeAnalyticsRoute
   '/admin/ai/concierge/channels': typeof AuthenticatedAdminAiConciergeChannelsRoute
   '/admin/ai/concierge/conversations': typeof AuthenticatedAdminAiConciergeConversationsRoute
   '/admin/ai/concierge/drafts': typeof AuthenticatedAdminAiConciergeDraftsRoute
@@ -1444,7 +1468,9 @@ export interface FileRoutesByTo {
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
+  '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
+  '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
   '/api/public/concierge/lead': typeof ApiPublicConciergeLeadRoute
   '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
@@ -1457,6 +1483,7 @@ export interface FileRoutesByTo {
   '/admin/automation': typeof AuthenticatedAdminAutomationIndexRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
+  '/admin/ai/concierge/analytics': typeof AuthenticatedAdminAiConciergeAnalyticsRoute
   '/admin/ai/concierge/channels': typeof AuthenticatedAdminAiConciergeChannelsRoute
   '/admin/ai/concierge/conversations': typeof AuthenticatedAdminAiConciergeConversationsRoute
   '/admin/ai/concierge/drafts': typeof AuthenticatedAdminAiConciergeDraftsRoute
@@ -1619,7 +1646,9 @@ export interface FileRoutesById {
   '/_authenticated/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/_authenticated/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/_authenticated/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
+  '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
+  '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
   '/api/public/concierge/lead': typeof ApiPublicConciergeLeadRoute
   '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
@@ -1632,6 +1661,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
   '/_authenticated/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
+  '/_authenticated/admin/ai/concierge/analytics': typeof AuthenticatedAdminAiConciergeAnalyticsRoute
   '/_authenticated/admin/ai/concierge/channels': typeof AuthenticatedAdminAiConciergeChannelsRoute
   '/_authenticated/admin/ai/concierge/conversations': typeof AuthenticatedAdminAiConciergeConversationsRoute
   '/_authenticated/admin/ai/concierge/drafts': typeof AuthenticatedAdminAiConciergeDraftsRoute
@@ -1794,7 +1824,9 @@ export interface FileRouteTypes {
     | '/admin/staff/activity'
     | '/admin/staff/roles'
     | '/admin/staff/users'
+    | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
+    | '/api/public/concierge/feedback'
     | '/api/public/concierge/lead'
     | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
@@ -1807,6 +1839,7 @@ export interface FileRouteTypes {
     | '/admin/automation/'
     | '/admin/finance/'
     | '/admin/operations/'
+    | '/admin/ai/concierge/analytics'
     | '/admin/ai/concierge/channels'
     | '/admin/ai/concierge/conversations'
     | '/admin/ai/concierge/drafts'
@@ -1957,7 +1990,9 @@ export interface FileRouteTypes {
     | '/admin/staff/activity'
     | '/admin/staff/roles'
     | '/admin/staff/users'
+    | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
+    | '/api/public/concierge/feedback'
     | '/api/public/concierge/lead'
     | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
@@ -1970,6 +2005,7 @@ export interface FileRouteTypes {
     | '/admin/automation'
     | '/admin/finance'
     | '/admin/operations'
+    | '/admin/ai/concierge/analytics'
     | '/admin/ai/concierge/channels'
     | '/admin/ai/concierge/conversations'
     | '/admin/ai/concierge/drafts'
@@ -2131,7 +2167,9 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/staff/activity'
     | '/_authenticated/admin/staff/roles'
     | '/_authenticated/admin/staff/users'
+    | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
+    | '/api/public/concierge/feedback'
     | '/api/public/concierge/lead'
     | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
@@ -2144,6 +2182,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/automation/'
     | '/_authenticated/admin/finance/'
     | '/_authenticated/admin/operations/'
+    | '/_authenticated/admin/ai/concierge/analytics'
     | '/_authenticated/admin/ai/concierge/channels'
     | '/_authenticated/admin/ai/concierge/conversations'
     | '/_authenticated/admin/ai/concierge/drafts'
@@ -2232,7 +2271,9 @@ export interface RootRouteChildren {
   WpIncludesSplatRoute: typeof WpIncludesSplatRoute
   WpJsonSplatRoute: typeof WpJsonSplatRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicConciergeAttributionRoute: typeof ApiPublicConciergeAttributionRoute
   ApiPublicConciergeChatRoute: typeof ApiPublicConciergeChatRoute
+  ApiPublicConciergeFeedbackRoute: typeof ApiPublicConciergeFeedbackRoute
   ApiPublicConciergeLeadRoute: typeof ApiPublicConciergeLeadRoute
   ApiPublicHooksScheduledJobsRoute: typeof ApiPublicHooksScheduledJobsRoute
   ApiPublicOpsDrainRoute: typeof ApiPublicOpsDrainRoute
@@ -2826,11 +2867,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicConciergeLeadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/concierge/feedback': {
+      id: '/api/public/concierge/feedback'
+      path: '/api/public/concierge/feedback'
+      fullPath: '/api/public/concierge/feedback'
+      preLoaderRoute: typeof ApiPublicConciergeFeedbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/concierge/chat': {
       id: '/api/public/concierge/chat'
       path: '/api/public/concierge/chat'
       fullPath: '/api/public/concierge/chat'
       preLoaderRoute: typeof ApiPublicConciergeChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/concierge/attribution': {
+      id: '/api/public/concierge/attribution'
+      path: '/api/public/concierge/attribution'
+      fullPath: '/api/public/concierge/attribution'
+      preLoaderRoute: typeof ApiPublicConciergeAttributionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/staff/users': {
@@ -3435,6 +3490,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiConciergeChannelsRouteImport
       parentRoute: typeof AuthenticatedAdminAiConciergeRoute
     }
+    '/_authenticated/admin/ai/concierge/analytics': {
+      id: '/_authenticated/admin/ai/concierge/analytics'
+      path: '/analytics'
+      fullPath: '/admin/ai/concierge/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminAiConciergeAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedAdminAiConciergeRoute
+    }
     '/_authenticated/admin/content/pages/$id/': {
       id: '/_authenticated/admin/content/pages/$id/'
       path: '/content/pages/$id'
@@ -3453,6 +3515,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminAiConciergeRouteChildren {
+  AuthenticatedAdminAiConciergeAnalyticsRoute: typeof AuthenticatedAdminAiConciergeAnalyticsRoute
   AuthenticatedAdminAiConciergeChannelsRoute: typeof AuthenticatedAdminAiConciergeChannelsRoute
   AuthenticatedAdminAiConciergeConversationsRoute: typeof AuthenticatedAdminAiConciergeConversationsRoute
   AuthenticatedAdminAiConciergeDraftsRoute: typeof AuthenticatedAdminAiConciergeDraftsRoute
@@ -3464,6 +3527,8 @@ interface AuthenticatedAdminAiConciergeRouteChildren {
 
 const AuthenticatedAdminAiConciergeRouteChildren: AuthenticatedAdminAiConciergeRouteChildren =
   {
+    AuthenticatedAdminAiConciergeAnalyticsRoute:
+      AuthenticatedAdminAiConciergeAnalyticsRoute,
     AuthenticatedAdminAiConciergeChannelsRoute:
       AuthenticatedAdminAiConciergeChannelsRoute,
     AuthenticatedAdminAiConciergeConversationsRoute:
@@ -3967,7 +4032,9 @@ const rootRouteChildren: RootRouteChildren = {
   WpIncludesSplatRoute: WpIncludesSplatRoute,
   WpJsonSplatRoute: WpJsonSplatRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicConciergeAttributionRoute: ApiPublicConciergeAttributionRoute,
   ApiPublicConciergeChatRoute: ApiPublicConciergeChatRoute,
+  ApiPublicConciergeFeedbackRoute: ApiPublicConciergeFeedbackRoute,
   ApiPublicConciergeLeadRoute: ApiPublicConciergeLeadRoute,
   ApiPublicHooksScheduledJobsRoute: ApiPublicHooksScheduledJobsRoute,
   ApiPublicOpsDrainRoute: ApiPublicOpsDrainRoute,
@@ -3980,13 +4047,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
