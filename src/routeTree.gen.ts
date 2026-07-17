@@ -73,6 +73,7 @@ import { Route as AuthorSplatRouteImport } from './routes/author.$'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated.admin.settings'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
 import { Route as AuthenticatedAdminOperationsRouteImport } from './routes/_authenticated.admin.operations'
@@ -550,6 +551,11 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
   path: '/lovable/email/suppression',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
+  id: '/api/public/health',
+  path: '/api/public/health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminSettingsRoute =
@@ -1476,6 +1482,7 @@ export interface FileRoutesByFullPath {
   '/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
@@ -1677,6 +1684,7 @@ export interface FileRoutesByTo {
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
@@ -1882,6 +1890,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
@@ -2092,6 +2101,7 @@ export interface FileRouteTypes {
     | '/admin/operations'
     | '/admin/reviews'
     | '/admin/settings'
+    | '/api/public/health'
     | '/lovable/email/suppression'
     | '/admin/'
     | '/admin/ai/activity'
@@ -2293,6 +2303,7 @@ export interface FileRouteTypes {
     | '/admin/front-desk'
     | '/admin/reviews'
     | '/admin/settings'
+    | '/api/public/health'
     | '/lovable/email/suppression'
     | '/admin'
     | '/admin/ai/activity'
@@ -2497,6 +2508,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations'
     | '/_authenticated/admin/reviews'
     | '/_authenticated/admin/settings'
+    | '/api/public/health'
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
     | '/_authenticated/admin/ai/activity'
@@ -2682,6 +2694,7 @@ export interface RootRouteChildren {
   WpContentSplatRoute: typeof WpContentSplatRoute
   WpIncludesSplatRoute: typeof WpIncludesSplatRoute
   WpJsonSplatRoute: typeof WpJsonSplatRoute
+  ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicConciergeAttributionRoute: typeof ApiPublicConciergeAttributionRoute
   ApiPublicConciergeChatRoute: typeof ApiPublicConciergeChatRoute
@@ -3145,6 +3158,13 @@ declare module '@tanstack/react-router' {
       path: '/lovable/email/suppression'
       fullPath: '/lovable/email/suppression'
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/health': {
+      id: '/api/public/health'
+      path: '/api/public/health'
+      fullPath: '/api/public/health'
+      preLoaderRoute: typeof ApiPublicHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/settings': {
@@ -4796,6 +4816,7 @@ const rootRouteChildren: RootRouteChildren = {
   WpContentSplatRoute: WpContentSplatRoute,
   WpIncludesSplatRoute: WpIncludesSplatRoute,
   WpJsonSplatRoute: WpJsonSplatRoute,
+  ApiPublicHealthRoute: ApiPublicHealthRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicConciergeAttributionRoute: ApiPublicConciergeAttributionRoute,
   ApiPublicConciergeChatRoute: ApiPublicConciergeChatRoute,

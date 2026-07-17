@@ -96,7 +96,7 @@ export const Route = createFileRoute("/api/public/health")({
               probe_name: p.name,
               status: p.status,
               latency_ms: p.latency_ms,
-              details: p.details,
+              details: JSON.parse(JSON.stringify(p.details)),
             })),
           );
         } catch {
