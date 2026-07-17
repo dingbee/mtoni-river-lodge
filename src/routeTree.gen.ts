@@ -166,6 +166,7 @@ import { Route as AuthenticatedAdminAiRevenueForecastRouteImport } from './route
 import { Route as AuthenticatedAdminAiRevenueAlertsRouteImport } from './routes/_authenticated.admin.ai.revenue.alerts'
 import { Route as AuthenticatedAdminAiOperationsTimelineRouteImport } from './routes/_authenticated.admin.ai.operations.timeline'
 import { Route as AuthenticatedAdminAiOperationsTasksRouteImport } from './routes/_authenticated.admin.ai.operations.tasks'
+import { Route as AuthenticatedAdminAiOperationsStaffRouteImport } from './routes/_authenticated.admin.ai.operations.staff'
 import { Route as AuthenticatedAdminAiOperationsServiceQualityRouteImport } from './routes/_authenticated.admin.ai.operations.service-quality'
 import { Route as AuthenticatedAdminAiOperationsReadinessRouteImport } from './routes/_authenticated.admin.ai.operations.readiness'
 import { Route as AuthenticatedAdminAiOperationsPatternsRouteImport } from './routes/_authenticated.admin.ai.operations.patterns'
@@ -1089,6 +1090,12 @@ const AuthenticatedAdminAiOperationsTasksRoute =
     path: '/tasks',
     getParentRoute: () => AuthenticatedAdminAiOperationsRoute,
   } as any)
+const AuthenticatedAdminAiOperationsStaffRoute =
+  AuthenticatedAdminAiOperationsStaffRouteImport.update({
+    id: '/staff',
+    path: '/staff',
+    getParentRoute: () => AuthenticatedAdminAiOperationsRoute,
+  } as any)
 const AuthenticatedAdminAiOperationsServiceQualityRoute =
   AuthenticatedAdminAiOperationsServiceQualityRouteImport.update({
     id: '/service-quality',
@@ -1462,6 +1469,7 @@ export interface FileRoutesByFullPath {
   '/admin/ai/operations/patterns': typeof AuthenticatedAdminAiOperationsPatternsRoute
   '/admin/ai/operations/readiness': typeof AuthenticatedAdminAiOperationsReadinessRoute
   '/admin/ai/operations/service-quality': typeof AuthenticatedAdminAiOperationsServiceQualityRoute
+  '/admin/ai/operations/staff': typeof AuthenticatedAdminAiOperationsStaffRoute
   '/admin/ai/operations/tasks': typeof AuthenticatedAdminAiOperationsTasksRoute
   '/admin/ai/operations/timeline': typeof AuthenticatedAdminAiOperationsTimelineRoute
   '/admin/ai/revenue/alerts': typeof AuthenticatedAdminAiRevenueAlertsRoute
@@ -1643,6 +1651,7 @@ export interface FileRoutesByTo {
   '/admin/ai/operations/patterns': typeof AuthenticatedAdminAiOperationsPatternsRoute
   '/admin/ai/operations/readiness': typeof AuthenticatedAdminAiOperationsReadinessRoute
   '/admin/ai/operations/service-quality': typeof AuthenticatedAdminAiOperationsServiceQualityRoute
+  '/admin/ai/operations/staff': typeof AuthenticatedAdminAiOperationsStaffRoute
   '/admin/ai/operations/tasks': typeof AuthenticatedAdminAiOperationsTasksRoute
   '/admin/ai/operations/timeline': typeof AuthenticatedAdminAiOperationsTimelineRoute
   '/admin/ai/revenue/alerts': typeof AuthenticatedAdminAiRevenueAlertsRoute
@@ -1837,6 +1846,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/ai/operations/patterns': typeof AuthenticatedAdminAiOperationsPatternsRoute
   '/_authenticated/admin/ai/operations/readiness': typeof AuthenticatedAdminAiOperationsReadinessRoute
   '/_authenticated/admin/ai/operations/service-quality': typeof AuthenticatedAdminAiOperationsServiceQualityRoute
+  '/_authenticated/admin/ai/operations/staff': typeof AuthenticatedAdminAiOperationsStaffRoute
   '/_authenticated/admin/ai/operations/tasks': typeof AuthenticatedAdminAiOperationsTasksRoute
   '/_authenticated/admin/ai/operations/timeline': typeof AuthenticatedAdminAiOperationsTimelineRoute
   '/_authenticated/admin/ai/revenue/alerts': typeof AuthenticatedAdminAiRevenueAlertsRoute
@@ -2031,6 +2041,7 @@ export interface FileRouteTypes {
     | '/admin/ai/operations/patterns'
     | '/admin/ai/operations/readiness'
     | '/admin/ai/operations/service-quality'
+    | '/admin/ai/operations/staff'
     | '/admin/ai/operations/tasks'
     | '/admin/ai/operations/timeline'
     | '/admin/ai/revenue/alerts'
@@ -2212,6 +2223,7 @@ export interface FileRouteTypes {
     | '/admin/ai/operations/patterns'
     | '/admin/ai/operations/readiness'
     | '/admin/ai/operations/service-quality'
+    | '/admin/ai/operations/staff'
     | '/admin/ai/operations/tasks'
     | '/admin/ai/operations/timeline'
     | '/admin/ai/revenue/alerts'
@@ -2405,6 +2417,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/ai/operations/patterns'
     | '/_authenticated/admin/ai/operations/readiness'
     | '/_authenticated/admin/ai/operations/service-quality'
+    | '/_authenticated/admin/ai/operations/staff'
     | '/_authenticated/admin/ai/operations/tasks'
     | '/_authenticated/admin/ai/operations/timeline'
     | '/_authenticated/admin/ai/revenue/alerts'
@@ -3591,6 +3604,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiOperationsTasksRouteImport
       parentRoute: typeof AuthenticatedAdminAiOperationsRoute
     }
+    '/_authenticated/admin/ai/operations/staff': {
+      id: '/_authenticated/admin/ai/operations/staff'
+      path: '/staff'
+      fullPath: '/admin/ai/operations/staff'
+      preLoaderRoute: typeof AuthenticatedAdminAiOperationsStaffRouteImport
+      parentRoute: typeof AuthenticatedAdminAiOperationsRoute
+    }
     '/_authenticated/admin/ai/operations/service-quality': {
       id: '/_authenticated/admin/ai/operations/service-quality'
       path: '/service-quality'
@@ -3982,6 +4002,7 @@ interface AuthenticatedAdminAiOperationsRouteChildren {
   AuthenticatedAdminAiOperationsPatternsRoute: typeof AuthenticatedAdminAiOperationsPatternsRoute
   AuthenticatedAdminAiOperationsReadinessRoute: typeof AuthenticatedAdminAiOperationsReadinessRoute
   AuthenticatedAdminAiOperationsServiceQualityRoute: typeof AuthenticatedAdminAiOperationsServiceQualityRoute
+  AuthenticatedAdminAiOperationsStaffRoute: typeof AuthenticatedAdminAiOperationsStaffRoute
   AuthenticatedAdminAiOperationsTasksRoute: typeof AuthenticatedAdminAiOperationsTasksRoute
   AuthenticatedAdminAiOperationsTimelineRoute: typeof AuthenticatedAdminAiOperationsTimelineRoute
   AuthenticatedAdminAiOperationsIndexRoute: typeof AuthenticatedAdminAiOperationsIndexRoute
@@ -4005,6 +4026,8 @@ const AuthenticatedAdminAiOperationsRouteChildren: AuthenticatedAdminAiOperation
       AuthenticatedAdminAiOperationsReadinessRoute,
     AuthenticatedAdminAiOperationsServiceQualityRoute:
       AuthenticatedAdminAiOperationsServiceQualityRoute,
+    AuthenticatedAdminAiOperationsStaffRoute:
+      AuthenticatedAdminAiOperationsStaffRoute,
     AuthenticatedAdminAiOperationsTasksRoute:
       AuthenticatedAdminAiOperationsTasksRoute,
     AuthenticatedAdminAiOperationsTimelineRoute:
