@@ -91,6 +91,7 @@ import { Route as ApiPublicPesapalIpnRouteImport } from './routes/api/public/pes
 import { Route as ApiPublicOpsMorningDigestRouteImport } from './routes/api/public/ops/morning-digest'
 import { Route as ApiPublicOpsDrainRouteImport } from './routes/api/public/ops/drain'
 import { Route as ApiPublicHooksScheduledJobsRouteImport } from './routes/api/public/hooks/scheduled-jobs'
+import { Route as ApiPublicHooksKnowledgeSyncRouteImport } from './routes/api/public/hooks/knowledge-sync'
 import { Route as ApiPublicConciergeLeadRouteImport } from './routes/api/public/concierge.lead'
 import { Route as ApiPublicConciergeFeedbackRouteImport } from './routes/api/public/concierge.feedback'
 import { Route as ApiPublicConciergeChatRouteImport } from './routes/api/public/concierge.chat'
@@ -640,6 +641,12 @@ const ApiPublicHooksScheduledJobsRoute =
   ApiPublicHooksScheduledJobsRouteImport.update({
     id: '/api/public/hooks/scheduled-jobs',
     path: '/api/public/hooks/scheduled-jobs',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksKnowledgeSyncRoute =
+  ApiPublicHooksKnowledgeSyncRouteImport.update({
+    id: '/api/public/hooks/knowledge-sync',
+    path: '/api/public/hooks/knowledge-sync',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicConciergeLeadRoute = ApiPublicConciergeLeadRouteImport.update({
@@ -1426,6 +1433,7 @@ export interface FileRoutesByFullPath {
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
   '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
   '/api/public/concierge/lead': typeof ApiPublicConciergeLeadRoute
+  '/api/public/hooks/knowledge-sync': typeof ApiPublicHooksKnowledgeSyncRoute
   '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
@@ -1608,6 +1616,7 @@ export interface FileRoutesByTo {
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
   '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
   '/api/public/concierge/lead': typeof ApiPublicConciergeLeadRoute
+  '/api/public/hooks/knowledge-sync': typeof ApiPublicHooksKnowledgeSyncRoute
   '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
@@ -1803,6 +1812,7 @@ export interface FileRoutesById {
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
   '/api/public/concierge/feedback': typeof ApiPublicConciergeFeedbackRoute
   '/api/public/concierge/lead': typeof ApiPublicConciergeLeadRoute
+  '/api/public/hooks/knowledge-sync': typeof ApiPublicHooksKnowledgeSyncRoute
   '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
@@ -1998,6 +2008,7 @@ export interface FileRouteTypes {
     | '/api/public/concierge/chat'
     | '/api/public/concierge/feedback'
     | '/api/public/concierge/lead'
+    | '/api/public/hooks/knowledge-sync'
     | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
@@ -2180,6 +2191,7 @@ export interface FileRouteTypes {
     | '/api/public/concierge/chat'
     | '/api/public/concierge/feedback'
     | '/api/public/concierge/lead'
+    | '/api/public/hooks/knowledge-sync'
     | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
@@ -2374,6 +2386,7 @@ export interface FileRouteTypes {
     | '/api/public/concierge/chat'
     | '/api/public/concierge/feedback'
     | '/api/public/concierge/lead'
+    | '/api/public/hooks/knowledge-sync'
     | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
@@ -2494,6 +2507,7 @@ export interface RootRouteChildren {
   ApiPublicConciergeChatRoute: typeof ApiPublicConciergeChatRoute
   ApiPublicConciergeFeedbackRoute: typeof ApiPublicConciergeFeedbackRoute
   ApiPublicConciergeLeadRoute: typeof ApiPublicConciergeLeadRoute
+  ApiPublicHooksKnowledgeSyncRoute: typeof ApiPublicHooksKnowledgeSyncRoute
   ApiPublicHooksScheduledJobsRoute: typeof ApiPublicHooksScheduledJobsRoute
   ApiPublicOpsDrainRoute: typeof ApiPublicOpsDrainRoute
   ApiPublicOpsMorningDigestRoute: typeof ApiPublicOpsMorningDigestRoute
@@ -3077,6 +3091,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/scheduled-jobs'
       fullPath: '/api/public/hooks/scheduled-jobs'
       preLoaderRoute: typeof ApiPublicHooksScheduledJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/knowledge-sync': {
+      id: '/api/public/hooks/knowledge-sync'
+      path: '/api/public/hooks/knowledge-sync'
+      fullPath: '/api/public/hooks/knowledge-sync'
+      preLoaderRoute: typeof ApiPublicHooksKnowledgeSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/concierge/lead': {
@@ -4450,6 +4471,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicConciergeChatRoute: ApiPublicConciergeChatRoute,
   ApiPublicConciergeFeedbackRoute: ApiPublicConciergeFeedbackRoute,
   ApiPublicConciergeLeadRoute: ApiPublicConciergeLeadRoute,
+  ApiPublicHooksKnowledgeSyncRoute: ApiPublicHooksKnowledgeSyncRoute,
   ApiPublicHooksScheduledJobsRoute: ApiPublicHooksScheduledJobsRoute,
   ApiPublicOpsDrainRoute: ApiPublicOpsDrainRoute,
   ApiPublicOpsMorningDigestRoute: ApiPublicOpsMorningDigestRoute,
