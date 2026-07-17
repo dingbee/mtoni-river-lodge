@@ -261,6 +261,25 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
       return { summary: `${rows.length} route(s) with SEO overrides; ${noindex} marked noindex.`, data: rows, count: rows.length };
     },
   },
+  "knowledge.search": {
+    id: "knowledge.search",
+    description: "Search Mtoni's internal knowledge base (SOPs, policies, brand, experiences). Use whenever the question is procedural, definitional, or reference-based. args: { query: string }.",
+    args: '{"query": "keywords or a short phrase"}',
+    run: async ({ supabase }, args) => {
+      const q = String(args.query ?? "").trim();
+      if (!q) return { summary: "No query provided.", data: [], count: 0 };
+      const { data, error } = await supabase.rpc("knowledge_search", { _query: q, _limit: 6 });
+      if (error) throw error;
+      const rows = (data ?? []) as Array<any>;
+      return {
+        summary: rows.length
+          ? `Found ${rows.length} knowledge excerpt(s) for "${q}".`
+          : `No knowledge base entries matched "${q}".`,
+        data: rows,
+        count: rows.length,
+      };
+    },
+  },
 };
 
 export function toolCatalog(allowed: AiToolId[]): string {
