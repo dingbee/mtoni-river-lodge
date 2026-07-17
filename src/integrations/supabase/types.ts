@@ -435,6 +435,7 @@ export type Database = {
           escalated: boolean
           escalation_channel: string | null
           guest_email: string | null
+          guest_id: string | null
           guest_name: string | null
           guest_phone: string | null
           id: string
@@ -452,6 +453,7 @@ export type Database = {
           escalated?: boolean
           escalation_channel?: string | null
           guest_email?: string | null
+          guest_id?: string | null
           guest_name?: string | null
           guest_phone?: string | null
           id?: string
@@ -469,6 +471,7 @@ export type Database = {
           escalated?: boolean
           escalation_channel?: string | null
           guest_email?: string | null
+          guest_id?: string | null
           guest_name?: string | null
           guest_phone?: string | null
           id?: string
@@ -481,7 +484,29 @@ export type Database = {
           updated_at?: string
           user_agent?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_concierge_sessions_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_concierge_sessions_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
+          },
+          {
+            foreignKeyName: "ai_concierge_sessions_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_configurations: {
         Row: {
@@ -722,6 +747,86 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "ops_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_guest_memories: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          confidence: number
+          created_at: string
+          guest_id: string | null
+          id: string
+          memory_key: string
+          memory_type: string
+          memory_value: string
+          notes: string | null
+          session_id: string | null
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          confidence?: number
+          created_at?: string
+          guest_id?: string | null
+          id?: string
+          memory_key: string
+          memory_type: string
+          memory_value: string
+          notes?: string | null
+          session_id?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          confidence?: number
+          created_at?: string
+          guest_id?: string | null
+          id?: string
+          memory_key?: string
+          memory_type?: string
+          memory_value?: string
+          notes?: string | null
+          session_id?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_guest_memories_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_guest_memories_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
+          },
+          {
+            foreignKeyName: "ai_guest_memories_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_guest_memories_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -976,6 +1081,44 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_memory_events: {
+        Row: {
+          actor_id: string | null
+          actor_role: string | null
+          created_at: string
+          event_type: string
+          id: string
+          memory_id: string | null
+          payload: Json
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_role?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          memory_id?: string | null
+          payload?: Json
+        }
+        Update: {
+          actor_id?: string | null
+          actor_role?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          memory_id?: string | null
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_memory_events_memory_id_fkey"
+            columns: ["memory_id"]
+            isOneToOne: false
+            referencedRelation: "ai_guest_memories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_organisations: {
         Row: {
           created_at: string
@@ -1002,6 +1145,65 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      ai_personalization_events: {
+        Row: {
+          created_at: string
+          detail: Json
+          event_type: string
+          guest_id: string | null
+          id: string
+          memory_ids: string[]
+          session_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json
+          event_type: string
+          guest_id?: string | null
+          id?: string
+          memory_ids?: string[]
+          session_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          detail?: Json
+          event_type?: string
+          guest_id?: string | null
+          id?: string
+          memory_ids?: string[]
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_personalization_events_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_personalization_events_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
+          },
+          {
+            foreignKeyName: "ai_personalization_events_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_personalization_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_pricing_recommendations: {
         Row: {

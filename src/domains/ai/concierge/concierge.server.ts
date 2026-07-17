@@ -13,6 +13,7 @@ import { WHATSAPP_URL } from "@/lib/contact";
 import { classifyIntent } from "./concierge.intent";
 import { combinedRecommendations } from "./concierge.recommendations";
 import { searchAvailability, buildBookingPlan } from "./concierge.tools";
+import { loadConciergeMemoryContext, suggestMemoriesFromMessage } from "./memory.context";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-2.5-flash";
@@ -128,13 +129,17 @@ export async function handleConciergeChat(
   // 1. Session
   let sessionId: string | null = null;
   let sessionToken = safeString(input.session_token, 80);
+  let existingGuestId: string | null = null;
+  let existingGuestEmail: string | null = null;
   if (sessionToken) {
     const { data } = await supabaseAdmin
       .from("ai_concierge_sessions")
-      .select("id")
+      .select("id, guest_id, guest_email")
       .eq("session_token", sessionToken)
       .maybeSingle();
     sessionId = data?.id ?? null;
+    existingGuestId = (data as any)?.guest_id ?? null;
+    existingGuestEmail = (data as any)?.guest_email ?? null;
   }
   if (!sessionId) {
     sessionToken = newToken();
@@ -252,7 +257,24 @@ export async function handleConciergeChat(
   const availabilityCtx = availability
     .map((a) => `- ${a.name} (slug: ${a.slug}) — ${a.is_available ? `available (${a.min_available} left)` : "not available"} for ${a.nights} night(s), total US$${a.nightly_total_usd}`)
     .join("\n") + (plan?.booking_url ? `\nbooking_url: ${plan.booking_url}` : "");
-  const system = buildSystemPrompt(page, buildRoomsContext(), knowledgeCtx, intentCtx, recsCtx, availabilityCtx);
+  // 4e. Memory context — approved memories for this guest / session
+  const memoryCtx = await loadConciergeMemoryContext({
+    sessionId: sessionId!,
+    guestId: existingGuestId,
+    guestEmail: existingGuestEmail,
+  });
+  const memoryPromptSection = memoryCtx.contextText
+    ? [
+        "== Guest memory (approved) ==",
+        memoryCtx.isReturningVisitor
+          ? "This is a returning visitor. Greet them warmly and reference memories naturally, without revealing private history."
+          : "Use these approved preferences to personalise your reply.",
+        memoryCtx.contextText,
+      ].join("\n")
+    : "";
+  const system =
+    buildSystemPrompt(page, buildRoomsContext(), knowledgeCtx, intentCtx, recsCtx, availabilityCtx) +
+    (memoryPromptSection ? "\n\n" + memoryPromptSection : "");
   const { raw, latency } = await callModel(system, history, message);
   const parsed = tryJson<{ answer?: string; confidence?: number; escalate?: boolean; citations?: any[] }>(raw) ?? {};
   const answer = (parsed.answer ?? "I'm sorry, I couldn't put together an answer just now. Please reach us on WhatsApp and we'll help right away.").trim();
@@ -312,8 +334,31 @@ export async function handleConciergeChat(
       last_active_at: new Date().toISOString(),
       escalated: shouldEscalate,
       escalation_channel: shouldEscalate ? "whatsapp" : null,
+      guest_id: memoryCtx.guestId ?? existingGuestId ?? null,
     })
     .eq("id", sessionId);
+
+  // 7b. Suggest new memories (pending) and log personalization event
+  try {
+    await suggestMemoriesFromMessage({
+      sessionId: sessionId!,
+      guestId: memoryCtx.guestId,
+      message,
+      interests: intent.detected.interests ?? [],
+      party: { adults: intent.detected.adults, children: intent.detected.children },
+    });
+    if (memoryCtx.memoryIds.length > 0) {
+      await supabaseAdmin.from("ai_personalization_events").insert({
+        session_id: sessionId,
+        guest_id: memoryCtx.guestId,
+        event_type: "memory_applied",
+        memory_ids: memoryCtx.memoryIds,
+        detail: { message_id: assistantMessageId },
+      });
+    }
+  } catch {
+    // best-effort
+  }
 
   const reply: ConciergeReply = {
     session_token: sessionToken!,

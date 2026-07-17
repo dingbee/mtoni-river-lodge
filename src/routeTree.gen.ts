@@ -147,6 +147,7 @@ import { Route as AuthenticatedAdminContentJournalIndexRouteImport } from './rou
 import { Route as AuthenticatedAdminAiRevenueIndexRouteImport } from './routes/_authenticated.admin.ai.revenue.index'
 import { Route as AuthenticatedAdminAiMarketingIndexRouteImport } from './routes/_authenticated.admin.ai.marketing.index'
 import { Route as AuthenticatedAdminAiExecutiveIndexRouteImport } from './routes/_authenticated.admin.ai.executive.index'
+import { Route as AuthenticatedAdminAiConciergeIndexRouteImport } from './routes/_authenticated.admin.ai.concierge.index'
 import { Route as AuthenticatedAdminOperationsReservationsIdRouteImport } from './routes/_authenticated.admin.operations.reservations.$id'
 import { Route as AuthenticatedAdminOperationsCheckoutIdRouteImport } from './routes/_authenticated.admin.operations.checkout.$id'
 import { Route as AuthenticatedAdminOperationsCheckinIdRouteImport } from './routes/_authenticated.admin.operations.checkin.$id'
@@ -172,6 +173,8 @@ import { Route as AuthenticatedAdminAiExecutiveRisksRouteImport } from './routes
 import { Route as AuthenticatedAdminAiExecutiveKpisRouteImport } from './routes/_authenticated.admin.ai.executive.kpis'
 import { Route as AuthenticatedAdminAiExecutiveDecisionsRouteImport } from './routes/_authenticated.admin.ai.executive.decisions'
 import { Route as AuthenticatedAdminAiExecutiveBriefingRouteImport } from './routes/_authenticated.admin.ai.executive.briefing'
+import { Route as AuthenticatedAdminAiConciergePreArrivalRouteImport } from './routes/_authenticated.admin.ai.concierge.pre-arrival'
+import { Route as AuthenticatedAdminAiConciergeMemoryRouteImport } from './routes/_authenticated.admin.ai.concierge.memory'
 import { Route as AuthenticatedAdminContentPagesIdIndexRouteImport } from './routes/_authenticated.admin.content.pages.$id.index'
 import { Route as AuthenticatedAdminContentPagesIdPreviewRouteImport } from './routes/_authenticated.admin.content.pages.$id.preview'
 
@@ -949,6 +952,12 @@ const AuthenticatedAdminAiExecutiveIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAdminAiExecutiveRoute,
   } as any)
+const AuthenticatedAdminAiConciergeIndexRoute =
+  AuthenticatedAdminAiConciergeIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminAiConciergeRoute,
+  } as any)
 const AuthenticatedAdminOperationsReservationsIdRoute =
   AuthenticatedAdminOperationsReservationsIdRouteImport.update({
     id: '/reservations/$id',
@@ -1099,6 +1108,18 @@ const AuthenticatedAdminAiExecutiveBriefingRoute =
     path: '/briefing',
     getParentRoute: () => AuthenticatedAdminAiExecutiveRoute,
   } as any)
+const AuthenticatedAdminAiConciergePreArrivalRoute =
+  AuthenticatedAdminAiConciergePreArrivalRouteImport.update({
+    id: '/pre-arrival',
+    path: '/pre-arrival',
+    getParentRoute: () => AuthenticatedAdminAiConciergeRoute,
+  } as any)
+const AuthenticatedAdminAiConciergeMemoryRoute =
+  AuthenticatedAdminAiConciergeMemoryRouteImport.update({
+    id: '/memory',
+    path: '/memory',
+    getParentRoute: () => AuthenticatedAdminAiConciergeRoute,
+  } as any)
 const AuthenticatedAdminContentPagesIdIndexRoute =
   AuthenticatedAdminContentPagesIdIndexRouteImport.update({
     id: '/content/pages/$id/',
@@ -1185,7 +1206,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
   '/admin/ai/audit': typeof AuthenticatedAdminAiAuditRoute
-  '/admin/ai/concierge': typeof AuthenticatedAdminAiConciergeRoute
+  '/admin/ai/concierge': typeof AuthenticatedAdminAiConciergeRouteWithChildren
   '/admin/ai/executive': typeof AuthenticatedAdminAiExecutiveRouteWithChildren
   '/admin/ai/governance': typeof AuthenticatedAdminAiGovernanceRoute
   '/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRouteWithChildren
@@ -1245,6 +1266,8 @@ export interface FileRoutesByFullPath {
   '/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
   '/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
+  '/admin/ai/concierge/memory': typeof AuthenticatedAdminAiConciergeMemoryRoute
+  '/admin/ai/concierge/pre-arrival': typeof AuthenticatedAdminAiConciergePreArrivalRoute
   '/admin/ai/executive/briefing': typeof AuthenticatedAdminAiExecutiveBriefingRoute
   '/admin/ai/executive/decisions': typeof AuthenticatedAdminAiExecutiveDecisionsRoute
   '/admin/ai/executive/kpis': typeof AuthenticatedAdminAiExecutiveKpisRoute
@@ -1270,6 +1293,7 @@ export interface FileRoutesByFullPath {
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
+  '/admin/ai/concierge/': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/admin/ai/executive/': typeof AuthenticatedAdminAiExecutiveIndexRoute
   '/admin/ai/marketing/': typeof AuthenticatedAdminAiMarketingIndexRoute
   '/admin/ai/revenue/': typeof AuthenticatedAdminAiRevenueIndexRoute
@@ -1345,7 +1369,6 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
   '/admin/ai/audit': typeof AuthenticatedAdminAiAuditRoute
-  '/admin/ai/concierge': typeof AuthenticatedAdminAiConciergeRoute
   '/admin/ai/governance': typeof AuthenticatedAdminAiGovernanceRoute
   '/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRouteWithChildren
   '/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
@@ -1402,6 +1425,8 @@ export interface FileRoutesByTo {
   '/admin/automation': typeof AuthenticatedAdminAutomationIndexRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
+  '/admin/ai/concierge/memory': typeof AuthenticatedAdminAiConciergeMemoryRoute
+  '/admin/ai/concierge/pre-arrival': typeof AuthenticatedAdminAiConciergePreArrivalRoute
   '/admin/ai/executive/briefing': typeof AuthenticatedAdminAiExecutiveBriefingRoute
   '/admin/ai/executive/decisions': typeof AuthenticatedAdminAiExecutiveDecisionsRoute
   '/admin/ai/executive/kpis': typeof AuthenticatedAdminAiExecutiveKpisRoute
@@ -1427,6 +1452,7 @@ export interface FileRoutesByTo {
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
+  '/admin/ai/concierge': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/admin/ai/executive': typeof AuthenticatedAdminAiExecutiveIndexRoute
   '/admin/ai/marketing': typeof AuthenticatedAdminAiMarketingIndexRoute
   '/admin/ai/revenue': typeof AuthenticatedAdminAiRevenueIndexRoute
@@ -1510,7 +1536,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
   '/_authenticated/admin/ai/audit': typeof AuthenticatedAdminAiAuditRoute
-  '/_authenticated/admin/ai/concierge': typeof AuthenticatedAdminAiConciergeRoute
+  '/_authenticated/admin/ai/concierge': typeof AuthenticatedAdminAiConciergeRouteWithChildren
   '/_authenticated/admin/ai/executive': typeof AuthenticatedAdminAiExecutiveRouteWithChildren
   '/_authenticated/admin/ai/governance': typeof AuthenticatedAdminAiGovernanceRoute
   '/_authenticated/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRouteWithChildren
@@ -1570,6 +1596,8 @@ export interface FileRoutesById {
   '/_authenticated/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
   '/_authenticated/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
+  '/_authenticated/admin/ai/concierge/memory': typeof AuthenticatedAdminAiConciergeMemoryRoute
+  '/_authenticated/admin/ai/concierge/pre-arrival': typeof AuthenticatedAdminAiConciergePreArrivalRoute
   '/_authenticated/admin/ai/executive/briefing': typeof AuthenticatedAdminAiExecutiveBriefingRoute
   '/_authenticated/admin/ai/executive/decisions': typeof AuthenticatedAdminAiExecutiveDecisionsRoute
   '/_authenticated/admin/ai/executive/kpis': typeof AuthenticatedAdminAiExecutiveKpisRoute
@@ -1595,6 +1623,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/_authenticated/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/_authenticated/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
+  '/_authenticated/admin/ai/concierge/': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/_authenticated/admin/ai/executive/': typeof AuthenticatedAdminAiExecutiveIndexRoute
   '/_authenticated/admin/ai/marketing/': typeof AuthenticatedAdminAiMarketingIndexRoute
   '/_authenticated/admin/ai/revenue/': typeof AuthenticatedAdminAiRevenueIndexRoute
@@ -1738,6 +1767,8 @@ export interface FileRouteTypes {
     | '/admin/automation/'
     | '/admin/finance/'
     | '/admin/operations/'
+    | '/admin/ai/concierge/memory'
+    | '/admin/ai/concierge/pre-arrival'
     | '/admin/ai/executive/briefing'
     | '/admin/ai/executive/decisions'
     | '/admin/ai/executive/kpis'
@@ -1763,6 +1794,7 @@ export interface FileRouteTypes {
     | '/admin/operations/checkin/$id'
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
+    | '/admin/ai/concierge/'
     | '/admin/ai/executive/'
     | '/admin/ai/marketing/'
     | '/admin/ai/revenue/'
@@ -1838,7 +1870,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin/ai/activity'
     | '/admin/ai/audit'
-    | '/admin/ai/concierge'
     | '/admin/ai/governance'
     | '/admin/ai/guests'
     | '/admin/ai/insights'
@@ -1895,6 +1926,8 @@ export interface FileRouteTypes {
     | '/admin/automation'
     | '/admin/finance'
     | '/admin/operations'
+    | '/admin/ai/concierge/memory'
+    | '/admin/ai/concierge/pre-arrival'
     | '/admin/ai/executive/briefing'
     | '/admin/ai/executive/decisions'
     | '/admin/ai/executive/kpis'
@@ -1920,6 +1953,7 @@ export interface FileRouteTypes {
     | '/admin/operations/checkin/$id'
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
+    | '/admin/ai/concierge'
     | '/admin/ai/executive'
     | '/admin/ai/marketing'
     | '/admin/ai/revenue'
@@ -2062,6 +2096,8 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/automation/'
     | '/_authenticated/admin/finance/'
     | '/_authenticated/admin/operations/'
+    | '/_authenticated/admin/ai/concierge/memory'
+    | '/_authenticated/admin/ai/concierge/pre-arrival'
     | '/_authenticated/admin/ai/executive/briefing'
     | '/_authenticated/admin/ai/executive/decisions'
     | '/_authenticated/admin/ai/executive/kpis'
@@ -2087,6 +2123,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations/checkin/$id'
     | '/_authenticated/admin/operations/checkout/$id'
     | '/_authenticated/admin/operations/reservations/$id'
+    | '/_authenticated/admin/ai/concierge/'
     | '/_authenticated/admin/ai/executive/'
     | '/_authenticated/admin/ai/marketing/'
     | '/_authenticated/admin/ai/revenue/'
@@ -3122,6 +3159,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiExecutiveIndexRouteImport
       parentRoute: typeof AuthenticatedAdminAiExecutiveRoute
     }
+    '/_authenticated/admin/ai/concierge/': {
+      id: '/_authenticated/admin/ai/concierge/'
+      path: '/'
+      fullPath: '/admin/ai/concierge/'
+      preLoaderRoute: typeof AuthenticatedAdminAiConciergeIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminAiConciergeRoute
+    }
     '/_authenticated/admin/operations/reservations/$id': {
       id: '/_authenticated/admin/operations/reservations/$id'
       path: '/reservations/$id'
@@ -3297,6 +3341,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiExecutiveBriefingRouteImport
       parentRoute: typeof AuthenticatedAdminAiExecutiveRoute
     }
+    '/_authenticated/admin/ai/concierge/pre-arrival': {
+      id: '/_authenticated/admin/ai/concierge/pre-arrival'
+      path: '/pre-arrival'
+      fullPath: '/admin/ai/concierge/pre-arrival'
+      preLoaderRoute: typeof AuthenticatedAdminAiConciergePreArrivalRouteImport
+      parentRoute: typeof AuthenticatedAdminAiConciergeRoute
+    }
+    '/_authenticated/admin/ai/concierge/memory': {
+      id: '/_authenticated/admin/ai/concierge/memory'
+      path: '/memory'
+      fullPath: '/admin/ai/concierge/memory'
+      preLoaderRoute: typeof AuthenticatedAdminAiConciergeMemoryRouteImport
+      parentRoute: typeof AuthenticatedAdminAiConciergeRoute
+    }
     '/_authenticated/admin/content/pages/$id/': {
       id: '/_authenticated/admin/content/pages/$id/'
       path: '/content/pages/$id'
@@ -3313,6 +3371,27 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedAdminAiConciergeRouteChildren {
+  AuthenticatedAdminAiConciergeMemoryRoute: typeof AuthenticatedAdminAiConciergeMemoryRoute
+  AuthenticatedAdminAiConciergePreArrivalRoute: typeof AuthenticatedAdminAiConciergePreArrivalRoute
+  AuthenticatedAdminAiConciergeIndexRoute: typeof AuthenticatedAdminAiConciergeIndexRoute
+}
+
+const AuthenticatedAdminAiConciergeRouteChildren: AuthenticatedAdminAiConciergeRouteChildren =
+  {
+    AuthenticatedAdminAiConciergeMemoryRoute:
+      AuthenticatedAdminAiConciergeMemoryRoute,
+    AuthenticatedAdminAiConciergePreArrivalRoute:
+      AuthenticatedAdminAiConciergePreArrivalRoute,
+    AuthenticatedAdminAiConciergeIndexRoute:
+      AuthenticatedAdminAiConciergeIndexRoute,
+  }
+
+const AuthenticatedAdminAiConciergeRouteWithChildren =
+  AuthenticatedAdminAiConciergeRoute._addFileChildren(
+    AuthenticatedAdminAiConciergeRouteChildren,
+  )
 
 interface AuthenticatedAdminAiExecutiveRouteChildren {
   AuthenticatedAdminAiExecutiveBriefingRoute: typeof AuthenticatedAdminAiExecutiveBriefingRoute
@@ -3428,7 +3507,7 @@ const AuthenticatedAdminAiRevenueRouteWithChildren =
 interface AuthenticatedAdminAiRouteChildren {
   AuthenticatedAdminAiActivityRoute: typeof AuthenticatedAdminAiActivityRoute
   AuthenticatedAdminAiAuditRoute: typeof AuthenticatedAdminAiAuditRoute
-  AuthenticatedAdminAiConciergeRoute: typeof AuthenticatedAdminAiConciergeRoute
+  AuthenticatedAdminAiConciergeRoute: typeof AuthenticatedAdminAiConciergeRouteWithChildren
   AuthenticatedAdminAiExecutiveRoute: typeof AuthenticatedAdminAiExecutiveRouteWithChildren
   AuthenticatedAdminAiGovernanceRoute: typeof AuthenticatedAdminAiGovernanceRoute
   AuthenticatedAdminAiGuestsRoute: typeof AuthenticatedAdminAiGuestsRouteWithChildren
@@ -3445,7 +3524,8 @@ interface AuthenticatedAdminAiRouteChildren {
 const AuthenticatedAdminAiRouteChildren: AuthenticatedAdminAiRouteChildren = {
   AuthenticatedAdminAiActivityRoute: AuthenticatedAdminAiActivityRoute,
   AuthenticatedAdminAiAuditRoute: AuthenticatedAdminAiAuditRoute,
-  AuthenticatedAdminAiConciergeRoute: AuthenticatedAdminAiConciergeRoute,
+  AuthenticatedAdminAiConciergeRoute:
+    AuthenticatedAdminAiConciergeRouteWithChildren,
   AuthenticatedAdminAiExecutiveRoute:
     AuthenticatedAdminAiExecutiveRouteWithChildren,
   AuthenticatedAdminAiGovernanceRoute: AuthenticatedAdminAiGovernanceRoute,
