@@ -1339,6 +1339,44 @@ export type Database = {
           },
         ]
       }
+      journal_article_versions: {
+        Row: {
+          article_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          snapshot: Json
+          version: number
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          snapshot?: Json
+          version: number
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          snapshot?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_article_versions_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "journal_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journal_articles: {
         Row: {
           author_id: string | null
@@ -1349,6 +1387,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           excerpt: string | null
+          featured: boolean
           id: string
           published_at: string | null
           read_minutes: number | null
@@ -1370,6 +1409,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           excerpt?: string | null
+          featured?: boolean
           id?: string
           published_at?: string | null
           read_minutes?: number | null
@@ -1391,6 +1431,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           excerpt?: string | null
+          featured?: boolean
           id?: string
           published_at?: string | null
           read_minutes?: number | null
