@@ -7,15 +7,17 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { formatDistanceToNow } from "date-fns";
-import { Ban, CalendarDays, RefreshCw, ShieldOff, Timer, Wrench } from "lucide-react";
+import { Ban, CalendarDays, RefreshCw, ShieldOff, Sparkles, Timer, Wrench } from "lucide-react";
 import { toast } from "sonner";
 
 import { getOpsCalendar } from "@/lib/operations.functions";
 import {
   listActiveHolds,
   listCalendarEvents,
+  reassignBookingRoom,
   releaseHoldStaff,
   setRoomBlock,
+  suggestRoomAssignment,
 } from "@/lib/availability.functions";
 
 import { PageHeader } from "@/components/os/PageHeader";
@@ -30,6 +32,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/_authenticated/admin/calendar")({
   head: () => ({
@@ -86,6 +89,39 @@ function UnifiedCalendarPage() {
   const fetchEvents = useServerFn(listCalendarEvents);
   const blockFn = useServerFn(setRoomBlock);
   const releaseFn = useServerFn(releaseHoldStaff);
+  const reassignFn = useServerFn(reassignBookingRoom);
+  const suggestFn = useServerFn(suggestRoomAssignment);
+
+  // ---- Filters -------------------------------------------------------
+  const [filters, setFilters] = useState({
+    arrivalsToday: false,
+    departuresToday: false,
+    vip: false,
+    blocked: false,
+    holds: false,
+    roomSlugs: new Set<string>(),
+  });
+  const toggleRoomFilter = (slug: string) =>
+    setFilters((f) => {
+      const s = new Set(f.roomSlugs);
+      if (s.has(slug)) s.delete(slug); else s.add(slug);
+      return { ...f, roomSlugs: s };
+    });
+
+  // ---- Drag-and-drop state ------------------------------------------
+  const [dragBookingId, setDragBookingId] = useState<string | null>(null);
+  const [reassignCtx, setReassignCtx] = useState<{
+    bookingId: string; fromRoomName: string; toRoomId: string; toRoomName: string;
+  } | null>(null);
+  const [reassignReason, setReassignReason] = useState("");
+
+  // ---- AI suggestion state ------------------------------------------
+  const [suggestForBooking, setSuggestForBooking] = useState<string | null>(null);
+  const suggestions = useQuery({
+    queryKey: ["calendar", "suggestions", suggestForBooking],
+    enabled: !!suggestForBooking,
+    queryFn: () => suggestFn({ data: { bookingId: suggestForBooking! } }),
+  });
 
   const ops = useQuery({
     queryKey: ["calendar", "ops", range.from, range.to],
@@ -128,6 +164,19 @@ function UnifiedCalendarPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const doReassign = useMutation({
+    mutationFn: (v: { bookingId: string; newRoomId: string; reason?: string }) =>
+      reassignFn({ data: v }),
+    onSuccess: () => {
+      toast.success("Booking reassigned — inventory & audit updated");
+      qc.invalidateQueries({ queryKey: ["calendar"] });
+      setReassignCtx(null);
+      setReassignReason("");
+      setSuggestForBooking(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const d: any = ops.data ?? { rooms: [], bookings: [], inventory: [] };
 
   const activeHolds = holds.data ?? [];
@@ -148,6 +197,29 @@ function UnifiedCalendarPage() {
     const today = iso(new Date());
     return (d.bookings as any[]).filter((b) => b.check_in <= today && b.check_out > today).length;
   }, [d.bookings]);
+
+  // Derived views after filter application.
+  const today = iso(new Date());
+  const visibleBookings = useMemo(() => {
+    return (d.bookings as any[]).filter((b) => {
+      if (filters.arrivalsToday && b.check_in !== today) return false;
+      if (filters.departuresToday && b.check_out !== today) return false;
+      if (filters.vip) {
+        const gt = (b.guest_type || "").toString();
+        if (gt !== "vip" && gt !== "climber") return false;
+      }
+      return true;
+    });
+  }, [d.bookings, filters, today]);
+
+  const visibleRooms = useMemo(() => {
+    const rooms = (d.rooms as any[]);
+    if (filters.roomSlugs.size === 0) return rooms;
+    return rooms.filter((r) => filters.roomSlugs.has(r.slug));
+  }, [d.rooms, filters.roomSlugs]);
+
+  const arrivalsCount = (d.bookings as any[]).filter((b) => b.check_in === today).length;
+  const departuresCount = (d.bookings as any[]).filter((b) => b.check_out === today).length;
 
   return (
     <div className="space-y-6">
@@ -174,18 +246,61 @@ function UnifiedCalendarPage() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="In-house today" value={String(bookingsToday)} icon={CalendarDays} />
-        <StatCard label="Active holds" value={String(activeHolds.length)} icon={Timer} />
+        <StatCard label="Arrivals today" value={String(arrivalsCount)} icon={CalendarDays} />
+        <StatCard label="Departures today" value={String(departuresCount)} icon={CalendarDays} />
         <StatCard
           label="Blocked days"
           value={String((d.inventory as any[]).filter((i) => i.is_blocked).length)}
           icon={Ban}
         />
-        <StatCard label="Rooms" value={String(d.rooms.length)} icon={Wrench} />
       </div>
 
+      <SectionCard title="Filters" description="Narrow the calendar and stat cards.">
+        <div className="flex flex-wrap items-center gap-3">
+          {[
+            { k: "arrivalsToday" as const, label: "Arrivals today" },
+            { k: "departuresToday" as const, label: "Departures today" },
+            { k: "vip" as const, label: "VIP / climbers" },
+            { k: "holds" as const, label: "Show holds only" },
+          ].map((f) => (
+            <label key={f.k} className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={filters[f.k]}
+                onCheckedChange={(v) => setFilters((s) => ({ ...s, [f.k]: Boolean(v) }))}
+              />
+              {f.label}
+            </label>
+          ))}
+          <div className="ml-4 flex flex-wrap items-center gap-1 text-xs">
+            <span className="text-muted-foreground mr-1">Rooms:</span>
+            {(d.rooms as any[]).map((r) => (
+              <button
+                key={r.id}
+                onClick={() => toggleRoomFilter(r.slug)}
+                className={`rounded-full border px-2 py-0.5 ${
+                  filters.roomSlugs.has(r.slug)
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {r.name}
+              </button>
+            ))}
+            {filters.roomSlugs.size > 0 && (
+              <button
+                onClick={() => setFilters((s) => ({ ...s, roomSlugs: new Set() }))}
+                className="ml-2 text-muted-foreground hover:underline"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        </div>
+      </SectionCard>
+
       <SectionCard
-        title="Grid"
-        description="Reservations are blue, blocks are red, active holds are amber. Click a room name to block/unblock a range."
+        title="Reservation timeline"
+        description="Reservations are blue, blocks are red, active holds are amber. Drag a reservation onto another room row to reassign it. Click a room name to block/unblock a range."
       >
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-md border p-0.5 text-xs">
@@ -225,8 +340,25 @@ function UnifiedCalendarPage() {
                 </tr>
               </thead>
               <tbody>
-                {d.rooms.map((r: any) => (
-                  <tr key={r.id}>
+                {visibleRooms.map((r: any) => (
+                  <tr
+                    key={r.id}
+                    onDragOver={(e) => { if (dragBookingId) e.preventDefault(); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (!dragBookingId) return;
+                      const src = (d.bookings as any[]).find((x) => x.id === dragBookingId);
+                      if (!src || src.room_id === r.id) return;
+                      const fromRoom = (d.rooms as any[]).find((x) => x.id === src.room_id);
+                      setReassignCtx({
+                        bookingId: src.id,
+                        fromRoomName: fromRoom?.name ?? "current room",
+                        toRoomId: r.id,
+                        toRoomName: r.name,
+                      });
+                      setDragBookingId(null);
+                    }}
+                  >
                     <td className="sticky left-0 z-10 border-r bg-card px-2 py-1 font-medium">
                       <button
                         className="text-left hover:underline"
@@ -239,12 +371,15 @@ function UnifiedCalendarPage() {
                       </button>
                     </td>
                     {days.map((day) => {
-                      const b = (d.bookings as any[]).find(
+                      const b = visibleBookings.find(
                         (bk) => bk.room_id === r.id && bk.check_in <= day && bk.check_out > day,
                       );
                       const inv = (d.inventory as any[]).find((i) => i.room_id === r.id && i.date === day);
                       const blocked = inv?.is_blocked;
                       const held = activeHoldsByRoomDate[`${r.id}:${day}`]?.size ?? 0;
+                      if (filters.holds && !held) {
+                        return <td key={day} className="border-r px-1 py-1 text-center opacity-30">·</td>;
+                      }
                       return (
                         <td
                           key={day}
@@ -262,13 +397,34 @@ function UnifiedCalendarPage() {
                           }
                         >
                           {b ? (
-                            <Link
-                              to="/admin/operations/reservations/$id"
-                              params={{ id: b.id }}
-                              className="block truncate text-[10px] hover:underline"
+                            <div
+                              draggable
+                              onDragStart={(e) => {
+                                setDragBookingId(b.id);
+                                e.dataTransfer.setData("text/plain", b.id);
+                                e.dataTransfer.effectAllowed = "move";
+                              }}
+                              onDragEnd={() => setDragBookingId(null)}
+                              className="group flex items-center justify-center gap-1 cursor-grab active:cursor-grabbing"
+                              title={`Drag to reassign · ${b.guest_name} · ${b.reference}`}
                             >
-                              {b.guest_name.split(" ")[0]}
-                            </Link>
+                              <Link
+                                to="/admin/operations/reservations/$id"
+                                params={{ id: b.id }}
+                                className="truncate text-[10px] hover:underline"
+                                onClick={(e) => { if (dragBookingId) e.preventDefault(); }}
+                              >
+                                {b.guest_name.split(" ")[0]}
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setSuggestForBooking(b.id); }}
+                                className="opacity-0 group-hover:opacity-100 text-primary"
+                                title="Suggest a better room"
+                              >
+                                <Sparkles className="h-3 w-3" />
+                              </button>
+                            </div>
                           ) : blocked ? (
                             "×"
                           ) : held ? (
@@ -355,6 +511,7 @@ function UnifiedCalendarPage() {
       </div>
 
       <Dialog open={blockOpen} onOpenChange={setBlockOpen}>
+        {/* Block dialog kept below; reassign + suggest dialogs are appended before the outer wrapper close. */}
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Block / unblock room</DialogTitle>
@@ -425,6 +582,93 @@ function UnifiedCalendarPage() {
               Block range
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reassign confirmation */}
+      <Dialog open={!!reassignCtx} onOpenChange={(o) => !o && setReassignCtx(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reassign reservation</DialogTitle>
+            <DialogDescription>
+              Move this booking from <strong>{reassignCtx?.fromRoomName}</strong> to{" "}
+              <strong>{reassignCtx?.toRoomName}</strong>. Availability is re-checked before the swap; the audit log is
+              updated automatically.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Reason (optional)</Label>
+            <Textarea
+              rows={2}
+              value={reassignReason}
+              onChange={(e) => setReassignReason(e.target.value)}
+              placeholder="e.g. Upgrade for anniversary stay"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReassignCtx(null)}>Cancel</Button>
+            <Button
+              disabled={doReassign.isPending}
+              onClick={() =>
+                reassignCtx &&
+                doReassign.mutate({
+                  bookingId: reassignCtx.bookingId,
+                  newRoomId: reassignCtx.toRoomId,
+                  reason: reassignReason || undefined,
+                })
+              }
+            >
+              Confirm reassignment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI room suggestion */}
+      <Dialog open={!!suggestForBooking} onOpenChange={(o) => !o && setSuggestForBooking(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Suggested rooms</DialogTitle>
+            <DialogDescription>
+              Ranked by availability, capacity fit, and guest preferences. Staff approves — nothing changes until you
+              confirm.
+            </DialogDescription>
+          </DialogHeader>
+          {suggestions.isLoading ? (
+            <LoadingState label="Analysing preferences…" />
+          ) : (suggestions.data?.suggestions ?? []).length === 0 ? (
+            <EmptyState title="No better match" description="No other available rooms fit this booking right now." />
+          ) : (
+            <div className="space-y-2">
+              {suggestions.data!.suggestions.map((s) => (
+                <div key={s.room_id} className="flex items-start justify-between rounded-md border p-3">
+                  <div className="min-w-0">
+                    <div className="font-medium">{s.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Sleeps {s.max_occupancy} · {s.min_available} available · from {s.base_price.toLocaleString()}
+                    </div>
+                    {s.reasons.length > 0 && (
+                      <div className="mt-1 text-xs">{s.reasons.join(" · ")}</div>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const from = (d.rooms as any[]).find((r) => r.id === suggestions.data!.currentRoomId);
+                      setReassignCtx({
+                        bookingId: suggestForBooking!,
+                        fromRoomName: from?.name ?? "current room",
+                        toRoomId: s.room_id,
+                        toRoomName: s.name,
+                      });
+                    }}
+                  >
+                    Move here
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
