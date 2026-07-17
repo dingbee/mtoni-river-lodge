@@ -176,6 +176,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_configurations: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          module: string
+          setting_key: string
+          setting_value: Json
+          status: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          module: string
+          setting_key: string
+          setting_value: Json
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          module?: string
+          setting_key?: string
+          setting_value?: Json
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
       ai_executive_briefings: {
         Row: {
           briefing_date: string
@@ -244,6 +283,44 @@ export type Database = {
           period_start?: string
         }
         Relationships: []
+      }
+      ai_feedback: {
+        Row: {
+          activity_log_id: string | null
+          comment: string | null
+          created_at: string
+          id: string
+          module: string | null
+          rating: string
+          user_id: string | null
+        }
+        Insert: {
+          activity_log_id?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          module?: string | null
+          rating: string
+          user_id?: string | null
+        }
+        Update: {
+          activity_log_id?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          module?: string | null
+          rating?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_feedback_activity_log_id_fkey"
+            columns: ["activity_log_id"]
+            isOneToOne: false
+            referencedRelation: "ai_activity_logs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_guest_alerts: {
         Row: {
@@ -451,6 +528,39 @@ export type Database = {
           },
         ]
       }
+      ai_health_events: {
+        Row: {
+          category: string
+          created_at: string
+          details: Json
+          id: string
+          message: string
+          module: string | null
+          resolved: boolean
+          severity: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          details?: Json
+          id?: string
+          message: string
+          module?: string | null
+          resolved?: boolean
+          severity?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          message?: string
+          module?: string | null
+          resolved?: boolean
+          severity?: string
+        }
+        Relationships: []
+      }
       ai_marketing_priorities: {
         Row: {
           confidence: number
@@ -559,6 +669,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_organisations: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_pricing_recommendations: {
         Row: {
           action: string
@@ -629,6 +766,89 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_prompt_versions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          module: string
+          notes: string | null
+          prompt_key: string
+          prompt_text: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          module: string
+          notes?: string | null
+          prompt_key: string
+          prompt_text: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          module?: string
+          notes?: string | null
+          prompt_key?: string
+          prompt_text?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      ai_properties: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          organisation_id: string | null
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          organisation_id?: string | null
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          organisation_id?: string | null
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_properties_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_organisations"
             referencedColumns: ["id"]
           },
         ]
@@ -935,6 +1155,48 @@ export type Database = {
           suggestion?: Json
           target_id?: string
           target_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_usage_metrics: {
+        Row: {
+          created_at: string
+          day: string
+          estimated_cost_usd: number
+          estimated_tokens: number
+          failed: number
+          id: string
+          module: string
+          requests: number
+          successful: number
+          total_duration_ms: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          estimated_cost_usd?: number
+          estimated_tokens?: number
+          failed?: number
+          id?: string
+          module: string
+          requests?: number
+          successful?: number
+          total_duration_ms?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          estimated_cost_usd?: number
+          estimated_tokens?: number
+          failed?: number
+          id?: string
+          module?: string
+          requests?: number
+          successful?: number
+          total_duration_ms?: number
           updated_at?: string
         }
         Relationships: []
