@@ -143,6 +143,7 @@ import { Route as AuthenticatedAdminAiInsightsRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminAiGuestsRouteImport } from './routes/_authenticated.admin.ai.guests'
 import { Route as AuthenticatedAdminAiGovernanceRouteImport } from './routes/_authenticated.admin.ai.governance'
 import { Route as AuthenticatedAdminAiExecutiveRouteImport } from './routes/_authenticated.admin.ai.executive'
+import { Route as AuthenticatedAdminAiCopilotRouteImport } from './routes/_authenticated.admin.ai.copilot'
 import { Route as AuthenticatedAdminAiConciergeRouteImport } from './routes/_authenticated.admin.ai.concierge'
 import { Route as AuthenticatedAdminAiAuditRouteImport } from './routes/_authenticated.admin.ai.audit'
 import { Route as AuthenticatedAdminAiActivityRouteImport } from './routes/_authenticated.admin.ai.activity'
@@ -954,6 +955,12 @@ const AuthenticatedAdminAiExecutiveRoute =
     path: '/executive',
     getParentRoute: () => AuthenticatedAdminAiRoute,
   } as any)
+const AuthenticatedAdminAiCopilotRoute =
+  AuthenticatedAdminAiCopilotRouteImport.update({
+    id: '/copilot',
+    path: '/copilot',
+    getParentRoute: () => AuthenticatedAdminAiRoute,
+  } as any)
 const AuthenticatedAdminAiConciergeRoute =
   AuthenticatedAdminAiConciergeRouteImport.update({
     id: '/concierge',
@@ -1389,6 +1396,7 @@ export interface FileRoutesByFullPath {
   '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
   '/admin/ai/audit': typeof AuthenticatedAdminAiAuditRoute
   '/admin/ai/concierge': typeof AuthenticatedAdminAiConciergeRouteWithChildren
+  '/admin/ai/copilot': typeof AuthenticatedAdminAiCopilotRoute
   '/admin/ai/executive': typeof AuthenticatedAdminAiExecutiveRouteWithChildren
   '/admin/ai/governance': typeof AuthenticatedAdminAiGovernanceRoute
   '/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRouteWithChildren
@@ -1577,6 +1585,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
   '/admin/ai/audit': typeof AuthenticatedAdminAiAuditRoute
+  '/admin/ai/copilot': typeof AuthenticatedAdminAiCopilotRoute
   '/admin/ai/governance': typeof AuthenticatedAdminAiGovernanceRoute
   '/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRouteWithChildren
   '/admin/ai/insights': typeof AuthenticatedAdminAiInsightsRoute
@@ -1770,6 +1779,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
   '/_authenticated/admin/ai/audit': typeof AuthenticatedAdminAiAuditRoute
   '/_authenticated/admin/ai/concierge': typeof AuthenticatedAdminAiConciergeRouteWithChildren
+  '/_authenticated/admin/ai/copilot': typeof AuthenticatedAdminAiCopilotRoute
   '/_authenticated/admin/ai/executive': typeof AuthenticatedAdminAiExecutiveRouteWithChildren
   '/_authenticated/admin/ai/governance': typeof AuthenticatedAdminAiGovernanceRoute
   '/_authenticated/admin/ai/guests': typeof AuthenticatedAdminAiGuestsRouteWithChildren
@@ -1967,6 +1977,7 @@ export interface FileRouteTypes {
     | '/admin/ai/activity'
     | '/admin/ai/audit'
     | '/admin/ai/concierge'
+    | '/admin/ai/copilot'
     | '/admin/ai/executive'
     | '/admin/ai/governance'
     | '/admin/ai/guests'
@@ -2155,6 +2166,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin/ai/activity'
     | '/admin/ai/audit'
+    | '/admin/ai/copilot'
     | '/admin/ai/governance'
     | '/admin/ai/guests'
     | '/admin/ai/insights'
@@ -2347,6 +2359,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/ai/activity'
     | '/_authenticated/admin/ai/audit'
     | '/_authenticated/admin/ai/concierge'
+    | '/_authenticated/admin/ai/copilot'
     | '/_authenticated/admin/ai/executive'
     | '/_authenticated/admin/ai/governance'
     | '/_authenticated/admin/ai/guests'
@@ -3470,6 +3483,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiExecutiveRouteImport
       parentRoute: typeof AuthenticatedAdminAiRoute
     }
+    '/_authenticated/admin/ai/copilot': {
+      id: '/_authenticated/admin/ai/copilot'
+      path: '/copilot'
+      fullPath: '/admin/ai/copilot'
+      preLoaderRoute: typeof AuthenticatedAdminAiCopilotRouteImport
+      parentRoute: typeof AuthenticatedAdminAiRoute
+    }
     '/_authenticated/admin/ai/concierge': {
       id: '/_authenticated/admin/ai/concierge'
       path: '/concierge'
@@ -4119,6 +4139,7 @@ interface AuthenticatedAdminAiRouteChildren {
   AuthenticatedAdminAiActivityRoute: typeof AuthenticatedAdminAiActivityRoute
   AuthenticatedAdminAiAuditRoute: typeof AuthenticatedAdminAiAuditRoute
   AuthenticatedAdminAiConciergeRoute: typeof AuthenticatedAdminAiConciergeRouteWithChildren
+  AuthenticatedAdminAiCopilotRoute: typeof AuthenticatedAdminAiCopilotRoute
   AuthenticatedAdminAiExecutiveRoute: typeof AuthenticatedAdminAiExecutiveRouteWithChildren
   AuthenticatedAdminAiGovernanceRoute: typeof AuthenticatedAdminAiGovernanceRoute
   AuthenticatedAdminAiGuestsRoute: typeof AuthenticatedAdminAiGuestsRouteWithChildren
@@ -4138,6 +4159,7 @@ const AuthenticatedAdminAiRouteChildren: AuthenticatedAdminAiRouteChildren = {
   AuthenticatedAdminAiAuditRoute: AuthenticatedAdminAiAuditRoute,
   AuthenticatedAdminAiConciergeRoute:
     AuthenticatedAdminAiConciergeRouteWithChildren,
+  AuthenticatedAdminAiCopilotRoute: AuthenticatedAdminAiCopilotRoute,
   AuthenticatedAdminAiExecutiveRoute:
     AuthenticatedAdminAiExecutiveRouteWithChildren,
   AuthenticatedAdminAiGovernanceRoute: AuthenticatedAdminAiGovernanceRoute,
