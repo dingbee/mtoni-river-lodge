@@ -3,9 +3,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-async function assertOwnerOrAdmin(supabase: {
-  rpc: (n: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
-}, userId: string): Promise<void> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function assertOwnerOrAdmin(supabase: any, userId: string): Promise<void> {
   const { data, error } = await supabase.rpc("has_any_role", {
     _user_id: userId,
     _roles: ["owner", "manager", "admin"],
