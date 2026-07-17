@@ -193,6 +193,66 @@
     --section-x: clamp(1rem, 0.5rem + 2.5vw, 3rem);
     --section-y: clamp(2.5rem, 1.5rem + 5vw, 6rem);
     --hero-pt:   clamp(4.5rem, 3rem + 6vw, 7rem);
+
+    /* ---------- Semantic width tokens ----------
+       Standard container widths — used by <Container variant="…"> and
+       the `.container-*` utilities below. */
+    --w-reading: 68ch;         /* long-form article body */
+    --w-content: 72rem;        /* default content column (1152px) */
+    --w-wide:    88rem;        /* wide marketing sections (1408px) */
+    --w-full:    100%;         /* edge-to-edge */
+
+    /* ---------- Semantic radius tokens ----------
+       Layered on top of the existing --radius-sm/md/lg/xl in @theme. */
+    --radius-2xl: 24px;
+    --radius-pill: 9999px;
+
+    /* ---------- Elevation tokens (shadows) ---------- */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+    --shadow-md: 0 8px 20px -8px rgb(0 0 0 / 0.12), 0 2px 6px -2px rgb(0 0 0 / 0.06);
+    --shadow-lg: 0 24px 48px -18px rgb(0 0 0 / 0.20), 0 6px 12px -6px rgb(0 0 0 / 0.08);
+    --shadow-xl: 0 40px 80px -24px rgb(0 0 0 / 0.28), 0 10px 20px -8px rgb(0 0 0 / 0.10);
+
+    /* ---------- Semantic typography roles ----------
+       Role tokens map to the fluid --fs-* scale. Use these — not raw
+       Tailwind sizes — for anything with editorial meaning. */
+    --type-display-size: var(--fs-8xl); --type-display-lh: 1.02; --type-display-tr: -0.03em;
+    --type-hero-size:    var(--fs-7xl); --type-hero-lh:    1.06; --type-hero-tr:    -0.025em;
+    --type-h1-size:      var(--fs-6xl); --type-h1-lh:      1.08; --type-h1-tr:      -0.02em;
+    --type-h2-size:      var(--fs-5xl); --type-h2-lh:      1.12; --type-h2-tr:      -0.015em;
+    --type-h3-size:      var(--fs-4xl); --type-h3-lh:      1.18; --type-h3-tr:      -0.01em;
+    --type-body-lg-size: var(--fs-lg);  --type-body-lg-lh: 1.7;
+    --type-body-size:    var(--fs-base); --type-body-lh:   1.7;
+    --type-small-size:   var(--fs-sm);  --type-small-lh:  1.55;
+    --type-caption-size: var(--fs-xs);  --type-caption-lh: 1.4;
+  }
+
+  /* ---------- Semantic width container utilities ----------
+     Reusable layout containers. Component authors should reach for
+     these instead of scattering max-w-[1100px] / max-w-6xl values. */
+  .container-reading { width: 100%; max-width: var(--w-reading); margin-inline: auto; padding-inline: var(--section-x); }
+  .container-content { width: 100%; max-width: var(--w-content); margin-inline: auto; padding-inline: var(--section-x); }
+  .container-wide    { width: 100%; max-width: var(--w-wide);    margin-inline: auto; padding-inline: var(--section-x); }
+  .container-full    { width: 100%; max-width: var(--w-full);    padding-inline: var(--section-x); }
+
+  /* ---------- Semantic typography role utilities ---------- */
+  .type-display { font-family: var(--font-display); font-weight: 400; font-size: var(--type-display-size); line-height: var(--type-display-lh); letter-spacing: var(--type-display-tr); text-wrap: balance; }
+  .type-hero    { font-family: var(--font-display); font-weight: 400; font-size: var(--type-hero-size);    line-height: var(--type-hero-lh);    letter-spacing: var(--type-hero-tr);    text-wrap: balance; }
+  .type-h1      { font-family: var(--font-display); font-weight: 400; font-size: var(--type-h1-size);      line-height: var(--type-h1-lh);      letter-spacing: var(--type-h1-tr);      text-wrap: balance; }
+  .type-h2      { font-family: var(--font-display); font-weight: 400; font-size: var(--type-h2-size);      line-height: var(--type-h2-lh);      letter-spacing: var(--type-h2-tr);      text-wrap: balance; }
+  .type-h3      { font-family: var(--font-display); font-weight: 500; font-size: var(--type-h3-size);      line-height: var(--type-h3-lh);      letter-spacing: var(--type-h3-tr); }
+  .type-body-lg { font-family: var(--font-sans);    font-size: var(--type-body-lg-size); line-height: var(--type-body-lg-lh); }
+  .type-body    { font-family: var(--font-sans);    font-size: var(--type-body-size);    line-height: var(--type-body-lh); }
+  .type-small   { font-family: var(--font-sans);    font-size: var(--type-small-size);   line-height: var(--type-small-lh); }
+  .type-caption { font-family: var(--font-sans);    font-size: var(--type-caption-size); line-height: var(--type-caption-lh); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-muted-foreground); }
+
+  /* Elevation utilities keyed to the shadow tokens. */
+  .shadow-token-xs { box-shadow: var(--shadow-xs); }
+  .shadow-token-sm { box-shadow: var(--shadow-sm); }
+  .shadow-token-md { box-shadow: var(--shadow-md); }
+  .shadow-token-lg { box-shadow: var(--shadow-lg); }
+  .shadow-token-xl { box-shadow: var(--shadow-xl); }
   }
 
   /* ---------- Global fluid typography (mobile-first) ----------
