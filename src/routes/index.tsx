@@ -33,7 +33,7 @@ import palmGarden1600 from "@/assets/palm-garden-1600w.webp.asset.json";
 import diningCandleJpg from "@/assets/hero-dining-candlelit.jpg.asset.json";
 import diningCandle800 from "@/assets/hero-dining-candlelit-800w.webp.asset.json";
 import diningCandle1600 from "@/assets/hero-dining-candlelit-1600w.webp.asset.json";
-import diningImg from "@/assets/mtoni-reception-featured.webp.asset.json";
+
 
 const HOME_FAQS: FAQItem[] = [
   {
@@ -250,36 +250,6 @@ function HomePage() {
         </div>
       </section>
 
-      {/* DINING — full bleed quote */}
-      <section className="relative h-[90svh] w-full overflow-hidden">
-        <img
-          src={diningImg.url}
-          alt="Stone lobby entrance with beaded chandelier and arched doorways at Mtoni River Lodge"
-          className="h-full w-full object-cover"
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-charcoal/30" />
-        <div className="relative z-10 mx-auto flex h-full max-w-[1100px] flex-col items-center justify-center px-6 text-center text-ivory">
-          <Reveal>
-            <p className="eyebrow !text-ivory/60">Dining</p>
-          </Reveal>
-          <Reveal delay={150}>
-            <p className="mt-8 font-display text-3xl italic leading-[1.3] lg:text-5xl">
-              "Dinner is set wherever the light is most beautiful — on the deck, in the orchard,
-              beside the water."
-            </p>
-          </Reveal>
-          <Reveal delay={300}>
-            <p className="mt-10 text-ivory/70">— Chef Amina Mwakikoti</p>
-            <Link
-              to="/dining"
-              className="mt-12 inline-flex items-center gap-3 border border-ivory px-7 py-4 text-[0.72rem] uppercase tracking-[0.32em] hover:bg-ivory hover:text-charcoal"
-            >
-              The kitchen
-            </Link>
-          </Reveal>
-        </div>
-      </section>
 
       {/* KILIMANJARO RETREAT — climber positioning */}
       <section className="bg-bone px-6 py-32 lg:px-12 lg:py-40">
