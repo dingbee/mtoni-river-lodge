@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { MessageCircle, AlertTriangle, ChevronRight } from "lucide-react";
+import { AlertTriangle, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { StatCard } from "@/components/os/StatCard";
@@ -40,7 +40,6 @@ function ConciergePage() {
       <PageHeader
         title="AI Concierge"
         description="Guest-facing website assistant. Review conversations, escalations, and topics."
-        icon={MessageCircle}
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
