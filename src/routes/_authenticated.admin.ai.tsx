@@ -28,6 +28,7 @@ const TABS = [
   { to: "/admin/ai/audit",     label: "Audit",          icon: Search },
   { to: "/admin/ai/insights",  label: "Insights",       icon: BarChart3 },
   { to: "/admin/ai/knowledge", label: "Knowledge Base", icon: FileText },
+  { to: "/admin/ai/knowledge/sync", label: "Knowledge Sync", icon: RefreshCw },
   { to: "/admin/ai/activity",  label: "AI Activity",    icon: History },
   { to: "/admin/ai/settings",  label: "Settings",       icon: Settings },
 ] as const;
