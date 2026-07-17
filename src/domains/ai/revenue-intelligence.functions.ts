@@ -28,11 +28,11 @@ export const getRevenueIntelligenceOverview = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const [{ data: rooms }, { data: mtd }, { data: forward }, { data: past30 }, { data: prev30 }, { data: outstanding }, { data: cancelled30 }, { data: openAlerts }] = await Promise.all([
       context.supabase.from("rooms").select("total_units").eq("status", "active"),
-      context.supabase.from("bookings").select("total, currency, status, check_in, check_out, nights").gte("check_in", firstOfMonth()).in("status", ["confirmed","checked_in","checked_out"]),
+      context.supabase.from("bookings").select("total, currency, status, check_in, check_out, nights").gte("check_in", firstOfMonth()).in("status", ["confirmed","checked_in","completed"]),
       context.supabase.from("bookings").select("total, currency, status, check_in, check_out, nights").gte("check_in", today()).lte("check_in", daysFromNow(30)).in("status", ["confirmed","pending","checked_in"]),
-      context.supabase.from("bookings").select("total, created_at").gte("created_at", daysAgo(30)).in("status", ["confirmed","checked_in","checked_out"]),
-      context.supabase.from("bookings").select("total, created_at").gte("created_at", daysAgo(60)).lt("created_at", daysAgo(30)).in("status", ["confirmed","checked_in","checked_out"]),
-      context.supabase.from("bookings").select("balance_due, currency").gt("balance_due", 0).in("status", ["confirmed","checked_in","checked_out"]),
+      context.supabase.from("bookings").select("total, created_at").gte("created_at", daysAgo(30)).in("status", ["confirmed","checked_in","completed"]),
+      context.supabase.from("bookings").select("total, created_at").gte("created_at", daysAgo(60)).lt("created_at", daysAgo(30)).in("status", ["confirmed","checked_in","completed"]),
+      context.supabase.from("bookings").select("balance_due, currency").gt("balance_due", 0).in("status", ["confirmed","checked_in","completed"]),
       context.supabase.from("bookings").select("id, created_at").eq("status", "cancelled").gte("created_at", daysAgo(30)),
       context.supabase.from("ai_revenue_alerts").select("id").eq("status","open"),
     ]);
@@ -111,7 +111,7 @@ export const generateRevenueForecast = createServerFn({ method: "POST" })
         .select("total, nights, check_in, status")
         .gte("check_in", daysAgo(365))
         .lt("check_in", from)
-        .in("status", ["confirmed","checked_in","checked_out"]),
+        .in("status", ["confirmed","checked_in","completed"]),
     ]);
 
     const totalUnits = (rooms ?? []).reduce((s, r: any) => s + Number(r.total_units ?? 0), 0);
@@ -402,7 +402,7 @@ export const scanRevenueOpportunities = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const [{ data: outstanding }, { data: upcoming }, { data: extras }] = await Promise.all([
-      context.supabase.from("bookings").select("id, reference, guest_name, balance_due, currency, check_in, check_out").gt("balance_due", 0).in("status", ["confirmed","checked_in","checked_out"]).order("balance_due", { ascending: false }).limit(20),
+      context.supabase.from("bookings").select("id, reference, guest_name, balance_due, currency, check_in, check_out").gt("balance_due", 0).in("status", ["confirmed","checked_in","completed"]).order("balance_due", { ascending: false }).limit(20),
       context.supabase.from("bookings").select("id, reference, guest_name, nights, adults, children, check_in, room_id").gte("check_in", today()).lte("check_in", daysFromNow(14)).in("status", ["confirmed","checked_in"]),
       context.supabase.from("booking_extras").select("booking_id"),
     ]);
@@ -518,7 +518,7 @@ export const scanRevenueAlerts = createServerFn({ method: "POST" })
       context.supabase.from("rooms").select("total_units").eq("status","active"),
       context.supabase.from("bookings").select("nights, status, check_in").gte("check_in", today()).lte("check_in", daysFromNow(30)).in("status", ["confirmed","checked_in"]),
       context.supabase.from("bookings").select("id, created_at").eq("status","cancelled").gte("created_at", daysAgo(14)),
-      context.supabase.from("bookings").select("balance_due").gt("balance_due", 0).in("status", ["confirmed","checked_in","checked_out"]),
+      context.supabase.from("bookings").select("balance_due").gt("balance_due", 0).in("status", ["confirmed","checked_in","completed"]),
       context.supabase.from("bookings").select("id, created_at").gte("created_at", daysAgo(3)),
     ]);
 
