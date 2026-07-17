@@ -10,6 +10,7 @@ import {
   detectOperationsAlerts,
   listOperationsAlerts,
 } from "@/domains/ai/operations/operations.functions";
+import { getOperationsPressureSummary } from "@/domains/ai/operations/intelligence.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/operations/")({
   component: OperationsCommandCentre,
@@ -29,6 +30,11 @@ function OperationsCommandCentre() {
   const alertsQ = useQuery({
     queryKey: ["ops-ai-alerts", "open"],
     queryFn: () => listAlerts({ data: { status: "open" } }),
+  });
+  const pressureFn = useServerFn(getOperationsPressureSummary);
+  const pressureQ = useQuery({
+    queryKey: ["ops-pressure"],
+    queryFn: () => pressureFn({ data: undefined as any }),
   });
 
   const gen = useMutation({
@@ -75,6 +81,27 @@ function OperationsCommandCentre() {
           </div>
         ))}
       </div>
+
+      <SectionCard title="Operational Pressure" description="Live counts of AI recommendations awaiting review.">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { k: "Room Readiness", v: pressureQ.data?.readiness_pending ?? 0, to: "/admin/ai/operations/readiness" },
+            { k: "Service Recovery", v: pressureQ.data?.recovery_pending ?? 0, to: "/admin/ai/operations/service-quality" },
+            { k: "Operational Patterns", v: pressureQ.data?.patterns_pending ?? 0, to: "/admin/ai/operations/patterns" },
+            { k: "Staff Insights", v: pressureQ.data?.staff_pending ?? 0, to: "/admin/ai/operations/staff" },
+          ].map((c) => (
+            <a
+              key={c.k}
+              href={c.to}
+              className="rounded-lg border bg-card p-4 transition hover:border-primary/40 hover:bg-muted/50"
+            >
+              <div className="text-xs text-muted-foreground">{c.k}</div>
+              <div className="mt-1 font-display text-2xl">{c.v}</div>
+              <div className="mt-1 text-[11px] text-muted-foreground">pending review</div>
+            </a>
+          ))}
+        </div>
+      </SectionCard>
 
       <SectionCard title="Today's Briefing" description={latest?.briefing_date ?? "No briefing yet — generate one."}>
         {latest ? (
