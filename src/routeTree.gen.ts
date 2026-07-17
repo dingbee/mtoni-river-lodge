@@ -52,6 +52,7 @@ import { Route as TagSplatRouteImport } from './routes/tag.$'
 import { Route as RoomsStandardRiverRouteImport } from './routes/rooms.standard-river'
 import { Route as RoomsRiverfrontDeluxeRouteImport } from './routes/rooms.riverfront-deluxe'
 import { Route as RoomsFamilyRoomRouteImport } from './routes/rooms.family-room'
+import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as JournalWhereToStayBeforeClimbingMountKilimanjaroRouteImport } from './routes/journal.where-to-stay-before-climbing-mount-kilimanjaro'
 import { Route as JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport } from './routes/journal.what-the-river-has-taught-us-about-time'
 import { Route as JournalTheArchitectureOfDisappearingRouteImport } from './routes/journal.the-architecture-of-disappearing'
@@ -338,6 +339,11 @@ const RoomsFamilyRoomRoute = RoomsFamilyRoomRouteImport.update({
   id: '/family-room',
   path: '/family-room',
   getParentRoute: () => RoomsRoute,
+} as any)
+const PSlugRoute = PSlugRouteImport.update({
+  id: '/p/$slug',
+  path: '/p/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const JournalWhereToStayBeforeClimbingMountKilimanjaroRoute =
   JournalWhereToStayBeforeClimbingMountKilimanjaroRouteImport.update({
@@ -789,6 +795,7 @@ export interface FileRoutesByFullPath {
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/journal/where-to-stay-before-climbing-mount-kilimanjaro': typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRoute
+  '/p/$slug': typeof PSlugRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
@@ -898,6 +905,7 @@ export interface FileRoutesByTo {
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/journal/where-to-stay-before-climbing-mount-kilimanjaro': typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRoute
+  '/p/$slug': typeof PSlugRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
@@ -1011,6 +1019,7 @@ export interface FileRoutesById {
   '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/journal/where-to-stay-before-climbing-mount-kilimanjaro': typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRoute
+  '/p/$slug': typeof PSlugRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
@@ -1125,6 +1134,7 @@ export interface FileRouteTypes {
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
+    | '/p/$slug'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
@@ -1234,6 +1244,7 @@ export interface FileRouteTypes {
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
+    | '/p/$slug'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
@@ -1346,6 +1357,7 @@ export interface FileRouteTypes {
     | '/journal/the-architecture-of-disappearing'
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
+    | '/p/$slug'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
@@ -1448,6 +1460,7 @@ export interface RootRouteChildren {
   CategorySplatRoute: typeof CategorySplatRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   FeedSplatRoute: typeof FeedSplatRoute
+  PSlugRoute: typeof PSlugRoute
   TagSplatRoute: typeof TagSplatRoute
   WpAdminSplatRoute: typeof WpAdminSplatRoute
   WpContentSplatRoute: typeof WpContentSplatRoute
@@ -1764,6 +1777,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/rooms/family-room'
       preLoaderRoute: typeof RoomsFamilyRoomRouteImport
       parentRoute: typeof RoomsRoute
+    }
+    '/p/$slug': {
+      id: '/p/$slug'
+      path: '/p/$slug'
+      fullPath: '/p/$slug'
+      preLoaderRoute: typeof PSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/journal/where-to-stay-before-climbing-mount-kilimanjaro': {
       id: '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
@@ -2539,6 +2559,7 @@ const rootRouteChildren: RootRouteChildren = {
   CategorySplatRoute: CategorySplatRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   FeedSplatRoute: FeedSplatRoute,
+  PSlugRoute: PSlugRoute,
   TagSplatRoute: TagSplatRoute,
   WpAdminSplatRoute: WpAdminSplatRoute,
   WpContentSplatRoute: WpContentSplatRoute,

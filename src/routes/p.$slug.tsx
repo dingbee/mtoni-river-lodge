@@ -10,7 +10,17 @@ export const Route = createFileRoute("/p/$slug")({
   loader: async ({ params }) => {
     const data = await getPublicCmsPage({ data: { slug: params.slug } });
     if (!data) throw notFound();
-    const seo = data.seo ?? {};
+    const seo = (data.seo ?? {}) as {
+      title?: string | null;
+      description?: string | null;
+      og_title?: string | null;
+      og_description?: string | null;
+      og_image?: string | null;
+      canonical_url?: string | null;
+      robots?: string | null;
+      schema_type?: string | null;
+      twitter_card?: string | null;
+    };
     return {
       title: seo.title ?? data.page.title,
       description: seo.description ?? data.page.description ?? "",
