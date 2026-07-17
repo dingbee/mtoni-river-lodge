@@ -89,7 +89,7 @@ function AnalyticsPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <SectionCard title="Conversion metrics" icon={<Sparkles className="size-4" />}>
+        <SectionCard title="Conversion metrics">
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <Stat label="Booking intents" value={a?.conversion.booking_intents} />
             <Stat label="Booking clicks" value={a?.conversion.booking_clicks} />
@@ -98,7 +98,7 @@ function AnalyticsPage() {
           </dl>
         </SectionCard>
 
-        <SectionCard title="Concierge health score" icon={<BarChart3 className="size-4" />}>
+        <SectionCard title="Concierge health score">
           <div className="space-y-2">
             <HealthBar label="Accuracy" value={a?.health.accuracy} />
             <HealthBar label="Engagement" value={a?.health.engagement} />
