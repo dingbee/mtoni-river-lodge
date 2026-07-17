@@ -1,5 +1,13 @@
 export type ConciergeChannel = "web" | "whatsapp" | "email";
 
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: JsonValue }
+  | JsonValue[];
+
 export type CommunicationDraftType =
   | "welcome"
   | "pre_arrival"
@@ -35,7 +43,7 @@ export interface ChannelRow {
   inbound_enabled: boolean;
   outbound_enabled: boolean;
   requires_approval: boolean;
-  configuration: unknown;
+  configuration: JsonValue;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -51,7 +59,7 @@ export interface CommunicationDraftRow {
   subject: string | null;
   body: string;
   reasoning: string | null;
-  supporting_context: unknown;
+  supporting_context: JsonValue;
   status: CommunicationDraftStatus;
   approved_by: string | null;
   approved_at: string | null;
