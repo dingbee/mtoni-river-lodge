@@ -80,3 +80,19 @@ export const getPublicRelatedArticles = createServerFn({ method: "GET" })
       return [];
     }
   });
+
+/** All published journal articles for listing / homepage / sitemap. */
+export const listPublishedJournalArticles = createServerFn({ method: "GET" })
+  .handler(async () => {
+    try {
+      const sb = makeClient();
+      const { data } = await sb
+        .from("journal_articles")
+        .select("id, slug, title, excerpt, cover_image_url, published_at, read_minutes, featured")
+        .eq("status", "published")
+        .order("published_at", { ascending: false });
+      return data ?? [];
+    } catch {
+      return [];
+    }
+  });
