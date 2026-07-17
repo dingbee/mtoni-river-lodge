@@ -184,9 +184,9 @@ export const generatePreArrivalRecommendations = createServerFn({ method: "POST"
 
     await sb.from("ai_activity_logs").insert({
       user_id: context.userId,
-      module: "concierge",
-      action: "generate_prearrival_recommendations",
-      metadata: { created: created.length },
+      tool_called: "concierge.generate_prearrival_recommendations",
+      tool_args: { created: created.length },
+      status: "ok",
     });
 
     return { created: created.length };
@@ -262,9 +262,9 @@ export const updateRecommendationStatus = createServerFn({ method: "POST" })
     });
     await sb.from("ai_activity_logs").insert({
       user_id: context.userId,
-      module: "concierge",
-      action: `recommendation_${data.status}`,
-      metadata: { recommendation_id: row.id },
+      tool_called: `concierge.recommendation_${data.status}`,
+      tool_args: { recommendation_id: row.id },
+      status: "ok",
     });
     return row;
   });
@@ -391,9 +391,9 @@ export const generatePostStayDrafts = createServerFn({ method: "POST" })
     });
     await sb.from("ai_activity_logs").insert({
       user_id: context.userId,
-      module: "concierge",
-      action: "generate_post_stay_drafts",
-      metadata: { booking_id: b.id, drafts: inserted.length },
+      tool_called: "concierge.generate_post_stay_drafts",
+      tool_args: { booking_id: b.id, drafts: inserted.length },
+      status: "ok",
     });
 
     return { drafts: inserted };
