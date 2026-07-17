@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageCircle, X, Send, ExternalLink, Calendar, Users, Sparkles } from "lucide-react";
+import { MessageCircle, X, Send, ExternalLink, Calendar, Users, Sparkles, ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trackGAEvent, trackBookingClick, trackWhatsAppClick } from "@/lib/analytics";
 import type {
@@ -11,6 +11,18 @@ import type {
 } from "@/domains/ai/concierge/concierge.types";
 
 const STORAGE_KEY = "mtoni.concierge.session";
+const FEEDBACK_KEY = "mtoni.concierge.feedback";
+
+function postBeacon(url: string, body: unknown) {
+  try {
+    const data = JSON.stringify(body);
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(url, new Blob([data], { type: "application/json" }));
+      return;
+    }
+    void fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: data, keepalive: true });
+  } catch { /* noop */ }
+}
 
 type ChatMessage = ConciergeMessage & { pending?: boolean };
 
@@ -40,6 +52,22 @@ export function ConciergeWidget() {
   const [lead, setLead] = useState({ name: "", email: "", travel_period_start: "", travel_period_end: "", adults: "2", notes: "" });
   const [leadBusy, setLeadBusy] = useState(false);
   const [leadError, setLeadError] = useState<string | null>(null);
+  const [feedbackSent, setFeedbackSent] = useState<null | "helpful" | "not_helpful">(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(FEEDBACK_KEY);
+      if (saved === "helpful" || saved === "not_helpful") setFeedbackSent(saved);
+    } catch { /* noop */ }
+  }, []);
+
+  function sendFeedback(rating: "helpful" | "not_helpful") {
+    if (feedbackSent || !token) return;
+    setFeedbackSent(rating);
+    try { localStorage.setItem(FEEDBACK_KEY, rating); } catch { /* noop */ }
+    postBeacon("/api/public/concierge/feedback", { session_token: token, rating });
+    trackGAEvent("concierge_feedback", { event_category: "concierge", rating });
+  }
 
   const greeting = useMemo<ChatMessage>(
     () => ({
