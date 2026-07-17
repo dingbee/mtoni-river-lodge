@@ -129,6 +129,7 @@ import { Route as AuthenticatedAdminGuestsCrmDuplicatesRouteImport } from './rou
 import { Route as AuthenticatedAdminGuestsCrmIdRouteImport } from './routes/_authenticated.admin.guests.crm.$id'
 import { Route as AuthenticatedAdminContentPagesIdRouteImport } from './routes/_authenticated.admin.content.pages.$id'
 import { Route as AuthenticatedAdminContentJournalIdRouteImport } from './routes/_authenticated.admin.content.journal.$id'
+import { Route as AuthenticatedAdminAutomationWorkflowsIdRouteImport } from './routes/_authenticated.admin.automation.workflows.$id'
 import { Route as AuthenticatedAdminContentPagesIdPreviewRouteImport } from './routes/_authenticated.admin.content.pages.$id.preview'
 
 const VoteRoute = VoteRouteImport.update({
@@ -800,6 +801,12 @@ const AuthenticatedAdminContentJournalIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedAdminContentJournalRoute,
   } as any)
+const AuthenticatedAdminAutomationWorkflowsIdRoute =
+  AuthenticatedAdminAutomationWorkflowsIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminAutomationWorkflowsRoute,
+  } as any)
 const AuthenticatedAdminContentPagesIdPreviewRoute =
   AuthenticatedAdminContentPagesIdPreviewRouteImport.update({
     id: '/preview',
@@ -878,7 +885,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
-  '/admin/automation/workflows': typeof AuthenticatedAdminAutomationWorkflowsRoute
+  '/admin/automation/workflows': typeof AuthenticatedAdminAutomationWorkflowsRouteWithChildren
   '/admin/content/brand': typeof AuthenticatedAdminContentBrandRoute
   '/admin/content/calendar': typeof AuthenticatedAdminContentCalendarRoute
   '/admin/content/experiences': typeof AuthenticatedAdminContentExperiencesRoute
@@ -920,6 +927,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
+  '/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
   '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRouteWithChildren
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
@@ -995,7 +1003,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
-  '/admin/automation/workflows': typeof AuthenticatedAdminAutomationWorkflowsRoute
+  '/admin/automation/workflows': typeof AuthenticatedAdminAutomationWorkflowsRouteWithChildren
   '/admin/content/brand': typeof AuthenticatedAdminContentBrandRoute
   '/admin/content/calendar': typeof AuthenticatedAdminContentCalendarRoute
   '/admin/content/experiences': typeof AuthenticatedAdminContentExperiencesRoute
@@ -1037,6 +1045,7 @@ export interface FileRoutesByTo {
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/admin/automation': typeof AuthenticatedAdminAutomationIndexRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
+  '/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
   '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRouteWithChildren
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
@@ -1119,7 +1128,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
-  '/_authenticated/admin/automation/workflows': typeof AuthenticatedAdminAutomationWorkflowsRoute
+  '/_authenticated/admin/automation/workflows': typeof AuthenticatedAdminAutomationWorkflowsRouteWithChildren
   '/_authenticated/admin/content/brand': typeof AuthenticatedAdminContentBrandRoute
   '/_authenticated/admin/content/calendar': typeof AuthenticatedAdminContentCalendarRoute
   '/_authenticated/admin/content/experiences': typeof AuthenticatedAdminContentExperiencesRoute
@@ -1161,6 +1170,7 @@ export interface FileRoutesById {
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/_authenticated/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
+  '/_authenticated/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/_authenticated/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
   '/_authenticated/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRouteWithChildren
   '/_authenticated/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
@@ -1285,6 +1295,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/send'
     | '/admin/automation/'
     | '/admin/operations/'
+    | '/admin/automation/workflows/$id'
     | '/admin/content/journal/$id'
     | '/admin/content/pages/$id'
     | '/admin/guests/crm/$id'
@@ -1402,6 +1413,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/send'
     | '/admin/automation'
     | '/admin/operations'
+    | '/admin/automation/workflows/$id'
     | '/admin/content/journal/$id'
     | '/admin/content/pages/$id'
     | '/admin/guests/crm/$id'
@@ -1525,6 +1537,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/send'
     | '/_authenticated/admin/automation/'
     | '/_authenticated/admin/operations/'
+    | '/_authenticated/admin/automation/workflows/$id'
     | '/_authenticated/admin/content/journal/$id'
     | '/_authenticated/admin/content/pages/$id'
     | '/_authenticated/admin/guests/crm/$id'
@@ -2432,6 +2445,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminContentJournalIdRouteImport
       parentRoute: typeof AuthenticatedAdminContentJournalRoute
     }
+    '/_authenticated/admin/automation/workflows/$id': {
+      id: '/_authenticated/admin/automation/workflows/$id'
+      path: '/$id'
+      fullPath: '/admin/automation/workflows/$id'
+      preLoaderRoute: typeof AuthenticatedAdminAutomationWorkflowsIdRouteImport
+      parentRoute: typeof AuthenticatedAdminAutomationWorkflowsRoute
+    }
     '/_authenticated/admin/content/pages/$id/preview': {
       id: '/_authenticated/admin/content/pages/$id/preview'
       path: '/preview'
@@ -2442,15 +2462,30 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedAdminAutomationWorkflowsRouteChildren {
+  AuthenticatedAdminAutomationWorkflowsIdRoute: typeof AuthenticatedAdminAutomationWorkflowsIdRoute
+}
+
+const AuthenticatedAdminAutomationWorkflowsRouteChildren: AuthenticatedAdminAutomationWorkflowsRouteChildren =
+  {
+    AuthenticatedAdminAutomationWorkflowsIdRoute:
+      AuthenticatedAdminAutomationWorkflowsIdRoute,
+  }
+
+const AuthenticatedAdminAutomationWorkflowsRouteWithChildren =
+  AuthenticatedAdminAutomationWorkflowsRoute._addFileChildren(
+    AuthenticatedAdminAutomationWorkflowsRouteChildren,
+  )
+
 interface AuthenticatedAdminAutomationRouteChildren {
-  AuthenticatedAdminAutomationWorkflowsRoute: typeof AuthenticatedAdminAutomationWorkflowsRoute
+  AuthenticatedAdminAutomationWorkflowsRoute: typeof AuthenticatedAdminAutomationWorkflowsRouteWithChildren
   AuthenticatedAdminAutomationIndexRoute: typeof AuthenticatedAdminAutomationIndexRoute
 }
 
 const AuthenticatedAdminAutomationRouteChildren: AuthenticatedAdminAutomationRouteChildren =
   {
     AuthenticatedAdminAutomationWorkflowsRoute:
-      AuthenticatedAdminAutomationWorkflowsRoute,
+      AuthenticatedAdminAutomationWorkflowsRouteWithChildren,
     AuthenticatedAdminAutomationIndexRoute:
       AuthenticatedAdminAutomationIndexRoute,
   }
