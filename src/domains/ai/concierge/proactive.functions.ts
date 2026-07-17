@@ -365,17 +365,17 @@ export const generatePostStayDrafts = createServerFn({ method: "POST" })
         .from("ai_communication_drafts")
         .insert({
           channel: "email",
-          purpose: d.kind,
+          draft_type: d.kind,
           subject: d.subject,
           body: d.body,
-          related_booking_id: b.id,
-          related_guest_id: b.guest_id,
-          status: "pending_approval",
-          confidence: 0.75,
-          evidence: { source: "post_stay", booking_ref: b.reference },
-          created_by_role: "ai",
+          booking_id: b.id,
+          guest_id: b.guest_id,
+          status: "pending",
+          reasoning: "Post-stay relationship draft — human approval required before send.",
+          supporting_context: { source: "post_stay", booking_ref: b.reference },
+          created_by: context.userId,
         })
-        .select("id, purpose")
+        .select("id, draft_type")
         .single();
       if (e2) throw new Error(e2.message);
       inserted.push(row);
