@@ -294,6 +294,20 @@ export function ConciergeWidget() {
                 Asante — we've shared your details with the reservations team. They'll be in touch shortly.
               </div>
             )}
+            {messages.length >= 2 && !feedbackSent && (
+              <div className="mr-auto flex items-center gap-2 rounded-md border border-border bg-background/60 px-2 py-1 text-[11px] text-muted-foreground">
+                <span>Was this helpful?</span>
+                <button type="button" onClick={() => sendFeedback("helpful")} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-muted" aria-label="Helpful">
+                  <ThumbsUp className="size-3" />
+                </button>
+                <button type="button" onClick={() => sendFeedback("not_helpful")} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-muted" aria-label="Not helpful">
+                  <ThumbsDown className="size-3" />
+                </button>
+              </div>
+            )}
+            {feedbackSent && (
+              <p className="mr-auto text-[11px] text-muted-foreground">Asante — thank you for your feedback.</p>
+            )}
             {escalation && (
               <div className="mr-auto max-w-[95%] rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
                 <p className="font-medium">{escalation.reason}</p>
