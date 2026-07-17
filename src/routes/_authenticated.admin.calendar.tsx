@@ -511,6 +511,7 @@ function UnifiedCalendarPage() {
       </div>
 
       <Dialog open={blockOpen} onOpenChange={setBlockOpen}>
+        {/* Block dialog kept below; reassign + suggest dialogs are appended before the outer wrapper close. */}
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Block / unblock room</DialogTitle>
