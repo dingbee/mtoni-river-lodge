@@ -26,6 +26,7 @@ export const FEATURE_FLAGS: Record<FeatureFlagKey, FeatureFlag> = {
   content_calendar:     { key: "content_calendar",     state: "beta",     description: "Unified content calendar",             since: "2026-07-15" },
   reviews_centre_v2:    { key: "reviews_centre_v2",    state: "beta",     description: "Reviews & Reputation Centre",          since: "2026-07-15" },
   website_analytics:    { key: "website_analytics",    state: "beta",     description: "Website analytics framework",          since: "2026-07-15" },
+  mtoni_ai_command_centre: { key: "mtoni_ai_command_centre", state: "internal", description: "Mtoni AI Command Centre (Sprint 8A)", since: "2026-07-17" },
 };
 
 const STAFF_ROLES = new Set(["owner","manager","reception","marketing","housekeeping","finance","admin","reservations","editor"]);

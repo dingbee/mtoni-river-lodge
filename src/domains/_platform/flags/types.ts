@@ -20,7 +20,8 @@ export type FeatureFlagKey =
   | "brand_centre"
   | "content_calendar"
   | "reviews_centre_v2"
-  | "website_analytics";
+  | "website_analytics"
+  | "mtoni_ai_command_centre";
 
 export type FlagState = "enabled" | "disabled" | "beta" | "internal";
 
