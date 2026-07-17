@@ -19,9 +19,9 @@ export const getAnalyticsHub = createServerFn({ method: "POST" })
       s.from("bookings").select("id, status").eq("check_in", today),
       s.from("rooms").select("id, total_units").eq("status", "active"),
       s.from("ai_activity_logs").select("id, created_at").gte("created_at", start30),
-      s.from("ops_alerts").select("id, status").in("status", ["open", "acknowledged"]),
+      s.from("ops_alerts").select("id, resolved_at").is("resolved_at", null),
       s.from("reviews").select("rating").eq("status", "approved").gte("created_at", start30),
-      s.from("campaigns").select("id, status").eq("status", "active"),
+      s.from("campaigns").select("id, status").eq("status", "running"),
     ]);
     const b30 = (bookings30 ?? []) as Row[];
     const active = b30.filter((b) => b.status !== "cancelled");
@@ -232,7 +232,7 @@ export const getExecutiveAnalytics = createServerFn({ method: "POST" })
       s.from("ai_analytics_recommendations").select("id, status, impact, title, confidence").order("created_at", { ascending: false }).limit(10),
       s.from("bookings").select("id, total, status").gte("created_at", from),
       s.from("reviews").select("rating").eq("status", "approved").gte("created_at", from),
-      s.from("ops_alerts").select("id, status").eq("status", "open"),
+      s.from("ops_alerts").select("id, resolved_at").is("resolved_at", null),
     ]);
     const b = ((bookings ?? []) as Row[]).filter((r) => r.status !== "cancelled");
     const rev = b.reduce((n, r) => n + Number(r.total ?? 0), 0);
