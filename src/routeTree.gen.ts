@@ -17,6 +17,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SitemapPagesDotxmlRouteImport } from './routes/sitemap-pages[.]xml'
 import { Route as SitemapJournalDotxmlRouteImport } from './routes/sitemap-journal[.]xml'
 import { Route as SitemapImagesDotxmlRouteImport } from './routes/sitemap-images[.]xml'
+import { Route as SitemapCmsDotxmlRouteImport } from './routes/sitemap-cms[.]xml'
 import { Route as SitemapAccommodationDotxmlRouteImport } from './routes/sitemap-accommodation[.]xml'
 import { Route as RoomsRouteImport } from './routes/rooms'
 import { Route as ReviewsRouteImport } from './routes/reviews'
@@ -160,6 +161,11 @@ const SitemapJournalDotxmlRoute = SitemapJournalDotxmlRouteImport.update({
 const SitemapImagesDotxmlRoute = SitemapImagesDotxmlRouteImport.update({
   id: '/sitemap-images.xml',
   path: '/sitemap-images.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapCmsDotxmlRoute = SitemapCmsDotxmlRouteImport.update({
+  id: '/sitemap-cms.xml',
+  path: '/sitemap-cms.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapAccommodationDotxmlRoute =
@@ -770,6 +776,7 @@ export interface FileRoutesByFullPath {
   '/reviews': typeof ReviewsRoute
   '/rooms': typeof RoomsRouteWithChildren
   '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
+  '/sitemap-cms.xml': typeof SitemapCmsDotxmlRoute
   '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
   '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
   '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
@@ -881,6 +888,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/reviews': typeof ReviewsRoute
   '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
+  '/sitemap-cms.xml': typeof SitemapCmsDotxmlRoute
   '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
   '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
   '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
@@ -994,6 +1002,7 @@ export interface FileRoutesById {
   '/reviews': typeof ReviewsRoute
   '/rooms': typeof RoomsRouteWithChildren
   '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
+  '/sitemap-cms.xml': typeof SitemapCmsDotxmlRoute
   '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
   '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
   '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
@@ -1109,6 +1118,7 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/rooms'
     | '/sitemap-accommodation.xml'
+    | '/sitemap-cms.xml'
     | '/sitemap-images.xml'
     | '/sitemap-journal.xml'
     | '/sitemap-pages.xml'
@@ -1220,6 +1230,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/reviews'
     | '/sitemap-accommodation.xml'
+    | '/sitemap-cms.xml'
     | '/sitemap-images.xml'
     | '/sitemap-journal.xml'
     | '/sitemap-pages.xml'
@@ -1332,6 +1343,7 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/rooms'
     | '/sitemap-accommodation.xml'
+    | '/sitemap-cms.xml'
     | '/sitemap-images.xml'
     | '/sitemap-journal.xml'
     | '/sitemap-pages.xml'
@@ -1447,6 +1459,7 @@ export interface RootRouteChildren {
   ReviewsRoute: typeof ReviewsRoute
   RoomsRoute: typeof RoomsRouteWithChildren
   SitemapAccommodationDotxmlRoute: typeof SitemapAccommodationDotxmlRoute
+  SitemapCmsDotxmlRoute: typeof SitemapCmsDotxmlRoute
   SitemapImagesDotxmlRoute: typeof SitemapImagesDotxmlRoute
   SitemapJournalDotxmlRoute: typeof SitemapJournalDotxmlRoute
   SitemapPagesDotxmlRoute: typeof SitemapPagesDotxmlRoute
@@ -1531,6 +1544,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap-images.xml'
       fullPath: '/sitemap-images.xml'
       preLoaderRoute: typeof SitemapImagesDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap-cms.xml': {
+      id: '/sitemap-cms.xml'
+      path: '/sitemap-cms.xml'
+      fullPath: '/sitemap-cms.xml'
+      preLoaderRoute: typeof SitemapCmsDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap-accommodation.xml': {
@@ -2546,6 +2566,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReviewsRoute: ReviewsRoute,
   RoomsRoute: RoomsRouteWithChildren,
   SitemapAccommodationDotxmlRoute: SitemapAccommodationDotxmlRoute,
+  SitemapCmsDotxmlRoute: SitemapCmsDotxmlRoute,
   SitemapImagesDotxmlRoute: SitemapImagesDotxmlRoute,
   SitemapJournalDotxmlRoute: SitemapJournalDotxmlRoute,
   SitemapPagesDotxmlRoute: SitemapPagesDotxmlRoute,
