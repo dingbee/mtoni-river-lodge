@@ -416,7 +416,21 @@ function BookingPlanCard({ plan }: { plan: ConciergeBookingPlan }) {
       )}
       <a
         href={plan.booking_url}
-        onClick={() => trackBookingClick({ buttonText: "Continue Booking", location: "concierge_plan", destinationUrl: plan.booking_url })}
+        onClick={() => {
+          trackBookingClick({ buttonText: "Continue Booking", location: "concierge_plan", destinationUrl: plan.booking_url });
+          try {
+            const t = localStorage.getItem(STORAGE_KEY);
+            if (t) {
+              const data = JSON.stringify({ session_token: t, conversion_type: "booking_click", metadata: { location: "concierge_plan" } });
+              if (navigator.sendBeacon) {
+                navigator.sendBeacon("/api/public/concierge/attribution", new Blob([data], { type: "application/json" }));
+              } else {
+                void fetch("/api/public/concierge/attribution", { method: "POST", headers: { "Content-Type": "application/json" }, body: data, keepalive: true });
+              }
+            }
+          } catch { /* noop */ }
+          trackGAEvent("concierge_booking_click", { event_category: "concierge", location: "concierge_plan" });
+        }}
         className="mt-2 inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground shadow-sm hover:brightness-110"
       >
         Continue to booking <ExternalLink className="size-3" />
