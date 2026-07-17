@@ -6840,6 +6840,15 @@ export type Database = {
           read_ct: number
         }[]
       }
+      reassign_booking_room: {
+        Args: {
+          _actor?: string
+          _booking_id: string
+          _new_room_id: string
+          _reason?: string
+        }
+        Returns: Json
+      }
       release_booking_hold: {
         Args: { _hold_id: string; _session_id: string }
         Returns: boolean
