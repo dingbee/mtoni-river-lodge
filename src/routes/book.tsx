@@ -530,6 +530,10 @@ function BookPage() {
                   if (typeof window !== "undefined")
                     window.sessionStorage.removeItem(STORAGE_KEY);
                 } catch {}
+                if (hold) {
+                  void releaseHoldFn({ data: { holdId: hold.id, sessionId } }).catch(() => undefined);
+                  setHold(null);
+                }
                 const fresh = newBookingSessionId();
                 trackGAEvent("booking_room_switch_reset", {
                   event_category: "conversion",
