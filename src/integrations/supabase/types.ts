@@ -71,6 +71,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_activity_logs: {
+        Row: {
+          created_at: string
+          domains_accessed: string[]
+          duration_ms: number | null
+          error: string | null
+          evidence: Json
+          id: string
+          model: string | null
+          question: string
+          recommendation: string | null
+          response: string | null
+          status: string
+          tool_args: Json
+          tool_called: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          domains_accessed?: string[]
+          duration_ms?: number | null
+          error?: string | null
+          evidence?: Json
+          id?: string
+          model?: string | null
+          question: string
+          recommendation?: string | null
+          response?: string | null
+          status?: string
+          tool_args?: Json
+          tool_called?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          domains_accessed?: string[]
+          duration_ms?: number | null
+          error?: string | null
+          evidence?: Json
+          id?: string
+          model?: string | null
+          question?: string
+          recommendation?: string | null
+          response?: string | null
+          status?: string
+          tool_args?: Json
+          tool_called?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_suggestions: {
         Row: {
           created_at: string

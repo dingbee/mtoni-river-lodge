@@ -58,6 +58,11 @@ export const MODULE_ROLES: Record<string, Role[] | null> = {
   "staff.activity": ["owner", "manager", "admin"],
   automation: ["owner", "manager", "admin"],
   settings: ["owner", "manager", "admin"],
+  "ai.command": ["owner", "manager", "reception", "marketing", "finance", "housekeeping", "admin", "editor", "reservations"],
+  "ai.insights": ["owner", "manager", "admin"],
+  "ai.knowledge": ["owner", "manager", "marketing", "admin", "editor"],
+  "ai.activity": ["owner", "manager", "admin"],
+  "ai.settings": ["owner", "admin"],
 };
 
 export function useCurrentUserRoles() {
