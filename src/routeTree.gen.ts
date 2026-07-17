@@ -81,12 +81,14 @@ import { Route as AuthenticatedAdminFinanceRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authenticated.admin.bookings'
 import { Route as AuthenticatedAdminAutomationRouteImport } from './routes/_authenticated.admin.automation'
 import { Route as AuthenticatedAdminOperationsIndexRouteImport } from './routes/_authenticated.admin.operations.index'
+import { Route as AuthenticatedAdminAutomationIndexRouteImport } from './routes/_authenticated.admin.automation.index'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicPesapalIpnRouteImport } from './routes/api/public/pesapal.ipn'
 import { Route as ApiPublicOpsMorningDigestRouteImport } from './routes/api/public/ops/morning-digest'
 import { Route as ApiPublicOpsDrainRouteImport } from './routes/api/public/ops/drain'
+import { Route as ApiPublicHooksScheduledJobsRouteImport } from './routes/api/public/hooks/scheduled-jobs'
 import { Route as AuthenticatedAdminStaffUsersRouteImport } from './routes/_authenticated.admin.staff.users'
 import { Route as AuthenticatedAdminStaffRolesRouteImport } from './routes/_authenticated.admin.staff.roles'
 import { Route as AuthenticatedAdminStaffActivityRouteImport } from './routes/_authenticated.admin.staff.activity'
@@ -120,6 +122,11 @@ import { Route as AuthenticatedAdminContentGalleryRouteImport } from './routes/_
 import { Route as AuthenticatedAdminContentExperiencesRouteImport } from './routes/_authenticated.admin.content.experiences'
 import { Route as AuthenticatedAdminContentCalendarRouteImport } from './routes/_authenticated.admin.content.calendar'
 import { Route as AuthenticatedAdminContentBrandRouteImport } from './routes/_authenticated.admin.content.brand'
+import { Route as AuthenticatedAdminAutomationWorkflowsRouteImport } from './routes/_authenticated.admin.automation.workflows'
+import { Route as AuthenticatedAdminAutomationScheduledRouteImport } from './routes/_authenticated.admin.automation.scheduled'
+import { Route as AuthenticatedAdminAutomationNotificationsRouteImport } from './routes/_authenticated.admin.automation.notifications'
+import { Route as AuthenticatedAdminAutomationMonitorRouteImport } from './routes/_authenticated.admin.automation.monitor'
+import { Route as AuthenticatedAdminAutomationApprovalsRouteImport } from './routes/_authenticated.admin.automation.approvals'
 import { Route as AuthenticatedAdminOperationsReservationsIdRouteImport } from './routes/_authenticated.admin.operations.reservations.$id'
 import { Route as AuthenticatedAdminOperationsCheckoutIdRouteImport } from './routes/_authenticated.admin.operations.checkout.$id'
 import { Route as AuthenticatedAdminOperationsCheckinIdRouteImport } from './routes/_authenticated.admin.operations.checkin.$id'
@@ -127,6 +134,7 @@ import { Route as AuthenticatedAdminGuestsCrmDuplicatesRouteImport } from './rou
 import { Route as AuthenticatedAdminGuestsCrmIdRouteImport } from './routes/_authenticated.admin.guests.crm.$id'
 import { Route as AuthenticatedAdminContentPagesIdRouteImport } from './routes/_authenticated.admin.content.pages.$id'
 import { Route as AuthenticatedAdminContentJournalIdRouteImport } from './routes/_authenticated.admin.content.journal.$id'
+import { Route as AuthenticatedAdminAutomationWorkflowsIdRouteImport } from './routes/_authenticated.admin.automation.workflows.$id'
 import { Route as AuthenticatedAdminContentPagesIdPreviewRouteImport } from './routes/_authenticated.admin.content.pages.$id.preview'
 
 const VoteRoute = VoteRouteImport.update({
@@ -512,6 +520,12 @@ const AuthenticatedAdminOperationsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAdminOperationsRoute,
   } as any)
+const AuthenticatedAdminAutomationIndexRoute =
+  AuthenticatedAdminAutomationIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminAutomationRoute,
+  } as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -546,6 +560,12 @@ const ApiPublicOpsDrainRoute = ApiPublicOpsDrainRouteImport.update({
   path: '/api/public/ops/drain',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksScheduledJobsRoute =
+  ApiPublicHooksScheduledJobsRouteImport.update({
+    id: '/api/public/hooks/scheduled-jobs',
+    path: '/api/public/hooks/scheduled-jobs',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAdminStaffUsersRoute =
   AuthenticatedAdminStaffUsersRouteImport.update({
     id: '/staff/users',
@@ -744,6 +764,36 @@ const AuthenticatedAdminContentBrandRoute =
     path: '/content/brand',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminAutomationWorkflowsRoute =
+  AuthenticatedAdminAutomationWorkflowsRouteImport.update({
+    id: '/workflows',
+    path: '/workflows',
+    getParentRoute: () => AuthenticatedAdminAutomationRoute,
+  } as any)
+const AuthenticatedAdminAutomationScheduledRoute =
+  AuthenticatedAdminAutomationScheduledRouteImport.update({
+    id: '/scheduled',
+    path: '/scheduled',
+    getParentRoute: () => AuthenticatedAdminAutomationRoute,
+  } as any)
+const AuthenticatedAdminAutomationNotificationsRoute =
+  AuthenticatedAdminAutomationNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedAdminAutomationRoute,
+  } as any)
+const AuthenticatedAdminAutomationMonitorRoute =
+  AuthenticatedAdminAutomationMonitorRouteImport.update({
+    id: '/monitor',
+    path: '/monitor',
+    getParentRoute: () => AuthenticatedAdminAutomationRoute,
+  } as any)
+const AuthenticatedAdminAutomationApprovalsRoute =
+  AuthenticatedAdminAutomationApprovalsRouteImport.update({
+    id: '/approvals',
+    path: '/approvals',
+    getParentRoute: () => AuthenticatedAdminAutomationRoute,
+  } as any)
 const AuthenticatedAdminOperationsReservationsIdRoute =
   AuthenticatedAdminOperationsReservationsIdRouteImport.update({
     id: '/reservations/$id',
@@ -785,6 +835,12 @@ const AuthenticatedAdminContentJournalIdRoute =
     id: '/$id',
     path: '/$id',
     getParentRoute: () => AuthenticatedAdminContentJournalRoute,
+  } as any)
+const AuthenticatedAdminAutomationWorkflowsIdRoute =
+  AuthenticatedAdminAutomationWorkflowsIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminAutomationWorkflowsRoute,
   } as any)
 const AuthenticatedAdminContentPagesIdPreviewRoute =
   AuthenticatedAdminContentPagesIdPreviewRouteImport.update({
@@ -855,7 +911,7 @@ export interface FileRoutesByFullPath {
   '/wp-json/$': typeof WpJsonSplatRoute
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
-  '/admin/automation': typeof AuthenticatedAdminAutomationRoute
+  '/admin/automation': typeof AuthenticatedAdminAutomationRouteWithChildren
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceRouteWithChildren
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
@@ -864,6 +920,11 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/automation/approvals': typeof AuthenticatedAdminAutomationApprovalsRoute
+  '/admin/automation/monitor': typeof AuthenticatedAdminAutomationMonitorRoute
+  '/admin/automation/notifications': typeof AuthenticatedAdminAutomationNotificationsRoute
+  '/admin/automation/scheduled': typeof AuthenticatedAdminAutomationScheduledRoute
+  '/admin/automation/workflows': typeof AuthenticatedAdminAutomationWorkflowsRouteWithChildren
   '/admin/content/brand': typeof AuthenticatedAdminContentBrandRoute
   '/admin/content/calendar': typeof AuthenticatedAdminContentCalendarRoute
   '/admin/content/experiences': typeof AuthenticatedAdminContentExperiencesRoute
@@ -897,13 +958,16 @@ export interface FileRoutesByFullPath {
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
+  '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
+  '/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
   '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRouteWithChildren
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
@@ -972,7 +1036,6 @@ export interface FileRoutesByTo {
   '/wp-json/$': typeof WpJsonSplatRoute
   '/journal': typeof JournalIndexRoute
   '/rooms': typeof RoomsIndexRoute
-  '/admin/automation': typeof AuthenticatedAdminAutomationRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceRouteWithChildren
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
@@ -980,6 +1043,11 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/automation/approvals': typeof AuthenticatedAdminAutomationApprovalsRoute
+  '/admin/automation/monitor': typeof AuthenticatedAdminAutomationMonitorRoute
+  '/admin/automation/notifications': typeof AuthenticatedAdminAutomationNotificationsRoute
+  '/admin/automation/scheduled': typeof AuthenticatedAdminAutomationScheduledRoute
+  '/admin/automation/workflows': typeof AuthenticatedAdminAutomationWorkflowsRouteWithChildren
   '/admin/content/brand': typeof AuthenticatedAdminContentBrandRoute
   '/admin/content/calendar': typeof AuthenticatedAdminContentCalendarRoute
   '/admin/content/experiences': typeof AuthenticatedAdminContentExperiencesRoute
@@ -1013,13 +1081,16 @@ export interface FileRoutesByTo {
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
+  '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/admin/automation': typeof AuthenticatedAdminAutomationIndexRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
+  '/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
   '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRouteWithChildren
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
@@ -1093,7 +1164,7 @@ export interface FileRoutesById {
   '/wp-json/$': typeof WpJsonSplatRoute
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
-  '/_authenticated/admin/automation': typeof AuthenticatedAdminAutomationRoute
+  '/_authenticated/admin/automation': typeof AuthenticatedAdminAutomationRouteWithChildren
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/_authenticated/admin/finance': typeof AuthenticatedAdminFinanceRouteWithChildren
   '/_authenticated/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
@@ -1102,6 +1173,11 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/automation/approvals': typeof AuthenticatedAdminAutomationApprovalsRoute
+  '/_authenticated/admin/automation/monitor': typeof AuthenticatedAdminAutomationMonitorRoute
+  '/_authenticated/admin/automation/notifications': typeof AuthenticatedAdminAutomationNotificationsRoute
+  '/_authenticated/admin/automation/scheduled': typeof AuthenticatedAdminAutomationScheduledRoute
+  '/_authenticated/admin/automation/workflows': typeof AuthenticatedAdminAutomationWorkflowsRouteWithChildren
   '/_authenticated/admin/content/brand': typeof AuthenticatedAdminContentBrandRoute
   '/_authenticated/admin/content/calendar': typeof AuthenticatedAdminContentCalendarRoute
   '/_authenticated/admin/content/experiences': typeof AuthenticatedAdminContentExperiencesRoute
@@ -1135,13 +1211,16 @@ export interface FileRoutesById {
   '/_authenticated/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/_authenticated/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/_authenticated/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
+  '/api/public/hooks/scheduled-jobs': typeof ApiPublicHooksScheduledJobsRoute
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/_authenticated/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
+  '/_authenticated/admin/automation/workflows/$id': typeof AuthenticatedAdminAutomationWorkflowsIdRoute
   '/_authenticated/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
   '/_authenticated/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdRouteWithChildren
   '/_authenticated/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
@@ -1224,6 +1303,11 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/lovable/email/suppression'
     | '/admin/'
+    | '/admin/automation/approvals'
+    | '/admin/automation/monitor'
+    | '/admin/automation/notifications'
+    | '/admin/automation/scheduled'
+    | '/admin/automation/workflows'
     | '/admin/content/brand'
     | '/admin/content/calendar'
     | '/admin/content/experiences'
@@ -1257,13 +1341,16 @@ export interface FileRouteTypes {
     | '/admin/staff/activity'
     | '/admin/staff/roles'
     | '/admin/staff/users'
+    | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/admin/automation/'
     | '/admin/operations/'
+    | '/admin/automation/workflows/$id'
     | '/admin/content/journal/$id'
     | '/admin/content/pages/$id'
     | '/admin/guests/crm/$id'
@@ -1332,7 +1419,6 @@ export interface FileRouteTypes {
     | '/wp-json/$'
     | '/journal'
     | '/rooms'
-    | '/admin/automation'
     | '/admin/bookings'
     | '/admin/finance'
     | '/admin/front-desk'
@@ -1340,6 +1426,11 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/lovable/email/suppression'
     | '/admin'
+    | '/admin/automation/approvals'
+    | '/admin/automation/monitor'
+    | '/admin/automation/notifications'
+    | '/admin/automation/scheduled'
+    | '/admin/automation/workflows'
     | '/admin/content/brand'
     | '/admin/content/calendar'
     | '/admin/content/experiences'
@@ -1373,13 +1464,16 @@ export interface FileRouteTypes {
     | '/admin/staff/activity'
     | '/admin/staff/roles'
     | '/admin/staff/users'
+    | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/admin/automation'
     | '/admin/operations'
+    | '/admin/automation/workflows/$id'
     | '/admin/content/journal/$id'
     | '/admin/content/pages/$id'
     | '/admin/guests/crm/$id'
@@ -1461,6 +1555,11 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/automation/approvals'
+    | '/_authenticated/admin/automation/monitor'
+    | '/_authenticated/admin/automation/notifications'
+    | '/_authenticated/admin/automation/scheduled'
+    | '/_authenticated/admin/automation/workflows'
     | '/_authenticated/admin/content/brand'
     | '/_authenticated/admin/content/calendar'
     | '/_authenticated/admin/content/experiences'
@@ -1494,13 +1593,16 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/staff/activity'
     | '/_authenticated/admin/staff/roles'
     | '/_authenticated/admin/staff/users'
+    | '/api/public/hooks/scheduled-jobs'
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/_authenticated/admin/automation/'
     | '/_authenticated/admin/operations/'
+    | '/_authenticated/admin/automation/workflows/$id'
     | '/_authenticated/admin/content/journal/$id'
     | '/_authenticated/admin/content/pages/$id'
     | '/_authenticated/admin/guests/crm/$id'
@@ -1558,6 +1660,7 @@ export interface RootRouteChildren {
   WpIncludesSplatRoute: typeof WpIncludesSplatRoute
   WpJsonSplatRoute: typeof WpJsonSplatRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicHooksScheduledJobsRoute: typeof ApiPublicHooksScheduledJobsRoute
   ApiPublicOpsDrainRoute: typeof ApiPublicOpsDrainRoute
   ApiPublicOpsMorningDigestRoute: typeof ApiPublicOpsMorningDigestRoute
   ApiPublicPesapalIpnRoute: typeof ApiPublicPesapalIpnRoute
@@ -2072,6 +2175,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminOperationsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminOperationsRoute
     }
+    '/_authenticated/admin/automation/': {
+      id: '/_authenticated/admin/automation/'
+      path: '/'
+      fullPath: '/admin/automation/'
+      preLoaderRoute: typeof AuthenticatedAdminAutomationIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminAutomationRoute
+    }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
       path: '/lovable/email/transactional/send'
@@ -2112,6 +2222,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/ops/drain'
       fullPath: '/api/public/ops/drain'
       preLoaderRoute: typeof ApiPublicOpsDrainRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/scheduled-jobs': {
+      id: '/api/public/hooks/scheduled-jobs'
+      path: '/api/public/hooks/scheduled-jobs'
+      fullPath: '/api/public/hooks/scheduled-jobs'
+      preLoaderRoute: typeof ApiPublicHooksScheduledJobsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/staff/users': {
@@ -2345,6 +2462,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminContentBrandRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/automation/workflows': {
+      id: '/_authenticated/admin/automation/workflows'
+      path: '/workflows'
+      fullPath: '/admin/automation/workflows'
+      preLoaderRoute: typeof AuthenticatedAdminAutomationWorkflowsRouteImport
+      parentRoute: typeof AuthenticatedAdminAutomationRoute
+    }
+    '/_authenticated/admin/automation/scheduled': {
+      id: '/_authenticated/admin/automation/scheduled'
+      path: '/scheduled'
+      fullPath: '/admin/automation/scheduled'
+      preLoaderRoute: typeof AuthenticatedAdminAutomationScheduledRouteImport
+      parentRoute: typeof AuthenticatedAdminAutomationRoute
+    }
+    '/_authenticated/admin/automation/notifications': {
+      id: '/_authenticated/admin/automation/notifications'
+      path: '/notifications'
+      fullPath: '/admin/automation/notifications'
+      preLoaderRoute: typeof AuthenticatedAdminAutomationNotificationsRouteImport
+      parentRoute: typeof AuthenticatedAdminAutomationRoute
+    }
+    '/_authenticated/admin/automation/monitor': {
+      id: '/_authenticated/admin/automation/monitor'
+      path: '/monitor'
+      fullPath: '/admin/automation/monitor'
+      preLoaderRoute: typeof AuthenticatedAdminAutomationMonitorRouteImport
+      parentRoute: typeof AuthenticatedAdminAutomationRoute
+    }
+    '/_authenticated/admin/automation/approvals': {
+      id: '/_authenticated/admin/automation/approvals'
+      path: '/approvals'
+      fullPath: '/admin/automation/approvals'
+      preLoaderRoute: typeof AuthenticatedAdminAutomationApprovalsRouteImport
+      parentRoute: typeof AuthenticatedAdminAutomationRoute
+    }
     '/_authenticated/admin/operations/reservations/$id': {
       id: '/_authenticated/admin/operations/reservations/$id'
       path: '/reservations/$id'
@@ -2394,6 +2546,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminContentJournalIdRouteImport
       parentRoute: typeof AuthenticatedAdminContentJournalRoute
     }
+    '/_authenticated/admin/automation/workflows/$id': {
+      id: '/_authenticated/admin/automation/workflows/$id'
+      path: '/$id'
+      fullPath: '/admin/automation/workflows/$id'
+      preLoaderRoute: typeof AuthenticatedAdminAutomationWorkflowsIdRouteImport
+      parentRoute: typeof AuthenticatedAdminAutomationWorkflowsRoute
+    }
     '/_authenticated/admin/content/pages/$id/preview': {
       id: '/_authenticated/admin/content/pages/$id/preview'
       path: '/preview'
@@ -2403,6 +2562,51 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedAdminAutomationWorkflowsRouteChildren {
+  AuthenticatedAdminAutomationWorkflowsIdRoute: typeof AuthenticatedAdminAutomationWorkflowsIdRoute
+}
+
+const AuthenticatedAdminAutomationWorkflowsRouteChildren: AuthenticatedAdminAutomationWorkflowsRouteChildren =
+  {
+    AuthenticatedAdminAutomationWorkflowsIdRoute:
+      AuthenticatedAdminAutomationWorkflowsIdRoute,
+  }
+
+const AuthenticatedAdminAutomationWorkflowsRouteWithChildren =
+  AuthenticatedAdminAutomationWorkflowsRoute._addFileChildren(
+    AuthenticatedAdminAutomationWorkflowsRouteChildren,
+  )
+
+interface AuthenticatedAdminAutomationRouteChildren {
+  AuthenticatedAdminAutomationApprovalsRoute: typeof AuthenticatedAdminAutomationApprovalsRoute
+  AuthenticatedAdminAutomationMonitorRoute: typeof AuthenticatedAdminAutomationMonitorRoute
+  AuthenticatedAdminAutomationNotificationsRoute: typeof AuthenticatedAdminAutomationNotificationsRoute
+  AuthenticatedAdminAutomationScheduledRoute: typeof AuthenticatedAdminAutomationScheduledRoute
+  AuthenticatedAdminAutomationWorkflowsRoute: typeof AuthenticatedAdminAutomationWorkflowsRouteWithChildren
+  AuthenticatedAdminAutomationIndexRoute: typeof AuthenticatedAdminAutomationIndexRoute
+}
+
+const AuthenticatedAdminAutomationRouteChildren: AuthenticatedAdminAutomationRouteChildren =
+  {
+    AuthenticatedAdminAutomationApprovalsRoute:
+      AuthenticatedAdminAutomationApprovalsRoute,
+    AuthenticatedAdminAutomationMonitorRoute:
+      AuthenticatedAdminAutomationMonitorRoute,
+    AuthenticatedAdminAutomationNotificationsRoute:
+      AuthenticatedAdminAutomationNotificationsRoute,
+    AuthenticatedAdminAutomationScheduledRoute:
+      AuthenticatedAdminAutomationScheduledRoute,
+    AuthenticatedAdminAutomationWorkflowsRoute:
+      AuthenticatedAdminAutomationWorkflowsRouteWithChildren,
+    AuthenticatedAdminAutomationIndexRoute:
+      AuthenticatedAdminAutomationIndexRoute,
+  }
+
+const AuthenticatedAdminAutomationRouteWithChildren =
+  AuthenticatedAdminAutomationRoute._addFileChildren(
+    AuthenticatedAdminAutomationRouteChildren,
+  )
 
 interface AuthenticatedAdminFinanceRouteChildren {
   AuthenticatedAdminFinanceAlertsRoute: typeof AuthenticatedAdminFinanceAlertsRoute
@@ -2544,7 +2748,7 @@ const AuthenticatedAdminGuestsCrmRouteWithChildren =
   )
 
 interface AuthenticatedAdminRouteChildren {
-  AuthenticatedAdminAutomationRoute: typeof AuthenticatedAdminAutomationRoute
+  AuthenticatedAdminAutomationRoute: typeof AuthenticatedAdminAutomationRouteWithChildren
   AuthenticatedAdminBookingsRoute: typeof AuthenticatedAdminBookingsRoute
   AuthenticatedAdminFinanceRoute: typeof AuthenticatedAdminFinanceRouteWithChildren
   AuthenticatedAdminFrontDeskRoute: typeof AuthenticatedAdminFrontDeskRoute
@@ -2574,7 +2778,8 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
-  AuthenticatedAdminAutomationRoute: AuthenticatedAdminAutomationRoute,
+  AuthenticatedAdminAutomationRoute:
+    AuthenticatedAdminAutomationRouteWithChildren,
   AuthenticatedAdminBookingsRoute: AuthenticatedAdminBookingsRoute,
   AuthenticatedAdminFinanceRoute: AuthenticatedAdminFinanceRouteWithChildren,
   AuthenticatedAdminFrontDeskRoute: AuthenticatedAdminFrontDeskRoute,
@@ -2736,6 +2941,7 @@ const rootRouteChildren: RootRouteChildren = {
   WpIncludesSplatRoute: WpIncludesSplatRoute,
   WpJsonSplatRoute: WpJsonSplatRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicHooksScheduledJobsRoute: ApiPublicHooksScheduledJobsRoute,
   ApiPublicOpsDrainRoute: ApiPublicOpsDrainRoute,
   ApiPublicOpsMorningDigestRoute: ApiPublicOpsMorningDigestRoute,
   ApiPublicPesapalIpnRoute: ApiPublicPesapalIpnRoute,
