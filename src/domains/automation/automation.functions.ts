@@ -422,7 +422,7 @@ export const requestApproval = createServerFn({ method: "POST" })
     const { data: row, error } = await context.supabase.from("approval_requests").insert({
       approval_kind: data.approval_kind,
       subject: data.subject,
-      details: data.details ?? {},
+      details: (data.details ?? {}) as any,
       approver_roles: data.approver_roles,
       requested_by: context.userId,
     }).select("id").single();
