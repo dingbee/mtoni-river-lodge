@@ -69,16 +69,18 @@ export const releaseBookingHold = createServerFn({ method: "POST" })
   });
 
 export const getBookingHold = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ holdId: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ holdId: z.string().uuid(), sessionId: z.string().min(6) }).parse(d),
+  )
   .handler(async ({ data }) => {
     const sb = publicClient();
-    const { data: row, error } = await sb
-      .from("booking_holds" as never)
-      .select("id, room_id, check_in, check_out, expires_at, status")
-      .eq("id", data.holdId)
-      .maybeSingle();
+    const { data: rows, error } = await sb.rpc("get_booking_hold_for_session" as never, {
+      _hold_id: data.holdId,
+      _session_id: data.sessionId,
+    } as never);
     if (error) throw new Error(error.message);
-    return row as unknown as {
+    const row = Array.isArray(rows) ? rows[0] : rows;
+    return (row ?? null) as unknown as {
       id: string; room_id: string; check_in: string; check_out: string;
       expires_at: string; status: "active" | "released" | "expired" | "converted";
     } | null;
