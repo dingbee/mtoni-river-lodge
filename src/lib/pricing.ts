@@ -40,7 +40,7 @@ export const ROOM_PRICING: Record<RoomType, RoomPricingConfig> = {
     currency: "USD",
   },
   "family-room": {
-    basePrice: 360,
+    basePrice: 550,
     includedGuests: 5,
     maxGuests: 5,
     extraGuestFee: 0,
