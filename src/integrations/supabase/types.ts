@@ -6753,6 +6753,17 @@ export type Database = {
           sample_names: string[]
         }[]
       }
+      get_booking_hold_for_session: {
+        Args: { _hold_id: string; _session_id: string }
+        Returns: {
+          check_in: string
+          check_out: string
+          expires_at: string
+          id: string
+          room_id: string
+          status: string
+        }[]
+      }
       get_review_aggregates: {
         Args: never
         Returns: {
