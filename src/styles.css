@@ -705,3 +705,181 @@
   width: 2px; border-radius: 2px;
   background: var(--os-green);
 }
+
+/* ============================================================
+   MTONI OS — GLOBAL PRIMITIVE UNIFICATION
+   Remaps shadcn design tokens inside `.mtoni-os` so EVERY
+   primitive (Card, Dialog, Popover, Input, Select, Table,
+   Badge, Tabs, Tooltip, DropdownMenu, Sheet, Accordion, etc.)
+   inherits the Command Centre look without per-component
+   edits. Presentation only — no functional or logic changes.
+   ============================================================ */
+.mtoni-os {
+  /* Remap shadcn semantic tokens to the OS dark palette */
+  --background: var(--os-canvas);
+  --card: var(--os-surface-2);
+  --card-foreground: var(--os-ink);
+  --popover: #1E2225;
+  --popover-foreground: var(--os-ink);
+  --primary: var(--os-green);
+  --primary-foreground: #ffffff;
+  --secondary: rgba(255,255,255,0.04);
+  --secondary-foreground: var(--os-ink);
+  --muted: rgba(255,255,255,0.03);
+  --muted-foreground: var(--os-ink-3);
+  --accent: rgba(255,255,255,0.05);
+  --accent-foreground: var(--os-ink);
+  --destructive: var(--os-danger);
+  --destructive-foreground: #ffffff;
+  --ring: var(--os-green);
+}
+
+/* ---------- Cards ---------- */
+.mtoni-os [data-slot="card"],
+.mtoni-os .bg-card {
+  background: var(--os-surface-2);
+  border-color: var(--os-hairline);
+  color: var(--os-ink);
+  border-radius: 18px;
+  box-shadow: var(--os-shadow-card);
+}
+
+/* ---------- Inputs, Textareas, Selects ---------- */
+.mtoni-os input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+.mtoni-os textarea,
+.mtoni-os select,
+.mtoni-os [role="combobox"] {
+  background-color: rgba(255,255,255,0.03);
+  border-color: var(--os-hairline-strong);
+  color: var(--os-ink);
+  border-radius: 10px;
+}
+.mtoni-os input::placeholder,
+.mtoni-os textarea::placeholder {
+  color: var(--os-ink-3);
+}
+.mtoni-os input:focus-visible,
+.mtoni-os textarea:focus-visible,
+.mtoni-os select:focus-visible,
+.mtoni-os [role="combobox"]:focus-visible {
+  outline: none;
+  border-color: var(--os-green);
+  box-shadow: 0 0 0 3px var(--os-green-soft);
+}
+
+/* ---------- Buttons ---------- */
+.mtoni-os button {
+  border-radius: 10px;
+}
+.mtoni-os button.bg-primary,
+.mtoni-os [data-variant="default"].bg-primary {
+  background: var(--os-green);
+  color: #ffffff;
+}
+.mtoni-os button.bg-primary:hover { background: color-mix(in oklab, var(--os-green) 88%, black); }
+
+/* ---------- Tables ---------- */
+.mtoni-os table { color: var(--os-ink); }
+.mtoni-os thead tr,
+.mtoni-os [data-slot="table-header"] tr {
+  border-color: var(--os-hairline) !important;
+}
+.mtoni-os th {
+  color: var(--os-ink-3);
+  font-weight: 500;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.mtoni-os tbody tr {
+  border-color: var(--os-hairline) !important;
+  transition: background-color .2s ease;
+}
+.mtoni-os tbody tr:hover {
+  background-color: rgba(255,255,255,0.03);
+}
+.mtoni-os td { color: var(--os-ink); }
+
+/* ---------- Dialogs, Sheets, Popovers, Dropdowns, Command ---------- */
+.mtoni-os [role="dialog"],
+.mtoni-os [data-radix-popper-content-wrapper] > *,
+.mtoni-os [data-slot="popover-content"],
+.mtoni-os [data-slot="dropdown-menu-content"],
+.mtoni-os [data-slot="select-content"],
+.mtoni-os [data-slot="dialog-content"],
+.mtoni-os [data-slot="sheet-content"],
+.mtoni-os [data-slot="command"] {
+  background: #1E2225 !important;
+  border-color: var(--os-hairline-strong) !important;
+  color: var(--os-ink) !important;
+  border-radius: 14px;
+  box-shadow: var(--os-shadow-float);
+}
+.mtoni-os [role="menuitem"]:hover,
+.mtoni-os [data-slot="dropdown-menu-item"]:hover,
+.mtoni-os [data-slot="select-item"][data-highlighted] {
+  background: rgba(255,255,255,0.05);
+}
+
+/* ---------- Badges ---------- */
+.mtoni-os [data-slot="badge"],
+.mtoni-os .inline-flex.items-center.rounded-full.border {
+  border-color: var(--os-hairline-strong);
+}
+
+/* ---------- Tabs ---------- */
+.mtoni-os [role="tablist"] {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--os-hairline);
+  border-radius: 12px;
+  padding: 4px;
+}
+.mtoni-os [role="tab"] {
+  color: var(--os-ink-2);
+  border-radius: 8px;
+  transition: background-color .2s ease, color .2s ease;
+}
+.mtoni-os [role="tab"][data-state="active"] {
+  background: var(--os-surface-2);
+  color: var(--os-ink);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* ---------- Separators & borders ---------- */
+.mtoni-os hr,
+.mtoni-os [data-slot="separator"] {
+  background-color: var(--os-hairline);
+  border-color: var(--os-hairline);
+}
+
+/* ---------- Tooltip ---------- */
+.mtoni-os [data-slot="tooltip-content"] {
+  background: #F5F5F3;
+  color: #0F1210;
+  border-radius: 8px;
+  font-size: 0.72rem;
+}
+
+/* ---------- Scrollbars (subtle, unified) ---------- */
+.mtoni-os *::-webkit-scrollbar { width: 10px; height: 10px; }
+.mtoni-os *::-webkit-scrollbar-track { background: transparent; }
+.mtoni-os *::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.06);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.mtoni-os *::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); background-clip: padding-box; }
+
+/* ---------- Headings inside admin shell ---------- */
+.mtoni-os h1, .mtoni-os h2, .mtoni-os h3, .mtoni-os h4 {
+  color: var(--os-ink);
+}
+
+/* ---------- Muted text unification ---------- */
+.mtoni-os .text-muted-foreground { color: var(--os-ink-3); }
+
+/* ---------- Legacy card usages (raw utility stacks) ----------
+   Any component that used the old "rounded-lg border bg-card"
+   pattern (SEO nav, module tab bars, etc.) inherits the unified
+   card token via the remaps above; no further work required. */
