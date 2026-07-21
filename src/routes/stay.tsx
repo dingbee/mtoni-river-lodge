@@ -475,14 +475,16 @@ function StayLandingPage() {
             {REASONS.map((r, i) => (
               <Reveal key={r.title} delay={i * 80}>
                 <div
-                  className="h-full border p-8 transition-colors"
+                  className="group h-full border p-8 transition-colors hover:border-gold/40"
                   style={{ borderColor: `${BRAND.gold}55`, backgroundColor: "#FBF7EC" }}
                 >
                   <div
-                    className="h-10 w-10"
+                    className="inline-flex h-12 w-12 items-center justify-center rounded-full border transition-colors group-hover:border-gold/60"
                     aria-hidden
-                    style={{ backgroundColor: BRAND.primary }}
-                  />
+                    style={{ borderColor: `${BRAND.gold}66`, color: BRAND.primary }}
+                  >
+                    <r.Icon size={24} strokeWidth={1.5} />
+                  </div>
                   <h3 className="mt-6 font-display text-xl lg:text-2xl">{r.title}</h3>
                   <p className="mt-3 text-sm leading-relaxed text-charcoal/75">{r.body}</p>
                 </div>
