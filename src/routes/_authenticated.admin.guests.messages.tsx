@@ -111,7 +111,7 @@ function ConversationsPanel() {
   return (
     <SectionCard
       title="Guest conversations"
-      action={
+      actions={
         <Select value={channel} onValueChange={(v) => setChannel(v as typeof channel)}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -196,7 +196,7 @@ function EscalationsPanel() {
   return (
     <SectionCard
       title="Escalations"
-      action={
+      actions={
         <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -284,7 +284,7 @@ function DraftsPanel() {
   const fn = useServerFn(listCommunicationDrafts);
   const q = useQuery({
     queryKey: ["msg.drafts"],
-    queryFn: () => fn({ data: { status: "pending", limit: 50 } }),
+    queryFn: () => fn({ data: { status: "pending" } }),
   });
   return (
     <SectionCard title="Pending communication drafts">
