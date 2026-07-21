@@ -14,9 +14,10 @@ import { classifyIntent } from "./concierge.intent";
 import { combinedRecommendations } from "./concierge.recommendations";
 import { searchAvailability, buildBookingPlan } from "./concierge.tools";
 import { loadConciergeMemoryContext, suggestMemoriesFromMessage } from "./memory.context";
+import { AI_GATEWAY_DEFAULT_MODEL, AI_GATEWAY_URL, parseAiJson } from "@/lib/ai-gateway.server";
 
-const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-2.5-flash";
+const GATEWAY_URL = AI_GATEWAY_URL;
+const MODEL = AI_GATEWAY_DEFAULT_MODEL;
 const MAX_MESSAGE_LEN = 1000;
 const HISTORY_LIMIT = 10;
 const LOW_CONFIDENCE = 0.5;
@@ -106,14 +107,7 @@ async function callModel(system: string, history: ConciergeMessage[], userText: 
   return { raw, latency };
 }
 
-function tryJson<T>(s: string): T | null {
-  try { return JSON.parse(s) as T; } catch { /* noop */ }
-  const m = s.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  if (m) { try { return JSON.parse(m[1]) as T; } catch { /* noop */ } }
-  const a = s.indexOf("{"); const b = s.lastIndexOf("}");
-  if (a >= 0 && b > a) { try { return JSON.parse(s.slice(a, b + 1)) as T; } catch { /* noop */ } }
-  return null;
-}
+const tryJson = parseAiJson;
 
 export async function handleConciergeChat(
   input: ConciergeChatInput,

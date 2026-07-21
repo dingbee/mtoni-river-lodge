@@ -1,9 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-2.5-flash";
+import { callAiGateway, parseAiJson } from "@/lib/ai-gateway.server";
 
 async function assertStaff(supabase: any, userId: string) {
   const { data, error } = await supabase.rpc("is_staff", { _user_id: userId });
@@ -12,31 +10,8 @@ async function assertStaff(supabase: any, userId: string) {
 }
 
 async function callAI(system: string, user: string, expectJson = false): Promise<string> {
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("Missing LOVABLE_API_KEY");
-  const res = await fetch(GATEWAY_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      ...(expectJson ? { response_format: { type: "json_object" } } : {}),
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    if (res.status === 429) throw new Error("AI rate limit reached. Try again in a moment.");
-    if (res.status === 402) throw new Error("AI credits exhausted. Please top up in workspace settings.");
-    throw new Error(`AI request failed (${res.status}): ${text.slice(0, 200)}`);
-  }
-  const json = await res.json();
-  return json.choices?.[0]?.message?.content ?? "";
+  const { content } = await callAiGateway({ system, user, jsonMode: expectJson });
+  return content;
 }
 
 const importSchema = z.object({
@@ -57,23 +32,7 @@ export type ImportedReview = {
   medium_summary: string;
 };
 
-function tryParseJson(s: string): any {
-  try {
-    return JSON.parse(s);
-  } catch {
-    // strip code fences
-    const m = s.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-    if (m) {
-      try { return JSON.parse(m[1]); } catch { /* ignore */ }
-    }
-    const start = s.indexOf("{");
-    const end = s.lastIndexOf("}");
-    if (start >= 0 && end > start) {
-      try { return JSON.parse(s.slice(start, end + 1)); } catch { /* ignore */ }
-    }
-    return null;
-  }
-}
+const tryParseJson = (s: string) => parseAiJson<Record<string, any>>(s);
 
 export const importReview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

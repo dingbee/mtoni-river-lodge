@@ -4,44 +4,17 @@ import { AI_TOOLS } from "../ai.tools";
 import { canUseTool, toolDomain } from "../ai.permissions";
 import { allowedToolsForRoles, SYSTEM_BRAND } from "../ai.context";
 import type { AiKnowledgeCitation, AiToolId } from "../ai.types";
+import { AI_GATEWAY_DEFAULT_MODEL, callAiGateway, parseAiJson } from "@/lib/ai-gateway.server";
 
-const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-2.5-flash";
+const MODEL = AI_GATEWAY_DEFAULT_MODEL;
 const MAX_TOOLS_PER_TURN = 3;
 
 async function chat(system: string, user: string, jsonMode = true): Promise<string> {
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("Mtoni AI is not configured (missing LOVABLE_API_KEY).");
-  const res = await fetch(GATEWAY_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    if (res.status === 429) throw new Error("AI rate limit reached. Try again in a moment.");
-    if (res.status === 402) throw new Error("AI credits exhausted. Please top up in workspace settings.");
-    throw new Error(`AI request failed (${res.status}): ${text.slice(0, 200)}`);
-  }
-  const json = await res.json();
-  return json.choices?.[0]?.message?.content ?? "";
+  const { content } = await callAiGateway({ system, user, jsonMode });
+  return content;
 }
 
-function tryJson<T>(s: string): T | null {
-  try { return JSON.parse(s) as T; } catch {}
-  const m = s.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  if (m) { try { return JSON.parse(m[1]) as T; } catch {} }
-  const a = s.indexOf("{"); const b = s.lastIndexOf("}");
-  if (a >= 0 && b > a) { try { return JSON.parse(s.slice(a, b + 1)) as T; } catch {} }
-  return null;
-}
+const tryJson = parseAiJson;
 
 async function getRoles(supabase: any): Promise<string[]> {
   const { data } = await supabase.rpc("current_user_roles");

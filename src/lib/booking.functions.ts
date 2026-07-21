@@ -117,13 +117,16 @@ export const createBooking = createServerFn({ method: "POST" })
       _children_7_plus: plus7,
       _guest_name: data.guestName,
       _guest_email: data.guestEmail,
-      _guest_phone: (data.guestPhone || null) as unknown as string,
-      _country: (data.country || null) as unknown as string,
-      _special_requests: (data.specialRequests || null) as unknown as string,
+      // Generated types mark these as non-nullable strings, but the SQL RPC
+      // accepts null and stores it. Preserve historical null semantics via a
+      // single documented narrowing rather than per-field `as unknown as`.
+      _guest_phone: (data.guestPhone || null) as string,
+      _country: (data.country || null) as string,
+      _special_requests: (data.specialRequests || null) as string,
       _extras: data.extras,
-      _hold_id: (data.holdId || null) as unknown as string,
-      _session_id: (data.sessionId || null) as unknown as string,
-    } as never);
+      ...(data.holdId ? { _hold_id: data.holdId } : {}),
+      ...(data.sessionId ? { _session_id: data.sessionId } : {}),
+    });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
     // Persist optional purpose-of-visit on the booking row (RPC doesn't accept it).

@@ -35,22 +35,21 @@ export const createBookingHold = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in");
     const sb = publicClient();
-    const { data: rows, error } = await sb.rpc("create_booking_hold" as never, {
+    const { data: rows, error } = await sb.rpc("create_booking_hold", {
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
       _check_out: data.checkOut,
       _session_id: data.sessionId,
-      _guest_email: data.guestEmail ?? null,
+      ...(data.guestEmail ? { _guest_email: data.guestEmail } : {}),
       _ttl_seconds: data.ttlSeconds ?? 900,
-    } as never);
+    });
     if (error) throw new Error(error.message);
-    const row = (Array.isArray(rows) ? rows[0] : rows) as {
-      hold_id: string; expires_at: string; room_id: string;
-    };
+    const row = Array.isArray(rows) ? rows[0] : rows;
+    if (!row) throw new Error("Failed to create booking hold");
     return {
-      holdId: row.hold_id as string,
-      expiresAt: row.expires_at as string,
-      roomId: row.room_id as string,
+      holdId: row.hold_id,
+      expiresAt: row.expires_at,
+      roomId: row.room_id,
     };
   });
 
@@ -60,10 +59,10 @@ export const releaseBookingHold = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const sb = publicClient();
-    const { data: ok, error } = await sb.rpc("release_booking_hold" as never, {
+    const { data: ok, error } = await sb.rpc("release_booking_hold", {
       _hold_id: data.holdId,
       _session_id: data.sessionId,
-    } as never);
+    });
     if (error) throw new Error(error.message);
     return { released: Boolean(ok) };
   });
@@ -74,16 +73,21 @@ export const getBookingHold = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const sb = publicClient();
-    const { data: rows, error } = await sb.rpc("get_booking_hold_for_session" as never, {
+    const { data: rows, error } = await sb.rpc("get_booking_hold_for_session", {
       _hold_id: data.holdId,
       _session_id: data.sessionId,
-    } as never);
+    });
     if (error) throw new Error(error.message);
     const row = Array.isArray(rows) ? rows[0] : rows;
-    return (row ?? null) as unknown as {
-      id: string; room_id: string; check_in: string; check_out: string;
-      expires_at: string; status: "active" | "released" | "expired" | "converted";
-    } | null;
+    if (!row) return null;
+    return {
+      id: row.id,
+      room_id: row.room_id,
+      check_in: row.check_in,
+      check_out: row.check_out,
+      expires_at: row.expires_at,
+      status: row.status as "active" | "released" | "expired" | "converted",
+    };
   });
 
 // -------- Staff: room blocks & calendar --------------------------------
@@ -100,15 +104,12 @@ export const setRoomBlock = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const sb = context.supabase as unknown as {
-      rpc: (n: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
-    };
-    const { data: n, error } = await sb.rpc("set_room_block", {
+    const { data: n, error } = await context.supabase.rpc("set_room_block", {
       _room_id: data.roomId,
       _from: data.from,
       _to: data.to,
       _blocked: data.blocked,
-      _reason: data.reason ?? null,
+      ...(data.reason ? { _reason: data.reason } : {}),
     });
     if (error) throw new Error(error.message);
     return { days: Number(n ?? 0) };
@@ -125,18 +126,7 @@ export const listCalendarEvents = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const sb = context.supabase as unknown as {
-      from: (t: string) => {
-        select: (s: string) => {
-          gte: (c: string, v: string) => any;
-          lte: (c: string, v: string) => any;
-          in: (c: string, v: string[]) => any;
-          order: (c: string, o: { ascending: boolean }) => any;
-          limit: (n: number) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
-        };
-      };
-    };
-    let q: any = sb.from("calendar_events").select(
+    let q: any = context.supabase.from("calendar_events").select(
       "id, event_type, room_id, booking_id, hold_id, date_from, date_to, actor_id, payload, created_at",
     );
     if (data.from) q = q.gte("created_at", `${data.from}T00:00:00Z`);
@@ -210,12 +200,11 @@ export const reassignBookingRoom = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const sb: any = context.supabase;
-    const { data: res, error } = await sb.rpc("reassign_booking_room", {
+    const { data: res, error } = await context.supabase.rpc("reassign_booking_room", {
       _booking_id: data.bookingId,
       _new_room_id: data.newRoomId,
       _actor: context.userId,
-      _reason: data.reason ?? null,
+      ...(data.reason ? { _reason: data.reason } : {}),
     });
     if (error) throw new Error(error.message);
     return res as { ok: boolean; booking_id: string; from_room_id: string; to_room_id: string };
