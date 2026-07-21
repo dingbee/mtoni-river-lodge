@@ -91,6 +91,10 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
   }, [open]);
 
   useEffect(() => {
+    onOpenChange?.(open);
+  }, [open, onOpenChange]);
+
+  useEffect(() => {
     const el = scrollerRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, open, busy]);
