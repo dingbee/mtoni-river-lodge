@@ -30,16 +30,16 @@ function NavLink({
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+        "group flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] transition-all",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         active
-          ? "bg-primary/10 text-primary font-medium"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          ? "bg-[color:var(--os-green-soft)] text-[color:var(--os-green)] font-medium"
+          : "text-[color:var(--os-ink-2)] hover:bg-[color:var(--os-surface-2)] hover:text-[color:var(--os-ink)]",
         collapsed && "justify-center px-2",
       )}
       title={collapsed ? item.label : undefined}
     >
-      <Icon className="h-4 w-4 shrink-0" aria-hidden />
+      <Icon className={cn("h-4 w-4 shrink-0 transition-colors", active ? "text-[color:var(--os-green)]" : "text-[color:var(--os-ink-3)] group-hover:text-[color:var(--os-ink)]")} aria-hidden />
       {!collapsed && <span className="truncate">{item.label}</span>}
     </Link>
   );
