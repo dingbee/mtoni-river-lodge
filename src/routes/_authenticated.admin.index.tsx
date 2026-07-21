@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getCrmDashboard } from "@/lib/guests.functions";
 import { getDashboardIntelligence } from "@/lib/guest-intelligence.functions";
+import { getOpsDashboard } from "@/lib/operations.functions";
+import { getRevenueDashboard } from "@/domains/finance/finance.functions";
 import {
   BedDouble,
   CalendarCheck,
@@ -15,71 +17,116 @@ import {
   Users,
   Crown,
   Repeat,
+  Home,
+  Sparkles,
+  Gauge,
+  TrendingUp,
+  Wallet,
+  ClipboardCheck,
+  Wrench,
 } from "lucide-react";
-import { PageHeader } from "@/components/os/PageHeader";
 import { StatCard } from "@/components/os/StatCard";
 import { SectionCard } from "@/components/os/SectionCard";
 import { EmptyState } from "@/components/os/EmptyState";
 import { GuestStatusChip } from "@/components/os/crm/GuestStatusChip";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
-  head: () => ({ meta: [{ title: "Dashboard — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
-  component: DashboardPage,
+  head: () => ({ meta: [{ title: "Command Centre — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  component: CommandCentrePage,
 });
 
-// TODO(sprint-2): replace with real Supabase-backed metrics.
-function useDashboardMetrics() {
-  return {
-    occupancy: "—",
-    arrivals: 0,
-    departures: 0,
-    pending: 0,
-    revenue: "$—",
-    reviewRating: "—",
-    reviewCount: 0,
-    traffic: "—",
-    notifications: 0,
-  };
+function money(n: number, currency = "USD") {
+  try {
+    return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(n || 0);
+  } catch {
+    return `$${Math.round(n || 0).toLocaleString()}`;
+  }
 }
 
-function DashboardPage() {
-  const m = useDashboardMetrics();
-  const fn = useServerFn(getCrmDashboard);
-  const crmQ = useQuery({ queryKey: ["crm-dashboard"], queryFn: () => fn(), staleTime: 60_000 });
+function CommandCentrePage() {
+  const opsFn = useServerFn(getOpsDashboard);
+  const opsQ = useQuery({ queryKey: ["os-ops"], queryFn: () => opsFn(), staleTime: 60_000, refetchInterval: 120_000 });
+  const revFn = useServerFn(getRevenueDashboard);
+  const revQ = useQuery({ queryKey: ["os-rev"], queryFn: () => revFn({ data: {} } as any), staleTime: 120_000 });
+  const crmFn = useServerFn(getCrmDashboard);
+  const crmQ = useQuery({ queryKey: ["crm-dashboard"], queryFn: () => crmFn(), staleTime: 60_000 });
   const intelFn = useServerFn(getDashboardIntelligence);
   const intelQ = useQuery({ queryKey: ["crm-intelligence"], queryFn: () => intelFn(), staleTime: 60_000 });
-  const crm = (crmQ.data as any) ?? { recent: [], returning: [], vip: [], arrivals: [] };
-  const intel = (intelQ.data as any) ?? {
+
+  const ops: any = opsQ.data ?? {};
+  const rev: any = revQ.data ?? {};
+  const crm: any = crmQ.data ?? { recent: [], returning: [], vip: [], arrivals: [] };
+  const intel: any = intelQ.data ?? {
     vipArrivals: [], birthdays: [], anniversaries: [], topCountries: [], topLifetime: [], acquisitionTrend: [],
   };
-  const today = new Date().toLocaleDateString(undefined, {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const today = ops.today ?? {};
+  const totalRooms: number = ops.totalRooms ?? 0;
+  const inHouse: number = today.in_house ?? (ops.inHouse?.length ?? 0);
+  const arrivals: number = today.arrivals ?? (ops.arrivals?.length ?? 0);
+  const departures: number = today.departures ?? (ops.departures?.length ?? 0);
+  const occupied: number = today.occupied_rooms ?? 0;
+  const available: number = Math.max(0, totalRooms - occupied);
+  const occupancyPct: number = ops.occupancyPct ?? 0;
+  const outstanding: number = Number(today.outstanding_total ?? rev.outstanding ?? 0);
+  const revenueMtd: number = Number(rev.mtdRevenue ?? 0);
+  const revenueToday: number = Number(rev.todayRevenue ?? 0);
+  const adr: number = Number(rev.adr ?? 0);
+  const revpar: number = Number(rev.revpar ?? 0);
+  const dirty: number = today.dirty_rooms ?? 0;
+  const maintenance: number = today.maintenance_rooms ?? 0;
+
+  const now = new Date();
+  const dateLong = now.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const hour = now.getHours();
+  const greeting = hour < 5 ? "Good evening" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        title="Welcome to Mtoni OS"
-        description={`Operational snapshot for ${today}. Live data lands in Sprint 2.`}
-      />
+      {/* Command Centre header */}
+      <header className="os-fade-in flex flex-wrap items-end justify-between gap-4 border-b border-[color:var(--os-hairline)] pb-6">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-[color:var(--os-ink-3)]">
+            <Sparkles className="size-3.5 text-[color:var(--os-gold)]" /> Command Centre
+          </div>
+          <h1 className="mt-2 font-display text-4xl leading-tight tracking-tight text-[color:var(--os-ink)] lg:text-5xl">
+            {greeting}.
+          </h1>
+          <p className="mt-2 text-sm text-[color:var(--os-ink-3)]">{dateLong} · Live operational snapshot.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="os-chip"><span className="size-1.5 rounded-full bg-[color:var(--os-success)]" /> Live</span>
+          <span className="os-chip">{totalRooms} rooms</span>
+          <Link
+            to="/admin/operations"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--os-ink)] px-3.5 py-1.5 text-xs font-medium text-[color:var(--os-surface)] transition-opacity hover:opacity-90"
+          >
+            Open Operations
+          </Link>
+        </div>
+      </header>
 
+      {/* Primary KPI row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Occupancy" value={m.occupancy} hint="Tonight" icon={BedDouble} />
-        <StatCard label="Arrivals" value={m.arrivals} hint="Today" icon={CalendarCheck} />
-        <StatCard label="Departures" value={m.departures} hint="Today" icon={CalendarX} />
-        <StatCard label="Pending bookings" value={m.pending} hint="Awaiting confirmation" icon={Clock} />
-        <StatCard label="Revenue" value={m.revenue} hint="Month to date" icon={DollarSign} />
-        <StatCard
-          label="Reviews"
-          value={m.reviewRating}
-          hint={`${m.reviewCount} total`}
-          icon={Star}
-        />
-        <StatCard label="Website traffic" value={m.traffic} hint="Last 7 days" icon={LineChart} />
-        <StatCard label="Notifications" value={m.notifications} hint="Unread" icon={Bell} />
+        <StatCard label="Occupancy" value={`${occupancyPct}%`} hint={`${occupied}/${totalRooms} rooms occupied`} icon={Gauge} />
+        <StatCard label="In-house" value={inHouse} hint="Guests staying tonight" icon={Users} />
+        <StatCard label="Arrivals" value={arrivals} hint="Today" icon={CalendarCheck} />
+        <StatCard label="Departures" value={departures} hint="Today" icon={CalendarX} />
+      </div>
+
+      {/* Revenue + performance row */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Revenue MTD" value={money(revenueMtd)} hint={`Today ${money(revenueToday)}`} icon={DollarSign} />
+        <StatCard label="ADR" value={money(adr)} hint="Average daily rate" icon={TrendingUp} />
+        <StatCard label="RevPAR" value={money(revpar)} hint="Rev per available room" icon={LineChart} />
+        <StatCard label="Outstanding" value={money(outstanding)} hint="Pending balances" icon={Wallet} />
+      </div>
+
+      {/* Operational widgets row */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Available" value={available} hint="Rooms tonight" icon={Home} />
+        <StatCard label="Housekeeping" value={dirty} hint="Rooms to clean" icon={ClipboardCheck} />
+        <StatCard label="Maintenance" value={maintenance} hint="Off-inventory" icon={Wrench} />
+        <StatCard label="Pending" value={today.pending_check_in ?? 0} hint="Awaiting check-in" icon={Clock} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -87,15 +134,15 @@ function DashboardPage() {
           {crm.arrivals.length === 0 ? (
             <EmptyState title="No upcoming arrivals" description="Confirmed and pending bookings will appear here." />
           ) : (
-            <ul className="divide-y">
+            <ul className="divide-y divide-[color:var(--os-hairline)]">
               {crm.arrivals.map((a: any) => (
                 <li key={a.id} className="flex items-center justify-between gap-3 py-2 text-sm">
                   <div>
-                    <div className="font-medium">{a.guest_name}</div>
-                    <div className="text-xs text-muted-foreground">{a.reference} · {new Date(a.check_in).toLocaleDateString()} → {new Date(a.check_out).toLocaleDateString()}</div>
+                    <div className="font-medium text-[color:var(--os-ink)]">{a.guest_name}</div>
+                    <div className="text-xs text-[color:var(--os-ink-3)]">{a.reference} · {new Date(a.check_in).toLocaleDateString()} → {new Date(a.check_out).toLocaleDateString()}</div>
                   </div>
                   {a.guest_id && (
-                    <Link to="/admin/guests/crm/$id" params={{ id: a.guest_id }} className="text-xs text-primary hover:underline">
+                    <Link to="/admin/guests/crm/$id" params={{ id: a.guest_id }} className="text-xs text-[color:var(--os-green)] hover:underline">
                       Profile
                     </Link>
                   )}
