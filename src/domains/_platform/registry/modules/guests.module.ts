@@ -9,7 +9,7 @@ export const guestsCrmModule = defineModule({
   route: "/admin/guests/crm",
   parentId: "guests",
   order: 10,
-  requiredRoles: ["owner","manager","reception","marketing","reservations"],
+  requiredRoles: ["owner","manager","reception","marketing"],
   featureFlag: "guest_crm",
   status: "active",
 });
@@ -34,6 +34,6 @@ export const guestsMessagesModule = defineModule({
   route: "/admin/guests/messages",
   parentId: "guests",
   order: 30,
-  requiredRoles: ["owner","manager","reception","reservations"],
+  requiredRoles: ["owner","manager","reception"],
   status: "beta",
 });

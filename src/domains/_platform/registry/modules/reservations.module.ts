@@ -9,7 +9,7 @@ export const reservationsModule = defineModule({
   route: "/admin/bookings",
   parentId: "operations",
   order: 10,
-  requiredRoles: ["owner","manager","reception","reservations"],
+  requiredRoles: ["owner","manager","reception"],
   status: "active",
 });
 
@@ -21,7 +21,7 @@ export const reservationsCalendarModule = defineModule({
   route: "/admin/calendar",
   parentId: "operations",
   order: 20,
-  requiredRoles: ["owner","manager","reception","reservations"],
+  requiredRoles: ["owner","manager","reception"],
   status: "active",
 });
 

@@ -10,8 +10,7 @@ export type Role =
   | "marketing"
   | "housekeeping"
   | "finance"
-  | "editor"
-  | "reservations"; // legacy — treated as reception
+  | "editor";
 
 export const ROLE_LABELS: Record<Role, string> = {
   owner: "Owner",
@@ -21,20 +20,19 @@ export const ROLE_LABELS: Record<Role, string> = {
   housekeeping: "Housekeeping",
   finance: "Finance",
   editor: "Editor",
-  reservations: "Reception (legacy)",
 };
 
 // Capability map: which roles may access each module id.
 // `null` = everyone with any staff role may see it.
 export const MODULE_ROLES: Record<string, Role[] | null> = {
   dashboard: null,
-  "operations.reservations": ["owner", "manager", "reception", "reservations"],
-  "operations.calendar": ["owner", "manager", "reception", "reservations"],
+  "operations.reservations": ["owner", "manager", "reception"],
+  "operations.calendar": ["owner", "manager", "reception"],
   "operations.rooms": ["owner", "manager", "reception", "housekeeping"],
-  "operations.housekeeping": ["owner", "manager", "reception", "housekeeping", "reservations"],
-  "guests.crm": ["owner", "manager", "reception", "marketing", "reservations"],
+  "operations.housekeeping": ["owner", "manager", "reception", "housekeeping"],
+  "guests.crm": ["owner", "manager", "reception", "marketing"],
   "guests.reviews": ["owner", "manager", "marketing"],
-  "guests.messages": ["owner", "manager", "reception", "reservations"],
+  "guests.messages": ["owner", "manager", "reception"],
   "content.homepage": ["owner", "manager", "marketing", "editor"],
   "content.rooms": ["owner", "manager", "marketing", "editor"],
   "content.experiences": ["owner", "manager", "marketing", "editor"],
@@ -56,7 +54,7 @@ export const MODULE_ROLES: Record<string, Role[] | null> = {
   "staff.activity": ["owner", "manager"],
   automation: ["owner", "manager"],
   settings: ["owner", "manager"],
-  "ai.command": ["owner", "manager", "reception", "marketing", "finance", "housekeeping", "editor", "reservations"],
+  "ai.command": ["owner", "manager", "reception", "marketing", "finance", "housekeeping", "editor"],
   "ai.insights": ["owner", "manager"],
   "ai.knowledge": ["owner", "manager", "marketing", "editor"],
   "ai.activity": ["owner", "manager"],

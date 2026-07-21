@@ -9,7 +9,7 @@ export const opsDashboardModule = defineModule({
   route: "/admin/operations",
   parentId: "operations",
   order: 5,
-  requiredRoles: ["owner","manager","reception","reservations"],
+  requiredRoles: ["owner","manager","reception"],
   featureFlag: "operations_centre",
   status: "active",
 });
@@ -35,7 +35,7 @@ export const opsCalendarModule = defineModule({
   route: "/admin/calendar",
   parentId: "operations",
   order: 22,
-  requiredRoles: ["owner","manager","reception","reservations"],
+  requiredRoles: ["owner","manager","reception"],
   featureFlag: "operations_centre",
   status: "active",
 });

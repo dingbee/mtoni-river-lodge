@@ -30,7 +30,7 @@ export const FEATURE_FLAGS: Record<FeatureFlagKey, FeatureFlag> = {
   mtoni_ai_concierge:      { key: "mtoni_ai_concierge",      state: "enabled",  description: "Public AI Concierge widget (Sprint 9)", since: "2026-07-17" },
 };
 
-const STAFF_ROLES = new Set(["owner","manager","reception","marketing","housekeeping","finance","reservations","editor"]);
+const STAFF_ROLES = new Set(["owner","manager","reception","marketing","housekeeping","finance","editor"]);
 const INTERNAL_ROLES = new Set(["owner"]);
 
 /** Pure resolver: does this audience see this flag? */
