@@ -79,7 +79,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             {children}
           </main>
           {railOpen && (
-            <aside className="hidden xl:block w-[340px] shrink-0 border-l border-[color:var(--os-hairline)] bg-[color:var(--os-surface-2)]/60 backdrop-blur-sm">
+            <aside
+              aria-label="Assistant"
+              className="hidden xl:block w-[340px] shrink-0 border-l border-[color:var(--os-hairline)] bg-[color:var(--os-surface)] backdrop-blur-sm"
+            >
               <AdminAssistantRail />
             </aside>
           )}
