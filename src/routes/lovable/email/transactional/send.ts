@@ -3,6 +3,7 @@ import { render } from '@react-email/components'
 import { createClient } from '@supabase/supabase-js'
 import { createFileRoute } from '@tanstack/react-router'
 import { TEMPLATES } from '@/lib/email-templates/registry'
+import { logger } from '@/lib/observability/logger.server'
 
 // Configuration baked in at scaffold time
 const SITE_NAME = "mtoniriverlodge"
@@ -142,7 +143,8 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
             status: 'suppressed',
           })
 
-          console.log('Email suppressed', {
+          logger.info('Email suppressed', {
+            module: 'email.transactional',
             templateName,
             recipient_redacted: redactEmail(effectiveRecipient),
           })
@@ -316,7 +318,8 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           )
         }
 
-        console.log('Transactional email enqueued', {
+        logger.info('Transactional email enqueued', {
+          module: 'email.transactional',
           templateName,
           recipient_redacted: redactEmail(effectiveRecipient),
         })

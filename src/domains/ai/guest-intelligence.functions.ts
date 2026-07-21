@@ -1,42 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { AI_GATEWAY_DEFAULT_MODEL, callAiGateway, parseAiJson } from "@/lib/ai-gateway.server";
 
-const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-2.5-flash";
+const MODEL = AI_GATEWAY_DEFAULT_MODEL;
 
 async function chat(system: string, user: string): Promise<string> {
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("Mtoni AI is not configured (missing LOVABLE_API_KEY).");
-  const res = await fetch(GATEWAY_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      response_format: { type: "json_object" },
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    if (res.status === 429) throw new Error("AI rate limit reached. Try again in a moment.");
-    if (res.status === 402) throw new Error("AI credits exhausted. Please top up in workspace settings.");
-    throw new Error(`AI request failed (${res.status}): ${text.slice(0, 200)}`);
-  }
-  const json = await res.json();
-  return json.choices?.[0]?.message?.content ?? "";
+  const { content } = await callAiGateway({ system, user, jsonMode: true });
+  return content;
 }
 
-function tryJson<T>(s: string): T | null {
-  try { return JSON.parse(s) as T; } catch { /* ignore */ }
-  const m = s.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  if (m) { try { return JSON.parse(m[1]) as T; } catch { /* ignore */ } }
-  const start = s.indexOf("{"); const end = s.lastIndexOf("}");
-  if (start >= 0 && end > start) { try { return JSON.parse(s.slice(start, end + 1)) as T; } catch { /* ignore */ } }
-  return null;
-}
+const tryJson = parseAiJson;
 
 function today() { return new Date().toISOString().slice(0, 10); }
 function daysFromNow(days: number) {

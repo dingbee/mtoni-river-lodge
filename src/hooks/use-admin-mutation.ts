@@ -1,5 +1,6 @@
 import { useMutation, type UseMutationOptions } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useRef } from "react";
 
 /**
  * Shared wrapper around useMutation for admin surfaces.
@@ -19,6 +20,10 @@ export type AdminMutationOptions<TData, TError, TVariables, TContext> =
     silentError?: boolean;
     /** Suppress the automatic success toast. */
     silentSuccess?: boolean;
+    /** Message shown as a loading toast while the mutation is running. */
+    loadingMessage?: string;
+    /** Suppress the automatic loading toast. */
+    silentLoading?: boolean;
   };
 
 export function extractErrorMessage(err: unknown, fallback = "Something went wrong"): string {
@@ -45,14 +50,39 @@ export function useAdminMutation<TData = unknown, TError = unknown, TVariables =
     errorMessage,
     silentError,
     silentSuccess,
+    loadingMessage,
+    silentLoading,
     onSuccess,
     onError,
+    onMutate,
     ...rest
   } = options;
+  const loadingToastRef = useRef<string | number | null>(null);
+  const startLoadingToast = () => {
+    if (!silentLoading && (loadingMessage || successMessage)) {
+      loadingToastRef.current = toast.loading(loadingMessage ?? "Working…");
+    }
+  };
+  const dismissLoadingToast = () => {
+    if (loadingToastRef.current !== null) {
+      toast.dismiss(loadingToastRef.current);
+      loadingToastRef.current = null;
+    }
+  };
 
   return useMutation<TData, TError, TVariables, TContext>({
     ...rest,
+    onMutate: onMutate
+      ? ((async (variables, mCtx) => {
+          startLoadingToast();
+          return onMutate(variables, mCtx);
+        }) as UseMutationOptions<TData, TError, TVariables, TContext>["onMutate"])
+      : ((() => {
+          startLoadingToast();
+          return undefined as unknown as TContext;
+        }) as UseMutationOptions<TData, TError, TVariables, TContext>["onMutate"]),
     onSuccess: (data, variables, context, mutateOpts) => {
+      dismissLoadingToast();
       if (!silentSuccess) {
         const msg = onSuccessToast?.(data, variables) ?? successMessage;
         if (msg) toast.success(msg);
@@ -60,6 +90,7 @@ export function useAdminMutation<TData = unknown, TError = unknown, TVariables =
       onSuccess?.(data, variables, context, mutateOpts);
     },
     onError: (error, variables, context, mutateOpts) => {
+      dismissLoadingToast();
       if (!silentError) {
         toast.error(errorMessage ?? extractErrorMessage(error));
       }

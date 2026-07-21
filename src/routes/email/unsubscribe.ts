@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { createFileRoute } from '@tanstack/react-router'
+import { logger } from '@/lib/observability/logger.server'
 
 function redactEmail(email: string | null | undefined): string {
   if (!email) return '***'
@@ -141,7 +142,8 @@ export const Route = createFileRoute("/email/unsubscribe")({
           return Response.json({ error: 'Failed to process unsubscribe' }, { status: 500 })
         }
 
-        console.log('Email unsubscribed', {
+        logger.info('Email unsubscribed', {
+          module: 'email.unsubscribe',
           email_redacted: redactEmail(tokenRecord.email),
         })
 
