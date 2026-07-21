@@ -78,7 +78,10 @@ function StaffUsersPage() {
         ) : q.isError ? (
           <ErrorState description={(q.error as Error)?.message} onRetry={() => q.refetch()} />
         ) : !q.data || q.data.length === 0 ? (
-          <EmptyState title="No staff users yet" description="Assign a role from the Roles screen to add someone." />
+          <EmptyState
+            title="No staff users yet"
+            description="Staff users appear once a role has been granted. Go to the Roles screen and use ‘Grant a role’ to assign an owner, admin, or other role to an existing user."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

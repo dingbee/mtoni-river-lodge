@@ -188,7 +188,10 @@ function StaffRolesPage() {
         ) : assignmentsQ.isError ? (
           <ErrorState description={(assignmentsQ.error as Error)?.message} onRetry={() => assignmentsQ.refetch()} />
         ) : !assignmentsQ.data || assignmentsQ.data.length === 0 ? (
-          <EmptyState title="No role assignments" />
+          <EmptyState
+            title="No role assignments"
+            description="Use the ‘Grant a role’ form above to assign a role to an existing user. New assignments will appear in this list."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
