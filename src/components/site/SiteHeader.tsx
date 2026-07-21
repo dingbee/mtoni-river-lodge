@@ -209,12 +209,12 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
           </p>
         </div>
       </div>
-      <MobileStickyCTA />
       <AvailabilityModal
         open={availOpen}
         onOpenChange={setAvailOpen}
         location={availLocation}
       />
     </header>
+    <MobileStickyCTA />
   );
 }
