@@ -22,7 +22,7 @@ async function assertStaff(sb: any, userId: string) {
 async function assertManager(sb: any, userId: string) {
   const { data, error } = await sb.rpc("has_any_role", {
     _user_id: userId,
-    _roles: MANAGER_ROLES as unknown as string[],
+    _roles: [...MANAGER_ROLES],
   });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden");

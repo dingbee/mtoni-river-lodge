@@ -22,7 +22,7 @@ async function assertStaff(sb: any, userId: string) {
 async function assertApprover(sb: any, userId: string) {
   const { data, error } = await sb.rpc("has_any_role", {
     _user_id: userId,
-    _roles: APPROVER_ROLES as unknown as string[],
+    _roles: [...APPROVER_ROLES],
   });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden");
