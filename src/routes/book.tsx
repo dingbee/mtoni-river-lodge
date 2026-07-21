@@ -37,7 +37,7 @@ import { calculateBookingTotal, calculateNightlyRate, buildPriceBreakdown, getRo
 export const Route = createFileRoute("/book")({
   validateSearch: (
     search: Record<string, unknown>
-  ): { step: 1 | 2 | 3 | 4; session?: string; room?: string } => {
+  ): { step?: 1 | 2 | 3 | 4; session?: string; room?: string } => {
     const raw = Number(search.step);
     const step = raw === 2 || raw === 3 || raw === 4 ? raw : 1;
     const session = typeof search.session === "string" ? search.session : undefined;
