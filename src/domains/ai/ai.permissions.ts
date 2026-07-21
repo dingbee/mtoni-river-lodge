@@ -7,10 +7,8 @@ import type { AiDomain, AiToolId } from "./ai.types";
  */
 const ROLE_DOMAINS: Record<string, AiDomain[]> = {
   owner:        ["guests", "reservations", "finance", "operations", "marketing", "knowledge"],
-  admin:        ["guests", "reservations", "finance", "operations", "marketing", "knowledge"],
   manager:      ["guests", "reservations", "finance", "operations", "marketing", "knowledge"],
   reception:    ["guests", "reservations", "knowledge"],
-  reservations: ["guests", "reservations", "knowledge"],
   finance:      ["finance", "knowledge"],
   marketing:    ["marketing", "knowledge"],
   housekeeping: ["operations", "knowledge"],
