@@ -5,7 +5,7 @@ import menuBgUrl from "@/assets/hero-river.jpg";
 import { Link } from "@tanstack/react-router";
 import { MobileStickyCTA } from "@/components/site/MobileStickyCTA";
 import { AvailabilityModal } from "@/components/site/AvailabilityModal";
-import { trackCheckAvailabilityClick } from "@/lib/analytics";
+import { trackBookingClick } from "@/lib/analytics";
 
 const links = [
   { to: "/", label: "Home" },
@@ -13,7 +13,6 @@ const links = [
   { to: "/rooms", label: "Rooms" },
   { to: "/experiences", label: "Experiences" },
   { to: "/dining", label: "Dining" },
-  { to: "/gallery", label: "Gallery" },
   { to: "/journal", label: "Journal" },
   { to: "/contact", label: "Contact" },
   { to: "/plan", label: "Plan Your Stay" },
@@ -64,7 +63,6 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
   const headerHeight = isLg ? 144 - 40 * p : 72 - 8 * p; // lg: 144->104, mobile: 72->64
   const logoHeight = isLg ? 96 - 24 * p : 36 - 4 * p;    // lg: 96->72,  mobile: 36->32
   return (
-    <>
     <header
       className={`fixed inset-x-0 top-0 z-40 transition-[background-color,color,box-shadow,border-color] duration-500 ease-out will-change-[background-color] ${
         solid
@@ -103,13 +101,20 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
         </nav>
 
         <div className="hidden items-center gap-4 lg:flex">
-          <Link
-            to="/book"
-            onClick={() => trackCheckAvailabilityClick("nav_desktop")}
-            className="group inline-flex items-center gap-3 border-2 border-[var(--green)] bg-[var(--green)] px-5 py-2.5 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-ivory transition-all duration-300 hover:bg-transparent hover:text-[var(--green)] hover:shadow-[0_0_24px_-4px_rgba(192,184,122,0.5)]"
+          <button
+            type="button"
+            onClick={() => {
+              trackBookingClick({
+                buttonText: "Check Availability",
+                location: "nav_desktop",
+              });
+              setAvailLocation("nav_desktop");
+              setAvailOpen(true);
+            }}
+            className="group inline-flex items-center gap-3 border-2 border-[var(--green)] bg-transparent px-5 py-2.5 text-[0.72rem] font-medium uppercase tracking-[0.28em] transition-all duration-300 hover:border-[var(--gold)] hover:text-[var(--gold)] hover:shadow-[0_0_24px_-4px_rgba(192,184,122,0.5)]"
           >
             <span>Check Availability</span>
-          </Link>
+          </button>
         </div>
 
         <button
@@ -195,27 +200,32 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
           </nav>
         </div>
         <div className="relative px-6 pb-10 pt-4">
-          <Link
-            to="/book"
+          <button
+            type="button"
             onClick={() => {
-              trackCheckAvailabilityClick("nav_mobile");
+              trackBookingClick({
+                buttonText: "Check Availability",
+                location: "nav_mobile",
+              });
               setOpen(false);
+              setAvailLocation("nav_mobile");
+              setAvailOpen(true);
             }}
-            className="block w-full border-2 border-[var(--green)] bg-[var(--green)] py-4 text-center text-[0.72rem] font-medium uppercase tracking-[0.32em] text-ivory transition-all duration-300 hover:bg-transparent hover:text-[var(--gold)] hover:border-[var(--gold)] hover:shadow-[0_0_28px_-4px_rgba(192,184,122,0.55)]"
+            className="block w-full border-2 border-[var(--green)] bg-transparent py-4 text-center text-[0.72rem] font-medium uppercase tracking-[0.32em] text-ivory transition-all duration-300 hover:border-[var(--gold)] hover:text-[var(--gold)] hover:shadow-[0_0_28px_-4px_rgba(192,184,122,0.55)]"
           >
             Check Availability
-          </Link>
+          </button>
           <p className="mt-3 text-center text-[0.7rem] leading-relaxed text-ivory/55">
-            Check live availability and reserve your stay online — our team is on hand should you need assistance.
+            Fill in your details and we'll open WhatsApp with your booking request.
           </p>
         </div>
       </div>
+      <MobileStickyCTA />
       <AvailabilityModal
         open={availOpen}
         onOpenChange={setAvailOpen}
         location={availLocation}
       />
     </header>
-    <MobileStickyCTA />
   );
 }
