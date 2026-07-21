@@ -21,7 +21,7 @@ const isoDate = (d = new Date()) => d.toISOString().slice(0, 10);
  */
 export const generateOperationsBriefing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({ date: z.string().optional() }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
@@ -171,7 +171,7 @@ export const generateOperationsBriefing = createServerFn({ method: "POST" })
 
 export const listOperationsBriefings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({ limit: z.number().int().min(1).max(60).default(14) }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
@@ -326,7 +326,7 @@ export const getTaskIntelligence = createServerFn({ method: "GET" })
       byCategory[cat] = (byCategory[cat] ?? 0) + 1;
     }
     const bottleneck = Object.entries(byCategory)
-      .sort((a, b) => b[1] - a[1])
+      .sort((a: any, b: any) => b[1] - a[1])
       .slice(0, 3)
       .map(([category, count]) => ({ category, open: count }));
     return { overdue, highImpact, bottleneck, total: tasks.length };
@@ -337,7 +337,7 @@ export const getTaskIntelligence = createServerFn({ method: "GET" })
  */
 export const listOperationsAlerts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z
       .object({ status: z.enum(["open", "acknowledged", "resolved", "dismissed", "all"]).default("open") })
       .parse(input ?? {}),
@@ -357,7 +357,7 @@ export const listOperationsAlerts = createServerFn({ method: "GET" })
 
 export const updateOperationsAlertStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z
       .object({
         id: z.string().uuid(),
@@ -465,7 +465,7 @@ export const detectOperationsAlerts = createServerFn({ method: "POST" })
 
 export const listOperationsInsights = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z
       .object({ status: z.enum(["pending", "accepted", "dismissed", "all"]).default("pending") })
       .parse(input ?? {}),
@@ -507,7 +507,7 @@ export const getOperationsTimeline = createServerFn({ method: "GET" })
  */
 export const askOperationsKnowledge = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({ query: z.string().min(3).max(300) }).parse(input),
   )
   .handler(async ({ context, data }) => {

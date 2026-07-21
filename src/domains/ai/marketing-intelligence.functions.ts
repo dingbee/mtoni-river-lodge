@@ -80,8 +80,8 @@ export const getMarketingIntelligenceOverview = createServerFn({ method: "GET" }
       : 0;
 
     const seoRows = (seo ?? []) as any[];
-    const missingMeta = seoRows.filter((r) => !r.title || !r.description).length;
-    const indexedRoutes = seoRows.filter((r) => r.index_status !== false).length;
+    const missingMeta = seoRows.filter((r: any) => !r.title || !r.description).length;
+    const indexedRoutes = seoRows.filter((r: any) => r.index_status !== false).length;
     const seoHealth = seoRows.length
       ? clamp(1 - missingMeta / seoRows.length)
       : 0;
@@ -247,7 +247,7 @@ export const generateSeoRecommendations = createServerFn({ method: "POST" })
 
     if (data.persist && recs.length) {
       await context.supabase.from("ai_marketing_recommendations").insert(
-        recs.map((r) => ({
+        recs.map((r: any) => ({
           ...r,
           suggested_payload: r.suggested_payload as never,
           evidence: r.evidence as never,
@@ -353,7 +353,7 @@ export const generateContentRecommendations = createServerFn({ method: "POST" })
 
     if (data.persist && recs.length) {
       await context.supabase.from("ai_marketing_recommendations").insert(
-        recs.map((r) => ({ ...r, suggested_payload: r.suggested_payload as never, evidence: r.evidence as never, model: MODEL, generated_by: context.userId })),
+        recs.map((r: any) => ({ ...r, suggested_payload: r.suggested_payload as never, evidence: r.evidence as never, model: MODEL, generated_by: context.userId })),
       );
       await logActivity(context.supabase, context.userId, "marketing.content.analyze",
         `Content analysis run`, `Generated ${recs.length} content recommendation(s).`, ["marketing"]);
@@ -402,7 +402,7 @@ export const generateCampaignRecommendations = createServerFn({ method: "POST" }
       .at(-1) as string | undefined;
     const daysSinceCampaign = lastActive ? Math.round((Date.now() - +new Date(lastActive)) / 86400000) : 9999;
     const cancellations = cancelled?.length ?? 0;
-    const avgRating = reviews?.length ? (reviews as any[]).reduce((s, r) => s + Number(r.rating ?? 0), 0) / reviews.length : 0;
+    const avgRating = reviews?.length ? (reviews as any[]).reduce((s: any, r: any) => s + Number(r.rating ?? 0), 0) / reviews.length : 0;
 
     const recs: any[] = [];
 
@@ -488,7 +488,7 @@ export const generateCampaignRecommendations = createServerFn({ method: "POST" }
 
     if (data.persist && recs.length) {
       await context.supabase.from("ai_marketing_recommendations").insert(
-        recs.map((r) => ({ ...r, suggested_payload: r.suggested_payload as never, evidence: r.evidence as never, model: MODEL, generated_by: context.userId })),
+        recs.map((r: any) => ({ ...r, suggested_payload: r.suggested_payload as never, evidence: r.evidence as never, model: MODEL, generated_by: context.userId })),
       );
       await logActivity(context.supabase, context.userId, "marketing.campaign.analyze",
         `Campaign analysis run`, `Generated ${recs.length} campaign recommendation(s).`, ["marketing"]);
@@ -519,7 +519,7 @@ function themesFromReviews(reviews: any[]) {
     for (const w of COMPLAINT_WORDS) if (text.includes(w)) complaints.set(w, (complaints.get(w) ?? 0) + 1);
   }
   const sorted = (m: Map<string, number>) =>
-    Array.from(m.entries()).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([term, count]) => ({ term, count }));
+    Array.from(m.entries()).sort((a: any, b: any) => b[1] - a[1]).slice(0, 6).map(([term, count]) => ({ term, count }));
   return { compliments: sorted(compliments), complaints: sorted(complaints) };
 }
 
@@ -536,7 +536,7 @@ export const generateReputationInsight = createServerFn({ method: "POST" })
     const rows = (reviews ?? []) as any[];
 
     const count = rows.length;
-    const avg = count ? rows.reduce((s, r) => s + Number(r.rating ?? 0), 0) / count : 0;
+    const avg = count ? rows.reduce((s: any, r: any) => s + Number(r.rating ?? 0), 0) / count : 0;
     const bySource = new Map<string, { count: number; sum: number }>();
     for (const r of rows) {
       const s = String(r.source);
@@ -550,26 +550,26 @@ export const generateReputationInsight = createServerFn({ method: "POST" })
 
     const themes = themesFromReviews(rows);
 
-    const lowRatings = rows.filter((r) => Number(r.rating) <= 3);
-    const drafts = lowRatings.slice(0, 5).map((r) => ({
+    const lowRatings = rows.filter((r: any) => Number(r.rating) <= 3);
+    const drafts = lowRatings.slice(0, 5).map((r: any) => ({
       guest: r.guest_name,
       source: r.source,
       rating: r.rating,
       draft: `Thank you, ${r.guest_name}, for taking the time to share your feedback. We're sorry your stay didn't fully meet expectations — we'd love the opportunity to make this right. Please reach out directly and we'll follow up personally. — The Mtoni team`,
     }));
 
-    const summary = `Across ${count} approved reviews in the last 180 days, the average rating is ${avg.toFixed(2)}★. Top compliments: ${themes.compliments.map((t) => t.term).join(", ") || "—"}. Recurring concerns: ${themes.complaints.map((t) => t.term).join(", ") || "—"}.`;
+    const summary = `Across ${count} approved reviews in the last 180 days, the average rating is ${avg.toFixed(2)}★. Top compliments: ${themes.compliments.map((t: any) => t.term).join(", ") || "—"}. Recurring concerns: ${themes.complaints.map((t: any) => t.term).join(", ") || "—"}.`;
 
     const recommendations: Array<{ title: string; reason: string }> = [];
     if (themes.complaints.length) {
       recommendations.push({
-        title: `Operational review: ${themes.complaints.slice(0, 2).map((t) => t.term).join(" & ")}`,
-        reason: `Mentioned in ${themes.complaints.slice(0, 2).reduce((s, t) => s + t.count, 0)} reviews.`,
+        title: `Operational review: ${themes.complaints.slice(0, 2).map((t: any) => t.term).join(" & ")}`,
+        reason: `Mentioned in ${themes.complaints.slice(0, 2).reduce((s: any, t: any) => s + t.count, 0)} reviews.`,
       });
     }
     if (themes.compliments.length) {
       recommendations.push({
-        title: `Amplify strengths in marketing: ${themes.compliments.slice(0, 3).map((t) => t.term).join(", ")}`,
+        title: `Amplify strengths in marketing: ${themes.compliments.slice(0, 3).map((t: any) => t.term).join(", ")}`,
         reason: `Guests consistently praise these — foreground them on homepage / journal.`,
       });
     }
@@ -631,7 +631,7 @@ function readabilityScore(text: string) {
   const wps = words.length / sentences;
   // Prefer 12–20 words per sentence
   const wpsScore = clamp(1 - Math.abs(wps - 16) / 20);
-  const longWords = words.filter((w) => w.length > 11).length / Math.max(1, words.length);
+  const longWords = words.filter((w: any) => w.length > 11).length / Math.max(1, words.length);
   const lengthScore = clamp(1 - longWords * 3);
   return clamp((wpsScore + lengthScore) / 2);
 }
@@ -652,7 +652,7 @@ export const reviewBrandCompliance = createServerFn({ method: "POST" })
     const lower = text.toLowerCase();
 
     // Tone
-    const offbrandHits = OFF_BRAND_TERMS.filter((t) => lower.includes(t));
+    const offbrandHits = OFF_BRAND_TERMS.filter((t: any) => lower.includes(t));
     let toneScore = 1 - offbrandHits.length * 0.15;
     const voiceHits: string[] = [];
     for (const v of voiceTokens as any[]) {
@@ -735,10 +735,10 @@ export const generateWeeklyPriorities = createServerFn({ method: "POST" })
     ]);
 
     const ranked = ((pending ?? []) as any[])
-      .map((r) => ({ ...r, score: Number(r.impact_score ?? 0) * Number(r.confidence ?? 0) }))
-      .sort((a, b) => b.score - a.score)
+      .map((r: any) => ({ ...r, score: Number(r.impact_score ?? 0) * Number(r.confidence ?? 0) }))
+      .sort((a: any, b: any) => b.score - a.score)
       .slice(0, 8)
-      .map((r) => ({
+      .map((r: any) => ({
         id: r.id,
         kind: r.kind,
         title: r.title,

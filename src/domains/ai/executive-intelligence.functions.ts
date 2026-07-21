@@ -78,19 +78,19 @@ export const getExecutiveOverview = createServerFn({ method: "GET" })
       s.from("approval_requests").select("id").eq("status", "pending"),
     ]);
 
-    const totalUnits = (rooms ?? []).reduce((sum, r: any) => sum + Number(r.total_units ?? 0), 0);
+    const totalUnits = (rooms ?? []).reduce((sum: any, r: any) => sum + Number(r.total_units ?? 0), 0);
     const occupiedTonight = inHouse?.length ?? 0;
     const occupancyToday = totalUnits > 0 ? occupiedTonight / totalUnits : 0;
 
-    const mtdRevenue = (mtd ?? []).reduce((s, b: any) => s + Number(b.total ?? 0), 0);
-    const mtdNights = (mtd ?? []).reduce((s, b: any) => s + Number(b.nights ?? 0), 0);
+    const mtdRevenue = (mtd ?? []).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
+    const mtdNights = (mtd ?? []).reduce((s: any, b: any) => s + Number(b.nights ?? 0), 0);
     const revenueToday = 0; // deterministic proxy — real revenue lives in finance module
     const currency = (mtd?.[0] as any)?.currency ?? "USD";
-    const forwardRevenue = (forward30 ?? []).reduce((s, b: any) => s + Number(b.total ?? 0), 0);
-    const forwardNights = (forward30 ?? []).reduce((s, b: any) => s + Number(b.nights ?? 0), 0);
+    const forwardRevenue = (forward30 ?? []).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
+    const forwardNights = (forward30 ?? []).reduce((s: any, b: any) => s + Number(b.nights ?? 0), 0);
     const expectedOccupancy30 = totalUnits > 0 ? forwardNights / (totalUnits * 30) : 0;
 
-    const outstandingTotal = (outstanding ?? []).reduce((s, b: any) => s + Number(b.balance_due ?? 0), 0);
+    const outstandingTotal = (outstanding ?? []).reduce((s: any, b: any) => s + Number(b.balance_due ?? 0), 0);
 
     const vipToday = (arrivalsToday ?? []).filter((b: any) => b.guest_type === "vip" || b.guest_type === "climber").length;
 
@@ -101,7 +101,7 @@ export const getExecutiveOverview = createServerFn({ method: "GET" })
     }
 
     const avgRating = (reviews ?? []).length
-      ? (reviews ?? []).reduce((s, r: any) => s + Number(r.rating ?? 0), 0) / (reviews as any[]).length
+      ? (reviews ?? []).reduce((s: any, r: any) => s + Number(r.rating ?? 0), 0) / (reviews as any[]).length
       : 0;
 
     // Health scores (0-1)
@@ -205,11 +205,11 @@ export const generateExecutiveBriefing = createServerFn({ method: "POST" })
       ...(marketingRecs ?? []).map((r: any) => ({ ...r, origin: "marketing" })),
     ];
     const ranked = all
-      .map((r) => ({
+      .map((r: any) => ({
         ...r,
         _rank: (Number(r.impact_score ?? 0)) * (Number(r.confidence ?? 0.5) || 0.5),
       }))
-      .sort((a, b) => b._rank - a._rank)
+      .sort((a: any, b: any) => b._rank - a._rank)
       .slice(0, 10);
 
     const sections = {
@@ -358,7 +358,7 @@ export const getExecutiveDecisions = createServerFn({ method: "GET" })
       })),
     ];
 
-    rows.sort((a, b) => b.priority - a.priority);
+    rows.sort((a: any, b: any) => b.priority - a.priority);
     return {
       decisions: rows,
       approvals: approvals ?? [],
@@ -430,11 +430,11 @@ export const getExecutiveKpis = createServerFn({ method: "GET" })
       s.from("ai_activity_logs").select("id").in("status", ["completed"]).gte("created_at", daysAgo(90)),
       s.from("ai_guest_recommendations").select("id, status").gte("created_at", daysAgo(90)),
     ]);
-    const totalUnits = (rooms ?? []).reduce((a, r: any) => a + Number(r.total_units ?? 0), 0);
-    const nights365 = (bookings ?? []).reduce((a, b: any) => a + Number(b.nights ?? 0), 0);
+    const totalUnits = (rooms ?? []).reduce((a: any, r: any) => a + Number(r.total_units ?? 0), 0);
+    const nights365 = (bookings ?? []).reduce((a: any, b: any) => a + Number(b.nights ?? 0), 0);
     const revenue365 = (bookings ?? [])
       .filter((b: any) => ["confirmed","checked_in","completed"].includes(b.status))
-      .reduce((a, b: any) => a + Number(b.total ?? 0), 0);
+      .reduce((a: any, b: any) => a + Number(b.total ?? 0), 0);
     const capacity365 = totalUnits * 365;
     const occupancy = capacity365 > 0 ? nights365 / capacity365 : 0;
     const adr = nights365 > 0 ? revenue365 / nights365 : 0;
@@ -447,10 +447,10 @@ export const getExecutiveKpis = createServerFn({ method: "GET" })
       guestIds.add(gid);
       repeatCounts.set(gid, (repeatCounts.get(gid) ?? 0) + 1);
     }
-    const repeat = guestIds.size ? Array.from(repeatCounts.values()).filter((n) => n > 1).length / guestIds.size : 0;
+    const repeat = guestIds.size ? Array.from(repeatCounts.values()).filter((n: any) => n > 1).length / guestIds.size : 0;
 
     const avgReview = (reviews ?? []).length
-      ? (reviews ?? []).reduce((a, r: any) => a + Number(r.rating ?? 0), 0) / (reviews as any[]).length : 0;
+      ? (reviews ?? []).reduce((a: any, r: any) => a + Number(r.rating ?? 0), 0) / (reviews as any[]).length : 0;
 
     const totalRecs = total?.length ?? 0;
     const acceptedRecs = (total ?? []).filter((r: any) => r.status === "accepted" || r.status === "converted").length;
@@ -482,18 +482,18 @@ export const captureKpiSnapshot = createServerFn({ method: "POST" })
       s.from("bookings").select("total, nights, status, guest_id").gte("check_in", period_start).lte("check_in", period_end),
       s.from("reviews").select("rating").eq("status","approved").gte("created_at", period_start),
     ]);
-    const totalUnits = (rooms ?? []).reduce((a, r: any) => a + Number(r.total_units ?? 0), 0);
+    const totalUnits = (rooms ?? []).reduce((a: any, r: any) => a + Number(r.total_units ?? 0), 0);
     const days = Math.max(1, Math.round((+new Date(period_end) - +new Date(period_start)) / 86400000));
     const capacity = totalUnits * days;
-    const nights = (bookings ?? []).reduce((a, b: any) => a + Number(b.nights ?? 0), 0);
-    const revenue = (bookings ?? []).filter((b: any) => ["confirmed","checked_in","completed"].includes(b.status)).reduce((a, b: any) => a + Number(b.total ?? 0), 0);
+    const nights = (bookings ?? []).reduce((a: any, b: any) => a + Number(b.nights ?? 0), 0);
+    const revenue = (bookings ?? []).filter((b: any) => ["confirmed","checked_in","completed"].includes(b.status)).reduce((a: any, b: any) => a + Number(b.total ?? 0), 0);
 
     const kpis = {
       occupancy: capacity > 0 ? nights / capacity : 0,
       revenue,
       adr: nights > 0 ? revenue / nights : 0,
       revpar: capacity > 0 ? revenue / capacity : 0,
-      avgReview: (reviews ?? []).length ? (reviews ?? []).reduce((a, r: any) => a + Number(r.rating ?? 0), 0) / (reviews as any[]).length : 0,
+      avgReview: (reviews ?? []).length ? (reviews ?? []).reduce((a: any, r: any) => a + Number(r.rating ?? 0), 0) / (reviews as any[]).length : 0,
       bookings: (bookings ?? []).length,
     };
 
@@ -531,8 +531,8 @@ export const detectStrategicRisks = createServerFn({ method: "POST" })
 
     const detected: Array<{ risk_type: string; severity: string; title: string; reasoning: string; evidence: any; domains: string[] }> = [];
 
-    const rev30 = (past30 ?? []).filter((b: any) => ["confirmed","checked_in","completed"].includes(b.status)).reduce((a, b: any) => a + Number(b.total ?? 0), 0);
-    const revPrev = (prev30 ?? []).filter((b: any) => ["confirmed","checked_in","completed"].includes(b.status)).reduce((a, b: any) => a + Number(b.total ?? 0), 0);
+    const rev30 = (past30 ?? []).filter((b: any) => ["confirmed","checked_in","completed"].includes(b.status)).reduce((a: any, b: any) => a + Number(b.total ?? 0), 0);
+    const revPrev = (prev30 ?? []).filter((b: any) => ["confirmed","checked_in","completed"].includes(b.status)).reduce((a: any, b: any) => a + Number(b.total ?? 0), 0);
     if (revPrev > 0 && rev30 / revPrev < 0.85) {
       const drop = 1 - rev30 / revPrev;
       detected.push({
@@ -544,8 +544,8 @@ export const detectStrategicRisks = createServerFn({ method: "POST" })
       });
     }
 
-    const totalUnits = (rooms ?? []).reduce((a, r: any) => a + Number(r.total_units ?? 0), 0);
-    const forwardNights = (forward30 ?? []).reduce((a, b: any) => a + Number(b.nights ?? 0), 0);
+    const totalUnits = (rooms ?? []).reduce((a: any, r: any) => a + Number(r.total_units ?? 0), 0);
+    const forwardNights = (forward30 ?? []).reduce((a: any, b: any) => a + Number(b.nights ?? 0), 0);
     const expectedOcc = totalUnits > 0 ? forwardNights / (totalUnits * 30) : 0;
     if (expectedOcc < 0.4 && totalUnits > 0) {
       detected.push({
@@ -557,8 +557,8 @@ export const detectStrategicRisks = createServerFn({ method: "POST" })
       });
     }
 
-    const avgRecent = (reviewsRecent ?? []).length ? (reviewsRecent ?? []).reduce((a, r: any) => a + Number(r.rating ?? 0), 0) / (reviewsRecent as any[]).length : 0;
-    const avgOlder = (reviewsOlder ?? []).length ? (reviewsOlder ?? []).reduce((a, r: any) => a + Number(r.rating ?? 0), 0) / (reviewsOlder as any[]).length : 0;
+    const avgRecent = (reviewsRecent ?? []).length ? (reviewsRecent ?? []).reduce((a: any, r: any) => a + Number(r.rating ?? 0), 0) / (reviewsRecent as any[]).length : 0;
+    const avgOlder = (reviewsOlder ?? []).length ? (reviewsOlder ?? []).reduce((a: any, r: any) => a + Number(r.rating ?? 0), 0) / (reviewsOlder as any[]).length : 0;
     if (avgRecent > 0 && avgOlder > 0 && avgOlder - avgRecent > 0.3) {
       detected.push({
         risk_type: "guest_satisfaction_decline",
@@ -569,7 +569,7 @@ export const detectStrategicRisks = createServerFn({ method: "POST" })
       });
     }
 
-    const outstandingTotal = (outstanding ?? []).reduce((a, b: any) => a + Number(b.balance_due ?? 0), 0);
+    const outstandingTotal = (outstanding ?? []).reduce((a: any, b: any) => a + Number(b.balance_due ?? 0), 0);
     if (outstandingTotal > 5000) {
       detected.push({
         risk_type: "cash_flow",
@@ -604,7 +604,7 @@ export const detectStrategicRisks = createServerFn({ method: "POST" })
     // Upsert: only insert risk_type not already open
     const { data: existingOpen } = await s.from("ai_strategic_risks").select("risk_type").eq("status","open");
     const openSet = new Set((existingOpen ?? []).map((r: any) => r.risk_type));
-    const toInsert = detected.filter((r) => !openSet.has(r.risk_type));
+    const toInsert = detected.filter((r: any) => !openSet.has(r.risk_type));
     if (toInsert.length) {
       await s.from("ai_strategic_risks").insert(toInsert);
     }

@@ -22,10 +22,11 @@ export const APP_ROLES = [
 ] as const;
 export type AppRole = (typeof APP_ROLES)[number];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function assertRoles(supabase: any, userId: string, roles: readonly string[]) {
   const { data, error } = await supabase.rpc("has_any_role", {
     _user_id: userId,
-    _roles: roles as unknown as string[],
+    _roles: [...roles],
   });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden");

@@ -22,7 +22,7 @@ async function assertStaff(sb: any, userId: string) {
 async function assertApprover(sb: any, userId: string) {
   const { data, error } = await sb.rpc("has_any_role", {
     _user_id: userId,
-    _roles: APPROVER_ROLES as unknown as string[],
+    _roles: [...APPROVER_ROLES],
   });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden");
@@ -50,7 +50,7 @@ export interface AiKnowledgeSource {
 // ---------- Listing ----------
 export const listKnowledgeSources = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z
       .object({
         source_type: z.enum(SOURCE_TYPES).optional(),
@@ -79,7 +79,7 @@ export const listKnowledgeSources = createServerFn({ method: "GET" })
 
 export const getKnowledgeSource = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .inputValidator((input: any) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
     await assertStaff(context.supabase, context.userId);
     const { data: row, error } = await context.supabase
@@ -106,7 +106,7 @@ const upsertSchema = z.object({
 
 export const upsertKnowledgeSource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => upsertSchema.parse(input))
+  .inputValidator((input: any) => upsertSchema.parse(input))
   .handler(async ({ context, data }) => {
     await assertApprover(context.supabase, context.userId);
     const sb: any = context.supabase;
@@ -152,7 +152,7 @@ export const upsertKnowledgeSource = createServerFn({ method: "POST" })
 // ---------- Status transitions ----------
 export const setKnowledgeSourceStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z
       .object({ id: z.string().uuid(), status: z.enum(["approved", "archived", "pending"]) })
       .parse(input),
@@ -182,7 +182,7 @@ export const setKnowledgeSourceStatus = createServerFn({ method: "POST" })
 
 export const deleteKnowledgeSource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .inputValidator((input: any) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
     await assertApprover(context.supabase, context.userId);
     const { error } = await context.supabase.from("ai_knowledge_sources").delete().eq("id", data.id);
@@ -353,7 +353,7 @@ export const syncRoomsAndExperiences = createServerFn({ method: "POST" })
 // ---------- Test retrieval ----------
 export const testKnowledgeQuery = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({ query: z.string().min(3).max(500), limit: z.number().int().min(1).max(20).default(6) }).parse(input),
   )
   .handler(async ({ context, data }) => {
@@ -377,7 +377,7 @@ export const testKnowledgeQuery = createServerFn({ method: "POST" })
     await sb.from("ai_knowledge_search_log").insert({
       query: data.query,
       result_count: top.length,
-      matched_source_ids: top.map((t) => t.id),
+      matched_source_ids: top.map((t: any) => t.id),
       confidence,
       asked_by: context.userId,
     });
@@ -411,11 +411,11 @@ export const getKnowledgeAnalytics = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(500);
 
-    const failed = ((recent ?? []) as any[]).filter((r) => (r.result_count ?? 0) === 0);
+    const failed = ((recent ?? []) as any[]).filter((r: any) => (r.result_count ?? 0) === 0);
     const failCount: Record<string, number> = {};
     for (const f of failed) failCount[f.query] = (failCount[f.query] ?? 0) + 1;
     const topUnanswered = Object.entries(failCount)
-      .sort((a, b) => b[1] - a[1])
+      .sort((a: any, b: any) => b[1] - a[1])
       .slice(0, 10)
       .map(([query, count]) => ({ query, count }));
 
@@ -425,7 +425,7 @@ export const getKnowledgeAnalytics = createServerFn({ method: "GET" })
       : 0;
     const avgConfidence =
       totalSearches > 0
-        ? ((recent ?? []) as any[]).reduce((a, r) => a + (Number(r.confidence) || 0), 0) / totalSearches
+        ? ((recent ?? []) as any[]).reduce((a: any, r: any) => a + (Number(r.confidence) || 0), 0) / totalSearches
         : 0;
 
     return { counts, topUnanswered, totalSearches, successRate, avgConfidence };

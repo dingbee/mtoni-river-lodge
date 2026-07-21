@@ -20,7 +20,7 @@ export interface ToolDefinition {
   id: AiToolId;
   description: string;
   args?: string;
-  run: (ctx: Ctx, args: Record<string, unknown>) => Promise<{ summary: string; data: unknown; count?: number; window?: string }>;
+  run: (ctx: Ctx, args: any) => Promise<{ summary: string; data: unknown; count?: number; window?: string }>;
 }
 
 export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
