@@ -3,7 +3,6 @@ import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
-import Underline from "@tiptap/extension-underline";
 import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Quote, Heading2, Heading3, Link as LinkIcon, Image as ImageIcon, Undo2, Redo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -16,8 +15,10 @@ interface Props {
 export function TiptapEditor({ initialHtml, onChange, placeholder }: Props) {
   const editor = useEditor({
     extensions: [
-      StarterKit,
-      Underline,
+      // StarterKit v3 already bundles Link + Underline; disable its versions so
+      // our configured Link (openOnClick:false) is the sole registration and no
+      // duplicate-extension warnings strip content on save.
+      StarterKit.configure({ link: false, underline: false }),
       Link.configure({ openOnClick: false, autolink: true }),
       Image,
       Placeholder.configure({ placeholder: placeholder ?? "Start writing…" }),
