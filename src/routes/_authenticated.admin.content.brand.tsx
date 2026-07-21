@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { Plus, Save, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { LoadingState } from "@/components/os/LoadingState";
@@ -39,14 +39,15 @@ function BrandCentre() {
   const [form, setForm] = useState<BrandTokenInput>(EMPTY);
   const [valueText, setValueText] = useState("");
 
-  const save = useMutation({
+  const save = useAdminMutation({
     mutationFn: (payload: BrandTokenInput) => saveFn({ data: payload }),
-    onSuccess: () => { toast.success("Brand token saved"); qc.invalidateQueries({ queryKey: ["admin.brand"] }); },
-    onError: (e: unknown) => toast.error((e as Error).message),
+    successMessage: "Brand token saved",
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin.brand"] }),
   });
-  const remove = useMutation({
+  const remove = useAdminMutation({
     mutationFn: (id: string) => delFn({ data: { id } }),
-    onSuccess: () => { toast.success("Token removed"); qc.invalidateQueries({ queryKey: ["admin.brand"] }); setForm(EMPTY); setValueText(""); },
+    successMessage: "Token removed",
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin.brand"] }); setForm(EMPTY); setValueText(""); },
   });
 
   const grouped = useMemo(() => {

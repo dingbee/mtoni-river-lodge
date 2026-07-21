@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { Button } from "@/components/ui/button";
@@ -25,15 +26,17 @@ function StaffInsightsPage() {
     queryKey: ["ops-staff", "pending"],
     queryFn: () => list({ data: { status: "pending" } }),
   });
-  const genM = useMutation({
+  const genM = useAdminMutation({
     mutationFn: () => gen({ data: undefined as any }),
+    successMessage: "Analysis complete",
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ops-staff"] });
       qc.invalidateQueries({ queryKey: ["ops-pressure"] });
     },
   });
-  const updM = useMutation({
+  const updM = useAdminMutation({
     mutationFn: (v: { id: string; status: any }) => upd({ data: v }),
+    onSuccessToast: (_d, v) => `Marked ${String(v.status)}`,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["ops-staff"] }),
   });
 

@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { toast } from "sonner";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { LoadingState } from "@/components/os/LoadingState";
@@ -37,16 +37,14 @@ function Alerts() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["finance.alerts"], queryFn: () => listFn() });
 
-  const scan = useMutation({
+  const scan = useAdminMutation({
     mutationFn: () => scanFn(),
-    onSuccess: (r) => {
-      toast.success(`Scan complete — ${r.created} new alert${r.created === 1 ? "" : "s"}`);
-      qc.invalidateQueries({ queryKey: ["finance.alerts"] });
-    },
-    onError: (e: unknown) => toast.error((e as Error).message),
+    onSuccessToast: (r) => `Scan complete — ${r.created} new alert${r.created === 1 ? "" : "s"}`,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["finance.alerts"] }),
   });
-  const resolve = useMutation({
+  const resolve = useAdminMutation({
     mutationFn: (id: string) => resolveFn({ data: { id, status: "resolved" } }),
+    successMessage: "Alert resolved",
     onSuccess: () => qc.invalidateQueries({ queryKey: ["finance.alerts"] }),
   });
 
