@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
+import { Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { LoadingState } from "@/components/os/LoadingState";
@@ -16,6 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { useCurrentUserRoles } from "@/lib/permissions";
 import {
@@ -28,6 +36,47 @@ import {
   type StaffUser,
 } from "@/lib/staff.functions";
 import { ROLE_LABELS, type Role } from "@/lib/permissions";
+
+function CopyableUuid({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      toast.success("User ID copied to clipboard");
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Failed to copy User ID");
+    }
+  };
+
+  return (
+    <TooltipProvider delayDuration={100}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center gap-2">
+            <code className="max-w-[140px] truncate font-mono text-xs text-muted-foreground">
+              {value}
+            </code>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-6 shrink-0"
+              onClick={handleCopy}
+              aria-label={copied ? "Copied" : "Copy User ID"}
+            >
+              {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+            </Button>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs break-all">
+          <p className="font-mono text-[11px]">{value}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/admin/staff/roles")({
   head: () => ({ meta: [{ title: "Roles — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -146,6 +195,7 @@ function StaffRolesPage() {
               <thead className="text-xs uppercase text-muted-foreground">
                 <tr className="text-left">
                   <th className="py-2 pr-3">User</th>
+                  <th className="py-2 pr-3">User ID</th>
                   <th className="py-2 pr-3">Role</th>
                   <th className="py-2 pr-3">Granted</th>
                   <th className="py-2 pr-3 text-right">Actions</th>
@@ -158,6 +208,9 @@ function StaffRolesPage() {
                     <tr key={a.id}>
                       <td className="py-2 pr-3">
                         <div className="font-medium">{user?.email ?? user?.full_name ?? a.user_id.slice(0, 8)}</div>
+                      </td>
+                      <td className="py-2 pr-3">
+                        <CopyableUuid value={a.user_id} />
                       </td>
                       <td className="py-2 pr-3">{ROLE_LABELS[a.role as Role] ?? a.role}</td>
                       <td className="py-2 pr-3 text-xs text-muted-foreground">
