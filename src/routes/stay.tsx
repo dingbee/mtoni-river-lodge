@@ -79,12 +79,36 @@ const ROOM_DETAILS: Record<RoomSlug, { price: string; sleeps: string; blurb: str
 };
 
 const REASONS = [
-  { title: "Riverside Location", body: "Wake to the sound of the Nduruma River flowing through mature gardens." },
-  { title: "Peaceful Natural Environment", body: "Twenty-four rooms set within a quiet, tree-lined riverside estate." },
-  { title: "Safari Gateway", body: "Perfectly placed for Arusha, Tarangire, Ngorongoro, and Serengeti journeys." },
-  { title: "Kilimanjaro Base", body: "A low-altitude retreat for climbers — before the ascent and after the summit." },
-  { title: "Authentic Hospitality", body: "Personal, unhurried service from a team that treats every guest as family." },
-  { title: "Direct Secure Booking", body: "Book directly for our best available rate and instant confirmation." },
+  {
+    title: "Riverside Location",
+    body: "Wake to the sound of the Nduruma River flowing through mature gardens.",
+    Icon: Waves,
+  },
+  {
+    title: "Peaceful Natural Environment",
+    body: "Twenty-four rooms set within a quiet, tree-lined riverside estate.",
+    Icon: Leaf,
+  },
+  {
+    title: "Safari Gateway",
+    body: "Perfectly placed for Arusha, Tarangire, Ngorongoro, and Serengeti journeys.",
+    Icon: Compass,
+  },
+  {
+    title: "Kilimanjaro Base",
+    body: "A low-altitude retreat for climbers — before the ascent and after the summit.",
+    Icon: Mountain,
+  },
+  {
+    title: "Authentic Hospitality",
+    body: "Personal, unhurried service from a team that treats every guest as family.",
+    Icon: HeartHandshake,
+  },
+  {
+    title: "Direct Secure Booking",
+    body: "Book directly for our best available rate and instant confirmation.",
+    Icon: ShieldCheck,
+  },
 ];
 
 const EXPERIENCES = [
