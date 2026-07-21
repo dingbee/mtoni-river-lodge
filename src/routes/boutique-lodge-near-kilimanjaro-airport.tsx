@@ -452,7 +452,7 @@ function ArticlePage() {
             photo gallery
           </Link>{" "}
           or read more{" "}
-          <Link to="/about" className={linkCls}>
+          <Link to="/about-us" className={linkCls}>
             about our story
           </Link>
           .
