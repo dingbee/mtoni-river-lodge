@@ -217,5 +217,6 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
       />
     </header>
     <MobileStickyCTA />
+    </>
   );
 }
