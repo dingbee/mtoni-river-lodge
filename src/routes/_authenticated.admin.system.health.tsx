@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Activity, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, RefreshCw, BedDouble } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
@@ -15,6 +15,7 @@ import {
   getSystemHealth,
   listSystemErrors,
   resolveSystemError,
+  getInventoryIntegrity,
 } from "@/lib/observability/observability.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/system/health")({
@@ -38,6 +39,7 @@ function SystemHealthPage() {
   const fetchHealth = useServerFn(getSystemHealth);
   const fetchErrors = useServerFn(listSystemErrors);
   const resolve = useServerFn(resolveSystemError);
+  const fetchInventory = useServerFn(getInventoryIntegrity);
 
   const health = useQuery({
     queryKey: ["system-health"],
@@ -48,6 +50,12 @@ function SystemHealthPage() {
   const errors = useQuery({
     queryKey: ["system-errors", "unresolved"],
     queryFn: () => fetchErrors({ data: { resolved: false, limit: 50 } }),
+    refetchInterval: 60_000,
+  });
+
+  const inventory = useQuery({
+    queryKey: ["system-inventory-integrity"],
+    queryFn: () => fetchInventory(),
     refetchInterval: 60_000,
   });
 
@@ -71,6 +79,9 @@ function SystemHealthPage() {
       : data.probes.some((p) => p.status === "degraded")
         ? "degraded"
         : "ok";
+
+  const inventoryOk = inventory.data ? inventory.data.status === "synced" : true;
+  const productionReady = overall === "ok" && inventoryOk && (data.errors.unresolved ?? 0) === 0;
 
   return (
     <div className="space-y-6">
@@ -114,6 +125,89 @@ function SystemHealthPage() {
             ))}
           </div>
         )}
+      </SectionCard>
+
+      <SectionCard
+        title="Inventory Integrity"
+        description="Cross-check between configured room inventory (rooms.total_units) and physical units on the Operations Room Board (room_states). Read-only — no changes are applied."
+      >
+        {inventory.isLoading ? (
+          <LoadingState label="Checking inventory…" />
+        ) : !inventory.data ? (
+          <EmptyState title="Unavailable" description="Could not load inventory integrity data." />
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              {inventory.data.rows.map((r) => (
+                <div key={r.room_id} className="rounded-md border p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 font-medium">
+                        <BedDouble className="h-4 w-4 text-muted-foreground" />
+                        <span className="truncate">{r.name}</span>
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Configured: <span className="font-medium text-foreground">{r.configured}</span>
+                        {"  ·  "}
+                        Physical Units: <span className="font-medium text-foreground">{r.physical}</span>
+                      </div>
+                    </div>
+                    <Badge variant={r.status === "synced" ? "secondary" : "destructive"}>
+                      {r.status === "synced" ? "Synced" : "Mismatch"}
+                    </Badge>
+                  </div>
+                  {r.recommendation && (
+                    <div className="mt-2 flex items-start gap-2 rounded-sm bg-destructive/5 p-2 text-xs text-destructive">
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span>{r.recommendation}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm">
+              <div className="text-muted-foreground">
+                Totals — Configured{" "}
+                <span className="font-medium text-foreground">{inventory.data.configured_total}</span> · Physical{" "}
+                <span className="font-medium text-foreground">{inventory.data.physical_total}</span>
+              </div>
+              <Badge variant={inventory.data.status === "synced" ? "secondary" : "destructive"}>
+                {inventory.data.status === "synced"
+                  ? "All room types synced"
+                  : `${inventory.data.mismatches} mismatch${inventory.data.mismatches === 1 ? "" : "es"} detected`}
+              </Badge>
+            </div>
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard title="Production Readiness" description="Summary of the core operational subsystems.">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {[
+            { label: "Room Inventory", ok: inventoryOk },
+            { label: "Room States", ok: inventoryOk },
+            { label: "Calendar Availability", ok: overall !== "down" },
+            { label: "Reservation Engine", ok: (data.errors.unresolved ?? 0) === 0 },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center justify-between rounded-md border p-3 text-sm">
+              <span className="flex items-center gap-2">
+                {item.ok ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                )}
+                {item.label}
+              </span>
+              <Badge variant={item.ok ? "secondary" : "destructive"}>{item.ok ? "OK" : "Attention"}</Badge>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 flex items-center justify-between rounded-md border p-3">
+          <span className="text-sm font-medium">Overall Status</span>
+          <Badge variant={productionReady ? "secondary" : "destructive"}>
+            {productionReady ? "Production Ready" : "Attention Required"}
+          </Badge>
+        </div>
       </SectionCard>
 
       <SectionCard title="Scheduled jobs" description="Most recent scheduled_jobs runs.">
