@@ -29,6 +29,7 @@ import { StatCard } from "@/components/os/StatCard";
 import { SectionCard } from "@/components/os/SectionCard";
 import { EmptyState } from "@/components/os/EmptyState";
 import { GuestStatusChip } from "@/components/os/crm/GuestStatusChip";
+import heroAsset from "@/assets/pool-aerial-slow-living.jpg.asset.json";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({ meta: [{ title: "Command Centre — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -83,23 +84,30 @@ function CommandCentrePage() {
 
   return (
     <div className="space-y-8">
-      {/* Command Centre header */}
-      <header className="os-fade-in flex flex-wrap items-end justify-between gap-4 border-b border-[color:var(--os-hairline)] pb-6">
+      {/* Command Centre hero */}
+      <header
+        className="os-hero-bleed os-fade-in flex flex-wrap items-end justify-between gap-6 px-6 py-8 lg:px-10 lg:py-10"
+        style={{ ["--os-hero-image" as any]: `url(${heroAsset.url})` }}
+      >
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-[color:var(--os-ink-3)]">
             <Sparkles className="size-3.5 text-[color:var(--os-gold)]" /> Command Centre
           </div>
-          <h1 className="mt-2 font-display text-4xl leading-tight tracking-tight text-[color:var(--os-ink)] lg:text-5xl">
-            {greeting}.
+          <h1 className="mt-3 font-display text-4xl font-normal leading-[1.05] tracking-tight text-[color:var(--os-ink)] lg:text-[3.25rem]">
+            {greeting}, Owner.
           </h1>
-          <p className="mt-2 text-sm text-[color:var(--os-ink-3)]">{dateLong} · Live operational snapshot.</p>
+          <p className="mt-3 text-sm text-[color:var(--os-ink-2)]">
+            {dateLong} · Live operational snapshot.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="os-chip"><span className="size-1.5 rounded-full bg-[color:var(--os-success)]" /> Live</span>
-          <span className="os-chip">{totalRooms} rooms</span>
+          <span className="os-chip">
+            <span className="size-1.5 rounded-full bg-[color:var(--os-success)] shadow-[0_0_0_3px_rgba(94,165,109,0.18)]" /> Live
+          </span>
+          <span className="os-chip">{totalRooms} Rooms</span>
           <Link
             to="/admin/operations"
-            className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--os-ink)] px-3.5 py-1.5 text-xs font-medium text-[color:var(--os-surface)] transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--os-green)] px-4 py-1.5 text-xs font-medium text-white shadow-[0_8px_24px_-8px_rgba(52,103,57,0.6)] transition-transform hover:-translate-y-[1px]"
           >
             Open Operations
           </Link>
@@ -108,26 +116,26 @@ function CommandCentrePage() {
 
       {/* Primary KPI row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Occupancy" value={opsQ.isLoading ? "—" : `${occupancyPct}%`} hint={kpiHint(`${occupied}/${totalRooms} rooms occupied`)} icon={Gauge} />
-        <StatCard label="In-house" value={opsQ.isLoading ? "—" : inHouse} hint={kpiHint("Guests staying tonight")} icon={Users} />
-        <StatCard label="Arrivals" value={opsQ.isLoading ? "—" : arrivals} hint={kpiHint("Today")} icon={CalendarCheck} />
-        <StatCard label="Departures" value={opsQ.isLoading ? "—" : departures} hint={kpiHint("Today")} icon={CalendarX} />
+        <StatCard tone="green" label="Occupancy" value={opsQ.isLoading ? "—" : `${occupancyPct}%`} hint={kpiHint(`${occupied}/${totalRooms} rooms occupied`)} icon={Gauge} />
+        <StatCard tone="green" label="In-house" value={opsQ.isLoading ? "—" : inHouse} hint={kpiHint("Guests staying tonight")} icon={Users} />
+        <StatCard tone="gold"  label="Arrivals" value={opsQ.isLoading ? "—" : arrivals} hint={kpiHint("Today")} icon={CalendarCheck} />
+        <StatCard tone="gold"  label="Departures" value={opsQ.isLoading ? "—" : departures} hint={kpiHint("Today")} icon={CalendarX} />
       </div>
 
       {/* Revenue + performance row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Revenue MTD" value={revQ.isLoading ? "—" : money(revenueMtd)} hint={kpiHint(`Today ${money(revenueToday)}`)} icon={DollarSign} />
-        <StatCard label="ADR" value={revQ.isLoading ? "—" : money(adr)} hint={kpiHint("Average daily rate")} icon={TrendingUp} />
-        <StatCard label="RevPAR" value={revQ.isLoading ? "—" : money(revpar)} hint={kpiHint("Rev per available room")} icon={LineChart} />
-        <StatCard label="Outstanding" value={revQ.isLoading ? "—" : money(outstanding)} hint={kpiHint("Pending balances")} icon={Wallet} />
+        <StatCard tone="green" label="Revenue MTD" value={revQ.isLoading ? "—" : money(revenueMtd)} hint={kpiHint(`Today ${money(revenueToday)}`)} icon={DollarSign} />
+        <StatCard tone="gold"  label="ADR" value={revQ.isLoading ? "—" : money(adr)} hint={kpiHint("Average daily rate")} icon={TrendingUp} />
+        <StatCard tone="green" label="RevPAR" value={revQ.isLoading ? "—" : money(revpar)} hint={kpiHint("Rev per available room")} icon={LineChart} />
+        <StatCard tone="gold"  label="Outstanding" value={revQ.isLoading ? "—" : money(outstanding)} hint={kpiHint("Pending balances")} icon={Wallet} />
       </div>
 
       {/* Operational widgets row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Available" value={available} hint="Rooms tonight" icon={Home} />
-        <StatCard label="Housekeeping" value={dirty} hint="Rooms to clean" icon={ClipboardCheck} />
-        <StatCard label="Maintenance" value={maintenance} hint="Off-inventory" icon={Wrench} />
-        <StatCard label="Pending" value={today.pending_check_in ?? 0} hint="Awaiting check-in" icon={Clock} />
+        <StatCard tone="green" label="Available" value={available} hint="Rooms tonight" icon={Home} />
+        <StatCard tone="gold"  label="Housekeeping" value={dirty} hint="Rooms to clean" icon={ClipboardCheck} />
+        <StatCard tone="warn"  label="Maintenance" value={maintenance} hint="Off-inventory" icon={Wrench} />
+        <StatCard tone="info"  label="Pending" value={today.pending_check_in ?? 0} hint="Awaiting check-in" icon={Clock} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
