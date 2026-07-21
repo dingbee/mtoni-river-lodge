@@ -57,7 +57,7 @@ async function loadBookingContext(supabase: any, bookingId: string) {
     notes: notesRes.data ?? [],
     history: historyRes.data ?? [],
     room: roomRes.data,
-    tags: (tagsRes.data ?? []).map((t: Record<string, unknown>) => t.guest_tags).filter(Boolean),
+    tags: (tagsRes.data ?? []).map((t: any) => t.guest_tags).filter(Boolean),
   };
 }
 
@@ -123,7 +123,7 @@ export const generateGuestBriefing = createServerFn({ method: "POST" })
     const start = Date.now();
     const ctx = await loadBookingContext(context.supabase, data.bookingId);
     const lifetimeSpend = (ctx.history ?? []).reduce((s: number, r: any) => s + Number(r.total ?? 0), 0);
-    const cancellationCount = (ctx.history ?? []).filter((r: Record<string, unknown>) => r.status === "cancelled").length;
+    const cancellationCount = (ctx.history ?? []).filter((r: any) => r.status === "cancelled").length;
     const health = computeHealthScore({
       historyCount: ctx.history.length,
       lifetimeSpend,
@@ -145,10 +145,10 @@ export const generateGuestBriefing = createServerFn({ method: "POST" })
         special_requests: ctx.booking.special_requests,
       },
       preferences: ctx.preferences,
-      notes: ctx.notes.map((n: Record<string, unknown>) => n.body),
+      notes: ctx.notes.map((n: any) => n.body),
       history_count: ctx.history.length,
       lifetime_spend: lifetimeSpend,
-      tags: ctx.tags.map((t: Record<string, unknown>) => t.name),
+      tags: ctx.tags.map((t: any) => t.name),
     };
 
     const system = [

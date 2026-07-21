@@ -20,7 +20,7 @@ export interface ToolDefinition {
   id: AiToolId;
   description: string;
   args?: string;
-  run: (ctx: Ctx, args: Record<string, unknown>) => Promise<{ summary: string; data: unknown; count?: number; window?: string }>;
+  run: (ctx: Ctx, args: any) => Promise<{ summary: string; data: unknown; count?: number; window?: string }>;
 }
 
 export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
@@ -121,8 +121,8 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
           .in("status", ["confirmed", "checked_in", "checked_out"]),
         supabase.from("rooms").select("total_units").eq("status", "active"),
       ]);
-      const soldNights = (bookings ?? []).reduce((sum, b: Record<string, unknown>) => sum + (b.nights ?? 0), 0);
-      const totalUnits = (rooms ?? []).reduce((sum, r: Record<string, unknown>) => sum + (r.total_units ?? 0), 0);
+      const soldNights = (bookings ?? []).reduce((sum, b: any) => sum + (b.nights ?? 0), 0);
+      const totalUnits = (rooms ?? []).reduce((sum, r: any) => sum + (r.total_units ?? 0), 0);
       const capacity = totalUnits * daysInMonth;
       const pct = capacity > 0 ? Math.round((soldNights / capacity) * 100) : 0;
       return {
@@ -199,7 +199,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
       if (error) throw error;
       const rows = data ?? [];
       const grouped: Record<string, number> = {};
-      for (const r of rows as unknown[]) grouped[r.state] = (grouped[r.state] ?? 0) + 1;
+      for (const r of rows as any[]) grouped[r.state] = (grouped[r.state] ?? 0) + 1;
       const parts = Object.entries(grouped).map(([k, v]) => `${v} ${k}`).join(", ");
       return { summary: `${rows.length} units · ${parts || "no state data"}.`, data: { rows, grouped }, count: rows.length };
     },
@@ -257,7 +257,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
         .limit(50);
       if (error) throw error;
       const rows = data ?? [];
-      const noindex = rows.filter((r: Record<string, unknown>) => r.index_status === "noindex").length;
+      const noindex = rows.filter((r: any) => r.index_status === "noindex").length;
       return { summary: `${rows.length} route(s) with SEO overrides; ${noindex} marked noindex.`, data: rows, count: rows.length };
     },
   },

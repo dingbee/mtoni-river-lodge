@@ -64,7 +64,7 @@ export const generateOperationsBriefing = createServerFn({ method: "POST" })
     );
     const highPriorityTasks = tasks.filter((t) => t.priority === 1);
 
-    const priorities: unknown[] = [];
+    const priorities: any[] = [];
     if (vipArrivals.length) {
       priorities.push({
         title: `${vipArrivals.length} priority arrival(s) today`,
@@ -87,7 +87,7 @@ export const generateOperationsBriefing = createServerFn({ method: "POST" })
       });
     }
 
-    const risks: unknown[] = [];
+    const risks: any[] = [];
     if (overdueTasks.length) {
       risks.push({
         title: `${overdueTasks.length} overdue task(s)`,
@@ -103,7 +103,7 @@ export const generateOperationsBriefing = createServerFn({ method: "POST" })
       });
     }
 
-    const recommendations: unknown[] = [];
+    const recommendations: any[] = [];
     if (vipArrivals.length) {
       recommendations.push({
         title: "Brief reception on priority arrivals",
@@ -251,7 +251,7 @@ export const getHousekeepingPriorities = createServerFn({ method: "GET" })
           .join(" • "),
       };
     });
-    priorities.sort((a: Record<string, unknown>, b: Record<string, unknown>) => b.score - a.score);
+    priorities.sort((a: Record<string, unknown>, b: any) => b.score - a.score);
     return priorities;
   });
 
@@ -273,7 +273,7 @@ export const getMaintenanceInsights = createServerFn({ method: "GET" })
     const tasks = data ?? [];
 
     // Repeated issues by normalised title
-    const buckets = new Map<string, unknown[]>();
+    const buckets = new Map<string, any[]>();
     for (const t of tasks) {
       const key = String(t.title ?? "").toLowerCase().replace(/[^a-z0-9 ]/g, "").slice(0, 40);
       if (!key) continue;
@@ -406,7 +406,7 @@ export const detectOperationsAlerts = createServerFn({ method: "POST" })
     await assertRole(context.supabase, context.userId, ["owner", "manager", "admin"]);
     const sb: any = context.supabase;
     const now = new Date();
-    const created: unknown[] = [];
+    const created: any[] = [];
 
     const { data: overdue } = await sb
       .from("ops_tasks")

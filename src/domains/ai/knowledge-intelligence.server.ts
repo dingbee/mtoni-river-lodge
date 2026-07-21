@@ -5,10 +5,10 @@
 function stripHtml(html: string): string {
   return String(html ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
-function extractBlockText(block: Record<string, unknown>): string {
+function extractBlockText(block: any): string {
   const data = block?.data ?? {};
   const parts: string[] = [];
-  const walk = (v: Record<string, unknown>) => {
+  const walk = (v: any) => {
     if (v == null) return;
     if (typeof v === "string") {
       const s = stripHtml(v);
@@ -72,7 +72,7 @@ async function syncCms(sb: any, userId: string | null): Promise<TaskResult> {
       .select("data, position, kind")
       .eq("page_id", p.id)
       .order("position", { ascending: true });
-    const content = (blocks ?? []).map((b: Record<string, unknown>) => extractBlockText(b)).filter(Boolean).join("\n\n").slice(0, 180_000);
+    const content = (blocks ?? []).map((b: any) => extractBlockText(b)).filter(Boolean).join("\n\n").slice(0, 180_000);
     const url = p.slug === "home" || p.slug === "index" ? "/" : `/${p.slug}`;
     await sb.from("ai_knowledge_sources").upsert(
       {
@@ -230,7 +230,7 @@ export async function runKnowledgeSyncJob(opts: { triggeredBy?: string } = {}) {
       .select("id, title, source_type, source_updated_at, last_synced_at, updated_at")
       .eq("status", "approved");
     const now = Date.now();
-    for (const r of (approved ?? []) as unknown[]) {
+    for (const r of (approved ?? []) as any[]) {
       const ref = r.source_updated_at ?? r.last_synced_at ?? r.updated_at;
       if (!ref) continue;
       const days = Math.floor((now - new Date(ref).getTime()) / 86400_000);

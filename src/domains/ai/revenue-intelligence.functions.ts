@@ -219,9 +219,9 @@ export const generatePricingRecommendations = createServerFn({ method: "POST" })
       context.supabase.from("bookings").select("id, room_id, created_at").eq("status","cancelled").gte("created_at", daysAgo(14)),
     ]);
 
-    const recs: Array<{ room_id: string | null; room_name: string; action: string; current_rate: number; suggested_rate: number; delta_pct: number; reasoning: string; expected_impact: number; confidence: number; evidence: unknown[] }> = [];
+    const recs: Array<{ room_id: string | null; room_name: string; action: string; current_rate: number; suggested_rate: number; delta_pct: number; reasoning: string; expected_impact: number; confidence: number; evidence: any[] }> = [];
 
-    for (const r of (rooms ?? []) as unknown[]) {
+    for (const r of (rooms ?? []) as any[]) {
       const roomForward = (forward ?? []).filter((b) => b.room_id === r.id && b.status !== "pending");
       const nightsSold = roomForward.reduce((s: number, b: any) => s + Number(b.nights ?? 0), 0);
       const capacity = Number(r.total_units ?? 0) * 30;
@@ -353,7 +353,7 @@ export const getBookingPatterns = createServerFn({ method: "GET" })
     const { data: rows } = await context.supabase.from("bookings")
       .select("id, room_id, source, status, nights, total, check_in, created_at, country")
       .gte("created_at", daysAgo(365));
-    const all = (rows ?? []) as unknown[];
+    const all = (rows ?? []) as any[];
 
     const leadTimes = all.map((b) => Math.max(0, diffDays(b.created_at?.slice(0,10) ?? b.check_in, b.check_in)));
     const avgLead = leadTimes.length ? Math.round(leadTimes.reduce((s,v)=>s+v,0) / leadTimes.length) : 0;
@@ -407,7 +407,7 @@ export const scanRevenueOpportunities = createServerFn({ method: "POST" })
       context.supabase.from("booking_extras").select("booking_id"),
     ]);
 
-    const opps: Array<{ kind: string; title: string; detail: string; estimated_impact: number; confidence: number; evidence: unknown[]; recommended_action: string }> = [];
+    const opps: Array<{ kind: string; title: string; detail: string; estimated_impact: number; confidence: number; evidence: any[]; recommended_action: string }> = [];
 
     const outstandingTotal = (outstanding ?? []).reduce((s, b) => s + Number(b.balance_due ?? 0), 0);
     if (outstandingTotal > 0) {

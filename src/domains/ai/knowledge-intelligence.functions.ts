@@ -93,7 +93,7 @@ export const getKnowledgeHealth = createServerFn({ method: "GET" })
       .from("ai_knowledge_sources")
       .select("id, source_type, status, last_synced_at, updated_at, source_updated_at, indexed_at, quality_score")
       .limit(5000);
-    const rows = (sources ?? []) as unknown[];
+    const rows = (sources ?? []) as any[];
 
     const { data: cfg } = await sb.from("ai_knowledge_scheduler_config").select("*").eq("id", 1).single();
     const rules: Record<string, number> = { ...DEFAULT_FRESHNESS, ...(cfg?.freshness_rules ?? {}) };
@@ -165,7 +165,7 @@ export const getFreshnessReport = createServerFn({ method: "GET" })
       .eq("status", "approved")
       .limit(2000);
 
-    const rows = ((sources ?? []) as unknown[]).map((r) => {
+    const rows = ((sources ?? []) as any[]).map((r) => {
       const days = daysBetween(r.source_updated_at ?? r.last_synced_at ?? r.updated_at);
       const warn = rules[r.source_type] ?? 180;
       return {
@@ -202,7 +202,7 @@ export const getKnowledgeGaps = createServerFn({ method: "GET" })
       .select("query, result_count, confidence, created_at")
       .gte("created_at", since)
       .limit(5000);
-    const rows = (logs ?? []) as unknown[];
+    const rows = (logs ?? []) as any[];
     const grouped: Record<string, { count: number; avgConfidence: number; noResult: number }> = {};
     for (const r of rows) {
       const q = (r.query ?? "").trim().toLowerCase();
@@ -235,7 +235,7 @@ export const getKnowledgeCoverage = createServerFn({ method: "GET" })
       .from("ai_knowledge_sources")
       .select("source_type, status, source_updated_at, last_synced_at, updated_at")
       .limit(5000);
-    const rows = (sources ?? []) as unknown[];
+    const rows = (sources ?? []) as any[];
     const map: Record<string, { total: number; approved: number; freshest: string | null }> = {};
     for (const r of rows) {
       const t = r.source_type as string;
@@ -267,7 +267,7 @@ export const getContentRecommendations = createServerFn({ method: "GET" })
       .gte("created_at", since)
       .limit(5000);
     const grouped: Record<string, { asked: number; noResult: number; confSum: number }> = {};
-    for (const r of (logs ?? []) as unknown[]) {
+    for (const r of (logs ?? []) as any[]) {
       const q = (r.query ?? "").trim().toLowerCase();
       if (!q) continue;
       const g = (grouped[q] = grouped[q] ?? { asked: 0, noResult: 0, confSum: 0 });
@@ -332,9 +332,9 @@ export const recomputeQualityScores = createServerFn({ method: "POST" })
       .eq("status", "approved")
       .limit(5000);
 
-    const maxUsage = Math.max(1, ...((rows ?? []) as unknown[]).map((r) => r.usage_count ?? 0));
+    const maxUsage = Math.max(1, ...((rows ?? []) as any[]).map((r) => r.usage_count ?? 0));
     let updated = 0;
-    for (const r of (rows ?? []) as unknown[]) {
+    for (const r of (rows ?? []) as any[]) {
       const contentLen = (r.content ?? "").length;
       const completeness = Math.min(1, contentLen / 1500) * 0.7 + (r.summary ? 0.3 : 0);
       const days = daysBetween(r.source_updated_at ?? r.last_synced_at ?? r.updated_at);

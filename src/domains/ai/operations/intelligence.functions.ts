@@ -58,15 +58,15 @@ export const generateRoomReadinessInsights = createServerFn({ method: "POST" })
     const departures = depRes.data ?? [];
     const arrivals = arrRes.data ?? [];
     const prefs = prefRes.data ?? [];
-    const prefByGuest = new Map<string, unknown[]>();
+    const prefByGuest = new Map<string, any[]>();
     for (const p of prefs) {
       const arr = prefByGuest.get(p.guest_id) ?? [];
       arr.push(p);
       prefByGuest.set(p.guest_id, arr);
     }
 
-    const priorities: unknown[] = [];
-    const upserts: unknown[] = [];
+    const priorities: any[] = [];
+    const upserts: any[] = [];
 
     for (const a of arrivals) {
       const sameDayDep = departures.find((d) => d.room_id === a.room_id);
@@ -227,7 +227,7 @@ export const getMaintenanceIntelligence = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     const tasks = data ?? [];
 
-    const buckets = new Map<string, unknown[]>();
+    const buckets = new Map<string, any[]>();
     for (const t of tasks) {
       const key = String(t.title ?? "").toLowerCase().replace(/[^a-z0-9 ]/g, "").split(/\s+/).slice(0, 4).join(" ");
       if (!key) continue;
@@ -302,7 +302,7 @@ export const generateStaffOperationsInsights = createServerFn({ method: "POST" }
       if (t.status !== "completed" && t.due_at && new Date(t.due_at) < new Date()) byCategory[c].overdue++;
     }
 
-    const insights: unknown[] = [];
+    const insights: any[] = [];
 
     // Response-time signal
     const completedWithTimes = completed.filter((t) => t.completed_at && t.created_at);
@@ -460,7 +460,7 @@ export const generateServiceRecoveryInsights = createServerFn({ method: "POST" }
         .limit(50),
     ]);
 
-    const upserts: unknown[] = [];
+    const upserts: any[] = [];
     for (const e of escRes.data ?? []) {
       upserts.push({
         guest_id: e.guest_id,
@@ -615,7 +615,7 @@ export const generateOperationsPatterns = createServerFn({ method: "POST" })
       sb.from("ops_tasks").select("id, title, category, created_at").gte("created_at", sixtyAgo).lt("created_at", thirtyAgo).limit(1000),
     ]);
 
-    const patterns: unknown[] = [];
+    const patterns: any[] = [];
     const topics = [
       { key: "airport_transfer", label: "Airport transfer", terms: ["airport", "transfer", "shuttle", "pickup", "pick up"] },
       { key: "pool", label: "Pool", terms: ["pool", "swimming"] },
@@ -625,7 +625,7 @@ export const generateOperationsPatterns = createServerFn({ method: "POST" })
       { key: "safari", label: "Safari", terms: ["safari", "game drive", "serengeti", "ngorongoro"] },
     ];
 
-    const countTopic = (rows: unknown[], terms: string[]) =>
+    const countTopic = (rows: any[], terms: string[]) =>
       rows.filter((r) => {
         const t = (`${r.subject ?? ""} ${r.body ?? r.title ?? ""}`).toLowerCase();
         return terms.some((k) => t.includes(k));
@@ -653,7 +653,7 @@ export const generateOperationsPatterns = createServerFn({ method: "POST" })
     }
 
     // Category-level task pressure
-    const catCount = (rows: unknown[]) => {
+    const catCount = (rows: any[]) => {
       const m = new Map<string, number>();
       for (const t of rows) {
         const c = String(t.category ?? "other");

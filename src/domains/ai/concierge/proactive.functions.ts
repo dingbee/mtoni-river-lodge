@@ -45,9 +45,9 @@ export const generatePreArrivalRecommendations = createServerFn({ method: "POST"
       .order("check_in", { ascending: true });
     if (error) throw new Error(error.message);
 
-    const created: unknown[] = [];
+    const created: any[] = [];
     for (const b of bookings ?? []) {
-      const memMap: unknown[] = [];
+      const memMap: any[] = [];
       if (b.guest_id) {
         const { data } = await sb
           .from("ai_guest_memories")
@@ -359,7 +359,7 @@ export const generatePostStayDrafts = createServerFn({ method: "POST" })
       },
     ];
 
-    const inserted: unknown[] = [];
+    const inserted: any[] = [];
     for (const d of drafts) {
       const { data: row, error: e2 } = await sb
         .from("ai_communication_drafts")
@@ -418,9 +418,9 @@ export const getPersonalisationMetrics = createServerFn({ method: "GET" })
       .gte("created_at", since);
     if (error) throw new Error(error.message);
     const total = rows?.length ?? 0;
-    const approved = rows?.filter((r: Record<string, unknown>) => r.status === "approved").length ?? 0;
-    const completed = rows?.filter((r: Record<string, unknown>) => r.status === "completed").length ?? 0;
-    const dismissed = rows?.filter((r: Record<string, unknown>) => r.status === "dismissed").length ?? 0;
+    const approved = rows?.filter((r: any) => r.status === "approved").length ?? 0;
+    const completed = rows?.filter((r: any) => r.status === "completed").length ?? 0;
+    const dismissed = rows?.filter((r: any) => r.status === "dismissed").length ?? 0;
     const acceptance = total > 0 ? (approved + completed) / total : 0;
     return { total, approved, completed, dismissed, acceptance };
   });

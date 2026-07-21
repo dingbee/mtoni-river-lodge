@@ -101,7 +101,7 @@ export const getExecutiveOverview = createServerFn({ method: "GET" })
     }
 
     const avgRating = (reviews ?? []).length
-      ? (reviews ?? []).reduce((s, r) => s + Number(r.rating ?? 0), 0) / (reviews as unknown[]).length
+      ? (reviews ?? []).reduce((s, r) => s + Number(r.rating ?? 0), 0) / (reviews as any[]).length
       : 0;
 
     // Health scores (0-1)
@@ -269,7 +269,7 @@ export const generateExecutiveBriefing = createServerFn({ method: "POST" })
     return row;
   });
 
-function buildSummaryText(sections: any, ranked: unknown[]): string {
+function buildSummaryText(sections: any, ranked: any[]): string {
   const parts: string[] = [];
   parts.push(`Arrivals today: ${sections.operations.arrivals.length}. Departures: ${sections.operations.departures.length}.`);
   if (sections.guests.vipToday.length) parts.push(`VIP/climber arrivals: ${sections.guests.vipToday.length}.`);
@@ -450,7 +450,7 @@ export const getExecutiveKpis = createServerFn({ method: "GET" })
     const repeat = guestIds.size ? Array.from(repeatCounts.values()).filter((n) => n > 1).length / guestIds.size : 0;
 
     const avgReview = (reviews ?? []).length
-      ? (reviews ?? []).reduce((a, r) => a + Number(r.rating ?? 0), 0) / (reviews as unknown[]).length : 0;
+      ? (reviews ?? []).reduce((a, r) => a + Number(r.rating ?? 0), 0) / (reviews as any[]).length : 0;
 
     const totalRecs = total?.length ?? 0;
     const acceptedRecs = (total ?? []).filter((r) => r.status === "accepted" || r.status === "converted").length;
@@ -493,7 +493,7 @@ export const captureKpiSnapshot = createServerFn({ method: "POST" })
       revenue,
       adr: nights > 0 ? revenue / nights : 0,
       revpar: capacity > 0 ? revenue / capacity : 0,
-      avgReview: (reviews ?? []).length ? (reviews ?? []).reduce((a, r) => a + Number(r.rating ?? 0), 0) / (reviews as unknown[]).length : 0,
+      avgReview: (reviews ?? []).length ? (reviews ?? []).reduce((a, r) => a + Number(r.rating ?? 0), 0) / (reviews as any[]).length : 0,
       bookings: (bookings ?? []).length,
     };
 
@@ -557,8 +557,8 @@ export const detectStrategicRisks = createServerFn({ method: "POST" })
       });
     }
 
-    const avgRecent = (reviewsRecent ?? []).length ? (reviewsRecent ?? []).reduce((a, r) => a + Number(r.rating ?? 0), 0) / (reviewsRecent as unknown[]).length : 0;
-    const avgOlder = (reviewsOlder ?? []).length ? (reviewsOlder ?? []).reduce((a, r) => a + Number(r.rating ?? 0), 0) / (reviewsOlder as unknown[]).length : 0;
+    const avgRecent = (reviewsRecent ?? []).length ? (reviewsRecent ?? []).reduce((a, r) => a + Number(r.rating ?? 0), 0) / (reviewsRecent as any[]).length : 0;
+    const avgOlder = (reviewsOlder ?? []).length ? (reviewsOlder ?? []).reduce((a, r) => a + Number(r.rating ?? 0), 0) / (reviewsOlder as any[]).length : 0;
     if (avgRecent > 0 && avgOlder > 0 && avgOlder - avgRecent > 0.3) {
       detected.push({
         risk_type: "guest_satisfaction_decline",

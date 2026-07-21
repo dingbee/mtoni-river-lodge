@@ -179,7 +179,7 @@ export async function suggestMemoriesFromMessage(params: {
   if (error) return 0;
   if (inserted?.length) {
     await supabaseAdmin.from("ai_memory_events").insert(
-      inserted.map((r: Record<string, unknown>) => ({
+      inserted.map((r: any) => ({
         memory_id: r.id,
         event_type: "created",
         payload: { source: "ai_suggested" },

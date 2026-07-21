@@ -16,7 +16,7 @@ async function chat(system: string, user: string, jsonMode = true): Promise<stri
 
 const tryJson = parseAiJson;
 
-async function getRoles(supabase: Record<string, unknown>): Promise<string[]> {
+async function getRoles(supabase: any): Promise<string[]> {
   const { data } = await supabase.rpc("current_user_roles");
   return (data ?? []) as string[];
 }
@@ -135,7 +135,7 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
 
     const toolIds: AiToolId[] = [];
     const domainsUsed = new Set<string>();
-    const evidence: unknown[] = [];
+    const evidence: any[] = [];
     const toolPayloads: string[] = [];
     let citations: AiKnowledgeCitation[] = [];
 
@@ -149,7 +149,7 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
         evidence.push({ domain: toolDomain(tid), tool: tid, count: res.count, window: res.window, summary: res.summary });
         toolPayloads.push(`### Tool: ${tid}\n${res.summary}\nData: ${JSON.stringify(res.data).slice(0, 3000)}`);
         if (tid === "knowledge.search" && Array.isArray(res.data)) {
-          citations = (res.data as unknown[]).map((r) => ({
+          citations = (res.data as any[]).map((r) => ({
             document_id: r.document_id, document_title: r.document_title, document_slug: r.document_slug,
             category_slug: r.category_slug ?? null, chunk_index: r.chunk_index, excerpt: String(r.content ?? "").slice(0, 400),
           }));
@@ -168,7 +168,7 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
           const { data: r } = await context.supabase.rpc("knowledge_search", { _query: data.question, _limit: 4 });
           return r;
         });
-        const rows = (kb ?? []) as unknown[];
+        const rows = (kb ?? []) as any[];
         if (rows.length) {
           citations = rows.map((r) => ({
             document_id: r.document_id, document_title: r.document_title, document_slug: r.document_slug,
@@ -189,7 +189,7 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false })
       .limit(8);
     const historyText = (history ?? []).reverse()
-      .map((m: Record<string, unknown>) => `${m.role.toUpperCase()}: ${m.content}`).join("\n");
+      .map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join("\n");
 
     const answerUser = [
       `Conversation so far:\n${historyText}`,
@@ -312,8 +312,8 @@ export const getCopilotAnalytics = createServerFn({ method: "GET" })
       context.supabase.from("ai_copilot_feedback").select("rating"),
     ]);
     const rows = recent ?? [];
-    const avgConfidence = rows.length ? rows.reduce((s, r: Record<string, unknown>) => s + Number(r.confidence ?? 0), 0) / rows.length : 0;
-    const avgDuration = rows.length ? rows.reduce((s, r: Record<string, unknown>) => s + Number(r.duration_ms ?? 0), 0) / rows.length : 0;
+    const avgConfidence = rows.length ? rows.reduce((s, r: any) => s + Number(r.confidence ?? 0), 0) / rows.length : 0;
+    const avgDuration = rows.length ? rows.reduce((s, r: any) => s + Number(r.duration_ms ?? 0), 0) / rows.length : 0;
     const fbBreakdown: Record<string, number> = {};
     for (const f of feedback ?? []) fbBreakdown[(f as any).rating] = (fbBreakdown[(f as any).rating] ?? 0) + 1;
     return {
