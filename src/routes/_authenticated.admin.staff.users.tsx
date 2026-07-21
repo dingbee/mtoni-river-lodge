@@ -85,6 +85,7 @@ function StaffUsersPage() {
               <thead className="text-xs uppercase text-muted-foreground">
                 <tr className="text-left">
                   <th className="py-2 pr-3">User</th>
+                  <th className="py-2 pr-3">User ID</th>
                   <th className="py-2 pr-3">Roles</th>
                   <th className="py-2 pr-3">Last sign-in</th>
                   <th className="py-2 pr-3">Added</th>
@@ -96,6 +97,9 @@ function StaffUsersPage() {
                     <td className="py-2 pr-3">
                       <div className="font-medium">{u.full_name ?? u.email ?? u.user_id.slice(0, 8)}</div>
                       <div className="text-xs text-muted-foreground">{u.email ?? "—"}</div>
+                    </td>
+                    <td className="py-2 pr-3">
+                      <CopyableUuid value={u.user_id} />
                     </td>
                     <td className="py-2 pr-3">
                       <div className="flex flex-wrap gap-1">
