@@ -56,7 +56,6 @@ function CommandCentrePage() {
   const ops: any = opsQ.data ?? {};
   const rev: any = revQ.data ?? {};
   const crm: any = crmQ.data ?? { recent: [], returning: [], vip: [], arrivals: [] };
-  const isInitialLoading = opsQ.isLoading && revQ.isLoading && crmQ.isLoading;
   const kpiHint = (v: string) => (opsQ.isLoading || revQ.isLoading ? "Loading…" : v);
   const intel: any = intelQ.data ?? {
     vipArrivals: [], birthdays: [], anniversaries: [], topCountries: [], topLifetime: [], acquisitionTrend: [],
