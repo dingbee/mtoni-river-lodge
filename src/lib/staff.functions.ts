@@ -5,7 +5,7 @@ import { logActivity } from "@/lib/activity-log.server";
 
 /** Roles that may view the Staff module. */
 const STAFF_VIEW_ROLES = ["owner", "manager", "admin"] as const;
-/** Roles that may mutate role assignments. */
+/** Roles that may mutate role assignments or invite users. */
 const ROLE_ADMIN_ROLES = ["owner", "admin"] as const;
 
 export const APP_ROLES = [
@@ -36,10 +36,27 @@ export type StaffUser = {
   user_id: string;
   email: string | null;
   full_name: string | null;
+  department: string | null;
+  notes: string | null;
+  status: "pending" | "active" | "disabled";
   last_sign_in_at: string | null;
   created_at: string | null;
   roles: AppRole[];
 };
+
+function deriveStatus(u: {
+  email_confirmed_at?: string | null;
+  confirmed_at?: string | null;
+  invited_at?: string | null;
+  banned_until?: string | null;
+  last_sign_in_at?: string | null;
+}): "pending" | "active" | "disabled" {
+  const banned = u.banned_until && new Date(u.banned_until).getTime() > Date.now();
+  if (banned) return "disabled";
+  const confirmed = !!(u.email_confirmed_at || u.confirmed_at);
+  if (!confirmed && !u.last_sign_in_at) return "pending";
+  return "active";
+}
 
 /** List all users who have at least one role assignment, plus their roles. */
 export const listStaffUsers = createServerFn({ method: "GET" })
@@ -69,11 +86,18 @@ export const listStaffUsers = createServerFn({ method: "GET" })
     for (const [uid, info] of byUser.entries()) {
       try {
         const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(uid);
-        const u = userRes?.user;
+        const u = userRes?.user as any;
+        const meta = (u?.user_metadata ?? {}) as Record<string, unknown>;
         results.push({
           user_id: uid,
           email: u?.email ?? null,
-          full_name: (u?.user_metadata?.full_name as string) ?? (u?.user_metadata?.name as string) ?? null,
+          full_name:
+            (meta.full_name as string) ??
+            (meta.name as string) ??
+            null,
+          department: (meta.department as string) ?? null,
+          notes: (meta.notes as string) ?? null,
+          status: u ? deriveStatus(u) : "active",
           last_sign_in_at: u?.last_sign_in_at ?? null,
           created_at: u?.created_at ?? info.created_at,
           roles: info.roles,
@@ -83,6 +107,9 @@ export const listStaffUsers = createServerFn({ method: "GET" })
           user_id: uid,
           email: null,
           full_name: null,
+          department: null,
+          notes: null,
+          status: "active",
           last_sign_in_at: null,
           created_at: info.created_at,
           roles: info.roles,
