@@ -5,6 +5,7 @@ import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Quote, Heading2, Heading3, Link as LinkIcon, Image as ImageIcon, Undo2, Redo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
 
 interface Props {
   initialHtml?: string;
@@ -34,6 +35,16 @@ export function TiptapEditor({ initialHtml, onChange, placeholder }: Props) {
       onChange?.({ html: e.getHTML(), json: e.getJSON() });
     },
   });
+
+  // Rehydrate when initialHtml changes externally (e.g. version restore or
+  // slow-loading data). Skip when it already matches to avoid clobbering
+  // in-flight edits.
+  useEffect(() => {
+    if (!editor) return;
+    const next = initialHtml ?? "";
+    if (editor.getHTML() === next) return;
+    editor.commands.setContent(next, { emitUpdate: false });
+  }, [editor, initialHtml]);
 
   if (!editor) return null;
 
