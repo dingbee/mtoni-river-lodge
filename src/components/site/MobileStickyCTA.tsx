@@ -85,7 +85,7 @@ export function MobileStickyCTA() {
             destinationUrl: WHATSAPP_URL,
           })
         }
-        className="inline-flex h-11 w-11 items-center justify-center rounded-full shadow-[0_10px_30px_-8px_rgba(0,0,0,0.45)] transition-transform active:scale-[0.98] hover:brightness-105"
+        className="hidden"
         style={{ backgroundColor: "#25D366", color: "#FFFFFF" }}
       >
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
