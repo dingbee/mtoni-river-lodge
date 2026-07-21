@@ -53,7 +53,7 @@ export const getSchedulerConfig = createServerFn({ method: "GET" })
 
 export const updateSchedulerConfig = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({
       enabled: z.boolean().optional(),
       cron_expression: z.string().min(3).max(100).optional(),
@@ -98,10 +98,10 @@ export const getKnowledgeHealth = createServerFn({ method: "GET" })
     const { data: cfg } = await sb.from("ai_knowledge_scheduler_config").select("*").eq("id", 1).single();
     const rules: Record<string, number> = { ...DEFAULT_FRESHNESS, ...(cfg?.freshness_rules ?? {}) };
 
-    const approved = rows.filter((r) => r.status === "approved");
-    const pending = rows.filter((r) => r.status === "pending" || r.status === "processing");
-    const archived = rows.filter((r) => r.status === "archived");
-    const failed = rows.filter((r) => r.status === "failed");
+    const approved = rows.filter((r: any) => r.status === "approved");
+    const pending = rows.filter((r: any) => r.status === "pending" || r.status === "processing");
+    const archived = rows.filter((r: any) => r.status === "archived");
+    const failed = rows.filter((r: any) => r.status === "failed");
 
     let staleCount = 0;
     let ageSum = 0;
@@ -113,8 +113,8 @@ export const getKnowledgeHealth = createServerFn({ method: "GET" })
     }
     const avgAge = approved.length ? Math.round(ageSum / approved.length) : 0;
     const qualityAvg =
-      approved.length && approved.some((r) => r.quality_score != null)
-        ? approved.reduce((a, r) => a + (Number(r.quality_score) || 0), 0) / approved.length
+      approved.length && approved.some((r: any) => r.quality_score != null)
+        ? approved.reduce((a: any, r: any) => a + (Number(r.quality_score) || 0), 0) / approved.length
         : null;
 
     // Health score: weighted composite
@@ -165,7 +165,7 @@ export const getFreshnessReport = createServerFn({ method: "GET" })
       .eq("status", "approved")
       .limit(2000);
 
-    const rows = ((sources ?? []) as any[]).map((r) => {
+    const rows = ((sources ?? []) as any[]).map((r: any) => {
       const days = daysBetween(r.source_updated_at ?? r.last_synced_at ?? r.updated_at);
       const warn = rules[r.source_type] ?? 180;
       return {
@@ -219,8 +219,8 @@ export const getKnowledgeGaps = createServerFn({ method: "GET" })
         confidence: g.count ? g.avgConfidence / g.count : 0,
         no_result: g.noResult,
       }))
-      .filter((r) => r.no_result > 0 || r.confidence < 0.6 || r.asked >= 3)
-      .sort((a, b) => b.asked - a.asked)
+      .filter((r: any) => r.no_result > 0 || r.confidence < 0.6 || r.asked >= 3)
+      .sort((a: any, b: any) => b.asked - a.asked)
       .slice(0, 50);
     return { gaps: items, totalQueries: rows.length };
   });
@@ -292,8 +292,8 @@ export const getContentRecommendations = createServerFn({ method: "GET" })
                 : "faq";
         return { query: q, asked: g.asked, no_result: g.noResult, confidence: conf, priority, suggested_type };
       })
-      .filter((r) => r.priority !== "low" || r.no_result > 0)
-      .sort((a, b) => {
+      .filter((r: any) => r.priority !== "low" || r.no_result > 0)
+      .sort((a: any, b: any) => {
         const rank: Record<string, number> = { high: 3, medium: 2, low: 1 };
         return rank[b.priority] - rank[a.priority] || b.asked - a.asked;
       })
@@ -304,7 +304,7 @@ export const getContentRecommendations = createServerFn({ method: "GET" })
 // ---------- Source quality ----------
 export const getSourceQualityList = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({ limit: z.number().int().min(1).max(500).default(100) }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
@@ -315,7 +315,7 @@ export const getSourceQualityList = createServerFn({ method: "GET" })
       .select("id, title, source_type, url, status, completeness_score, freshness_score, usage_score, confidence_score, quality_score, usage_count, last_used_at, last_synced_at, source_updated_at, updated_at, content")
       .order("quality_score", { ascending: true, nullsFirst: true })
       .limit(data.limit);
-    return (rows ?? []).map((r) => ({ ...r, content: undefined, content_length: (r.content ?? "").length }));
+    return (rows ?? []).map((r: any) => ({ ...r, content: undefined, content_length: (r.content ?? "").length }));
   });
 
 // Recompute quality scores based on freshness/usage/completeness heuristics
@@ -332,7 +332,7 @@ export const recomputeQualityScores = createServerFn({ method: "POST" })
       .eq("status", "approved")
       .limit(5000);
 
-    const maxUsage = Math.max(1, ...((rows ?? []) as any[]).map((r) => r.usage_count ?? 0));
+    const maxUsage = Math.max(1, ...((rows ?? []) as any[]).map((r: any) => r.usage_count ?? 0));
     let updated = 0;
     for (const r of (rows ?? []) as any[]) {
       const contentLen = (r.content ?? "").length;
@@ -364,7 +364,7 @@ export const recomputeQualityScores = createServerFn({ method: "POST" })
 // ---------- Notifications ----------
 export const listKnowledgeNotifications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({ status: z.enum(["open", "dismissed", "all"]).default("open") }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
@@ -382,7 +382,7 @@ export const listKnowledgeNotifications = createServerFn({ method: "GET" })
 
 export const dismissKnowledgeNotification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .inputValidator((input: any) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
     await assertManager(context.supabase, context.userId);
     const { error } = await (context.supabase as any)

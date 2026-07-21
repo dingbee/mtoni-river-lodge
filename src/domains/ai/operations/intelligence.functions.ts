@@ -69,7 +69,7 @@ export const generateRoomReadinessInsights = createServerFn({ method: "POST" })
     const upserts: any[] = [];
 
     for (const a of arrivals) {
-      const sameDayDep = departures.find((d) => d.room_id === a.room_id);
+      const sameDayDep = departures.find((d: any) => d.room_id === a.room_id);
       const isVip = a.guest_type && a.guest_type !== "standard";
       const guestPrefs = a.guest_id ? prefByGuest.get(a.guest_id) ?? [] : [];
       const hasSpecial = !!(a.special_requests && a.special_requests.trim().length > 3);
@@ -137,7 +137,7 @@ export const generateRoomReadinessInsights = createServerFn({ method: "POST" })
       }
     }
 
-    priorities.sort((a, b) => {
+    priorities.sort((a: any, b: any) => {
       const rank = { critical: 4, high: 3, medium: 2, low: 1 } as any;
       return rank[b.priority] - rank[a.priority];
     });
@@ -148,7 +148,7 @@ export const generateRoomReadinessInsights = createServerFn({ method: "POST" })
 
 export const listRoomReadinessInsights = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({
       status: z.enum(["pending", "approved", "dismissed", "converted_to_task", "all"]).default("pending"),
     }).parse(input ?? {}),
@@ -168,7 +168,7 @@ export const listRoomReadinessInsights = createServerFn({ method: "GET" })
 
 export const updateRoomReadinessStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({
       id: z.string().uuid(),
       status: z.enum(["pending", "approved", "dismissed", "converted_to_task"]),
@@ -239,8 +239,8 @@ export const getMaintenanceIntelligence = createServerFn({ method: "GET" })
       .filter(([, arr]) => arr.length >= 2)
       .map(([key, arr]) => {
         const avgResolveMs = arr
-          .filter((t) => t.completed_at)
-          .map((t) => new Date(t.completed_at).getTime() - new Date(t.created_at).getTime())
+          .filter((t: any) => t.completed_at)
+          .map((t: any) => new Date(t.completed_at).getTime() - new Date(t.created_at).getTime())
           .reduce((a: number, b: number, _i, xs) => a + b / xs.length, 0);
         return {
           pattern: key,
@@ -251,11 +251,11 @@ export const getMaintenanceIntelligence = createServerFn({ method: "GET" })
           confidence: Math.min(0.95, 0.6 + arr.length * 0.08),
         };
       })
-      .sort((a, b) => b.occurrences - a.occurrences);
+      .sort((a: any, b: any) => b.occurrences - a.occurrences);
 
     const delayed = tasks
-      .filter((t) => t.status !== "completed" && t.due_at && new Date(t.due_at) < new Date())
-      .map((t) => ({
+      .filter((t: any) => t.status !== "completed" && t.due_at && new Date(t.due_at) < new Date())
+      .map((t: any) => ({
         id: t.id,
         title: t.title,
         due_at: t.due_at,
@@ -290,8 +290,8 @@ export const generateStaffOperationsInsights = createServerFn({ method: "POST" }
 
     const list = tasks ?? [];
     const total = list.length;
-    const completed = list.filter((t) => t.status === "completed");
-    const overdue = list.filter((t) => t.status !== "completed" && t.due_at && new Date(t.due_at) < new Date());
+    const completed = list.filter((t: any) => t.status === "completed");
+    const overdue = list.filter((t: any) => t.status !== "completed" && t.due_at && new Date(t.due_at) < new Date());
 
     const byCategory: Record<string, { total: number; completed: number; overdue: number }> = {};
     for (const t of list) {
@@ -305,7 +305,7 @@ export const generateStaffOperationsInsights = createServerFn({ method: "POST" }
     const insights: any[] = [];
 
     // Response-time signal
-    const completedWithTimes = completed.filter((t) => t.completed_at && t.created_at);
+    const completedWithTimes = completed.filter((t: any) => t.completed_at && t.created_at);
     if (completedWithTimes.length >= 5) {
       const avgMs =
         completedWithTimes.reduce(
@@ -328,7 +328,7 @@ export const generateStaffOperationsInsights = createServerFn({ method: "POST" }
     }
 
     // Workload imbalance across categories
-    const catEntries = Object.entries(byCategory).sort((a, b) => b[1].total - a[1].total);
+    const catEntries = Object.entries(byCategory).sort((a: any, b: any) => b[1].total - a[1].total);
     if (catEntries.length >= 2) {
       const top = catEntries[0];
       const bottom = catEntries[catEntries.length - 1];
@@ -380,7 +380,7 @@ export const generateStaffOperationsInsights = createServerFn({ method: "POST" }
 
 export const listStaffOperationsInsights = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({ status: z.enum(["pending", "approved", "dismissed", "actioned", "all"]).default("pending") }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
@@ -398,7 +398,7 @@ export const listStaffOperationsInsights = createServerFn({ method: "GET" })
 
 export const updateStaffInsightStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({
       id: z.string().uuid(),
       status: z.enum(["pending", "approved", "dismissed", "actioned"]),
@@ -537,7 +537,7 @@ export const generateServiceRecoveryInsights = createServerFn({ method: "POST" }
 
 export const listServiceRecoveryInsights = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({
       status: z.enum(["pending", "approved", "dismissed", "converted_to_task", "resolved", "all"]).default("pending"),
     }).parse(input ?? {}),
@@ -557,7 +557,7 @@ export const listServiceRecoveryInsights = createServerFn({ method: "GET" })
 
 export const updateServiceRecoveryStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({
       id: z.string().uuid(),
       status: z.enum(["pending", "approved", "dismissed", "converted_to_task", "resolved"]),
@@ -626,9 +626,9 @@ export const generateOperationsPatterns = createServerFn({ method: "POST" })
     ];
 
     const countTopic = (rows: any[], terms: string[]) =>
-      rows.filter((r) => {
+      rows.filter((r: any) => {
         const t = (`${r.subject ?? ""} ${r.body ?? r.title ?? ""}`).toLowerCase();
-        return terms.some((k) => t.includes(k));
+        return terms.some((k: any) => t.includes(k));
       }).length;
 
     for (const topic of topics) {
@@ -702,7 +702,7 @@ export const generateOperationsPatterns = createServerFn({ method: "POST" })
 
 export const listOperationsPatterns = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({ status: z.enum(["pending", "approved", "dismissed", "actioned", "all"]).default("pending") }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
@@ -720,7 +720,7 @@ export const listOperationsPatterns = createServerFn({ method: "GET" })
 
 export const updatePatternStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({
       id: z.string().uuid(),
       status: z.enum(["pending", "approved", "dismissed", "actioned"]),

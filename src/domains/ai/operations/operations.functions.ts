@@ -21,7 +21,7 @@ const isoDate = (d = new Date()) => d.toISOString().slice(0, 10);
  */
 export const generateOperationsBriefing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({ date: z.string().optional() }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
@@ -58,17 +58,17 @@ export const generateOperationsBriefing = createServerFn({ method: "POST" })
     const tasks = tasksRes.data ?? [];
     const alerts = alertsRes.data ?? [];
 
-    const vipArrivals = arrivals.filter((b) => b.guest_type && b.guest_type !== "standard");
+    const vipArrivals = arrivals.filter((b: any) => b.guest_type && b.guest_type !== "standard");
     const overdueTasks = tasks.filter(
       (t) => t.due_at && new Date(t.due_at).getTime() < Date.now(),
     );
-    const highPriorityTasks = tasks.filter((t) => t.priority === 1);
+    const highPriorityTasks = tasks.filter((t: any) => t.priority === 1);
 
     const priorities: any[] = [];
     if (vipArrivals.length) {
       priorities.push({
         title: `${vipArrivals.length} priority arrival(s) today`,
-        detail: vipArrivals.map((v) => `${v.guest_name} (${v.guest_type})`).join("; "),
+        detail: vipArrivals.map((v: any) => `${v.guest_name} (${v.guest_type})`).join("; "),
         impact: "high",
       });
     }
@@ -82,7 +82,7 @@ export const generateOperationsBriefing = createServerFn({ method: "POST" })
     if (highPriorityTasks.length) {
       priorities.push({
         title: `${highPriorityTasks.length} P1 task(s) open`,
-        detail: highPriorityTasks.slice(0, 3).map((t) => t.title).join("; "),
+        detail: highPriorityTasks.slice(0, 3).map((t: any) => t.title).join("; "),
         impact: "medium",
       });
     }
@@ -91,14 +91,14 @@ export const generateOperationsBriefing = createServerFn({ method: "POST" })
     if (overdueTasks.length) {
       risks.push({
         title: `${overdueTasks.length} overdue task(s)`,
-        detail: overdueTasks.slice(0, 3).map((t) => t.title).join("; "),
+        detail: overdueTasks.slice(0, 3).map((t: any) => t.title).join("; "),
         severity: "medium",
       });
     }
-    if (alerts.filter((a) => a.severity === "high").length) {
+    if (alerts.filter((a: any) => a.severity === "high").length) {
       risks.push({
         title: "Open high-severity operational alerts",
-        detail: `${alerts.filter((a) => a.severity === "high").length} alert(s)`,
+        detail: `${alerts.filter((a: any) => a.severity === "high").length} alert(s)`,
         severity: "high",
       });
     }
@@ -171,7 +171,7 @@ export const generateOperationsBriefing = createServerFn({ method: "POST" })
 
 export const listOperationsBriefings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({ limit: z.number().int().min(1).max(60).default(14) }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
@@ -227,8 +227,8 @@ export const getHousekeepingPriorities = createServerFn({ method: "GET" })
     const departures = depRes.data ?? [];
     const arrivals = arrRes.data ?? [];
 
-    const priorities = departures.map((d) => {
-      const nextArrival = arrivals.find((a) => a.room_id === d.room_id);
+    const priorities = departures.map((d: any) => {
+      const nextArrival = arrivals.find((a: any) => a.room_id === d.room_id);
       const isVip = nextArrival?.guest_type && nextArrival.guest_type !== "standard";
       let score = 40;
       if (nextArrival) score += 40;
@@ -291,8 +291,8 @@ export const getMaintenanceInsights = createServerFn({ method: "GET" })
       }));
 
     const delayed = tasks
-      .filter((t) => t.status !== "completed" && t.due_at && new Date(t.due_at) < new Date())
-      .map((t) => ({
+      .filter((t: any) => t.status !== "completed" && t.due_at && new Date(t.due_at) < new Date())
+      .map((t: any) => ({
         id: t.id,
         title: t.title,
         due_at: t.due_at,
@@ -318,15 +318,15 @@ export const getTaskIntelligence = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     const tasks = data ?? [];
     const now = Date.now();
-    const overdue = tasks.filter((t) => t.due_at && new Date(t.due_at).getTime() < now);
-    const highImpact = tasks.filter((t) => t.priority === 1);
+    const overdue = tasks.filter((t: any) => t.due_at && new Date(t.due_at).getTime() < now);
+    const highImpact = tasks.filter((t: any) => t.priority === 1);
     const byCategory: Record<string, number> = {};
     for (const t of tasks) {
       const cat = String((t as any).category ?? "other");
       byCategory[cat] = (byCategory[cat] ?? 0) + 1;
     }
     const bottleneck = Object.entries(byCategory)
-      .sort((a, b) => b[1] - a[1])
+      .sort((a: any, b: any) => b[1] - a[1])
       .slice(0, 3)
       .map(([category, count]) => ({ category, open: count }));
     return { overdue, highImpact, bottleneck, total: tasks.length };
@@ -337,7 +337,7 @@ export const getTaskIntelligence = createServerFn({ method: "GET" })
  */
 export const listOperationsAlerts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z
       .object({ status: z.enum(["open", "acknowledged", "resolved", "dismissed", "all"]).default("open") })
       .parse(input ?? {}),
@@ -357,7 +357,7 @@ export const listOperationsAlerts = createServerFn({ method: "GET" })
 
 export const updateOperationsAlertStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z
       .object({
         id: z.string().uuid(),
@@ -465,7 +465,7 @@ export const detectOperationsAlerts = createServerFn({ method: "POST" })
 
 export const listOperationsInsights = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z
       .object({ status: z.enum(["pending", "accepted", "dismissed", "all"]).default("pending") })
       .parse(input ?? {}),
@@ -507,7 +507,7 @@ export const getOperationsTimeline = createServerFn({ method: "GET" })
  */
 export const askOperationsKnowledge = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .inputValidator((input: any) =>
     z.object({ query: z.string().min(3).max(300) }).parse(input),
   )
   .handler(async ({ context, data }) => {
