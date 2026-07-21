@@ -582,40 +582,126 @@
    the public website is untouched.
    ============================================================ */
 .mtoni-os {
-  /* Warm charcoal / graphite canvas */
-  --os-canvas: #1E211F;
+  /* Luxury charcoal — quiet, expensive, editorial */
+  --os-canvas: #111315;
+  --os-surface: #181B1E;      /* sidebar / rail / topbar surfaces */
+  --os-surface-2: #202427;    /* cards, elevated panels */
   --os-hairline: rgba(255,255,255,0.06);
-  --os-hairline-strong: rgba(255,255,255,0.12);
+  --os-hairline-strong: rgba(255,255,255,0.10);
 
-  /* Text sitting directly on the dark canvas (topbar, page headers) */
-  --foreground: #ECEEEB;
-  --muted-foreground: #A6ABA5;
-  --border: rgba(255,255,255,0.10);
-  --input: rgba(255,255,255,0.14);
+  --os-ink: #F5F5F3;          /* primary text on dark */
+  --os-ink-2: #B7B9BC;        /* secondary */
+  --os-ink-3: #7E8185;        /* muted */
+
+  --os-green: #5EA56D;
+  --os-green-soft: rgba(94,165,109,0.14);
+  --os-gold: #C0B87A;
+  --os-gold-soft: rgba(192,184,122,0.14);
+  --os-info: #7AA7D6;
+  --os-info-soft: rgba(122,167,214,0.12);
+  --os-warn: #D8A94A;
+  --os-warn-soft: rgba(216,169,74,0.14);
+  --os-danger: #C65D5D;
+  --os-danger-soft: rgba(198,93,93,0.14);
+  --os-success: #5EA56D;
+  --os-success-soft: rgba(94,165,109,0.14);
+
+  --os-shadow-card:
+    0 1px 0 rgba(255,255,255,0.02) inset,
+    0 1px 2px rgba(0,0,0,0.35),
+    0 20px 40px -24px rgba(0,0,0,0.55);
+  --os-shadow-float:
+    0 1px 0 rgba(255,255,255,0.03) inset,
+    0 20px 60px -20px rgba(0,0,0,0.65);
+
+  --foreground: var(--os-ink);
+  --muted-foreground: var(--os-ink-3);
+  --border: var(--os-hairline);
+  --input: rgba(255,255,255,0.10);
 
   background-color: var(--os-canvas);
   color: var(--foreground);
+  font-feature-settings: "ss01", "cv11", "tnum";
 }
 
-/* Re-scope light surfaces (cards, sidebar, right rail, popovers)
-   back to dark ink so their content remains readable. */
+/* Cards use the elevated surface, hairline border, quiet shadow */
 .mtoni-os .os-card,
-.mtoni-os .os-card-flat,
+.mtoni-os .os-card-flat {
+  background: var(--os-surface-2);
+  border: 1px solid var(--os-hairline);
+  border-radius: 18px;
+}
+.mtoni-os .os-card { box-shadow: var(--os-shadow-card); }
+
+/* Sidebar & rail sit on the mid surface */
 .mtoni-os aside[aria-label="Primary navigation"],
-.mtoni-os aside[aria-label="Assistant"],
-.mtoni-os [data-os-surface="light"] {
-  --foreground: var(--os-ink);
-  --muted-foreground: var(--os-ink-3);
-  --border: rgba(26,26,26,0.10);
-  --input: rgba(26,26,26,0.14);
-  color: var(--os-ink);
+.mtoni-os aside[aria-label="Assistant"] {
+  background: var(--os-surface) !important;
+  border-color: var(--os-hairline) !important;
 }
 
-/* Card shadows read better on the dark canvas with a deeper drop */
+/* Chips */
+.mtoni-os .os-chip {
+  background: rgba(255,255,255,0.03);
+  border-color: var(--os-hairline-strong);
+  color: var(--os-ink-2);
+}
+
+/* Card hover — subtle lift */
 .mtoni-os .os-card {
+  transition: transform .35s cubic-bezier(.2,.7,.2,1),
+              border-color .3s ease,
+              box-shadow .35s ease;
+}
+.mtoni-os .os-card:hover {
+  border-color: var(--os-hairline-strong);
   box-shadow:
-    0 1px 0 rgba(0,0,0,0.35),
-    0 6px 20px -10px rgba(0,0,0,0.55),
-    0 24px 60px -30px rgba(0,0,0,0.65);
-  border-color: rgba(0,0,0,0.35);
+    0 1px 0 rgba(255,255,255,0.03) inset,
+    0 1px 2px rgba(0,0,0,0.35),
+    0 28px 60px -28px rgba(0,0,0,0.70);
+}
+
+/* Popovers / dropdowns on dark shell — keep light for readability */
+.mtoni-os [data-os-surface="light"] {
+  --foreground: #0F1210;
+  --muted-foreground: #6B6F6C;
+  color: #0F1210;
+}
+
+/* Command Centre hero image bleed helper */
+.os-hero-bleed {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid var(--os-hairline);
+  background: linear-gradient(180deg, #1B1F22 0%, #14171A 100%);
+}
+.os-hero-bleed::before {
+  content: "";
+  position: absolute; inset: 0;
+  background-image: var(--os-hero-image);
+  background-size: cover;
+  background-position: center;
+  opacity: 0.28;
+  filter: blur(1px) saturate(0.9);
+}
+.os-hero-bleed::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(17,19,21,0.95) 0%, rgba(17,19,21,0.70) 55%, rgba(17,19,21,0.30) 100%),
+              linear-gradient(180deg, rgba(17,19,21,0.10) 0%, rgba(17,19,21,0.85) 100%);
+}
+.os-hero-bleed > * { position: relative; z-index: 1; }
+
+/* Active nav indicator */
+.mtoni-os [data-nav-active="true"] {
+  position: relative;
+  background: var(--os-green-soft);
+  color: #C7E5CE !important;
+}
+.mtoni-os [data-nav-active="true"]::before {
+  content: "";
+  position: absolute; left: 4px; top: 8px; bottom: 8px;
+  width: 2px; border-radius: 2px;
+  background: var(--os-green);
 }

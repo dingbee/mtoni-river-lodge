@@ -29,17 +29,18 @@ function NavLink({
       to={item.href}
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
+      data-nav-active={active ? "true" : undefined}
       className={cn(
-        "group flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] transition-all",
+        "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-all",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         active
-          ? "bg-[color:var(--os-green-soft)] text-[color:var(--os-green)] font-medium"
-          : "text-[color:var(--os-ink-2)] hover:bg-[color:var(--os-surface-2)] hover:text-[color:var(--os-ink)]",
+          ? "font-medium"
+          : "text-[color:var(--os-ink-2)] hover:bg-white/[0.03] hover:text-[color:var(--os-ink)]",
         collapsed && "justify-center px-2",
       )}
       title={collapsed ? item.label : undefined}
     >
-      <Icon className={cn("h-4 w-4 shrink-0 transition-colors", active ? "text-[color:var(--os-green)]" : "text-[color:var(--os-ink-3)] group-hover:text-[color:var(--os-ink)]")} aria-hidden />
+      <Icon className={cn("h-[15px] w-[15px] shrink-0 transition-colors", active ? "text-[color:var(--os-green)]" : "text-[color:var(--os-ink-3)] group-hover:text-[color:var(--os-ink)]")} aria-hidden />
       {!collapsed && <span className="truncate">{item.label}</span>}
     </Link>
   );
