@@ -406,7 +406,7 @@ function StayLandingPage() {
                       <div className="mt-6 flex items-center gap-4">
                         <Link
                           to="/book"
-                          search={{ roomSlug: room.slug, step: undefined }}
+                          search={{ room: room.slug }}
                           onClick={() => trackCheckAvailabilityClick(`stay_room_${room.slug}`)}
                           className="inline-flex items-center gap-2 px-5 py-3 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-opacity hover:opacity-90"
                           style={{ backgroundColor: BRAND.primary }}
