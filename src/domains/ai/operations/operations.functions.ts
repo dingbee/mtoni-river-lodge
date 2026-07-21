@@ -60,7 +60,7 @@ export const generateOperationsBriefing = createServerFn({ method: "POST" })
 
     const vipArrivals = arrivals.filter((b: any) => b.guest_type && b.guest_type !== "standard");
     const overdueTasks = tasks.filter(
-      (t) => t.due_at && new Date(t.due_at).getTime() < Date.now(),
+      (t: any) => t.due_at && new Date(t.due_at).getTime() < Date.now(),
     );
     const highPriorityTasks = tasks.filter((t: any) => t.priority === 1);
 
