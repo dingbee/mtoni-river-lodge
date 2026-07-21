@@ -11,7 +11,7 @@ import heroImg from "@/assets/hero-river.jpg";
 import heroImg800 from "@/assets/hero-river-800w.webp";
 import heroImg1600 from "@/assets/hero-river-1600w.webp";
 import palmGardenJpg from "@/assets/palm-garden.jpg.asset.json";
-import diningImg from "@/assets/dining.jpg";
+import diningImg from "@/assets/xp-bonfire.jpg";
 import xpCanoe from "@/assets/xp-canoe.jpg";
 import xpMarket from "@/assets/xp-market.jpg";
 import xpCycling from "@/assets/xp-cycling.jpg";
@@ -555,7 +555,7 @@ function StayLandingPage() {
             <div className="aspect-[4/3] overflow-hidden">
               <img
                 src={diningImg}
-                alt="Riverside dining at Mtoni River Lodge with lantern light and stone walls"
+                alt="Evening bonfire gathering at Mtoni River Lodge"
                 loading="lazy"
                 decoding="async"
                 className="h-full w-full object-cover"
