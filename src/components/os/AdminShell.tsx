@@ -4,6 +4,7 @@ import { AdminSidebar } from "./AdminSidebar";
 import { AdminTopbar } from "./AdminTopbar";
 import { AdminAssistantRail } from "./AdminAssistantRail";
 import { useCurrentUserRoles } from "@/lib/permissions";
+import { useRealtimeNotifications } from "@/lib/notifications";
 
 const COLLAPSED_KEY = "mtoni-os.sidebar.collapsed";
 const RAIL_KEY = "mtoni-os.rail.open";
@@ -14,6 +15,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [commandOpen, setCommandOpen] = useState(false);
   const [railOpen, setRailOpen] = useState(true);
   const { data: roles = [] } = useCurrentUserRoles();
+  useRealtimeNotifications();
 
   // Read persisted collapse state on mount (browser storage — avoid hydration mismatch)
   useEffect(() => {
