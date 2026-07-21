@@ -306,7 +306,7 @@ export const recordManualPayment = createServerFn({ method: "POST" })
     // Guardrail: only finance-capable roles.
     const { data: allowed } = await context.supabase.rpc("has_any_role", {
       _user_id: context.userId,
-      _roles: ["owner", "manager", "finance", "admin"] as never,
+      _roles: ["owner", "manager", "finance"] as never,
     });
     if (!allowed) throw new Error("Forbidden");
 
@@ -709,7 +709,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { data: allowed } = await context.supabase.rpc("has_any_role", {
       _user_id: context.userId,
-      _roles: ["owner", "manager", "finance", "admin"] as never,
+      _roles: ["owner", "manager", "finance"] as never,
     });
     if (!allowed) throw new Error("Forbidden");
 

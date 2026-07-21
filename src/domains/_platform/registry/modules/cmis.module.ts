@@ -5,8 +5,8 @@ import { defineModule } from "../registry";
  *  Existing content.* / marketing.* modules stay in their own files; this
  *  file only adds the new surfaces introduced by CMIS. */
 
-const contentRoles = ["owner","manager","marketing","editor","admin"] as const;
-const marketingRoles = ["owner","manager","marketing","admin"] as const;
+const contentRoles = ["owner","manager","marketing","editor"] as const;
+const marketingRoles = ["owner","manager","marketing"] as const;
 
 export const contentPagesModule = defineModule({
   id: "content.pages",

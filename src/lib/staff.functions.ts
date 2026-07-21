@@ -4,9 +4,9 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { logActivity } from "@/lib/activity-log.server";
 
 /** Roles that may view the Staff module. */
-const STAFF_VIEW_ROLES = ["owner", "manager", "admin"] as const;
+const STAFF_VIEW_ROLES = ["owner", "manager"] as const;
 /** Roles that may mutate role assignments or invite users. */
-const ROLE_ADMIN_ROLES = ["owner", "admin"] as const;
+const ROLE_ADMIN_ROLES = ["owner"] as const;
 
 export const APP_ROLES = [
   "owner",
@@ -16,7 +16,6 @@ export const APP_ROLES = [
   "housekeeping",
   "finance",
   "editor",
-  "admin",
   "reservations",
   "user",
 ] as const;

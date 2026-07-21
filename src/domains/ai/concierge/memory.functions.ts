@@ -5,7 +5,7 @@ import type { ConciergeMemoryRow } from "./memory.types";
 
 const MEMORY_TYPES = ["preference", "interest", "travel_style", "communication_preference"] as const;
 const MEMORY_STATUS = ["pending", "approved", "rejected", "archived"] as const;
-const MANAGER_ROLES = ["owner", "manager", "admin", "reservations"] as const;
+const MANAGER_ROLES = ["owner", "manager", "reservations"] as const;
 
 async function assertStaff(sb: any, userId: string) {
   const { data, error } = await sb.rpc("is_any_staff", { _user_id: userId });

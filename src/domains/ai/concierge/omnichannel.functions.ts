@@ -18,7 +18,7 @@ const isChannel = (v: unknown): v is ConciergeChannel =>
 
 function requireManager(userId: string, roles: string[]) {
   return roles.some((r) =>
-    ["owner", "manager", "admin", "reservations"].includes(r),
+    ["owner", "manager", "reservations"].includes(r),
   ) || !!userId;
 }
 void requireManager;

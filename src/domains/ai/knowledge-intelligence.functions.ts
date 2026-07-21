@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const MANAGER_ROLES = ["owner", "manager", "admin"] as const;
+const MANAGER_ROLES = ["owner", "manager"] as const;
 
 const DEFAULT_FRESHNESS: Record<string, number> = {
   journal_article: 90,

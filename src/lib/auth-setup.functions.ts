@@ -9,7 +9,7 @@ export const adminExists = createServerFn({ method: "GET" }).handler(async () =>
   const { count, error } = await supabaseAdmin
     .from("user_roles")
     .select("user_id", { count: "exact", head: true })
-    .eq("role", "admin");
+    .eq("role");
   if (error) throw error;
   return { adminExists: (count ?? 0) > 0 };
 });
@@ -23,7 +23,7 @@ export const claimFirstAdmin = createServerFn({ method: "POST" })
     const { count, error: countErr } = await supabaseAdmin
       .from("user_roles")
       .select("user_id", { count: "exact", head: true })
-      .eq("role", "admin");
+      .eq("role");
     if (countErr) throw countErr;
     if ((count ?? 0) > 0) return { granted: false };
     const { error } = await supabaseAdmin

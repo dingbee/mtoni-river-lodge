@@ -2,12 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 function assertManager(roles: string[]) {
-  if (!roles.some((r) => ["owner", "admin", "manager"].includes(r))) {
+  if (!roles.some((r) => ["owner", "manager"].includes(r))) {
     throw new Error("Forbidden: manager role required.");
   }
 }
 function assertAdmin(roles: string[]) {
-  if (!roles.some((r) => ["owner", "admin"].includes(r))) {
+  if (!roles.some((r) => ["owner"].includes(r))) {
     throw new Error("Forbidden: admin role required.");
   }
 }
@@ -198,7 +198,7 @@ export const getAiUsageMetrics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const roles = await getRoles(context.supabase);
-    if (!roles.some((r) => ["owner", "admin", "manager", "finance"].includes(r))) {
+    if (!roles.some((r) => ["owner", "manager", "finance"].includes(r))) {
       throw new Error("Forbidden");
     }
     const { data, error } = await context.supabase

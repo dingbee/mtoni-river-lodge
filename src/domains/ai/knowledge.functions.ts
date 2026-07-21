@@ -92,7 +92,7 @@ export function chunkText(text: string, maxLen = 1200, overlap = 150): string[] 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.rpc("has_any_role", {
     _user_id: userId,
-    _roles: ["owner", "manager", "admin"],
+    _roles: ["owner", "manager"],
   });
   if (!data) throw new Error("You do not have permission to manage knowledge.");
 }
