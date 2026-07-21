@@ -125,7 +125,7 @@ function StaffRolesPage() {
       <PageHeader title="Roles" description="Manage which roles each team member holds. Role capabilities are enforced by database policies." />
 
       {canManage && (
-        <SectionCard title="Grant a role" description="Owner and admin only.">
+        <SectionCard title="Grant a role" description="Owner only.">
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,220px)_auto]">
             <div>
               <label className="mb-1 block text-xs text-muted-foreground">Existing user</label>
