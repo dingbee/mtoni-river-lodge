@@ -191,8 +191,19 @@ function JournalEditorPage() {
   });
 
   const suggestMut = useMutation({
-    mutationFn: () => suggestFn({ data: { articleId: id, text: `${form.title} ${form.excerpt} ${form.content_html}` } }),
-    onSuccess: (rows) => setSuggestions(rows),
+    mutationFn: () => {
+      const text = `${form.title} ${form.excerpt} ${form.content_html}`.trim();
+      if (!text || text.length < 20) {
+        throw new Error("Add some body content before scanning for internal links.");
+      }
+      return suggestFn({ data: { articleId: id, text } });
+    },
+    onSuccess: (rows) => {
+      setSuggestions(rows);
+      if (!rows.length) toast.info("No related published articles matched this content yet.");
+      else toast.success(`Found ${rows.length} suggestion${rows.length === 1 ? "" : "s"}.`);
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   if (isLoading || !data) return <LoadingState />;

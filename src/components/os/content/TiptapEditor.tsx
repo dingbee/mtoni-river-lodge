@@ -3,9 +3,9 @@ import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
-import Underline from "@tiptap/extension-underline";
 import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Quote, Heading2, Heading3, Link as LinkIcon, Image as ImageIcon, Undo2, Redo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
 
 interface Props {
   initialHtml?: string;
@@ -16,8 +16,10 @@ interface Props {
 export function TiptapEditor({ initialHtml, onChange, placeholder }: Props) {
   const editor = useEditor({
     extensions: [
-      StarterKit,
-      Underline,
+      // StarterKit v3 already bundles Link + Underline; disable its versions so
+      // our configured Link (openOnClick:false) is the sole registration and no
+      // duplicate-extension warnings strip content on save.
+      StarterKit.configure({ link: false, underline: false }),
       Link.configure({ openOnClick: false, autolink: true }),
       Image,
       Placeholder.configure({ placeholder: placeholder ?? "Start writing…" }),
@@ -33,6 +35,16 @@ export function TiptapEditor({ initialHtml, onChange, placeholder }: Props) {
       onChange?.({ html: e.getHTML(), json: e.getJSON() });
     },
   });
+
+  // Rehydrate when initialHtml changes externally (e.g. version restore or
+  // slow-loading data). Skip when it already matches to avoid clobbering
+  // in-flight edits.
+  useEffect(() => {
+    if (!editor) return;
+    const next = initialHtml ?? "";
+    if (editor.getHTML() === next) return;
+    editor.commands.setContent(next, { emitUpdate: false });
+  }, [editor, initialHtml]);
 
   if (!editor) return null;
 
