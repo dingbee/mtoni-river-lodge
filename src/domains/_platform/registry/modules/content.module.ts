@@ -1,7 +1,7 @@
 import { Home, Bed, Compass, Newspaper, Image as ImageIcon, FolderOpen } from "lucide-react";
 import { defineModule } from "../registry";
 
-const baseRoles = ["owner","manager","marketing","editor","admin"] as const;
+const baseRoles = ["owner","manager","marketing","editor"] as const;
 const mk = (id: string, name: string, route: string, icon: any, order: number) =>
   defineModule({ id, name, description: name, icon, route, parentId: "content", order, requiredRoles: [...baseRoles], status: "active" });
 

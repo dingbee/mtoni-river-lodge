@@ -25,7 +25,7 @@ export const generateOperationsBriefing = createServerFn({ method: "POST" })
     z.object({ date: z.string().optional() }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
-    await assertRole(context.supabase, context.userId, ["owner", "manager", "admin"]);
+    await assertRole(context.supabase, context.userId, ["owner", "manager"]);
     const sb: any = context.supabase;
     const day = data.date ?? isoDate();
 
@@ -370,7 +370,6 @@ export const updateOperationsAlertStatus = createServerFn({ method: "POST" })
     await assertRole(context.supabase, context.userId, [
       "owner",
       "manager",
-      "admin",
       "reservations",
       "reception",
       "housekeeping",
@@ -403,7 +402,7 @@ export const updateOperationsAlertStatus = createServerFn({ method: "POST" })
 export const detectOperationsAlerts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertRole(context.supabase, context.userId, ["owner", "manager", "admin"]);
+    await assertRole(context.supabase, context.userId, ["owner", "manager"]);
     const sb: any = context.supabase;
     const now = new Date();
     const created: any[] = [];

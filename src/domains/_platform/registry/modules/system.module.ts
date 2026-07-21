@@ -9,5 +9,5 @@ export const dashboardModule = defineModule({
 export const settingsModule = defineModule({
   id: "settings", name: "Settings", description: "Property settings",
   icon: Settings, route: "/admin/settings", order: 200,
-  requiredRoles: ["owner","manager","admin"], status: "active",
+  requiredRoles: ["owner","manager"], status: "active",
 });

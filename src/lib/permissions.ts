@@ -11,7 +11,6 @@ export type Role =
   | "housekeeping"
   | "finance"
   | "editor"
-  | "admin" // legacy — treated as owner
   | "reservations"; // legacy — treated as reception
 
 export const ROLE_LABELS: Record<Role, string> = {
@@ -22,7 +21,6 @@ export const ROLE_LABELS: Record<Role, string> = {
   housekeeping: "Housekeeping",
   finance: "Finance",
   editor: "Editor",
-  admin: "Owner (legacy)",
   reservations: "Reception (legacy)",
 };
 
@@ -30,39 +28,39 @@ export const ROLE_LABELS: Record<Role, string> = {
 // `null` = everyone with any staff role may see it.
 export const MODULE_ROLES: Record<string, Role[] | null> = {
   dashboard: null,
-  "operations.reservations": ["owner", "manager", "reception", "admin", "reservations"],
-  "operations.calendar": ["owner", "manager", "reception", "admin", "reservations"],
-  "operations.rooms": ["owner", "manager", "reception", "housekeeping", "admin"],
-  "operations.housekeeping": ["owner", "manager", "reception", "housekeeping", "admin", "reservations"],
-  "guests.crm": ["owner", "manager", "reception", "marketing", "admin", "reservations"],
-  "guests.reviews": ["owner", "manager", "marketing", "admin"],
-  "guests.messages": ["owner", "manager", "reception", "admin", "reservations"],
-  "content.homepage": ["owner", "manager", "marketing", "editor", "admin"],
-  "content.rooms": ["owner", "manager", "marketing", "editor", "admin"],
-  "content.experiences": ["owner", "manager", "marketing", "editor", "admin"],
-  "content.journal": ["owner", "manager", "marketing", "editor", "admin"],
-  "content.gallery": ["owner", "manager", "marketing", "editor", "admin"],
-  "content.media": ["owner", "manager", "marketing", "editor", "admin"],
-  "content.pages": ["owner", "manager", "marketing", "editor", "admin"],
-  "content.brand": ["owner", "manager", "marketing", "editor", "admin"],
-  "content.calendar": ["owner", "manager", "marketing", "editor", "admin"],
-  "marketing.seo": ["owner", "manager", "marketing", "admin"],
-  "marketing.campaigns": ["owner", "manager", "marketing", "admin"],
-  "marketing.analytics": ["owner", "manager", "marketing", "admin"],
-  "marketing.reviews": ["owner", "manager", "marketing", "admin"],
-  "finance.payments": ["owner", "manager", "finance", "admin"],
-  "finance.invoices": ["owner", "manager", "finance", "admin"],
-  "finance.reports": ["owner", "manager", "finance", "admin"],
-  "staff.users": ["owner", "manager", "admin"],
-  "staff.roles": ["owner", "admin"],
-  "staff.activity": ["owner", "manager", "admin"],
-  automation: ["owner", "manager", "admin"],
-  settings: ["owner", "manager", "admin"],
-  "ai.command": ["owner", "manager", "reception", "marketing", "finance", "housekeeping", "admin", "editor", "reservations"],
-  "ai.insights": ["owner", "manager", "admin"],
-  "ai.knowledge": ["owner", "manager", "marketing", "admin", "editor"],
-  "ai.activity": ["owner", "manager", "admin"],
-  "ai.settings": ["owner", "admin"],
+  "operations.reservations": ["owner", "manager", "reception", "reservations"],
+  "operations.calendar": ["owner", "manager", "reception", "reservations"],
+  "operations.rooms": ["owner", "manager", "reception", "housekeeping"],
+  "operations.housekeeping": ["owner", "manager", "reception", "housekeeping", "reservations"],
+  "guests.crm": ["owner", "manager", "reception", "marketing", "reservations"],
+  "guests.reviews": ["owner", "manager", "marketing"],
+  "guests.messages": ["owner", "manager", "reception", "reservations"],
+  "content.homepage": ["owner", "manager", "marketing", "editor"],
+  "content.rooms": ["owner", "manager", "marketing", "editor"],
+  "content.experiences": ["owner", "manager", "marketing", "editor"],
+  "content.journal": ["owner", "manager", "marketing", "editor"],
+  "content.gallery": ["owner", "manager", "marketing", "editor"],
+  "content.media": ["owner", "manager", "marketing", "editor"],
+  "content.pages": ["owner", "manager", "marketing", "editor"],
+  "content.brand": ["owner", "manager", "marketing", "editor"],
+  "content.calendar": ["owner", "manager", "marketing", "editor"],
+  "marketing.seo": ["owner", "manager", "marketing"],
+  "marketing.campaigns": ["owner", "manager", "marketing"],
+  "marketing.analytics": ["owner", "manager", "marketing"],
+  "marketing.reviews": ["owner", "manager", "marketing"],
+  "finance.payments": ["owner", "manager", "finance"],
+  "finance.invoices": ["owner", "manager", "finance"],
+  "finance.reports": ["owner", "manager", "finance"],
+  "staff.users": ["owner", "manager"],
+  "staff.roles": ["owner"],
+  "staff.activity": ["owner", "manager"],
+  automation: ["owner", "manager"],
+  settings: ["owner", "manager"],
+  "ai.command": ["owner", "manager", "reception", "marketing", "finance", "housekeeping", "editor", "reservations"],
+  "ai.insights": ["owner", "manager"],
+  "ai.knowledge": ["owner", "manager", "marketing", "editor"],
+  "ai.activity": ["owner", "manager"],
+  "ai.settings": ["owner"],
 };
 
 export function useCurrentUserRoles() {

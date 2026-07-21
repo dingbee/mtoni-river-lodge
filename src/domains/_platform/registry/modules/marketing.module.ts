@@ -1,7 +1,7 @@
 import { Search, Sparkles, BarChart3 } from "lucide-react";
 import { defineModule } from "../registry";
 
-const roles = ["owner","manager","marketing","admin"] as const;
+const roles = ["owner","manager","marketing"] as const;
 
 export const marketingSeoModule = defineModule({
   id: "marketing.seo", name: "SEO", description: "SEO scans and metadata",

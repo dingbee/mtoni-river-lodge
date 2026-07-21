@@ -9,7 +9,7 @@ export const opsDashboardModule = defineModule({
   route: "/admin/operations",
   parentId: "operations",
   order: 5,
-  requiredRoles: ["owner","manager","reception","admin","reservations"],
+  requiredRoles: ["owner","manager","reception","reservations"],
   featureFlag: "operations_centre",
   status: "active",
 });
@@ -22,7 +22,7 @@ export const opsRoomBoardModule = defineModule({
   route: "/admin/operations/rooms",
   parentId: "operations",
   order: 32,
-  requiredRoles: ["owner","manager","reception","housekeeping","admin"],
+  requiredRoles: ["owner","manager","reception","housekeeping"],
   featureFlag: "operations_centre",
   status: "active",
 });
@@ -35,7 +35,7 @@ export const opsCalendarModule = defineModule({
   route: "/admin/calendar",
   parentId: "operations",
   order: 22,
-  requiredRoles: ["owner","manager","reception","admin","reservations"],
+  requiredRoles: ["owner","manager","reception","reservations"],
   featureFlag: "operations_centre",
   status: "active",
 });
@@ -48,7 +48,7 @@ export const opsHousekeepingModule = defineModule({
   route: "/admin/operations/housekeeping",
   parentId: "operations",
   order: 40,
-  requiredRoles: ["owner","manager","reception","housekeeping","admin"],
+  requiredRoles: ["owner","manager","reception","housekeeping"],
   featureFlag: "operations_centre",
   status: "active",
 });
@@ -61,7 +61,7 @@ export const opsTasksModule = defineModule({
   route: "/admin/operations/tasks",
   parentId: "operations",
   order: 45,
-  requiredRoles: ["owner","manager","reception","housekeeping","admin"],
+  requiredRoles: ["owner","manager","reception","housekeeping"],
   featureFlag: "operations_centre",
   status: "active",
 });
@@ -74,7 +74,7 @@ export const opsAlertsModule = defineModule({
   route: "/admin/operations/alerts",
   parentId: "operations",
   order: 50,
-  requiredRoles: ["owner","manager","reception","admin"],
+  requiredRoles: ["owner","manager","reception"],
   featureFlag: "operations_centre",
   status: "active",
 });
@@ -87,7 +87,7 @@ export const opsTimelineModule = defineModule({
   route: "/admin/operations/timeline",
   parentId: "operations",
   order: 55,
-  requiredRoles: ["owner","manager","reception","admin"],
+  requiredRoles: ["owner","manager","reception"],
   featureFlag: "operations_centre",
   status: "active",
 });

@@ -1,7 +1,7 @@
 import { CreditCard, FileText, PieChart, LayoutDashboard, BarChart3, ClipboardCheck, Activity, AlertTriangle } from "lucide-react";
 import { defineModule } from "../registry";
 
-const roles = ["owner","manager","finance","admin"] as const;
+const roles = ["owner","manager","finance"] as const;
 
 export const financeDashboardModule = defineModule({
   id: "finance.dashboard", name: "Revenue Dashboard", description: "Live financial KPIs",

@@ -416,7 +416,7 @@ export const requestApproval = createServerFn({ method: "POST" })
     approval_kind: z.string(),
     subject: z.string().min(1),
     details: z.record(z.string(), z.unknown()).optional(),
-    approver_roles: z.array(z.string()).default(["owner","manager","admin"]),
+    approver_roles: z.array(z.string()).default(["owner","manager"]),
   }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase.from("approval_requests").insert({

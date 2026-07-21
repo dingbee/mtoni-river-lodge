@@ -7,7 +7,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 async function assertOwnerOrAdmin(supabase: any, userId: string): Promise<void> {
   const { data, error } = await supabase.rpc("has_any_role", {
     _user_id: userId,
-    _roles: ["owner", "manager", "admin"],
+    _roles: ["owner", "manager"],
   });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden");
