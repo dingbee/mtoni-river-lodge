@@ -64,6 +64,7 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
   const headerHeight = isLg ? 144 - 40 * p : 72 - 8 * p; // lg: 144->104, mobile: 72->64
   const logoHeight = isLg ? 96 - 24 * p : 36 - 4 * p;    // lg: 96->72,  mobile: 36->32
   return (
+    <>
     <header
       className={`fixed inset-x-0 top-0 z-40 transition-[background-color,color,box-shadow,border-color] duration-500 ease-out will-change-[background-color] ${
         solid
@@ -209,12 +210,13 @@ export function SiteHeader({ overlay = true }: { overlay?: boolean }) {
           </p>
         </div>
       </div>
-      <MobileStickyCTA />
       <AvailabilityModal
         open={availOpen}
         onOpenChange={setAvailOpen}
         location={availLocation}
       />
     </header>
+    <MobileStickyCTA />
+    </>
   );
 }
