@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Save, Trash2, Plus, AlertTriangle, CheckCircle2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/os/PageHeader";
@@ -115,16 +115,27 @@ function SeoCentre() {
   const [selected, setSelected] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [keywordsText, setKeywordsText] = useState("");
-
+  // Auto-select the first override exactly once, after the initial load.
+  // Without the ref guard, clicking "New" (which nulls `selected`) is
+  // instantly reverted on the next render.
+  const didInitRef = useRef(false);
   useEffect(() => {
+    if (didInitRef.current) return;
     if (!overrides?.length || selected) return;
+    didInitRef.current = true;
     setSelected(overrides[0].route_path);
   }, [overrides, selected]);
 
+  // Hydrate the form only when the *selected route* changes. Without the
+  // loaded-route ref, every background refetch (post-save invalidation,
+  // window focus) would overwrite in-progress form edits.
+  const loadedRouteRef = useRef<string | null>(null);
   useEffect(() => {
     if (!selected || !overrides) return;
+    if (loadedRouteRef.current === selected) return;
     const row = overrides.find((o) => o.route_path === selected);
     if (!row) return;
+    loadedRouteRef.current = selected;
     setForm({
       route_path: row.route_path,
       title: row.title ?? "",
@@ -151,6 +162,9 @@ function SeoCentre() {
     onSuccess: (row) => {
       toast.success("SEO settings saved");
       qc.invalidateQueries({ queryKey: ["admin.seo.overrides"] });
+      // Force the hydrate effect to accept fresh server values for this route
+      // (e.g. server-computed updated_at, normalized fields, or a brand-new row).
+      loadedRouteRef.current = null;
       setSelected(row.route_path);
     },
     onError: (e: unknown) => toast.error((e as Error).message),
@@ -161,6 +175,7 @@ function SeoCentre() {
     onSuccess: () => {
       toast.success("Override removed");
       qc.invalidateQueries({ queryKey: ["admin.seo.overrides"] });
+      loadedRouteRef.current = null;
       setSelected(null);
       setForm(EMPTY_FORM);
       setKeywordsText("");
@@ -203,6 +218,9 @@ function SeoCentre() {
   };
 
   const handleNew = () => {
+    // Prevent the auto-select effect from snapping back to overrides[0].
+    didInitRef.current = true;
+    loadedRouteRef.current = null;
     setSelected(null);
     setForm({ ...EMPTY_FORM, route_path: "" });
     setKeywordsText("");
