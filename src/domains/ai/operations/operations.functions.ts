@@ -251,7 +251,7 @@ export const getHousekeepingPriorities = createServerFn({ method: "GET" })
           .join(" • "),
       };
     });
-    priorities.sort((a: Record<string, unknown>, b: any) => b.score - a.score);
+    priorities.sort((a: any, b: any) => b.score - a.score);
     return priorities;
   });
 

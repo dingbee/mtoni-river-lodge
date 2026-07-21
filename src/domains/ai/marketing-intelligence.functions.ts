@@ -282,7 +282,7 @@ export const generateContentRecommendations = createServerFn({ method: "POST" })
       context.supabase.from("bookings").select("check_in, total, status").gte("check_in", today()).lte("check_in", daysAgo(-90)).in("status", ["confirmed","pending","checked_in"]),
     ]);
     const published = (articles ?? []).filter((a) => a.status === "published");
-    const sorted = [...published].sort((a: Record<string, unknown>, b: any) => (b.published_at ?? "").localeCompare(a.published_at ?? ""));
+    const sorted = [...published].sort((a: any, b: any) => (b.published_at ?? "").localeCompare(a.published_at ?? ""));
     const last = sorted[0] as any | undefined;
     const daysSince = last?.published_at ? Math.round((Date.now() - +new Date(last.published_at)) / 86400000) : 9999;
 
