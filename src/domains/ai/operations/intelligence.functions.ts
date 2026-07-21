@@ -36,7 +36,7 @@ export const generateRoomReadinessInsights = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertRole(context.supabase, context.userId, [
-      "owner", "manager", "housekeeping", "reception", "reservations",
+      "owner", "manager", "housekeeping", "reception",
     ]);
     const sb: any = context.supabase;
     const day = isoDate();
@@ -177,7 +177,7 @@ export const updateRoomReadinessStatus = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     await assertRole(context.supabase, context.userId, [
-      "owner", "manager", "reception", "reservations", "housekeeping",
+      "owner", "manager", "reception", "housekeeping",
     ]);
     const sb: any = context.supabase;
     const { data: row, error } = await sb
@@ -432,7 +432,7 @@ export const generateServiceRecoveryInsights = createServerFn({ method: "POST" }
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertRole(context.supabase, context.userId, [
-      "owner", "manager", "reception", "reservations", "marketing",
+      "owner", "manager", "reception", "marketing",
     ]);
     const sb: any = context.supabase;
     const since = new Date(Date.now() - 14 * 86400_000).toISOString();
@@ -566,7 +566,7 @@ export const updateServiceRecoveryStatus = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     await assertRole(context.supabase, context.userId, [
-      "owner", "manager", "reception", "reservations", "marketing",
+      "owner", "manager", "reception", "marketing",
     ]);
     const sb: any = context.supabase;
     const { data: row, error } = await sb

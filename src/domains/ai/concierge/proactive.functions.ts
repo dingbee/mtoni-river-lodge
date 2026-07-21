@@ -25,7 +25,6 @@ export const generatePreArrivalRecommendations = createServerFn({ method: "POST"
     await assertRole(context.supabase, context.userId, [
       "owner",
       "manager",
-      "reservations",
     ]);
     const sb: any = context.supabase;
     const today = new Date();
@@ -233,7 +232,6 @@ export const updateRecommendationStatus = createServerFn({ method: "POST" })
     await assertRole(context.supabase, context.userId, [
       "owner",
       "manager",
-      "reservations",
       "reception",
     ]);
     const sb: any = context.supabase;
@@ -320,7 +318,6 @@ export const generatePostStayDrafts = createServerFn({ method: "POST" })
     await assertRole(context.supabase, context.userId, [
       "owner",
       "manager",
-      "reservations",
     ]);
     const sb: any = context.supabase;
     const { data: b, error } = await sb

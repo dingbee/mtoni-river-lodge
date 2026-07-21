@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const APPROVER_ROLES = ["owner", "manager", "reservations", "reception"] as const;
+const APPROVER_ROLES = ["owner", "manager", "reception"] as const;
 const SOURCE_TYPES = [
   "document",
   "website_page",

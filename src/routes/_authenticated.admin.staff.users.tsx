@@ -130,7 +130,6 @@ const INVITE_ROLE_OPTIONS: AppRole[] = [
   "finance",
   "marketing",
   "editor",
-  "reservations",
 ];
 
 function StaffUsersPage() {

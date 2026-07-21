@@ -370,7 +370,6 @@ export const updateOperationsAlertStatus = createServerFn({ method: "POST" })
     await assertRole(context.supabase, context.userId, [
       "owner",
       "manager",
-      "reservations",
       "reception",
       "housekeeping",
     ]);
