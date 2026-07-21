@@ -9,7 +9,7 @@ export const housekeepingModule = defineModule({
   route: "/admin/front-desk",
   parentId: "operations",
   order: 40,
-  requiredRoles: ["owner","manager","reception","housekeeping","reservations"],
+  requiredRoles: ["owner","manager","reception","housekeeping"],
   featureFlag: "housekeeping",
   status: "active", // Sprint 1 kept it active via /admin/front-desk; flag hides only the future dedicated module
 });
