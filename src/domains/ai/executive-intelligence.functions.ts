@@ -324,7 +324,7 @@ export const getExecutiveDecisions = createServerFn({ method: "GET" })
     ]);
 
     const rows: DecisionRow[] = [
-      ...(guest ?? []).map((r): DecisionRow => ({
+      ...(guest ?? []).map((r: any): DecisionRow => ({
         id: r.id, origin: "Guest Intelligence", module: "guest",
         title: r.title, reasoning: r.reasoning,
         confidence: r.confidence, impact_score: r.impact_score,
@@ -332,7 +332,7 @@ export const getExecutiveDecisions = createServerFn({ method: "GET" })
         route: r.booking_id ? `/admin/ai/guests/${r.booking_id}` : "/admin/ai/guests/dashboard",
         priority: (Number(r.impact_score ?? 0)) * (Number(r.confidence ?? 0.5) || 0.5),
       })),
-      ...(pricing ?? []).map((r): DecisionRow => ({
+      ...(pricing ?? []).map((r: any): DecisionRow => ({
         id: r.id, origin: "Revenue · Pricing", module: "revenue.pricing",
         title: r.title, reasoning: r.reasoning,
         confidence: r.confidence, impact_score: r.impact_score,
@@ -340,7 +340,7 @@ export const getExecutiveDecisions = createServerFn({ method: "GET" })
         route: "/admin/ai/revenue/pricing",
         priority: (Number(r.impact_score ?? 0)) * (Number(r.confidence ?? 0.5) || 0.5),
       })),
-      ...(revOps ?? []).map((r): DecisionRow => ({
+      ...(revOps ?? []).map((r: any): DecisionRow => ({
         id: r.id, origin: "Revenue · Opportunity", module: "revenue.opportunity",
         title: r.title, reasoning: r.reasoning,
         confidence: r.confidence, impact_score: r.impact_score,
@@ -348,7 +348,7 @@ export const getExecutiveDecisions = createServerFn({ method: "GET" })
         route: "/admin/ai/revenue/opportunities",
         priority: (Number(r.impact_score ?? 0)) * (Number(r.confidence ?? 0.5) || 0.5),
       })),
-      ...(marketing ?? []).map((r): DecisionRow => ({
+      ...(marketing ?? []).map((r: any): DecisionRow => ({
         id: r.id, origin: "Marketing", module: "marketing",
         title: r.title, reasoning: r.reasoning,
         confidence: r.confidence, impact_score: r.impact_score,
