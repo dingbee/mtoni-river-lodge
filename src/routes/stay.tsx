@@ -11,7 +11,7 @@ import heroImg from "@/assets/hero-river.jpg";
 import heroImg800 from "@/assets/hero-river-800w.webp";
 import heroImg1600 from "@/assets/hero-river-1600w.webp";
 import palmGardenJpg from "@/assets/palm-garden.jpg.asset.json";
-import diningImg from "@/assets/dining.jpg";
+import diningImg from "@/assets/xp-bonfire.jpg";
 import xpCanoe from "@/assets/xp-canoe.jpg";
 import xpMarket from "@/assets/xp-market.jpg";
 import xpCycling from "@/assets/xp-cycling.jpg";
