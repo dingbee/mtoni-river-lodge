@@ -28,8 +28,8 @@ export const listPreArrivalGuests = createServerFn({ method: "GET" })
       .order("check_in", { ascending: true });
     if (error) throw new Error(error.message);
 
-    const guestIds = Array.from(new Set((bookings ?? []).map((b: any) => b.guest_id).filter(Boolean)));
-    const memMap = new Map<string, any[]>();
+    const guestIds = Array.from(new Set((bookings ?? []).map((b: Record<string, unknown>) => b.guest_id).filter(Boolean)));
+    const memMap = new Map<string, unknown[]>();
     if (guestIds.length > 0) {
       const { data: mems } = await sb
         .from("ai_guest_memories")
@@ -43,14 +43,14 @@ export const listPreArrivalGuests = createServerFn({ method: "GET" })
       }
     }
 
-    return (bookings ?? []).map((b: any) => {
+    return (bookings ?? []).map((b: Record<string, unknown>) => {
       const memories = b.guest_id ? memMap.get(b.guest_id) ?? [] : [];
       const suggestions: string[] = [];
-      if (memories.some((m: any) => m.memory_key === "preference.room.river_facing"))
+      if (memories.some((m: Record<string, unknown>) => m.memory_key === "preference.room.river_facing"))
         suggestions.push("Confirm river-facing allocation if inventory allows.");
-      if (memories.some((m: any) => m.memory_key === "preference.ambience.quiet"))
+      if (memories.some((m: Record<string, unknown>) => m.memory_key === "preference.ambience.quiet"))
         suggestions.push("Flag quiet placement — avoid rooms near main path.");
-      if (memories.some((m: any) => m.memory_type === "interest"))
+      if (memories.some((m: Record<string, unknown>) => m.memory_type === "interest"))
         suggestions.push("Guest may appreciate early activity planning.");
       if ((b.children ?? 0) > 0)
         suggestions.push("Prepare family welcome (extra towels, activity guide).");

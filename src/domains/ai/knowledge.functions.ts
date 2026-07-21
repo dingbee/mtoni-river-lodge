@@ -183,7 +183,7 @@ export const listKbDocuments = createServerFn({ method: "GET" })
     if (data.search) q = q.ilike("title", `%${data.search}%`);
     const { data: rows, error } = await q;
     if (error) throw error;
-    return (rows ?? []).map((r: any) => ({
+    return (rows ?? []).map((r: Record<string, unknown>) => ({
       ...r,
       category_slug: r.knowledge_categories?.slug ?? null,
     })) as KbDocument[];

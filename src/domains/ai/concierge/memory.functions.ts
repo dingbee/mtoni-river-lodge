@@ -197,7 +197,7 @@ export const getMemoryAnalytics = createServerFn({ method: "GET" })
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
       .map(([memory_key, count]) => ({ memory_key, count }));
-    const knownVisitors = (sessions ?? []).filter((s: any) => s.guest_id || s.guest_email).length;
+    const knownVisitors = (sessions ?? []).filter((s: Record<string, unknown>) => s.guest_id || s.guest_email).length;
     const total = (sessions ?? []).length;
     return {
       totalMemories: memories.length,

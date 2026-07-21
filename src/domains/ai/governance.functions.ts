@@ -11,7 +11,7 @@ function assertAdmin(roles: string[]) {
     throw new Error("Forbidden: admin role required.");
   }
 }
-async function getRoles(supabase: any): Promise<string[]> {
+async function getRoles(supabase: Record<string, unknown>): Promise<string[]> {
   const { data } = await supabase.rpc("current_user_roles");
   return (data ?? []) as string[];
 }

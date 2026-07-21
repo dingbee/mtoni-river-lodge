@@ -171,10 +171,10 @@ export const classifyConciergeOutcomes = createServerFn({ method: "POST" })
       s.from("ai_concierge_messages").select("session_id, role, content").in("session_id", ids),
     ]);
 
-    const done = new Set((existing.data ?? []).map((r: any) => r.session_id));
+    const done = new Set((existing.data ?? []).map((r: Record<string, unknown>) => r.session_id));
     const intentBySession = new Map<string, string>();
     for (const r of intents.data ?? []) intentBySession.set(r.session_id as string, r.intent_level as string);
-    const leadIds = new Set((leads.data ?? []).map((r: any) => r.session_id));
+    const leadIds = new Set((leads.data ?? []).map((r: Record<string, unknown>) => r.session_id));
     const attrBySession = new Map<string, string>();
     for (const r of atts.data ?? []) attrBySession.set(r.session_id as string, r.conversion_type as string);
     const msgsBySession = new Map<string, Array<{ role: string; content: string }>>();

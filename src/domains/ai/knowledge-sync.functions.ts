@@ -397,7 +397,7 @@ export const getKnowledgeAnalytics = createServerFn({ method: "GET" })
       .select("source_type, status")
       .limit(2000);
     const counts: Record<string, { total: number; approved: number }> = {};
-    for (const r of (byType ?? []) as any[]) {
+    for (const r of (byType ?? []) as unknown[]) {
       const t = r.source_type as string;
       counts[t] = counts[t] ?? { total: 0, approved: 0 };
       counts[t].total++;
@@ -411,7 +411,7 @@ export const getKnowledgeAnalytics = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(500);
 
-    const failed = ((recent ?? []) as any[]).filter((r) => (r.result_count ?? 0) === 0);
+    const failed = ((recent ?? []) as unknown[]).filter((r) => (r.result_count ?? 0) === 0);
     const failCount: Record<string, number> = {};
     for (const f of failed) failCount[f.query] = (failCount[f.query] ?? 0) + 1;
     const topUnanswered = Object.entries(failCount)
@@ -425,7 +425,7 @@ export const getKnowledgeAnalytics = createServerFn({ method: "GET" })
       : 0;
     const avgConfidence =
       totalSearches > 0
-        ? ((recent ?? []) as any[]).reduce((a, r) => a + (Number(r.confidence) || 0), 0) / totalSearches
+        ? ((recent ?? []) as unknown[]).reduce((a, r) => a + (Number(r.confidence) || 0), 0) / totalSearches
         : 0;
 
     return { counts, topUnanswered, totalSearches, successRate, avgConfidence };

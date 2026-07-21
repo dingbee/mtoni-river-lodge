@@ -15,7 +15,7 @@ async function chat(system: string, user: string): Promise<string> {
 
 const tryJson = parseAiJson;
 
-async function getRoles(supabase: any): Promise<string[]> {
+async function getRoles(supabase: Record<string, unknown>): Promise<string[]> {
   const { data, error } = await supabase.rpc("current_user_roles");
   if (error) return [];
   return (data ?? []) as string[];

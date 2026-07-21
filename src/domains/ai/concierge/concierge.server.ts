@@ -270,7 +270,7 @@ export async function handleConciergeChat(
     buildSystemPrompt(page, buildRoomsContext(), knowledgeCtx, intentCtx, recsCtx, availabilityCtx) +
     (memoryPromptSection ? "\n\n" + memoryPromptSection : "");
   const { raw, latency } = await callModel(system, history, message);
-  const parsed = tryJson<{ answer?: string; confidence?: number; escalate?: boolean; citations?: any[] }>(raw) ?? {};
+  const parsed = tryJson<{ answer?: string; confidence?: number; escalate?: boolean; citations?: unknown[] }>(raw) ?? {};
   const answer = (parsed.answer ?? "I'm sorry, I couldn't put together an answer just now. Please reach us on WhatsApp and we'll help right away.").trim();
   const confidence = typeof parsed.confidence === "number" ? Math.max(0, Math.min(1, parsed.confidence)) : 0.6;
   const shouldEscalate = Boolean(parsed.escalate) || confidence < LOW_CONFIDENCE;

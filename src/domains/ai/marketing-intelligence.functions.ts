@@ -79,7 +79,7 @@ export const getMarketingIntelligenceOverview = createServerFn({ method: "GET" }
       ? (reviews ?? []).reduce((s: number, r: any) => s + Number(r.rating ?? 0), 0) / totalReviews
       : 0;
 
-    const seoRows = (seo ?? []) as any[];
+    const seoRows = (seo ?? []) as unknown[];
     const missingMeta = seoRows.filter((r) => !r.title || !r.description).length;
     const indexedRoutes = seoRows.filter((r) => r.index_status !== false).length;
     const seoHealth = seoRows.length
@@ -137,10 +137,10 @@ export const generateSeoRecommendations = createServerFn({ method: "POST" })
     ]);
 
     const seoByRoute = new Map<string, any>();
-    for (const row of (seo ?? []) as any[]) seoByRoute.set(row.route_path, row);
+    for (const row of (seo ?? []) as unknown[]) seoByRoute.set(row.route_path, row);
 
     const titleCounts = new Map<string, number>();
-    for (const row of (seo ?? []) as any[]) {
+    for (const row of (seo ?? []) as unknown[]) {
       if (row.title) titleCounts.set(row.title, (titleCounts.get(row.title) ?? 0) + 1);
     }
 
@@ -149,7 +149,7 @@ export const generateSeoRecommendations = createServerFn({ method: "POST" })
     function push(rec: any) { recs.push(rec); }
 
     // Pages missing SEO override entirely
-    for (const p of (pages ?? []) as any[]) {
+    for (const p of (pages ?? []) as unknown[]) {
       if (p.status !== "published" || !p.route_path) continue;
       const s = seoByRoute.get(p.route_path);
       const effTitle = s?.title ?? p.title ?? "";
@@ -282,11 +282,11 @@ export const generateContentRecommendations = createServerFn({ method: "POST" })
       context.supabase.from("bookings").select("check_in, total, status").gte("check_in", today()).lte("check_in", daysAgo(-90)).in("status", ["confirmed","pending","checked_in"]),
     ]);
     const published = (articles ?? []).filter((a) => a.status === "published");
-    const sorted = [...published].sort((a: any, b: any) => (b.published_at ?? "").localeCompare(a.published_at ?? ""));
+    const sorted = [...published].sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.published_at ?? "").localeCompare(a.published_at ?? ""));
     const last = sorted[0] as any | undefined;
     const daysSince = last?.published_at ? Math.round((Date.now() - +new Date(last.published_at)) / 86400000) : 9999;
 
-    const recs: any[] = [];
+    const recs: unknown[] = [];
 
     if (daysSince > 30) {
       recs.push({
@@ -309,7 +309,7 @@ export const generateContentRecommendations = createServerFn({ method: "POST" })
       });
     }
 
-    for (const a of published as any[]) {
+    for (const a of published as unknown[]) {
       const age = a.published_at ? Math.round((Date.now() - +new Date(a.published_at)) / 86400000) : 0;
       if (age > 180) {
         recs.push({
@@ -402,9 +402,9 @@ export const generateCampaignRecommendations = createServerFn({ method: "POST" }
       .at(-1) as string | undefined;
     const daysSinceCampaign = lastActive ? Math.round((Date.now() - +new Date(lastActive)) / 86400000) : 9999;
     const cancellations = cancelled?.length ?? 0;
-    const avgRating = reviews?.length ? (reviews as any[]).reduce((s, r) => s + Number(r.rating ?? 0), 0) / reviews.length : 0;
+    const avgRating = reviews?.length ? (reviews as unknown[]).reduce((s, r) => s + Number(r.rating ?? 0), 0) / reviews.length : 0;
 
-    const recs: any[] = [];
+    const recs: unknown[] = [];
 
     if (occ < 0.45 && activeCampaigns === 0) {
       recs.push({
@@ -510,7 +510,7 @@ export const generateCampaignRecommendations = createServerFn({ method: "POST" }
 const COMPLIMENT_WORDS = ["beautiful","peaceful","kind","staff","food","clean","comfortable","quiet","stunning","view","welcoming","service","friendly"];
 const COMPLAINT_WORDS = ["slow","noisy","dirty","cold","hot","broken","wifi","internet","expensive","rude","wait","confusing","tired","dated"];
 
-function themesFromReviews(reviews: any[]) {
+function themesFromReviews(reviews: unknown[]) {
   const compliments = new Map<string, number>();
   const complaints = new Map<string, number>();
   for (const r of reviews) {
@@ -533,7 +533,7 @@ export const generateReputationInsight = createServerFn({ method: "POST" })
       .select("rating, review_date, review_text, source, guest_name, status")
       .eq("status","approved")
       .gte("review_date", from);
-    const rows = (reviews ?? []) as any[];
+    const rows = (reviews ?? []) as unknown[];
 
     const count = rows.length;
     const avg = count ? rows.reduce((s, r) => s + Number(r.rating ?? 0), 0) / count : 0;
@@ -655,7 +655,7 @@ export const reviewBrandCompliance = createServerFn({ method: "POST" })
     const offbrandHits = OFF_BRAND_TERMS.filter((t) => lower.includes(t));
     let toneScore = 1 - offbrandHits.length * 0.15;
     const voiceHits: string[] = [];
-    for (const v of voiceTokens as any[]) {
+    for (const v of voiceTokens as unknown[]) {
       const term = String((v.value as any)?.term ?? v.label ?? "").toLowerCase();
       if (term && lower.includes(term)) { toneScore += 0.05; voiceHits.push(term); }
     }
@@ -666,7 +666,7 @@ export const reviewBrandCompliance = createServerFn({ method: "POST" })
 
     // Consistency (glossary hits vs conflicting terms)
     const issues: Array<{ type: string; detail: string }> = [];
-    for (const g of glossary as any[]) {
+    for (const g of glossary as unknown[]) {
       const preferred = String((g.value as any)?.preferred ?? g.label ?? "").toLowerCase();
       const avoid: string[] = ((g.value as any)?.avoid ?? []) as string[];
       for (const a of avoid) if (a && lower.includes(String(a).toLowerCase())) {
@@ -734,7 +734,7 @@ export const generateWeeklyPriorities = createServerFn({ method: "POST" })
         .select("summary, recommendations, sentiment_score, confidence").order("created_at", { ascending: false }).limit(1),
     ]);
 
-    const ranked = ((pending ?? []) as any[])
+    const ranked = ((pending ?? []) as unknown[])
       .map((r) => ({ ...r, score: Number(r.impact_score ?? 0) * Number(r.confidence ?? 0) }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 8)
@@ -749,7 +749,7 @@ export const generateWeeklyPriorities = createServerFn({ method: "POST" })
         evidence: r.evidence,
       }));
 
-    const rep = (reputation as any[])?.[0];
+    const rep = (reputation as unknown[])?.[0];
     if (rep?.recommendations?.length) {
       for (const rec of rep.recommendations.slice(0, 2)) {
         ranked.push({
