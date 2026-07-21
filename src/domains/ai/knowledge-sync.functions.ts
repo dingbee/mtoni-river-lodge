@@ -435,10 +435,10 @@ export const getKnowledgeAnalytics = createServerFn({ method: "GET" })
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
-function extractBlockText(block): string {
+function extractBlockText(block: any): string {
   const data = block?.data ?? {};
   const parts: string[] = [];
-  const walk = (v) => {
+  const walk = (v: any) => {
     if (v == null) return;
     if (typeof v === "string") {
       const s = stripHtml(v);
