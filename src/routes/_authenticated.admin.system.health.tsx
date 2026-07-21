@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Activity, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, RefreshCw, BedDouble } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
@@ -15,6 +15,7 @@ import {
   getSystemHealth,
   listSystemErrors,
   resolveSystemError,
+  getInventoryIntegrity,
 } from "@/lib/observability/observability.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/system/health")({
@@ -38,6 +39,7 @@ function SystemHealthPage() {
   const fetchHealth = useServerFn(getSystemHealth);
   const fetchErrors = useServerFn(listSystemErrors);
   const resolve = useServerFn(resolveSystemError);
+  const fetchInventory = useServerFn(getInventoryIntegrity);
 
   const health = useQuery({
     queryKey: ["system-health"],
@@ -48,6 +50,12 @@ function SystemHealthPage() {
   const errors = useQuery({
     queryKey: ["system-errors", "unresolved"],
     queryFn: () => fetchErrors({ data: { resolved: false, limit: 50 } }),
+    refetchInterval: 60_000,
+  });
+
+  const inventory = useQuery({
+    queryKey: ["system-inventory-integrity"],
+    queryFn: () => fetchInventory(),
     refetchInterval: 60_000,
   });
 
@@ -71,6 +79,9 @@ function SystemHealthPage() {
       : data.probes.some((p) => p.status === "degraded")
         ? "degraded"
         : "ok";
+
+  const inventoryOk = inventory.data ? inventory.data.status === "synced" : true;
+  const productionReady = overall === "ok" && inventoryOk && (data.errors.unresolved ?? 0) === 0;
 
   return (
     <div className="space-y-6">
