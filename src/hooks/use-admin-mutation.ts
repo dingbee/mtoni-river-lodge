@@ -52,18 +52,18 @@ export function useAdminMutation<TData = unknown, TError = unknown, TVariables =
 
   return useMutation<TData, TError, TVariables, TContext>({
     ...rest,
-    onSuccess: (data, variables, context) => {
+    onSuccess: (data, variables, context, mutateOpts) => {
       if (!silentSuccess) {
         const msg = onSuccessToast?.(data, variables) ?? successMessage;
         if (msg) toast.success(msg);
       }
-      onSuccess?.(data, variables, context);
+      onSuccess?.(data, variables, context, mutateOpts);
     },
-    onError: (error, variables, context) => {
+    onError: (error, variables, context, mutateOpts) => {
       if (!silentError) {
         toast.error(errorMessage ?? extractErrorMessage(error));
       }
-      onError?.(error, variables, context);
+      onError?.(error, variables, context, mutateOpts);
     },
   });
 }
