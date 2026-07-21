@@ -30,16 +30,16 @@ function NavLink({
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+        "group flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] transition-all",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         active
-          ? "bg-primary/10 text-primary font-medium"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          ? "bg-[color:var(--os-green-soft)] text-[color:var(--os-green)] font-medium"
+          : "text-[color:var(--os-ink-2)] hover:bg-[color:var(--os-surface-2)] hover:text-[color:var(--os-ink)]",
         collapsed && "justify-center px-2",
       )}
       title={collapsed ? item.label : undefined}
     >
-      <Icon className="h-4 w-4 shrink-0" aria-hidden />
+      <Icon className={cn("h-4 w-4 shrink-0 transition-colors", active ? "text-[color:var(--os-green)]" : "text-[color:var(--os-ink-3)] group-hover:text-[color:var(--os-ink)]")} aria-hidden />
       {!collapsed && <span className="truncate">{item.label}</span>}
     </Link>
   );
@@ -74,17 +74,17 @@ export function AdminSidebar({
   return (
     <aside
       className={cn(
-        "flex h-full flex-col border-r border-border bg-card",
+        "flex h-full flex-col border-r border-[color:var(--os-hairline)] bg-[color:var(--os-surface)]",
         collapsed ? "w-16" : "w-64",
       )}
       aria-label="Primary navigation"
     >
-      <div className={cn("flex h-14 items-center border-b border-border px-3", collapsed ? "justify-center" : "gap-2")}>
-        <img src={logo} alt="" className="h-7 w-7 shrink-0 object-contain" />
+      <div className={cn("flex h-14 items-center border-b border-[color:var(--os-hairline)] px-3", collapsed ? "justify-center" : "gap-2.5")}>
+        <img src={logo} alt="" className="h-8 w-8 shrink-0 object-contain" />
         {!collapsed && (
           <div className="min-w-0">
-            <p className="truncate font-display text-sm leading-none text-foreground">Mtoni OS</p>
-            <p className="mt-1 truncate text-[0.6rem] uppercase tracking-[0.2em] text-muted-foreground">v1.0</p>
+            <p className="truncate font-display text-[15px] leading-none tracking-tight text-[color:var(--os-ink)]">Mtoni OS</p>
+            <p className="mt-1 truncate text-[0.58rem] uppercase tracking-[0.24em] text-[color:var(--os-ink-3)]">Command Centre</p>
           </div>
         )}
       </div>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Bell, LogOut, Menu, PanelLeft, Search, User } from "lucide-react";
+import { Bell, LogOut, Menu, PanelLeft, PanelRight, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,11 +24,15 @@ export function AdminTopbar({
   onOpenMobileNav,
   commandOpen,
   onCommandOpenChange,
+  onToggleRail,
+  railOpen,
 }: {
   onToggleSidebar: () => void;
   onOpenMobileNav: () => void;
   commandOpen: boolean;
   onCommandOpenChange: (open: boolean) => void;
+  onToggleRail?: () => void;
+  railOpen?: boolean;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const hit = findNavByHref(pathname);
@@ -47,7 +51,7 @@ export function AdminTopbar({
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-card/95 px-3 backdrop-blur supports-[backdrop-filter]:bg-card/70 lg:px-6">
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[color:var(--os-hairline)] bg-[color:var(--os-canvas)]/85 px-3 backdrop-blur-xl supports-[backdrop-filter]:bg-[color:var(--os-canvas)]/70 lg:px-6">
         <Button
           variant="ghost"
           size="icon"
@@ -134,6 +138,18 @@ export function AdminTopbar({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {onToggleRail && (
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={railOpen ? "Hide AI assistant" : "Show AI assistant"}
+            className="hidden xl:inline-flex"
+            onClick={onToggleRail}
+          >
+            <PanelRight className="h-4 w-4" />
+          </Button>
+        )}
       </header>
 
       <CommandPalette open={commandOpen} onOpenChange={onCommandOpenChange} />
