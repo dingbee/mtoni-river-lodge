@@ -74,17 +74,17 @@ export function AdminSidebar({
   return (
     <aside
       className={cn(
-        "flex h-full flex-col border-r border-border bg-card",
+        "flex h-full flex-col border-r border-[color:var(--os-hairline)] bg-[color:var(--os-surface)]",
         collapsed ? "w-16" : "w-64",
       )}
       aria-label="Primary navigation"
     >
-      <div className={cn("flex h-14 items-center border-b border-border px-3", collapsed ? "justify-center" : "gap-2")}>
-        <img src={logo} alt="" className="h-7 w-7 shrink-0 object-contain" />
+      <div className={cn("flex h-14 items-center border-b border-[color:var(--os-hairline)] px-3", collapsed ? "justify-center" : "gap-2.5")}>
+        <img src={logo} alt="" className="h-8 w-8 shrink-0 object-contain" />
         {!collapsed && (
           <div className="min-w-0">
-            <p className="truncate font-display text-sm leading-none text-foreground">Mtoni OS</p>
-            <p className="mt-1 truncate text-[0.6rem] uppercase tracking-[0.2em] text-muted-foreground">v1.0</p>
+            <p className="truncate font-display text-[15px] leading-none tracking-tight text-[color:var(--os-ink)]">Mtoni OS</p>
+            <p className="mt-1 truncate text-[0.58rem] uppercase tracking-[0.24em] text-[color:var(--os-ink-3)]">Command Centre</p>
           </div>
         )}
       </div>

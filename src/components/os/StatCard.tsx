@@ -17,23 +17,32 @@ export function StatCard({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md", className)}>
+    <div
+      className={cn(
+        "os-card os-fade-in p-5 transition-all duration-300 hover:-translate-y-0.5",
+        className,
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[0.65rem] uppercase tracking-[0.28em] text-muted-foreground">{label}</p>
+        <p className="text-[0.62rem] uppercase tracking-[0.22em] text-[color:var(--os-ink-3)]">{label}</p>
         {Icon && (
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[color:var(--os-green-soft)] text-[color:var(--os-green)]">
             <Icon className="h-4 w-4" />
           </span>
         )}
       </div>
-      <p className="mt-4 font-display text-3xl leading-none text-foreground">{value}</p>
+      <p className="mt-4 font-display text-[2rem] leading-none tracking-tight text-[color:var(--os-ink)] tabular-nums">
+        {value}
+      </p>
       <div className="mt-3 flex items-center justify-between gap-2">
-        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+        {hint && <p className="text-xs text-[color:var(--os-ink-3)]">{hint}</p>}
         {trend && (
           <span
             className={cn(
               "rounded-full px-2 py-0.5 text-[0.65rem] font-medium",
-              trend.positive ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive",
+              trend.positive
+                ? "bg-[color:var(--os-success-soft)] text-[color:var(--os-success)]"
+                : "bg-[color:var(--os-danger-soft)] text-[color:var(--os-danger)]",
             )}
           >
             {trend.value}
