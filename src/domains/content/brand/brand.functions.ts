@@ -63,8 +63,7 @@ export const getBrandContext = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase.from("brand_tokens").select("key, category, label, value");
     if (error) throw error;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const grouped: Record<string, Array<{ key: string; label: string; value: any }>> = {};
+    const grouped: Record<string, Array<{ key: string; label: string; value: unknown }>> = {};
     for (const row of data ?? []) {
       (grouped[row.category] ??= []).push({ key: row.key, label: row.label, value: row.value });
     }
