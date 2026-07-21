@@ -22,10 +22,14 @@ export const APP_ROLES = [
 ] as const;
 export type AppRole = (typeof APP_ROLES)[number];
 
-async function assertRoles(supabase: any, userId: string, roles: readonly string[]) {
+async function assertRoles(
+  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: boolean | null; error: { message: string } | null }> },
+  userId: string,
+  roles: readonly string[],
+) {
   const { data, error } = await supabase.rpc("has_any_role", {
     _user_id: userId,
-    _roles: roles as unknown as string[],
+    _roles: [...roles],
   });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden");
