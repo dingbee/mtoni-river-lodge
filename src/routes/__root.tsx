@@ -261,14 +261,15 @@ function RootComponent() {
   const router = useRouter();
   const pathname = router.state.location.pathname;
   const isAdmin = pathname.startsWith("/admin") || pathname.startsWith("/auth") || pathname.startsWith("/api");
+  const [conciergeOpen, setConciergeOpen] = useState(false);
   return (
     <QueryClientProvider client={fallbackQueryClient}>
       <Outlet />
-      <BackToTop />
+      <BackToTop conciergeOpen={conciergeOpen} />
       <GoogleAnalytics />
       <PWALifecycle />
       <Toaster position="top-center" richColors />
-      {!isAdmin && <ConciergeWidget />}
+      {!isAdmin && <ConciergeWidget onOpenChange={setConciergeOpen} />}
     </QueryClientProvider>
   );
 }
