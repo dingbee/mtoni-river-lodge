@@ -22,11 +22,8 @@ export const APP_ROLES = [
 ] as const;
 export type AppRole = (typeof APP_ROLES)[number];
 
-async function assertRoles(
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: boolean | null; error: { message: string } | null }> },
-  userId: string,
-  roles: readonly string[],
-) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function assertRoles(supabase: any, userId: string, roles: readonly string[]) {
   const { data, error } = await supabase.rpc("has_any_role", {
     _user_id: userId,
     _roles: [...roles],
