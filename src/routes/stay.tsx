@@ -555,7 +555,7 @@ function StayLandingPage() {
             <div className="aspect-[4/3] overflow-hidden">
               <img
                 src={diningImg}
-                alt="Riverside dining at Mtoni River Lodge with lantern light and stone walls"
+                alt="Evening bonfire gathering at Mtoni River Lodge"
                 loading="lazy"
                 decoding="async"
                 className="h-full w-full object-cover"
