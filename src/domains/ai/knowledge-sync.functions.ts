@@ -266,7 +266,7 @@ export const syncCmsPages = createServerFn({ method: "POST" })
         .eq("page_id", p.id)
         .order("position", { ascending: true });
       const content = (blocks ?? [])
-        .map((b: any) => extractBlockText(b))
+        .map((b) => extractBlockText(b))
         .filter(Boolean)
         .join("\n\n")
         .slice(0, 180_000);
@@ -435,10 +435,10 @@ export const getKnowledgeAnalytics = createServerFn({ method: "GET" })
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
-function extractBlockText(block: any): string {
+function extractBlockText(block): string {
   const data = block?.data ?? {};
   const parts: string[] = [];
-  const walk = (v: any) => {
+  const walk = (v) => {
     if (v == null) return;
     if (typeof v === "string") {
       const s = stripHtml(v);

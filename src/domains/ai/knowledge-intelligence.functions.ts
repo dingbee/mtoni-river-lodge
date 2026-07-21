@@ -315,7 +315,7 @@ export const getSourceQualityList = createServerFn({ method: "GET" })
       .select("id, title, source_type, url, status, completeness_score, freshness_score, usage_score, confidence_score, quality_score, usage_count, last_used_at, last_synced_at, source_updated_at, updated_at, content")
       .order("quality_score", { ascending: true, nullsFirst: true })
       .limit(data.limit);
-    return (rows ?? []).map((r: any) => ({ ...r, content: undefined, content_length: (r.content ?? "").length }));
+    return (rows ?? []).map((r) => ({ ...r, content: undefined, content_length: (r.content ?? "").length }));
   });
 
 // Recompute quality scores based on freshness/usage/completeness heuristics

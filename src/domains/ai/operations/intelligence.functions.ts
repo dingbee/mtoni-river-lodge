@@ -69,7 +69,7 @@ export const generateRoomReadinessInsights = createServerFn({ method: "POST" })
     const upserts: any[] = [];
 
     for (const a of arrivals) {
-      const sameDayDep = departures.find((d: any) => d.room_id === a.room_id);
+      const sameDayDep = departures.find((d) => d.room_id === a.room_id);
       const isVip = a.guest_type && a.guest_type !== "standard";
       const guestPrefs = a.guest_id ? prefByGuest.get(a.guest_id) ?? [] : [];
       const hasSpecial = !!(a.special_requests && a.special_requests.trim().length > 3);
@@ -239,8 +239,8 @@ export const getMaintenanceIntelligence = createServerFn({ method: "GET" })
       .filter(([, arr]) => arr.length >= 2)
       .map(([key, arr]) => {
         const avgResolveMs = arr
-          .filter((t: any) => t.completed_at)
-          .map((t: any) => new Date(t.completed_at).getTime() - new Date(t.created_at).getTime())
+          .filter((t) => t.completed_at)
+          .map((t) => new Date(t.completed_at).getTime() - new Date(t.created_at).getTime())
           .reduce((a: number, b: number, _i, xs) => a + b / xs.length, 0);
         return {
           pattern: key,
@@ -254,8 +254,8 @@ export const getMaintenanceIntelligence = createServerFn({ method: "GET" })
       .sort((a, b) => b.occurrences - a.occurrences);
 
     const delayed = tasks
-      .filter((t: any) => t.status !== "completed" && t.due_at && new Date(t.due_at) < new Date())
-      .map((t: any) => ({
+      .filter((t) => t.status !== "completed" && t.due_at && new Date(t.due_at) < new Date())
+      .map((t) => ({
         id: t.id,
         title: t.title,
         due_at: t.due_at,
@@ -290,8 +290,8 @@ export const generateStaffOperationsInsights = createServerFn({ method: "POST" }
 
     const list = tasks ?? [];
     const total = list.length;
-    const completed = list.filter((t: any) => t.status === "completed");
-    const overdue = list.filter((t: any) => t.status !== "completed" && t.due_at && new Date(t.due_at) < new Date());
+    const completed = list.filter((t) => t.status === "completed");
+    const overdue = list.filter((t) => t.status !== "completed" && t.due_at && new Date(t.due_at) < new Date());
 
     const byCategory: Record<string, { total: number; completed: number; overdue: number }> = {};
     for (const t of list) {
@@ -305,7 +305,7 @@ export const generateStaffOperationsInsights = createServerFn({ method: "POST" }
     const insights: any[] = [];
 
     // Response-time signal
-    const completedWithTimes = completed.filter((t: any) => t.completed_at && t.created_at);
+    const completedWithTimes = completed.filter((t) => t.completed_at && t.created_at);
     if (completedWithTimes.length >= 5) {
       const avgMs =
         completedWithTimes.reduce(

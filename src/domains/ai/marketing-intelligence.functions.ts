@@ -64,9 +64,9 @@ export const getMarketingIntelligenceOverview = createServerFn({ method: "GET" }
       context.supabase.from("ai_marketing_recommendations").select("id, kind, status").eq("status", "pending"),
     ]);
 
-    const publishedArticles = (articles ?? []).filter((a: any) => a.status === "published");
+    const publishedArticles = (articles ?? []).filter((a) => a.status === "published");
     const lastPublish = publishedArticles
-      .map((a: any) => a.published_at)
+      .map((a) => a.published_at)
       .filter(Boolean)
       .sort()
       .at(-1) as string | undefined;
@@ -86,7 +86,7 @@ export const getMarketingIntelligenceOverview = createServerFn({ method: "GET" }
       ? clamp(1 - missingMeta / seoRows.length)
       : 0;
 
-    const activeCampaigns = (campaigns ?? []).filter((c: any) => c.status === "running" || c.status === "scheduled").length;
+    const activeCampaigns = (campaigns ?? []).filter((c) => c.status === "running" || c.status === "scheduled").length;
 
     return {
       seoHealth,
@@ -106,9 +106,9 @@ export const getMarketingIntelligenceOverview = createServerFn({ method: "GET" }
       brandTokens: brand?.length ?? 0,
       pendingRecommendations: pendingRecs?.length ?? 0,
       pendingByKind: {
-        seo: (pendingRecs ?? []).filter((r: any) => r.kind === "seo").length,
-        content: (pendingRecs ?? []).filter((r: any) => r.kind === "content").length,
-        campaign: (pendingRecs ?? []).filter((r: any) => r.kind === "campaign").length,
+        seo: (pendingRecs ?? []).filter((r) => r.kind === "seo").length,
+        content: (pendingRecs ?? []).filter((r) => r.kind === "content").length,
+        campaign: (pendingRecs ?? []).filter((r) => r.kind === "campaign").length,
       },
     };
   });
@@ -281,7 +281,7 @@ export const generateContentRecommendations = createServerFn({ method: "POST" })
       context.supabase.from("journal_articles").select("id, title, slug, status, published_at, seo_title, seo_description, cover_image_url"),
       context.supabase.from("bookings").select("check_in, total, status").gte("check_in", today()).lte("check_in", daysAgo(-90)).in("status", ["confirmed","pending","checked_in"]),
     ]);
-    const published = (articles ?? []).filter((a: any) => a.status === "published");
+    const published = (articles ?? []).filter((a) => a.status === "published");
     const sorted = [...published].sort((a: any, b: any) => (b.published_at ?? "").localeCompare(a.published_at ?? ""));
     const last = sorted[0] as any | undefined;
     const daysSince = last?.published_at ? Math.round((Date.now() - +new Date(last.published_at)) / 86400000) : 9999;
@@ -394,10 +394,10 @@ export const generateCampaignRecommendations = createServerFn({ method: "POST" }
     const nights = (forward ?? []).reduce((s: number, b: any) => s + Number(b.nights ?? 0), 0);
     const occ = capacity > 0 ? nights / capacity : 0;
 
-    const activeCampaigns = (campaigns ?? []).filter((c: any) => c.status === "running" || c.status === "scheduled").length;
+    const activeCampaigns = (campaigns ?? []).filter((c) => c.status === "running" || c.status === "scheduled").length;
     const lastActive = (campaigns ?? [])
-      .filter((c: any) => c.end_date)
-      .map((c: any) => c.end_date)
+      .filter((c) => c.end_date)
+      .map((c) => c.end_date)
       .sort()
       .at(-1) as string | undefined;
     const daysSinceCampaign = lastActive ? Math.round((Date.now() - +new Date(lastActive)) / 86400000) : 9999;
@@ -645,8 +645,8 @@ export const reviewBrandCompliance = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const { data: brand } = await context.supabase.from("brand_tokens").select("key, category, label, value");
-    const voiceTokens = (brand ?? []).filter((b: any) => b.category === "voice");
-    const glossary = (brand ?? []).filter((b: any) => b.category === "glossary");
+    const voiceTokens = (brand ?? []).filter((b) => b.category === "voice");
+    const glossary = (brand ?? []).filter((b) => b.category === "glossary");
 
     const text = data.content_sample;
     const lower = text.toLowerCase();

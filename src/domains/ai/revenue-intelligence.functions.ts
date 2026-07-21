@@ -37,12 +37,12 @@ export const getRevenueIntelligenceOverview = createServerFn({ method: "GET" })
       context.supabase.from("ai_revenue_alerts").select("id").eq("status","open"),
     ]);
 
-    const totalUnits = (rooms ?? []).reduce((s, r: any) => s + Number(r.total_units ?? 0), 0);
+    const totalUnits = (rooms ?? []).reduce((s, r) => s + Number(r.total_units ?? 0), 0);
     const currency = (mtd?.[0] as any)?.currency ?? "USD";
-    const mtdRevenue = (mtd ?? []).reduce((s, b: any) => s + Number(b.total ?? 0), 0);
-    const mtdNights = (mtd ?? []).reduce((s, b: any) => s + Number(b.nights ?? 0), 0);
-    const forwardRevenue = (forward ?? []).reduce((s, b: any) => s + Number(b.total ?? 0), 0);
-    const forwardNights = (forward ?? []).reduce((s, b: any) => s + Number(b.nights ?? 0), 0);
+    const mtdRevenue = (mtd ?? []).reduce((s, b) => s + Number(b.total ?? 0), 0);
+    const mtdNights = (mtd ?? []).reduce((s, b) => s + Number(b.nights ?? 0), 0);
+    const forwardRevenue = (forward ?? []).reduce((s, b) => s + Number(b.total ?? 0), 0);
+    const forwardNights = (forward ?? []).reduce((s, b) => s + Number(b.nights ?? 0), 0);
 
     const now = new Date();
     const daysElapsed = Math.max(1, now.getUTCDate());
@@ -51,16 +51,16 @@ export const getRevenueIntelligenceOverview = createServerFn({ method: "GET" })
     const adr = mtdNights > 0 ? mtdRevenue / mtdNights : 0;
     const revpar = capacityMTD > 0 ? mtdRevenue / capacityMTD : 0;
 
-    const past30Total = (past30 ?? []).reduce((s, b: any) => s + Number(b.total ?? 0), 0);
-    const prev30Total = (prev30 ?? []).reduce((s, b: any) => s + Number(b.total ?? 0), 0);
+    const past30Total = (past30 ?? []).reduce((s, b) => s + Number(b.total ?? 0), 0);
+    const prev30Total = (prev30 ?? []).reduce((s, b) => s + Number(b.total ?? 0), 0);
     const paceDelta = prev30Total > 0 ? (past30Total - prev30Total) / prev30Total : 0;
 
-    const outstandingTotal = (outstanding ?? []).reduce((s, b: any) => s + Number(b.balance_due ?? 0), 0);
+    const outstandingTotal = (outstanding ?? []).reduce((s, b) => s + Number(b.balance_due ?? 0), 0);
     const cancellationCount = cancelled30?.length ?? 0;
 
     const forwardCapacity = totalUnits * 30;
     const expectedOccupancy = forwardCapacity > 0 ? forwardNights / forwardCapacity : 0;
-    const atRisk = (forward ?? []).filter((b: any) => b.status === "pending").reduce((s, b: any) => s + Number(b.total ?? 0), 0);
+    const atRisk = (forward ?? []).filter((b) => b.status === "pending").reduce((s, b) => s + Number(b.total ?? 0), 0);
 
     return {
       currency,
@@ -114,16 +114,16 @@ export const generateRevenueForecast = createServerFn({ method: "POST" })
         .in("status", ["confirmed","checked_in","completed"]),
     ]);
 
-    const totalUnits = (rooms ?? []).reduce((s, r: any) => s + Number(r.total_units ?? 0), 0);
+    const totalUnits = (rooms ?? []).reduce((s, r) => s + Number(r.total_units ?? 0), 0);
     const capacity = totalUnits * horizon;
 
-    const confirmedRevenue = (forward ?? []).filter((b: any) => b.status !== "pending").reduce((s, b: any) => s + Number(b.total ?? 0), 0);
-    const pendingRevenue = (forward ?? []).filter((b: any) => b.status === "pending").reduce((s, b: any) => s + Number(b.total ?? 0), 0);
-    const confirmedNights = (forward ?? []).filter((b: any) => b.status !== "pending").reduce((s, b: any) => s + Number(b.nights ?? 0), 0);
+    const confirmedRevenue = (forward ?? []).filter((b) => b.status !== "pending").reduce((s, b) => s + Number(b.total ?? 0), 0);
+    const pendingRevenue = (forward ?? []).filter((b) => b.status === "pending").reduce((s, b) => s + Number(b.total ?? 0), 0);
+    const confirmedNights = (forward ?? []).filter((b) => b.status !== "pending").reduce((s, b) => s + Number(b.nights ?? 0), 0);
 
     // Historical revenue per day, same season window
     const histRevPerDay = (history?.length ?? 0) > 0
-      ? (history ?? []).reduce((s, b: any) => s + Number(b.total ?? 0), 0) / 365
+      ? (history ?? []).reduce((s, b) => s + Number(b.total ?? 0), 0) / 365
       : 0;
     const projectedNew = histRevPerDay * horizon * 0.7; // discount for uncertainty
     const expectedRevenue = confirmedRevenue + Math.max(pendingRevenue * 0.6, projectedNew);
@@ -136,14 +136,14 @@ export const generateRevenueForecast = createServerFn({ method: "POST" })
     const confidence = clamp(0.35 + dataScore * 0.3 + confirmedShare * 0.35);
 
     const assumptions = [
-      `Confirmed forward reservations (${(forward ?? []).filter((b: any) => b.status !== "pending").length}) contribute ${Math.round(confirmedShare * 100)}% of projection.`,
+      `Confirmed forward reservations (${(forward ?? []).filter((b) => b.status !== "pending").length}) contribute ${Math.round(confirmedShare * 100)}% of projection.`,
       `Pending reservations discounted to 60% conversion probability.`,
       `Historical daily average from last 365 days discounted to 70% to avoid over-projection.`,
       `No promotional or seasonal uplift is assumed unless recorded in pricing_rules.`,
     ];
     const evidence = [
-      { source: "bookings.confirmed_forward", count: (forward ?? []).filter((b: any) => b.status !== "pending").length, revenue: confirmedRevenue },
-      { source: "bookings.pending_forward",   count: (forward ?? []).filter((b: any) => b.status === "pending").length, revenue: pendingRevenue },
+      { source: "bookings.confirmed_forward", count: (forward ?? []).filter((b) => b.status !== "pending").length, revenue: confirmedRevenue },
+      { source: "bookings.pending_forward",   count: (forward ?? []).filter((b) => b.status === "pending").length, revenue: pendingRevenue },
       { source: "bookings.history_365d",      count: history?.length ?? 0, daily_avg: histRevPerDay },
       { source: "rooms.active_units",         value: totalUnits },
     ];
@@ -222,11 +222,11 @@ export const generatePricingRecommendations = createServerFn({ method: "POST" })
     const recs: Array<{ room_id: string | null; room_name: string; action: string; current_rate: number; suggested_rate: number; delta_pct: number; reasoning: string; expected_impact: number; confidence: number; evidence: any[] }> = [];
 
     for (const r of (rooms ?? []) as any[]) {
-      const roomForward = (forward ?? []).filter((b: any) => b.room_id === r.id && b.status !== "pending");
+      const roomForward = (forward ?? []).filter((b) => b.room_id === r.id && b.status !== "pending");
       const nightsSold = roomForward.reduce((s: number, b: any) => s + Number(b.nights ?? 0), 0);
       const capacity = Number(r.total_units ?? 0) * 30;
       const occ = capacity > 0 ? nightsSold / capacity : 0;
-      const cancels = (cancelled ?? []).filter((b: any) => b.room_id === r.id).length;
+      const cancels = (cancelled ?? []).filter((b) => b.room_id === r.id).length;
       const base = Number(r.base_price ?? 0);
 
       let action = "hold";
@@ -409,7 +409,7 @@ export const scanRevenueOpportunities = createServerFn({ method: "POST" })
 
     const opps: Array<{ kind: string; title: string; detail: string; estimated_impact: number; confidence: number; evidence: any[]; recommended_action: string }> = [];
 
-    const outstandingTotal = (outstanding ?? []).reduce((s, b: any) => s + Number(b.balance_due ?? 0), 0);
+    const outstandingTotal = (outstanding ?? []).reduce((s, b) => s + Number(b.balance_due ?? 0), 0);
     if (outstandingTotal > 0) {
       opps.push({
         kind: "revenue_leakage",
@@ -422,8 +422,8 @@ export const scanRevenueOpportunities = createServerFn({ method: "POST" })
       });
     }
 
-    const extraBookingIds = new Set((extras ?? []).map((e: any) => e.booking_id));
-    const noExtras = (upcoming ?? []).filter((b: any) => !extraBookingIds.has(b.id));
+    const extraBookingIds = new Set((extras ?? []).map((e) => e.booking_id));
+    const noExtras = (upcoming ?? []).filter((b) => !extraBookingIds.has(b.id));
     if (noExtras.length) {
       opps.push({
         kind: "upsell",
@@ -436,7 +436,7 @@ export const scanRevenueOpportunities = createServerFn({ method: "POST" })
       });
     }
 
-    const longStays = (upcoming ?? []).filter((b: any) => (b.nights ?? 0) >= 5);
+    const longStays = (upcoming ?? []).filter((b) => (b.nights ?? 0) >= 5);
     if (longStays.length) {
       opps.push({
         kind: "cross_sell",
@@ -522,16 +522,16 @@ export const scanRevenueAlerts = createServerFn({ method: "POST" })
       context.supabase.from("bookings").select("id, created_at").gte("created_at", daysAgo(3)),
     ]);
 
-    const totalUnits = (rooms ?? []).reduce((s, r: any) => s + Number(r.total_units ?? 0), 0);
+    const totalUnits = (rooms ?? []).reduce((s, r) => s + Number(r.total_units ?? 0), 0);
     const capacity = totalUnits * 30;
-    const soldNights = (forward ?? []).reduce((s, b: any) => s + Number(b.nights ?? 0), 0);
+    const soldNights = (forward ?? []).reduce((s, b) => s + Number(b.nights ?? 0), 0);
     const occ = capacity > 0 ? soldNights / capacity : 0;
 
     const alerts: Array<{ kind: string; severity: "info"|"warning"|"critical"; title: string; detail: string; metric: any }> = [];
 
     if (occ < 0.4) alerts.push({ kind: "occupancy_low", severity: "warning", title: "Forward occupancy below target", detail: `30-day forward occupancy ${Math.round(occ*100)}% is below the 40% target.`, metric: { occupancy: occ } });
     if ((cancelled?.length ?? 0) >= 5) alerts.push({ kind: "cancellation_spike", severity: "warning", title: "High cancellation rate", detail: `${cancelled?.length} cancellations in the last 14 days.`, metric: { count: cancelled?.length } });
-    const outstandingTotal = (outstanding ?? []).reduce((s, b: any) => s + Number(b.balance_due ?? 0), 0);
+    const outstandingTotal = (outstanding ?? []).reduce((s, b) => s + Number(b.balance_due ?? 0), 0);
     if (outstandingTotal > 2000) alerts.push({ kind: "large_unpaid_balances", severity: "warning", title: "Large unpaid balances", detail: `${Math.round(outstandingTotal).toLocaleString()} outstanding across ${outstanding?.length} bookings.`, metric: { total: outstandingTotal } });
     if ((surge?.length ?? 0) >= 10) alerts.push({ kind: "booking_surge", severity: "info", title: "Booking surge", detail: `${surge?.length} bookings received in the last 3 days.`, metric: { count: surge?.length } });
     if (totalUnits > 0 && soldNights > totalUnits * 30) alerts.push({ kind: "overbooking_risk", severity: "critical", title: "Potential overbooking", detail: "Forward night demand exceeds available room-nights.", metric: { soldNights, capacity } });
