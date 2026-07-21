@@ -1,4 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  Waves,
+  Leaf,
+  Compass,
+  Mountain,
+  HeartHandshake,
+  ShieldCheck,
+} from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
@@ -71,12 +79,36 @@ const ROOM_DETAILS: Record<RoomSlug, { price: string; sleeps: string; blurb: str
 };
 
 const REASONS = [
-  { title: "Riverside Location", body: "Wake to the sound of the Nduruma River flowing through mature gardens." },
-  { title: "Peaceful Natural Environment", body: "Twenty-four rooms set within a quiet, tree-lined riverside estate." },
-  { title: "Safari Gateway", body: "Perfectly placed for Arusha, Tarangire, Ngorongoro, and Serengeti journeys." },
-  { title: "Kilimanjaro Base", body: "A low-altitude retreat for climbers — before the ascent and after the summit." },
-  { title: "Authentic Hospitality", body: "Personal, unhurried service from a team that treats every guest as family." },
-  { title: "Direct Secure Booking", body: "Book directly for our best available rate and instant confirmation." },
+  {
+    title: "Riverside Location",
+    body: "Wake to the sound of the Nduruma River flowing through mature gardens.",
+    Icon: Waves,
+  },
+  {
+    title: "Peaceful Natural Environment",
+    body: "Twenty-four rooms set within a quiet, tree-lined riverside estate.",
+    Icon: Leaf,
+  },
+  {
+    title: "Safari Gateway",
+    body: "Perfectly placed for Arusha, Tarangire, Ngorongoro, and Serengeti journeys.",
+    Icon: Compass,
+  },
+  {
+    title: "Kilimanjaro Base",
+    body: "A low-altitude retreat for climbers — before the ascent and after the summit.",
+    Icon: Mountain,
+  },
+  {
+    title: "Authentic Hospitality",
+    body: "Personal, unhurried service from a team that treats every guest as family.",
+    Icon: HeartHandshake,
+  },
+  {
+    title: "Direct Secure Booking",
+    body: "Book directly for our best available rate and instant confirmation.",
+    Icon: ShieldCheck,
+  },
 ];
 
 const EXPERIENCES = [
@@ -443,14 +475,16 @@ function StayLandingPage() {
             {REASONS.map((r, i) => (
               <Reveal key={r.title} delay={i * 80}>
                 <div
-                  className="h-full border p-8 transition-colors"
+                  className="group h-full border p-8 transition-colors hover:border-gold/40"
                   style={{ borderColor: `${BRAND.gold}55`, backgroundColor: "#FBF7EC" }}
                 >
                   <div
-                    className="h-10 w-10"
+                    className="inline-flex h-12 w-12 items-center justify-center rounded-full border transition-colors group-hover:border-gold/60"
                     aria-hidden
-                    style={{ backgroundColor: BRAND.primary }}
-                  />
+                    style={{ borderColor: `${BRAND.gold}66`, color: BRAND.primary }}
+                  >
+                    <r.Icon size={24} strokeWidth={1.5} />
+                  </div>
                   <h3 className="mt-6 font-display text-xl lg:text-2xl">{r.title}</h3>
                   <p className="mt-3 text-sm leading-relaxed text-charcoal/75">{r.body}</p>
                 </div>
