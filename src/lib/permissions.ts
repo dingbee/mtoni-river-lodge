@@ -11,7 +11,6 @@ export type Role =
   | "housekeeping"
   | "finance"
   | "editor"
-  | "admin" // legacy — treated as owner
   | "reservations"; // legacy — treated as reception
 
 export const ROLE_LABELS: Record<Role, string> = {
@@ -22,7 +21,6 @@ export const ROLE_LABELS: Record<Role, string> = {
   housekeeping: "Housekeeping",
   finance: "Finance",
   editor: "Editor",
-  admin: "Owner (legacy)",
   reservations: "Reception (legacy)",
 };
 
