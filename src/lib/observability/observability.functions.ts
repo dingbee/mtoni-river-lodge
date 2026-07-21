@@ -104,3 +104,88 @@ export const resolveSystemError = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ---------------------------------------------------------------- Inventory Integrity
+//
+// Read-only cross-check between rooms.total_units (configured inventory) and
+// public.room_states (physical units surfaced on the Operations Room Board).
+// Detects drift like the recent Family/Deluxe/Standard mismatch. Never writes.
+
+export type InventoryIntegrityRow = {
+  room_id: string;
+  slug: string;
+  name: string;
+  configured: number;
+  physical: number;
+  status: "synced" | "mismatch";
+  delta: number;
+  recommendation: string | null;
+};
+
+export type InventoryIntegrityReport = {
+  rows: InventoryIntegrityRow[];
+  configured_total: number;
+  physical_total: number;
+  mismatches: number;
+  status: "synced" | "mismatch";
+  checked_at: string;
+};
+
+export const getInventoryIntegrity = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<InventoryIntegrityReport> => {
+    await assertOwnerOrAdmin(context.supabase, context.userId);
+
+    const [roomsRes, statesRes] = await Promise.all([
+      context.supabase
+        .from("rooms")
+        .select("id, slug, name, total_units, sort_order")
+        .eq("status", "active"),
+      context.supabase.from("room_states").select("room_id"),
+    ]);
+    if (roomsRes.error) throw new Error(roomsRes.error.message);
+    if (statesRes.error) throw new Error(statesRes.error.message);
+
+    const counts = new Map<string, number>();
+    for (const s of (statesRes.data ?? []) as Array<{ room_id: string }>) {
+      counts.set(s.room_id, (counts.get(s.room_id) ?? 0) + 1);
+    }
+
+    const rows: InventoryIntegrityRow[] = ((roomsRes.data ?? []) as Array<{
+      id: string; slug: string; name: string; total_units: number; sort_order: number | null;
+    }>)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+      .map((r) => {
+        const configured = Number(r.total_units ?? 0);
+        const physical = counts.get(r.id) ?? 0;
+        const delta = physical - configured;
+        const synced = delta === 0;
+        return {
+          room_id: r.id,
+          slug: r.slug,
+          name: r.name,
+          configured,
+          physical,
+          delta,
+          status: synced ? "synced" : "mismatch",
+          recommendation: synced
+            ? null
+            : delta > 0
+              ? `Remove ${delta} extra physical unit${delta === 1 ? "" : "s"} from room_states for ${r.name}.`
+              : `Add ${Math.abs(delta)} physical unit${Math.abs(delta) === 1 ? "" : "s"} to room_states for ${r.name}.`,
+        };
+      });
+
+    const configured_total = rows.reduce((n, r) => n + r.configured, 0);
+    const physical_total = rows.reduce((n, r) => n + r.physical, 0);
+    const mismatches = rows.filter((r) => r.status === "mismatch").length;
+
+    return {
+      rows,
+      configured_total,
+      physical_total,
+      mismatches,
+      status: mismatches === 0 ? "synced" : "mismatch",
+      checked_at: new Date().toISOString(),
+    };
+  });
