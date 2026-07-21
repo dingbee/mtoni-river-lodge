@@ -56,6 +56,8 @@ function CommandCentrePage() {
   const ops: any = opsQ.data ?? {};
   const rev: any = revQ.data ?? {};
   const crm: any = crmQ.data ?? { recent: [], returning: [], vip: [], arrivals: [] };
+  const isInitialLoading = opsQ.isLoading && revQ.isLoading && crmQ.isLoading;
+  const kpiHint = (v: string) => (opsQ.isLoading || revQ.isLoading ? "Loading…" : v);
   const intel: any = intelQ.data ?? {
     vipArrivals: [], birthdays: [], anniversaries: [], topCountries: [], topLifetime: [], acquisitionTrend: [],
   };
@@ -107,18 +109,18 @@ function CommandCentrePage() {
 
       {/* Primary KPI row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Occupancy" value={`${occupancyPct}%`} hint={`${occupied}/${totalRooms} rooms occupied`} icon={Gauge} />
-        <StatCard label="In-house" value={inHouse} hint="Guests staying tonight" icon={Users} />
-        <StatCard label="Arrivals" value={arrivals} hint="Today" icon={CalendarCheck} />
-        <StatCard label="Departures" value={departures} hint="Today" icon={CalendarX} />
+        <StatCard label="Occupancy" value={opsQ.isLoading ? "—" : `${occupancyPct}%`} hint={kpiHint(`${occupied}/${totalRooms} rooms occupied`)} icon={Gauge} />
+        <StatCard label="In-house" value={opsQ.isLoading ? "—" : inHouse} hint={kpiHint("Guests staying tonight")} icon={Users} />
+        <StatCard label="Arrivals" value={opsQ.isLoading ? "—" : arrivals} hint={kpiHint("Today")} icon={CalendarCheck} />
+        <StatCard label="Departures" value={opsQ.isLoading ? "—" : departures} hint={kpiHint("Today")} icon={CalendarX} />
       </div>
 
       {/* Revenue + performance row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Revenue MTD" value={money(revenueMtd)} hint={`Today ${money(revenueToday)}`} icon={DollarSign} />
-        <StatCard label="ADR" value={money(adr)} hint="Average daily rate" icon={TrendingUp} />
-        <StatCard label="RevPAR" value={money(revpar)} hint="Rev per available room" icon={LineChart} />
-        <StatCard label="Outstanding" value={money(outstanding)} hint="Pending balances" icon={Wallet} />
+        <StatCard label="Revenue MTD" value={revQ.isLoading ? "—" : money(revenueMtd)} hint={kpiHint(`Today ${money(revenueToday)}`)} icon={DollarSign} />
+        <StatCard label="ADR" value={revQ.isLoading ? "—" : money(adr)} hint={kpiHint("Average daily rate")} icon={TrendingUp} />
+        <StatCard label="RevPAR" value={revQ.isLoading ? "—" : money(revpar)} hint={kpiHint("Rev per available room")} icon={LineChart} />
+        <StatCard label="Outstanding" value={revQ.isLoading ? "—" : money(outstanding)} hint={kpiHint("Pending balances")} icon={Wallet} />
       </div>
 
       {/* Operational widgets row */}
