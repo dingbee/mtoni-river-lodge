@@ -573,3 +573,49 @@
 @media (prefers-reduced-motion: reduce) {
   .kenburns-slow { animation: none; }
 }
+
+/* ============================================================
+   MTONI OS — Command Centre dark shell
+   Restores the production admin theme: warm charcoal/graphite
+   application canvas with soft white cards, refined sidebar,
+   and refined top navigation. Scoped strictly to .mtoni-os so
+   the public website is untouched.
+   ============================================================ */
+.mtoni-os {
+  /* Warm charcoal / graphite canvas */
+  --os-canvas: #1E211F;
+  --os-hairline: rgba(255,255,255,0.06);
+  --os-hairline-strong: rgba(255,255,255,0.12);
+
+  /* Text sitting directly on the dark canvas (topbar, page headers) */
+  --foreground: #ECEEEB;
+  --muted-foreground: #A6ABA5;
+  --border: rgba(255,255,255,0.10);
+  --input: rgba(255,255,255,0.14);
+
+  background-color: var(--os-canvas);
+  color: var(--foreground);
+}
+
+/* Re-scope light surfaces (cards, sidebar, right rail, popovers)
+   back to dark ink so their content remains readable. */
+.mtoni-os .os-card,
+.mtoni-os .os-card-flat,
+.mtoni-os aside[aria-label="Primary navigation"],
+.mtoni-os aside[aria-label="Assistant"],
+.mtoni-os [data-os-surface="light"] {
+  --foreground: var(--os-ink);
+  --muted-foreground: var(--os-ink-3);
+  --border: rgba(26,26,26,0.10);
+  --input: rgba(26,26,26,0.14);
+  color: var(--os-ink);
+}
+
+/* Card shadows read better on the dark canvas with a deeper drop */
+.mtoni-os .os-card {
+  box-shadow:
+    0 1px 0 rgba(0,0,0,0.35),
+    0 6px 20px -10px rgba(0,0,0,0.55),
+    0 24px 60px -30px rgba(0,0,0,0.65);
+  border-color: rgba(0,0,0,0.35);
+}
