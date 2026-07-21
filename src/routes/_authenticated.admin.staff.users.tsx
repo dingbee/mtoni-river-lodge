@@ -124,7 +124,6 @@ const STATUS_TONE: Record<StaffUser["status"], string> = {
 
 const INVITE_ROLE_OPTIONS: AppRole[] = [
   "owner",
-  "admin",
   "manager",
   "reception",
   "housekeeping",
@@ -144,7 +143,7 @@ function StaffUsersPage() {
   const removeRolesFn = useServerFn(removeAllRoles);
 
   const rolesQ = useCurrentUserRoles();
-  const canManage = (rolesQ.data ?? []).some((r) => r === "owner" || r === "admin");
+  const canManage = (rolesQ.data ?? []).some((r) => r === "owner");
 
   const q = useQuery({ queryKey: ["staff.users"], queryFn: () => listFn(), staleTime: 60_000 });
   const invalidate = () => {
