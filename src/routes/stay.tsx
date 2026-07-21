@@ -1,4 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  Waves,
+  Leaf,
+  Compass,
+  Mountain,
+  HeartHandshake,
+  ShieldCheck,
+} from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Reveal } from "@/components/site/Reveal";
