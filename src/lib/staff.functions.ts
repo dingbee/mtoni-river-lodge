@@ -20,6 +20,15 @@ export const APP_ROLES = [
 ] as const;
 export type AppRole = (typeof APP_ROLES)[number];
 
+/** Absolute URL that Supabase should redirect to from invite / recovery emails. */
+function inviteRedirectUrl(): string {
+  const site =
+    process.env.SITE_URL ||
+    process.env.PUBLIC_SITE_URL ||
+    "https://mtoniriverlodge.com";
+  return `${site.replace(/\/$/, "")}/auth/callback`;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function assertRoles(supabase: any, userId: string, roles: readonly string[]) {
   const { data, error } = await supabase.rpc("has_any_role", {
@@ -229,6 +238,7 @@ export const inviteStaffUser = createServerFn({ method: "POST" })
     // to updating metadata + generating a fresh invite link.
     const invite = await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, {
       data: metadata,
+      redirectTo: inviteRedirectUrl(),
     });
     if (invite.data?.user) {
       userId = invite.data.user.id;
@@ -277,7 +287,9 @@ export const resendStaffInvite = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: uRes, error: uErr } = await supabaseAdmin.auth.admin.getUserById(data.userId);
     if (uErr || !uRes?.user?.email) throw new Error(uErr?.message ?? "User has no email");
-    const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(uRes.user.email);
+    const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(uRes.user.email, {
+      redirectTo: inviteRedirectUrl(),
+    });
     if (error) throw new Error(error.message);
     await logActivity(context.supabase, {
       actorId: context.userId,
@@ -303,6 +315,7 @@ export const sendStaffPasswordReset = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.auth.admin.generateLink({
       type: "recovery",
       email: uRes.user.email,
+      options: { redirectTo: inviteRedirectUrl() },
     });
     if (error) throw new Error(error.message);
     await logActivity(context.supabase, {
