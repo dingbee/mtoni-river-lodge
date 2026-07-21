@@ -195,6 +195,7 @@ function StaffRolesPage() {
               <thead className="text-xs uppercase text-muted-foreground">
                 <tr className="text-left">
                   <th className="py-2 pr-3">User</th>
+                  <th className="py-2 pr-3">User ID</th>
                   <th className="py-2 pr-3">Role</th>
                   <th className="py-2 pr-3">Granted</th>
                   <th className="py-2 pr-3 text-right">Actions</th>
@@ -207,6 +208,9 @@ function StaffRolesPage() {
                     <tr key={a.id}>
                       <td className="py-2 pr-3">
                         <div className="font-medium">{user?.email ?? user?.full_name ?? a.user_id.slice(0, 8)}</div>
+                      </td>
+                      <td className="py-2 pr-3">
+                        <CopyableUuid value={a.user_id} />
                       </td>
                       <td className="py-2 pr-3">{ROLE_LABELS[a.role as Role] ?? a.role}</td>
                       <td className="py-2 pr-3 text-xs text-muted-foreground">
