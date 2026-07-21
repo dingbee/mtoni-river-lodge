@@ -71,6 +71,7 @@ import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe
 import { Route as CategorySplatRouteImport } from './routes/category.$'
 import { Route as BookingReturnRouteImport } from './routes/booking.return'
 import { Route as AuthorSplatRouteImport } from './routes/author.$'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
@@ -547,6 +548,11 @@ const AuthorSplatRoute = AuthorSplatRouteImport.update({
   id: '/author/$',
   path: '/author/$',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
@@ -1450,7 +1456,7 @@ export interface FileRoutesByFullPath {
   '/about-us': typeof AboutUsRoute
   '/accommodations': typeof AccommodationsRoute
   '/amenities-activities': typeof AmenitiesActivitiesRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
   '/boutique-lodge-near-kilimanjaro-airport': typeof BoutiqueLodgeNearKilimanjaroAirportRoute
@@ -1481,6 +1487,7 @@ export interface FileRoutesByFullPath {
   '/unsubscribe': typeof UnsubscribeRoute
   '/vote': typeof VoteRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/auth/callback': typeof AuthCallbackRoute
   '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
@@ -1664,7 +1671,7 @@ export interface FileRoutesByTo {
   '/about-us': typeof AboutUsRoute
   '/accommodations': typeof AccommodationsRoute
   '/amenities-activities': typeof AmenitiesActivitiesRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
   '/boutique-lodge-near-kilimanjaro-airport': typeof BoutiqueLodgeNearKilimanjaroAirportRoute
@@ -1692,6 +1699,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/vote': typeof VoteRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
@@ -1868,7 +1876,7 @@ export interface FileRoutesById {
   '/about-us': typeof AboutUsRoute
   '/accommodations': typeof AccommodationsRoute
   '/amenities-activities': typeof AmenitiesActivitiesRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
   '/boutique-lodge-near-kilimanjaro-airport': typeof BoutiqueLodgeNearKilimanjaroAirportRoute
@@ -1899,6 +1907,7 @@ export interface FileRoutesById {
   '/unsubscribe': typeof UnsubscribeRoute
   '/vote': typeof VoteRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/auth/callback': typeof AuthCallbackRoute
   '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
@@ -2115,6 +2124,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/vote'
     | '/admin'
+    | '/auth/callback'
     | '/author/$'
     | '/booking/return'
     | '/category/$'
@@ -2326,6 +2336,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/unsubscribe'
     | '/vote'
+    | '/auth/callback'
     | '/author/$'
     | '/booking/return'
     | '/category/$'
@@ -2532,6 +2543,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/vote'
     | '/_authenticated/admin'
+    | '/auth/callback'
     | '/author/$'
     | '/booking/return'
     | '/category/$'
@@ -2717,7 +2729,7 @@ export interface RootRouteChildren {
   AboutUsRoute: typeof AboutUsRoute
   AccommodationsRoute: typeof AccommodationsRoute
   AmenitiesActivitiesRoute: typeof AmenitiesActivitiesRoute
-  AuthRoute: typeof AuthRoute
+  AuthRoute: typeof AuthRouteWithChildren
   BookRoute: typeof BookRoute
   BookingFormRoute: typeof BookingFormRoute
   BoutiqueLodgeNearKilimanjaroAirportRoute: typeof BoutiqueLodgeNearKilimanjaroAirportRoute
@@ -3211,6 +3223,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/author/$'
       preLoaderRoute: typeof AuthorSplatRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
@@ -4815,6 +4834,16 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
+interface AuthRouteChildren {
+  AuthCallbackRoute: typeof AuthCallbackRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthCallbackRoute: AuthCallbackRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 interface JournalRouteChildren {
   JournalSlugRoute: typeof JournalSlugRoute
   JournalAMorningWithTheBeekeepersOfGombaRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRoute
@@ -4878,7 +4907,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutUsRoute: AboutUsRoute,
   AccommodationsRoute: AccommodationsRoute,
   AmenitiesActivitiesRoute: AmenitiesActivitiesRoute,
-  AuthRoute: AuthRoute,
+  AuthRoute: AuthRouteWithChildren,
   BookRoute: BookRoute,
   BookingFormRoute: BookingFormRoute,
   BoutiqueLodgeNearKilimanjaroAirportRoute:
