@@ -38,7 +38,12 @@ function useSessionToken() {
   return { token, save };
 }
 
-export function ConciergeWidget() {
+interface ConciergeWidgetProps {
+  /** Optional callback invoked whenever the chat open state changes. */
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
