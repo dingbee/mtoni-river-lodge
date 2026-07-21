@@ -71,6 +71,7 @@ import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe
 import { Route as CategorySplatRouteImport } from './routes/category.$'
 import { Route as BookingReturnRouteImport } from './routes/booking.return'
 import { Route as AuthorSplatRouteImport } from './routes/author.$'
+import { Route as AuthSetPasswordRouteImport } from './routes/auth.set-password'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
@@ -548,6 +549,11 @@ const AuthorSplatRoute = AuthorSplatRouteImport.update({
   id: '/author/$',
   path: '/author/$',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSetPasswordRoute = AuthSetPasswordRouteImport.update({
+  id: '/set-password',
+  path: '/set-password',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/callback',
@@ -1488,6 +1494,7 @@ export interface FileRoutesByFullPath {
   '/vote': typeof VoteRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/set-password': typeof AuthSetPasswordRoute
   '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
@@ -1700,6 +1707,7 @@ export interface FileRoutesByTo {
   '/unsubscribe': typeof UnsubscribeRoute
   '/vote': typeof VoteRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/set-password': typeof AuthSetPasswordRoute
   '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
@@ -1908,6 +1916,7 @@ export interface FileRoutesById {
   '/vote': typeof VoteRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/set-password': typeof AuthSetPasswordRoute
   '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
@@ -2125,6 +2134,7 @@ export interface FileRouteTypes {
     | '/vote'
     | '/admin'
     | '/auth/callback'
+    | '/auth/set-password'
     | '/author/$'
     | '/booking/return'
     | '/category/$'
@@ -2337,6 +2347,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/vote'
     | '/auth/callback'
+    | '/auth/set-password'
     | '/author/$'
     | '/booking/return'
     | '/category/$'
@@ -2544,6 +2555,7 @@ export interface FileRouteTypes {
     | '/vote'
     | '/_authenticated/admin'
     | '/auth/callback'
+    | '/auth/set-password'
     | '/author/$'
     | '/booking/return'
     | '/category/$'
@@ -3223,6 +3235,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/author/$'
       preLoaderRoute: typeof AuthorSplatRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/auth/set-password': {
+      id: '/auth/set-password'
+      path: '/set-password'
+      fullPath: '/auth/set-password'
+      preLoaderRoute: typeof AuthSetPasswordRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/auth/callback': {
       id: '/auth/callback'
@@ -4836,10 +4855,12 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 
 interface AuthRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthSetPasswordRoute: typeof AuthSetPasswordRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
+  AuthSetPasswordRoute: AuthSetPasswordRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
