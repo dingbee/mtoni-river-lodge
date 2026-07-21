@@ -91,7 +91,7 @@ function StaffRolesPage() {
   const revokeFn = useServerFn(revokeRole);
 
   const rolesQ = useCurrentUserRoles();
-  const canManage = (rolesQ.data ?? []).some((r) => r === "owner" || r === "admin");
+  const canManage = (rolesQ.data ?? []).some((r) => r === "owner");
 
   const usersQ = useQuery({ queryKey: ["staff.users"], queryFn: () => usersFn(), staleTime: 60_000 });
   const assignmentsQ = useQuery({
