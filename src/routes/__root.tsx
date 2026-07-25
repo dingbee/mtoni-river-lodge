@@ -108,9 +108,9 @@ export const Route = createRootRoute({
           function gtag(){dataLayer.push(arguments);}
           window.gtag = gtag;
           gtag('js', new Date());
-          gtag('config', 'G-G5731NPXLF', { send_page_view: false });
+          gtag('config', 'G-367QZR4VD6', { send_page_view: false });
           var loaded=false;
-          function loadGA(){if(loaded)return;loaded=true;var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-G5731NPXLF';document.head.appendChild(s);}
+          function loadGA(){if(loaded)return;loaded=true;var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-367QZR4VD6';document.head.appendChild(s);}
           var evts=['scroll','keydown','mousemove','touchstart','pointerdown'];
           function trigger(){evts.forEach(function(e){window.removeEventListener(e,trigger,{passive:true});});loadGA();}
           if(document.readyState==='complete'){setTimeout(function(){('requestIdleCallback'in window)?requestIdleCallback(loadGA,{timeout:4000}):setTimeout(loadGA,2500);},0);}else{window.addEventListener('load',function(){('requestIdleCallback'in window)?requestIdleCallback(loadGA,{timeout:4000}):setTimeout(loadGA,2500);},{once:true});}
