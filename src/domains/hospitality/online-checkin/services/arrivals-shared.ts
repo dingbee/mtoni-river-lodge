@@ -84,6 +84,10 @@ export interface ArrivalAlert {
   severity: "info" | "warn" | "danger";
 }
 
+/** Operational readiness of an arrival, derived from existing reservation,
+ *  document and room-state data (no new state is stored). */
+export type ArrivalReadiness = "ready" | "attention" | "pending";
+
 export interface ArrivalListItem {
   bookingId: string;
   reference: string;
