@@ -259,6 +259,10 @@ function WlhaBannerInner() {
             </Link>
           </div>
         </Reveal>
+
+        <Reveal delay={450}>
+          <ShareControls />
+        </Reveal>
       </div>
     </section>
   );
