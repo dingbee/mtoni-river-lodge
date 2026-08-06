@@ -7070,6 +7070,10 @@ export type Database = {
           url: string
         }[]
       }
+      arrival_automation_run: {
+        Args: { _booking_id: string; _event: string; _meta?: Json }
+        Returns: boolean
+      }
       arrival_pass_confirm: {
         Args: { _client?: Json; _pass_token: string }
         Returns: Json
