@@ -69,6 +69,9 @@ import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './r
 import { Route as JournalSlugRouteImport } from './routes/journal.$slug'
 import { Route as FeedSplatRouteImport } from './routes/feed.$'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
+import { Route as CheckInSuccessRouteImport } from './routes/check-in.success'
+import { Route as CheckInExpiredRouteImport } from './routes/check-in.expired'
+import { Route as CheckInTokenRouteImport } from './routes/check-in.$token'
 import { Route as CategorySplatRouteImport } from './routes/category.$'
 import { Route as BookingReturnRouteImport } from './routes/booking.return'
 import { Route as AuthorSplatRouteImport } from './routes/author.$'
@@ -168,6 +171,7 @@ import { Route as AuthenticatedAdminAiCopilotRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminAiConciergeRouteImport } from './routes/_authenticated.admin.ai.concierge'
 import { Route as AuthenticatedAdminAiAuditRouteImport } from './routes/_authenticated.admin.ai.audit'
 import { Route as AuthenticatedAdminAiActivityRouteImport } from './routes/_authenticated.admin.ai.activity'
+import { Route as AuthenticatedAdminOperationsArrivalsIndexRouteImport } from './routes/_authenticated.admin.operations.arrivals.index'
 import { Route as AuthenticatedAdminContentPagesIndexRouteImport } from './routes/_authenticated.admin.content.pages.index'
 import { Route as AuthenticatedAdminContentJournalIndexRouteImport } from './routes/_authenticated.admin.content.journal.index'
 import { Route as AuthenticatedAdminAiRevenueIndexRouteImport } from './routes/_authenticated.admin.ai.revenue.index'
@@ -178,6 +182,7 @@ import { Route as AuthenticatedAdminAiConciergeIndexRouteImport } from './routes
 import { Route as AuthenticatedAdminOperationsReservationsIdRouteImport } from './routes/_authenticated.admin.operations.reservations.$id'
 import { Route as AuthenticatedAdminOperationsCheckoutIdRouteImport } from './routes/_authenticated.admin.operations.checkout.$id'
 import { Route as AuthenticatedAdminOperationsCheckinIdRouteImport } from './routes/_authenticated.admin.operations.checkin.$id'
+import { Route as AuthenticatedAdminOperationsArrivalsIdRouteImport } from './routes/_authenticated.admin.operations.arrivals.$id'
 import { Route as AuthenticatedAdminGuestsCrmDuplicatesRouteImport } from './routes/_authenticated.admin.guests.crm.duplicates'
 import { Route as AuthenticatedAdminGuestsCrmIdRouteImport } from './routes/_authenticated.admin.guests.crm.$id'
 import { Route as AuthenticatedAdminContentJournalIdRouteImport } from './routes/_authenticated.admin.content.journal.$id'
@@ -539,6 +544,21 @@ const FeedSplatRoute = FeedSplatRouteImport.update({
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckInSuccessRoute = CheckInSuccessRouteImport.update({
+  id: '/check-in/success',
+  path: '/check-in/success',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckInExpiredRoute = CheckInExpiredRouteImport.update({
+  id: '/check-in/expired',
+  path: '/check-in/expired',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckInTokenRoute = CheckInTokenRouteImport.update({
+  id: '/check-in/$token',
+  path: '/check-in/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CategorySplatRoute = CategorySplatRouteImport.update({
@@ -1120,6 +1140,12 @@ const AuthenticatedAdminAiActivityRoute =
     path: '/activity',
     getParentRoute: () => AuthenticatedAdminAiRoute,
   } as any)
+const AuthenticatedAdminOperationsArrivalsIndexRoute =
+  AuthenticatedAdminOperationsArrivalsIndexRouteImport.update({
+    id: '/arrivals/',
+    path: '/arrivals/',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
 const AuthenticatedAdminContentPagesIndexRoute =
   AuthenticatedAdminContentPagesIndexRouteImport.update({
     id: '/content/pages/',
@@ -1178,6 +1204,12 @@ const AuthenticatedAdminOperationsCheckinIdRoute =
   AuthenticatedAdminOperationsCheckinIdRouteImport.update({
     id: '/checkin/$id',
     path: '/checkin/$id',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
+const AuthenticatedAdminOperationsArrivalsIdRoute =
+  AuthenticatedAdminOperationsArrivalsIdRouteImport.update({
+    id: '/arrivals/$id',
+    path: '/arrivals/$id',
     getParentRoute: () => AuthenticatedAdminOperationsRoute,
   } as any)
 const AuthenticatedAdminGuestsCrmDuplicatesRoute =
@@ -1505,6 +1537,9 @@ export interface FileRoutesByFullPath {
   '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
+  '/check-in/$token': typeof CheckInTokenRoute
+  '/check-in/expired': typeof CheckInExpiredRoute
+  '/check-in/success': typeof CheckInSuccessRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/feed/$': typeof FeedSplatRoute
   '/journal/$slug': typeof JournalSlugRoute
@@ -1667,6 +1702,7 @@ export interface FileRoutesByFullPath {
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
+  '/admin/operations/arrivals/$id': typeof AuthenticatedAdminOperationsArrivalsIdRoute
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
@@ -1677,6 +1713,7 @@ export interface FileRoutesByFullPath {
   '/admin/ai/revenue/': typeof AuthenticatedAdminAiRevenueIndexRoute
   '/admin/content/journal/': typeof AuthenticatedAdminContentJournalIndexRoute
   '/admin/content/pages/': typeof AuthenticatedAdminContentPagesIndexRoute
+  '/admin/operations/arrivals/': typeof AuthenticatedAdminOperationsArrivalsIndexRoute
   '/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
   '/admin/content/pages/$id/': typeof AuthenticatedAdminContentPagesIdIndexRoute
 }
@@ -1719,6 +1756,9 @@ export interface FileRoutesByTo {
   '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
+  '/check-in/$token': typeof CheckInTokenRoute
+  '/check-in/expired': typeof CheckInExpiredRoute
+  '/check-in/success': typeof CheckInSuccessRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/feed/$': typeof FeedSplatRoute
   '/journal/$slug': typeof JournalSlugRoute
@@ -1872,6 +1912,7 @@ export interface FileRoutesByTo {
   '/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
+  '/admin/operations/arrivals/$id': typeof AuthenticatedAdminOperationsArrivalsIdRoute
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
@@ -1882,6 +1923,7 @@ export interface FileRoutesByTo {
   '/admin/ai/revenue': typeof AuthenticatedAdminAiRevenueIndexRoute
   '/admin/content/journal': typeof AuthenticatedAdminContentJournalIndexRoute
   '/admin/content/pages': typeof AuthenticatedAdminContentPagesIndexRoute
+  '/admin/operations/arrivals': typeof AuthenticatedAdminOperationsArrivalsIndexRoute
   '/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
   '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdIndexRoute
 }
@@ -1929,6 +1971,9 @@ export interface FileRoutesById {
   '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
+  '/check-in/$token': typeof CheckInTokenRoute
+  '/check-in/expired': typeof CheckInExpiredRoute
+  '/check-in/success': typeof CheckInSuccessRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/feed/$': typeof FeedSplatRoute
   '/journal/$slug': typeof JournalSlugRoute
@@ -2091,6 +2136,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/content/journal/$id': typeof AuthenticatedAdminContentJournalIdRoute
   '/_authenticated/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/_authenticated/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
+  '/_authenticated/admin/operations/arrivals/$id': typeof AuthenticatedAdminOperationsArrivalsIdRoute
   '/_authenticated/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/_authenticated/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/_authenticated/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
@@ -2101,6 +2147,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/ai/revenue/': typeof AuthenticatedAdminAiRevenueIndexRoute
   '/_authenticated/admin/content/journal/': typeof AuthenticatedAdminContentJournalIndexRoute
   '/_authenticated/admin/content/pages/': typeof AuthenticatedAdminContentPagesIndexRoute
+  '/_authenticated/admin/operations/arrivals/': typeof AuthenticatedAdminOperationsArrivalsIndexRoute
   '/_authenticated/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
   '/_authenticated/admin/content/pages/$id/': typeof AuthenticatedAdminContentPagesIdIndexRoute
 }
@@ -2148,6 +2195,9 @@ export interface FileRouteTypes {
     | '/author/$'
     | '/booking/return'
     | '/category/$'
+    | '/check-in/$token'
+    | '/check-in/expired'
+    | '/check-in/success'
     | '/email/unsubscribe'
     | '/feed/$'
     | '/journal/$slug'
@@ -2310,6 +2360,7 @@ export interface FileRouteTypes {
     | '/admin/content/journal/$id'
     | '/admin/guests/crm/$id'
     | '/admin/guests/crm/duplicates'
+    | '/admin/operations/arrivals/$id'
     | '/admin/operations/checkin/$id'
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
@@ -2320,6 +2371,7 @@ export interface FileRouteTypes {
     | '/admin/ai/revenue/'
     | '/admin/content/journal/'
     | '/admin/content/pages/'
+    | '/admin/operations/arrivals/'
     | '/admin/content/pages/$id/preview'
     | '/admin/content/pages/$id/'
   fileRoutesByTo: FileRoutesByTo
@@ -2362,6 +2414,9 @@ export interface FileRouteTypes {
     | '/author/$'
     | '/booking/return'
     | '/category/$'
+    | '/check-in/$token'
+    | '/check-in/expired'
+    | '/check-in/success'
     | '/email/unsubscribe'
     | '/feed/$'
     | '/journal/$slug'
@@ -2515,6 +2570,7 @@ export interface FileRouteTypes {
     | '/admin/content/journal/$id'
     | '/admin/guests/crm/$id'
     | '/admin/guests/crm/duplicates'
+    | '/admin/operations/arrivals/$id'
     | '/admin/operations/checkin/$id'
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
@@ -2525,6 +2581,7 @@ export interface FileRouteTypes {
     | '/admin/ai/revenue'
     | '/admin/content/journal'
     | '/admin/content/pages'
+    | '/admin/operations/arrivals'
     | '/admin/content/pages/$id/preview'
     | '/admin/content/pages/$id'
   id:
@@ -2571,6 +2628,9 @@ export interface FileRouteTypes {
     | '/author/$'
     | '/booking/return'
     | '/category/$'
+    | '/check-in/$token'
+    | '/check-in/expired'
+    | '/check-in/success'
     | '/email/unsubscribe'
     | '/feed/$'
     | '/journal/$slug'
@@ -2733,6 +2793,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/content/journal/$id'
     | '/_authenticated/admin/guests/crm/$id'
     | '/_authenticated/admin/guests/crm/duplicates'
+    | '/_authenticated/admin/operations/arrivals/$id'
     | '/_authenticated/admin/operations/checkin/$id'
     | '/_authenticated/admin/operations/checkout/$id'
     | '/_authenticated/admin/operations/reservations/$id'
@@ -2743,6 +2804,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/ai/revenue/'
     | '/_authenticated/admin/content/journal/'
     | '/_authenticated/admin/content/pages/'
+    | '/_authenticated/admin/operations/arrivals/'
     | '/_authenticated/admin/content/pages/$id/preview'
     | '/_authenticated/admin/content/pages/$id/'
   fileRoutesById: FileRoutesById
@@ -2787,6 +2849,9 @@ export interface RootRouteChildren {
   AuthorSplatRoute: typeof AuthorSplatRoute
   BookingReturnRoute: typeof BookingReturnRoute
   CategorySplatRoute: typeof CategorySplatRoute
+  CheckInTokenRoute: typeof CheckInTokenRoute
+  CheckInExpiredRoute: typeof CheckInExpiredRoute
+  CheckInSuccessRoute: typeof CheckInSuccessRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   FeedSplatRoute: typeof FeedSplatRoute
   PSlugRoute: typeof PSlugRoute
@@ -3233,6 +3298,27 @@ declare module '@tanstack/react-router' {
       path: '/email/unsubscribe'
       fullPath: '/email/unsubscribe'
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/check-in/success': {
+      id: '/check-in/success'
+      path: '/check-in/success'
+      fullPath: '/check-in/success'
+      preLoaderRoute: typeof CheckInSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/check-in/expired': {
+      id: '/check-in/expired'
+      path: '/check-in/expired'
+      fullPath: '/check-in/expired'
+      preLoaderRoute: typeof CheckInExpiredRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/check-in/$token': {
+      id: '/check-in/$token'
+      path: '/check-in/$token'
+      fullPath: '/check-in/$token'
+      preLoaderRoute: typeof CheckInTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/category/$': {
@@ -3928,6 +4014,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiActivityRouteImport
       parentRoute: typeof AuthenticatedAdminAiRoute
     }
+    '/_authenticated/admin/operations/arrivals/': {
+      id: '/_authenticated/admin/operations/arrivals/'
+      path: '/arrivals'
+      fullPath: '/admin/operations/arrivals/'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsArrivalsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
     '/_authenticated/admin/content/pages/': {
       id: '/_authenticated/admin/content/pages/'
       path: '/content/pages'
@@ -3996,6 +4089,13 @@ declare module '@tanstack/react-router' {
       path: '/checkin/$id'
       fullPath: '/admin/operations/checkin/$id'
       preLoaderRoute: typeof AuthenticatedAdminOperationsCheckinIdRouteImport
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
+    '/_authenticated/admin/operations/arrivals/$id': {
+      id: '/_authenticated/admin/operations/arrivals/$id'
+      path: '/arrivals/$id'
+      fullPath: '/admin/operations/arrivals/$id'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsArrivalsIdRouteImport
       parentRoute: typeof AuthenticatedAdminOperationsRoute
     }
     '/_authenticated/admin/guests/crm/duplicates': {
@@ -4696,9 +4796,11 @@ interface AuthenticatedAdminOperationsRouteChildren {
   AuthenticatedAdminOperationsTasksRoute: typeof AuthenticatedAdminOperationsTasksRoute
   AuthenticatedAdminOperationsTimelineRoute: typeof AuthenticatedAdminOperationsTimelineRoute
   AuthenticatedAdminOperationsIndexRoute: typeof AuthenticatedAdminOperationsIndexRoute
+  AuthenticatedAdminOperationsArrivalsIdRoute: typeof AuthenticatedAdminOperationsArrivalsIdRoute
   AuthenticatedAdminOperationsCheckinIdRoute: typeof AuthenticatedAdminOperationsCheckinIdRoute
   AuthenticatedAdminOperationsCheckoutIdRoute: typeof AuthenticatedAdminOperationsCheckoutIdRoute
   AuthenticatedAdminOperationsReservationsIdRoute: typeof AuthenticatedAdminOperationsReservationsIdRoute
+  AuthenticatedAdminOperationsArrivalsIndexRoute: typeof AuthenticatedAdminOperationsArrivalsIndexRoute
 }
 
 const AuthenticatedAdminOperationsRouteChildren: AuthenticatedAdminOperationsRouteChildren =
@@ -4717,12 +4819,16 @@ const AuthenticatedAdminOperationsRouteChildren: AuthenticatedAdminOperationsRou
       AuthenticatedAdminOperationsTimelineRoute,
     AuthenticatedAdminOperationsIndexRoute:
       AuthenticatedAdminOperationsIndexRoute,
+    AuthenticatedAdminOperationsArrivalsIdRoute:
+      AuthenticatedAdminOperationsArrivalsIdRoute,
     AuthenticatedAdminOperationsCheckinIdRoute:
       AuthenticatedAdminOperationsCheckinIdRoute,
     AuthenticatedAdminOperationsCheckoutIdRoute:
       AuthenticatedAdminOperationsCheckoutIdRoute,
     AuthenticatedAdminOperationsReservationsIdRoute:
       AuthenticatedAdminOperationsReservationsIdRoute,
+    AuthenticatedAdminOperationsArrivalsIndexRoute:
+      AuthenticatedAdminOperationsArrivalsIndexRoute,
   }
 
 const AuthenticatedAdminOperationsRouteWithChildren =
@@ -4985,6 +5091,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthorSplatRoute: AuthorSplatRoute,
   BookingReturnRoute: BookingReturnRoute,
   CategorySplatRoute: CategorySplatRoute,
+  CheckInTokenRoute: CheckInTokenRoute,
+  CheckInExpiredRoute: CheckInExpiredRoute,
+  CheckInSuccessRoute: CheckInSuccessRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   FeedSplatRoute: FeedSplatRoute,
   PSlugRoute: PSlugRoute,
