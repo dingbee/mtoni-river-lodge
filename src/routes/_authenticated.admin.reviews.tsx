@@ -250,7 +250,7 @@ function ManualEntryPanel({
 }) {
   return (
     <div className="mt-6">
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-muted/30 p-4">
+      <div className="flex flex-wrap items-end gap-3 os-card p-4">
         <div>
           <label className="block text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">Status</label>
           <select value={statusFilter} onChange={(e) => onStatusFilter(e.target.value as any)} className="mt-1 rounded-md border border-border bg-card px-3 py-2 text-sm">
@@ -271,7 +271,7 @@ function ManualEntryPanel({
         </div>
       </div>
 
-      <div className="mt-6 overflow-x-auto rounded-xl border border-border bg-card">
+      <div className="mt-6 overflow-x-auto os-card">
         {reviews.isLoading && (
           <div className="flex items-center justify-center gap-2 p-10 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>
         )}
@@ -387,7 +387,7 @@ function ImportPanel({ onImported }: { onImported: (f: FormState) => void }) {
 
   return (
     <div className="mt-6 grid gap-6">
-      <div className="rounded-xl border border-border bg-muted/30 p-6">
+      <div className="os-card p-6">
         <h2 className="font-display text-xl">Import a review with AI</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           Paste the review text from Google Maps, Tripadvisor, or an email/WhatsApp message.
@@ -488,7 +488,7 @@ function QuickAddPanel({ onSaved }: { onSaved: () => void }) {
   });
 
   return (
-    <div className="mt-6 max-w-2xl rounded-xl border border-border bg-muted/30 p-6">
+    <div className="mt-6 max-w-2xl os-card p-6">
       <h2 className="font-display text-xl">Quick add</h2>
       <p className="mt-2 text-sm text-muted-foreground">
         Ideal for WhatsApp messages, guest-book entries and offline reviews. Publishes immediately as approved.
@@ -602,7 +602,7 @@ function ActivityLogPanel() {
 
   return (
     <div className="mt-6">
-      <div className="rounded-xl border border-border bg-muted/30 p-4">
+      <div className="os-card p-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <label className="grid gap-1">
             <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">Search</span>
@@ -641,7 +641,7 @@ function ActivityLogPanel() {
         </div>
       </div>
 
-      <div className="mt-4 overflow-x-auto rounded-xl border border-border bg-card">
+      <div className="mt-4 overflow-x-auto os-card">
         {q.isLoading && <div className="flex items-center justify-center gap-2 p-10 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>}
         {q.error && <div className="p-6 text-sm text-destructive">{(q.error as Error).message}</div>}
         {q.data && q.data.length === 0 && <div className="p-10 text-center text-sm text-muted-foreground">No log entries match.</div>}
@@ -750,7 +750,7 @@ function StatCard({
   return (
     <form
       onSubmit={(e) => { e.preventDefault(); onSave({ source: stat.source, overall_rating: rating, total_reviews: count, profile_url: url }); }}
-      className="rounded-xl border border-border bg-card p-6"
+      className="os-card p-6"
     >
       <div className="flex items-center justify-between">
         <h3 className="font-display text-lg capitalize">{SOURCE_LABELS[stat.source]}</h3>
