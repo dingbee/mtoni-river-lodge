@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { Award } from "lucide-react";
 import { Reveal } from "@/components/site/Reveal";
 import { WLHA_CAMPAIGN } from "@/lib/wlha-campaign";
 import voteMaasaiRiverAsset from "@/assets/vote-maasai-river.jpg.asset.json";
+import wlhaEmblemAsset from "@/assets/wlha-nominee-2026.png.asset.json";
 
 /**
  * WLHA awareness section — homepage, directly beneath the hero.
@@ -34,9 +34,15 @@ export function WlhaAwarenessBanner() {
 
       <div className="relative mx-auto max-w-[1100px] px-6 py-24 text-center lg:px-12 lg:py-32">
         <Reveal>
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-ivory/40">
-            <Award className="h-6 w-6 text-ivory/90" aria-hidden="true" />
-          </span>
+          <img
+            src={wlhaEmblemAsset.url}
+            alt="World Luxury Hotel Awards Nominee 2026 emblem"
+            width={512}
+            height={512}
+            loading="lazy"
+            decoding="async"
+            className="mx-auto h-24 w-24 object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.45)] sm:h-28 sm:w-28 lg:h-32 lg:w-32"
+          />
           <p className="eyebrow hero-text-shadow mt-6 !text-ivory/85">{c.eyebrow}</p>
           <h2
             id="wlha-heading"
