@@ -1,9 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import {
-  documentIdSchema,
-  documentSessionSchema,
-  documentUploadSchema,
-} from "./documents-shared";
+import { documentIdSchema, documentSessionSchema, documentUploadSchema } from "./documents-shared";
 
 export const listCheckInDocuments = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => documentSessionSchema.parse(d))

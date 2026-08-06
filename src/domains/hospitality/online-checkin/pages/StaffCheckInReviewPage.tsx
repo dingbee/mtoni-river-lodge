@@ -36,7 +36,9 @@ export function StaffCheckInReviewPage({ id }: { id: string }) {
 
   if (query.isLoading) return <Skeleton className="h-64 w-full" />;
   if (!query.data?.booking) {
-    return <EmptyState title="Reservation not found" description="This arrival no longer exists." />;
+    return (
+      <EmptyState title="Reservation not found" description="This arrival no longer exists." />
+    );
   }
 
   const { booking, checkin, arrival } = query.data;

@@ -656,10 +656,13 @@ export function CheckInWizard({ token }: { token: string }) {
               title="Documents"
               rows={
                 documents.length
-                  ? documents.map((d) => [
-                      DOCUMENT_KIND_LABEL[d.kind as CheckInDocumentKind] ?? d.kind,
-                      `${d.file_name ?? "Uploaded"} · awaiting reception review`,
-                    ] as [string, string])
+                  ? documents.map(
+                      (d) =>
+                        [
+                          DOCUMENT_KIND_LABEL[d.kind as CheckInDocumentKind] ?? d.kind,
+                          `${d.file_name ?? "Uploaded"} · awaiting reception review`,
+                        ] as [string, string],
+                    )
                   : [["Uploaded", "None — you can present documents at reception on arrival"]]
               }
             />
