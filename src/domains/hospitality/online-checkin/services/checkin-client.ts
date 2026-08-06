@@ -50,6 +50,20 @@ export interface CheckInSummary {
   has_draft: boolean;
   draft_step: number;
   submitted_at: string | null;
+  /** Live reservation eligibility, resolved by the Reservation engine. */
+  eligible: boolean;
+  eligibility_code: string;
+  eligibility_message: string;
+}
+
+/** Snapshot of the reservation the guest started checking in against. */
+export interface ReservationSnapshot {
+  fingerprint: string;
+  status: string;
+  room_id: string | null;
+  room_name: string;
+  check_in: string;
+  check_out: string;
 }
 
 export interface VerifiedCheckIn {
@@ -80,6 +94,7 @@ export interface VerifiedCheckIn {
     country: string | null;
     room_name: string;
   };
+  eligibility?: { ok: boolean; code: string; message: string; snapshot: ReservationSnapshot };
   arrival: Record<string, unknown> | null;
 }
 
@@ -95,7 +110,18 @@ export type CheckInRefusalCode =
   | "conflict"
   | "session"
   | "verify_failed"
-  | "validation";
+  | "validation"
+  // Reservation-engine refusals
+  | "not_found"
+  | "cancelled"
+  | "already_checked_in"
+  | "ineligible"
+  | "not_confirmed"
+  | "room_invalid"
+  | "too_early"
+  | "window_closed"
+  | "reservation_changed"
+  | "room_conflict";
 
 /** Refusal returned by the database instead of an exception, so the audit row commits. */
 export class CheckInError extends Error {
@@ -138,6 +164,16 @@ export function getCheckInSessionId(token: string): string {
 export function clearCheckInSessionId(token: string) {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(SESSION_PREFIX + token.slice(0, 12));
+}
+
+/** Non-identifying device context recorded on the check-in audit trail. */
+export function getClientContext(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  return {
+    device: window.matchMedia("(max-width: 767px)").matches ? "mobile" : "desktop",
+    user_agent: window.navigator.userAgent.slice(0, 300),
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone ?? "",
+  };
 }
 
 export async function fetchCheckInSummary(token: string): Promise<CheckInSummary | null> {
@@ -188,7 +224,7 @@ export async function submitCheckIn(params: {
   arrival: ArrivalInfoValues;
   final?: boolean;
   sessionId?: string;
-}): Promise<void> {
+}): Promise<{ room_ready?: boolean; message?: string }> {
   const { data, error } = await supabase.rpc("checkin_submit", {
     _token: params.token,
     _answer: params.answer,
@@ -196,7 +232,12 @@ export async function submitCheckIn(params: {
     _arrival: params.arrival as unknown as never,
     _final: params.final ?? true,
     _session_id: params.sessionId ?? undefined,
+    _client: getClientContext() as unknown as never,
   });
   if (error) throw new Error(message(error, "We could not submit your check-in"));
-  unwrap(data, "We could not submit your check-in");
+  const result = unwrap(data, "We could not submit your check-in") as {
+    room_ready?: boolean;
+    message?: string;
+  };
+  return result;
 }

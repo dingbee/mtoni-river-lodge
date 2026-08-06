@@ -20,6 +20,7 @@ import {
 } from "../services/documents-shared";
 import {
   arrivalInfoSchema,
+  CheckInError,
   clearCheckInSessionId,
   fetchCheckInSummary,
   getCheckInSessionId,
@@ -89,6 +90,10 @@ export function CheckInWizard({ token }: { token: string }) {
     queryKey: ["checkin-summary", token],
     queryFn: () => fetchCheckInSummary(token),
     retry: false,
+    // Always read live reservation state; refresh on focus instead of polling.
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const touch = useCallback(() => {
@@ -161,7 +166,12 @@ export function CheckInWizard({ token }: { token: string }) {
       }
       setStep(resumeStep);
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => {
+      if (err instanceof CheckInError && err.code !== "verify_failed") {
+        void summaryQuery.refetch();
+      }
+      toast.error(err.message);
+    },
   });
 
   const submitMutation = useMutation({
@@ -174,13 +184,30 @@ export function CheckInWizard({ token }: { token: string }) {
         final: true,
         sessionId,
       }),
-    onSuccess: () => {
+    onSuccess: (result) => {
       clearCheckInSessionId(token);
-      toast.success("Check-in submitted");
+      toast.success(
+        result?.room_ready === false
+          ? "Check-in submitted — reception will finalise your room on arrival"
+          : "Check-in submitted",
+      );
       void navigate({ to: "/check-in/success" });
     },
     onError: (err: Error) => {
-      if (/already been submitted/i.test(err.message)) {
+      const code = err instanceof CheckInError ? err.code : null;
+      if (
+        code === "reservation_changed" ||
+        code === "cancelled" ||
+        code === "already_checked_in" ||
+        code === "not_confirmed" ||
+        code === "room_invalid" ||
+        code === "window_closed" ||
+        code === "ineligible"
+      ) {
+        // Reservation moved underneath us — pull the live state back in.
+        setVerified(null);
+        void summaryQuery.refetch();
+      } else if (/already been submitted/i.test(err.message)) {
         void summaryQuery.refetch();
       } else if (/session/i.test(err.message)) {
         setTimedOut(true);
@@ -233,6 +260,23 @@ export function CheckInWizard({ token }: { token: string }) {
             ? `, submitted ${new Date(summary.submitted_at).toLocaleString()}`
             : ""
         }. This link is now locked. Reception will confirm everything before you arrive — call us if anything has changed.`}
+      />
+    );
+  }
+
+  // Reservation engine is the source of truth for whether check-in may run at all.
+  if (!summary.eligible) {
+    return (
+      <StatusCard
+        icon={<ShieldCheck className="h-5 w-5" />}
+        title={
+          summary.eligibility_code === "already_checked_in"
+            ? "You are already checked in"
+            : summary.eligibility_code === "too_early"
+              ? "Online check-in is not open yet"
+              : "Online check-in unavailable"
+        }
+        body={`${summary.eligibility_message} (Reservation ${summary.reference})`}
       />
     );
   }
