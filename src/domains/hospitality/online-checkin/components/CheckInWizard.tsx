@@ -32,6 +32,7 @@ import {
   type GuestInfoValues,
   type VerifiedCheckIn,
 } from "../services/checkin-client";
+import { ensureArrivalPass } from "../services/arrival-pass-client";
 
 const emptyArrival: ArrivalInfoValues = {
   arrival_date: "",
@@ -184,14 +185,20 @@ export function CheckInWizard({ token }: { token: string }) {
         final: true,
         sessionId,
       }),
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       clearCheckInSessionId(token);
       toast.success(
         result?.room_ready === false
           ? "Check-in submitted — reception will finalise your room on arrival"
           : "Check-in submitted",
       );
-      void navigate({ to: "/check-in/success" });
+      // Issue the QR arrival pass; fall back to the plain success screen.
+      try {
+        const passToken = await ensureArrivalPass(token);
+        void navigate({ to: "/check-in/pass/$passToken", params: { passToken } });
+      } catch {
+        void navigate({ to: "/check-in/success" });
+      }
     },
     onError: (err: Error) => {
       const code = err instanceof CheckInError ? err.code : null;
