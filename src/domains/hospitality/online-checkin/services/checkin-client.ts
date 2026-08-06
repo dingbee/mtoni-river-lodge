@@ -88,6 +88,33 @@ function message(error: { message?: string } | null, fallback: string) {
   return raw.replace(/^.*?:\s*/, "").trim() || fallback;
 }
 
+export type CheckInRefusalCode =
+  | "invalid"
+  | "expired"
+  | "locked"
+  | "conflict"
+  | "session"
+  | "verify_failed"
+  | "validation";
+
+/** Refusal returned by the database instead of an exception, so the audit row commits. */
+export class CheckInError extends Error {
+  code: CheckInRefusalCode;
+  constructor(code: CheckInRefusalCode, msg: string) {
+    super(msg);
+    this.name = "CheckInError";
+    this.code = code;
+  }
+}
+
+function unwrap(payload: unknown, fallback: string) {
+  const result = (payload ?? {}) as { ok?: boolean; code?: CheckInRefusalCode; message?: string };
+  if (result.ok === false) {
+    throw new CheckInError(result.code ?? "invalid", result.message ?? fallback);
+  }
+  return result;
+}
+
 /** Session timeout mirrored from the database (30 minutes). */
 export const CHECKIN_SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
@@ -131,6 +158,7 @@ export async function verifyCheckIn(
     _session_id: sessionId,
   });
   if (error) throw new Error(message(error, "We could not verify your reservation"));
+  unwrap(data, "We could not verify your reservation");
   return data as unknown as VerifiedCheckIn;
 }
 
@@ -142,7 +170,7 @@ export async function saveCheckInDraft(params: {
   arrival: ArrivalInfoValues;
   step: number;
 }): Promise<void> {
-  const { error } = await supabase.rpc("checkin_save_draft", {
+  const { data, error } = await supabase.rpc("checkin_save_draft", {
     _token: params.token,
     _session_id: params.sessionId,
     _guest: (params.guest ?? {}) as unknown as never,
@@ -150,6 +178,7 @@ export async function saveCheckInDraft(params: {
     _step: params.step,
   });
   if (error) throw new Error(message(error, "We could not save your progress"));
+  unwrap(data, "We could not save your progress");
 }
 
 export async function submitCheckIn(params: {
@@ -160,7 +189,7 @@ export async function submitCheckIn(params: {
   final?: boolean;
   sessionId?: string;
 }): Promise<void> {
-  const { error } = await supabase.rpc("checkin_submit", {
+  const { data, error } = await supabase.rpc("checkin_submit", {
     _token: params.token,
     _answer: params.answer,
     _guest: params.guest as unknown as never,
@@ -169,4 +198,5 @@ export async function submitCheckIn(params: {
     _session_id: params.sessionId ?? undefined,
   });
   if (error) throw new Error(message(error, "We could not submit your check-in"));
+  unwrap(data, "We could not submit your check-in");
 }
