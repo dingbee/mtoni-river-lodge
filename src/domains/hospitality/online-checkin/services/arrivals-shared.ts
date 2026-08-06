@@ -84,6 +84,10 @@ export interface ArrivalAlert {
   severity: "info" | "warn" | "danger";
 }
 
+/** Operational readiness of an arrival, derived from existing reservation,
+ *  document and room-state data (no new state is stored). */
+export type ArrivalReadiness = "ready" | "attention" | "pending";
+
 export interface ArrivalListItem {
   bookingId: string;
   reference: string;
@@ -106,6 +110,8 @@ export interface ArrivalListItem {
   estimatedArrivalTime: string | null;
   lastActivityAt: string | null;
   alerts: ArrivalAlert[];
+  readiness: ArrivalReadiness;
+  outstandingActions: string[];
 }
 
 export interface ArrivalsSummary {
@@ -117,6 +123,20 @@ export interface ArrivalsSummary {
   needsReview: number;
   conflicts: number;
   vip: number;
+  ready: number;
+  needsAttention: number;
+}
+
+export const ARRIVAL_READINESS_LABEL: Record<ArrivalReadiness, string> = {
+  ready: "Ready",
+  attention: "Needs attention",
+  pending: "In progress",
+};
+
+export function arrivalReadinessTone(readiness: ArrivalReadiness): StatusTone {
+  if (readiness === "ready") return "success";
+  if (readiness === "attention") return "danger";
+  return "warning";
 }
 
 export const ARRIVAL_ALERT_LABEL: Record<ArrivalAlertKind, string> = {

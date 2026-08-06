@@ -5,6 +5,8 @@ import { EmptyState } from "@/components/os/EmptyState";
 import { Button } from "@/components/ui/button";
 import {
   ARRIVAL_ALERT_LABEL,
+  ARRIVAL_READINESS_LABEL,
+  arrivalReadinessTone,
   CHECKIN_STATUS_FILTER_LABEL,
   DOCUMENT_STATUS_LABEL,
   checkinStatusTone,
@@ -42,6 +44,7 @@ export function ArrivalTable({ items }: { items: ArrivalListItem[] }) {
         <thead>
           <tr className="border-b text-left text-xs uppercase tracking-wider text-muted-foreground">
             <th className="py-2 pr-3 font-medium">Guest</th>
+            <th className="py-2 pr-3 font-medium">Readiness</th>
             <th className="py-2 pr-3 font-medium">Stay</th>
             <th className="py-2 pr-3 font-medium">Room / unit</th>
             <th className="py-2 pr-3 font-medium">Check-in</th>
@@ -76,6 +79,18 @@ export function ArrivalTable({ items }: { items: ArrivalListItem[] }) {
                   >
                     “{a.specialRequests}”
                   </div>
+                )}
+              </td>
+              <td className="py-3 pr-3">
+                <StatusChip tone={arrivalReadinessTone(a.readiness)}>
+                  {ARRIVAL_READINESS_LABEL[a.readiness]}
+                </StatusChip>
+                {a.outstandingActions.length > 0 && (
+                  <ul className="mt-1 max-w-[200px] space-y-0.5 text-[0.65rem] text-muted-foreground">
+                    {a.outstandingActions.slice(0, 3).map((action) => (
+                      <li key={action}>• {action}</li>
+                    ))}
+                  </ul>
                 )}
               </td>
               <td className="py-3 pr-3 text-xs text-muted-foreground">

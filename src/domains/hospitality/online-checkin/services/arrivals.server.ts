@@ -11,6 +11,7 @@ import {
   ARRIVAL_ROLES,
   type ArrivalAlert,
   type ArrivalListItem,
+  type ArrivalReadiness,
   type ArrivalsFilter,
   type ArrivalsSummary,
   type CheckInStatusFilter,
@@ -111,6 +112,44 @@ function aggregateDocs(docs: any[]): {
   else if (counts.verified === counts.total) status = "verified";
   else status = "pending";
   return { status, counts };
+}
+
+/**
+ * Arrival readiness + outstanding actions, derived from the same reservation,
+ * document and room-state data already loaded for the dashboard.
+ */
+export function deriveReadiness(input: {
+  checkinStatus: CheckInStatusFilter;
+  documentStatus: DocumentAggregateStatus;
+  roomReadiness: string;
+  reservationStatus: string;
+  transferRequired?: boolean | null;
+  specialRequests?: string | null;
+  alerts: ArrivalAlert[];
+}): { readiness: ArrivalReadiness; outstandingActions: string[] } {
+  const actions: string[] = [];
+  if (input.reservationStatus === "pending") actions.push("Confirm reservation");
+  if (!["approved", "submitted", "under_review"].includes(input.checkinStatus))
+    actions.push("Online check-in not completed");
+  if (input.documentStatus === "none") actions.push("Collect identity documents");
+  if (input.documentStatus === "pending") actions.push("Verify uploaded documents");
+  if (input.documentStatus === "rejected") actions.push("Request replacement documents");
+  if (!["vacant_clean", "occupied"].includes(input.roomReadiness)) actions.push("Prepare room");
+  if (input.transferRequired) actions.push("Confirm airport transfer");
+  if (input.specialRequests) actions.push("Review special request");
+
+  const hasDanger = input.alerts.some((a) => a.severity === "danger");
+  const arrived = input.reservationStatus === "checked_in";
+  let readiness: ArrivalReadiness;
+  if (arrived || (actions.length === 0 && !hasDanger)) readiness = "ready";
+  else if (
+    hasDanger ||
+    input.documentStatus === "rejected" ||
+    input.reservationStatus === "pending"
+  )
+    readiness = "attention";
+  else readiness = "pending";
+  return { readiness, outstandingActions: actions };
 }
 
 export async function listArrivals(supabase: Sb, userId: string, filters: ArrivalsFilter) {
@@ -258,6 +297,16 @@ export async function listArrivals(supabase: Sb, userId: string, filters: Arriva
         severity: "warn",
       });
 
+    const { readiness, outstandingActions } = deriveReadiness({
+      checkinStatus,
+      documentStatus,
+      roomReadiness,
+      reservationStatus: b.status,
+      transferRequired: info?.transfer_required ?? null,
+      specialRequests: info?.special_requests ?? b.special_requests ?? null,
+      alerts,
+    });
+
     return {
       bookingId: b.id,
       reference: b.reference,
@@ -280,6 +329,8 @@ export async function listArrivals(supabase: Sb, userId: string, filters: Arriva
       estimatedArrivalTime: info?.estimated_arrival_time ?? null,
       lastActivityAt: checkin?.last_activity_at ?? checkin?.updated_at ?? null,
       alerts,
+      readiness,
+      outstandingActions,
     };
   });
 
@@ -303,6 +354,8 @@ export async function listArrivals(supabase: Sb, userId: string, filters: Arriva
       .length,
     conflicts: items.filter((i) => i.alerts.some((a) => a.severity === "danger")).length,
     vip: items.filter((i) => i.guestType === "vip" || Boolean(i.specialRequests)).length,
+    ready: items.filter((i) => i.readiness === "ready").length,
+    needsAttention: items.filter((i) => i.readiness === "attention").length,
   };
 
   return { arrivals: filtered, summary, rooms };
@@ -318,6 +371,8 @@ function emptySummary(): ArrivalsSummary {
     needsReview: 0,
     conflicts: 0,
     vip: 0,
+    ready: 0,
+    needsAttention: 0,
   };
 }
 

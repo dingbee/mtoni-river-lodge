@@ -9,6 +9,8 @@ import { ErrorState } from "@/components/os/ErrorState";
 import { EmptyState } from "@/components/os/EmptyState";
 import { StaffDocumentPanel } from "../components/StaffDocumentPanel";
 import { StaffReviewActions } from "../components/StaffReviewActions";
+import { ArrivalBriefingCard } from "../components/ArrivalBriefingCard";
+import { ArrivalTimelinePanel } from "../components/ArrivalTimelinePanel";
 import { useStaffArrivalDetail } from "../hooks/useArrivals";
 import {
   CHECKIN_STATUS_FILTER_LABEL,
@@ -62,7 +64,6 @@ export function StaffCheckInReviewPage({ id }: { id: string }) {
     assignedUnit,
     roomStates,
     eligibility,
-    activity,
     preferences,
     notes,
     canOverride,
@@ -90,6 +91,8 @@ export function StaffCheckInReviewPage({ id }: { id: string }) {
           </div>
         }
       />
+
+      <ArrivalBriefingCard bookingId={booking.id} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <SectionCard title="Guest information">
@@ -188,25 +191,7 @@ export function StaffCheckInReviewPage({ id }: { id: string }) {
       </SectionCard>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <SectionCard
-          title="Verification & check-in history"
-          description="From the existing check-in activity log."
-        >
-          {!activity?.length ? (
-            <p className="text-sm text-muted-foreground">No activity recorded yet.</p>
-          ) : (
-            <ul className="divide-y text-sm">
-              {activity.map((a: any) => (
-                <li key={a.id} className="flex items-center justify-between gap-3 py-2">
-                  <span className="font-medium">{String(a.action).replace(/_/g, " ")}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(a.created_at).toLocaleString()}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </SectionCard>
+        <ArrivalTimelinePanel bookingId={booking.id} />
 
         <SectionCard
           title="Staff notes"
