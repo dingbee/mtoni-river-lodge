@@ -41,9 +41,9 @@ const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ className?
 ];
 
 const statusColors: Record<ReviewStatus, string> = {
-  pending: "bg-amber-100 text-amber-900",
-  approved: "bg-emerald-100 text-emerald-900",
-  archived: "bg-zinc-200 text-zinc-700",
+  pending: "bg-[color:var(--os-warn-soft)] text-[color:var(--os-warn)]",
+  approved: "bg-[color:var(--os-success-soft)] text-[color:var(--os-success)]",
+  archived: "bg-muted text-muted-foreground",
 };
 
 type FormState = {
