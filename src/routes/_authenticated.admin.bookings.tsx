@@ -18,18 +18,18 @@ type StatusFilter = "all" | "pending" | "confirmed" | "cancelled" | "completed" 
 type PaymentFilter = "all" | "unpaid" | "deposit_paid" | "paid" | "refunded";
 
 const statusColors: Record<string, string> = {
-  pending: "bg-amber-100 text-amber-900",
-  confirmed: "bg-emerald-100 text-emerald-900",
-  cancelled: "bg-rose-100 text-rose-900",
-  completed: "bg-muted text-foreground",
-  no_show: "bg-zinc-200 text-zinc-700",
+  pending: "bg-[color:var(--os-warn-soft)] text-[color:var(--os-warn)]",
+  confirmed: "bg-[color:var(--os-success-soft)] text-[color:var(--os-success)]",
+  cancelled: "bg-[color:var(--os-danger-soft)] text-[color:var(--os-danger)]",
+  completed: "bg-[color:var(--os-info-soft)] text-[color:var(--os-info)]",
+  no_show: "bg-muted text-muted-foreground",
 };
 
 const paymentColors: Record<string, string> = {
-  unpaid: "bg-zinc-100 text-zinc-700",
-  deposit_paid: "bg-emerald-100 text-emerald-900",
-  paid: "bg-emerald-200 text-emerald-900",
-  refunded: "bg-rose-100 text-rose-900",
+  unpaid: "bg-muted text-muted-foreground",
+  deposit_paid: "bg-[color:var(--os-gold-soft)] text-[color:var(--os-gold)]",
+  paid: "bg-[color:var(--os-success-soft)] text-[color:var(--os-success)]",
+  refunded: "bg-[color:var(--os-danger-soft)] text-[color:var(--os-danger)]",
 };
 
 function AdminBookings() {
