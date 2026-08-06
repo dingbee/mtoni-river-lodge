@@ -1,11 +1,13 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { listBookings, getBookingDetail, updateBookingStatus } from "@/lib/admin.functions";
-import { Loader2, LogOut } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { PageHeader } from "@/components/os/PageHeader";
+import { SectionCard } from "@/components/os/SectionCard";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/admin/bookings")({
   head: () => ({ meta: [{ title: "Bookings — Admin" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -67,32 +69,15 @@ function AdminBookings() {
   const fmt = (n: number, c: string) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: c, maximumFractionDigits: 0 }).format(n);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/auth";
-  };
-
   return (
-    <div className="min-h-screen bg-card text-foreground">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 lg:px-8">
-          <div className="flex items-center gap-6">
-            <Link to="/" className="font-display text-lg">Mtoni · Admin</Link>
-            <nav className="hidden gap-4 text-xs uppercase tracking-[0.22em] text-muted-foreground sm:flex">
-              <Link to="/admin/bookings" className="text-foreground">Bookings</Link>
-              <Link to="/admin/reviews" className="hover:text-foreground">Reviews</Link>
-            </nav>
-          </div>
-          <button onClick={signOut} className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-muted-foreground hover:text-foreground">
-            <LogOut className="h-3.5 w-3.5" /> Sign out
-          </button>
-        </div>
-      </header>
+    <div className="space-y-6">
+      <PageHeader
+        title="Bookings"
+        description="Every direct reservation, its payment state and status history."
+      />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
-        <h1 className="font-display text-3xl">Bookings</h1>
-
-        <div className="mt-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-muted/30 p-4">
+      <SectionCard title="Filters" description="Narrow the reservation book by status, payment and arrival window.">
+        <div className="flex flex-wrap items-end gap-3">
           <div>
             <label className="block text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">Status</label>
             <select value={status} onChange={(e) => setStatus(e.target.value as StatusFilter)} className="mt-1 rounded-md border border-border bg-card px-3 py-2 text-sm">
@@ -123,11 +108,13 @@ function AdminBookings() {
             <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="mt-1 rounded-md border border-border bg-card px-3 py-2 text-sm" />
           </div>
           {(from || to || status !== "all" || paymentStatus !== "all") && (
-            <button onClick={() => { setStatus("all"); setPaymentStatus("all"); setFrom(""); setTo(""); }} className="text-xs uppercase tracking-[0.22em] text-muted-foreground hover:text-foreground">Clear</button>
+            <Button variant="ghost" size="sm" onClick={() => { setStatus("all"); setPaymentStatus("all"); setFrom(""); setTo(""); }}>Clear</Button>
           )}
         </div>
+      </SectionCard>
 
-        <div className="mt-6 overflow-x-auto rounded-xl border border-border bg-card">
+      <SectionCard className="p-0">
+        <div className="overflow-x-auto">
           {bookings.isLoading && (
             <div className="flex items-center justify-center gap-2 p-10 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>
           )}
@@ -167,7 +154,7 @@ function AdminBookings() {
             </table>
           )}
         </div>
-      </main>
+      </SectionCard>
 
       {selected && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-background/70 p-0 sm:items-center sm:p-4" onClick={() => setSelected(null)}>
