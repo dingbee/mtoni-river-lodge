@@ -69,6 +69,7 @@ import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './r
 import { Route as JournalSlugRouteImport } from './routes/journal.$slug'
 import { Route as FeedSplatRouteImport } from './routes/feed.$'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
+import { Route as CheckInTokenRouteImport } from './routes/check-in.$token'
 import { Route as CategorySplatRouteImport } from './routes/category.$'
 import { Route as BookingReturnRouteImport } from './routes/booking.return'
 import { Route as AuthorSplatRouteImport } from './routes/author.$'
@@ -539,6 +540,11 @@ const FeedSplatRoute = FeedSplatRouteImport.update({
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckInTokenRoute = CheckInTokenRouteImport.update({
+  id: '/check-in/$token',
+  path: '/check-in/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CategorySplatRoute = CategorySplatRouteImport.update({
@@ -1505,6 +1511,7 @@ export interface FileRoutesByFullPath {
   '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
+  '/check-in/$token': typeof CheckInTokenRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/feed/$': typeof FeedSplatRoute
   '/journal/$slug': typeof JournalSlugRoute
@@ -1719,6 +1726,7 @@ export interface FileRoutesByTo {
   '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
+  '/check-in/$token': typeof CheckInTokenRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/feed/$': typeof FeedSplatRoute
   '/journal/$slug': typeof JournalSlugRoute
@@ -1929,6 +1937,7 @@ export interface FileRoutesById {
   '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
+  '/check-in/$token': typeof CheckInTokenRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/feed/$': typeof FeedSplatRoute
   '/journal/$slug': typeof JournalSlugRoute
@@ -2148,6 +2157,7 @@ export interface FileRouteTypes {
     | '/author/$'
     | '/booking/return'
     | '/category/$'
+    | '/check-in/$token'
     | '/email/unsubscribe'
     | '/feed/$'
     | '/journal/$slug'
@@ -2362,6 +2372,7 @@ export interface FileRouteTypes {
     | '/author/$'
     | '/booking/return'
     | '/category/$'
+    | '/check-in/$token'
     | '/email/unsubscribe'
     | '/feed/$'
     | '/journal/$slug'
@@ -2571,6 +2582,7 @@ export interface FileRouteTypes {
     | '/author/$'
     | '/booking/return'
     | '/category/$'
+    | '/check-in/$token'
     | '/email/unsubscribe'
     | '/feed/$'
     | '/journal/$slug'
@@ -2787,6 +2799,7 @@ export interface RootRouteChildren {
   AuthorSplatRoute: typeof AuthorSplatRoute
   BookingReturnRoute: typeof BookingReturnRoute
   CategorySplatRoute: typeof CategorySplatRoute
+  CheckInTokenRoute: typeof CheckInTokenRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   FeedSplatRoute: typeof FeedSplatRoute
   PSlugRoute: typeof PSlugRoute
@@ -3233,6 +3246,13 @@ declare module '@tanstack/react-router' {
       path: '/email/unsubscribe'
       fullPath: '/email/unsubscribe'
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/check-in/$token': {
+      id: '/check-in/$token'
+      path: '/check-in/$token'
+      fullPath: '/check-in/$token'
+      preLoaderRoute: typeof CheckInTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/category/$': {
@@ -4985,6 +5005,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthorSplatRoute: AuthorSplatRoute,
   BookingReturnRoute: BookingReturnRoute,
   CategorySplatRoute: CategorySplatRoute,
+  CheckInTokenRoute: CheckInTokenRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   FeedSplatRoute: FeedSplatRoute,
   PSlugRoute: PSlugRoute,
