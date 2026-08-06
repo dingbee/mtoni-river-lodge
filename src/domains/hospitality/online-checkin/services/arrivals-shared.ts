@@ -123,6 +123,18 @@ export interface ArrivalsSummary {
   vip: number;
 }
 
+export const ARRIVAL_READINESS_LABEL: Record<ArrivalReadiness, string> = {
+  ready: "Ready",
+  attention: "Needs attention",
+  pending: "In progress",
+};
+
+export function arrivalReadinessTone(readiness: ArrivalReadiness): StatusTone {
+  if (readiness === "ready") return "success";
+  if (readiness === "attention") return "danger";
+  return "warning";
+}
+
 export const ARRIVAL_ALERT_LABEL: Record<ArrivalAlertKind, string> = {
   missing_documents: "Missing documents",
   document_rejected: "Document rejected",
