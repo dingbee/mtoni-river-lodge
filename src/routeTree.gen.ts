@@ -80,6 +80,7 @@ import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as CheckInPassPassTokenRouteImport } from './routes/check-in.pass.$passToken'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated.admin.settings'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
@@ -182,6 +183,7 @@ import { Route as AuthenticatedAdminAiConciergeIndexRouteImport } from './routes
 import { Route as AuthenticatedAdminOperationsReservationsIdRouteImport } from './routes/_authenticated.admin.operations.reservations.$id'
 import { Route as AuthenticatedAdminOperationsCheckoutIdRouteImport } from './routes/_authenticated.admin.operations.checkout.$id'
 import { Route as AuthenticatedAdminOperationsCheckinIdRouteImport } from './routes/_authenticated.admin.operations.checkin.$id'
+import { Route as AuthenticatedAdminOperationsArrivalsScanRouteImport } from './routes/_authenticated.admin.operations.arrivals.scan'
 import { Route as AuthenticatedAdminOperationsArrivalsIdRouteImport } from './routes/_authenticated.admin.operations.arrivals.$id'
 import { Route as AuthenticatedAdminGuestsCrmDuplicatesRouteImport } from './routes/_authenticated.admin.guests.crm.duplicates'
 import { Route as AuthenticatedAdminGuestsCrmIdRouteImport } from './routes/_authenticated.admin.guests.crm.$id'
@@ -599,6 +601,11 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
   path: '/lovable/email/suppression',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckInPassPassTokenRoute = CheckInPassPassTokenRouteImport.update({
+  id: '/check-in/pass/$passToken',
+  path: '/check-in/pass/$passToken',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
@@ -1206,6 +1213,12 @@ const AuthenticatedAdminOperationsCheckinIdRoute =
     path: '/checkin/$id',
     getParentRoute: () => AuthenticatedAdminOperationsRoute,
   } as any)
+const AuthenticatedAdminOperationsArrivalsScanRoute =
+  AuthenticatedAdminOperationsArrivalsScanRouteImport.update({
+    id: '/arrivals/scan',
+    path: '/arrivals/scan',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
 const AuthenticatedAdminOperationsArrivalsIdRoute =
   AuthenticatedAdminOperationsArrivalsIdRouteImport.update({
     id: '/arrivals/$id',
@@ -1574,6 +1587,7 @@ export interface FileRoutesByFullPath {
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
+  '/check-in/pass/$passToken': typeof CheckInPassPassTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
@@ -1703,6 +1717,7 @@ export interface FileRoutesByFullPath {
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
   '/admin/operations/arrivals/$id': typeof AuthenticatedAdminOperationsArrivalsIdRoute
+  '/admin/operations/arrivals/scan': typeof AuthenticatedAdminOperationsArrivalsScanRoute
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
@@ -1789,6 +1804,7 @@ export interface FileRoutesByTo {
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
+  '/check-in/pass/$passToken': typeof CheckInPassPassTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
@@ -1913,6 +1929,7 @@ export interface FileRoutesByTo {
   '/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
   '/admin/operations/arrivals/$id': typeof AuthenticatedAdminOperationsArrivalsIdRoute
+  '/admin/operations/arrivals/scan': typeof AuthenticatedAdminOperationsArrivalsScanRoute
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
@@ -2008,6 +2025,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
+  '/check-in/pass/$passToken': typeof CheckInPassPassTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
@@ -2137,6 +2155,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/guests/crm/$id': typeof AuthenticatedAdminGuestsCrmIdRoute
   '/_authenticated/admin/guests/crm/duplicates': typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
   '/_authenticated/admin/operations/arrivals/$id': typeof AuthenticatedAdminOperationsArrivalsIdRoute
+  '/_authenticated/admin/operations/arrivals/scan': typeof AuthenticatedAdminOperationsArrivalsScanRoute
   '/_authenticated/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/_authenticated/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/_authenticated/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
@@ -2232,6 +2251,7 @@ export interface FileRouteTypes {
     | '/admin/reviews'
     | '/admin/settings'
     | '/api/public/health'
+    | '/check-in/pass/$passToken'
     | '/lovable/email/suppression'
     | '/admin/'
     | '/admin/ai/activity'
@@ -2361,6 +2381,7 @@ export interface FileRouteTypes {
     | '/admin/guests/crm/$id'
     | '/admin/guests/crm/duplicates'
     | '/admin/operations/arrivals/$id'
+    | '/admin/operations/arrivals/scan'
     | '/admin/operations/checkin/$id'
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
@@ -2447,6 +2468,7 @@ export interface FileRouteTypes {
     | '/admin/reviews'
     | '/admin/settings'
     | '/api/public/health'
+    | '/check-in/pass/$passToken'
     | '/lovable/email/suppression'
     | '/admin'
     | '/admin/ai/activity'
@@ -2571,6 +2593,7 @@ export interface FileRouteTypes {
     | '/admin/guests/crm/$id'
     | '/admin/guests/crm/duplicates'
     | '/admin/operations/arrivals/$id'
+    | '/admin/operations/arrivals/scan'
     | '/admin/operations/checkin/$id'
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
@@ -2665,6 +2688,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/reviews'
     | '/_authenticated/admin/settings'
     | '/api/public/health'
+    | '/check-in/pass/$passToken'
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
     | '/_authenticated/admin/ai/activity'
@@ -2794,6 +2818,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/guests/crm/$id'
     | '/_authenticated/admin/guests/crm/duplicates'
     | '/_authenticated/admin/operations/arrivals/$id'
+    | '/_authenticated/admin/operations/arrivals/scan'
     | '/_authenticated/admin/operations/checkin/$id'
     | '/_authenticated/admin/operations/checkout/$id'
     | '/_authenticated/admin/operations/reservations/$id'
@@ -2861,6 +2886,7 @@ export interface RootRouteChildren {
   WpIncludesSplatRoute: typeof WpIncludesSplatRoute
   WpJsonSplatRoute: typeof WpJsonSplatRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
+  CheckInPassPassTokenRoute: typeof CheckInPassPassTokenRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicAvailabilitySearchRoute: typeof ApiPublicAvailabilitySearchRoute
   ApiPublicConciergeAttributionRoute: typeof ApiPublicConciergeAttributionRoute
@@ -3375,6 +3401,13 @@ declare module '@tanstack/react-router' {
       path: '/lovable/email/suppression'
       fullPath: '/lovable/email/suppression'
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/check-in/pass/$passToken': {
+      id: '/check-in/pass/$passToken'
+      path: '/check-in/pass/$passToken'
+      fullPath: '/check-in/pass/$passToken'
+      preLoaderRoute: typeof CheckInPassPassTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/health': {
@@ -4091,6 +4124,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminOperationsCheckinIdRouteImport
       parentRoute: typeof AuthenticatedAdminOperationsRoute
     }
+    '/_authenticated/admin/operations/arrivals/scan': {
+      id: '/_authenticated/admin/operations/arrivals/scan'
+      path: '/arrivals/scan'
+      fullPath: '/admin/operations/arrivals/scan'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsArrivalsScanRouteImport
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
     '/_authenticated/admin/operations/arrivals/$id': {
       id: '/_authenticated/admin/operations/arrivals/$id'
       path: '/arrivals/$id'
@@ -4797,6 +4837,7 @@ interface AuthenticatedAdminOperationsRouteChildren {
   AuthenticatedAdminOperationsTimelineRoute: typeof AuthenticatedAdminOperationsTimelineRoute
   AuthenticatedAdminOperationsIndexRoute: typeof AuthenticatedAdminOperationsIndexRoute
   AuthenticatedAdminOperationsArrivalsIdRoute: typeof AuthenticatedAdminOperationsArrivalsIdRoute
+  AuthenticatedAdminOperationsArrivalsScanRoute: typeof AuthenticatedAdminOperationsArrivalsScanRoute
   AuthenticatedAdminOperationsCheckinIdRoute: typeof AuthenticatedAdminOperationsCheckinIdRoute
   AuthenticatedAdminOperationsCheckoutIdRoute: typeof AuthenticatedAdminOperationsCheckoutIdRoute
   AuthenticatedAdminOperationsReservationsIdRoute: typeof AuthenticatedAdminOperationsReservationsIdRoute
@@ -4821,6 +4862,8 @@ const AuthenticatedAdminOperationsRouteChildren: AuthenticatedAdminOperationsRou
       AuthenticatedAdminOperationsIndexRoute,
     AuthenticatedAdminOperationsArrivalsIdRoute:
       AuthenticatedAdminOperationsArrivalsIdRoute,
+    AuthenticatedAdminOperationsArrivalsScanRoute:
+      AuthenticatedAdminOperationsArrivalsScanRoute,
     AuthenticatedAdminOperationsCheckinIdRoute:
       AuthenticatedAdminOperationsCheckinIdRoute,
     AuthenticatedAdminOperationsCheckoutIdRoute:
@@ -5103,6 +5146,7 @@ const rootRouteChildren: RootRouteChildren = {
   WpIncludesSplatRoute: WpIncludesSplatRoute,
   WpJsonSplatRoute: WpJsonSplatRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
+  CheckInPassPassTokenRoute: CheckInPassPassTokenRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicAvailabilitySearchRoute: ApiPublicAvailabilitySearchRoute,
   ApiPublicConciergeAttributionRoute: ApiPublicConciergeAttributionRoute,

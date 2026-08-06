@@ -32,6 +32,7 @@ import {
   type GuestInfoValues,
   type VerifiedCheckIn,
 } from "../services/checkin-client";
+import { ensureArrivalPass } from "../services/arrival-pass-client";
 
 const emptyArrival: ArrivalInfoValues = {
   arrival_date: "",
@@ -184,14 +185,20 @@ export function CheckInWizard({ token }: { token: string }) {
         final: true,
         sessionId,
       }),
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       clearCheckInSessionId(token);
       toast.success(
         result?.room_ready === false
           ? "Check-in submitted — reception will finalise your room on arrival"
           : "Check-in submitted",
       );
-      void navigate({ to: "/check-in/success" });
+      // Issue the QR arrival pass; fall back to the plain success screen.
+      try {
+        const passToken = await ensureArrivalPass(token);
+        void navigate({ to: "/check-in/pass/$passToken", params: { passToken } });
+      } catch {
+        void navigate({ to: "/check-in/success" });
+      }
     },
     onError: (err: Error) => {
       const code = err instanceof CheckInError ? err.code : null;
@@ -260,6 +267,7 @@ export function CheckInWizard({ token }: { token: string }) {
             ? `, submitted ${new Date(summary.submitted_at).toLocaleString()}`
             : ""
         }. This link is now locked. Reception will confirm everything before you arrive — call us if anything has changed.`}
+        action={<ArrivalPassLink token={token} />}
       />
     );
   }
@@ -756,6 +764,34 @@ function ReviewGroup({ title, rows }: { title: string; rows: Array<[string, stri
         ))}
       </dl>
     </div>
+  );
+}
+
+/** Lets a guest who already checked in reopen their QR arrival pass. */
+function ArrivalPassLink({ token }: { token: string }) {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      disabled={loading}
+      onClick={async () => {
+        setLoading(true);
+        try {
+          const passToken = await ensureArrivalPass(token);
+          void navigate({ to: "/check-in/pass/$passToken", params: { passToken } });
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Arrival pass unavailable");
+        } finally {
+          setLoading(false);
+        }
+      }}
+    >
+      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      View arrival pass
+    </Button>
   );
 }
 
