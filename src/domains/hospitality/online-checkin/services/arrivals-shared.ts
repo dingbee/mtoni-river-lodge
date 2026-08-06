@@ -110,9 +110,6 @@ export interface ArrivalListItem {
   estimatedArrivalTime: string | null;
   lastActivityAt: string | null;
   alerts: ArrivalAlert[];
-}
-
-export interface ArrivalReadinessInfo {
   readiness: ArrivalReadiness;
   outstandingActions: string[];
 }
@@ -126,9 +123,6 @@ export interface ArrivalsSummary {
   needsReview: number;
   conflicts: number;
   vip: number;
-}
-
-export interface ArrivalsSummaryReadiness {
   ready: number;
   needsAttention: number;
 }
