@@ -767,8 +767,35 @@ function ReviewGroup({ title, rows }: { title: string; rows: Array<[string, stri
   );
 }
 
+/** Lets a guest who already checked in reopen their QR arrival pass. */
+function ArrivalPassLink({ token }: { token: string }) {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      disabled={loading}
+      onClick={async () => {
+        setLoading(true);
+        try {
+          const passToken = await ensureArrivalPass(token);
+          void navigate({ to: "/check-in/pass/$passToken", params: { passToken } });
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Arrival pass unavailable");
+        } finally {
+          setLoading(false);
+        }
+      }}
+    >
+      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      View arrival pass
+    </Button>
+  );
+}
+
 function StatusCard({
-  icon,
   icon,
   title,
   body,
