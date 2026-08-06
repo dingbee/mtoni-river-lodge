@@ -70,6 +70,7 @@ import { Route as JournalSlugRouteImport } from './routes/journal.$slug'
 import { Route as FeedSplatRouteImport } from './routes/feed.$'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CheckInSuccessRouteImport } from './routes/check-in.success'
+import { Route as CheckInExpiredRouteImport } from './routes/check-in.expired'
 import { Route as CheckInTokenRouteImport } from './routes/check-in.$token'
 import { Route as CategorySplatRouteImport } from './routes/category.$'
 import { Route as BookingReturnRouteImport } from './routes/booking.return'
@@ -546,6 +547,11 @@ const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
 const CheckInSuccessRoute = CheckInSuccessRouteImport.update({
   id: '/check-in/success',
   path: '/check-in/success',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckInExpiredRoute = CheckInExpiredRouteImport.update({
+  id: '/check-in/expired',
+  path: '/check-in/expired',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckInTokenRoute = CheckInTokenRouteImport.update({
@@ -1518,6 +1524,7 @@ export interface FileRoutesByFullPath {
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
   '/check-in/$token': typeof CheckInTokenRoute
+  '/check-in/expired': typeof CheckInExpiredRoute
   '/check-in/success': typeof CheckInSuccessRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/feed/$': typeof FeedSplatRoute
@@ -1734,6 +1741,7 @@ export interface FileRoutesByTo {
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
   '/check-in/$token': typeof CheckInTokenRoute
+  '/check-in/expired': typeof CheckInExpiredRoute
   '/check-in/success': typeof CheckInSuccessRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/feed/$': typeof FeedSplatRoute
@@ -1946,6 +1954,7 @@ export interface FileRoutesById {
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
   '/check-in/$token': typeof CheckInTokenRoute
+  '/check-in/expired': typeof CheckInExpiredRoute
   '/check-in/success': typeof CheckInSuccessRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/feed/$': typeof FeedSplatRoute
@@ -2167,6 +2176,7 @@ export interface FileRouteTypes {
     | '/booking/return'
     | '/category/$'
     | '/check-in/$token'
+    | '/check-in/expired'
     | '/check-in/success'
     | '/email/unsubscribe'
     | '/feed/$'
@@ -2383,6 +2393,7 @@ export interface FileRouteTypes {
     | '/booking/return'
     | '/category/$'
     | '/check-in/$token'
+    | '/check-in/expired'
     | '/check-in/success'
     | '/email/unsubscribe'
     | '/feed/$'
@@ -2594,6 +2605,7 @@ export interface FileRouteTypes {
     | '/booking/return'
     | '/category/$'
     | '/check-in/$token'
+    | '/check-in/expired'
     | '/check-in/success'
     | '/email/unsubscribe'
     | '/feed/$'
@@ -2812,6 +2824,7 @@ export interface RootRouteChildren {
   BookingReturnRoute: typeof BookingReturnRoute
   CategorySplatRoute: typeof CategorySplatRoute
   CheckInTokenRoute: typeof CheckInTokenRoute
+  CheckInExpiredRoute: typeof CheckInExpiredRoute
   CheckInSuccessRoute: typeof CheckInSuccessRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   FeedSplatRoute: typeof FeedSplatRoute
@@ -3266,6 +3279,13 @@ declare module '@tanstack/react-router' {
       path: '/check-in/success'
       fullPath: '/check-in/success'
       preLoaderRoute: typeof CheckInSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/check-in/expired': {
+      id: '/check-in/expired'
+      path: '/check-in/expired'
+      fullPath: '/check-in/expired'
+      preLoaderRoute: typeof CheckInExpiredRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/check-in/$token': {
@@ -5026,6 +5046,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookingReturnRoute: BookingReturnRoute,
   CategorySplatRoute: CategorySplatRoute,
   CheckInTokenRoute: CheckInTokenRoute,
+  CheckInExpiredRoute: CheckInExpiredRoute,
   CheckInSuccessRoute: CheckInSuccessRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   FeedSplatRoute: FeedSplatRoute,
