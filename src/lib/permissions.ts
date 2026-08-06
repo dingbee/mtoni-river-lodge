@@ -30,6 +30,7 @@ export const MODULE_ROLES: Record<string, Role[] | null> = {
   "operations.calendar": ["owner", "manager", "reception"],
   "operations.rooms": ["owner", "manager", "reception", "housekeeping"],
   "operations.housekeeping": ["owner", "manager", "reception", "housekeeping"],
+  "hospitality.online-checkin.arrivals": ["owner", "manager", "reception"],
   "guests.crm": ["owner", "manager", "reception", "marketing"],
   "guests.reviews": ["owner", "manager", "marketing"],
   "guests.messages": ["owner", "manager", "reception"],
