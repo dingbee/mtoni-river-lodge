@@ -142,7 +142,11 @@ export function deriveReadiness(input: {
   const arrived = input.reservationStatus === "checked_in";
   let readiness: ArrivalReadiness;
   if (arrived || (actions.length === 0 && !hasDanger)) readiness = "ready";
-  else if (hasDanger || input.documentStatus === "rejected" || input.reservationStatus === "pending")
+  else if (
+    hasDanger ||
+    input.documentStatus === "rejected" ||
+    input.reservationStatus === "pending"
+  )
     readiness = "attention";
   else readiness = "pending";
   return { readiness, outstandingActions: actions };

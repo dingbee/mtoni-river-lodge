@@ -31,8 +31,15 @@ async function loadContext(supabase: Sb, bookingId: string) {
       supabase.from("arrival_information").select("*").eq("booking_id", bookingId).maybeSingle(),
       supabase.from("guest_documents").select("status, kind").eq("booking_id", bookingId),
       supabase.from("rooms").select("name").eq("id", booking.room_id).maybeSingle(),
-      supabase.from("room_states").select("state, unit_label, booking_id, room_id").eq("room_id", booking.room_id),
-      supabase.from("guest_checkins").select("status, submitted_at").eq("booking_id", bookingId).maybeSingle(),
+      supabase
+        .from("room_states")
+        .select("state, unit_label, booking_id, room_id")
+        .eq("room_id", booking.room_id),
+      supabase
+        .from("guest_checkins")
+        .select("status, submitted_at")
+        .eq("booking_id", bookingId)
+        .maybeSingle(),
       guestId
         ? supabase.from("guest_preferences").select("category, key, value").eq("guest_id", guestId)
         : Promise.resolve({ data: [] }),
@@ -44,7 +51,13 @@ async function loadContext(supabase: Sb, bookingId: string) {
             .neq("id", bookingId)
             .in("status", ["checked_in", "completed"])
         : Promise.resolve({ data: [] }),
-      guestId ? supabase.from("guests").select("full_name, status, vip_since, preferred_language, nationality").eq("id", guestId).maybeSingle() : Promise.resolve({ data: null }),
+      guestId
+        ? supabase
+            .from("guests")
+            .select("full_name, status, vip_since, preferred_language, nationality")
+            .eq("id", guestId)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
     ]);
 
   return {
@@ -131,10 +144,15 @@ function buildFacts(ctx: Awaited<ReturnType<typeof loadContext>>) {
   };
 }
 
-function fallbackBriefing(built: ReturnType<typeof buildFacts>, bookingId: string): ArrivalBriefing {
+function fallbackBriefing(
+  built: ReturnType<typeof buildFacts>,
+  bookingId: string,
+): ArrivalBriefing {
   const f = built.facts as any;
   const lines: string[] = [];
-  lines.push(`Guest arriving ${f.stay.check_in} for ${f.stay.nights} night(s) in ${f.stay.room ?? "room TBA"}.`);
+  lines.push(
+    `Guest arriving ${f.stay.check_in} for ${f.stay.nights} night(s) in ${f.stay.room ?? "room TBA"}.`,
+  );
   if (f.arrival?.transfer_required) lines.push("Airport transfer requested.");
   if (f.arrival?.dietary_requirements) lines.push(`Dietary: ${f.arrival.dietary_requirements}.`);
   if (f.previous_stays > 0) lines.push(`Returning guest (${f.previous_stays} previous stay(s)).`);
@@ -203,7 +221,9 @@ export async function getArrivalBriefing(
       user: `Arrival facts (JSON):\n${JSON.stringify(built.facts).slice(0, 6000)}`,
       jsonMode: true,
     });
-    const parsed = parseAiJson<{ summary: string; highlights?: string[]; attention?: string[] }>(content);
+    const parsed = parseAiJson<{ summary: string; highlights?: string[]; attention?: string[] }>(
+      content,
+    );
     if (!parsed?.summary) throw new Error("AI returned no summary");
     briefing = {
       bookingId: input.bookingId,
