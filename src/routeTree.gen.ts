@@ -80,6 +80,7 @@ import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as CheckInPassPassTokenRouteImport } from './routes/check-in.pass.$passToken'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated.admin.settings'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
@@ -599,6 +600,11 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
   path: '/lovable/email/suppression',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckInPassPassTokenRoute = CheckInPassPassTokenRouteImport.update({
+  id: '/check-in/pass/$passToken',
+  path: '/check-in/pass/$passToken',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
@@ -1574,6 +1580,7 @@ export interface FileRoutesByFullPath {
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
+  '/check-in/pass/$passToken': typeof CheckInPassPassTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
@@ -1789,6 +1796,7 @@ export interface FileRoutesByTo {
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
+  '/check-in/pass/$passToken': typeof CheckInPassPassTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
@@ -2008,6 +2016,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
+  '/check-in/pass/$passToken': typeof CheckInPassPassTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/ai/activity': typeof AuthenticatedAdminAiActivityRoute
@@ -2232,6 +2241,7 @@ export interface FileRouteTypes {
     | '/admin/reviews'
     | '/admin/settings'
     | '/api/public/health'
+    | '/check-in/pass/$passToken'
     | '/lovable/email/suppression'
     | '/admin/'
     | '/admin/ai/activity'
@@ -2447,6 +2457,7 @@ export interface FileRouteTypes {
     | '/admin/reviews'
     | '/admin/settings'
     | '/api/public/health'
+    | '/check-in/pass/$passToken'
     | '/lovable/email/suppression'
     | '/admin'
     | '/admin/ai/activity'
@@ -2665,6 +2676,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/reviews'
     | '/_authenticated/admin/settings'
     | '/api/public/health'
+    | '/check-in/pass/$passToken'
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
     | '/_authenticated/admin/ai/activity'
@@ -2861,6 +2873,7 @@ export interface RootRouteChildren {
   WpIncludesSplatRoute: typeof WpIncludesSplatRoute
   WpJsonSplatRoute: typeof WpJsonSplatRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
+  CheckInPassPassTokenRoute: typeof CheckInPassPassTokenRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicAvailabilitySearchRoute: typeof ApiPublicAvailabilitySearchRoute
   ApiPublicConciergeAttributionRoute: typeof ApiPublicConciergeAttributionRoute
@@ -3375,6 +3388,13 @@ declare module '@tanstack/react-router' {
       path: '/lovable/email/suppression'
       fullPath: '/lovable/email/suppression'
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/check-in/pass/$passToken': {
+      id: '/check-in/pass/$passToken'
+      path: '/check-in/pass/$passToken'
+      fullPath: '/check-in/pass/$passToken'
+      preLoaderRoute: typeof CheckInPassPassTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/health': {
@@ -5103,6 +5123,7 @@ const rootRouteChildren: RootRouteChildren = {
   WpIncludesSplatRoute: WpIncludesSplatRoute,
   WpJsonSplatRoute: WpJsonSplatRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
+  CheckInPassPassTokenRoute: CheckInPassPassTokenRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicAvailabilitySearchRoute: ApiPublicAvailabilitySearchRoute,
   ApiPublicConciergeAttributionRoute: ApiPublicConciergeAttributionRoute,
@@ -5122,13 +5143,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
