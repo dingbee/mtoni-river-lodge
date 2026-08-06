@@ -3444,6 +3444,97 @@ export type Database = {
           },
         ]
       }
+      arrival_information: {
+        Row: {
+          accessibility_needs: string | null
+          airport: string | null
+          arrival_date: string | null
+          arrival_mode: string | null
+          booking_id: string
+          checkin_id: string
+          created_at: string
+          dietary_requirements: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relation: string | null
+          estimated_arrival_time: string | null
+          flight_arrival_time: string | null
+          flight_number: string | null
+          id: string
+          special_requests: string | null
+          transfer_notes: string | null
+          transfer_required: boolean
+          updated_at: string
+          visit_purpose: string | null
+        }
+        Insert: {
+          accessibility_needs?: string | null
+          airport?: string | null
+          arrival_date?: string | null
+          arrival_mode?: string | null
+          booking_id: string
+          checkin_id: string
+          created_at?: string
+          dietary_requirements?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
+          estimated_arrival_time?: string | null
+          flight_arrival_time?: string | null
+          flight_number?: string | null
+          id?: string
+          special_requests?: string | null
+          transfer_notes?: string | null
+          transfer_required?: boolean
+          updated_at?: string
+          visit_purpose?: string | null
+        }
+        Update: {
+          accessibility_needs?: string | null
+          airport?: string | null
+          arrival_date?: string | null
+          arrival_mode?: string | null
+          booking_id?: string
+          checkin_id?: string
+          created_at?: string
+          dietary_requirements?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
+          estimated_arrival_time?: string | null
+          flight_arrival_time?: string | null
+          flight_number?: string | null
+          id?: string
+          special_requests?: string | null
+          transfer_notes?: string | null
+          transfer_required?: boolean
+          updated_at?: string
+          visit_purpose?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arrival_information_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arrival_information_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arrival_information_checkin_id_fkey"
+            columns: ["checkin_id"]
+            isOneToOne: true
+            referencedRelation: "guest_checkins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_extras: {
         Row: {
           booking_id: string
@@ -4367,6 +4458,99 @@ export type Database = {
           },
         ]
       }
+      guest_checkins: {
+        Row: {
+          booking_id: string
+          created_at: string
+          expires_at: string
+          guest_id: string | null
+          id: string
+          metadata: Json
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          signature_name: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["checkin_status"]
+          submitted_at: string | null
+          terms_accepted_at: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          expires_at?: string
+          guest_id?: string | null
+          id?: string
+          metadata?: Json
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          signature_name?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["checkin_status"]
+          submitted_at?: string | null
+          terms_accepted_at?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          expires_at?: string
+          guest_id?: string | null
+          id?: string
+          metadata?: Json
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          signature_name?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["checkin_status"]
+          submitted_at?: string | null
+          terms_accepted_at?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_checkins_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_checkins_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_checkins_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_checkins_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
+          },
+          {
+            foreignKeyName: "guest_checkins_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_communications: {
         Row: {
           author_id: string | null
@@ -4447,39 +4631,90 @@ export type Database = {
       }
       guest_documents: {
         Row: {
+          booking_id: string | null
+          checkin_id: string | null
           created_at: string
           created_by: string | null
-          guest_id: string
+          document_expiry: string | null
+          document_number: string | null
+          file_name: string | null
+          file_size: number | null
+          guest_id: string | null
           id: string
           kind: string
           label: string | null
           meta: Json
+          mime_type: string | null
           status: string
+          storage_path: string | null
           updated_at: string
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
+          booking_id?: string | null
+          checkin_id?: string | null
           created_at?: string
           created_by?: string | null
-          guest_id: string
+          document_expiry?: string | null
+          document_number?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          guest_id?: string | null
           id?: string
           kind: string
           label?: string | null
           meta?: Json
+          mime_type?: string | null
           status?: string
+          storage_path?: string | null
           updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
+          booking_id?: string | null
+          checkin_id?: string | null
           created_at?: string
           created_by?: string | null
-          guest_id?: string
+          document_expiry?: string | null
+          document_number?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          guest_id?: string | null
           id?: string
           kind?: string
           label?: string | null
           meta?: Json
+          mime_type?: string | null
           status?: string
+          storage_path?: string | null
           updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "guest_documents_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_documents_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_documents_checkin_id_fkey"
+            columns: ["checkin_id"]
+            isOneToOne: false
+            referencedRelation: "guest_checkins"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "guest_documents_guest_id_fkey"
             columns: ["guest_id"]
@@ -6920,6 +7155,15 @@ export type Database = {
         | "paused"
         | "completed"
         | "archived"
+      checkin_document_status: "pending" | "uploaded" | "verified" | "rejected"
+      checkin_status:
+        | "not_started"
+        | "in_progress"
+        | "submitted"
+        | "under_review"
+        | "approved"
+        | "rejected"
+        | "expired"
       cms_block_kind:
         | "hero"
         | "rich_text"
@@ -7152,6 +7396,16 @@ export const Constants = {
         "paused",
         "completed",
         "archived",
+      ],
+      checkin_document_status: ["pending", "uploaded", "verified", "rejected"],
+      checkin_status: [
+        "not_started",
+        "in_progress",
+        "submitted",
+        "under_review",
+        "approved",
+        "rejected",
+        "expired",
       ],
       cms_block_kind: [
         "hero",
