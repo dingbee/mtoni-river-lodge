@@ -12,6 +12,12 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CheckInStepper } from "./CheckInStepper";
+import { CheckInDocumentsStep } from "./CheckInDocumentsStep";
+import {
+  DOCUMENT_KIND_LABEL,
+  type CheckInDocumentKind,
+  type GuestDocumentView,
+} from "../services/documents-shared";
 import {
   arrivalInfoSchema,
   clearCheckInSessionId,
@@ -74,6 +80,7 @@ export function CheckInWizard({ token }: { token: string }) {
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [timedOut, setTimedOut] = useState(false);
   const [resumed, setResumed] = useState(false);
+  const [documents, setDocuments] = useState<GuestDocumentView[]>([]);
   const sessionId = useMemo(() => getCheckInSessionId(token), [token]);
   const lastActivityRef = useRef<number>(Date.now());
   const timeoutMsRef = useRef<number>(30 * 60 * 1000);
@@ -147,7 +154,7 @@ export function CheckInWizard({ token }: { token: string }) {
         ...(draft?.arrival ?? {}),
       }));
       setErrors({});
-      const resumeStep = Math.min(Math.max(data.checkin.draft_step || 1, 1), 3);
+      const resumeStep = Math.min(Math.max(data.checkin.draft_step || 1, 1), 4);
       setResumed(!!data.checkin.resumed);
       if (data.checkin.resumed) {
         toast.success("Welcome back — we restored your saved answers.");
@@ -578,7 +585,7 @@ export function CheckInWizard({ token }: { token: string }) {
                   if (a) goToStep(3, { guest, arrival: a });
                 }}
               >
-                Review
+                Continue
               </Button>
             </div>
           </CardContent>
@@ -586,6 +593,23 @@ export function CheckInWizard({ token }: { token: string }) {
       )}
 
       {step === 3 && guest && verified && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Identity documents</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CheckInDocumentsStep
+              token={token}
+              sessionId={sessionId}
+              onDocumentsChange={setDocuments}
+              onBack={() => setStep(2)}
+              onContinue={() => goToStep(4, { guest, arrival })}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {step === 4 && guest && verified && (
         <Card>
           <CardHeader>
             <CardTitle>Review and confirm</CardTitle>
@@ -628,6 +652,17 @@ export function CheckInWizard({ token }: { token: string }) {
                 ],
               ]}
             />
+            <ReviewGroup
+              title="Documents"
+              rows={
+                documents.length
+                  ? documents.map((d) => [
+                      DOCUMENT_KIND_LABEL[d.kind as CheckInDocumentKind] ?? d.kind,
+                      `${d.file_name ?? "Uploaded"} · awaiting reception review`,
+                    ] as [string, string])
+                  : [["Uploaded", "None — you can present documents at reception on arrival"]]
+              }
+            />
             <Field label="Type your full name to sign" htmlFor="signature_name">
               <Input
                 id="signature_name"
@@ -638,10 +673,10 @@ export function CheckInWizard({ token }: { token: string }) {
             </Field>
             <p className="text-xs text-muted-foreground">
               By submitting you confirm these details are correct and accept the lodge house rules.
-              Identity documents are collected at reception on arrival.
+              Uploaded documents are reviewed by reception before you arrive.
             </p>
             <div className="flex justify-between">
-              <Button variant="ghost" onClick={() => setStep(2)}>
+              <Button variant="ghost" onClick={() => setStep(3)}>
                 Back
               </Button>
               <Button

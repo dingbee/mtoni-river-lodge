@@ -1,7 +1,7 @@
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export const CHECK_IN_STEPS = ["Verify", "Your details", "Arrival", "Review"] as const;
+export const CHECK_IN_STEPS = ["Verify", "Your details", "Arrival", "Documents", "Review"] as const;
 
 export function CheckInStepper({ current }: { current: number }) {
   return (

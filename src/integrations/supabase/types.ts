@@ -4715,9 +4715,11 @@ export type Database = {
           label: string | null
           meta: Json
           mime_type: string | null
+          rejection_reason: string | null
           status: string
           storage_path: string | null
           updated_at: string
+          uploaded_by_guest: boolean
           verified_at: string | null
           verified_by: string | null
         }
@@ -4736,9 +4738,11 @@ export type Database = {
           label?: string | null
           meta?: Json
           mime_type?: string | null
+          rejection_reason?: string | null
           status?: string
           storage_path?: string | null
           updated_at?: string
+          uploaded_by_guest?: boolean
           verified_at?: string | null
           verified_by?: string | null
         }
@@ -4757,9 +4761,11 @@ export type Database = {
           label?: string | null
           meta?: Json
           mime_type?: string | null
+          rejection_reason?: string | null
           status?: string
           storage_path?: string | null
           updated_at?: string
+          uploaded_by_guest?: boolean
           verified_at?: string | null
           verified_by?: string | null
         }
