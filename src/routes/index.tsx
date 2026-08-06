@@ -7,6 +7,7 @@ import { HeroCinematic } from "@/components/site/HeroCinematic";
 import { ExperiencesCinematic } from "@/components/site/ExperiencesCinematic";
 import { RiverWritesADay } from "@/components/site/RiverWritesADay";
 import { WhyMtoni } from "@/components/site/WhyMtoni";
+import { WlhaAwarenessBanner } from "@/components/site/WlhaAwarenessBanner";
 import { GuestExperiencesSection } from "@/components/site/reviews/GuestExperiencesSection";
 import { FAQ } from "@/components/FAQ";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
@@ -140,6 +141,9 @@ function HomePage() {
         ]}
         slideDurationMs={7000}
       />
+
+      {/* WLHA AWARENESS CAMPAIGN */}
+      <WlhaAwarenessBanner />
 
       {/* EDITORIAL TRUST — Why Mtoni */}
       <WhyMtoni />
