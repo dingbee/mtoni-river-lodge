@@ -22,7 +22,8 @@ export type FeatureFlagKey =
   | "reviews_centre_v2"
   | "website_analytics"
   | "mtoni_ai_command_centre"
-  | "mtoni_ai_concierge";
+  | "mtoni_ai_concierge"
+  | "online_checkin";
 
 export type FlagState = "enabled" | "disabled" | "beta" | "internal";
 
