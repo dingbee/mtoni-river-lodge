@@ -18,7 +18,7 @@ function ReservationWorkspace() {
   const fn = useServerFn(getReservationWorkspace);
   const q = useQuery({ queryKey: ["ops-reservation", id], queryFn: () => fn({ data: { id } }), staleTime: 30_000 });
   if (q.isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
-  if (q.error) return <p className="text-sm text-rose-600">{(q.error as Error).message}</p>;
+  if (q.error) return <p className="text-sm text-[color:var(--os-danger)]">{(q.error as Error).message}</p>;
   const d: any = q.data!;
   const b = d.booking;
 
@@ -127,7 +127,7 @@ function ReservationWorkspace() {
 }
 
 function Row({ label, value, tone }: { label: string; value: any; tone?: "warn" | "success" }) {
-  const cls = tone === "warn" ? "text-amber-700" : tone === "success" ? "text-emerald-700" : "";
+  const cls = tone === "warn" ? "text-[color:var(--os-warn)]" : tone === "success" ? "text-[color:var(--os-success)]" : "";
   return (
     <div className="flex justify-between">
       <span className="text-muted-foreground">{label}</span>

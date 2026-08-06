@@ -125,7 +125,7 @@ function BriefingPage() {
               <ul className="space-y-2 text-sm">
                 {briefing.alerts.map((a: any, i: number) => (
                   <li key={i} className="flex items-start gap-2">
-                    <AlertTriangle className={"mt-0.5 size-4 " + (a.severity === "warning" ? "text-amber-600" : "text-muted-foreground")} />
+                    <AlertTriangle className={"mt-0.5 size-4 " + (a.severity === "warning" ? "text-[color:var(--os-warn)]" : "text-muted-foreground")} />
                     <div><div className="font-medium">{a.title}</div><div className="text-xs text-muted-foreground">{a.detail}</div></div>
                   </li>
                 ))}

@@ -30,11 +30,11 @@ export function CheckOutWizard({ workspace }: { workspace: any }) {
       <div className="space-y-2">
         <h3 className="font-semibold">Balance review</h3>
         {b.balance_amount > 0 ? (
-          <div className="flex items-center gap-2 rounded bg-amber-500/10 p-3 text-sm text-amber-800">
+          <div className="flex items-center gap-2 rounded bg-amber-500/10 p-3 text-sm text-[color:var(--os-warn)]">
             <AlertTriangle className="size-4" /> Outstanding balance: {b.currency} {b.balance_amount}
           </div>
         ) : (
-          <p className="text-sm text-emerald-700">Fully paid ({b.currency} {b.total}).</p>
+          <p className="text-sm text-[color:var(--os-success)]">Fully paid ({b.currency} {b.total}).</p>
         )}
       </div>
       <div className="space-y-2">

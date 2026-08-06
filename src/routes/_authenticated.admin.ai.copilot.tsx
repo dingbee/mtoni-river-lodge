@@ -224,7 +224,7 @@ function MessageBubble({ m, onFeedback }: { m: any; onFeedback: (r: string) => v
   const isUser = m.role === "user";
   const conf = Number(m.confidence ?? 0);
   const confLabel = conf >= 0.8 ? "High" : conf >= 0.5 ? "Medium" : "Low";
-  const confColor = conf >= 0.8 ? "text-emerald-600" : conf >= 0.5 ? "text-amber-600" : "text-rose-600";
+  const confColor = conf >= 0.8 ? "text-[color:var(--os-success)]" : conf >= 0.5 ? "text-[color:var(--os-warn)]" : "text-[color:var(--os-danger)]";
 
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
@@ -243,9 +243,9 @@ function MessageBubble({ m, onFeedback }: { m: any; onFeedback: (r: string) => v
             <button onClick={() => navigator.clipboard.writeText(m.content)} className="ml-auto inline-flex items-center gap-0.5 hover:text-foreground">
               <Copy className="size-3" /> Copy
             </button>
-            <button onClick={() => onFeedback("helpful")} className="inline-flex items-center gap-0.5 hover:text-emerald-600"><ThumbsUp className="size-3" /></button>
-            <button onClick={() => onFeedback("needs_improvement")} className="inline-flex items-center gap-0.5 hover:text-amber-600"><ThumbsDown className="size-3" /></button>
-            <button onClick={() => onFeedback("incorrect")} className="inline-flex items-center gap-0.5 hover:text-rose-600"><AlertTriangle className="size-3" /></button>
+            <button onClick={() => onFeedback("helpful")} className="inline-flex items-center gap-0.5 hover:text-[color:var(--os-success)]"><ThumbsUp className="size-3" /></button>
+            <button onClick={() => onFeedback("needs_improvement")} className="inline-flex items-center gap-0.5 hover:text-[color:var(--os-warn)]"><ThumbsDown className="size-3" /></button>
+            <button onClick={() => onFeedback("incorrect")} className="inline-flex items-center gap-0.5 hover:text-[color:var(--os-danger)]"><AlertTriangle className="size-3" /></button>
           </div>
         )}
         {!isUser && (m.evidence?.length > 0 || m.citations?.length > 0 || m.tools_used?.length > 0) && (

@@ -51,7 +51,7 @@ export function CheckInWizard({ workspace }: { workspace: any }) {
       <ol className="space-y-2">
         {STEPS.map((s, i) => (
           <li key={s.id} className={`flex items-center gap-2 rounded px-2 py-1.5 text-sm ${i === idx ? "bg-primary/10 font-medium" : "text-muted-foreground"}`}>
-            {i < idx ? <CheckCircle2 className="size-4 text-emerald-600" /> : <Circle className="size-4" />} {s.label}
+            {i < idx ? <CheckCircle2 className="size-4 text-[color:var(--os-success)]" /> : <Circle className="size-4" />} {s.label}
           </li>
         ))}
       </ol>

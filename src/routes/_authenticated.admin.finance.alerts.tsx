@@ -26,8 +26,8 @@ export const Route = createFileRoute("/_authenticated/admin/finance/alerts")({
 
 function severityColor(s: string) {
   if (s === "critical" || s === "error") return "bg-red-100 text-red-700";
-  if (s === "warn") return "bg-amber-100 text-amber-700";
-  return "bg-slate-100 text-slate-700";
+  if (s === "warn") return "bg-[color:var(--os-warn-soft)] text-[color:var(--os-warn)]";
+  return "bg-muted text-foreground";
 }
 
 function Alerts() {
@@ -71,7 +71,7 @@ function Alerts() {
               <div key={a.id} className="flex items-start justify-between gap-4 rounded border border-border p-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <AlertTriangle className="h-4 w-4 text-[color:var(--os-warn)]" />
                     <span className="font-medium">{a.title}</span>
                     <span className={`rounded px-2 py-0.5 text-xs ${severityColor(a.severity)}`}>{a.severity}</span>
                     <Badge variant="outline">{a.alert_type}</Badge>

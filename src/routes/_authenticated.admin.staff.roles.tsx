@@ -66,7 +66,7 @@ function CopyableUuid({ value }: { value: string }) {
               onClick={handleCopy}
               aria-label={copied ? "Copied" : "Copy User ID"}
             >
-              {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+              {copied ? <Check className="size-3 text-[color:var(--os-success)]" /> : <Copy className="size-3" />}
             </Button>
           </div>
         </TooltipTrigger>

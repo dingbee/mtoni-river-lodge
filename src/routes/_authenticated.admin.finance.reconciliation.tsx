@@ -62,7 +62,7 @@ function Reconciliation() {
                       <td className="py-2 font-mono text-xs">{r.reference}</td>
                       <td>{r.currency} {Number(r.paid_amount ?? 0).toFixed(2)}</td>
                       <td>{r.currency} {Number(r.events_total).toFixed(2)}</td>
-                      <td className={r.variance !== 0 ? "text-amber-600" : ""}>{r.variance.toFixed(2)}</td>
+                      <td className={r.variance !== 0 ? "text-[color:var(--os-warn)]" : ""}>{r.variance.toFixed(2)}</td>
                       <td><Badge variant="secondary">{r.payment_status}</Badge></td>
                     </tr>
                   ))}

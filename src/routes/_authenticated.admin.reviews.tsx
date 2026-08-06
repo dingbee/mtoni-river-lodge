@@ -1,16 +1,24 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LogOut, Plus, Trash2, Pencil, Star, Sparkles, Zap, ListChecks, BarChart3, PenLine, Download } from "lucide-react";
 import {
-  listAllReviews,
-  createReview,
-  updateReview,
-  deleteReview,
-} from "@/lib/reviews.functions";
+  Loader2,
+  Plus,
+  Trash2,
+  Pencil,
+  Star,
+  Sparkles,
+  Zap,
+  ListChecks,
+  BarChart3,
+  PenLine,
+  Download,
+} from "lucide-react";
+import { PageHeader } from "@/components/os/PageHeader";
+import { Button } from "@/components/ui/button";
+import { listAllReviews, createReview, updateReview, deleteReview } from "@/lib/reviews.functions";
 import { importReview, generateReviewSummaries } from "@/lib/review-import.functions";
 import { listReviewStatistics, upsertReviewStatistic } from "@/lib/review-stats.functions";
 import { listActivityLogs } from "@/lib/activity.functions";
@@ -25,7 +33,9 @@ import {
 } from "@/lib/reviews";
 
 export const Route = createFileRoute("/_authenticated/admin/reviews")({
-  head: () => ({ meta: [{ title: "Reviews — Admin" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({
+    meta: [{ title: "Reviews — Admin" }, { name: "robots", content: "noindex,nofollow" }],
+  }),
   component: AdminReviews,
 });
 
@@ -40,9 +50,9 @@ const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ className?
 ];
 
 const statusColors: Record<ReviewStatus, string> = {
-  pending: "bg-amber-100 text-amber-900",
-  approved: "bg-emerald-100 text-emerald-900",
-  archived: "bg-zinc-200 text-zinc-700",
+  pending: "bg-[color:var(--os-warn-soft)] text-[color:var(--os-warn)]",
+  approved: "bg-[color:var(--os-success-soft)] text-[color:var(--os-success)]",
+  archived: "bg-muted text-muted-foreground",
 };
 
 type FormState = {
@@ -146,42 +156,29 @@ function AdminReviews() {
   const toggleFeature = (r: Review) =>
     update.mutate({ id: r.id, patch: { ...formFromReview(r), featured: !r.featured } });
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/auth";
-  };
-
   return (
-    <div className="min-h-screen bg-ivory text-charcoal">
-      <header className="border-b border-charcoal/10 bg-ivory">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 lg:px-8">
-          <div className="flex items-center gap-6">
-            <Link to="/" className="font-display text-lg">Mtoni · Admin</Link>
-            <nav className="hidden gap-4 text-xs uppercase tracking-[0.22em] text-charcoal/60 sm:flex">
-              <Link to="/admin/bookings" className="hover:text-charcoal">Bookings</Link>
-              <Link to="/admin/reviews" className="text-charcoal">Reviews</Link>
-            </nav>
-          </div>
-          <button onClick={signOut} className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-charcoal/60 hover:text-charcoal">
-            <LogOut className="h-3.5 w-3.5" /> Sign out
-          </button>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="font-display text-3xl">Reviews Admin</h1>
-          {(tab === "manual" || tab === "quick") && (
-            <button
-              onClick={() => { setEditing(null); setPrefill(null); setShowForm(true); }}
-              className="inline-flex items-center gap-2 rounded-full bg-charcoal px-5 py-2.5 text-[0.7rem] uppercase tracking-[0.22em] text-ivory hover:bg-charcoal/85"
+    <div className="space-y-6">
+      <PageHeader
+        title="Guest reviews"
+        description="Curate, import and publish guest reviews across every channel."
+        actions={
+          (tab === "manual" || tab === "quick") && (
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditing(null);
+                setPrefill(null);
+                setShowForm(true);
+              }}
             >
-              <Plus className="h-3.5 w-3.5" /> Add review
-            </button>
-          )}
-        </div>
+              <Plus className="mr-2 h-3.5 w-3.5" /> Add review
+            </Button>
+          )
+        }
+      />
 
-        <div className="mt-6 flex flex-wrap gap-1 border-b border-charcoal/10">
+      <div>
+        <div className="flex flex-wrap gap-1 border-b border-border">
           {TABS.map((t) => {
             const Icon = t.icon;
             const active = tab === t.key;
@@ -191,8 +188,8 @@ function AdminReviews() {
                 onClick={() => setTab(t.key)}
                 className={`inline-flex items-center gap-2 border-b-2 px-4 py-3 text-[0.7rem] uppercase tracking-[0.22em] transition-colors ${
                   active
-                    ? "border-charcoal text-charcoal"
-                    : "border-transparent text-charcoal/55 hover:text-charcoal"
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -209,7 +206,11 @@ function AdminReviews() {
             sourceFilter={sourceFilter}
             onStatusFilter={setStatusFilter}
             onSourceFilter={setSourceFilter}
-            onEdit={(r) => { setEditing(r); setPrefill(null); setShowForm(true); }}
+            onEdit={(r) => {
+              setEditing(r);
+              setPrefill(null);
+              setShowForm(true);
+            }}
             onQuickStatus={(r, status) =>
               update.mutate({ id: r.id, patch: { ...formFromReview(r), status } })
             }
@@ -222,20 +223,29 @@ function AdminReviews() {
 
         {tab === "import" && (
           <ImportPanel
-            onImported={(f) => { setEditing(null); setPrefill(f); setShowForm(true); setTab("manual"); }}
+            onImported={(f) => {
+              setEditing(null);
+              setPrefill(f);
+              setShowForm(true);
+              setTab("manual");
+            }}
           />
         )}
         {tab === "quick" && <QuickAddPanel onSaved={invalidateAll} />}
         {tab === "activity" && <ActivityLogPanel />}
         {tab === "statistics" && <StatisticsPanel />}
-      </main>
+      </div>
 
       {showForm && (
         <ReviewForm
           initial={editing ? formFromReview(editing) : (prefill ?? blankForm)}
           isEditing={!!editing}
           submitting={create.isPending || update.isPending}
-          onCancel={() => { setShowForm(false); setEditing(null); setPrefill(null); }}
+          onCancel={() => {
+            setShowForm(false);
+            setEditing(null);
+            setPrefill(null);
+          }}
           onSubmit={(values) => {
             if (editing) update.mutate({ id: editing.id, patch: values });
             else create.mutate(values);
@@ -251,8 +261,15 @@ function AdminReviews() {
 // ============================================================================
 
 function ManualEntryPanel({
-  reviews, statusFilter, sourceFilter, onStatusFilter, onSourceFilter,
-  onEdit, onQuickStatus, onToggleFeature, onDelete,
+  reviews,
+  statusFilter,
+  sourceFilter,
+  onStatusFilter,
+  onSourceFilter,
+  onEdit,
+  onQuickStatus,
+  onToggleFeature,
+  onDelete,
 }: {
   reviews: ReturnType<typeof useQuery<Review[]>>;
   statusFilter: "all" | ReviewStatus;
@@ -266,10 +283,16 @@ function ManualEntryPanel({
 }) {
   return (
     <div className="mt-6">
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-charcoal/10 bg-bone/40 p-4">
+      <div className="flex flex-wrap items-end gap-3 os-card p-4">
         <div>
-          <label className="block text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Status</label>
-          <select value={statusFilter} onChange={(e) => onStatusFilter(e.target.value as any)} className="mt-1 rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm">
+          <label className="block text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+            Status
+          </label>
+          <select
+            value={statusFilter}
+            onChange={(e) => onStatusFilter(e.target.value as any)}
+            className="mt-1 rounded-md border border-border bg-card px-3 py-2 text-sm"
+          >
             <option value="all">All</option>
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
@@ -277,8 +300,14 @@ function ManualEntryPanel({
           </select>
         </div>
         <div>
-          <label className="block text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Source</label>
-          <select value={sourceFilter} onChange={(e) => onSourceFilter(e.target.value as any)} className="mt-1 rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm">
+          <label className="block text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+            Source
+          </label>
+          <select
+            value={sourceFilter}
+            onChange={(e) => onSourceFilter(e.target.value as any)}
+            className="mt-1 rounded-md border border-border bg-card px-3 py-2 text-sm"
+          >
             <option value="all">All</option>
             <option value="google">Google</option>
             <option value="tripadvisor">Tripadvisor</option>
@@ -287,15 +316,21 @@ function ManualEntryPanel({
         </div>
       </div>
 
-      <div className="mt-6 overflow-x-auto rounded-xl border border-charcoal/10 bg-ivory">
+      <div className="mt-6 overflow-x-auto os-card">
         {reviews.isLoading && (
-          <div className="flex items-center justify-center gap-2 p-10 text-sm text-charcoal/60"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>
+          <div className="flex items-center justify-center gap-2 p-10 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+          </div>
         )}
-        {reviews.error && <div className="p-6 text-sm text-rose-700">{(reviews.error as Error).message}</div>}
-        {reviews.data && reviews.data.length === 0 && <div className="p-10 text-center text-sm text-charcoal/60">No reviews yet.</div>}
+        {reviews.error && (
+          <div className="p-6 text-sm text-destructive">{(reviews.error as Error).message}</div>
+        )}
+        {reviews.data && reviews.data.length === 0 && (
+          <div className="p-10 text-center text-sm text-muted-foreground">No reviews yet.</div>
+        )}
         {reviews.data && reviews.data.length > 0 && (
           <table className="w-full min-w-[820px] text-sm">
-            <thead className="bg-bone/40 text-left text-[0.65rem] uppercase tracking-[0.18em] text-charcoal/60">
+            <thead className="bg-muted/30 text-left text-[0.65rem] uppercase tracking-[0.18em] text-muted-foreground">
               <tr>
                 <th className="px-4 py-3">Guest</th>
                 <th className="px-4 py-3">Source</th>
@@ -309,12 +344,16 @@ function ManualEntryPanel({
             </thead>
             <tbody>
               {reviews.data.map((r) => (
-                <tr key={r.id} className="border-t border-charcoal/10 hover:bg-bone/30 align-top">
+                <tr key={r.id} className="border-t border-border hover:bg-muted/40 align-top">
                   <td className="px-4 py-3">
                     <div className="font-medium">{r.guest_name}</div>
-                    <div className="text-xs text-charcoal/60">{r.guest_location ?? "—"}</div>
-                    {r.title && <div className="mt-1 text-xs italic text-charcoal/70">{r.title}</div>}
-                    <div className="mt-1 line-clamp-2 max-w-md text-xs text-charcoal/70">{r.review_text}</div>
+                    <div className="text-xs text-muted-foreground">{r.guest_location ?? "—"}</div>
+                    {r.title && (
+                      <div className="mt-1 text-xs italic text-muted-foreground">{r.title}</div>
+                    )}
+                    <div className="mt-1 line-clamp-2 max-w-md text-xs text-muted-foreground">
+                      {r.review_text}
+                    </div>
                   </td>
                   <td className="px-4 py-3 capitalize">{SOURCE_LABELS[r.source]}</td>
                   <td className="px-4 py-3 whitespace-nowrap">{r.rating} / 5</td>
@@ -322,7 +361,12 @@ function ManualEntryPanel({
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
                       {r.categories.map((c) => (
-                        <span key={c} className="rounded-full bg-charcoal/5 px-2 py-0.5 text-[0.6rem] uppercase tracking-[0.15em] text-charcoal/70">{c.replace("_", " ")}</span>
+                        <span
+                          key={c}
+                          className="rounded-full bg-muted px-2 py-0.5 text-[0.6rem] uppercase tracking-[0.15em] text-muted-foreground"
+                        >
+                          {c.replace("_", " ")}
+                        </span>
                       ))}
                     </div>
                   </td>
@@ -338,17 +382,29 @@ function ManualEntryPanel({
                     </select>
                   </td>
                   <td className="px-4 py-3">
-                    <button onClick={() => onToggleFeature(r)} title="Featured" className={r.featured ? "text-gold" : "text-charcoal/30 hover:text-gold"}>
-                      <Star className={`h-4 w-4 ${r.featured ? "fill-current" : ""}`} strokeWidth={r.featured ? 0 : 1.6} />
+                    <button
+                      onClick={() => onToggleFeature(r)}
+                      title="Featured"
+                      className={r.featured ? "text-gold" : "text-muted-foreground hover:text-gold"}
+                    >
+                      <Star
+                        className={`h-4 w-4 ${r.featured ? "fill-current" : ""}`}
+                        strokeWidth={r.featured ? 0 : 1.6}
+                      />
                     </button>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <button onClick={() => onEdit(r)} className="mr-3 inline-flex items-center gap-1 text-xs uppercase tracking-[0.18em] text-charcoal/70 hover:text-charcoal">
+                    <button
+                      onClick={() => onEdit(r)}
+                      className="mr-3 inline-flex items-center gap-1 text-xs uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground"
+                    >
                       <Pencil className="h-3 w-3" /> Edit
                     </button>
                     <button
-                      onClick={() => { if (confirm("Delete this review permanently?")) onDelete(r.id); }}
-                      className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.18em] text-rose-700 hover:text-rose-900"
+                      onClick={() => {
+                        if (confirm("Delete this review permanently?")) onDelete(r.id);
+                      }}
+                      className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.18em] text-destructive hover:text-[color:var(--os-danger)]"
                     >
                       <Trash2 className="h-3 w-3" /> Delete
                     </button>
@@ -374,8 +430,7 @@ function ImportPanel({ onImported }: { onImported: (f: FormState) => void }) {
   const [sourceHint, setSourceHint] = useState<ReviewSource>("google");
 
   const mutation = useMutation({
-    mutationFn: () =>
-      importFn({ data: { text, url: url || undefined, source_hint: sourceHint } }),
+    mutationFn: () => importFn({ data: { text, url: url || undefined, source_hint: sourceHint } }),
     onSuccess: (r) => {
       toast.success("Review parsed. Review the details and save.");
       const form: FormState = {
@@ -403,21 +458,23 @@ function ImportPanel({ onImported }: { onImported: (f: FormState) => void }) {
 
   return (
     <div className="mt-6 grid gap-6">
-      <div className="rounded-xl border border-charcoal/10 bg-bone/40 p-6">
+      <div className="os-card p-6">
         <h2 className="font-display text-xl">Import a review with AI</h2>
-        <p className="mt-2 text-sm text-charcoal/70">
-          Paste the review text from Google Maps, Tripadvisor, or an email/WhatsApp message.
-          AI extracts guest name, rating, date and generates short & medium summaries.
-          Nothing is published — you'll review and approve everything before saving.
+        <p className="mt-2 text-sm text-muted-foreground">
+          Paste the review text from Google Maps, Tripadvisor, or an email/WhatsApp message. AI
+          extracts guest name, rating, date and generates short & medium summaries. Nothing is
+          published — you'll review and approve everything before saving.
         </p>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <label className="grid gap-1">
-            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Platform</span>
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+              Platform
+            </span>
             <select
               value={sourceHint}
               onChange={(e) => setSourceHint(e.target.value as ReviewSource)}
-              className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm"
+              className="rounded-md border border-border bg-card px-3 py-2 text-sm"
             >
               <option value="google">Google</option>
               <option value="tripadvisor">Tripadvisor</option>
@@ -425,7 +482,7 @@ function ImportPanel({ onImported }: { onImported: (f: FormState) => void }) {
             </select>
           </label>
           <label className="grid gap-1">
-            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
               Review URL (optional)
             </span>
             <input
@@ -433,13 +490,13 @@ function ImportPanel({ onImported }: { onImported: (f: FormState) => void }) {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://…"
-              className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm"
+              className="rounded-md border border-border bg-card px-3 py-2 text-sm"
             />
           </label>
         </div>
 
         <label className="mt-4 grid gap-1">
-          <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">
+          <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
             Pasted review text *
           </span>
           <textarea
@@ -447,8 +504,10 @@ function ImportPanel({ onImported }: { onImported: (f: FormState) => void }) {
             rows={10}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder={"Paste the full review here — include the guest's name, date, star rating and their words."}
-            className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm"
+            placeholder={
+              "Paste the full review here — include the guest's name, date, star rating and their words."
+            }
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm"
           />
         </label>
 
@@ -456,9 +515,13 @@ function ImportPanel({ onImported }: { onImported: (f: FormState) => void }) {
           <button
             onClick={() => mutation.mutate()}
             disabled={mutation.isPending || text.trim().length < 20}
-            className="inline-flex items-center gap-2 rounded-full bg-charcoal px-6 py-2.5 text-[0.7rem] uppercase tracking-[0.22em] text-ivory hover:bg-charcoal/85 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-[0.7rem] uppercase tracking-[0.22em] text-primary-foreground hover:bg-muted disabled:opacity-50"
           >
-            {mutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            {mutation.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
             Parse with AI
           </button>
         </div>
@@ -497,36 +560,65 @@ function QuickAddPanel({ onSaved }: { onSaved: () => void }) {
       }),
     onSuccess: () => {
       toast.success("Review added");
-      setName(""); setText(""); setRating(5);
+      setName("");
+      setText("");
+      setRating(5);
       onSaved();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   return (
-    <div className="mt-6 max-w-2xl rounded-xl border border-charcoal/10 bg-bone/40 p-6">
+    <div className="mt-6 max-w-2xl os-card p-6">
       <h2 className="font-display text-xl">Quick add</h2>
-      <p className="mt-2 text-sm text-charcoal/70">
-        Ideal for WhatsApp messages, guest-book entries and offline reviews. Publishes immediately as approved.
+      <p className="mt-2 text-sm text-muted-foreground">
+        Ideal for WhatsApp messages, guest-book entries and offline reviews. Publishes immediately
+        as approved.
       </p>
       <form
         className="mt-4 grid gap-4"
-        onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          mutation.mutate();
+        }}
       >
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="grid gap-1 sm:col-span-2">
-            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Guest name *</span>
-            <input required value={name} onChange={(e) => setName(e.target.value)} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm" />
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+              Guest name *
+            </span>
+            <input
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="rounded-md border border-border bg-card px-3 py-2 text-sm"
+            />
           </label>
           <label className="grid gap-1">
-            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Rating *</span>
-            <select value={rating} onChange={(e) => setRating(Number(e.target.value))} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm">
-              {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} ★</option>)}
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+              Rating *
+            </span>
+            <select
+              value={rating}
+              onChange={(e) => setRating(Number(e.target.value))}
+              className="rounded-md border border-border bg-card px-3 py-2 text-sm"
+            >
+              {[5, 4, 3, 2, 1].map((n) => (
+                <option key={n} value={n}>
+                  {n} ★
+                </option>
+              ))}
             </select>
           </label>
           <label className="grid gap-1 sm:col-span-3">
-            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Platform</span>
-            <select value={source} onChange={(e) => setSource(e.target.value as ReviewSource)} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm">
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+              Platform
+            </span>
+            <select
+              value={source}
+              onChange={(e) => setSource(e.target.value as ReviewSource)}
+              className="rounded-md border border-border bg-card px-3 py-2 text-sm"
+            >
               <option value="direct">Direct guest</option>
               <option value="google">Google</option>
               <option value="tripadvisor">Tripadvisor</option>
@@ -534,16 +626,28 @@ function QuickAddPanel({ onSaved }: { onSaved: () => void }) {
           </label>
         </div>
         <label className="grid gap-1">
-          <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Short review *</span>
-          <textarea required rows={4} value={text} onChange={(e) => setText(e.target.value)} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm" />
+          <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+            Short review *
+          </span>
+          <textarea
+            required
+            rows={4}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm"
+          />
         </label>
         <div className="flex justify-end">
           <button
             type="submit"
             disabled={mutation.isPending || !name.trim() || !text.trim()}
-            className="inline-flex items-center gap-2 rounded-full bg-charcoal px-6 py-2.5 text-[0.7rem] uppercase tracking-[0.22em] text-ivory hover:bg-charcoal/85 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-[0.7rem] uppercase tracking-[0.22em] text-primary-foreground hover:bg-muted disabled:opacity-50"
           >
-            {mutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+            {mutation.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Zap className="h-3.5 w-3.5" />
+            )}
             Save review
           </button>
         </div>
@@ -593,21 +697,23 @@ function ActivityLogPanel() {
   const exportCsv = () => {
     const rows = q.data ?? [];
     const header = ["timestamp", "actor", "action", "entity", "entity_id", "ip", "user_agent"];
-    const csv = [header.join(",")].concat(
-      rows.map((r: any) =>
-        [
-          r.created_at,
-          r.actor_email ?? "",
-          r.action,
-          (r.entity_label ?? "").replace(/"/g, '""'),
-          r.entity_id ?? "",
-          r.ip_address ?? "",
-          (r.user_agent ?? "").replace(/"/g, '""'),
-        ]
-          .map((v) => `"${String(v)}"`)
-          .join(","),
-      ),
-    ).join("\n");
+    const csv = [header.join(",")]
+      .concat(
+        rows.map((r: any) =>
+          [
+            r.created_at,
+            r.actor_email ?? "",
+            r.action,
+            (r.entity_label ?? "").replace(/"/g, '""'),
+            r.entity_id ?? "",
+            r.ip_address ?? "",
+            (r.user_agent ?? "").replace(/"/g, '""'),
+          ]
+            .map((v) => `"${String(v)}"`)
+            .join(","),
+        ),
+      )
+      .join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -618,52 +724,97 @@ function ActivityLogPanel() {
 
   return (
     <div className="mt-6">
-      <div className="rounded-xl border border-charcoal/10 bg-bone/40 p-4">
+      <div className="os-card p-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <label className="grid gap-1">
-            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Search</span>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="guest, action, email" className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm" />
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+              Search
+            </span>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="guest, action, email"
+              className="rounded-md border border-border bg-card px-3 py-2 text-sm"
+            />
           </label>
           <label className="grid gap-1">
-            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Action</span>
-            <select value={action} onChange={(e) => setAction(e.target.value)} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm">
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+              Action
+            </span>
+            <select
+              value={action}
+              onChange={(e) => setAction(e.target.value)}
+              className="rounded-md border border-border bg-card px-3 py-2 text-sm"
+            >
               <option value="">All</option>
               {Object.entries(ACTION_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
+                <option key={k} value={k}>
+                  {v}
+                </option>
               ))}
             </select>
           </label>
           <label className="grid gap-1">
-            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Admin email</span>
-            <input value={actorEmail} onChange={(e) => setActorEmail(e.target.value)} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm" />
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+              Admin email
+            </span>
+            <input
+              value={actorEmail}
+              onChange={(e) => setActorEmail(e.target.value)}
+              className="rounded-md border border-border bg-card px-3 py-2 text-sm"
+            />
           </label>
           <label className="grid gap-1">
-            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">From</span>
-            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm" />
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+              From
+            </span>
+            <input
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              className="rounded-md border border-border bg-card px-3 py-2 text-sm"
+            />
           </label>
           <label className="grid gap-1">
-            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">To</span>
-            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm" />
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+              To
+            </span>
+            <input
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              className="rounded-md border border-border bg-card px-3 py-2 text-sm"
+            />
           </label>
         </div>
         <div className="mt-3 flex justify-end">
           <button
             onClick={exportCsv}
             disabled={!q.data || q.data.length === 0}
-            className="inline-flex items-center gap-2 rounded-full border border-charcoal/20 px-4 py-2 text-[0.65rem] uppercase tracking-[0.22em] hover:bg-charcoal/5 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[0.65rem] uppercase tracking-[0.22em] hover:bg-muted disabled:opacity-50"
           >
             <Download className="h-3.5 w-3.5" /> Export CSV
           </button>
         </div>
       </div>
 
-      <div className="mt-4 overflow-x-auto rounded-xl border border-charcoal/10 bg-ivory">
-        {q.isLoading && <div className="flex items-center justify-center gap-2 p-10 text-sm text-charcoal/60"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>}
-        {q.error && <div className="p-6 text-sm text-rose-700">{(q.error as Error).message}</div>}
-        {q.data && q.data.length === 0 && <div className="p-10 text-center text-sm text-charcoal/60">No log entries match.</div>}
+      <div className="mt-4 overflow-x-auto os-card">
+        {q.isLoading && (
+          <div className="flex items-center justify-center gap-2 p-10 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+          </div>
+        )}
+        {q.error && (
+          <div className="p-6 text-sm text-destructive">{(q.error as Error).message}</div>
+        )}
+        {q.data && q.data.length === 0 && (
+          <div className="p-10 text-center text-sm text-muted-foreground">
+            No log entries match.
+          </div>
+        )}
         {q.data && q.data.length > 0 && (
           <table className="w-full min-w-[860px] text-sm">
-            <thead className="bg-bone/40 text-left text-[0.65rem] uppercase tracking-[0.18em] text-charcoal/60">
+            <thead className="bg-muted/30 text-left text-[0.65rem] uppercase tracking-[0.18em] text-muted-foreground">
               <tr>
                 <th className="px-4 py-3">When</th>
                 <th className="px-4 py-3">Admin</th>
@@ -674,8 +825,8 @@ function ActivityLogPanel() {
             </thead>
             <tbody>
               {(q.data as any[]).map((r) => (
-                <tr key={r.id} className="border-t border-charcoal/10 align-top hover:bg-bone/30">
-                  <td className="px-4 py-3 whitespace-nowrap text-xs text-charcoal/70">
+                <tr key={r.id} className="border-t border-border align-top hover:bg-muted/40">
+                  <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
                     {new Date(r.created_at).toLocaleString()}
                   </td>
                   <td className="px-4 py-3 text-xs">{r.actor_email ?? "—"}</td>
@@ -683,11 +834,11 @@ function ActivityLogPanel() {
                     {ACTION_LABELS[r.action] ?? r.action}
                   </td>
                   <td className="px-4 py-3 text-xs">{r.entity_label ?? "—"}</td>
-                  <td className="px-4 py-3 text-xs text-charcoal/60">
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
                     {r.previous_value && r.new_value ? (
                       <ChangeSummary prev={r.previous_value} next={r.new_value} />
                     ) : (
-                      <span className="text-charcoal/40">—</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </td>
                 </tr>
@@ -706,11 +857,23 @@ function ChangeSummary({ prev, next }: { prev: any; next: any }) {
   for (const k of keys) {
     const a = JSON.stringify((prev ?? {})[k]);
     const b = JSON.stringify((next ?? {})[k]);
-    if (a !== b && ["status", "featured", "rating", "review_text", "guest_name", "overall_rating", "total_reviews", "profile_url"].includes(k)) {
+    if (
+      a !== b &&
+      [
+        "status",
+        "featured",
+        "rating",
+        "review_text",
+        "guest_name",
+        "overall_rating",
+        "total_reviews",
+        "profile_url",
+      ].includes(k)
+    ) {
       diffs.push(`${k}: ${trunc(a)} → ${trunc(b)}`);
     }
   }
-  if (diffs.length === 0) return <span className="text-charcoal/40">—</span>;
+  if (diffs.length === 0) return <span className="text-muted-foreground">—</span>;
   return <span>{diffs.slice(0, 3).join(" · ")}</span>;
 }
 function trunc(s: string | undefined) {
@@ -730,8 +893,12 @@ function StatisticsPanel() {
   const q = useQuery({ queryKey: ["review-statistics"], queryFn: () => listFn() });
 
   const mutation = useMutation({
-    mutationFn: (v: { source: ReviewSource; overall_rating: number; total_reviews: number; profile_url: string }) =>
-      upsertFn({ data: v }),
+    mutationFn: (v: {
+      source: ReviewSource;
+      overall_rating: number;
+      total_reviews: number;
+      profile_url: string;
+    }) => upsertFn({ data: v }),
     onSuccess: () => {
       toast.success("Statistics updated");
       qc.invalidateQueries({ queryKey: ["review-statistics"] });
@@ -743,7 +910,11 @@ function StatisticsPanel() {
 
   return (
     <div className="mt-6 grid gap-4">
-      {q.isLoading && <div className="flex items-center gap-2 text-sm text-charcoal/60"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>}
+      {q.isLoading && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+        </div>
+      )}
       {q.data?.map((s) => (
         <StatCard key={s.source} stat={s} onSave={mutation.mutate} saving={mutation.isPending} />
       ))}
@@ -752,47 +923,90 @@ function StatisticsPanel() {
 }
 
 function StatCard({
-  stat, onSave, saving,
+  stat,
+  onSave,
+  saving,
 }: {
   stat: ReviewStatistics;
-  onSave: (v: { source: ReviewSource; overall_rating: number; total_reviews: number; profile_url: string }) => void;
+  onSave: (v: {
+    source: ReviewSource;
+    overall_rating: number;
+    total_reviews: number;
+    profile_url: string;
+  }) => void;
   saving: boolean;
 }) {
   const [rating, setRating] = useState(stat.overall_rating);
   const [count, setCount] = useState(stat.total_reviews);
   const [url, setUrl] = useState(stat.profile_url ?? "");
-  const invalid = rating < 0 || rating > 5 || count < 0 || !Number.isFinite(rating) || !Number.isFinite(count);
+  const invalid =
+    rating < 0 || rating > 5 || count < 0 || !Number.isFinite(rating) || !Number.isFinite(count);
 
   return (
     <form
-      onSubmit={(e) => { e.preventDefault(); onSave({ source: stat.source, overall_rating: rating, total_reviews: count, profile_url: url }); }}
-      className="rounded-xl border border-charcoal/10 bg-ivory p-6"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSave({
+          source: stat.source,
+          overall_rating: rating,
+          total_reviews: count,
+          profile_url: url,
+        });
+      }}
+      className="os-card p-6"
     >
       <div className="flex items-center justify-between">
         <h3 className="font-display text-lg capitalize">{SOURCE_LABELS[stat.source]}</h3>
-        <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/50">
+        <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
           Last updated {new Date(stat.updated_at).toLocaleString()}
         </span>
       </div>
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
         <label className="grid gap-1">
-          <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Overall rating (0–5)</span>
-          <input type="number" step="0.1" min={0} max={5} value={rating} onChange={(e) => setRating(Number(e.target.value))} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm" />
+          <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+            Overall rating (0–5)
+          </span>
+          <input
+            type="number"
+            step="0.1"
+            min={0}
+            max={5}
+            value={rating}
+            onChange={(e) => setRating(Number(e.target.value))}
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm"
+          />
         </label>
         <label className="grid gap-1">
-          <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Total reviews</span>
-          <input type="number" min={0} step={1} value={count} onChange={(e) => setCount(Number(e.target.value))} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm" />
+          <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+            Total reviews
+          </span>
+          <input
+            type="number"
+            min={0}
+            step={1}
+            value={count}
+            onChange={(e) => setCount(Number(e.target.value))}
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm"
+          />
         </label>
         <label className="grid gap-1 sm:col-span-1">
-          <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Profile URL</span>
-          <input type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2 text-sm" />
+          <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+            Profile URL
+          </span>
+          <input
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://…"
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm"
+          />
         </label>
       </div>
       <div className="mt-4 flex justify-end">
         <button
           type="submit"
           disabled={saving || invalid}
-          className="inline-flex items-center gap-2 rounded-full bg-charcoal px-5 py-2.5 text-[0.7rem] uppercase tracking-[0.22em] text-ivory hover:bg-charcoal/85 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[0.7rem] uppercase tracking-[0.22em] text-primary-foreground hover:bg-muted disabled:opacity-50"
         >
           {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           Update statistics
@@ -838,7 +1052,11 @@ function cleanForm(f: FormState) {
 }
 
 function ReviewForm({
-  initial, isEditing, submitting, onCancel, onSubmit,
+  initial,
+  isEditing,
+  submitting,
+  onCancel,
+  onSubmit,
 }: {
   initial: FormState;
   isEditing: boolean;
@@ -848,49 +1066,114 @@ function ReviewForm({
 }) {
   const [f, setF] = useState<FormState>(initial);
   const toggleCat = (c: ReviewCategory) =>
-    setF((p) => ({ ...p, categories: p.categories.includes(c) ? p.categories.filter((x) => x !== c) : [...p.categories, c] }));
+    setF((p) => ({
+      ...p,
+      categories: p.categories.includes(c)
+        ? p.categories.filter((x) => x !== c)
+        : [...p.categories, c],
+    }));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-charcoal/40 p-0 sm:items-center sm:p-4" onClick={onCancel}>
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl bg-ivory p-6 sm:rounded-2xl sm:p-8" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-background/70 p-0 sm:items-center sm:p-4"
+      onClick={onCancel}
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl bg-card p-6 sm:rounded-2xl sm:p-8"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-start justify-between">
           <h2 className="font-display text-2xl">{isEditing ? "Edit review" : "Add review"}</h2>
-          <button onClick={onCancel} className="text-xs uppercase tracking-[0.22em] text-charcoal/60 hover:text-charcoal">Close</button>
+          <button
+            onClick={onCancel}
+            className="text-xs uppercase tracking-[0.22em] text-muted-foreground hover:text-foreground"
+          >
+            Close
+          </button>
         </div>
         <form
           className="mt-5 grid gap-4 text-sm"
-          onSubmit={(e) => { e.preventDefault(); onSubmit(f); }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit(f);
+          }}
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-1">
-              <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Source *</span>
-              <select required value={f.source} onChange={(e) => setF({ ...f, source: e.target.value as ReviewSource })} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2">
+              <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+                Source *
+              </span>
+              <select
+                required
+                value={f.source}
+                onChange={(e) => setF({ ...f, source: e.target.value as ReviewSource })}
+                className="rounded-md border border-border bg-card px-3 py-2"
+              >
                 <option value="google">Google</option>
                 <option value="tripadvisor">Tripadvisor</option>
                 <option value="direct">Direct guest</option>
               </select>
             </label>
             <label className="grid gap-1">
-              <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Rating *</span>
-              <select required value={f.rating} onChange={(e) => setF({ ...f, rating: Number(e.target.value) })} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2">
-                {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} stars</option>)}
+              <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+                Rating *
+              </span>
+              <select
+                required
+                value={f.rating}
+                onChange={(e) => setF({ ...f, rating: Number(e.target.value) })}
+                className="rounded-md border border-border bg-card px-3 py-2"
+              >
+                {[5, 4, 3, 2, 1].map((n) => (
+                  <option key={n} value={n}>
+                    {n} stars
+                  </option>
+                ))}
               </select>
             </label>
             <label className="grid gap-1">
-              <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Guest name *</span>
-              <input required value={f.guest_name} onChange={(e) => setF({ ...f, guest_name: e.target.value })} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2" />
+              <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+                Guest name *
+              </span>
+              <input
+                required
+                value={f.guest_name}
+                onChange={(e) => setF({ ...f, guest_name: e.target.value })}
+                className="rounded-md border border-border bg-card px-3 py-2"
+              />
             </label>
             <label className="grid gap-1">
-              <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Location</span>
-              <input value={f.guest_location} onChange={(e) => setF({ ...f, guest_location: e.target.value })} placeholder="e.g. United Kingdom" className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2" />
+              <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+                Location
+              </span>
+              <input
+                value={f.guest_location}
+                onChange={(e) => setF({ ...f, guest_location: e.target.value })}
+                placeholder="e.g. United Kingdom"
+                className="rounded-md border border-border bg-card px-3 py-2"
+              />
             </label>
             <label className="grid gap-1">
-              <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Review date *</span>
-              <input required type="date" value={f.review_date} onChange={(e) => setF({ ...f, review_date: e.target.value })} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2" />
+              <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+                Review date *
+              </span>
+              <input
+                required
+                type="date"
+                value={f.review_date}
+                onChange={(e) => setF({ ...f, review_date: e.target.value })}
+                className="rounded-md border border-border bg-card px-3 py-2"
+              />
             </label>
             <label className="grid gap-1">
-              <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Status</span>
-              <select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value as ReviewStatus })} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2">
+              <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+                Status
+              </span>
+              <select
+                value={f.status}
+                onChange={(e) => setF({ ...f, status: e.target.value as ReviewStatus })}
+                className="rounded-md border border-border bg-card px-3 py-2"
+              >
                 <option value="pending">Pending</option>
                 <option value="approved">Approved</option>
                 <option value="archived">Archived</option>
@@ -899,35 +1182,81 @@ function ReviewForm({
           </div>
 
           <label className="grid gap-1">
-            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Title</span>
-            <input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="Short headline" className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2" />
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+              Title
+            </span>
+            <input
+              value={f.title}
+              onChange={(e) => setF({ ...f, title: e.target.value })}
+              placeholder="Short headline"
+              className="rounded-md border border-border bg-card px-3 py-2"
+            />
           </label>
 
           <label className="grid gap-1">
-            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Review text *</span>
-            <textarea required rows={5} value={f.review_text} onChange={(e) => setF({ ...f, review_text: e.target.value })} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2" />
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+              Review text *
+            </span>
+            <textarea
+              required
+              rows={5}
+              value={f.review_text}
+              onChange={(e) => setF({ ...f, review_text: e.target.value })}
+              className="rounded-md border border-border bg-card px-3 py-2"
+            />
           </label>
 
           <label className="grid gap-1">
-            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Short summary (homepage cards · 20–30 words)</span>
-            <textarea rows={2} value={f.short_summary ?? ""} onChange={(e) => setF({ ...f, short_summary: e.target.value })} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2" />
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+              Short summary (homepage cards · 20–30 words)
+            </span>
+            <textarea
+              rows={2}
+              value={f.short_summary ?? ""}
+              onChange={(e) => setF({ ...f, short_summary: e.target.value })}
+              className="rounded-md border border-border bg-card px-3 py-2"
+            />
           </label>
           <label className="grid gap-1">
-            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Medium summary (reviews page · 40–70 words)</span>
-            <textarea rows={3} value={f.medium_summary ?? ""} onChange={(e) => setF({ ...f, medium_summary: e.target.value })} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2" />
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+              Medium summary (reviews page · 40–70 words)
+            </span>
+            <textarea
+              rows={3}
+              value={f.medium_summary ?? ""}
+              onChange={(e) => setF({ ...f, medium_summary: e.target.value })}
+              className="rounded-md border border-border bg-card px-3 py-2"
+            />
           </label>
           <label className="grid gap-1">
-            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Original review (verbatim, for reference)</span>
-            <textarea rows={3} value={f.original_review ?? ""} onChange={(e) => setF({ ...f, original_review: e.target.value })} className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2" />
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+              Original review (verbatim, for reference)
+            </span>
+            <textarea
+              rows={3}
+              value={f.original_review ?? ""}
+              onChange={(e) => setF({ ...f, original_review: e.target.value })}
+              className="rounded-md border border-border bg-card px-3 py-2"
+            />
           </label>
 
           <label className="grid gap-1">
-            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">External URL</span>
-            <input type="url" value={f.external_url} onChange={(e) => setF({ ...f, external_url: e.target.value })} placeholder="https://" className="rounded-md border border-charcoal/15 bg-ivory px-3 py-2" />
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+              External URL
+            </span>
+            <input
+              type="url"
+              value={f.external_url}
+              onChange={(e) => setF({ ...f, external_url: e.target.value })}
+              placeholder="https://"
+              className="rounded-md border border-border bg-card px-3 py-2"
+            />
           </label>
 
           <div className="grid gap-2">
-            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-charcoal/60">Category tags</span>
+            <span className="text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
+              Category tags
+            </span>
             <div className="flex flex-wrap gap-2">
               {REVIEW_CATEGORIES.map((c) => {
                 const on = f.categories.includes(c.value);
@@ -937,7 +1266,9 @@ function ReviewForm({
                     key={c.value}
                     onClick={() => toggleCat(c.value)}
                     className={`rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] transition-colors ${
-                      on ? "border-charcoal bg-charcoal text-ivory" : "border-charcoal/20 text-charcoal/70 hover:border-charcoal/50"
+                      on
+                        ? "border-border bg-primary text-primary-foreground"
+                        : "border-border text-muted-foreground hover:border-border"
                     }`}
                   >
                     {c.label}
@@ -948,13 +1279,27 @@ function ReviewForm({
           </div>
 
           <label className="inline-flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={f.featured} onChange={(e) => setF({ ...f, featured: e.target.checked })} />
+            <input
+              type="checkbox"
+              checked={f.featured}
+              onChange={(e) => setF({ ...f, featured: e.target.checked })}
+            />
             Featured testimonial
           </label>
 
           <div className="mt-3 flex justify-end gap-3">
-            <button type="button" onClick={onCancel} className="rounded-full border border-charcoal/20 px-5 py-2.5 text-[0.7rem] uppercase tracking-[0.22em] hover:bg-charcoal/5">Cancel</button>
-            <button type="submit" disabled={submitting} className="inline-flex items-center gap-2 rounded-full bg-charcoal px-6 py-2.5 text-[0.7rem] uppercase tracking-[0.22em] text-ivory hover:bg-charcoal/85 disabled:opacity-50">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-full border border-border px-5 py-2.5 text-[0.7rem] uppercase tracking-[0.22em] hover:bg-muted"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-[0.7rem] uppercase tracking-[0.22em] text-primary-foreground hover:bg-muted disabled:opacity-50"
+            >
               {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               {isEditing ? "Save changes" : "Add review"}
             </button>

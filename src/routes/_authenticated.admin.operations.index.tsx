@@ -69,7 +69,7 @@ function OpsDashboard() {
                   <div className="text-xs text-muted-foreground">{o.reference} · {o.check_in} → {o.check_out}</div>
                 </div>
                 <div className="text-right">
-                  <div className="tabular-nums font-semibold text-amber-700">{o.currency} {Number(o.balance_amount).toFixed(2)}</div>
+                  <div className="tabular-nums font-semibold text-[color:var(--os-warn)]">{o.currency} {Number(o.balance_amount).toFixed(2)}</div>
                   <div className="text-xs text-muted-foreground">{o.payment_status}</div>
                 </div>
               </li>

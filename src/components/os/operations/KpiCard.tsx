@@ -9,7 +9,7 @@ export function KpiCard({ label, value, hint, icon: Icon, className, tone }: {
   className?: string;
   tone?: "default" | "warn" | "danger" | "success";
 }) {
-  const toneCls = tone === "warn" ? "text-amber-600" : tone === "danger" ? "text-rose-600" : tone === "success" ? "text-emerald-600" : "text-foreground";
+  const toneCls = tone === "warn" ? "text-[color:var(--os-warn)]" : tone === "danger" ? "text-[color:var(--os-danger)]" : tone === "success" ? "text-[color:var(--os-success)]" : "text-foreground";
   return (
     <div className={cn("rounded-xl border bg-card p-4", className)}>
       <div className="flex items-center justify-between">

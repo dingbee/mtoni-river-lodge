@@ -15,7 +15,7 @@ function CheckOutPage() {
   const fn = useServerFn(getReservationWorkspace);
   const q = useQuery({ queryKey: ["ops-reservation", id], queryFn: () => fn({ data: { id } }) });
   if (q.isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
-  if (q.error || !q.data) return <p className="text-sm text-rose-600">{(q.error as Error)?.message ?? "Not found"}</p>;
+  if (q.error || !q.data) return <p className="text-sm text-[color:var(--os-danger)]">{(q.error as Error)?.message ?? "Not found"}</p>;
   return (
     <div className="space-y-4">
       <PageHeader title="Guided check-out" description="Verify balances, extras, and trigger housekeeping." />

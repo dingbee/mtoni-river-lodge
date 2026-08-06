@@ -28,11 +28,11 @@ export const Route = createFileRoute("/_authenticated/admin/content/calendar")({
 const TYPES: CalendarEntryType[] = ["journal", "homepage", "campaign", "promotion", "social", "other"];
 const TYPE_COLOR: Record<string, string> = {
   journal: "bg-blue-100 text-blue-900 border-blue-200",
-  homepage: "bg-emerald-100 text-emerald-900 border-emerald-200",
+  homepage: "bg-[color:var(--os-success-soft)] text-[color:var(--os-success)] border-emerald-200",
   campaign: "bg-purple-100 text-purple-900 border-purple-200",
-  promotion: "bg-amber-100 text-amber-900 border-amber-200",
+  promotion: "bg-[color:var(--os-warn-soft)] text-[color:var(--os-warn)] border-amber-200",
   social: "bg-pink-100 text-pink-900 border-pink-200",
-  other: "bg-slate-100 text-slate-900 border-slate-200",
+  other: "bg-muted text-foreground border-slate-200",
 };
 
 function toDateKey(d: Date) {

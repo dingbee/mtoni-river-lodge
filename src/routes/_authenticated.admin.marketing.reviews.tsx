@@ -93,7 +93,7 @@ function Reputation() {
                       <Badge variant="secondary">{v.count} approved / {v.total} total</Badge>
                     </div>
                     <div className="flex items-center gap-4 text-sm">
-                      <span className="inline-flex items-center gap-1"><Star className="h-4 w-4 fill-amber-400 text-amber-400" />{avg.toFixed(2)}</span>
+                      <span className="inline-flex items-center gap-1"><Star className="h-4 w-4 fill-amber-400 text-[color:var(--os-warn)]" />{avg.toFixed(2)}</span>
                       {external && (
                         <span className="text-xs text-muted-foreground">External profile: {Number(external.average_rating).toFixed(2)} · {external.review_count}</span>
                       )}
@@ -132,7 +132,7 @@ function Reputation() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium">{r.guest_name}</span>
                     <Badge variant="secondary" className="capitalize">{r.source}</Badge>
-                    <span className="inline-flex items-center gap-0.5 text-amber-500 text-xs">
+                    <span className="inline-flex items-center gap-0.5 text-[color:var(--os-warn)] text-xs">
                       {Array.from({ length: r.rating }).map((_, i) => <Star key={i} className="h-3 w-3 fill-current" />)}
                     </span>
                     <span className="text-xs text-muted-foreground">{r.review_date}</span>
