@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
-import { LayoutDashboard, Bed, CalendarDays, ClipboardCheck, ListChecks, AlertTriangle, Activity, Calendar, UserCheck } from "lucide-react";
+import { LayoutDashboard, Bed, CalendarDays, ClipboardCheck, ListChecks, AlertTriangle, Activity, Calendar, UserCheck, QrCode } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/operations")({
   head: () => ({ meta: [{ title: "Operations Centre — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -9,7 +9,8 @@ export const Route = createFileRoute("/_authenticated/admin/operations")({
 const TABS = [
   { to: "/admin/operations", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/operations/rooms", label: "Room Board", icon: Bed },
-  { to: "/admin/operations/arrivals", label: "Arrivals", icon: UserCheck },
+  { to: "/admin/operations/arrivals", label: "Arrivals", icon: UserCheck, exact: true },
+  { to: "/admin/operations/arrivals/scan", label: "Scan Pass", icon: QrCode },
   { to: "/admin/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/admin/operations/housekeeping", label: "Housekeeping", icon: ClipboardCheck },
   { to: "/admin/operations/tasks", label: "Tasks", icon: ListChecks },
