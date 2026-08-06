@@ -40,7 +40,15 @@ function NavLink({
       )}
       title={collapsed ? item.label : undefined}
     >
-      <Icon className={cn("h-[15px] w-[15px] shrink-0 transition-colors", active ? "text-[color:var(--os-green)]" : "text-[color:var(--os-ink-3)] group-hover:text-[color:var(--os-ink)]")} aria-hidden />
+      <Icon
+        className={cn(
+          "h-[15px] w-[15px] shrink-0 transition-colors",
+          active
+            ? "text-[color:var(--os-green)]"
+            : "text-[color:var(--os-ink-3)] group-hover:text-[color:var(--os-ink)]",
+        )}
+        aria-hidden
+      />
       {!collapsed && <span className="truncate">{item.label}</span>}
     </Link>
   );
@@ -80,12 +88,21 @@ export function AdminSidebar({
       )}
       aria-label="Primary navigation"
     >
-      <div className={cn("flex h-14 items-center border-b border-[color:var(--os-hairline)] px-3", collapsed ? "justify-center" : "gap-2.5")}>
+      <div
+        className={cn(
+          "flex h-14 items-center border-b border-[color:var(--os-hairline)] px-3",
+          collapsed ? "justify-center" : "gap-2.5",
+        )}
+      >
         <img src={logo} alt="" className="h-8 w-8 shrink-0 object-contain" />
         {!collapsed && (
           <div className="min-w-0">
-            <p className="truncate font-display text-[15px] leading-none tracking-tight text-[color:var(--os-ink)]">Mtoni OS</p>
-            <p className="mt-1 truncate text-[0.58rem] uppercase tracking-[0.24em] text-[color:var(--os-ink-3)]">Command Centre</p>
+            <p className="truncate font-display text-[15px] leading-none tracking-tight text-[color:var(--os-ink)]">
+              Mtoni OS
+            </p>
+            <p className="mt-1 truncate text-[0.58rem] uppercase tracking-[0.24em] text-[color:var(--os-ink-3)]">
+              Command Centre
+            </p>
           </div>
         )}
       </div>
@@ -97,7 +114,12 @@ export function AdminSidebar({
               const active = isActive(pathname, entry.item.href);
               return (
                 <li key={entry.item.id}>
-                  <NavLink item={entry.item} collapsed={collapsed} active={active} onNavigate={onNavigate} />
+                  <NavLink
+                    item={entry.item}
+                    collapsed={collapsed}
+                    active={active}
+                    onNavigate={onNavigate}
+                  />
                 </li>
               );
             }
@@ -109,7 +131,9 @@ export function AdminSidebar({
               <li key={group.id} className="mt-3">
                 {collapsed ? (
                   <div className="mb-1 flex justify-center">
-                    {GroupIcon && <GroupIcon className="h-4 w-4 text-muted-foreground/60" aria-hidden />}
+                    {GroupIcon && (
+                      <GroupIcon className="h-4 w-4 text-muted-foreground/60" aria-hidden />
+                    )}
                   </div>
                 ) : (
                   <button
@@ -119,7 +143,10 @@ export function AdminSidebar({
                     className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[0.65rem] font-medium uppercase tracking-[0.22em] text-muted-foreground/80 hover:text-foreground"
                   >
                     <span>{group.label}</span>
-                    <ChevronDown className={cn("h-3 w-3 transition-transform", isOpen && "rotate-180")} aria-hidden />
+                    <ChevronDown
+                      className={cn("h-3 w-3 transition-transform", isOpen && "rotate-180")}
+                      aria-hidden
+                    />
                   </button>
                 )}
                 {(collapsed || isOpen) && (

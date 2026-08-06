@@ -22,8 +22,8 @@ export function ComingSoon({
           {moduleName ?? title} is on the roadmap
         </h2>
         <p className="mt-3 max-w-md text-sm text-muted-foreground">
-          This module is part of Mtoni OS and will land in an upcoming sprint. The route, permissions,
-          and navigation are already in place.
+          This module is part of Mtoni OS and will land in an upcoming sprint. The route,
+          permissions, and navigation are already in place.
         </p>
       </div>
     </div>

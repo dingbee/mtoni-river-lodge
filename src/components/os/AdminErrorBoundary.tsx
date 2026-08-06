@@ -21,8 +21,12 @@ export function AdminErrorBoundary({ error, reset }: { error: unknown; reset: ()
             <AlertTriangle className="size-5" aria-hidden />
           </span>
           <div>
-            <h1 className="font-display text-xl text-[color:var(--os-ink)]">Something went wrong</h1>
-            <p className="text-xs text-[color:var(--os-ink-3)]">An unexpected error occurred in the admin console.</p>
+            <h1 className="font-display text-xl text-[color:var(--os-ink)]">
+              Something went wrong
+            </h1>
+            <p className="text-xs text-[color:var(--os-ink-3)]">
+              An unexpected error occurred in the admin console.
+            </p>
           </div>
         </div>
         <pre className="mt-5 max-h-40 overflow-auto rounded-md border border-[color:var(--os-hairline)] bg-[color:var(--os-surface-2)] p-3 text-xs text-[color:var(--os-ink-2)] whitespace-pre-wrap">

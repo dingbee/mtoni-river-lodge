@@ -4,12 +4,12 @@ import { cn } from "@/lib/utils";
 type Tone = "green" | "gold" | "info" | "warn" | "danger" | "neutral";
 
 const toneClass: Record<Tone, string> = {
-  green:  "bg-[color:var(--os-green-soft)]  text-[color:var(--os-green)]",
-  gold:   "bg-[color:var(--os-gold-soft)]   text-[color:var(--os-gold)]",
-  info:   "bg-[color:var(--os-info-soft)]   text-[color:var(--os-info)]",
-  warn:   "bg-[color:var(--os-warn-soft)]   text-[color:var(--os-warn)]",
+  green: "bg-[color:var(--os-green-soft)]  text-[color:var(--os-green)]",
+  gold: "bg-[color:var(--os-gold-soft)]   text-[color:var(--os-gold)]",
+  info: "bg-[color:var(--os-info-soft)]   text-[color:var(--os-info)]",
+  warn: "bg-[color:var(--os-warn-soft)]   text-[color:var(--os-warn)]",
   danger: "bg-[color:var(--os-danger-soft)] text-[color:var(--os-danger)]",
-  neutral:"bg-white/[0.04] text-[color:var(--os-ink-2)]",
+  neutral: "bg-white/[0.04] text-[color:var(--os-ink-2)]",
 };
 
 export function StatCard({

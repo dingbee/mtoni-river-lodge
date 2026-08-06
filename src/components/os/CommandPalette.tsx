@@ -64,7 +64,9 @@ export function CommandPalette({
                     {Icon && <Icon className="mr-2 h-4 w-4" aria-hidden />}
                     <div className="flex flex-col">
                       <span>{r.title}</span>
-                      {r.subtitle && <span className="text-xs text-muted-foreground">{r.subtitle}</span>}
+                      {r.subtitle && (
+                        <span className="text-xs text-muted-foreground">{r.subtitle}</span>
+                      )}
                     </div>
                   </CommandItem>
                 );

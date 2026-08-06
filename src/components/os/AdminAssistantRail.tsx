@@ -11,7 +11,11 @@ export function AdminAssistantRail() {
   const today = d.today ?? {};
   const now = new Date();
   const timeStr = now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  const dateStr = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  const dateStr = now.toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 
   const suggestions = [
     { label: "Rooms needing cleaning", href: "/admin/operations/housekeeping" },
@@ -26,7 +30,9 @@ export function AdminAssistantRail() {
         <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-[color:var(--os-ink-3)]">
           <Sun className="size-3.5" /> {dateStr} · {timeStr}
         </div>
-        <h2 className="mt-2 font-display text-2xl leading-tight text-[color:var(--os-ink)]">Mtoni AI</h2>
+        <h2 className="mt-2 font-display text-2xl leading-tight text-[color:var(--os-ink)]">
+          Mtoni AI
+        </h2>
         <p className="mt-1 text-xs text-[color:var(--os-ink-3)]">Your operational co-pilot.</p>
       </div>
 
@@ -35,13 +41,16 @@ export function AdminAssistantRail() {
           <Sparkles className="size-3.5 text-[color:var(--os-gold)]" /> Daily summary
         </div>
         <p className="mt-2 leading-relaxed text-[color:var(--os-ink-2)]">
-          {(today.in_house ?? 0)} guests in-house · {(today.arrivals ?? 0)} arriving · {(today.departures ?? 0)} departing.
-          {" "}Housekeeping has {(today.dirty_rooms ?? 0)} rooms pending.
+          {today.in_house ?? 0} guests in-house · {today.arrivals ?? 0} arriving ·{" "}
+          {today.departures ?? 0} departing. Housekeeping has {today.dirty_rooms ?? 0} rooms
+          pending.
         </p>
       </div>
 
       <div className="os-fade-in os-fade-in-delay-2">
-        <div className="mb-2 text-[10px] uppercase tracking-[0.24em] text-[color:var(--os-ink-3)]">Suggested actions</div>
+        <div className="mb-2 text-[10px] uppercase tracking-[0.24em] text-[color:var(--os-ink-3)]">
+          Suggested actions
+        </div>
         <ul className="space-y-1.5">
           {suggestions.map((s) => (
             <li key={s.href}>
@@ -62,7 +71,8 @@ export function AdminAssistantRail() {
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[color:var(--os-warn)]" />
           <div className="text-xs leading-relaxed text-[color:var(--os-ink-2)]">
             <div className="font-medium text-[color:var(--os-ink)]">Maintenance in progress</div>
-            {today.maintenance_rooms} room{today.maintenance_rooms === 1 ? "" : "s"} currently off-inventory.
+            {today.maintenance_rooms} room{today.maintenance_rooms === 1 ? "" : "s"} currently
+            off-inventory.
           </div>
         </div>
       )}
