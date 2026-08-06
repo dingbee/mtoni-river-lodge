@@ -90,6 +90,10 @@ export function CheckInWizard({ token }: { token: string }) {
     queryKey: ["checkin-summary", token],
     queryFn: () => fetchCheckInSummary(token),
     retry: false,
+    // Always read live reservation state; refresh on focus instead of polling.
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const touch = useCallback(() => {
@@ -162,7 +166,12 @@ export function CheckInWizard({ token }: { token: string }) {
       }
       setStep(resumeStep);
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => {
+      if (err instanceof CheckInError && err.code !== "verify_failed") {
+        void summaryQuery.refetch();
+      }
+      toast.error(err.message);
+    },
   });
 
   const submitMutation = useMutation({
