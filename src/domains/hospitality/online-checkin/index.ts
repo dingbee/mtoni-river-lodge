@@ -5,8 +5,11 @@
 export * from "./types";
 export * from "./utils";
 export * from "./services";
+export * from "./services/checkin-client";
 export * from "./hooks";
 export { CheckInPlaceholder } from "./components/CheckInPlaceholder";
+export { CheckInStepper, CHECK_IN_STEPS } from "./components/CheckInStepper";
+export { CheckInWizard } from "./components/CheckInWizard";
 export { GuestCheckInPage } from "./pages/GuestCheckInPage";
 export { CheckInSuccessPage } from "./pages/CheckInSuccessPage";
 export { CheckInExpiredPage } from "./pages/CheckInExpiredPage";

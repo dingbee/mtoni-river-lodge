@@ -6875,6 +6875,43 @@ export type Database = {
           url: string
         }[]
       }
+      checkin_ensure_for_booking: {
+        Args: { _booking_id: string }
+        Returns: {
+          expires_at: string
+          id: string
+          status: Database["public"]["Enums"]["checkin_status"]
+          token: string
+        }[]
+      }
+      checkin_fetch_summary: {
+        Args: { _token: string }
+        Returns: {
+          check_in: string
+          check_out: string
+          email_hint: string
+          expires_at: string
+          nights: number
+          reference: string
+          room_name: string
+          status: Database["public"]["Enums"]["checkin_status"]
+          surname_hint: string
+        }[]
+      }
+      checkin_submit: {
+        Args: {
+          _answer: string
+          _arrival: Json
+          _final?: boolean
+          _guest: Json
+          _token: string
+        }
+        Returns: Json
+      }
+      checkin_verify: {
+        Args: { _answer: string; _token: string }
+        Returns: Json
+      }
       create_booking:
         | {
             Args: {
