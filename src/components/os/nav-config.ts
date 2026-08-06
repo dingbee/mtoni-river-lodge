@@ -25,6 +25,7 @@ import {
   Settings,
   ClipboardCheck,
 } from "lucide-react";
+import { UserCheck } from "lucide-react";
 import { ListChecks, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 import type { ComponentType } from "react";
 
@@ -57,6 +58,7 @@ export const NAV: NavEntry[] = [
       items: [
         { id: "operations.dashboard", label: "Operations Centre", href: "/admin/operations", icon: LayoutDashboard },
         { id: "operations.reservations", label: "Reservations", href: "/admin/bookings", icon: Calendar },
+        { id: "operations.arrivals", label: "Arrivals", href: "/admin/operations/arrivals", icon: UserCheck },
         { id: "operations.availability", label: "Calendar", href: "/admin/calendar", icon: CalendarDays },
         { id: "operations.rooms", label: "Room Board", href: "/admin/operations/rooms", icon: Bed },
         { id: "operations.housekeeping", label: "Housekeeping", href: "/admin/operations/housekeeping", icon: ClipboardCheck },
