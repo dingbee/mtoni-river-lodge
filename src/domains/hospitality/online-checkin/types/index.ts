@@ -12,8 +12,10 @@ export type GuestCheckinInsert = Database["public"]["Tables"]["guest_checkins"][
 export type GuestCheckinUpdate = Database["public"]["Tables"]["guest_checkins"]["Update"];
 
 export type ArrivalInformationRow = Database["public"]["Tables"]["arrival_information"]["Row"];
-export type ArrivalInformationInsert = Database["public"]["Tables"]["arrival_information"]["Insert"];
-export type ArrivalInformationUpdate = Database["public"]["Tables"]["arrival_information"]["Update"];
+export type ArrivalInformationInsert =
+  Database["public"]["Tables"]["arrival_information"]["Insert"];
+export type ArrivalInformationUpdate =
+  Database["public"]["Tables"]["arrival_information"]["Update"];
 
 export type GuestDocumentRow = Database["public"]["Tables"]["guest_documents"]["Row"];
 export type GuestDocumentInsert = Database["public"]["Tables"]["guest_documents"]["Insert"];
