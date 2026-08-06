@@ -769,6 +769,7 @@ function ReviewGroup({ title, rows }: { title: string; rows: Array<[string, stri
 
 function StatusCard({
   icon,
+  icon,
   title,
   body,
   action,
