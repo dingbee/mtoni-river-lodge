@@ -6,6 +6,7 @@ import {
   ClipboardList,
   FileWarning,
   Hourglass,
+  ShieldCheck,
   Star,
   UserCheck,
 } from "lucide-react";
@@ -89,6 +90,18 @@ export function StaffArrivalDashboardPage() {
           value={summary?.conflicts ?? 0}
           icon={AlertTriangle}
           tone="danger"
+        />
+        <StatCard
+          label="Arrival ready"
+          value={summary?.ready ?? 0}
+          icon={ShieldCheck}
+          tone="green"
+        />
+        <StatCard
+          label="Needs attention"
+          value={summary?.needsAttention ?? 0}
+          icon={AlertTriangle}
+          tone="warn"
         />
         <StatCard
           label="VIP / special requests"
