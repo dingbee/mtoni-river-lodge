@@ -4458,17 +4458,75 @@ export type Database = {
           },
         ]
       }
+      guest_checkin_activity: {
+        Row: {
+          action: string
+          booking_id: string | null
+          checkin_id: string
+          created_at: string
+          detail: Json
+          id: string
+          session_id: string | null
+        }
+        Insert: {
+          action: string
+          booking_id?: string | null
+          checkin_id: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          session_id?: string | null
+        }
+        Update: {
+          action?: string
+          booking_id?: string | null
+          checkin_id?: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_checkin_activity_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_checkin_activity_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_checkin_activity_checkin_id_fkey"
+            columns: ["checkin_id"]
+            isOneToOne: false
+            referencedRelation: "guest_checkins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_checkins: {
         Row: {
           booking_id: string
           created_at: string
+          draft: Json
+          draft_step: number
           expires_at: string
           guest_id: string | null
           id: string
+          last_activity_at: string | null
+          locked_at: string | null
           metadata: Json
           rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          session_id: string | null
+          session_started_at: string | null
           signature_name: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["checkin_status"]
@@ -4480,13 +4538,19 @@ export type Database = {
         Insert: {
           booking_id: string
           created_at?: string
+          draft?: Json
+          draft_step?: number
           expires_at?: string
           guest_id?: string | null
           id?: string
+          last_activity_at?: string | null
+          locked_at?: string | null
           metadata?: Json
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          session_id?: string | null
+          session_started_at?: string | null
           signature_name?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["checkin_status"]
@@ -4498,13 +4562,19 @@ export type Database = {
         Update: {
           booking_id?: string
           created_at?: string
+          draft?: Json
+          draft_step?: number
           expires_at?: string
           guest_id?: string | null
           id?: string
+          last_activity_at?: string | null
+          locked_at?: string | null
           metadata?: Json
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          session_id?: string | null
+          session_started_at?: string | null
           signature_name?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["checkin_status"]
@@ -6889,14 +6959,38 @@ export type Database = {
         Returns: {
           check_in: string
           check_out: string
+          draft_step: number
           email_hint: string
           expires_at: string
+          has_draft: boolean
+          locked: boolean
           nights: number
           reference: string
           room_name: string
           status: Database["public"]["Enums"]["checkin_status"]
+          submitted_at: string
           surname_hint: string
         }[]
+      }
+      checkin_log_activity: {
+        Args: {
+          _action: string
+          _booking_id: string
+          _checkin_id: string
+          _detail?: Json
+          _session_id: string
+        }
+        Returns: undefined
+      }
+      checkin_save_draft: {
+        Args: {
+          _arrival: Json
+          _guest: Json
+          _session_id: string
+          _step: number
+          _token: string
+        }
+        Returns: Json
       }
       checkin_submit: {
         Args: {
@@ -6904,12 +6998,13 @@ export type Database = {
           _arrival: Json
           _final?: boolean
           _guest: Json
+          _session_id?: string
           _token: string
         }
         Returns: Json
       }
       checkin_verify: {
-        Args: { _answer: string; _token: string }
+        Args: { _answer: string; _session_id?: string; _token: string }
         Returns: Json
       }
       create_booking:
