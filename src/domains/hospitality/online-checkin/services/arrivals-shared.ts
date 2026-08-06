@@ -112,6 +112,11 @@ export interface ArrivalListItem {
   alerts: ArrivalAlert[];
 }
 
+export interface ArrivalReadinessInfo {
+  readiness: ArrivalReadiness;
+  outstandingActions: string[];
+}
+
 export interface ArrivalsSummary {
   todayArrivals: number;
   upcoming: number;
@@ -121,6 +126,11 @@ export interface ArrivalsSummary {
   needsReview: number;
   conflicts: number;
   vip: number;
+}
+
+export interface ArrivalsSummaryReadiness {
+  ready: number;
+  needsAttention: number;
 }
 
 export const ARRIVAL_READINESS_LABEL: Record<ArrivalReadiness, string> = {
