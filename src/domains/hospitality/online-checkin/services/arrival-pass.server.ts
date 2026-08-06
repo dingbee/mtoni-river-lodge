@@ -19,7 +19,11 @@ async function callPassRpc(
     _client: input.client ?? {},
   });
   if (error) throw new Error(error.message);
-  return (data ?? { ok: false, code: "invalid", message: "Arrival pass not recognised" }) as ScanResult;
+  return (data ?? {
+    ok: false,
+    code: "invalid",
+    message: "Arrival pass not recognised",
+  }) as ScanResult;
 }
 
 export async function validatePass(supabase: Sb, userId: string, input: ScanInput) {

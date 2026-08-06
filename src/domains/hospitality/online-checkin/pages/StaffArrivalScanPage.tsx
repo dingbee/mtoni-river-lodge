@@ -11,7 +11,11 @@ import { Button } from "@/components/ui/button";
 import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { ArrivalPassScanner } from "../components/ArrivalPassScanner";
 import { confirmArrivalPass, validateArrivalPass } from "../services/arrival-pass.functions";
-import { PASS_STATUS_LABEL, passStatusTone, type ScanResult } from "../services/arrival-pass-shared";
+import {
+  PASS_STATUS_LABEL,
+  passStatusTone,
+  type ScanResult,
+} from "../services/arrival-pass-shared";
 import { getClientContext } from "../services/checkin-client";
 
 function Rows({ rows }: { rows: [string, unknown][] }) {
@@ -152,10 +156,7 @@ export function StaffArrivalScanPage() {
                       <QrCode className="mr-2 h-4 w-4" /> Confirm arrival
                     </Button>
                     <Button asChild size="sm" variant="outline">
-                      <Link
-                        to="/admin/operations/arrivals/$id"
-                        params={{ id: reservation.id }}
-                      >
+                      <Link to="/admin/operations/arrivals/$id" params={{ id: reservation.id }}>
                         Open check-in review
                       </Link>
                     </Button>
