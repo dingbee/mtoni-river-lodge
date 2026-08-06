@@ -519,8 +519,7 @@ export function CheckInWizard({ token }: { token: string }) {
               <Button
                 onClick={() => submitMutation.mutate()}
                 disabled={
-                  submitMutation.isPending ||
-                  (guest.signature_name ?? "").trim().length < 2
+                  submitMutation.isPending || (guest.signature_name ?? "").trim().length < 2
                 }
               >
                 {submitMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
