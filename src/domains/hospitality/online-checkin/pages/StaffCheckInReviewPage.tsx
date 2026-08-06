@@ -64,7 +64,6 @@ export function StaffCheckInReviewPage({ id }: { id: string }) {
     assignedUnit,
     roomStates,
     eligibility,
-    activity,
     preferences,
     notes,
     canOverride,
