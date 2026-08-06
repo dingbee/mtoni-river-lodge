@@ -3535,6 +3535,106 @@ export type Database = {
           },
         ]
       }
+      arrival_passes: {
+        Row: {
+          booking_id: string
+          checkin_id: string
+          created_at: string
+          expires_at: string
+          guest_id: string | null
+          id: string
+          issued_at: string
+          last_scanned_at: string | null
+          metadata: Json
+          reservation_snapshot: Json
+          scan_count: number
+          status: Database["public"]["Enums"]["arrival_pass_status"]
+          token: string
+          updated_at: string
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          booking_id: string
+          checkin_id: string
+          created_at?: string
+          expires_at: string
+          guest_id?: string | null
+          id?: string
+          issued_at?: string
+          last_scanned_at?: string | null
+          metadata?: Json
+          reservation_snapshot?: Json
+          scan_count?: number
+          status?: Database["public"]["Enums"]["arrival_pass_status"]
+          token: string
+          updated_at?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          booking_id?: string
+          checkin_id?: string
+          created_at?: string
+          expires_at?: string
+          guest_id?: string | null
+          id?: string
+          issued_at?: string
+          last_scanned_at?: string | null
+          metadata?: Json
+          reservation_snapshot?: Json
+          scan_count?: number
+          status?: Database["public"]["Enums"]["arrival_pass_status"]
+          token?: string
+          updated_at?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arrival_passes_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arrival_passes_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arrival_passes_checkin_id_fkey"
+            columns: ["checkin_id"]
+            isOneToOne: false
+            referencedRelation: "guest_checkins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arrival_passes_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arrival_passes_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
+          },
+          {
+            foreignKeyName: "arrival_passes_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_extras: {
         Row: {
           booking_id: string
@@ -6970,6 +7070,16 @@ export type Database = {
           url: string
         }[]
       }
+      arrival_pass_confirm: {
+        Args: { _client?: Json; _pass_token: string }
+        Returns: Json
+      }
+      arrival_pass_ensure: { Args: { _checkin_token: string }; Returns: Json }
+      arrival_pass_fetch: { Args: { _pass_token: string }; Returns: Json }
+      arrival_pass_validate: {
+        Args: { _client?: Json; _pass_token: string }
+        Returns: Json
+      }
       checkin_eligibility: { Args: { _booking_id: string }; Returns: Json }
       checkin_ensure_for_booking: {
         Args: { _booking_id: string }
@@ -7300,6 +7410,7 @@ export type Database = {
         | "housekeeping"
         | "finance"
         | "editor"
+      arrival_pass_status: "active" | "used" | "revoked" | "expired"
       booking_status:
         | "pending"
         | "confirmed"
@@ -7539,6 +7650,7 @@ export const Constants = {
         "finance",
         "editor",
       ],
+      arrival_pass_status: ["active", "used", "revoked", "expired"],
       booking_status: [
         "pending",
         "confirmed",
