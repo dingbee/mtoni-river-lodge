@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, RotateCcw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,8 +14,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CheckInStepper } from "./CheckInStepper";
 import {
   arrivalInfoSchema,
+  clearCheckInSessionId,
   fetchCheckInSummary,
+  getCheckInSessionId,
   guestInfoSchema,
+  saveCheckInDraft,
   submitCheckIn,
   verifyCheckIn,
   type ArrivalInfoValues,
@@ -68,6 +71,12 @@ export function CheckInWizard({ token }: { token: string }) {
   const [guest, setGuest] = useState<GuestInfoValues | null>(null);
   const [arrival, setArrival] = useState<ArrivalInfoValues>(emptyArrival);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
+  const [resumed, setResumed] = useState(false);
+  const sessionId = useMemo(() => getCheckInSessionId(token), [token]);
+  const lastActivityRef = useRef<number>(Date.now());
+  const timeoutMsRef = useRef<number>(30 * 60 * 1000);
 
   const summaryQuery = useQuery({
     queryKey: ["checkin-summary", token],
@@ -75,10 +84,53 @@ export function CheckInWizard({ token }: { token: string }) {
     retry: false,
   });
 
+  const touch = useCallback(() => {
+    lastActivityRef.current = Date.now();
+  }, []);
+
+  // Inactivity watchdog — mirrors the 30 minute server-side session window.
+  useEffect(() => {
+    if (!verified || timedOut) return;
+    const id = window.setInterval(() => {
+      if (Date.now() - lastActivityRef.current >= timeoutMsRef.current) setTimedOut(true);
+    }, 15_000);
+    return () => window.clearInterval(id);
+  }, [verified, timedOut]);
+
+  const draftMutation = useMutation({
+    mutationFn: (payload: {
+      step: number;
+      guest: GuestInfoValues | null;
+      arrival: ArrivalInfoValues;
+    }) => saveCheckInDraft({ token, sessionId, ...payload }),
+    onSuccess: () => {
+      setSavedAt(new Date());
+      touch();
+    },
+    onError: (err: Error) => {
+      if (/session/i.test(err.message)) setTimedOut(true);
+      toast.error(err.message);
+    },
+  });
+
+  /** Advance a step and autosave the completed step in the background. */
+  const goToStep = useCallback(
+    (next: number, snapshot: { guest: GuestInfoValues | null; arrival: ArrivalInfoValues }) => {
+      setStep(next);
+      touch();
+      draftMutation.mutate({ step: next, ...snapshot });
+    },
+    [draftMutation, touch],
+  );
+
   const verifyMutation = useMutation({
-    mutationFn: () => verifyCheckIn(token, answer),
+    mutationFn: () => verifyCheckIn(token, answer, sessionId),
     onSuccess: (data) => {
       setVerified(data);
+      const draft = data.checkin.draft ?? null;
+      timeoutMsRef.current = (data.checkin.session_timeout_seconds || 1800) * 1000;
+      touch();
+      setTimedOut(false);
       setGuest({
         full_name: data.booking.guest_name ?? "",
         email: data.booking.guest_email ?? "",
@@ -87,22 +139,47 @@ export function CheckInWizard({ token }: { token: string }) {
         adults: data.booking.adults ?? 1,
         children: data.booking.children ?? 0,
         signature_name: "",
+        ...(draft?.guest ?? {}),
       });
-      setArrival((prev) => ({ ...prev, arrival_date: data.booking.check_in }));
+      setArrival((prev) => ({
+        ...prev,
+        arrival_date: data.booking.check_in,
+        ...(draft?.arrival ?? {}),
+      }));
       setErrors({});
-      setStep(1);
+      const resumeStep = Math.min(Math.max(data.checkin.draft_step || 1, 1), 3);
+      setResumed(!!data.checkin.resumed);
+      if (data.checkin.resumed) {
+        toast.success("Welcome back — we restored your saved answers.");
+      }
+      setStep(resumeStep);
     },
     onError: (err: Error) => toast.error(err.message),
   });
 
   const submitMutation = useMutation({
     mutationFn: () =>
-      submitCheckIn({ token, answer, guest: guest as GuestInfoValues, arrival, final: true }),
+      submitCheckIn({
+        token,
+        answer,
+        guest: guest as GuestInfoValues,
+        arrival,
+        final: true,
+        sessionId,
+      }),
     onSuccess: () => {
+      clearCheckInSessionId(token);
       toast.success("Check-in submitted");
       void navigate({ to: "/check-in/success" });
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => {
+      if (/already been submitted/i.test(err.message)) {
+        void summaryQuery.refetch();
+      } else if (/session/i.test(err.message)) {
+        setTimedOut(true);
+      }
+      toast.error(err.message);
+    },
   });
 
   if (summaryQuery.isLoading) {
@@ -120,69 +197,86 @@ export function CheckInWizard({ token }: { token: string }) {
 
   if (summaryQuery.isError || !summary) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Check-in link not recognised</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Please use the link from your confirmation email, or contact reception for a new one.
-        </CardContent>
-      </Card>
+      <StatusCard
+        icon={<ShieldCheck className="h-5 w-5" />}
+        title="Check-in link not recognised"
+        body="This link is invalid or has already been replaced. Please open the most recent link from your confirmation email, or contact reception."
+      />
     );
   }
 
   if (expired) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>This check-in link has expired</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Reservation {summary.reference}. Please contact reception and we will send a fresh link.
-        </CardContent>
-      </Card>
+      <StatusCard
+        icon={<Clock className="h-5 w-5" />}
+        title="This check-in link has expired"
+        body={`Reservation ${summary.reference}. Contact reception and we will send you a fresh link — nothing you entered is lost.`}
+      />
     );
   }
 
   const alreadyDone = ["submitted", "under_review", "approved"].includes(summary.status);
-  if (alreadyDone) {
+  if (alreadyDone || summary.locked) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Check-in already submitted</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          We have your details for reservation {summary.reference}. Reception will confirm before
-          you arrive.
-        </CardContent>
-      </Card>
+      <StatusCard
+        icon={<CheckCircle2 className="h-5 w-5 text-primary" />}
+        title="Check-in already completed"
+        body={`We have your details for reservation ${summary.reference}${
+          summary.submitted_at
+            ? `, submitted ${new Date(summary.submitted_at).toLocaleString()}`
+            : ""
+        }. This link is now locked. Reception will confirm everything before you arrive — call us if anything has changed.`}
+      />
     );
   }
 
-  function validateGuest() {
+  if (timedOut) {
+    return (
+      <StatusCard
+        icon={<Clock className="h-5 w-5" />}
+        title="Your session timed out"
+        body="For your security we ended this check-in session after 30 minutes of inactivity. Your answers were saved — verify again to pick up where you left off."
+        action={
+          <Button
+            onClick={() => {
+              setTimedOut(false);
+              setVerified(null);
+              setAnswer("");
+              setStep(0);
+              touch();
+            }}
+          >
+            <RotateCcw className="mr-2 h-4 w-4" /> Resume check-in
+          </Button>
+        }
+      />
+    );
+  }
+
+  function validateGuest(): GuestInfoValues | null {
     const parsed = guestInfoSchema.safeParse(guest);
     if (!parsed.success) {
       const next: Record<string, string> = {};
       for (const issue of parsed.error.issues) next[String(issue.path[0])] = issue.message;
       setErrors(next);
-      return false;
+      return null;
     }
     setGuest(parsed.data);
     setErrors({});
-    return true;
+    return parsed.data;
   }
 
-  function validateArrival() {
+  function validateArrival(): ArrivalInfoValues | null {
     const parsed = arrivalInfoSchema.safeParse(arrival);
     if (!parsed.success) {
       const next: Record<string, string> = {};
       for (const issue of parsed.error.issues) next[String(issue.path[0])] = issue.message;
       setErrors(next);
-      return false;
+      return null;
     }
     setArrival(parsed.data);
     setErrors({});
-    return true;
+    return parsed.data;
   }
 
   return (
@@ -206,6 +300,26 @@ export function CheckInWizard({ token }: { token: string }) {
       </div>
 
       <CheckInStepper current={step} />
+
+      {verified && (
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+          {draftMutation.isPending ? (
+            <span className="flex items-center gap-1.5">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving your progress…
+            </span>
+          ) : savedAt ? (
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Progress saved at{" "}
+              {savedAt.toLocaleTimeString()}
+            </span>
+          ) : null}
+          {resumed && (
+            <span className="flex items-center gap-1.5">
+              <RotateCcw className="h-3.5 w-3.5" /> Restored from your last visit
+            </span>
+          )}
+        </div>
+      )}
 
       {step === 0 && (
         <Card>
@@ -303,7 +417,14 @@ export function CheckInWizard({ token }: { token: string }) {
               <Button variant="ghost" onClick={() => setStep(0)}>
                 Back
               </Button>
-              <Button onClick={() => validateGuest() && setStep(2)}>Continue</Button>
+              <Button
+                onClick={() => {
+                  const g = validateGuest();
+                  if (g) goToStep(2, { guest: g, arrival });
+                }}
+              >
+                Continue
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -451,7 +572,14 @@ export function CheckInWizard({ token }: { token: string }) {
               <Button variant="ghost" onClick={() => setStep(1)}>
                 Back
               </Button>
-              <Button onClick={() => validateArrival() && setStep(3)}>Review</Button>
+              <Button
+                onClick={() => {
+                  const a = validateArrival();
+                  if (a) goToStep(3, { guest, arrival: a });
+                }}
+              >
+                Review
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -546,5 +674,32 @@ function ReviewGroup({ title, rows }: { title: string; rows: Array<[string, stri
         ))}
       </dl>
     </div>
+  );
+}
+
+function StatusCard({
+  icon,
+  title,
+  body,
+  action,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          {icon}
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm text-muted-foreground">
+        <p>{body}</p>
+        {action}
+      </CardContent>
+    </Card>
   );
 }

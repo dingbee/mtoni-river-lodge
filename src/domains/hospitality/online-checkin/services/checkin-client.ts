@@ -46,6 +46,10 @@ export interface CheckInSummary {
   expires_at: string;
   email_hint: string;
   surname_hint: string;
+  locked: boolean;
+  has_draft: boolean;
+  draft_step: number;
+  submitted_at: string | null;
 }
 
 export interface VerifiedCheckIn {
@@ -56,6 +60,12 @@ export interface VerifiedCheckIn {
     submitted_at: string | null;
     signature_name: string | null;
     metadata: Record<string, unknown> | null;
+    draft: { guest?: Partial<GuestInfoValues>; arrival?: Partial<ArrivalInfoValues> } | null;
+    draft_step: number;
+    resumed: boolean;
+    session_id: string | null;
+    last_activity_at: string | null;
+    session_timeout_seconds: number;
   };
   booking: {
     reference: string;
@@ -78,6 +88,58 @@ function message(error: { message?: string } | null, fallback: string) {
   return raw.replace(/^.*?:\s*/, "").trim() || fallback;
 }
 
+export type CheckInRefusalCode =
+  | "invalid"
+  | "expired"
+  | "locked"
+  | "conflict"
+  | "session"
+  | "verify_failed"
+  | "validation";
+
+/** Refusal returned by the database instead of an exception, so the audit row commits. */
+export class CheckInError extends Error {
+  code: CheckInRefusalCode;
+  constructor(code: CheckInRefusalCode, msg: string) {
+    super(msg);
+    this.name = "CheckInError";
+    this.code = code;
+  }
+}
+
+function unwrap(payload: unknown, fallback: string) {
+  const result = (payload ?? {}) as { ok?: boolean; code?: CheckInRefusalCode; message?: string };
+  if (result.ok === false) {
+    throw new CheckInError(result.code ?? "invalid", result.message ?? fallback);
+  }
+  return result;
+}
+
+/** Session timeout mirrored from the database (30 minutes). */
+export const CHECKIN_SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+
+const SESSION_PREFIX = "mtoni.checkin.session.";
+
+/**
+ * Stable per-browser session id for one check-in token. Persisted so a
+ * reload resumes the same session instead of colliding with itself.
+ */
+export function getCheckInSessionId(token: string): string {
+  const key = SESSION_PREFIX + token.slice(0, 12);
+  if (typeof window === "undefined") return "ssr-session-placeholder";
+  let existing = window.localStorage.getItem(key);
+  if (!existing || existing.length < 8) {
+    existing = `s_${crypto.randomUUID().replace(/-/g, "")}`;
+    window.localStorage.setItem(key, existing);
+  }
+  return existing;
+}
+
+export function clearCheckInSessionId(token: string) {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(SESSION_PREFIX + token.slice(0, 12));
+}
+
 export async function fetchCheckInSummary(token: string): Promise<CheckInSummary | null> {
   const { data, error } = await supabase.rpc("checkin_fetch_summary", { _token: token });
   if (error) throw new Error(message(error, "Unable to load this check-in link"));
@@ -85,10 +147,38 @@ export async function fetchCheckInSummary(token: string): Promise<CheckInSummary
   return (row as CheckInSummary | undefined) ?? null;
 }
 
-export async function verifyCheckIn(token: string, answer: string): Promise<VerifiedCheckIn> {
-  const { data, error } = await supabase.rpc("checkin_verify", { _token: token, _answer: answer });
+export async function verifyCheckIn(
+  token: string,
+  answer: string,
+  sessionId: string,
+): Promise<VerifiedCheckIn> {
+  const { data, error } = await supabase.rpc("checkin_verify", {
+    _token: token,
+    _answer: answer,
+    _session_id: sessionId,
+  });
   if (error) throw new Error(message(error, "We could not verify your reservation"));
+  unwrap(data, "We could not verify your reservation");
   return data as unknown as VerifiedCheckIn;
+}
+
+/** Autosave the wizard state after a completed step. */
+export async function saveCheckInDraft(params: {
+  token: string;
+  sessionId: string;
+  guest: GuestInfoValues | null;
+  arrival: ArrivalInfoValues;
+  step: number;
+}): Promise<void> {
+  const { data, error } = await supabase.rpc("checkin_save_draft", {
+    _token: params.token,
+    _session_id: params.sessionId,
+    _guest: (params.guest ?? {}) as unknown as never,
+    _arrival: params.arrival as unknown as never,
+    _step: params.step,
+  });
+  if (error) throw new Error(message(error, "We could not save your progress"));
+  unwrap(data, "We could not save your progress");
 }
 
 export async function submitCheckIn(params: {
@@ -97,13 +187,16 @@ export async function submitCheckIn(params: {
   guest: GuestInfoValues;
   arrival: ArrivalInfoValues;
   final?: boolean;
+  sessionId?: string;
 }): Promise<void> {
-  const { error } = await supabase.rpc("checkin_submit", {
+  const { data, error } = await supabase.rpc("checkin_submit", {
     _token: params.token,
     _answer: params.answer,
     _guest: params.guest as unknown as never,
     _arrival: params.arrival as unknown as never,
     _final: params.final ?? true,
+    _session_id: params.sessionId ?? undefined,
   });
   if (error) throw new Error(message(error, "We could not submit your check-in"));
+  unwrap(data, "We could not submit your check-in");
 }
