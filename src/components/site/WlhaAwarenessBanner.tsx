@@ -198,26 +198,52 @@ function WlhaBannerInner() {
         </Reveal>
 
         <Reveal delay={250}>
-          <p className="mt-10 inline-block border-y border-ivory/25 px-6 py-4 text-[0.68rem] uppercase tracking-[0.24em] text-ivory/85">
-            <span className="mb-2 block text-[0.6rem] tracking-[0.32em] text-ivory/60">
-              Voting Period
-            </span>
-            <time dateTime="2026-08-17">{c.votingOpens}</time>
-            <span className="rule" aria-hidden="true" />
-            <time dateTime="2026-08-31">{c.votingCloses}</time>
-          </p>
-          <p className="sr-only">{c.votingNote}</p>
+          <div className="mt-10">
+            <p className="text-[0.68rem] uppercase tracking-[0.24em] text-ivory/85" aria-live="polite">
+              {phase === null
+                ? "Voting Period"
+                : phase === "upcoming"
+                  ? c.states.upcoming
+                  : phase === "active"
+                    ? c.states.active
+                    : c.states.closed}
+            </p>
+            {phase !== null && target !== null && now !== null ? (
+              <>
+                <CountdownUnits ms={target - now} />
+                {phase === "active" && (
+                  <p className="mt-4 text-[0.6rem] uppercase tracking-[0.32em] text-ivory/55">
+                    Until voting closes
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="mt-6 inline-block border-y border-ivory/25 px-6 py-4 text-[0.68rem] uppercase tracking-[0.24em] text-ivory/85">
+                <time dateTime="2026-08-17">{c.votingOpens}</time>
+                <span className="rule" aria-hidden="true" />
+                <time dateTime="2026-08-31">{c.votingCloses}</time>
+              </p>
+            )}
+            <p className="sr-only">{c.votingNote}</p>
+          </div>
         </Reveal>
 
         <Reveal delay={350}>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row sm:flex-wrap">
-            <Link
-              to={c.primaryCta.to}
-              className="group inline-flex w-full items-center justify-center gap-3 border border-ivory bg-ivory px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-charcoal transition-colors hover:bg-transparent hover:text-ivory sm:w-auto"
-            >
-              <span>{c.primaryCta.label}</span>
-              <span className="transition-transform group-hover:translate-x-1">→</span>
-            </Link>
+            {phase !== "closed" && (
+              <a
+                href={c.votingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-disabled={phase !== "active" ? true : undefined}
+                className={`group inline-flex w-full items-center justify-center gap-3 border border-ivory bg-ivory px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-charcoal transition-colors hover:bg-transparent hover:text-ivory sm:w-auto ${
+                  phase === "upcoming" ? "pointer-events-none opacity-60" : ""
+                }`}
+              >
+                <span>{c.primaryCta.label}</span>
+                <span className="transition-transform group-hover:translate-x-1">→</span>
+              </a>
+            )}
             <Link
               to={c.secondaryCta.to}
               className="group inline-flex w-full items-center justify-center gap-3 border border-ivory/70 px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-ivory hover:text-charcoal sm:w-auto"
