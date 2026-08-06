@@ -146,42 +146,25 @@ function AdminReviews() {
   const toggleFeature = (r: Review) =>
     update.mutate({ id: r.id, patch: { ...formFromReview(r), featured: !r.featured } });
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/auth";
-  };
-
   return (
-    <div className="min-h-screen bg-card text-foreground">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 lg:px-8">
-          <div className="flex items-center gap-6">
-            <Link to="/" className="font-display text-lg">Mtoni · Admin</Link>
-            <nav className="hidden gap-4 text-xs uppercase tracking-[0.22em] text-muted-foreground sm:flex">
-              <Link to="/admin/bookings" className="hover:text-foreground">Bookings</Link>
-              <Link to="/admin/reviews" className="text-foreground">Reviews</Link>
-            </nav>
-          </div>
-          <button onClick={signOut} className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-muted-foreground hover:text-foreground">
-            <LogOut className="h-3.5 w-3.5" /> Sign out
-          </button>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="font-display text-3xl">Reviews Admin</h1>
-          {(tab === "manual" || tab === "quick") && (
-            <button
+    <div className="space-y-6">
+      <PageHeader
+        title="Guest reviews"
+        description="Curate, import and publish guest reviews across every channel."
+        actions={
+          (tab === "manual" || tab === "quick") && (
+            <Button
+              size="sm"
               onClick={() => { setEditing(null); setPrefill(null); setShowForm(true); }}
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[0.7rem] uppercase tracking-[0.22em] text-primary-foreground hover:bg-muted"
             >
-              <Plus className="h-3.5 w-3.5" /> Add review
-            </button>
-          )}
-        </div>
+              <Plus className="mr-2 h-3.5 w-3.5" /> Add review
+            </Button>
+          )
+        }
+      />
 
-        <div className="mt-6 flex flex-wrap gap-1 border-b border-border">
+      <div>
+        <div className="flex flex-wrap gap-1 border-b border-border">
           {TABS.map((t) => {
             const Icon = t.icon;
             const active = tab === t.key;
@@ -191,7 +174,7 @@ function AdminReviews() {
                 onClick={() => setTab(t.key)}
                 className={`inline-flex items-center gap-2 border-b-2 px-4 py-3 text-[0.7rem] uppercase tracking-[0.22em] transition-colors ${
                   active
-                    ? "border-border text-foreground"
+                    ? "border-primary text-foreground"
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -228,7 +211,7 @@ function AdminReviews() {
         {tab === "quick" && <QuickAddPanel onSaved={invalidateAll} />}
         {tab === "activity" && <ActivityLogPanel />}
         {tab === "statistics" && <StatisticsPanel />}
-      </main>
+      </div>
 
       {showForm && (
         <ReviewForm
