@@ -56,7 +56,10 @@ export function WlhaAwarenessBanner() {
         </Reveal>
 
         <Reveal delay={250}>
-          <p className="mt-8 inline-block border-y border-ivory/25 px-5 py-3 text-[0.68rem] uppercase tracking-[0.24em] text-ivory/85">
+          <p className="mt-10 inline-block border-y border-ivory/25 px-6 py-4 text-[0.68rem] uppercase tracking-[0.24em] text-ivory/85">
+            <span className="mb-2 block text-[0.6rem] tracking-[0.32em] text-ivory/60">
+              Voting Period
+            </span>
             <time dateTime="2026-08-17">{c.votingOpens}</time>
             <span className="rule" aria-hidden="true" />
             <time dateTime="2026-08-31">{c.votingCloses}</time>
