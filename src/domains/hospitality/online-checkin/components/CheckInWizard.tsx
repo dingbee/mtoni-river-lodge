@@ -267,6 +267,7 @@ export function CheckInWizard({ token }: { token: string }) {
             ? `, submitted ${new Date(summary.submitted_at).toLocaleString()}`
             : ""
         }. This link is now locked. Reception will confirm everything before you arrive — call us if anything has changed.`}
+        action={<ArrivalPassLink token={token} />}
       />
     );
   }
