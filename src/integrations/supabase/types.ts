@@ -3711,6 +3711,7 @@ export type Database = {
           cancelled_at: string | null
           check_in: string
           check_out: string
+          checked_in_at: string | null
           children: number
           children_7_plus: number
           children_below_6: number
@@ -3757,6 +3758,7 @@ export type Database = {
           cancelled_at?: string | null
           check_in: string
           check_out: string
+          checked_in_at?: string | null
           children?: number
           children_7_plus?: number
           children_below_6?: number
@@ -3803,6 +3805,7 @@ export type Database = {
           cancelled_at?: string | null
           check_in?: string
           check_out?: string
+          checked_in_at?: string | null
           children?: number
           children_7_plus?: number
           children_below_6?: number
@@ -4513,6 +4516,7 @@ export type Database = {
       guest_checkins: {
         Row: {
           booking_id: string
+          checked_in_at: string | null
           created_at: string
           draft: Json
           draft_step: number
@@ -4523,8 +4527,10 @@ export type Database = {
           locked_at: string | null
           metadata: Json
           rejection_reason: string | null
+          reservation_snapshot: Json
           reviewed_at: string | null
           reviewed_by: string | null
+          room_state_id: string | null
           session_id: string | null
           session_started_at: string | null
           signature_name: string | null
@@ -4537,6 +4543,7 @@ export type Database = {
         }
         Insert: {
           booking_id: string
+          checked_in_at?: string | null
           created_at?: string
           draft?: Json
           draft_step?: number
@@ -4547,8 +4554,10 @@ export type Database = {
           locked_at?: string | null
           metadata?: Json
           rejection_reason?: string | null
+          reservation_snapshot?: Json
           reviewed_at?: string | null
           reviewed_by?: string | null
+          room_state_id?: string | null
           session_id?: string | null
           session_started_at?: string | null
           signature_name?: string | null
@@ -4561,6 +4570,7 @@ export type Database = {
         }
         Update: {
           booking_id?: string
+          checked_in_at?: string | null
           created_at?: string
           draft?: Json
           draft_step?: number
@@ -4571,8 +4581,10 @@ export type Database = {
           locked_at?: string | null
           metadata?: Json
           rejection_reason?: string | null
+          reservation_snapshot?: Json
           reviewed_at?: string | null
           reviewed_by?: string | null
+          room_state_id?: string | null
           session_id?: string | null
           session_started_at?: string | null
           signature_name?: string | null
@@ -4617,6 +4629,13 @@ export type Database = {
             columns: ["guest_id"]
             isOneToOne: false
             referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_checkins_room_state_id_fkey"
+            columns: ["room_state_id"]
+            isOneToOne: false
+            referencedRelation: "room_states"
             referencedColumns: ["id"]
           },
         ]
@@ -6951,6 +6970,7 @@ export type Database = {
           url: string
         }[]
       }
+      checkin_eligibility: { Args: { _booking_id: string }; Returns: Json }
       checkin_ensure_for_booking: {
         Args: { _booking_id: string }
         Returns: {
@@ -6966,6 +6986,9 @@ export type Database = {
           check_in: string
           check_out: string
           draft_step: number
+          eligibility_code: string
+          eligibility_message: string
+          eligible: boolean
           email_hint: string
           expires_at: string
           has_draft: boolean
@@ -7002,11 +7025,16 @@ export type Database = {
         Args: {
           _answer: string
           _arrival: Json
+          _client?: Json
           _final?: boolean
           _guest: Json
           _session_id?: string
           _token: string
         }
+        Returns: Json
+      }
+      checkin_sync_reservation: {
+        Args: { _checkin_id: string; _client?: Json }
         Returns: Json
       }
       checkin_verify: {
