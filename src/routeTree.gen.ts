@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WlhaVotingRouteImport } from './routes/wlha-voting'
 import { Route as VoteRouteImport } from './routes/vote'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -225,6 +226,11 @@ import { Route as AuthenticatedAdminAiConciergeAnalyticsRouteImport } from './ro
 import { Route as AuthenticatedAdminContentPagesIdIndexRouteImport } from './routes/_authenticated.admin.content.pages.$id.index'
 import { Route as AuthenticatedAdminContentPagesIdPreviewRouteImport } from './routes/_authenticated.admin.content.pages.$id.preview'
 
+const WlhaVotingRoute = WlhaVotingRouteImport.update({
+  id: '/wlha-voting',
+  path: '/wlha-voting',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VoteRoute = VoteRouteImport.update({
   id: '/vote',
   path: '/vote',
@@ -1492,6 +1498,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/vote': typeof VoteRoute
+  '/wlha-voting': typeof WlhaVotingRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
@@ -1706,6 +1713,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/vote': typeof VoteRoute
+  '/wlha-voting': typeof WlhaVotingRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
   '/author/$': typeof AuthorSplatRoute
@@ -1914,6 +1922,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/vote': typeof VoteRoute
+  '/wlha-voting': typeof WlhaVotingRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
@@ -2132,6 +2141,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/unsubscribe'
     | '/vote'
+    | '/wlha-voting'
     | '/admin'
     | '/auth/callback'
     | '/auth/set-password'
@@ -2346,6 +2356,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/unsubscribe'
     | '/vote'
+    | '/wlha-voting'
     | '/auth/callback'
     | '/auth/set-password'
     | '/author/$'
@@ -2553,6 +2564,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/unsubscribe'
     | '/vote'
+    | '/wlha-voting'
     | '/_authenticated/admin'
     | '/auth/callback'
     | '/auth/set-password'
@@ -2771,6 +2783,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   VoteRoute: typeof VoteRoute
+  WlhaVotingRoute: typeof WlhaVotingRoute
   AuthorSplatRoute: typeof AuthorSplatRoute
   BookingReturnRoute: typeof BookingReturnRoute
   CategorySplatRoute: typeof CategorySplatRoute
@@ -2802,6 +2815,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/wlha-voting': {
+      id: '/wlha-voting'
+      path: '/wlha-voting'
+      fullPath: '/wlha-voting'
+      preLoaderRoute: typeof WlhaVotingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/vote': {
       id: '/vote'
       path: '/vote'
@@ -4961,6 +4981,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   VoteRoute: VoteRoute,
+  WlhaVotingRoute: WlhaVotingRoute,
   AuthorSplatRoute: AuthorSplatRoute,
   BookingReturnRoute: BookingReturnRoute,
   CategorySplatRoute: CategorySplatRoute,
