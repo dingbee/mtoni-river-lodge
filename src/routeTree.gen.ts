@@ -69,6 +69,7 @@ import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './r
 import { Route as JournalSlugRouteImport } from './routes/journal.$slug'
 import { Route as FeedSplatRouteImport } from './routes/feed.$'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
+import { Route as CheckInSuccessRouteImport } from './routes/check-in.success'
 import { Route as CheckInTokenRouteImport } from './routes/check-in.$token'
 import { Route as CategorySplatRouteImport } from './routes/category.$'
 import { Route as BookingReturnRouteImport } from './routes/booking.return'
@@ -540,6 +541,11 @@ const FeedSplatRoute = FeedSplatRouteImport.update({
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckInSuccessRoute = CheckInSuccessRouteImport.update({
+  id: '/check-in/success',
+  path: '/check-in/success',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckInTokenRoute = CheckInTokenRouteImport.update({
@@ -1512,6 +1518,7 @@ export interface FileRoutesByFullPath {
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
   '/check-in/$token': typeof CheckInTokenRoute
+  '/check-in/success': typeof CheckInSuccessRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/feed/$': typeof FeedSplatRoute
   '/journal/$slug': typeof JournalSlugRoute
@@ -1727,6 +1734,7 @@ export interface FileRoutesByTo {
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
   '/check-in/$token': typeof CheckInTokenRoute
+  '/check-in/success': typeof CheckInSuccessRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/feed/$': typeof FeedSplatRoute
   '/journal/$slug': typeof JournalSlugRoute
@@ -1938,6 +1946,7 @@ export interface FileRoutesById {
   '/booking/return': typeof BookingReturnRoute
   '/category/$': typeof CategorySplatRoute
   '/check-in/$token': typeof CheckInTokenRoute
+  '/check-in/success': typeof CheckInSuccessRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/feed/$': typeof FeedSplatRoute
   '/journal/$slug': typeof JournalSlugRoute
@@ -2158,6 +2167,7 @@ export interface FileRouteTypes {
     | '/booking/return'
     | '/category/$'
     | '/check-in/$token'
+    | '/check-in/success'
     | '/email/unsubscribe'
     | '/feed/$'
     | '/journal/$slug'
@@ -2373,6 +2383,7 @@ export interface FileRouteTypes {
     | '/booking/return'
     | '/category/$'
     | '/check-in/$token'
+    | '/check-in/success'
     | '/email/unsubscribe'
     | '/feed/$'
     | '/journal/$slug'
@@ -2583,6 +2594,7 @@ export interface FileRouteTypes {
     | '/booking/return'
     | '/category/$'
     | '/check-in/$token'
+    | '/check-in/success'
     | '/email/unsubscribe'
     | '/feed/$'
     | '/journal/$slug'
@@ -2800,6 +2812,7 @@ export interface RootRouteChildren {
   BookingReturnRoute: typeof BookingReturnRoute
   CategorySplatRoute: typeof CategorySplatRoute
   CheckInTokenRoute: typeof CheckInTokenRoute
+  CheckInSuccessRoute: typeof CheckInSuccessRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   FeedSplatRoute: typeof FeedSplatRoute
   PSlugRoute: typeof PSlugRoute
@@ -3246,6 +3259,13 @@ declare module '@tanstack/react-router' {
       path: '/email/unsubscribe'
       fullPath: '/email/unsubscribe'
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/check-in/success': {
+      id: '/check-in/success'
+      path: '/check-in/success'
+      fullPath: '/check-in/success'
+      preLoaderRoute: typeof CheckInSuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/check-in/$token': {
@@ -5006,6 +5026,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookingReturnRoute: BookingReturnRoute,
   CategorySplatRoute: CategorySplatRoute,
   CheckInTokenRoute: CheckInTokenRoute,
+  CheckInSuccessRoute: CheckInSuccessRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   FeedSplatRoute: FeedSplatRoute,
   PSlugRoute: PSlugRoute,
