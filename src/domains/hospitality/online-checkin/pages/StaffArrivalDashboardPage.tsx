@@ -29,7 +29,11 @@ export function StaffArrivalDashboardPage() {
   const query = useStaffArrivals(filters);
 
   const data = query.data as
-    | { arrivals: ArrivalListItem[]; summary: ArrivalsSummary; rooms: { id: string; name: string }[] }
+    | {
+        arrivals: ArrivalListItem[];
+        summary: ArrivalsSummary;
+        rooms: { id: string; name: string }[];
+      }
     | undefined;
   const summary = data?.summary;
 
