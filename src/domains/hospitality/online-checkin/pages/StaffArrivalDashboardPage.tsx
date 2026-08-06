@@ -137,7 +137,7 @@ export function StaffArrivalDashboardPage() {
                       al.severity === "danger"
                         ? "h-4 w-4 text-destructive"
                         : al.severity === "warn"
-                          ? "h-4 w-4 text-amber-600"
+                          ? "h-4 w-4 text-[color:var(--os-warn)]"
                           : "h-4 w-4 text-muted-foreground"
                     }
                   />

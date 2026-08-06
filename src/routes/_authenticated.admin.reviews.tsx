@@ -332,7 +332,7 @@ function ManualEntryPanel({
                     </button>
                     <button
                       onClick={() => { if (confirm("Delete this review permanently?")) onDelete(r.id); }}
-                      className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.18em] text-destructive hover:text-rose-900"
+                      className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.18em] text-destructive hover:text-[color:var(--os-danger)]"
                     >
                       <Trash2 className="h-3 w-3" /> Delete
                     </button>

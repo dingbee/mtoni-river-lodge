@@ -192,7 +192,7 @@ function SystemHealthPage() {
             <div key={item.label} className="flex items-center justify-between rounded-md border p-3 text-sm">
               <span className="flex items-center gap-2">
                 {item.ok ? (
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <CheckCircle2 className="h-4 w-4 text-[color:var(--os-success)]" />
                 ) : (
                   <AlertTriangle className="h-4 w-4 text-destructive" />
                 )}

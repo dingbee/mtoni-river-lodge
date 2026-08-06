@@ -44,7 +44,7 @@ function OverviewPage() {
               {recent.map((r) => (
                 <li key={r.id} className="flex items-center justify-between">
                   <span>{r.workflow?.name ?? r.trigger_event}</span>
-                  <span className={`text-xs ${r.status === "failed" ? "text-rose-600" : "text-muted-foreground"}`}>{r.status}</span>
+                  <span className={`text-xs ${r.status === "failed" ? "text-[color:var(--os-danger)]" : "text-muted-foreground"}`}>{r.status}</span>
                 </li>
               ))}
             </ul>

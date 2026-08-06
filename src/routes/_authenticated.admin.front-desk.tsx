@@ -166,7 +166,7 @@ function BookingCard({ booking, onClick }: { booking: any; onClick: () => void }
         <span className="font-mono">{booking.reference}</span>
       </div>
       {Number(booking.balance_amount) > 0 && (
-        <p className="text-xs mt-1 text-amber-700">Balance: {booking.currency} {booking.balance_amount}</p>
+        <p className="text-xs mt-1 text-[color:var(--os-warn)]">Balance: {booking.currency} {booking.balance_amount}</p>
       )}
     </button>
   )

@@ -57,7 +57,7 @@ function MaintenanceIntelligence() {
             {d.delayed.map((t: any) => (
               <li key={t.id} className="flex justify-between border-b py-1 last:border-0">
                 <span>{t.title}</span>
-                <span className="text-xs text-amber-600">{t.overdue_days}d overdue</span>
+                <span className="text-xs text-[color:var(--os-warn)]">{t.overdue_days}d overdue</span>
               </li>
             ))}
           </ul>

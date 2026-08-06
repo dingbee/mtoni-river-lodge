@@ -90,14 +90,14 @@ function scoreSeo(f: FormState): ScoreResult {
 }
 
 function scoreTone(score: number) {
-  if (score >= 85) return "text-emerald-600";
-  if (score >= 65) return "text-amber-600";
+  if (score >= 85) return "text-[color:var(--os-success)]";
+  if (score >= 65) return "text-[color:var(--os-warn)]";
   return "text-destructive";
 }
 
 function Counter({ value, min, max }: { value: string; min: number; max: number }) {
   const len = value.length;
-  const tone = len === 0 ? "text-muted-foreground" : len < min || len > max ? "text-amber-600" : "text-emerald-600";
+  const tone = len === 0 ? "text-muted-foreground" : len < min || len > max ? "text-[color:var(--os-warn)]" : "text-[color:var(--os-success)]";
   return <span className={`text-xs ${tone}`}>{len} chars · target {min}–{max}</span>;
 }
 
@@ -257,7 +257,7 @@ function SeoCentre() {
                       className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-between gap-2 ${isSel ? "bg-accent" : "hover:bg-accent/50"}`}
                     >
                       <span className="truncate font-mono">{o.route_path}</span>
-                      {missing && <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />}
+                      {missing && <AlertTriangle className="h-3.5 w-3.5 text-[color:var(--os-warn)] shrink-0" />}
                     </button>
                   </li>
                 );
@@ -412,7 +412,7 @@ function SeoCentre() {
                   <div className="rounded-md border p-4 bg-background">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1"><Search className="h-3 w-3" />Google</div>
                     <div className="text-[#1a0dab] text-lg leading-snug line-clamp-1">{form.title || "Untitled page"}</div>
-                    <div className="text-emerald-700 text-xs">{canonicalPreview}</div>
+                    <div className="text-[color:var(--os-success)] text-xs">{canonicalPreview}</div>
                     <div className="text-sm text-muted-foreground line-clamp-2 mt-1">{form.description || "No meta description set."}</div>
                   </div>
                   <div className="rounded-md border overflow-hidden">
@@ -434,8 +434,8 @@ function SeoCentre() {
             <ul className="space-y-1.5 text-sm">
               {scoreResult.issues.map((i, idx) => (
                 <li key={idx} className="flex items-start gap-2">
-                  {i.level === "ok" && <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5" />}
-                  {i.level === "warn" && <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5" />}
+                  {i.level === "ok" && <CheckCircle2 className="h-4 w-4 text-[color:var(--os-success)] mt-0.5" />}
+                  {i.level === "warn" && <AlertTriangle className="h-4 w-4 text-[color:var(--os-warn)] mt-0.5" />}
                   {i.level === "error" && <AlertTriangle className="h-4 w-4 text-destructive mt-0.5" />}
                   <span>{i.message}</span>
                 </li>

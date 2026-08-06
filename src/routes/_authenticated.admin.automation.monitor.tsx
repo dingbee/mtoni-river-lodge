@@ -43,10 +43,10 @@ function MonitorPage() {
             <li key={r.id} className="flex items-center justify-between gap-3 p-3 text-sm">
               <div className="min-w-0">
                 <div className="font-medium">{r.workflow?.name ?? r.trigger_event}</div>
-                <div className="text-xs text-muted-foreground">{r.trigger_event} · {new Date(r.started_at).toLocaleString()}{r.error && <> · <span className="text-rose-600">{r.error}</span></>}</div>
+                <div className="text-xs text-muted-foreground">{r.trigger_event} · {new Date(r.started_at).toLocaleString()}{r.error && <> · <span className="text-[color:var(--os-danger)]">{r.error}</span></>}</div>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`text-xs ${r.status === "failed" ? "text-rose-600" : r.status === "succeeded" ? "text-emerald-600" : "text-muted-foreground"}`}>{r.status}</span>
+                <span className={`text-xs ${r.status === "failed" ? "text-[color:var(--os-danger)]" : r.status === "succeeded" ? "text-[color:var(--os-success)]" : "text-muted-foreground"}`}>{r.status}</span>
                 {r.status === "failed" && <Button size="sm" variant="outline" onClick={() => m.mutate(r.id)}>Retry</Button>}
               </div>
             </li>

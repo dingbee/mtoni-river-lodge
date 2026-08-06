@@ -94,7 +94,7 @@ function CopyableUuid({ value }: { value: string }) {
               onClick={handleCopy}
               aria-label={copied ? "Copied" : "Copy User ID"}
             >
-              {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+              {copied ? <Check className="size-3 text-[color:var(--os-success)]" /> : <Copy className="size-3" />}
             </Button>
           </div>
         </TooltipTrigger>
@@ -117,9 +117,9 @@ const STATUS_LABEL: Record<StaffUser["status"], string> = {
   disabled: "Disabled",
 };
 const STATUS_TONE: Record<StaffUser["status"], string> = {
-  pending: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-300",
-  active: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-  disabled: "border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-300",
+  pending: "border-amber-500/40 bg-amber-500/10 text-[color:var(--os-warn)] dark:text-[color:var(--os-warn)]",
+  active: "border-emerald-500/40 bg-emerald-500/10 text-[color:var(--os-success)] dark:text-[color:var(--os-success)]",
+  disabled: "border-rose-500/40 bg-rose-500/10 text-[color:var(--os-danger)] dark:text-[color:var(--os-danger)]",
 };
 
 const INVITE_ROLE_OPTIONS: AppRole[] = [

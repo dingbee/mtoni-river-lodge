@@ -15,8 +15,8 @@ export const Route = createFileRoute("/_authenticated/admin/ai/executive/risks")
 const sevColor: Record<string, string> = {
   critical: "bg-red-500/10 text-red-600 border-red-500/20",
   high: "bg-orange-500/10 text-orange-600 border-orange-500/20",
-  medium: "bg-amber-500/10 text-amber-700 border-amber-500/20",
-  low: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
+  medium: "bg-amber-500/10 text-[color:var(--os-warn)] border-amber-500/20",
+  low: "bg-emerald-500/10 text-[color:var(--os-success)] border-emerald-500/20",
 };
 
 function Page() {

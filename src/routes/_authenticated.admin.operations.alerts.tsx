@@ -46,7 +46,7 @@ function AlertsPage() {
             <li key={a.id} className="rounded-lg border bg-card p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-2">
-                  <AlertTriangle className={`mt-0.5 size-4 ${a.severity === "warn" ? "text-amber-600" : "text-rose-600"}`} />
+                  <AlertTriangle className={`mt-0.5 size-4 ${a.severity === "warn" ? "text-[color:var(--os-warn)]" : "text-[color:var(--os-danger)]"}`} />
                   <div>
                     <div className="text-sm font-medium">{a.kind.replace(/_/g, " ")}</div>
                     <div className="text-sm text-muted-foreground">{a.message}</div>
