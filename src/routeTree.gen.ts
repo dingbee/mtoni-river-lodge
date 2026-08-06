@@ -171,6 +171,7 @@ import { Route as AuthenticatedAdminAiCopilotRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminAiConciergeRouteImport } from './routes/_authenticated.admin.ai.concierge'
 import { Route as AuthenticatedAdminAiAuditRouteImport } from './routes/_authenticated.admin.ai.audit'
 import { Route as AuthenticatedAdminAiActivityRouteImport } from './routes/_authenticated.admin.ai.activity'
+import { Route as AuthenticatedAdminOperationsArrivalsIndexRouteImport } from './routes/_authenticated.admin.operations.arrivals.index'
 import { Route as AuthenticatedAdminContentPagesIndexRouteImport } from './routes/_authenticated.admin.content.pages.index'
 import { Route as AuthenticatedAdminContentJournalIndexRouteImport } from './routes/_authenticated.admin.content.journal.index'
 import { Route as AuthenticatedAdminAiRevenueIndexRouteImport } from './routes/_authenticated.admin.ai.revenue.index'
@@ -1138,6 +1139,12 @@ const AuthenticatedAdminAiActivityRoute =
     path: '/activity',
     getParentRoute: () => AuthenticatedAdminAiRoute,
   } as any)
+const AuthenticatedAdminOperationsArrivalsIndexRoute =
+  AuthenticatedAdminOperationsArrivalsIndexRouteImport.update({
+    id: '/arrivals/',
+    path: '/arrivals/',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
 const AuthenticatedAdminContentPagesIndexRoute =
   AuthenticatedAdminContentPagesIndexRouteImport.update({
     id: '/content/pages/',
@@ -1698,6 +1705,7 @@ export interface FileRoutesByFullPath {
   '/admin/ai/revenue/': typeof AuthenticatedAdminAiRevenueIndexRoute
   '/admin/content/journal/': typeof AuthenticatedAdminContentJournalIndexRoute
   '/admin/content/pages/': typeof AuthenticatedAdminContentPagesIndexRoute
+  '/admin/operations/arrivals/': typeof AuthenticatedAdminOperationsArrivalsIndexRoute
   '/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
   '/admin/content/pages/$id/': typeof AuthenticatedAdminContentPagesIdIndexRoute
 }
@@ -1906,6 +1914,7 @@ export interface FileRoutesByTo {
   '/admin/ai/revenue': typeof AuthenticatedAdminAiRevenueIndexRoute
   '/admin/content/journal': typeof AuthenticatedAdminContentJournalIndexRoute
   '/admin/content/pages': typeof AuthenticatedAdminContentPagesIndexRoute
+  '/admin/operations/arrivals': typeof AuthenticatedAdminOperationsArrivalsIndexRoute
   '/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
   '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdIndexRoute
 }
@@ -2128,6 +2137,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/ai/revenue/': typeof AuthenticatedAdminAiRevenueIndexRoute
   '/_authenticated/admin/content/journal/': typeof AuthenticatedAdminContentJournalIndexRoute
   '/_authenticated/admin/content/pages/': typeof AuthenticatedAdminContentPagesIndexRoute
+  '/_authenticated/admin/operations/arrivals/': typeof AuthenticatedAdminOperationsArrivalsIndexRoute
   '/_authenticated/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
   '/_authenticated/admin/content/pages/$id/': typeof AuthenticatedAdminContentPagesIdIndexRoute
 }
@@ -2350,6 +2360,7 @@ export interface FileRouteTypes {
     | '/admin/ai/revenue/'
     | '/admin/content/journal/'
     | '/admin/content/pages/'
+    | '/admin/operations/arrivals/'
     | '/admin/content/pages/$id/preview'
     | '/admin/content/pages/$id/'
   fileRoutesByTo: FileRoutesByTo
@@ -2558,6 +2569,7 @@ export interface FileRouteTypes {
     | '/admin/ai/revenue'
     | '/admin/content/journal'
     | '/admin/content/pages'
+    | '/admin/operations/arrivals'
     | '/admin/content/pages/$id/preview'
     | '/admin/content/pages/$id'
   id:
@@ -2779,6 +2791,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/ai/revenue/'
     | '/_authenticated/admin/content/journal/'
     | '/_authenticated/admin/content/pages/'
+    | '/_authenticated/admin/operations/arrivals/'
     | '/_authenticated/admin/content/pages/$id/preview'
     | '/_authenticated/admin/content/pages/$id/'
   fileRoutesById: FileRoutesById
@@ -3988,6 +4001,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiActivityRouteImport
       parentRoute: typeof AuthenticatedAdminAiRoute
     }
+    '/_authenticated/admin/operations/arrivals/': {
+      id: '/_authenticated/admin/operations/arrivals/'
+      path: '/arrivals'
+      fullPath: '/admin/operations/arrivals/'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsArrivalsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
     '/_authenticated/admin/content/pages/': {
       id: '/_authenticated/admin/content/pages/'
       path: '/content/pages'
@@ -4759,6 +4779,7 @@ interface AuthenticatedAdminOperationsRouteChildren {
   AuthenticatedAdminOperationsCheckinIdRoute: typeof AuthenticatedAdminOperationsCheckinIdRoute
   AuthenticatedAdminOperationsCheckoutIdRoute: typeof AuthenticatedAdminOperationsCheckoutIdRoute
   AuthenticatedAdminOperationsReservationsIdRoute: typeof AuthenticatedAdminOperationsReservationsIdRoute
+  AuthenticatedAdminOperationsArrivalsIndexRoute: typeof AuthenticatedAdminOperationsArrivalsIndexRoute
 }
 
 const AuthenticatedAdminOperationsRouteChildren: AuthenticatedAdminOperationsRouteChildren =
@@ -4783,6 +4804,8 @@ const AuthenticatedAdminOperationsRouteChildren: AuthenticatedAdminOperationsRou
       AuthenticatedAdminOperationsCheckoutIdRoute,
     AuthenticatedAdminOperationsReservationsIdRoute:
       AuthenticatedAdminOperationsReservationsIdRoute,
+    AuthenticatedAdminOperationsArrivalsIndexRoute:
+      AuthenticatedAdminOperationsArrivalsIndexRoute,
   }
 
 const AuthenticatedAdminOperationsRouteWithChildren =
