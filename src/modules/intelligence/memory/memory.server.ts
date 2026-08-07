@@ -19,6 +19,7 @@ export async function remember(supabase: Sb, userId: string, input: RememberInpu
     memory_key: input.memoryKey,
     memory_value: input.memoryValue,
     memory_type: input.memoryType,
+    memory_tier: input.memoryTier,
     confidence: input.confidence,
     source: input.source,
     source_event_id: input.sourceEventId ?? null,
@@ -58,6 +59,7 @@ export async function recall(supabase: Sb, userId: string, input: RecallInput) {
   if (input.scope) q = q.eq("scope", input.scope);
   if (input.scopeId) q = q.eq("scope_id", input.scopeId);
   if (input.module) q = q.eq("module", input.module);
+  if (input.memoryTier) q = q.eq("memory_tier", input.memoryTier);
   if (input.status) q = q.eq("status", input.status);
   else if (input.approvedOnly) q = q.eq("status", "accepted");
   const { data, error } = await q;
