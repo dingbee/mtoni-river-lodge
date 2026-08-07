@@ -27,6 +27,16 @@ export {
   scoreIntelligencePrediction,
 } from "./predictions/predictions.functions";
 export {
+  prepareIntelligenceActions,
+  getIntelligenceActionBoard,
+  governIntelligenceAction,
+  executeIntelligenceAction,
+  verifyIntelligenceAction,
+  measureIntelligenceOutcomes,
+  getIntelligenceOutcomeBoard,
+} from "./orchestration/orchestration.functions";
+export * from "./orchestration/orchestration.types";
+export {
   proposeIntelligenceAction,
   listIntelligenceActions,
   transitionIntelligenceAction,

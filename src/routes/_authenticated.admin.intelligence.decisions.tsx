@@ -15,6 +15,7 @@ import {
   runDecisionPassFn,
   updatePlanStepFn,
 } from "@/modules/intelligence/decisions/decision.functions";
+import { prepareIntelligenceActions } from "@/modules/intelligence/orchestration/orchestration.functions";
 import {
   DECISION_DOMAIN_LABEL,
   type Decision,
@@ -127,12 +128,14 @@ function DecisionCard({
   stored,
   onDecide,
   onStep,
+  onPrepare,
   busy,
 }: {
   d: Decision | StoredDecision;
   stored: StoredDecision | null;
   onDecide: (v: { id: string; decision: "approved" | "rejected" | "completed" }) => void;
   onStep: (v: { stepId: string; status: "done" | "in_progress" }) => void;
+  onPrepare: (decisionId: string) => void;
   busy: boolean;
 }) {
   const rec = d.options.find((o) => o.option.key === d.recommendedOptionKey) ?? null;
@@ -217,9 +220,14 @@ function DecisionCard({
             </>
           )}
           {stored.status === "approved" && (
-            <Button size="sm" variant="secondary" disabled={busy} onClick={() => onDecide({ id: stored.id, decision: "completed" })}>
-              Record outcome as completed
-            </Button>
+            <>
+              <Button size="sm" disabled={busy} onClick={() => onPrepare(stored.id)}>
+                Prepare execution
+              </Button>
+              <Button size="sm" variant="secondary" disabled={busy} onClick={() => onDecide({ id: stored.id, decision: "completed" })}>
+                Record outcome as completed
+              </Button>
+            </>
           )}
         </div>
       )}
@@ -234,6 +242,7 @@ function DecisionsPage() {
   const passFn = useServerFn(runDecisionPassFn);
   const decideFn = useServerFn(decideDecisionFn);
   const stepFn = useServerFn(updatePlanStepFn);
+  const prepareFn = useServerFn(prepareIntelligenceActions);
 
   const q = useQuery({
     queryKey: ["intel.decisions", horizon],
@@ -266,9 +275,22 @@ function DecisionsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const prepare = useMutation({
+    mutationFn: (decisionId: string) => prepareFn({ data: { decisionId } }),
+    onSuccess: (r) => {
+      toast.success(
+        r.created === 0
+          ? "Every plan step already has an action on the execution board."
+          : `${r.created} action(s) prepared for approval${r.skipped ? ` · ${r.skipped} already existed` : ""}.`,
+      );
+      qc.invalidateQueries({ queryKey: ["intel.actions"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const board = q.data;
   const storedByKey = new Map((board?.stored ?? []).map((s) => [s.key, s]));
-  const busy = decide.isPending || step.isPending;
+  const busy = decide.isPending || step.isPending || prepare.isPending;
 
   return (
     <div className="space-y-4">
@@ -320,6 +342,7 @@ function DecisionsPage() {
                 stored={storedByKey.get(d.key) ?? null}
                 onDecide={(v) => decide.mutate(v)}
                 onStep={(v) => step.mutate(v)}
+                onPrepare={(id) => prepare.mutate(id)}
                 busy={busy}
               />
             ))
