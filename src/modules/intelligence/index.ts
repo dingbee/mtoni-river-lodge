@@ -47,3 +47,7 @@ export {
   getIntelligenceTimelineFn,
   getIntelligenceHealthFn,
 } from "./activation/activation.functions";
+
+/* Sprint 3 — Context Intelligence layer */
+export * from "./context/context.types";
+export { getBusinessContextFn } from "./context/context.functions";
