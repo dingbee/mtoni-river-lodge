@@ -5348,6 +5348,126 @@ export type Database = {
           },
         ]
       }
+      intelligence_decisions: {
+        Row: {
+          action_id: string | null
+          assumptions: string[]
+          confidence: number
+          constraints: Json
+          context: Json
+          created_at: string
+          criteria_weights: Json
+          decided_at: string | null
+          decided_by: string | null
+          decision_key: string
+          decision_note: string | null
+          domain: string
+          evidence: Json
+          expected_outcomes: Json
+          id: string
+          insight_ids: string[]
+          module: Database["public"]["Enums"]["intel_module"]
+          options: Json
+          outcome: Json | null
+          prediction_ids: string[]
+          reasoning: Json
+          reasoning_sources: string[]
+          recommendation_id: string | null
+          recommended_option_key: string | null
+          requires_approval: boolean
+          risk_level: Database["public"]["Enums"]["intel_severity"]
+          risks: string[]
+          status: string
+          title: string
+          trigger: string
+          uncertainties: string[]
+          updated_at: string
+        }
+        Insert: {
+          action_id?: string | null
+          assumptions?: string[]
+          confidence?: number
+          constraints?: Json
+          context?: Json
+          created_at?: string
+          criteria_weights?: Json
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_key: string
+          decision_note?: string | null
+          domain: string
+          evidence?: Json
+          expected_outcomes?: Json
+          id?: string
+          insight_ids?: string[]
+          module: Database["public"]["Enums"]["intel_module"]
+          options?: Json
+          outcome?: Json | null
+          prediction_ids?: string[]
+          reasoning?: Json
+          reasoning_sources?: string[]
+          recommendation_id?: string | null
+          recommended_option_key?: string | null
+          requires_approval?: boolean
+          risk_level?: Database["public"]["Enums"]["intel_severity"]
+          risks?: string[]
+          status?: string
+          title: string
+          trigger: string
+          uncertainties?: string[]
+          updated_at?: string
+        }
+        Update: {
+          action_id?: string | null
+          assumptions?: string[]
+          confidence?: number
+          constraints?: Json
+          context?: Json
+          created_at?: string
+          criteria_weights?: Json
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_key?: string
+          decision_note?: string | null
+          domain?: string
+          evidence?: Json
+          expected_outcomes?: Json
+          id?: string
+          insight_ids?: string[]
+          module?: Database["public"]["Enums"]["intel_module"]
+          options?: Json
+          outcome?: Json | null
+          prediction_ids?: string[]
+          reasoning?: Json
+          reasoning_sources?: string[]
+          recommendation_id?: string | null
+          recommended_option_key?: string | null
+          requires_approval?: boolean
+          risk_level?: Database["public"]["Enums"]["intel_severity"]
+          risks?: string[]
+          status?: string
+          title?: string
+          trigger?: string
+          uncertainties?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_decisions_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intelligence_decisions_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_recommendations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       intelligence_events: {
         Row: {
           actor_id: string | null
@@ -5601,6 +5721,103 @@ export type Database = {
             columns: ["source_event_id"]
             isOneToOne: false
             referencedRelation: "intelligence_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intelligence_plan_steps: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          depends_on: number | null
+          expected_outcome: string | null
+          id: string
+          module: Database["public"]["Enums"]["intel_module"]
+          note: string | null
+          objective: string
+          plan_id: string
+          requires_approval: boolean
+          responsible_role: string | null
+          sequence: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          depends_on?: number | null
+          expected_outcome?: string | null
+          id?: string
+          module: Database["public"]["Enums"]["intel_module"]
+          note?: string | null
+          objective: string
+          plan_id: string
+          requires_approval?: boolean
+          responsible_role?: string | null
+          sequence: number
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          depends_on?: number | null
+          expected_outcome?: string | null
+          id?: string
+          module?: Database["public"]["Enums"]["intel_module"]
+          note?: string | null
+          objective?: string
+          plan_id?: string
+          requires_approval?: boolean
+          responsible_role?: string | null
+          sequence?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_plan_steps_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intelligence_plans: {
+        Row: {
+          created_at: string
+          decision_id: string
+          id: string
+          objective: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decision_id: string
+          id?: string
+          objective: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decision_id?: string
+          id?: string
+          objective?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_plans_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_decisions"
             referencedColumns: ["id"]
           },
         ]

@@ -129,6 +129,7 @@ import { Route as AuthenticatedAdminMarketingAnalyticsRouteImport } from './rout
 import { Route as AuthenticatedAdminMarketingAiAssistantRouteImport } from './routes/_authenticated.admin.marketing.ai-assistant'
 import { Route as AuthenticatedAdminIntelligenceHealthRouteImport } from './routes/_authenticated.admin.intelligence.health'
 import { Route as AuthenticatedAdminIntelligenceForecastRouteImport } from './routes/_authenticated.admin.intelligence.forecast'
+import { Route as AuthenticatedAdminIntelligenceDecisionsRouteImport } from './routes/_authenticated.admin.intelligence.decisions'
 import { Route as AuthenticatedAdminIntelligenceContextRouteImport } from './routes/_authenticated.admin.intelligence.context'
 import { Route as AuthenticatedAdminGuestsMessagesRouteImport } from './routes/_authenticated.admin.guests.messages'
 import { Route as AuthenticatedAdminGuestsCrmRouteImport } from './routes/_authenticated.admin.guests.crm'
@@ -892,6 +893,12 @@ const AuthenticatedAdminIntelligenceForecastRoute =
   AuthenticatedAdminIntelligenceForecastRouteImport.update({
     id: '/forecast',
     path: '/forecast',
+    getParentRoute: () => AuthenticatedAdminIntelligenceRoute,
+  } as any)
+const AuthenticatedAdminIntelligenceDecisionsRoute =
+  AuthenticatedAdminIntelligenceDecisionsRouteImport.update({
+    id: '/decisions',
+    path: '/decisions',
     getParentRoute: () => AuthenticatedAdminIntelligenceRoute,
   } as any)
 const AuthenticatedAdminIntelligenceContextRoute =
@@ -1674,6 +1681,7 @@ export interface FileRoutesByFullPath {
   '/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
   '/admin/intelligence/context': typeof AuthenticatedAdminIntelligenceContextRoute
+  '/admin/intelligence/decisions': typeof AuthenticatedAdminIntelligenceDecisionsRoute
   '/admin/intelligence/forecast': typeof AuthenticatedAdminIntelligenceForecastRoute
   '/admin/intelligence/health': typeof AuthenticatedAdminIntelligenceHealthRoute
   '/admin/marketing/ai-assistant': typeof AuthenticatedAdminMarketingAiAssistantRoute
@@ -1890,6 +1898,7 @@ export interface FileRoutesByTo {
   '/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
   '/admin/intelligence/context': typeof AuthenticatedAdminIntelligenceContextRoute
+  '/admin/intelligence/decisions': typeof AuthenticatedAdminIntelligenceDecisionsRoute
   '/admin/intelligence/forecast': typeof AuthenticatedAdminIntelligenceForecastRoute
   '/admin/intelligence/health': typeof AuthenticatedAdminIntelligenceHealthRoute
   '/admin/marketing/ai-assistant': typeof AuthenticatedAdminMarketingAiAssistantRoute
@@ -2121,6 +2130,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/_authenticated/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
   '/_authenticated/admin/intelligence/context': typeof AuthenticatedAdminIntelligenceContextRoute
+  '/_authenticated/admin/intelligence/decisions': typeof AuthenticatedAdminIntelligenceDecisionsRoute
   '/_authenticated/admin/intelligence/forecast': typeof AuthenticatedAdminIntelligenceForecastRoute
   '/_authenticated/admin/intelligence/health': typeof AuthenticatedAdminIntelligenceHealthRoute
   '/_authenticated/admin/marketing/ai-assistant': typeof AuthenticatedAdminMarketingAiAssistantRoute
@@ -2352,6 +2362,7 @@ export interface FileRouteTypes {
     | '/admin/guests/crm'
     | '/admin/guests/messages'
     | '/admin/intelligence/context'
+    | '/admin/intelligence/decisions'
     | '/admin/intelligence/forecast'
     | '/admin/intelligence/health'
     | '/admin/marketing/ai-assistant'
@@ -2568,6 +2579,7 @@ export interface FileRouteTypes {
     | '/admin/guests/crm'
     | '/admin/guests/messages'
     | '/admin/intelligence/context'
+    | '/admin/intelligence/decisions'
     | '/admin/intelligence/forecast'
     | '/admin/intelligence/health'
     | '/admin/marketing/ai-assistant'
@@ -2798,6 +2810,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/guests/crm'
     | '/_authenticated/admin/guests/messages'
     | '/_authenticated/admin/intelligence/context'
+    | '/_authenticated/admin/intelligence/decisions'
     | '/_authenticated/admin/intelligence/forecast'
     | '/_authenticated/admin/intelligence/health'
     | '/_authenticated/admin/marketing/ai-assistant'
@@ -3807,6 +3820,13 @@ declare module '@tanstack/react-router' {
       path: '/forecast'
       fullPath: '/admin/intelligence/forecast'
       preLoaderRoute: typeof AuthenticatedAdminIntelligenceForecastRouteImport
+      parentRoute: typeof AuthenticatedAdminIntelligenceRoute
+    }
+    '/_authenticated/admin/intelligence/decisions': {
+      id: '/_authenticated/admin/intelligence/decisions'
+      path: '/decisions'
+      fullPath: '/admin/intelligence/decisions'
+      preLoaderRoute: typeof AuthenticatedAdminIntelligenceDecisionsRouteImport
       parentRoute: typeof AuthenticatedAdminIntelligenceRoute
     }
     '/_authenticated/admin/intelligence/context': {
@@ -4928,6 +4948,7 @@ const AuthenticatedAdminAutomationRouteWithChildren =
 
 interface AuthenticatedAdminIntelligenceRouteChildren {
   AuthenticatedAdminIntelligenceContextRoute: typeof AuthenticatedAdminIntelligenceContextRoute
+  AuthenticatedAdminIntelligenceDecisionsRoute: typeof AuthenticatedAdminIntelligenceDecisionsRoute
   AuthenticatedAdminIntelligenceForecastRoute: typeof AuthenticatedAdminIntelligenceForecastRoute
   AuthenticatedAdminIntelligenceHealthRoute: typeof AuthenticatedAdminIntelligenceHealthRoute
   AuthenticatedAdminIntelligenceIndexRoute: typeof AuthenticatedAdminIntelligenceIndexRoute
@@ -4937,6 +4958,8 @@ const AuthenticatedAdminIntelligenceRouteChildren: AuthenticatedAdminIntelligenc
   {
     AuthenticatedAdminIntelligenceContextRoute:
       AuthenticatedAdminIntelligenceContextRoute,
+    AuthenticatedAdminIntelligenceDecisionsRoute:
+      AuthenticatedAdminIntelligenceDecisionsRoute,
     AuthenticatedAdminIntelligenceForecastRoute:
       AuthenticatedAdminIntelligenceForecastRoute,
     AuthenticatedAdminIntelligenceHealthRoute:
