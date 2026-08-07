@@ -55,3 +55,12 @@ export { getBusinessContextFn } from "./context/context.functions";
 /* Sprint 4 — Predictive Intelligence layer */
 export * from "./predictions/forecast.types";
 export { getForecastBoardFn, runForecastPassFn } from "./predictions/forecast.functions";
+
+/* Sprint 5 — Decision & Planning Intelligence layer */
+export * from "./decisions/decision.types";
+export {
+  getDecisionBoardFn,
+  runDecisionPassFn,
+  decideDecisionFn,
+  updatePlanStepFn,
+} from "./decisions/decision.functions";
