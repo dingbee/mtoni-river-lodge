@@ -61,6 +61,8 @@ function money(value: unknown, currency = "TZS") {
   return `${currency} ${Number(value ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 }
 
+const PRODUCT_TABS = ["recipes", "products", "production", "evidence"];
+
 function ProductRecipeCentre() {
   const ws = useRestaurantWorkspace();
   const tenantId = ws.data?.tenant?.id;
