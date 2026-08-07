@@ -5274,71 +5274,134 @@ export type Database = {
       intelligence_actions: {
         Row: {
           action_type: string
+          adapter: string | null
           approved_at: string | null
           approved_by: string | null
           automated: boolean
+          capability: string | null
+          completed_at: string | null
+          context_snapshot: Json
+          context_status: string
           created_at: string
+          decision_id: string | null
           dedupe_key: string | null
           entity_id: string | null
           entity_type: string | null
           error_message: string | null
           executed_at: string | null
+          execution_key: string | null
+          execution_reference: string | null
           id: string
+          max_retries: number
           module: Database["public"]["Enums"]["intel_module"]
           payload: Json
+          plan_id: string | null
+          plan_step_id: string | null
           recommendation_id: string | null
           requested_by: string | null
           requires_approval: boolean
           result: Json
+          retry_count: number
+          risk_level: Database["public"]["Enums"]["intel_severity"]
+          started_at: string | null
           status: Database["public"]["Enums"]["intel_action_status"]
           title: string | null
           updated_at: string
         }
         Insert: {
           action_type: string
+          adapter?: string | null
           approved_at?: string | null
           approved_by?: string | null
           automated?: boolean
+          capability?: string | null
+          completed_at?: string | null
+          context_snapshot?: Json
+          context_status?: string
           created_at?: string
+          decision_id?: string | null
           dedupe_key?: string | null
           entity_id?: string | null
           entity_type?: string | null
           error_message?: string | null
           executed_at?: string | null
+          execution_key?: string | null
+          execution_reference?: string | null
           id?: string
+          max_retries?: number
           module: Database["public"]["Enums"]["intel_module"]
           payload?: Json
+          plan_id?: string | null
+          plan_step_id?: string | null
           recommendation_id?: string | null
           requested_by?: string | null
           requires_approval?: boolean
           result?: Json
+          retry_count?: number
+          risk_level?: Database["public"]["Enums"]["intel_severity"]
+          started_at?: string | null
           status?: Database["public"]["Enums"]["intel_action_status"]
           title?: string | null
           updated_at?: string
         }
         Update: {
           action_type?: string
+          adapter?: string | null
           approved_at?: string | null
           approved_by?: string | null
           automated?: boolean
+          capability?: string | null
+          completed_at?: string | null
+          context_snapshot?: Json
+          context_status?: string
           created_at?: string
+          decision_id?: string | null
           dedupe_key?: string | null
           entity_id?: string | null
           entity_type?: string | null
           error_message?: string | null
           executed_at?: string | null
+          execution_key?: string | null
+          execution_reference?: string | null
           id?: string
+          max_retries?: number
           module?: Database["public"]["Enums"]["intel_module"]
           payload?: Json
+          plan_id?: string | null
+          plan_step_id?: string | null
           recommendation_id?: string | null
           requested_by?: string | null
           requires_approval?: boolean
           result?: Json
+          retry_count?: number
+          risk_level?: Database["public"]["Enums"]["intel_severity"]
+          started_at?: string | null
           status?: Database["public"]["Enums"]["intel_action_status"]
           title?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "intelligence_actions_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intelligence_actions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intelligence_actions_plan_step_id_fkey"
+            columns: ["plan_step_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_plan_steps"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "intelligence_actions_recommendation_id_fkey"
             columns: ["recommendation_id"]
@@ -5363,6 +5426,7 @@ export type Database = {
           decision_note: string | null
           domain: string
           evidence: Json
+          expected_metrics: Json
           expected_outcomes: Json
           id: string
           insight_ids: string[]
@@ -5397,6 +5461,7 @@ export type Database = {
           decision_note?: string | null
           domain: string
           evidence?: Json
+          expected_metrics?: Json
           expected_outcomes?: Json
           id?: string
           insight_ids?: string[]
@@ -5431,6 +5496,7 @@ export type Database = {
           decision_note?: string | null
           domain?: string
           evidence?: Json
+          expected_metrics?: Json
           expected_outcomes?: Json
           id?: string
           insight_ids?: string[]
@@ -5521,6 +5587,71 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      intelligence_executions: {
+        Row: {
+          action_id: string
+          adapter: string
+          attempt: number
+          capability: string
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          execution_key: string
+          execution_reference: string | null
+          id: string
+          module: Database["public"]["Enums"]["intel_module"]
+          request: Json
+          requested_by: string | null
+          response: Json
+          started_at: string
+          status: string
+        }
+        Insert: {
+          action_id: string
+          adapter: string
+          attempt?: number
+          capability: string
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          execution_key: string
+          execution_reference?: string | null
+          id?: string
+          module: Database["public"]["Enums"]["intel_module"]
+          request?: Json
+          requested_by?: string | null
+          response?: Json
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          action_id?: string
+          adapter?: string
+          attempt?: number
+          capability?: string
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          execution_key?: string
+          execution_reference?: string | null
+          id?: string
+          module?: Database["public"]["Enums"]["intel_module"]
+          request?: Json
+          requested_by?: string | null
+          response?: Json
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_executions_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_actions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       intelligence_feedback: {
         Row: {
@@ -5721,6 +5852,103 @@ export type Database = {
             columns: ["source_event_id"]
             isOneToOne: false
             referencedRelation: "intelligence_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intelligence_outcomes: {
+        Row: {
+          achievement: number | null
+          action_id: string | null
+          actual_value: number | null
+          baseline_value: number | null
+          comparator: string
+          created_at: string
+          decision_id: string
+          evidence: Json
+          id: string
+          label: string
+          measure_after: string | null
+          measured_at: string | null
+          metric_key: string
+          module: Database["public"]["Enums"]["intel_module"]
+          note: string | null
+          plan_id: string | null
+          result: string
+          target_value: number | null
+          unit: string | null
+          updated_at: string
+          variance: number | null
+          verification_status: string
+        }
+        Insert: {
+          achievement?: number | null
+          action_id?: string | null
+          actual_value?: number | null
+          baseline_value?: number | null
+          comparator?: string
+          created_at?: string
+          decision_id: string
+          evidence?: Json
+          id?: string
+          label: string
+          measure_after?: string | null
+          measured_at?: string | null
+          metric_key: string
+          module: Database["public"]["Enums"]["intel_module"]
+          note?: string | null
+          plan_id?: string | null
+          result?: string
+          target_value?: number | null
+          unit?: string | null
+          updated_at?: string
+          variance?: number | null
+          verification_status?: string
+        }
+        Update: {
+          achievement?: number | null
+          action_id?: string | null
+          actual_value?: number | null
+          baseline_value?: number | null
+          comparator?: string
+          created_at?: string
+          decision_id?: string
+          evidence?: Json
+          id?: string
+          label?: string
+          measure_after?: string | null
+          measured_at?: string | null
+          metric_key?: string
+          module?: Database["public"]["Enums"]["intel_module"]
+          note?: string | null
+          plan_id?: string | null
+          result?: string
+          target_value?: number | null
+          unit?: string | null
+          updated_at?: string
+          variance?: number | null
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_outcomes_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intelligence_outcomes_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intelligence_outcomes_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -8251,6 +8479,11 @@ export type Database = {
         | "completed"
         | "failed"
         | "cancelled"
+        | "draft"
+        | "pending_approval"
+        | "queued"
+        | "rejected"
+        | "expired"
       intel_memory_scope:
         | "guest"
         | "reservation"
@@ -8538,6 +8771,11 @@ export const Constants = {
         "completed",
         "failed",
         "cancelled",
+        "draft",
+        "pending_approval",
+        "queued",
+        "rejected",
+        "expired",
       ],
       intel_memory_scope: [
         "guest",
