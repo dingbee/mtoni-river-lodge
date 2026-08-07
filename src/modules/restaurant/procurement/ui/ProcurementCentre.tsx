@@ -60,10 +60,12 @@ function Row({ children }: { children: React.ReactNode }) {
   return <li className="flex flex-wrap items-center justify-between gap-3 py-3 min-h-14">{children}</li>;
 }
 
-export function ProcurementCentre() {
+export function ProcurementCentre({ initialTab }: { initialTab?: string } = {}) {
   const ws = useRestaurantWorkspace();
   const tenantId = ws.data?.tenant?.id;
-  const [tab, setTab] = useState<TabId>("overview");
+  const [tab, setTab] = useState<TabId>(
+    (TABS.some((t) => t.id === initialTab) ? (initialTab as TabId) : "overview"),
+  );
 
   return (
     <div className="space-y-4">
