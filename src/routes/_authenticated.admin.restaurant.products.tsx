@@ -29,6 +29,9 @@ import {
 import { ChefHat, Factory, Package, TrendingUp } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/restaurant/products")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: typeof search.tab === "string" ? search.tab : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Products & Recipes — Restaurant & Bar OS" },
@@ -58,10 +61,13 @@ function money(value: unknown, currency = "TZS") {
   return `${currency} ${Number(value ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 }
 
+const PRODUCT_TABS = ["recipes", "products", "production", "evidence"];
+
 function ProductRecipeCentre() {
   const ws = useRestaurantWorkspace();
   const tenantId = ws.data?.tenant?.id;
   const qc = useQueryClient();
+  const { tab: searchTab } = Route.useSearch();
 
   const recipesFn = useServerFn(listRestaurantRecipesFn);
   const productsFn = useServerFn(listRestaurantProductsFn);
@@ -186,7 +192,7 @@ function ProductRecipeCentre() {
         />
       </div>
 
-      <Tabs defaultValue="recipes">
+      <Tabs defaultValue={PRODUCT_TABS.includes(searchTab ?? "") ? (searchTab as string) : "recipes"}>
         <TabsList>
           <TabsTrigger value="recipes">Recipes</TabsTrigger>
           <TabsTrigger value="products">Products</TabsTrigger>
