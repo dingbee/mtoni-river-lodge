@@ -231,15 +231,12 @@ function RequestsTab({ tenantId }: { tenantId: string }) {
     onSuccess: invalidate,
   });
 
+  // Converting a request needs a supplier; the performance list is the tenant's supplier set.
+  const fnPerf = useServerFn(restaurantSupplierPerformanceFn);
   const suppliersQuery = useQuery({
     queryKey: ["restaurant.procurement.performance", tenantId, 90],
-    queryFn: () => useServerFnPerformance(tenantId),
+    queryFn: () => fnPerf({ data: { tenantId, sinceDays: 90 } }),
   });
-
-  const fnPerf = useServerFn(restaurantSupplierPerformanceFn);
-  function useServerFnPerformance(t: string) {
-    return fnPerf({ data: { tenantId: t, sinceDays: 90 } });
-  }
   const firstSupplier = (suppliersQuery.data as any[] | undefined)?.[0]?.supplierId as string | undefined;
 
   return (

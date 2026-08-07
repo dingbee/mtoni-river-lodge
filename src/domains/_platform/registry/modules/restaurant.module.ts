@@ -1,4 +1,4 @@
-import { UtensilsCrossed, BookOpen, Boxes, Truck, ShoppingCart, Calculator, Settings2, Receipt, ChefHat, ArrowLeftRight, PiggyBank } from "lucide-react";
+import { ClipboardCheck, UtensilsCrossed, BookOpen, Boxes, Truck, ShoppingCart, Calculator, Settings2, Receipt, ChefHat, ArrowLeftRight, PiggyBank } from "lucide-react";
 import { defineModule } from "../registry";
 
 const ROLES = ["owner", "manager", "finance"] as const;
@@ -139,6 +139,19 @@ export const restaurantProfitabilityModule = defineModule({
   route: "/admin/restaurant/profitability",
   parentId: "restaurant",
   order: 55,
+  requiredRoles: [...ROLES],
+  featureFlag: "restaurant_os",
+  status: "beta",
+});
+
+export const restaurantProcurementModule = defineModule({
+  id: "restaurant.procurement",
+  name: "Procurement Centre",
+  description: "Requests, approvals, receiving, variances and supplier invoices",
+  icon: ClipboardCheck,
+  route: "/admin/restaurant/procurement",
+  parentId: "restaurant",
+  order: 45,
   requiredRoles: [...ROLES],
   featureFlag: "restaurant_os",
   status: "beta",
