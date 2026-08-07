@@ -37,6 +37,7 @@ const TABS = [
   { to: "/admin/restaurant/costing", label: "Costing", icon: Calculator },
   { to: "/admin/restaurant/profitability", label: "Profitability", icon: PiggyBank },
   { to: "/admin/restaurant/intelligence", label: "Intelligence", icon: Brain },
+  { to: "/admin/restaurant/decisions", label: "Decisions", icon: Scale },
   { to: "/admin/restaurant/settings", label: "Settings", icon: Settings2 },
 ] as const;
 
