@@ -1,4 +1,4 @@
-import { ClipboardCheck, UtensilsCrossed, BookOpen, Boxes, Truck, ShoppingCart, Calculator, Settings2, Receipt, ChefHat, ArrowLeftRight, PiggyBank } from "lucide-react";
+import { ClipboardCheck, UtensilsCrossed, BookOpen, Boxes, Truck, ShoppingCart, Calculator, Settings2, Receipt, ChefHat, ArrowLeftRight, PiggyBank, Tags } from "lucide-react";
 import { defineModule } from "../registry";
 
 const ROLES = ["owner", "manager", "finance"] as const;
@@ -156,3 +156,17 @@ export const restaurantProcurementModule = defineModule({
   featureFlag: "restaurant_os",
   status: "beta",
 });
+
+export const restaurantPricingModule = defineModule({
+  id: "restaurant.pricing",
+  name: "Pricing Centre",
+  description: "Versioned prices, taxes, service charges, discounts and promotions",
+  icon: Tags,
+  route: "/admin/restaurant/pricing",
+  parentId: "restaurant",
+  order: 15,
+  requiredRoles: [...ROLES],
+  featureFlag: "restaurant_os",
+  status: "beta",
+});
+

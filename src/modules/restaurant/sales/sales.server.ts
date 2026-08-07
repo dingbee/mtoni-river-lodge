@@ -25,12 +25,24 @@ import { emitRestaurantEvent } from "../events/emit.server";
 import { consumeForOrderItem } from "../inventory/movements.server";
 import { activeRecipeForMenuItem } from "../products/recipes.server";
 import { consumeForRecipeSale } from "../products/consumption.server";
+import { currentFxRate, loadRuleSet, quoteWithRuleSet } from "../pricing/resolution.server";
 
 type Sb = any;
 
 function reference(prefix: string) {
   const stamp = new Date().toISOString().slice(2, 10).replace(/-/g, "");
   return `${prefix}-${stamp}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+}
+
+/** The tenant's configured base currency; falls back to the order currency. */
+async function tenantBaseCurrency(sb: Sb, tenantId: string): Promise<string> {
+  const { data } = await sb
+    .from("restaurant_currencies")
+    .select("code")
+    .eq("tenant_id", tenantId)
+    .eq("is_base", true)
+    .limit(1);
+  return ((data ?? []) as any[])[0]?.code ?? "USD";
 }
 
 /* ---------------- Service periods ---------------- */
@@ -175,16 +187,18 @@ async function unitCostsForMenuItems(sb: Sb, tenantId: string, menuItemIds: stri
   return map;
 }
 
-function lineTotals(l: OrderLineInput) {
-  const gross = l.quantity * l.unitPrice;
-  return Number((gross - l.discount + l.taxAmount).toFixed(2));
-}
-
 async function insertLines(
   sb: Sb,
   tenantId: string,
   orderId: string,
   lines: OrderLineInput[],
+  ctx: {
+    currency: string;
+    propertyId?: string | null;
+    locationId?: string | null;
+    orderType?: string;
+    exchangeRate?: number;
+  },
 ) {
   const ids = lines.map((l) => l.menuItemId).filter(Boolean) as string[];
   const costs = await unitCostsForMenuItems(sb, tenantId, ids);
@@ -206,6 +220,11 @@ async function insertLines(
     for (const r of ((recipes ?? []) as any[])) recipeCosts.set(r.id, Number(r.computed_cost ?? 0));
   }
 
+  // Commercial rules in force at this moment. Resolved once per order, then
+  // snapshotted onto every line so the receipt stays reproducible forever.
+  const ruleSet = await loadRuleSet(sb, tenantId, { menuItemIds: ids });
+  const at = new Date();
+
   const rows = lines.map((l) => {
     const pinned = l.menuItemId ? recipeByMenuItem.get(l.menuItemId) : undefined;
     const unitCost = pinned
@@ -213,6 +232,19 @@ async function insertLines(
       : l.menuItemId
         ? (costs.get(l.menuItemId) ?? 0)
         : 0;
+    const quote = quoteWithRuleSet(
+      ruleSet,
+      {
+        at,
+        propertyId: ctx.propertyId ?? null,
+        locationId: ctx.locationId ?? null,
+        productId: pinned?.productId ?? null,
+        menuItemId: l.menuItemId ?? null,
+        orderType: ctx.orderType ?? "dine_in",
+        quantity: l.quantity,
+      },
+      { unitPrice: l.unitPrice, currency: ctx.currency, lineDiscount: l.discount },
+    );
     return {
       tenant_id: tenantId,
       order_id: orderId,
@@ -223,10 +255,22 @@ async function insertLines(
       station_id: l.stationId ?? null,
       description: l.description,
       quantity: l.quantity,
-      unit_price: l.unitPrice,
+      unit_price: quote.unitPrice,
+      base_unit_price: quote.basePrice,
       discount: l.discount,
-      tax_amount: l.taxAmount,
-      line_total: lineTotals(l),
+      tax_amount: l.taxAmount > 0 ? l.taxAmount : quote.taxTotal,
+      line_total: quote.lineTotal,
+      currency: quote.currency,
+      exchange_rate: ctx.exchangeRate ?? 1,
+      price_id: quote.priceId,
+      price_source: quote.priceSource,
+      promotion_id: quote.promotionId,
+      tax_rule_id: quote.taxRuleId,
+      tax_rate: quote.taxRate,
+      tax_inclusive: quote.taxInclusive,
+      service_charge_id: quote.serviceChargeId,
+      service_charge_amount: quote.serviceCharge,
+      pricing_trace: { steps: quote.trace, resolved_at: at.toISOString() },
       unit_cost: unitCost,
       line_cost: Number((unitCost * l.quantity).toFixed(4)),
       theoretical_cost: Number((unitCost * l.quantity).toFixed(4)),
@@ -243,24 +287,35 @@ async function insertLines(
 /** Recomputes money + cost on the order header from its own lines. */
 async function recalcOrder(sb: Sb, tenantId: string, orderId: string) {
   const [{ data: items }, { data: payments }] = await Promise.all([
-    sb.from("restaurant_order_items").select("line_total, line_cost, status").eq("tenant_id", tenantId).eq("order_id", orderId),
+    sb
+      .from("restaurant_order_items")
+      .select("line_total, line_cost, status, discount, tax_amount, service_charge_amount, quantity, unit_price")
+      .eq("tenant_id", tenantId)
+      .eq("order_id", orderId),
     sb.from("restaurant_payments").select("amount, state").eq("tenant_id", tenantId).eq("order_id", orderId),
   ]);
   const live = ((items ?? []) as any[]).filter((i) => i.status !== "voided");
-  const subtotal = live.reduce((s, i) => s + Number(i.line_total ?? 0), 0);
+  const subtotal = live.reduce((s, i) => s + Number(i.quantity ?? 0) * Number(i.unit_price ?? 0), 0);
+  const discountTotal = live.reduce((s, i) => s + Number(i.discount ?? 0), 0);
+  const taxTotal = live.reduce((s, i) => s + Number(i.tax_amount ?? 0), 0);
+  const serviceTotal = live.reduce((s, i) => s + Number(i.service_charge_amount ?? 0), 0);
+  const total = live.reduce((s, i) => s + Number(i.line_total ?? 0), 0);
   const cost = live.reduce((s, i) => s + Number(i.line_cost ?? 0), 0);
   const paid = ((payments ?? []) as any[])
     .filter((p) => p.state !== "refunded")
     .reduce((s, p) => s + Number(p.amount ?? 0), 0);
 
   const paymentState =
-    paid <= 0 ? "unpaid" : paid + 0.01 < subtotal ? "partially_paid" : "paid";
+    paid <= 0 ? "unpaid" : paid + 0.01 < total ? "partially_paid" : "paid";
 
   const { data, error } = await sb
     .from("restaurant_orders")
     .update({
       subtotal: Number(subtotal.toFixed(2)),
-      total: Number(subtotal.toFixed(2)),
+      discount_total: Number(discountTotal.toFixed(2)),
+      tax_total: Number(taxTotal.toFixed(2)),
+      service_charge: Number(serviceTotal.toFixed(2)),
+      total: Number(total.toFixed(2)),
       cost_total: Number(cost.toFixed(4)),
       paid_total: Number(paid.toFixed(2)),
       payment_state: paymentState,
@@ -301,7 +356,25 @@ export async function createOrder(sb: Sb, userId: string, input: CreateOrderInpu
     .single();
   if (error) throw new Error(error.message);
 
-  if (input.lines.length > 0) await insertLines(sb, input.tenantId, order.id, input.lines);
+  // The exchange rate in force at open time is pinned to the order and every
+  // line, so historical receipts are never revalued.
+  const baseCurrency = await tenantBaseCurrency(sb, input.tenantId);
+  const exchangeRate = await currentFxRate(sb, input.tenantId, baseCurrency, input.currency);
+  await sb
+    .from("restaurant_orders")
+    .update({ base_currency: baseCurrency, exchange_rate: exchangeRate })
+    .eq("id", order.id)
+    .eq("tenant_id", input.tenantId);
+
+  if (input.lines.length > 0) {
+    await insertLines(sb, input.tenantId, order.id, input.lines, {
+      currency: input.currency,
+      propertyId: input.propertyId ?? null,
+      locationId: input.locationId ?? null,
+      orderType: input.orderType,
+      exchangeRate,
+    });
+  }
   if (input.tableId) {
     await sb.from("restaurant_tables").update({ status: "occupied" }).eq("id", input.tableId).eq("tenant_id", input.tenantId);
   }
@@ -330,7 +403,7 @@ export async function addOrderItems(sb: Sb, userId: string, input: AddOrderItems
   await assertCapability(sb, userId, input.tenantId, "sales.manage");
   const { data: order } = await sb
     .from("restaurant_orders")
-    .select("id, status")
+    .select("id, status, currency, property_id, location_id, order_type, exchange_rate")
     .eq("tenant_id", input.tenantId)
     .eq("id", input.orderId)
     .single();
@@ -338,7 +411,13 @@ export async function addOrderItems(sb: Sb, userId: string, input: AddOrderItems
   if (["closed", "cancelled", "voided"].includes(order.status)) {
     throw new Error("This order is closed and can no longer be modified.");
   }
-  await insertLines(sb, input.tenantId, input.orderId, input.lines);
+  await insertLines(sb, input.tenantId, input.orderId, input.lines, {
+    currency: order.currency ?? "USD",
+    propertyId: order.property_id,
+    locationId: order.location_id,
+    orderType: order.order_type,
+    exchangeRate: Number(order.exchange_rate ?? 1),
+  });
   return recalcOrder(sb, input.tenantId, input.orderId);
 }
 
