@@ -84,6 +84,7 @@ import { Route as CheckInPassPassTokenRouteImport } from './routes/check-in.pass
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated.admin.settings'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
+import { Route as AuthenticatedAdminRestaurantRouteImport } from './routes/_authenticated.admin.restaurant'
 import { Route as AuthenticatedAdminOperationsRouteImport } from './routes/_authenticated.admin.operations'
 import { Route as AuthenticatedAdminIntelligenceRouteImport } from './routes/_authenticated.admin.intelligence'
 import { Route as AuthenticatedAdminFrontDeskRouteImport } from './routes/_authenticated.admin.front-desk'
@@ -92,6 +93,7 @@ import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminAutomationRouteImport } from './routes/_authenticated.admin.automation'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated.admin.analytics'
 import { Route as AuthenticatedAdminAiRouteImport } from './routes/_authenticated.admin.ai'
+import { Route as AuthenticatedAdminRestaurantIndexRouteImport } from './routes/_authenticated.admin.restaurant.index'
 import { Route as AuthenticatedAdminOperationsIndexRouteImport } from './routes/_authenticated.admin.operations.index'
 import { Route as AuthenticatedAdminIntelligenceIndexRouteImport } from './routes/_authenticated.admin.intelligence.index'
 import { Route as AuthenticatedAdminFinanceIndexRouteImport } from './routes/_authenticated.admin.finance.index'
@@ -635,6 +637,12 @@ const AuthenticatedAdminReviewsRoute =
     path: '/reviews',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminRestaurantRoute =
+  AuthenticatedAdminRestaurantRouteImport.update({
+    id: '/restaurant',
+    path: '/restaurant',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminOperationsRoute =
   AuthenticatedAdminOperationsRouteImport.update({
     id: '/operations',
@@ -682,6 +690,12 @@ const AuthenticatedAdminAiRoute = AuthenticatedAdminAiRouteImport.update({
   path: '/ai',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminRestaurantIndexRoute =
+  AuthenticatedAdminRestaurantIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
+  } as any)
 const AuthenticatedAdminOperationsIndexRoute =
   AuthenticatedAdminOperationsIndexRouteImport.update({
     id: '/',
@@ -1655,6 +1669,7 @@ export interface FileRoutesByFullPath {
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/admin/intelligence': typeof AuthenticatedAdminIntelligenceRouteWithChildren
   '/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
+  '/admin/restaurant': typeof AuthenticatedAdminRestaurantRouteWithChildren
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
@@ -1751,6 +1766,7 @@ export interface FileRoutesByFullPath {
   '/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/intelligence/': typeof AuthenticatedAdminIntelligenceIndexRoute
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
+  '/admin/restaurant/': typeof AuthenticatedAdminRestaurantIndexRoute
   '/admin/ai/concierge/analytics': typeof AuthenticatedAdminAiConciergeAnalyticsRoute
   '/admin/ai/concierge/channels': typeof AuthenticatedAdminAiConciergeChannelsRoute
   '/admin/ai/concierge/conversations': typeof AuthenticatedAdminAiConciergeConversationsRoute
@@ -1972,6 +1988,7 @@ export interface FileRoutesByTo {
   '/admin/finance': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/intelligence': typeof AuthenticatedAdminIntelligenceIndexRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
+  '/admin/restaurant': typeof AuthenticatedAdminRestaurantIndexRoute
   '/admin/ai/concierge/analytics': typeof AuthenticatedAdminAiConciergeAnalyticsRoute
   '/admin/ai/concierge/channels': typeof AuthenticatedAdminAiConciergeChannelsRoute
   '/admin/ai/concierge/conversations': typeof AuthenticatedAdminAiConciergeConversationsRoute
@@ -2112,6 +2129,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/_authenticated/admin/intelligence': typeof AuthenticatedAdminIntelligenceRouteWithChildren
   '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
+  '/_authenticated/admin/restaurant': typeof AuthenticatedAdminRestaurantRouteWithChildren
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
@@ -2208,6 +2226,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/_authenticated/admin/intelligence/': typeof AuthenticatedAdminIntelligenceIndexRoute
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
+  '/_authenticated/admin/restaurant/': typeof AuthenticatedAdminRestaurantIndexRoute
   '/_authenticated/admin/ai/concierge/analytics': typeof AuthenticatedAdminAiConciergeAnalyticsRoute
   '/_authenticated/admin/ai/concierge/channels': typeof AuthenticatedAdminAiConciergeChannelsRoute
   '/_authenticated/admin/ai/concierge/conversations': typeof AuthenticatedAdminAiConciergeConversationsRoute
@@ -2348,6 +2367,7 @@ export interface FileRouteTypes {
     | '/admin/front-desk'
     | '/admin/intelligence'
     | '/admin/operations'
+    | '/admin/restaurant'
     | '/admin/reviews'
     | '/admin/settings'
     | '/api/public/health'
@@ -2444,6 +2464,7 @@ export interface FileRouteTypes {
     | '/admin/finance/'
     | '/admin/intelligence/'
     | '/admin/operations/'
+    | '/admin/restaurant/'
     | '/admin/ai/concierge/analytics'
     | '/admin/ai/concierge/channels'
     | '/admin/ai/concierge/conversations'
@@ -2665,6 +2686,7 @@ export interface FileRouteTypes {
     | '/admin/finance'
     | '/admin/intelligence'
     | '/admin/operations'
+    | '/admin/restaurant'
     | '/admin/ai/concierge/analytics'
     | '/admin/ai/concierge/channels'
     | '/admin/ai/concierge/conversations'
@@ -2804,6 +2826,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/front-desk'
     | '/_authenticated/admin/intelligence'
     | '/_authenticated/admin/operations'
+    | '/_authenticated/admin/restaurant'
     | '/_authenticated/admin/reviews'
     | '/_authenticated/admin/settings'
     | '/api/public/health'
@@ -2900,6 +2923,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/finance/'
     | '/_authenticated/admin/intelligence/'
     | '/_authenticated/admin/operations/'
+    | '/_authenticated/admin/restaurant/'
     | '/_authenticated/admin/ai/concierge/analytics'
     | '/_authenticated/admin/ai/concierge/channels'
     | '/_authenticated/admin/ai/concierge/conversations'
@@ -3559,6 +3583,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminReviewsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/restaurant': {
+      id: '/_authenticated/admin/restaurant'
+      path: '/restaurant'
+      fullPath: '/admin/restaurant'
+      preLoaderRoute: typeof AuthenticatedAdminRestaurantRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/operations': {
       id: '/_authenticated/admin/operations'
       path: '/operations'
@@ -3614,6 +3645,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/ai'
       preLoaderRoute: typeof AuthenticatedAdminAiRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/restaurant/': {
+      id: '/_authenticated/admin/restaurant/'
+      path: '/'
+      fullPath: '/admin/restaurant/'
+      preLoaderRoute: typeof AuthenticatedAdminRestaurantIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/operations/': {
       id: '/_authenticated/admin/operations/'
@@ -5116,6 +5154,21 @@ const AuthenticatedAdminOperationsRouteWithChildren =
     AuthenticatedAdminOperationsRouteChildren,
   )
 
+interface AuthenticatedAdminRestaurantRouteChildren {
+  AuthenticatedAdminRestaurantIndexRoute: typeof AuthenticatedAdminRestaurantIndexRoute
+}
+
+const AuthenticatedAdminRestaurantRouteChildren: AuthenticatedAdminRestaurantRouteChildren =
+  {
+    AuthenticatedAdminRestaurantIndexRoute:
+      AuthenticatedAdminRestaurantIndexRoute,
+  }
+
+const AuthenticatedAdminRestaurantRouteWithChildren =
+  AuthenticatedAdminRestaurantRoute._addFileChildren(
+    AuthenticatedAdminRestaurantRouteChildren,
+  )
+
 interface AuthenticatedAdminGuestsCrmRouteChildren {
   AuthenticatedAdminGuestsCrmIdRoute: typeof AuthenticatedAdminGuestsCrmIdRoute
   AuthenticatedAdminGuestsCrmDuplicatesRoute: typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
@@ -5142,6 +5195,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminFrontDeskRoute: typeof AuthenticatedAdminFrontDeskRoute
   AuthenticatedAdminIntelligenceRoute: typeof AuthenticatedAdminIntelligenceRouteWithChildren
   AuthenticatedAdminOperationsRoute: typeof AuthenticatedAdminOperationsRouteWithChildren
+  AuthenticatedAdminRestaurantRoute: typeof AuthenticatedAdminRestaurantRouteWithChildren
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -5192,6 +5246,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
     AuthenticatedAdminIntelligenceRouteWithChildren,
   AuthenticatedAdminOperationsRoute:
     AuthenticatedAdminOperationsRouteWithChildren,
+  AuthenticatedAdminRestaurantRoute:
+    AuthenticatedAdminRestaurantRouteWithChildren,
   AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
@@ -5406,13 +5462,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
