@@ -29,6 +29,7 @@ export const FEATURE_FLAGS: Record<FeatureFlagKey, FeatureFlag> = {
   mtoni_ai_command_centre: { key: "mtoni_ai_command_centre", state: "internal", description: "Mtoni AI Command Centre (Sprint 8A)", since: "2026-07-17" },
   mtoni_ai_concierge:      { key: "mtoni_ai_concierge",      state: "enabled",  description: "Public AI Concierge widget (Sprint 9)", since: "2026-07-17" },
   online_checkin:          { key: "online_checkin",          state: "beta",     description: "Online Check-In module (v1.1 foundation)", since: "2026-08-06" },
+  restaurant_os:           { key: "restaurant_os",           state: "beta",     description: "Restaurant & Bar OS commercial module (Phase 1)", since: "2026-08-13" },
 };
 
 const STAFF_ROLES = new Set(["owner","manager","reception","marketing","housekeeping","finance","editor"]);
