@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
 import {
   BookOpen,
   Boxes,
+  Brain,
   Calculator,
   ChefHat,
   LayoutDashboard,
@@ -35,6 +36,7 @@ const TABS = [
   { to: "/admin/restaurant/purchasing", label: "Purchasing", icon: ShoppingCart },
   { to: "/admin/restaurant/costing", label: "Costing", icon: Calculator },
   { to: "/admin/restaurant/profitability", label: "Profitability", icon: PiggyBank },
+  { to: "/admin/restaurant/intelligence", label: "Intelligence", icon: Brain },
   { to: "/admin/restaurant/settings", label: "Settings", icon: Settings2 },
 ] as const;
 
