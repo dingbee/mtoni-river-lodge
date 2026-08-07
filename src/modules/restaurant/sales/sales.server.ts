@@ -23,6 +23,8 @@ import type {
 import { assertCapability, assertTenantRead } from "../core/access.server";
 import { emitRestaurantEvent } from "../events/emit.server";
 import { consumeForOrderItem } from "../inventory/movements.server";
+import { activeRecipeForMenuItem } from "../products/recipes.server";
+import { consumeForRecipeSale } from "../products/consumption.server";
 
 type Sb = any;
 
@@ -186,12 +188,38 @@ async function insertLines(
 ) {
   const ids = lines.map((l) => l.menuItemId).filter(Boolean) as string[];
   const costs = await unitCostsForMenuItems(sb, tenantId, ids);
+  // The recipe version in force at the moment of sale is pinned onto the line,
+  // so a later recipe change never rewrites this order's economics.
+  const recipeByMenuItem = new Map<string, { productId: string; recipeId: string; version: number }>();
+  for (const id of [...new Set(ids)]) {
+    const active = await activeRecipeForMenuItem(sb, tenantId, id);
+    if (active) recipeByMenuItem.set(id, active);
+  }
+  const recipeCosts = new Map<string, number>();
+  const recipeIds = [...new Set([...recipeByMenuItem.values()].map((r) => r.recipeId))];
+  if (recipeIds.length > 0) {
+    const { data: recipes } = await sb
+      .from("restaurant_recipes")
+      .select("id, computed_cost")
+      .eq("tenant_id", tenantId)
+      .in("id", recipeIds);
+    for (const r of ((recipes ?? []) as any[])) recipeCosts.set(r.id, Number(r.computed_cost ?? 0));
+  }
+
   const rows = lines.map((l) => {
-    const unitCost = l.menuItemId ? (costs.get(l.menuItemId) ?? 0) : 0;
+    const pinned = l.menuItemId ? recipeByMenuItem.get(l.menuItemId) : undefined;
+    const unitCost = pinned
+      ? (recipeCosts.get(pinned.recipeId) ?? 0)
+      : l.menuItemId
+        ? (costs.get(l.menuItemId) ?? 0)
+        : 0;
     return {
       tenant_id: tenantId,
       order_id: orderId,
       menu_item_id: l.menuItemId ?? null,
+      product_id: pinned?.productId ?? null,
+      recipe_id: pinned?.recipeId ?? null,
+      recipe_version: pinned?.version ?? null,
       station_id: l.stationId ?? null,
       description: l.description,
       quantity: l.quantity,
@@ -201,6 +229,7 @@ async function insertLines(
       line_total: lineTotals(l),
       unit_cost: unitCost,
       line_cost: Number((unitCost * l.quantity).toFixed(4)),
+      theoretical_cost: Number((unitCost * l.quantity).toFixed(4)),
       course: l.course ?? null,
       notes: l.notes ?? null,
       status: "ordered",
@@ -389,22 +418,35 @@ export async function transitionOrder(sb: Sb, userId: string, input: TransitionO
   if (input.status === "closed") {
     const { data: items } = await sb
       .from("restaurant_order_items")
-      .select("id, menu_item_id, description, quantity, unit_price, line_total, line_cost, status")
+      .select("id, menu_item_id, recipe_id, recipe_version, description, quantity, unit_price, line_total, line_cost, status")
       .eq("tenant_id", input.tenantId)
       .eq("order_id", input.orderId);
 
     let actualCost = 0;
     for (const item of ((items ?? []) as any[]).filter((i) => i.status !== "voided")) {
-      actualCost += await consumeForOrderItem(sb, userId, {
-        tenantId: input.tenantId,
-        propertyId: order.property_id,
-        locationId: order.location_id,
-        orderId: order.id,
-        orderItemId: item.id,
-        menuItemId: item.menu_item_id,
-        quantity: Number(item.quantity),
-        occurredAt: new Date().toISOString(),
-      });
+      // Recipe-backed lines consume through the pinned version; lines mapped the
+      // legacy way keep the original component path, so nothing regresses.
+      actualCost += item.recipe_id
+        ? await consumeForRecipeSale(sb, userId, {
+            tenantId: input.tenantId,
+            propertyId: order.property_id,
+            locationId: order.location_id,
+            orderId: order.id,
+            orderItemId: item.id,
+            recipeId: item.recipe_id,
+            quantity: Number(item.quantity),
+            occurredAt: new Date().toISOString(),
+          })
+        : await consumeForOrderItem(sb, userId, {
+            tenantId: input.tenantId,
+            propertyId: order.property_id,
+            locationId: order.location_id,
+            orderId: order.id,
+            orderItemId: item.id,
+            menuItemId: item.menu_item_id,
+            quantity: Number(item.quantity),
+            occurredAt: new Date().toISOString(),
+          });
 
       await emitRestaurantEvent(sb, userId, {
         type: "restaurant.item.sold",
