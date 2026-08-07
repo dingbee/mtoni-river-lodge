@@ -99,6 +99,7 @@ export const NAV: NavEntry[] = [
         { id: "restaurant.orders", label: "Orders", href: "/admin/restaurant/orders", icon: Receipt },
         { id: "restaurant.kitchen", label: "Kitchen", href: "/admin/restaurant/kitchen", icon: ChefHat },
         { id: "restaurant.menu", label: "Menu Management", href: "/admin/restaurant/menu", icon: BookOpen },
+        { id: "restaurant.pricing", label: "Pricing Centre", href: "/admin/restaurant/pricing", icon: Calculator },
         { id: "restaurant.inventory", label: "Inventory", href: "/admin/restaurant/inventory", icon: Boxes },
         { id: "restaurant.inventoryControl", label: "Inventory Centre", href: "/admin/restaurant/inventory-control", icon: Boxes },
         { id: "restaurant.stock", label: "Stock Movements", href: "/admin/restaurant/stock", icon: Boxes },

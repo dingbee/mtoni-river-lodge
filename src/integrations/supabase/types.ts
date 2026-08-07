@@ -7406,6 +7406,239 @@ export type Database = {
           },
         ]
       }
+      restaurant_currencies: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          created_by: string | null
+          decimals: number
+          id: string
+          is_base: boolean
+          name: string
+          rounding: number
+          symbol: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          created_by?: string | null
+          decimals?: number
+          id?: string
+          is_base?: boolean
+          name?: string
+          rounding?: number
+          symbol?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          decimals?: number
+          id?: string
+          is_base?: boolean
+          name?: string
+          rounding?: number
+          symbol?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_currencies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_discount_applications: {
+        Row: {
+          actor_id: string | null
+          actor_role: string | null
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          basis: Database["public"]["Enums"]["restaurant_charge_basis"]
+          created_at: string
+          currency: string
+          discount_rule_id: string | null
+          id: string
+          order_id: string | null
+          order_item_id: string | null
+          reason: string | null
+          scope: Database["public"]["Enums"]["restaurant_discount_scope"]
+          tenant_id: string
+          value: number
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_role?: string | null
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          basis?: Database["public"]["Enums"]["restaurant_charge_basis"]
+          created_at?: string
+          currency?: string
+          discount_rule_id?: string | null
+          id?: string
+          order_id?: string | null
+          order_item_id?: string | null
+          reason?: string | null
+          scope?: Database["public"]["Enums"]["restaurant_discount_scope"]
+          tenant_id: string
+          value?: number
+        }
+        Update: {
+          actor_id?: string | null
+          actor_role?: string | null
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          basis?: Database["public"]["Enums"]["restaurant_charge_basis"]
+          created_at?: string
+          currency?: string
+          discount_rule_id?: string | null
+          id?: string
+          order_id?: string | null
+          order_item_id?: string | null
+          reason?: string | null
+          scope?: Database["public"]["Enums"]["restaurant_discount_scope"]
+          tenant_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_discount_applications_discount_rule_id_fkey"
+            columns: ["discount_rule_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_discount_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_discount_applications_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_discount_applications_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_discount_applications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_discount_rules: {
+        Row: {
+          active: boolean
+          applies_to_categories: string[]
+          applies_to_products: string[]
+          approval_threshold_percent: number | null
+          basis: Database["public"]["Enums"]["restaurant_charge_basis"]
+          code: string
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          location_id: string | null
+          max_percent: number
+          name: string
+          property_id: string | null
+          requires_reason: boolean
+          role_limits: Json
+          scope: Database["public"]["Enums"]["restaurant_discount_scope"]
+          tenant_id: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          active?: boolean
+          applies_to_categories?: string[]
+          applies_to_products?: string[]
+          approval_threshold_percent?: number | null
+          basis?: Database["public"]["Enums"]["restaurant_charge_basis"]
+          code: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          location_id?: string | null
+          max_percent?: number
+          name: string
+          property_id?: string | null
+          requires_reason?: boolean
+          role_limits?: Json
+          scope?: Database["public"]["Enums"]["restaurant_discount_scope"]
+          tenant_id: string
+          updated_at?: string
+          value?: number
+        }
+        Update: {
+          active?: boolean
+          applies_to_categories?: string[]
+          applies_to_products?: string[]
+          approval_threshold_percent?: number | null
+          basis?: Database["public"]["Enums"]["restaurant_charge_basis"]
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          location_id?: string | null
+          max_percent?: number
+          name?: string
+          property_id?: string | null
+          requires_reason?: boolean
+          role_limits?: Json
+          scope?: Database["public"]["Enums"]["restaurant_discount_scope"]
+          tenant_id?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_discount_rules_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_discount_rules_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_discount_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_document_sequences: {
         Row: {
           created_at: string
@@ -7437,6 +7670,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "restaurant_document_sequences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_exchange_rates: {
+        Row: {
+          base_currency: string
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          manual_override: boolean
+          note: string | null
+          rate: number
+          source: string
+          target_currency: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          base_currency: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          manual_override?: boolean
+          note?: string | null
+          rate: number
+          source?: string
+          target_currency: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          base_currency?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          manual_override?: boolean
+          note?: string | null
+          rate?: number
+          source?: string
+          target_currency?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_exchange_rates_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "restaurant_tenants"
@@ -8701,23 +8990,37 @@ export type Database = {
       }
       restaurant_order_items: {
         Row: {
+          base_unit_price: number | null
           course: string | null
           created_at: string
+          currency: string | null
           description: string
           discount: number
+          discount_reason: string | null
+          discount_rule_id: string | null
+          exchange_rate: number
           id: string
           line_cost: number
           line_total: number
           menu_item_id: string | null
           notes: string | null
           order_id: string
+          price_id: string | null
+          price_source: string | null
+          pricing_trace: Json
           product_id: string | null
+          promotion_id: string | null
           quantity: number
           recipe_id: string | null
           recipe_version: number | null
+          service_charge_amount: number
+          service_charge_id: string | null
           station_id: string | null
           status: string
           tax_amount: number
+          tax_inclusive: boolean
+          tax_rate: number
+          tax_rule_id: string | null
           tenant_id: string
           theoretical_cost: number
           unit_cost: number
@@ -8726,23 +9029,37 @@ export type Database = {
           void_reason: string | null
         }
         Insert: {
+          base_unit_price?: number | null
           course?: string | null
           created_at?: string
+          currency?: string | null
           description: string
           discount?: number
+          discount_reason?: string | null
+          discount_rule_id?: string | null
+          exchange_rate?: number
           id?: string
           line_cost?: number
           line_total?: number
           menu_item_id?: string | null
           notes?: string | null
           order_id: string
+          price_id?: string | null
+          price_source?: string | null
+          pricing_trace?: Json
           product_id?: string | null
+          promotion_id?: string | null
           quantity?: number
           recipe_id?: string | null
           recipe_version?: number | null
+          service_charge_amount?: number
+          service_charge_id?: string | null
           station_id?: string | null
           status?: string
           tax_amount?: number
+          tax_inclusive?: boolean
+          tax_rate?: number
+          tax_rule_id?: string | null
           tenant_id: string
           theoretical_cost?: number
           unit_cost?: number
@@ -8751,23 +9068,37 @@ export type Database = {
           void_reason?: string | null
         }
         Update: {
+          base_unit_price?: number | null
           course?: string | null
           created_at?: string
+          currency?: string | null
           description?: string
           discount?: number
+          discount_reason?: string | null
+          discount_rule_id?: string | null
+          exchange_rate?: number
           id?: string
           line_cost?: number
           line_total?: number
           menu_item_id?: string | null
           notes?: string | null
           order_id?: string
+          price_id?: string | null
+          price_source?: string | null
+          pricing_trace?: Json
           product_id?: string | null
+          promotion_id?: string | null
           quantity?: number
           recipe_id?: string | null
           recipe_version?: number | null
+          service_charge_amount?: number
+          service_charge_id?: string | null
           station_id?: string | null
           status?: string
           tax_amount?: number
+          tax_inclusive?: boolean
+          tax_rate?: number
+          tax_rule_id?: string | null
           tenant_id?: string
           theoretical_cost?: number
           unit_cost?: number
@@ -8776,6 +9107,13 @@ export type Database = {
           void_reason?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "restaurant_order_items_discount_rule_id_fkey"
+            columns: ["discount_rule_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_discount_rules"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "restaurant_order_items_menu_item_id_fkey"
             columns: ["menu_item_id"]
@@ -8791,10 +9129,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "restaurant_order_items_price_id_fkey"
+            columns: ["price_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_prices"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "restaurant_order_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "restaurant_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_order_items_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_promotions"
             referencedColumns: ["id"]
           },
           {
@@ -8805,10 +9157,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "restaurant_order_items_service_charge_id_fkey"
+            columns: ["service_charge_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_service_charges"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "restaurant_order_items_station_fk"
             columns: ["station_id"]
             isOneToOne: false
             referencedRelation: "restaurant_stations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_order_items_tax_rule_id_fkey"
+            columns: ["tax_rule_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tax_rules"
             referencedColumns: ["id"]
           },
           {
@@ -8822,6 +9188,7 @@ export type Database = {
       }
       restaurant_orders: {
         Row: {
+          base_currency: string | null
           booking_id: string | null
           closed_at: string | null
           cost_total: number
@@ -8829,6 +9196,7 @@ export type Database = {
           created_by: string | null
           currency: string
           discount_total: number
+          exchange_rate: number
           external_ref: string | null
           guest_count: number
           guest_name: string | null
@@ -8854,6 +9222,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          base_currency?: string | null
           booking_id?: string | null
           closed_at?: string | null
           cost_total?: number
@@ -8861,6 +9230,7 @@ export type Database = {
           created_by?: string | null
           currency?: string
           discount_total?: number
+          exchange_rate?: number
           external_ref?: string | null
           guest_count?: number
           guest_name?: string | null
@@ -8886,6 +9256,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          base_currency?: string | null
           booking_id?: string | null
           closed_at?: string | null
           cost_total?: number
@@ -8893,6 +9264,7 @@ export type Database = {
           created_by?: string | null
           currency?: string
           discount_total?: number
+          exchange_rate?: number
           external_ref?: string | null
           guest_count?: number
           guest_name?: string | null
@@ -9045,6 +9417,190 @@ export type Database = {
           },
           {
             foreignKeyName: "restaurant_payments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_prices: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          location_id: string | null
+          menu_item_id: string | null
+          product_id: string | null
+          property_id: string | null
+          reason: string | null
+          rejected_reason: string | null
+          requires_approval: boolean
+          scope: Database["public"]["Enums"]["restaurant_price_scope"]
+          status: Database["public"]["Enums"]["restaurant_price_status"]
+          supersedes_id: string | null
+          tax_inclusive: boolean
+          tenant_id: string
+          updated_at: string
+          variant_id: string | null
+          version: number
+        }
+        Insert: {
+          amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          location_id?: string | null
+          menu_item_id?: string | null
+          product_id?: string | null
+          property_id?: string | null
+          reason?: string | null
+          rejected_reason?: string | null
+          requires_approval?: boolean
+          scope?: Database["public"]["Enums"]["restaurant_price_scope"]
+          status?: Database["public"]["Enums"]["restaurant_price_status"]
+          supersedes_id?: string | null
+          tax_inclusive?: boolean
+          tenant_id: string
+          updated_at?: string
+          variant_id?: string | null
+          version?: number
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          location_id?: string | null
+          menu_item_id?: string | null
+          product_id?: string | null
+          property_id?: string | null
+          reason?: string | null
+          rejected_reason?: string | null
+          requires_approval?: boolean
+          scope?: Database["public"]["Enums"]["restaurant_price_scope"]
+          status?: Database["public"]["Enums"]["restaurant_price_status"]
+          supersedes_id?: string | null
+          tax_inclusive?: boolean
+          tenant_id?: string
+          updated_at?: string
+          variant_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_prices_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_prices_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_prices_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_prices_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_prices_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_prices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_prices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_prices_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_pricing_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          correlation_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json
+          new_value: Json | null
+          previous_value: Json | null
+          reason: string | null
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json
+          new_value?: Json | null
+          previous_value?: Json | null
+          reason?: string | null
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json
+          new_value?: Json | null
+          previous_value?: Json | null
+          reason?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_pricing_audit_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "restaurant_tenants"
@@ -9845,6 +10401,109 @@ export type Database = {
           },
           {
             foreignKeyName: "restaurant_profitability_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_promotions: {
+        Row: {
+          action: Database["public"]["Enums"]["restaurant_promotion_action"]
+          applies_to_categories: string[]
+          applies_to_products: string[]
+          code: string
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          days_of_week: number[]
+          description: string | null
+          eligibility: Json
+          end_time: string | null
+          ends_at: string | null
+          id: string
+          location_id: string | null
+          name: string
+          priority: number
+          property_id: string | null
+          stackable: boolean
+          start_time: string | null
+          starts_at: string
+          status: Database["public"]["Enums"]["restaurant_promotion_status"]
+          tenant_id: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          action?: Database["public"]["Enums"]["restaurant_promotion_action"]
+          applies_to_categories?: string[]
+          applies_to_products?: string[]
+          code: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          days_of_week?: number[]
+          description?: string | null
+          eligibility?: Json
+          end_time?: string | null
+          ends_at?: string | null
+          id?: string
+          location_id?: string | null
+          name: string
+          priority?: number
+          property_id?: string | null
+          stackable?: boolean
+          start_time?: string | null
+          starts_at?: string
+          status?: Database["public"]["Enums"]["restaurant_promotion_status"]
+          tenant_id: string
+          updated_at?: string
+          value?: number
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["restaurant_promotion_action"]
+          applies_to_categories?: string[]
+          applies_to_products?: string[]
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          days_of_week?: number[]
+          description?: string | null
+          eligibility?: Json
+          end_time?: string | null
+          ends_at?: string | null
+          id?: string
+          location_id?: string | null
+          name?: string
+          priority?: number
+          property_id?: string | null
+          stackable?: boolean
+          start_time?: string | null
+          starts_at?: string
+          status?: Database["public"]["Enums"]["restaurant_promotion_status"]
+          tenant_id?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_promotions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_promotions_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_promotions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "restaurant_tenants"
@@ -10812,6 +11471,94 @@ export type Database = {
             columns: ["yield_unit_id"]
             isOneToOne: false
             referencedRelation: "restaurant_inventory_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_service_charges: {
+        Row: {
+          active: boolean
+          applies_to_categories: string[]
+          applies_to_order_types: string[]
+          applies_to_products: string[]
+          basis: Database["public"]["Enums"]["restaurant_charge_basis"]
+          code: string
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          fixed_amount: number
+          id: string
+          location_id: string | null
+          name: string
+          property_id: string | null
+          rate: number
+          taxable: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          applies_to_categories?: string[]
+          applies_to_order_types?: string[]
+          applies_to_products?: string[]
+          basis?: Database["public"]["Enums"]["restaurant_charge_basis"]
+          code: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          fixed_amount?: number
+          id?: string
+          location_id?: string | null
+          name: string
+          property_id?: string | null
+          rate?: number
+          taxable?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          applies_to_categories?: string[]
+          applies_to_order_types?: string[]
+          applies_to_products?: string[]
+          basis?: Database["public"]["Enums"]["restaurant_charge_basis"]
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          fixed_amount?: number
+          id?: string
+          location_id?: string | null
+          name?: string
+          property_id?: string | null
+          rate?: number
+          taxable?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_service_charges_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_service_charges_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_service_charges_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -12404,6 +13151,97 @@ export type Database = {
           },
         ]
       }
+      restaurant_tax_rules: {
+        Row: {
+          active: boolean
+          applies_to_categories: string[]
+          applies_to_products: string[]
+          basis: Database["public"]["Enums"]["restaurant_charge_basis"]
+          code: string
+          compound: boolean
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          fixed_amount: number
+          id: string
+          inclusive: boolean
+          location_id: string | null
+          name: string
+          priority: number
+          property_id: string | null
+          rate: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          applies_to_categories?: string[]
+          applies_to_products?: string[]
+          basis?: Database["public"]["Enums"]["restaurant_charge_basis"]
+          code: string
+          compound?: boolean
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          fixed_amount?: number
+          id?: string
+          inclusive?: boolean
+          location_id?: string | null
+          name: string
+          priority?: number
+          property_id?: string | null
+          rate?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          applies_to_categories?: string[]
+          applies_to_products?: string[]
+          basis?: Database["public"]["Enums"]["restaurant_charge_basis"]
+          code?: string
+          compound?: boolean
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          fixed_amount?: number
+          id?: string
+          inclusive?: boolean
+          location_id?: string | null
+          name?: string
+          priority?: number
+          property_id?: string | null
+          rate?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_tax_rules_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_tax_rules_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_tax_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_tenants: {
         Row: {
           created_at: string
@@ -13842,11 +14680,13 @@ export type Database = {
         | "paid"
         | "refunded"
         | "payment_mismatch"
+      restaurant_charge_basis: "percent" | "fixed"
       restaurant_confirmation_status:
         | "pending"
         | "confirmed"
         | "partially_confirmed"
         | "declined"
+      restaurant_discount_scope: "order" | "product" | "category"
       restaurant_invoice_status:
         | "draft"
         | "recorded"
@@ -13891,6 +14731,14 @@ export type Database = {
         | "rejected"
         | "converted_to_po"
         | "cancelled"
+      restaurant_price_scope: "tenant" | "property" | "location"
+      restaurant_price_status:
+        | "draft"
+        | "pending_approval"
+        | "active"
+        | "superseded"
+        | "expired"
+        | "rejected"
       restaurant_procurement_payment_status:
         | "unpaid"
         | "partially_paid"
@@ -13905,6 +14753,17 @@ export type Database = {
         | "draft"
         | "in_progress"
         | "completed"
+        | "cancelled"
+      restaurant_promotion_action:
+        | "percent_discount"
+        | "fixed_discount"
+        | "price_override"
+        | "percent_uplift"
+      restaurant_promotion_status:
+        | "draft"
+        | "scheduled"
+        | "active"
+        | "ended"
         | "cancelled"
       restaurant_receipt_status: "draft" | "posted" | "cancelled"
       restaurant_recipe_component_kind: "inventory_item" | "sub_recipe"
@@ -14276,12 +15135,14 @@ export const Constants = {
         "refunded",
         "payment_mismatch",
       ],
+      restaurant_charge_basis: ["percent", "fixed"],
       restaurant_confirmation_status: [
         "pending",
         "confirmed",
         "partially_confirmed",
         "declined",
       ],
+      restaurant_discount_scope: ["order", "product", "category"],
       restaurant_invoice_status: [
         "draft",
         "recorded",
@@ -14332,6 +15193,15 @@ export const Constants = {
         "converted_to_po",
         "cancelled",
       ],
+      restaurant_price_scope: ["tenant", "property", "location"],
+      restaurant_price_status: [
+        "draft",
+        "pending_approval",
+        "active",
+        "superseded",
+        "expired",
+        "rejected",
+      ],
       restaurant_procurement_payment_status: [
         "unpaid",
         "partially_paid",
@@ -14348,6 +15218,19 @@ export const Constants = {
         "draft",
         "in_progress",
         "completed",
+        "cancelled",
+      ],
+      restaurant_promotion_action: [
+        "percent_discount",
+        "fixed_discount",
+        "price_override",
+        "percent_uplift",
+      ],
+      restaurant_promotion_status: [
+        "draft",
+        "scheduled",
+        "active",
+        "ended",
         "cancelled",
       ],
       restaurant_receipt_status: ["draft", "posted", "cancelled"],

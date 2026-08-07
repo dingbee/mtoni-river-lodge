@@ -107,3 +107,8 @@ export * from "./inventory/control.functions";
 /* Sprint 5.3 — Product, Recipe & Production Architecture */
 export * as ProductContracts from "./products/contracts";
 export * from "./products/catalog.functions";
+
+/* Sprint 5.4 — Pricing, Tax & Commercial Rules */
+export * as PricingContracts from "./pricing/contracts";
+export * from "./pricing/engine";
+export * from "./pricing/pricing.functions";
