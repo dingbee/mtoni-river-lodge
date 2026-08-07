@@ -3,6 +3,7 @@ import {
   BookOpen,
   Boxes,
   Brain,
+  Scale,
   Calculator,
   ChefHat,
   LayoutDashboard,
