@@ -58,10 +58,11 @@ function TimelinePage() {
     mutationFn: () => pipelineFn({ data: { windowHours: 24 } }),
     onSuccess: (r) => {
       toast.success(
-        `Pipeline run — ${r.eventsProcessed} events, ${r.signalsCreated} signals, ${r.insightsCreated} insights, ${r.recommendationsCreated} recommendations.`,
+        `Pipeline run — ${r.eventsProcessed} events, ${r.signalsCreated} signals, ${r.insightsCreated} insights, ${r.predictionsRecorded} predictions, ${r.recommendationsCreated} recommendations.`,
       );
       qc.invalidateQueries({ queryKey: ["intel.timeline"] });
       qc.invalidateQueries({ queryKey: ["intel.health"] });
+      qc.invalidateQueries({ queryKey: ["intel.forecast"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
