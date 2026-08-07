@@ -15,6 +15,9 @@ export function registerRestaurantIntelligence(): void {
       "restaurant.purchase.suggest",
       "restaurant.menu.reprice_review",
       "restaurant.inventory.replenish_review",
+      "restaurant.kitchen.workflow_review",
+      "restaurant.kitchen.staffing_review",
+      "restaurant.no_change",
     ],
   });
 }

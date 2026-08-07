@@ -128,6 +128,7 @@ import { Route as AuthenticatedAdminRestaurantMenuRouteImport } from './routes/_
 import { Route as AuthenticatedAdminRestaurantKitchenRouteImport } from './routes/_authenticated.admin.restaurant.kitchen'
 import { Route as AuthenticatedAdminRestaurantInventoryRouteImport } from './routes/_authenticated.admin.restaurant.inventory'
 import { Route as AuthenticatedAdminRestaurantIntelligenceRouteImport } from './routes/_authenticated.admin.restaurant.intelligence'
+import { Route as AuthenticatedAdminRestaurantDecisionsRouteImport } from './routes/_authenticated.admin.restaurant.decisions'
 import { Route as AuthenticatedAdminRestaurantCostingRouteImport } from './routes/_authenticated.admin.restaurant.costing'
 import { Route as AuthenticatedAdminOperationsTimelineRouteImport } from './routes/_authenticated.admin.operations.timeline'
 import { Route as AuthenticatedAdminOperationsTasksRouteImport } from './routes/_authenticated.admin.operations.tasks'
@@ -904,6 +905,12 @@ const AuthenticatedAdminRestaurantIntelligenceRoute =
   AuthenticatedAdminRestaurantIntelligenceRouteImport.update({
     id: '/intelligence',
     path: '/intelligence',
+    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
+  } as any)
+const AuthenticatedAdminRestaurantDecisionsRoute =
+  AuthenticatedAdminRestaurantDecisionsRouteImport.update({
+    id: '/decisions',
+    path: '/decisions',
     getParentRoute: () => AuthenticatedAdminRestaurantRoute,
   } as any)
 const AuthenticatedAdminRestaurantCostingRoute =
@@ -1820,6 +1827,7 @@ export interface FileRoutesByFullPath {
   '/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
   '/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
+  '/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
   '/admin/restaurant/intelligence': typeof AuthenticatedAdminRestaurantIntelligenceRoute
   '/admin/restaurant/inventory': typeof AuthenticatedAdminRestaurantInventoryRoute
   '/admin/restaurant/kitchen': typeof AuthenticatedAdminRestaurantKitchenRoute
@@ -2053,6 +2061,7 @@ export interface FileRoutesByTo {
   '/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
   '/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
+  '/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
   '/admin/restaurant/intelligence': typeof AuthenticatedAdminRestaurantIntelligenceRoute
   '/admin/restaurant/inventory': typeof AuthenticatedAdminRestaurantInventoryRoute
   '/admin/restaurant/kitchen': typeof AuthenticatedAdminRestaurantKitchenRoute
@@ -2302,6 +2311,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/_authenticated/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
   '/_authenticated/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
+  '/_authenticated/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
   '/_authenticated/admin/restaurant/intelligence': typeof AuthenticatedAdminRestaurantIntelligenceRoute
   '/_authenticated/admin/restaurant/inventory': typeof AuthenticatedAdminRestaurantInventoryRoute
   '/_authenticated/admin/restaurant/kitchen': typeof AuthenticatedAdminRestaurantKitchenRoute
@@ -2551,6 +2561,7 @@ export interface FileRouteTypes {
     | '/admin/operations/tasks'
     | '/admin/operations/timeline'
     | '/admin/restaurant/costing'
+    | '/admin/restaurant/decisions'
     | '/admin/restaurant/intelligence'
     | '/admin/restaurant/inventory'
     | '/admin/restaurant/kitchen'
@@ -2784,6 +2795,7 @@ export interface FileRouteTypes {
     | '/admin/operations/tasks'
     | '/admin/operations/timeline'
     | '/admin/restaurant/costing'
+    | '/admin/restaurant/decisions'
     | '/admin/restaurant/intelligence'
     | '/admin/restaurant/inventory'
     | '/admin/restaurant/kitchen'
@@ -3032,6 +3044,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations/tasks'
     | '/_authenticated/admin/operations/timeline'
     | '/_authenticated/admin/restaurant/costing'
+    | '/_authenticated/admin/restaurant/decisions'
     | '/_authenticated/admin/restaurant/intelligence'
     | '/_authenticated/admin/restaurant/inventory'
     | '/_authenticated/admin/restaurant/kitchen'
@@ -4032,6 +4045,13 @@ declare module '@tanstack/react-router' {
       path: '/intelligence'
       fullPath: '/admin/restaurant/intelligence'
       preLoaderRoute: typeof AuthenticatedAdminRestaurantIntelligenceRouteImport
+      parentRoute: typeof AuthenticatedAdminRestaurantRoute
+    }
+    '/_authenticated/admin/restaurant/decisions': {
+      id: '/_authenticated/admin/restaurant/decisions'
+      path: '/decisions'
+      fullPath: '/admin/restaurant/decisions'
+      preLoaderRoute: typeof AuthenticatedAdminRestaurantDecisionsRouteImport
       parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/costing': {
@@ -5376,6 +5396,7 @@ const AuthenticatedAdminOperationsRouteWithChildren =
 
 interface AuthenticatedAdminRestaurantRouteChildren {
   AuthenticatedAdminRestaurantCostingRoute: typeof AuthenticatedAdminRestaurantCostingRoute
+  AuthenticatedAdminRestaurantDecisionsRoute: typeof AuthenticatedAdminRestaurantDecisionsRoute
   AuthenticatedAdminRestaurantIntelligenceRoute: typeof AuthenticatedAdminRestaurantIntelligenceRoute
   AuthenticatedAdminRestaurantInventoryRoute: typeof AuthenticatedAdminRestaurantInventoryRoute
   AuthenticatedAdminRestaurantKitchenRoute: typeof AuthenticatedAdminRestaurantKitchenRoute
@@ -5393,6 +5414,8 @@ const AuthenticatedAdminRestaurantRouteChildren: AuthenticatedAdminRestaurantRou
   {
     AuthenticatedAdminRestaurantCostingRoute:
       AuthenticatedAdminRestaurantCostingRoute,
+    AuthenticatedAdminRestaurantDecisionsRoute:
+      AuthenticatedAdminRestaurantDecisionsRoute,
     AuthenticatedAdminRestaurantIntelligenceRoute:
       AuthenticatedAdminRestaurantIntelligenceRoute,
     AuthenticatedAdminRestaurantInventoryRoute:
