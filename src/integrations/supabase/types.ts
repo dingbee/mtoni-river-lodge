@@ -5271,6 +5271,546 @@ export type Database = {
           },
         ]
       }
+      intelligence_actions: {
+        Row: {
+          action_type: string
+          approved_at: string | null
+          approved_by: string | null
+          automated: boolean
+          created_at: string
+          dedupe_key: string | null
+          entity_id: string | null
+          entity_type: string | null
+          error_message: string | null
+          executed_at: string | null
+          id: string
+          module: Database["public"]["Enums"]["intel_module"]
+          payload: Json
+          recommendation_id: string | null
+          requested_by: string | null
+          requires_approval: boolean
+          result: Json
+          status: Database["public"]["Enums"]["intel_action_status"]
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          approved_at?: string | null
+          approved_by?: string | null
+          automated?: boolean
+          created_at?: string
+          dedupe_key?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          module: Database["public"]["Enums"]["intel_module"]
+          payload?: Json
+          recommendation_id?: string | null
+          requested_by?: string | null
+          requires_approval?: boolean
+          result?: Json
+          status?: Database["public"]["Enums"]["intel_action_status"]
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          automated?: boolean
+          created_at?: string
+          dedupe_key?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          module?: Database["public"]["Enums"]["intel_module"]
+          payload?: Json
+          recommendation_id?: string | null
+          requested_by?: string | null
+          requires_approval?: boolean
+          result?: Json
+          status?: Database["public"]["Enums"]["intel_action_status"]
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_actions_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_recommendations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intelligence_events: {
+        Row: {
+          actor_id: string | null
+          correlation_id: string | null
+          created_at: string
+          dedupe_key: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_type: string
+          id: string
+          module: Database["public"]["Enums"]["intel_module"]
+          occurred_at: string
+          payload: Json
+          processed_at: string | null
+          severity: Database["public"]["Enums"]["intel_severity"]
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          actor_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type: string
+          id?: string
+          module: Database["public"]["Enums"]["intel_module"]
+          occurred_at?: string
+          payload?: Json
+          processed_at?: string | null
+          severity?: Database["public"]["Enums"]["intel_severity"]
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          actor_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type?: string
+          id?: string
+          module?: Database["public"]["Enums"]["intel_module"]
+          occurred_at?: string
+          payload?: Json
+          processed_at?: string | null
+          severity?: Database["public"]["Enums"]["intel_severity"]
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      intelligence_feedback: {
+        Row: {
+          comment: string | null
+          correction: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          metadata: Json
+          module: Database["public"]["Enums"]["intel_module"] | null
+          rating: number | null
+          stage: Database["public"]["Enums"]["intel_stage"] | null
+          subject_id: string
+          subject_type: string
+          updated_at: string
+          useful: boolean | null
+        }
+        Insert: {
+          comment?: string | null
+          correction?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metadata?: Json
+          module?: Database["public"]["Enums"]["intel_module"] | null
+          rating?: number | null
+          stage?: Database["public"]["Enums"]["intel_stage"] | null
+          subject_id: string
+          subject_type: string
+          updated_at?: string
+          useful?: boolean | null
+        }
+        Update: {
+          comment?: string | null
+          correction?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metadata?: Json
+          module?: Database["public"]["Enums"]["intel_module"] | null
+          rating?: number | null
+          stage?: Database["public"]["Enums"]["intel_stage"] | null
+          subject_id?: string
+          subject_type?: string
+          updated_at?: string
+          useful?: boolean | null
+        }
+        Relationships: []
+      }
+      intelligence_insights: {
+        Row: {
+          confidence: number
+          created_at: string
+          detail: string | null
+          entity_id: string | null
+          entity_type: string | null
+          evidence: Json
+          expires_at: string | null
+          generated_by: string
+          id: string
+          importance: number
+          insight_key: string | null
+          model: string | null
+          module: Database["public"]["Enums"]["intel_module"]
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity: Database["public"]["Enums"]["intel_severity"]
+          signal_ids: string[]
+          status: Database["public"]["Enums"]["intel_status"]
+          summary: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          detail?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          evidence?: Json
+          expires_at?: string | null
+          generated_by?: string
+          id?: string
+          importance?: number
+          insight_key?: string | null
+          model?: string | null
+          module: Database["public"]["Enums"]["intel_module"]
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: Database["public"]["Enums"]["intel_severity"]
+          signal_ids?: string[]
+          status?: Database["public"]["Enums"]["intel_status"]
+          summary: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          detail?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          evidence?: Json
+          expires_at?: string | null
+          generated_by?: string
+          id?: string
+          importance?: number
+          insight_key?: string | null
+          model?: string | null
+          module?: Database["public"]["Enums"]["intel_module"]
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: Database["public"]["Enums"]["intel_severity"]
+          signal_ids?: string[]
+          status?: Database["public"]["Enums"]["intel_status"]
+          summary?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      intelligence_memory: {
+        Row: {
+          confidence: number
+          created_at: string
+          expires_at: string | null
+          id: string
+          last_used_at: string | null
+          memory_key: string
+          memory_type: string
+          memory_value: string
+          metadata: Json
+          module: Database["public"]["Enums"]["intel_module"] | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scope: Database["public"]["Enums"]["intel_memory_scope"]
+          scope_id: string | null
+          source: string
+          source_event_id: string | null
+          status: Database["public"]["Enums"]["intel_status"]
+          updated_at: string
+          use_count: number
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          memory_key: string
+          memory_type?: string
+          memory_value: string
+          metadata?: Json
+          module?: Database["public"]["Enums"]["intel_module"] | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scope?: Database["public"]["Enums"]["intel_memory_scope"]
+          scope_id?: string | null
+          source?: string
+          source_event_id?: string | null
+          status?: Database["public"]["Enums"]["intel_status"]
+          updated_at?: string
+          use_count?: number
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          memory_key?: string
+          memory_type?: string
+          memory_value?: string
+          metadata?: Json
+          module?: Database["public"]["Enums"]["intel_module"] | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scope?: Database["public"]["Enums"]["intel_memory_scope"]
+          scope_id?: string | null
+          source?: string
+          source_event_id?: string | null
+          status?: Database["public"]["Enums"]["intel_status"]
+          updated_at?: string
+          use_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_memory_source_event_id_fkey"
+            columns: ["source_event_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intelligence_predictions: {
+        Row: {
+          accuracy: number | null
+          actual_recorded_at: string | null
+          actual_value: number | null
+          confidence: number
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          horizon_days: number | null
+          id: string
+          inputs: Json
+          label: string | null
+          lower_bound: number | null
+          model: string | null
+          module: Database["public"]["Enums"]["intel_module"]
+          predicted_text: string | null
+          predicted_value: number | null
+          prediction_key: string
+          target_date: string | null
+          unit: string | null
+          updated_at: string
+          upper_bound: number | null
+        }
+        Insert: {
+          accuracy?: number | null
+          actual_recorded_at?: string | null
+          actual_value?: number | null
+          confidence?: number
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          horizon_days?: number | null
+          id?: string
+          inputs?: Json
+          label?: string | null
+          lower_bound?: number | null
+          model?: string | null
+          module: Database["public"]["Enums"]["intel_module"]
+          predicted_text?: string | null
+          predicted_value?: number | null
+          prediction_key: string
+          target_date?: string | null
+          unit?: string | null
+          updated_at?: string
+          upper_bound?: number | null
+        }
+        Update: {
+          accuracy?: number | null
+          actual_recorded_at?: string | null
+          actual_value?: number | null
+          confidence?: number
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          horizon_days?: number | null
+          id?: string
+          inputs?: Json
+          label?: string | null
+          lower_bound?: number | null
+          model?: string | null
+          module?: Database["public"]["Enums"]["intel_module"]
+          predicted_text?: string | null
+          predicted_value?: number | null
+          prediction_key?: string
+          target_date?: string | null
+          unit?: string | null
+          updated_at?: string
+          upper_bound?: number | null
+        }
+        Relationships: []
+      }
+      intelligence_recommendations: {
+        Row: {
+          action_payload: Json
+          action_type: string | null
+          confidence: number
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          entity_id: string | null
+          entity_type: string | null
+          expected_impact: string | null
+          expires_at: string | null
+          id: string
+          impact_unit: string | null
+          impact_value: number | null
+          insight_id: string | null
+          module: Database["public"]["Enums"]["intel_module"]
+          priority: number
+          rationale: string
+          recommendation_key: string | null
+          status: Database["public"]["Enums"]["intel_status"]
+          suggested_action: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          action_payload?: Json
+          action_type?: string | null
+          confidence?: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          expected_impact?: string | null
+          expires_at?: string | null
+          id?: string
+          impact_unit?: string | null
+          impact_value?: number | null
+          insight_id?: string | null
+          module: Database["public"]["Enums"]["intel_module"]
+          priority?: number
+          rationale: string
+          recommendation_key?: string | null
+          status?: Database["public"]["Enums"]["intel_status"]
+          suggested_action?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          action_payload?: Json
+          action_type?: string | null
+          confidence?: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          expected_impact?: string | null
+          expires_at?: string | null
+          id?: string
+          impact_unit?: string | null
+          impact_value?: number | null
+          insight_id?: string | null
+          module?: Database["public"]["Enums"]["intel_module"]
+          priority?: number
+          rationale?: string
+          recommendation_key?: string | null
+          status?: Database["public"]["Enums"]["intel_status"]
+          suggested_action?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_recommendations_insight_id_fkey"
+            columns: ["insight_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_insights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intelligence_signals: {
+        Row: {
+          confidence: number
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          label: string | null
+          metadata: Json
+          module: Database["public"]["Enums"]["intel_module"]
+          signal_key: string
+          source_event_ids: string[]
+          unit: string | null
+          updated_at: string
+          value: number | null
+          value_text: string | null
+          window_end: string | null
+          window_start: string | null
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          label?: string | null
+          metadata?: Json
+          module: Database["public"]["Enums"]["intel_module"]
+          signal_key: string
+          source_event_ids?: string[]
+          unit?: string | null
+          updated_at?: string
+          value?: number | null
+          value_text?: string | null
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          label?: string | null
+          metadata?: Json
+          module?: Database["public"]["Enums"]["intel_module"]
+          signal_key?: string
+          source_event_ids?: string[]
+          unit?: string | null
+          updated_at?: string
+          value?: number | null
+          value_text?: string | null
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       journal_article_tags: {
         Row: {
           article_id: string
@@ -7472,6 +8012,46 @@ export type Database = {
         | "per_person_per_night"
       guest_status: "new" | "returning" | "vip"
       guest_type: "standard" | "vip" | "climber"
+      intel_action_status:
+        | "proposed"
+        | "approved"
+        | "executing"
+        | "completed"
+        | "failed"
+        | "cancelled"
+      intel_memory_scope:
+        | "guest"
+        | "reservation"
+        | "room"
+        | "module"
+        | "property"
+        | "global"
+      intel_module:
+        | "pms"
+        | "booking"
+        | "guest"
+        | "revenue"
+        | "marketing"
+        | "restaurant"
+        | "operations"
+        | "finance"
+        | "content"
+        | "platform"
+      intel_severity: "info" | "low" | "medium" | "high" | "critical"
+      intel_stage:
+        | "observe"
+        | "understand"
+        | "reason"
+        | "recommend"
+        | "act"
+        | "learn"
+      intel_status:
+        | "new"
+        | "reviewing"
+        | "accepted"
+        | "dismissed"
+        | "expired"
+        | "superseded"
       ops_alert_kind:
         | "late_arrival"
         | "overdue_departure"
@@ -7719,6 +8299,51 @@ export const Constants = {
       ],
       guest_status: ["new", "returning", "vip"],
       guest_type: ["standard", "vip", "climber"],
+      intel_action_status: [
+        "proposed",
+        "approved",
+        "executing",
+        "completed",
+        "failed",
+        "cancelled",
+      ],
+      intel_memory_scope: [
+        "guest",
+        "reservation",
+        "room",
+        "module",
+        "property",
+        "global",
+      ],
+      intel_module: [
+        "pms",
+        "booking",
+        "guest",
+        "revenue",
+        "marketing",
+        "restaurant",
+        "operations",
+        "finance",
+        "content",
+        "platform",
+      ],
+      intel_severity: ["info", "low", "medium", "high", "critical"],
+      intel_stage: [
+        "observe",
+        "understand",
+        "reason",
+        "recommend",
+        "act",
+        "learn",
+      ],
+      intel_status: [
+        "new",
+        "reviewing",
+        "accepted",
+        "dismissed",
+        "expired",
+        "superseded",
+      ],
       ops_alert_kind: [
         "late_arrival",
         "overdue_departure",
