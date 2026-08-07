@@ -15,6 +15,7 @@ import {
   runDecisionPassFn,
   updatePlanStepFn,
 } from "@/modules/intelligence/decisions/decision.functions";
+import { prepareIntelligenceActions } from "@/modules/intelligence/orchestration/orchestration.functions";
 import {
   DECISION_DOMAIN_LABEL,
   type Decision,
@@ -217,9 +218,14 @@ function DecisionCard({
             </>
           )}
           {stored.status === "approved" && (
-            <Button size="sm" variant="secondary" disabled={busy} onClick={() => onDecide({ id: stored.id, decision: "completed" })}>
-              Record outcome as completed
-            </Button>
+            <>
+              <Button size="sm" disabled={busy} onClick={() => onPrepare(stored.id)}>
+                Prepare execution
+              </Button>
+              <Button size="sm" variant="secondary" disabled={busy} onClick={() => onDecide({ id: stored.id, decision: "completed" })}>
+                Record outcome as completed
+              </Button>
+            </>
           )}
         </div>
       )}
