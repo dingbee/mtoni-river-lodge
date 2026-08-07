@@ -98,3 +98,8 @@ export * as ServiceOpsContracts from "./operations/contracts";
 export * from "./procurement/procurement.functions";
 export * from "./procurement/contracts";
 export * from "./procurement/lifecycle";
+
+/* Sprint 5.2 — Inventory Control & Multi-Location */
+export * from "./inventory/contracts";
+export * from "./inventory/units";
+export * from "./inventory/control.functions";

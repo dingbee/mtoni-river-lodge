@@ -24,11 +24,13 @@ const OUTBOUND: readonly StockMovementType[] = [
   "consumption",
   "wastage",
   "transfer_out",
+  "adjustment_out",
   "return_to_supplier",
 ];
 
 export function signedQuantity(type: StockMovementType, magnitude: number, signedAllowed = false): number {
-  if (type === "adjustment") return signedAllowed ? magnitude : magnitude;
+  // `adjustment` and `reversal` carry their own sign; everything else derives it.
+  if (type === "adjustment" || type === "reversal") return signedAllowed ? magnitude : magnitude;
   return OUTBOUND.includes(type) ? -Math.abs(magnitude) : Math.abs(magnitude);
 }
 
@@ -72,6 +74,14 @@ export async function insertMovement(
     referenceType?: string | null;
     referenceId?: string | null;
     orderItemId?: string | null;
+    transferId?: string | null;
+    transferLineId?: string | null;
+    stocktakeId?: string | null;
+    batchId?: string | null;
+    reversalOfId?: string | null;
+    correlationId?: string | null;
+    reasonCode?: string | null;
+    approvedBy?: string | null;
     occurredAt?: string;
     dedupeKey?: string | null;
   },
@@ -95,11 +105,20 @@ export async function insertMovement(
       reference_type: row.referenceType ?? null,
       reference_id: row.referenceId ?? null,
       order_item_id: row.orderItemId ?? null,
+      transfer_id: row.transferId ?? null,
+      transfer_line_id: row.transferLineId ?? null,
+      stocktake_id: row.stocktakeId ?? null,
+      batch_id: row.batchId ?? null,
+      reversal_of_id: row.reversalOfId ?? null,
+      correlation_id: row.correlationId ?? null,
+      reason_code: row.reasonCode ?? null,
+      approved_by: row.approvedBy ?? null,
+      approved_at: row.approvedBy ? new Date().toISOString() : null,
       occurred_at: row.occurredAt ?? new Date().toISOString(),
       dedupe_key: row.dedupeKey ?? null,
       created_by: userId,
     })
-    .select("id, quantity, unit_cost, total_cost, balance_after, movement_type")
+    .select("id, quantity, unit_cost, total_cost, balance_after, movement_type, inventory_item_id, location_id")
     .single();
   if (error) {
     // Idempotency: the same fact must never move stock twice.

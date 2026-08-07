@@ -297,6 +297,10 @@ export const STOCK_MOVEMENT_TYPES = [
   "transfer_in",
   "transfer_out",
   "adjustment",
+  "adjustment_in",
+  "adjustment_out",
+  "production",
+  "reversal",
   "return_to_supplier",
 ] as const;
 export type StockMovementType = (typeof STOCK_MOVEMENT_TYPES)[number];
