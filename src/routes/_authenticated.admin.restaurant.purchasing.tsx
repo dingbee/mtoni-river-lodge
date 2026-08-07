@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- server function rows are untyped at this boundary. */
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -39,7 +40,7 @@ function PurchasingPage() {
           <EmptyState title="No purchase orders" description="Create a purchase order from a supplier catalogue." />
         ) : (
           <ul className="divide-y text-sm">
-            {(q.data ?? []).map((o) => (
+            {(q.data ?? []).map((o: any) => (
               <li key={o.id} className="flex items-center justify-between py-2">
                 <span>{o.reference}</span>
                 <span className="text-xs text-muted-foreground">

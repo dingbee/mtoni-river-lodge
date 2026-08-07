@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- server function rows are untyped at this boundary. */
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -47,7 +48,7 @@ function MenuPage() {
           <EmptyState title="No menus yet" description="Create a menu to start building your offer." />
         ) : (
           <ul className="divide-y text-sm">
-            {(menus.data ?? []).map((m) => (
+            {(menus.data ?? []).map((m: any) => (
               <li key={m.id} className="flex items-center justify-between py-2">
                 <span>
                   {m.name} <span className="text-muted-foreground">v{m.version}</span>
@@ -66,7 +67,7 @@ function MenuPage() {
           <EmptyState title="No menu items" description="Items appear here once a menu has been populated." />
         ) : (
           <ul className="divide-y text-sm">
-            {(items.data ?? []).map((i) => (
+            {(items.data ?? []).map((i: any) => (
               <li key={i.id} className="flex items-center justify-between py-2">
                 <span>{i.name}</span>
                 <span className="text-xs text-muted-foreground">

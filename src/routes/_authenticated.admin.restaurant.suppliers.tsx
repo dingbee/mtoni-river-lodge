@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- server function rows are untyped at this boundary. */
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -36,7 +37,7 @@ function SuppliersPage() {
           <EmptyState title="No suppliers" description="Add suppliers to enable purchase orders." />
         ) : (
           <ul className="divide-y text-sm">
-            {(q.data ?? []).map((s) => (
+            {(q.data ?? []).map((s: any) => (
               <li key={s.id} className="flex items-center justify-between py-2">
                 <span>{s.name}</span>
                 <span className="text-xs text-muted-foreground">

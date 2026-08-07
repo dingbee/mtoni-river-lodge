@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- server function rows are untyped at this boundary. */
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -39,7 +40,7 @@ function CostingPage() {
           <EmptyState title="Nothing costed yet" description="Add recipe components to a menu item, then compute its cost." />
         ) : (
           <ul className="divide-y text-sm">
-            {(q.data ?? []).map((c) => (
+            {(q.data ?? []).map((c: any) => (
               <li key={c.id} className="flex items-center justify-between py-2">
                 <span className="text-muted-foreground">{new Date(c.computed_at).toLocaleString()}</span>
                 <span className="text-xs text-muted-foreground">
