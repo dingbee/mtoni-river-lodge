@@ -89,7 +89,14 @@ export async function computeRecipeCost(sb: Sb, userId: string, input: ComputeRe
     }
   }
 
-  const breakdown = (components ?? []).map((c: any) => {
+  const breakdown: Array<{
+    inventory_item_id: string | null;
+    name: string;
+    quantity: number;
+    yield_percent: number;
+    unit_cost: number;
+    line_cost: number;
+  }> = (components ?? []).map((c: any) => {
     const meta = c.inventory_item_id ? costs.get(c.inventory_item_id) : undefined;
     const effectiveQty = Number(c.quantity) / (Number(c.yield_percent ?? 100) / 100);
     const lineCost = effectiveQty * (meta?.cost ?? 0);
