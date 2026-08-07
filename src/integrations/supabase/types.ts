@@ -5453,6 +5453,7 @@ export type Database = {
       intelligence_insights: {
         Row: {
           confidence: number
+          context: Json
           created_at: string
           detail: string | null
           entity_id: string | null
@@ -5477,6 +5478,7 @@ export type Database = {
         }
         Insert: {
           confidence?: number
+          context?: Json
           created_at?: string
           detail?: string | null
           entity_id?: string | null
@@ -5501,6 +5503,7 @@ export type Database = {
         }
         Update: {
           confidence?: number
+          context?: Json
           created_at?: string
           detail?: string | null
           entity_id?: string | null
@@ -5533,6 +5536,7 @@ export type Database = {
           id: string
           last_used_at: string | null
           memory_key: string
+          memory_tier: string
           memory_type: string
           memory_value: string
           metadata: Json
@@ -5554,6 +5558,7 @@ export type Database = {
           id?: string
           last_used_at?: string | null
           memory_key: string
+          memory_tier?: string
           memory_type?: string
           memory_value: string
           metadata?: Json
@@ -5575,6 +5580,7 @@ export type Database = {
           id?: string
           last_used_at?: string | null
           memory_key?: string
+          memory_tier?: string
           memory_type?: string
           memory_value?: string
           metadata?: Json
@@ -5676,6 +5682,7 @@ export type Database = {
           action_payload: Json
           action_type: string | null
           confidence: number
+          context: Json
           created_at: string
           decided_at: string | null
           decided_by: string | null
@@ -5702,6 +5709,7 @@ export type Database = {
           action_payload?: Json
           action_type?: string | null
           confidence?: number
+          context?: Json
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
@@ -5728,6 +5736,7 @@ export type Database = {
           action_payload?: Json
           action_type?: string | null
           confidence?: number
+          context?: Json
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null

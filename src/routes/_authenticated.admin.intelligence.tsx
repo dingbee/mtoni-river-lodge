@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
-import { Activity, History } from "lucide-react";
+import { Activity, History, Layers } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/intelligence")({
   head: () => ({
@@ -10,6 +10,7 @@ export const Route = createFileRoute("/_authenticated/admin/intelligence")({
 
 const TABS = [
   { to: "/admin/intelligence", label: "Timeline", icon: History, exact: true },
+  { to: "/admin/intelligence/context", label: "Business Context", icon: Layers },
   { to: "/admin/intelligence/health", label: "Health Monitor", icon: Activity },
 ] as const;
 

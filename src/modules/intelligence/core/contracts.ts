@@ -272,6 +272,13 @@ export const rememberSchema = z.object({
   memoryKey: z.string().min(2).max(120),
   memoryValue: z.string().min(1).max(4000),
   memoryType: z.string().max(60).default("fact"),
+  /**
+   * Memory hierarchy:
+   *  observed  — facts ("occupancy was 78% last August")
+   *  learned   — patterns ("August performs strongly when marketed 30 days ahead")
+   *  strategic — management preference ("avoid heavy discounting")
+   */
+  memoryTier: z.enum(["observed", "learned", "strategic"]).default("observed"),
   confidence: confidence.default(0.5),
   source: z.string().max(60).default("system"),
   sourceEventId: uuid.optional(),
@@ -285,6 +292,7 @@ export const recallSchema = z.object({
   scopeId: uuid.optional(),
   module: moduleEnum.optional(),
   status: statusEnum.optional(),
+  memoryTier: z.enum(["observed", "learned", "strategic"]).optional(),
   /** Only approved memories are safe to feed into reasoning by default. */
   approvedOnly: z.boolean().default(true),
   limit: z.number().int().min(1).max(100).default(25),

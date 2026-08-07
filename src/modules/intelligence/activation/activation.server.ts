@@ -70,6 +70,7 @@ export interface PipelineResult {
   signalsCreated: number;
   insightsCreated: number;
   recommendationsCreated: number;
+  crossModuleFindings: number;
   details: Array<{ module: string; eventType: string; deltaPct: number; count: number; escalated: boolean }>;
 }
 
@@ -92,9 +93,24 @@ export async function runPipeline(
     signalsCreated: 0,
     insightsCreated: 0,
     recommendationsCreated: 0,
+    crossModuleFindings: 0,
     details: [],
   };
   if (modules.length === 0) return result;
+
+  // Sprint 3 — build the business context once per pass; every insight and
+  // recommendation produced below is stamped with it.
+  const { getBusinessContext } = await import("../context/context.server");
+  const { synthesiseCrossModule, persistCrossModuleFindings } = await import("../context/cross-module.server");
+  const businessContext = await getBusinessContext(supabase, userId, { windowDays: 14 });
+  const contextLine = businessContext.narrative.join(" ");
+
+  // Cross-module intelligence runs even when no single module escalated.
+  const findings = synthesiseCrossModule(businessContext);
+  const crossed = await persistCrossModuleFindings(supabase, findings, businessContext, modules);
+  result.crossModuleFindings = findings.length;
+  result.insightsCreated += crossed.insightsCreated;
+  result.recommendationsCreated += crossed.recommendationsCreated;
 
   const { data: pending, error } = await supabase
     .from("intelligence_events")
@@ -183,13 +199,14 @@ export async function runPipeline(
           module: g.module,
           insight_key: insightKey,
           title: rule.insightTitle(deltaPct),
-          summary: rule.insightSummary(deltaPct, count),
+          summary: `${rule.insightSummary(deltaPct, count)} ${contextLine}`,
           severity: Math.abs(deltaPct) >= rule.threshold * 2 ? "high" : "medium",
           importance: Math.abs(deltaPct) >= rule.threshold * 2 ? 4 : 3,
           confidence,
           signal_ids: signal?.id ? [signal.id] : [],
           evidence: { count, delta_pct: Math.round(deltaPct), window_hours: windowHours, source_event_ids: g.ids.slice(0, 20) },
           reasoning_sources: sources,
+          context: businessContext as unknown as Record<string, unknown>,
           generated_by: "activation-pipeline",
         })
         .select("id")
@@ -215,7 +232,7 @@ export async function runPipeline(
         insight_id: insightId,
         recommendation_key: recKey,
         title: rule.recommendation.title,
-        rationale: rule.insightSummary(deltaPct, count),
+        rationale: `${rule.insightSummary(deltaPct, count)}\n\nContext: ${contextLine}`,
         suggested_action: rule.recommendation.suggestedAction,
         action_type: rule.recommendation.actionType,
         action_payload: { delta_pct: Math.round(deltaPct), count },
@@ -223,6 +240,7 @@ export async function runPipeline(
         priority: Math.abs(deltaPct) >= rule.threshold * 2 ? 4 : 3,
         confidence,
         reasoning_sources: sources,
+        context: businessContext as unknown as Record<string, unknown>,
       });
       if (!recErr) result.recommendationsCreated += 1;
     }
