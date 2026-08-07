@@ -95,3 +95,6 @@ export {
 /* Phase 2 contracts (declared, not implemented) */
 export * as SalesContracts from "./sales/contracts";
 export * as ServiceOpsContracts from "./operations/contracts";
+export * from "./procurement/procurement.functions";
+export * from "./procurement/contracts";
+export * from "./procurement/lifecycle";

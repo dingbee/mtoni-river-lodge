@@ -1,0 +1,2 @@
+revoke execute on function public.restaurant_next_document_number(uuid, text, text) from anon, public;
+grant execute on function public.restaurant_next_document_number(uuid, text, text) to authenticated, service_role;
