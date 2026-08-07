@@ -131,6 +131,7 @@ import { Route as AuthenticatedAdminIntelligenceHealthRouteImport } from './rout
 import { Route as AuthenticatedAdminIntelligenceForecastRouteImport } from './routes/_authenticated.admin.intelligence.forecast'
 import { Route as AuthenticatedAdminIntelligenceDecisionsRouteImport } from './routes/_authenticated.admin.intelligence.decisions'
 import { Route as AuthenticatedAdminIntelligenceContextRouteImport } from './routes/_authenticated.admin.intelligence.context'
+import { Route as AuthenticatedAdminIntelligenceActionsRouteImport } from './routes/_authenticated.admin.intelligence.actions'
 import { Route as AuthenticatedAdminGuestsMessagesRouteImport } from './routes/_authenticated.admin.guests.messages'
 import { Route as AuthenticatedAdminGuestsCrmRouteImport } from './routes/_authenticated.admin.guests.crm'
 import { Route as AuthenticatedAdminFinanceReportsRouteImport } from './routes/_authenticated.admin.finance.reports'
@@ -907,6 +908,12 @@ const AuthenticatedAdminIntelligenceContextRoute =
     path: '/context',
     getParentRoute: () => AuthenticatedAdminIntelligenceRoute,
   } as any)
+const AuthenticatedAdminIntelligenceActionsRoute =
+  AuthenticatedAdminIntelligenceActionsRouteImport.update({
+    id: '/actions',
+    path: '/actions',
+    getParentRoute: () => AuthenticatedAdminIntelligenceRoute,
+  } as any)
 const AuthenticatedAdminGuestsMessagesRoute =
   AuthenticatedAdminGuestsMessagesRouteImport.update({
     id: '/guests/messages',
@@ -1680,6 +1687,7 @@ export interface FileRoutesByFullPath {
   '/admin/finance/reports': typeof AuthenticatedAdminFinanceReportsRoute
   '/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
+  '/admin/intelligence/actions': typeof AuthenticatedAdminIntelligenceActionsRoute
   '/admin/intelligence/context': typeof AuthenticatedAdminIntelligenceContextRoute
   '/admin/intelligence/decisions': typeof AuthenticatedAdminIntelligenceDecisionsRoute
   '/admin/intelligence/forecast': typeof AuthenticatedAdminIntelligenceForecastRoute
@@ -1897,6 +1905,7 @@ export interface FileRoutesByTo {
   '/admin/finance/reports': typeof AuthenticatedAdminFinanceReportsRoute
   '/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
+  '/admin/intelligence/actions': typeof AuthenticatedAdminIntelligenceActionsRoute
   '/admin/intelligence/context': typeof AuthenticatedAdminIntelligenceContextRoute
   '/admin/intelligence/decisions': typeof AuthenticatedAdminIntelligenceDecisionsRoute
   '/admin/intelligence/forecast': typeof AuthenticatedAdminIntelligenceForecastRoute
@@ -2129,6 +2138,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/finance/reports': typeof AuthenticatedAdminFinanceReportsRoute
   '/_authenticated/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/_authenticated/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
+  '/_authenticated/admin/intelligence/actions': typeof AuthenticatedAdminIntelligenceActionsRoute
   '/_authenticated/admin/intelligence/context': typeof AuthenticatedAdminIntelligenceContextRoute
   '/_authenticated/admin/intelligence/decisions': typeof AuthenticatedAdminIntelligenceDecisionsRoute
   '/_authenticated/admin/intelligence/forecast': typeof AuthenticatedAdminIntelligenceForecastRoute
@@ -2361,6 +2371,7 @@ export interface FileRouteTypes {
     | '/admin/finance/reports'
     | '/admin/guests/crm'
     | '/admin/guests/messages'
+    | '/admin/intelligence/actions'
     | '/admin/intelligence/context'
     | '/admin/intelligence/decisions'
     | '/admin/intelligence/forecast'
@@ -2578,6 +2589,7 @@ export interface FileRouteTypes {
     | '/admin/finance/reports'
     | '/admin/guests/crm'
     | '/admin/guests/messages'
+    | '/admin/intelligence/actions'
     | '/admin/intelligence/context'
     | '/admin/intelligence/decisions'
     | '/admin/intelligence/forecast'
@@ -2809,6 +2821,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/finance/reports'
     | '/_authenticated/admin/guests/crm'
     | '/_authenticated/admin/guests/messages'
+    | '/_authenticated/admin/intelligence/actions'
     | '/_authenticated/admin/intelligence/context'
     | '/_authenticated/admin/intelligence/decisions'
     | '/_authenticated/admin/intelligence/forecast'
@@ -3834,6 +3847,13 @@ declare module '@tanstack/react-router' {
       path: '/context'
       fullPath: '/admin/intelligence/context'
       preLoaderRoute: typeof AuthenticatedAdminIntelligenceContextRouteImport
+      parentRoute: typeof AuthenticatedAdminIntelligenceRoute
+    }
+    '/_authenticated/admin/intelligence/actions': {
+      id: '/_authenticated/admin/intelligence/actions'
+      path: '/actions'
+      fullPath: '/admin/intelligence/actions'
+      preLoaderRoute: typeof AuthenticatedAdminIntelligenceActionsRouteImport
       parentRoute: typeof AuthenticatedAdminIntelligenceRoute
     }
     '/_authenticated/admin/guests/messages': {
@@ -4947,6 +4967,7 @@ const AuthenticatedAdminAutomationRouteWithChildren =
   )
 
 interface AuthenticatedAdminIntelligenceRouteChildren {
+  AuthenticatedAdminIntelligenceActionsRoute: typeof AuthenticatedAdminIntelligenceActionsRoute
   AuthenticatedAdminIntelligenceContextRoute: typeof AuthenticatedAdminIntelligenceContextRoute
   AuthenticatedAdminIntelligenceDecisionsRoute: typeof AuthenticatedAdminIntelligenceDecisionsRoute
   AuthenticatedAdminIntelligenceForecastRoute: typeof AuthenticatedAdminIntelligenceForecastRoute
@@ -4956,6 +4977,8 @@ interface AuthenticatedAdminIntelligenceRouteChildren {
 
 const AuthenticatedAdminIntelligenceRouteChildren: AuthenticatedAdminIntelligenceRouteChildren =
   {
+    AuthenticatedAdminIntelligenceActionsRoute:
+      AuthenticatedAdminIntelligenceActionsRoute,
     AuthenticatedAdminIntelligenceContextRoute:
       AuthenticatedAdminIntelligenceContextRoute,
     AuthenticatedAdminIntelligenceDecisionsRoute:
