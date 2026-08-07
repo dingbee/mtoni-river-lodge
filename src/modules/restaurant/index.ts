@@ -68,6 +68,16 @@ export {
 } from "./costing/profitability.functions";
 export { getRestaurantContextFn } from "./intelligence/context.functions";
 
+/* Phase 3 — Restaurant Intelligence Activation */
+export * from "./intelligence/types";
+export * from "./intelligence/analysis";
+export {
+  getRestaurantMenuIntelligenceFn,
+  getRestaurantInventoryIntelligenceFn,
+  getRestaurantKitchenIntelligenceFn,
+  getRestaurantPurchasingIntelligenceFn,
+} from "./intelligence/insights.functions";
+
 /* Phase 2 contracts (declared, not implemented) */
 export * as SalesContracts from "./sales/contracts";
 export * as ServiceOpsContracts from "./operations/contracts";
