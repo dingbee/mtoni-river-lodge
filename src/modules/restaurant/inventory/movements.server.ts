@@ -77,6 +77,7 @@ export async function insertMovement(
     transferId?: string | null;
     transferLineId?: string | null;
     stocktakeId?: string | null;
+    productionId?: string | null;
     batchId?: string | null;
     reversalOfId?: string | null;
     correlationId?: string | null;
@@ -108,6 +109,7 @@ export async function insertMovement(
       transfer_id: row.transferId ?? null,
       transfer_line_id: row.transferLineId ?? null,
       stocktake_id: row.stocktakeId ?? null,
+      production_id: row.productionId ?? null,
       batch_id: row.batchId ?? null,
       reversal_of_id: row.reversalOfId ?? null,
       correlation_id: row.correlationId ?? null,
