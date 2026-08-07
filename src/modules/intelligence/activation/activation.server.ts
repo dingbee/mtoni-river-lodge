@@ -71,6 +71,7 @@ export interface PipelineResult {
   insightsCreated: number;
   recommendationsCreated: number;
   crossModuleFindings: number;
+  predictionsRecorded: number;
   details: Array<{ module: string; eventType: string; deltaPct: number; count: number; escalated: boolean }>;
 }
 
@@ -94,6 +95,7 @@ export async function runPipeline(
     insightsCreated: 0,
     recommendationsCreated: 0,
     crossModuleFindings: 0,
+    predictionsRecorded: 0,
     details: [],
   };
   if (modules.length === 0) return result;
@@ -111,6 +113,17 @@ export async function runPipeline(
   result.crossModuleFindings = findings.length;
   result.insightsCreated += crossed.insightsCreated;
   result.recommendationsCreated += crossed.recommendationsCreated;
+
+  // Sprint 4 — predictive pass: forecasts become predictions and
+  // prediction-backed recommendations regardless of event volume.
+  try {
+    const { runForecastPass } = await import("../predictions/forecast.server");
+    const forecast = await runForecastPass(supabase, userId, { horizonDays: 14, persist: true });
+    result.predictionsRecorded = forecast.predictionsRecorded;
+    result.recommendationsCreated += forecast.recommendationsCreated;
+  } catch (err) {
+    console.warn("[intelligence] forecast pass failed", err);
+  }
 
   const { data: pending, error } = await supabase
     .from("intelligence_events")

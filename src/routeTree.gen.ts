@@ -128,6 +128,7 @@ import { Route as AuthenticatedAdminMarketingCampaignsRouteImport } from './rout
 import { Route as AuthenticatedAdminMarketingAnalyticsRouteImport } from './routes/_authenticated.admin.marketing.analytics'
 import { Route as AuthenticatedAdminMarketingAiAssistantRouteImport } from './routes/_authenticated.admin.marketing.ai-assistant'
 import { Route as AuthenticatedAdminIntelligenceHealthRouteImport } from './routes/_authenticated.admin.intelligence.health'
+import { Route as AuthenticatedAdminIntelligenceForecastRouteImport } from './routes/_authenticated.admin.intelligence.forecast'
 import { Route as AuthenticatedAdminIntelligenceContextRouteImport } from './routes/_authenticated.admin.intelligence.context'
 import { Route as AuthenticatedAdminGuestsMessagesRouteImport } from './routes/_authenticated.admin.guests.messages'
 import { Route as AuthenticatedAdminGuestsCrmRouteImport } from './routes/_authenticated.admin.guests.crm'
@@ -885,6 +886,12 @@ const AuthenticatedAdminIntelligenceHealthRoute =
   AuthenticatedAdminIntelligenceHealthRouteImport.update({
     id: '/health',
     path: '/health',
+    getParentRoute: () => AuthenticatedAdminIntelligenceRoute,
+  } as any)
+const AuthenticatedAdminIntelligenceForecastRoute =
+  AuthenticatedAdminIntelligenceForecastRouteImport.update({
+    id: '/forecast',
+    path: '/forecast',
     getParentRoute: () => AuthenticatedAdminIntelligenceRoute,
   } as any)
 const AuthenticatedAdminIntelligenceContextRoute =
@@ -1667,6 +1674,7 @@ export interface FileRoutesByFullPath {
   '/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
   '/admin/intelligence/context': typeof AuthenticatedAdminIntelligenceContextRoute
+  '/admin/intelligence/forecast': typeof AuthenticatedAdminIntelligenceForecastRoute
   '/admin/intelligence/health': typeof AuthenticatedAdminIntelligenceHealthRoute
   '/admin/marketing/ai-assistant': typeof AuthenticatedAdminMarketingAiAssistantRoute
   '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
@@ -1882,6 +1890,7 @@ export interface FileRoutesByTo {
   '/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
   '/admin/intelligence/context': typeof AuthenticatedAdminIntelligenceContextRoute
+  '/admin/intelligence/forecast': typeof AuthenticatedAdminIntelligenceForecastRoute
   '/admin/intelligence/health': typeof AuthenticatedAdminIntelligenceHealthRoute
   '/admin/marketing/ai-assistant': typeof AuthenticatedAdminMarketingAiAssistantRoute
   '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
@@ -2112,6 +2121,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/guests/crm': typeof AuthenticatedAdminGuestsCrmRouteWithChildren
   '/_authenticated/admin/guests/messages': typeof AuthenticatedAdminGuestsMessagesRoute
   '/_authenticated/admin/intelligence/context': typeof AuthenticatedAdminIntelligenceContextRoute
+  '/_authenticated/admin/intelligence/forecast': typeof AuthenticatedAdminIntelligenceForecastRoute
   '/_authenticated/admin/intelligence/health': typeof AuthenticatedAdminIntelligenceHealthRoute
   '/_authenticated/admin/marketing/ai-assistant': typeof AuthenticatedAdminMarketingAiAssistantRoute
   '/_authenticated/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
@@ -2342,6 +2352,7 @@ export interface FileRouteTypes {
     | '/admin/guests/crm'
     | '/admin/guests/messages'
     | '/admin/intelligence/context'
+    | '/admin/intelligence/forecast'
     | '/admin/intelligence/health'
     | '/admin/marketing/ai-assistant'
     | '/admin/marketing/analytics'
@@ -2557,6 +2568,7 @@ export interface FileRouteTypes {
     | '/admin/guests/crm'
     | '/admin/guests/messages'
     | '/admin/intelligence/context'
+    | '/admin/intelligence/forecast'
     | '/admin/intelligence/health'
     | '/admin/marketing/ai-assistant'
     | '/admin/marketing/analytics'
@@ -2786,6 +2798,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/guests/crm'
     | '/_authenticated/admin/guests/messages'
     | '/_authenticated/admin/intelligence/context'
+    | '/_authenticated/admin/intelligence/forecast'
     | '/_authenticated/admin/intelligence/health'
     | '/_authenticated/admin/marketing/ai-assistant'
     | '/_authenticated/admin/marketing/analytics'
@@ -3787,6 +3800,13 @@ declare module '@tanstack/react-router' {
       path: '/health'
       fullPath: '/admin/intelligence/health'
       preLoaderRoute: typeof AuthenticatedAdminIntelligenceHealthRouteImport
+      parentRoute: typeof AuthenticatedAdminIntelligenceRoute
+    }
+    '/_authenticated/admin/intelligence/forecast': {
+      id: '/_authenticated/admin/intelligence/forecast'
+      path: '/forecast'
+      fullPath: '/admin/intelligence/forecast'
+      preLoaderRoute: typeof AuthenticatedAdminIntelligenceForecastRouteImport
       parentRoute: typeof AuthenticatedAdminIntelligenceRoute
     }
     '/_authenticated/admin/intelligence/context': {
@@ -4908,6 +4928,7 @@ const AuthenticatedAdminAutomationRouteWithChildren =
 
 interface AuthenticatedAdminIntelligenceRouteChildren {
   AuthenticatedAdminIntelligenceContextRoute: typeof AuthenticatedAdminIntelligenceContextRoute
+  AuthenticatedAdminIntelligenceForecastRoute: typeof AuthenticatedAdminIntelligenceForecastRoute
   AuthenticatedAdminIntelligenceHealthRoute: typeof AuthenticatedAdminIntelligenceHealthRoute
   AuthenticatedAdminIntelligenceIndexRoute: typeof AuthenticatedAdminIntelligenceIndexRoute
 }
@@ -4916,6 +4937,8 @@ const AuthenticatedAdminIntelligenceRouteChildren: AuthenticatedAdminIntelligenc
   {
     AuthenticatedAdminIntelligenceContextRoute:
       AuthenticatedAdminIntelligenceContextRoute,
+    AuthenticatedAdminIntelligenceForecastRoute:
+      AuthenticatedAdminIntelligenceForecastRoute,
     AuthenticatedAdminIntelligenceHealthRoute:
       AuthenticatedAdminIntelligenceHealthRoute,
     AuthenticatedAdminIntelligenceIndexRoute:

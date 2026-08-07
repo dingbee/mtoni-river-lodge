@@ -51,3 +51,7 @@ export {
 /* Sprint 3 — Context Intelligence layer */
 export * from "./context/context.types";
 export { getBusinessContextFn } from "./context/context.functions";
+
+/* Sprint 4 — Predictive Intelligence layer */
+export * from "./predictions/forecast.types";
+export { getForecastBoardFn, runForecastPassFn } from "./predictions/forecast.functions";
