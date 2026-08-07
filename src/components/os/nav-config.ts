@@ -1,4 +1,7 @@
 import {
+  Receipt,
+  ChefHat,
+  PiggyBank,
   LayoutDashboard,
   Calendar,
   CalendarDays,
@@ -91,11 +94,15 @@ export const NAV: NavEntry[] = [
       icon: UtensilsCrossed,
       items: [
         { id: "restaurant.overview", label: "Overview", href: "/admin/restaurant", icon: UtensilsCrossed },
+        { id: "restaurant.orders", label: "Orders", href: "/admin/restaurant/orders", icon: Receipt },
+        { id: "restaurant.kitchen", label: "Kitchen", href: "/admin/restaurant/kitchen", icon: ChefHat },
         { id: "restaurant.menu", label: "Menu Management", href: "/admin/restaurant/menu", icon: BookOpen },
         { id: "restaurant.inventory", label: "Inventory", href: "/admin/restaurant/inventory", icon: Boxes },
+        { id: "restaurant.stock", label: "Stock Movements", href: "/admin/restaurant/stock", icon: Boxes },
         { id: "restaurant.suppliers", label: "Suppliers", href: "/admin/restaurant/suppliers", icon: Truck },
         { id: "restaurant.purchasing", label: "Purchasing", href: "/admin/restaurant/purchasing", icon: ShoppingCart },
         { id: "restaurant.costing", label: "Recipe Costing", href: "/admin/restaurant/costing", icon: Calculator },
+        { id: "restaurant.profitability", label: "Menu Profitability", href: "/admin/restaurant/profitability", icon: PiggyBank },
         { id: "restaurant.settings", label: "Tenant Settings", href: "/admin/restaurant/settings", icon: Settings2 },
       ],
     },

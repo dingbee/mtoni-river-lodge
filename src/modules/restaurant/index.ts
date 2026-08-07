@@ -37,6 +37,35 @@ export {
   computeRestaurantRecipeCostFn,
   listRestaurantRecipeCostsFn,
 } from "./costing/costing.functions";
+export {
+  listRestaurantServicePeriodsFn,
+  upsertRestaurantServicePeriodFn,
+  listRestaurantTablesFn,
+  upsertRestaurantTableFn,
+  listRestaurantOrdersFn,
+  getRestaurantOrderFn,
+  createRestaurantOrderFn,
+  addRestaurantOrderItemsFn,
+  recordRestaurantPaymentFn,
+  transitionRestaurantOrderFn,
+} from "./sales/sales.functions";
+export {
+  listRestaurantStationsFn,
+  upsertRestaurantStationFn,
+  listRestaurantKitchenTicketsFn,
+  fireRestaurantOrderFn,
+  advanceRestaurantTicketFn,
+  restaurantStationPerformanceFn,
+} from "./kitchen/kitchen.functions";
+export {
+  listRestaurantStockMovementsFn,
+  recordRestaurantStockMovementFn,
+  transferRestaurantStockFn,
+} from "./inventory/movements.functions";
+export {
+  computeRestaurantProfitabilityFn,
+  listRestaurantProfitabilityFn,
+} from "./costing/profitability.functions";
 export { getRestaurantContextFn } from "./intelligence/context.functions";
 
 /* Phase 2 contracts (declared, not implemented) */
