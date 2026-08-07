@@ -1,6 +1,7 @@
 import {
   Receipt,
   Brain,
+  Scale,
   ChefHat,
   PiggyBank,
   LayoutDashboard,
@@ -105,6 +106,7 @@ export const NAV: NavEntry[] = [
         { id: "restaurant.costing", label: "Recipe Costing", href: "/admin/restaurant/costing", icon: Calculator },
         { id: "restaurant.profitability", label: "Menu Profitability", href: "/admin/restaurant/profitability", icon: PiggyBank },
         { id: "restaurant.intelligence", label: "Intelligence", href: "/admin/restaurant/intelligence", icon: Brain },
+        { id: "restaurant.decisions", label: "Decisions", href: "/admin/restaurant/decisions", icon: Scale },
         { id: "restaurant.settings", label: "Tenant Settings", href: "/admin/restaurant/settings", icon: Settings2 },
       ],
     },
