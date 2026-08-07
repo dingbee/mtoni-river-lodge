@@ -1,5 +1,7 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
 import { BookOpen, Boxes, Calculator, LayoutDashboard, Settings2, ShoppingCart, Truck } from "lucide-react";
+// Declares Restaurant & Bar OS to the Intelligence Core registry (inert registration).
+import "@/modules/restaurant/intelligence/provider";
 
 export const Route = createFileRoute("/_authenticated/admin/restaurant")({
   head: () => ({
