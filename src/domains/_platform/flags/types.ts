@@ -23,7 +23,8 @@ export type FeatureFlagKey =
   | "website_analytics"
   | "mtoni_ai_command_centre"
   | "mtoni_ai_concierge"
-  | "online_checkin";
+  | "online_checkin"
+  | "restaurant_os";
 
 export type FlagState = "enabled" | "disabled" | "beta" | "internal";
 

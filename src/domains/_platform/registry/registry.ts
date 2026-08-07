@@ -36,6 +36,15 @@ import {
   contentCalendarModule,
   marketingReviewsModule,
 } from "./modules/cmis.module";
+import {
+  restaurantOsModule,
+  restaurantMenuModule,
+  restaurantInventoryModule,
+  restaurantSuppliersModule,
+  restaurantPurchasingModule,
+  restaurantCostingModule,
+  restaurantSettingsModule,
+} from "./modules/restaurant.module";
 
 export const MODULE_REGISTRY: ModuleDefinition[] = [
   dashboardModule,
@@ -43,6 +52,9 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
   opsDashboardModule, opsRoomBoardModule, opsCalendarModule, opsHousekeepingModule,
   opsTasksModule, opsAlertsModule, opsTimelineModule,
   onlineCheckInArrivalsModule,
+  restaurantOsModule, restaurantMenuModule, restaurantInventoryModule,
+  restaurantSuppliersModule, restaurantPurchasingModule, restaurantCostingModule,
+  restaurantSettingsModule,
   housekeepingModule,
   guestsCrmModule, guestsReviewsModule, guestsMessagesModule,
   contentPagesModule,

@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { UserCheck } from "lucide-react";
 import { ListChecks, AlertTriangle, Activity, TrendingUp } from "lucide-react";
+import { UtensilsCrossed, BookOpen, Boxes, Truck, ShoppingCart, Calculator, Settings2 } from "lucide-react";
 import type { ComponentType } from "react";
 
 export type NavItem = {
@@ -79,6 +80,23 @@ export const NAV: NavEntry[] = [
         { id: "guests.crm", label: "Guest CRM", href: "/admin/guests/crm", icon: Users },
         { id: "guests.reviews", label: "Reviews", href: "/admin/reviews", icon: Star },
         { id: "guests.messages", label: "Messages", href: "/admin/guests/messages", icon: MessageSquare },
+      ],
+    },
+  },
+  {
+    kind: "group",
+    group: {
+      id: "restaurant",
+      label: "Restaurant & Bar",
+      icon: UtensilsCrossed,
+      items: [
+        { id: "restaurant.overview", label: "Overview", href: "/admin/restaurant", icon: UtensilsCrossed },
+        { id: "restaurant.menu", label: "Menu Management", href: "/admin/restaurant/menu", icon: BookOpen },
+        { id: "restaurant.inventory", label: "Inventory", href: "/admin/restaurant/inventory", icon: Boxes },
+        { id: "restaurant.suppliers", label: "Suppliers", href: "/admin/restaurant/suppliers", icon: Truck },
+        { id: "restaurant.purchasing", label: "Purchasing", href: "/admin/restaurant/purchasing", icon: ShoppingCart },
+        { id: "restaurant.costing", label: "Recipe Costing", href: "/admin/restaurant/costing", icon: Calculator },
+        { id: "restaurant.settings", label: "Tenant Settings", href: "/admin/restaurant/settings", icon: Settings2 },
       ],
     },
   },
