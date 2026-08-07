@@ -1,4 +1,4 @@
-import { UtensilsCrossed, BookOpen, Boxes, Truck, ShoppingCart, Calculator, Settings2 } from "lucide-react";
+import { UtensilsCrossed, BookOpen, Boxes, Truck, ShoppingCart, Calculator, Settings2, Receipt, ChefHat, ArrowLeftRight, PiggyBank } from "lucide-react";
 import { defineModule } from "../registry";
 
 const ROLES = ["owner", "manager", "finance"] as const;
@@ -89,6 +89,57 @@ export const restaurantSettingsModule = defineModule({
   parentId: "restaurant",
   order: 60,
   requiredRoles: ["owner", "manager"],
+  featureFlag: "restaurant_os",
+  status: "beta",
+});
+export const restaurantOrdersModule = defineModule({
+  id: "restaurant.orders",
+  name: "Orders",
+  description: "Sales, tables, service periods and payment states",
+  icon: Receipt,
+  route: "/admin/restaurant/orders",
+  parentId: "restaurant",
+  order: 5,
+  requiredRoles: [...ROLES],
+  featureFlag: "restaurant_os",
+  status: "beta",
+});
+
+export const restaurantKitchenModule = defineModule({
+  id: "restaurant.kitchen",
+  name: "Kitchen",
+  description: "Station tickets, preparation states and service delays",
+  icon: ChefHat,
+  route: "/admin/restaurant/kitchen",
+  parentId: "restaurant",
+  order: 8,
+  requiredRoles: [...ROLES],
+  featureFlag: "restaurant_os",
+  status: "beta",
+});
+
+export const restaurantStockModule = defineModule({
+  id: "restaurant.stock",
+  name: "Stock Movements",
+  description: "Consumption, wastage, transfers and adjustments",
+  icon: ArrowLeftRight,
+  route: "/admin/restaurant/stock",
+  parentId: "restaurant",
+  order: 25,
+  requiredRoles: [...ROLES],
+  featureFlag: "restaurant_os",
+  status: "beta",
+});
+
+export const restaurantProfitabilityModule = defineModule({
+  id: "restaurant.profitability",
+  name: "Menu Profitability",
+  description: "Actual food cost, gross profit and margin per menu item",
+  icon: PiggyBank,
+  route: "/admin/restaurant/profitability",
+  parentId: "restaurant",
+  order: 55,
+  requiredRoles: [...ROLES],
   featureFlag: "restaurant_os",
   status: "beta",
 });

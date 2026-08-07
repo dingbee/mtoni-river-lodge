@@ -1,4 +1,7 @@
 import {
+  Receipt,
+  ChefHat,
+  PiggyBank,
   LayoutDashboard,
   Calendar,
   CalendarDays,
