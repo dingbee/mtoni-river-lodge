@@ -64,10 +64,12 @@ function Row({ children }: { children: React.ReactNode }) {
   return <li className="flex min-h-14 flex-wrap items-center justify-between gap-3 py-3">{children}</li>;
 }
 
-export function InventoryCentre() {
+export function InventoryCentre({ initialTab }: { initialTab?: string } = {}) {
   const ws = useRestaurantWorkspace();
   const tenantId = ws.data?.tenant?.id;
-  const [tab, setTab] = useState<TabId>("overview");
+  const [tab, setTab] = useState<TabId>(
+    (TABS.some((t) => t.id === initialTab) ? (initialTab as TabId) : "overview"),
+  );
 
   if (!ws.isLoading && !ws.data?.tenant) {
     return <EmptyState title="No restaurant tenant" description="You are not a member of a Restaurant & Bar OS tenant." />;
