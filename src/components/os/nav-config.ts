@@ -1,5 +1,6 @@
 import {
   Receipt,
+  Brain,
   ChefHat,
   PiggyBank,
   LayoutDashboard,
