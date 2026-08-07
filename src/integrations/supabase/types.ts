@@ -5465,6 +5465,7 @@ export type Database = {
           insight_key: string | null
           model: string | null
           module: Database["public"]["Enums"]["intel_module"]
+          reasoning_sources: string[]
           reviewed_at: string | null
           reviewed_by: string | null
           severity: Database["public"]["Enums"]["intel_severity"]
@@ -5488,6 +5489,7 @@ export type Database = {
           insight_key?: string | null
           model?: string | null
           module: Database["public"]["Enums"]["intel_module"]
+          reasoning_sources?: string[]
           reviewed_at?: string | null
           reviewed_by?: string | null
           severity?: Database["public"]["Enums"]["intel_severity"]
@@ -5511,6 +5513,7 @@ export type Database = {
           insight_key?: string | null
           model?: string | null
           module?: Database["public"]["Enums"]["intel_module"]
+          reasoning_sources?: string[]
           reviewed_at?: string | null
           reviewed_by?: string | null
           severity?: Database["public"]["Enums"]["intel_severity"]
@@ -5688,6 +5691,7 @@ export type Database = {
           module: Database["public"]["Enums"]["intel_module"]
           priority: number
           rationale: string
+          reasoning_sources: string[]
           recommendation_key: string | null
           status: Database["public"]["Enums"]["intel_status"]
           suggested_action: string | null
@@ -5713,6 +5717,7 @@ export type Database = {
           module: Database["public"]["Enums"]["intel_module"]
           priority?: number
           rationale: string
+          reasoning_sources?: string[]
           recommendation_key?: string | null
           status?: Database["public"]["Enums"]["intel_status"]
           suggested_action?: string | null
@@ -5738,6 +5743,7 @@ export type Database = {
           module?: Database["public"]["Enums"]["intel_module"]
           priority?: number
           rationale?: string
+          reasoning_sources?: string[]
           recommendation_key?: string | null
           status?: Database["public"]["Enums"]["intel_status"]
           suggested_action?: string | null

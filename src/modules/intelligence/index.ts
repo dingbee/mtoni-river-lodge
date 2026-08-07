@@ -37,3 +37,13 @@ export {
   reviewIntelligenceMemory,
   submitIntelligenceFeedback,
 } from "./memory/memory.functions";
+
+/* Sprint 2 — Activation layer */
+export * from "./activation/event-map";
+export { installIntelligenceBridge } from "./activation/bridge";
+export {
+  ingestPlatformIntelligenceEvent,
+  runIntelligencePipeline,
+  getIntelligenceTimelineFn,
+  getIntelligenceHealthFn,
+} from "./activation/activation.functions";

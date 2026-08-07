@@ -139,6 +139,8 @@ export const recordInsightSchema = z.object({
   entityId: uuid.optional(),
   signalIds: z.array(uuid).default([]),
   evidence: z.record(z.string(), z.unknown()).default({}),
+  /** Why the core said this — signal keys / heuristics behind the insight. */
+  reasoningSources: z.array(z.string().max(80)).default([]),
   model: z.string().max(120).optional(),
   generatedBy: z.string().max(60).default("system"),
   expiresAt: z.string().datetime().optional(),
@@ -172,6 +174,8 @@ export const recordRecommendationSchema = z.object({
   expectedImpact: z.string().max(300).optional(),
   impactValue: z.number().optional(),
   impactUnit: z.string().max(30).optional(),
+  /** Why the core said this — signal keys / heuristics behind the recommendation. */
+  reasoningSources: z.array(z.string().max(80)).default([]),
   priority: z.number().int().min(1).max(5).default(3),
   confidence: confidence.default(0.5),
   entityType: z.string().max(60).optional(),

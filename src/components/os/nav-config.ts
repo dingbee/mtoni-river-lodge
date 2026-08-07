@@ -170,6 +170,8 @@ export const NAV: NavEntry[] = [
       icon: Bot,
       items: [
         { id: "ai.command",   label: "Command Centre", href: "/admin/ai",           icon: Sparkles },
+        { id: "ai.intelligence", label: "Intelligence Timeline", href: "/admin/intelligence", icon: Activity },
+        { id: "ai.intelligence.health", label: "Intelligence Health", href: "/admin/intelligence/health", icon: Activity },
         { id: "ai.executive", label: "Executive Intelligence", href: "/admin/ai/executive", icon: LayoutDashboard },
         { id: "ai.guests",    label: "Guest Intelligence AI", href: "/admin/ai/guests", icon: Users },
         { id: "ai.revenue",   label: "Revenue Intelligence AI", href: "/admin/ai/revenue", icon: TrendingUp },
