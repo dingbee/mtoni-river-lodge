@@ -25,6 +25,7 @@ export async function recordRecommendation(supabase: Sb, userId: string, input: 
       expected_impact: input.expectedImpact ?? null,
       impact_value: input.impactValue ?? null,
       impact_unit: input.impactUnit ?? null,
+      reasoning_sources: input.reasoningSources,
       priority: input.priority,
       confidence: input.confidence,
       entity_type: input.entityType ?? null,
@@ -56,6 +57,12 @@ export async function listRecommendations(supabase: Sb, userId: string, input: L
 
 export async function decideRecommendation(supabase: Sb, userId: string, input: DecideRecommendationInput) {
   await assertIntelDecide(supabase, userId);
+  const { data: rec } = await supabase
+    .from("intelligence_recommendations")
+    .select("id, module, title, recommendation_key, reasoning_sources, confidence")
+    .eq("id", input.id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("intelligence_recommendations")
     .update({
@@ -66,5 +73,31 @@ export async function decideRecommendation(supabase: Sb, userId: string, input: 
     })
     .eq("id", input.id);
   if (error) throw new Error(error.message);
+
+  // Learn — every decision becomes feedback, and settled decisions become memory.
+  if (input.decision !== "reviewing") {
+    await supabase.from("intelligence_feedback").insert({
+      subject_type: "recommendation",
+      subject_id: input.id,
+      module: rec?.module ?? null,
+      stage: "recommend",
+      useful: input.decision === "accepted",
+      comment: input.note ?? null,
+      created_by: userId,
+    });
+    if (rec) {
+      await supabase.from("intelligence_memory").insert({
+        scope: "module",
+        module: rec.module,
+        memory_key: `recommendation.outcome.${rec.recommendation_key ?? rec.id}`,
+        memory_value: `Staff ${input.decision} the recommendation "${rec.title}"${input.note ? ` — ${input.note}` : ""}.`,
+        memory_type: "outcome",
+        confidence: Number(rec.confidence ?? 0.5),
+        source: "activation-pipeline",
+        metadata: { reasoning_sources: rec.reasoning_sources ?? [], decision: input.decision },
+      });
+    }
+  }
+
   return { ok: true as const };
 }
