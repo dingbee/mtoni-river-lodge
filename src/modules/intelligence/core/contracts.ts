@@ -139,6 +139,8 @@ export const recordInsightSchema = z.object({
   entityId: uuid.optional(),
   signalIds: z.array(uuid).default([]),
   evidence: z.record(z.string(), z.unknown()).default({}),
+  /** Why the core said this — signal keys / heuristics behind the insight. */
+  reasoningSources: z.array(z.string().max(80)).default([]),
   model: z.string().max(120).optional(),
   generatedBy: z.string().max(60).default("system"),
   expiresAt: z.string().datetime().optional(),
