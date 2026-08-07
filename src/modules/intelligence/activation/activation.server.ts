@@ -108,11 +108,12 @@ export async function runPipeline(
   const rows: any[] = pending ?? [];
   if (rows.length === 0) return result;
 
-  const groups = new Map<string, { module: string; eventType: string; ids: string[] }>();
+  type Group = { module: string; eventType: string; ids: string[] };
+  const groups = new Map<string, Group>();
   for (const r of rows) {
     const key = `${r.module}::${r.event_type}`;
-    const g = groups.get(key) ?? { module: r.module, eventType: r.event_type, ids: [] };
-    g.ids.push(r.id);
+    const g: Group = groups.get(key) ?? { module: String(r.module), eventType: String(r.event_type), ids: [] };
+    g.ids.push(String(r.id));
     groups.set(key, g);
   }
 
