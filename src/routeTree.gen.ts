@@ -93,6 +93,7 @@ import { Route as AuthenticatedAdminAutomationRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated.admin.analytics'
 import { Route as AuthenticatedAdminAiRouteImport } from './routes/_authenticated.admin.ai'
 import { Route as AuthenticatedAdminOperationsIndexRouteImport } from './routes/_authenticated.admin.operations.index'
+import { Route as AuthenticatedAdminIntelligenceIndexRouteImport } from './routes/_authenticated.admin.intelligence.index'
 import { Route as AuthenticatedAdminFinanceIndexRouteImport } from './routes/_authenticated.admin.finance.index'
 import { Route as AuthenticatedAdminAutomationIndexRouteImport } from './routes/_authenticated.admin.automation.index'
 import { Route as AuthenticatedAdminAnalyticsIndexRouteImport } from './routes/_authenticated.admin.analytics.index'
@@ -678,6 +679,12 @@ const AuthenticatedAdminOperationsIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
+const AuthenticatedAdminIntelligenceIndexRoute =
+  AuthenticatedAdminIntelligenceIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminIntelligenceRoute,
   } as any)
 const AuthenticatedAdminFinanceIndexRoute =
   AuthenticatedAdminFinanceIndexRouteImport.update({
@@ -1590,7 +1597,7 @@ export interface FileRoutesByFullPath {
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
-  '/admin/intelligence': typeof AuthenticatedAdminIntelligenceRoute
+  '/admin/intelligence': typeof AuthenticatedAdminIntelligenceRouteWithChildren
   '/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -1678,6 +1685,7 @@ export interface FileRoutesByFullPath {
   '/admin/analytics/': typeof AuthenticatedAdminAnalyticsIndexRoute
   '/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
   '/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
+  '/admin/intelligence/': typeof AuthenticatedAdminIntelligenceIndexRoute
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/ai/concierge/analytics': typeof AuthenticatedAdminAiConciergeAnalyticsRoute
   '/admin/ai/concierge/channels': typeof AuthenticatedAdminAiConciergeChannelsRoute
@@ -1809,7 +1817,6 @@ export interface FileRoutesByTo {
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
-  '/admin/intelligence': typeof AuthenticatedAdminIntelligenceRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
@@ -1891,6 +1898,7 @@ export interface FileRoutesByTo {
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsIndexRoute
   '/admin/automation': typeof AuthenticatedAdminAutomationIndexRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceIndexRoute
+  '/admin/intelligence': typeof AuthenticatedAdminIntelligenceIndexRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
   '/admin/ai/concierge/analytics': typeof AuthenticatedAdminAiConciergeAnalyticsRoute
   '/admin/ai/concierge/channels': typeof AuthenticatedAdminAiConciergeChannelsRoute
@@ -2030,7 +2038,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/_authenticated/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/_authenticated/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
-  '/_authenticated/admin/intelligence': typeof AuthenticatedAdminIntelligenceRoute
+  '/_authenticated/admin/intelligence': typeof AuthenticatedAdminIntelligenceRouteWithChildren
   '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -2118,6 +2126,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/analytics/': typeof AuthenticatedAdminAnalyticsIndexRoute
   '/_authenticated/admin/automation/': typeof AuthenticatedAdminAutomationIndexRoute
   '/_authenticated/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
+  '/_authenticated/admin/intelligence/': typeof AuthenticatedAdminIntelligenceIndexRoute
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
   '/_authenticated/admin/ai/concierge/analytics': typeof AuthenticatedAdminAiConciergeAnalyticsRoute
   '/_authenticated/admin/ai/concierge/channels': typeof AuthenticatedAdminAiConciergeChannelsRoute
@@ -2345,6 +2354,7 @@ export interface FileRouteTypes {
     | '/admin/analytics/'
     | '/admin/automation/'
     | '/admin/finance/'
+    | '/admin/intelligence/'
     | '/admin/operations/'
     | '/admin/ai/concierge/analytics'
     | '/admin/ai/concierge/channels'
@@ -2476,7 +2486,6 @@ export interface FileRouteTypes {
     | '/admin/bookings'
     | '/admin/calendar'
     | '/admin/front-desk'
-    | '/admin/intelligence'
     | '/admin/reviews'
     | '/admin/settings'
     | '/api/public/health'
@@ -2558,6 +2567,7 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/automation'
     | '/admin/finance'
+    | '/admin/intelligence'
     | '/admin/operations'
     | '/admin/ai/concierge/analytics'
     | '/admin/ai/concierge/channels'
@@ -2784,6 +2794,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/analytics/'
     | '/_authenticated/admin/automation/'
     | '/_authenticated/admin/finance/'
+    | '/_authenticated/admin/intelligence/'
     | '/_authenticated/admin/operations/'
     | '/_authenticated/admin/ai/concierge/analytics'
     | '/_authenticated/admin/ai/concierge/channels'
@@ -3506,6 +3517,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/operations/'
       preLoaderRoute: typeof AuthenticatedAdminOperationsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
+    '/_authenticated/admin/intelligence/': {
+      id: '/_authenticated/admin/intelligence/'
+      path: '/'
+      fullPath: '/admin/intelligence/'
+      preLoaderRoute: typeof AuthenticatedAdminIntelligenceIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminIntelligenceRoute
     }
     '/_authenticated/admin/finance/': {
       id: '/_authenticated/admin/finance/'
@@ -4848,6 +4866,21 @@ const AuthenticatedAdminAutomationRouteWithChildren =
     AuthenticatedAdminAutomationRouteChildren,
   )
 
+interface AuthenticatedAdminIntelligenceRouteChildren {
+  AuthenticatedAdminIntelligenceIndexRoute: typeof AuthenticatedAdminIntelligenceIndexRoute
+}
+
+const AuthenticatedAdminIntelligenceRouteChildren: AuthenticatedAdminIntelligenceRouteChildren =
+  {
+    AuthenticatedAdminIntelligenceIndexRoute:
+      AuthenticatedAdminIntelligenceIndexRoute,
+  }
+
+const AuthenticatedAdminIntelligenceRouteWithChildren =
+  AuthenticatedAdminIntelligenceRoute._addFileChildren(
+    AuthenticatedAdminIntelligenceRouteChildren,
+  )
+
 interface AuthenticatedAdminOperationsRouteChildren {
   AuthenticatedAdminOperationsAlertsRoute: typeof AuthenticatedAdminOperationsAlertsRoute
   AuthenticatedAdminOperationsCalendarRoute: typeof AuthenticatedAdminOperationsCalendarRoute
@@ -4923,7 +4956,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminBookingsRoute: typeof AuthenticatedAdminBookingsRoute
   AuthenticatedAdminCalendarRoute: typeof AuthenticatedAdminCalendarRoute
   AuthenticatedAdminFrontDeskRoute: typeof AuthenticatedAdminFrontDeskRoute
-  AuthenticatedAdminIntelligenceRoute: typeof AuthenticatedAdminIntelligenceRoute
+  AuthenticatedAdminIntelligenceRoute: typeof AuthenticatedAdminIntelligenceRouteWithChildren
   AuthenticatedAdminOperationsRoute: typeof AuthenticatedAdminOperationsRouteWithChildren
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
@@ -4971,7 +5004,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminBookingsRoute: AuthenticatedAdminBookingsRoute,
   AuthenticatedAdminCalendarRoute: AuthenticatedAdminCalendarRoute,
   AuthenticatedAdminFrontDeskRoute: AuthenticatedAdminFrontDeskRoute,
-  AuthenticatedAdminIntelligenceRoute: AuthenticatedAdminIntelligenceRoute,
+  AuthenticatedAdminIntelligenceRoute:
+    AuthenticatedAdminIntelligenceRouteWithChildren,
   AuthenticatedAdminOperationsRoute:
     AuthenticatedAdminOperationsRouteWithChildren,
   AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
