@@ -91,7 +91,6 @@ import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminAutomationRouteImport } from './routes/_authenticated.admin.automation'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated.admin.analytics'
 import { Route as AuthenticatedAdminAiRouteImport } from './routes/_authenticated.admin.ai'
-import { Route as AuthenticatedAdminIntelligenceRouteRouteImport } from './routes/_authenticated/admin/intelligence/route'
 import { Route as AuthenticatedAdminOperationsIndexRouteImport } from './routes/_authenticated.admin.operations.index'
 import { Route as AuthenticatedAdminFinanceIndexRouteImport } from './routes/_authenticated.admin.finance.index'
 import { Route as AuthenticatedAdminAutomationIndexRouteImport } from './routes/_authenticated.admin.automation.index'
@@ -667,12 +666,6 @@ const AuthenticatedAdminAiRoute = AuthenticatedAdminAiRouteImport.update({
   path: '/ai',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
-const AuthenticatedAdminIntelligenceRouteRoute =
-  AuthenticatedAdminIntelligenceRouteRouteImport.update({
-    id: '/intelligence',
-    path: '/intelligence',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
 const AuthenticatedAdminOperationsIndexRoute =
   AuthenticatedAdminOperationsIndexRouteImport.update({
     id: '/',
@@ -1584,7 +1577,6 @@ export interface FileRoutesByFullPath {
   '/wp-json/$': typeof WpJsonSplatRoute
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
-  '/admin/intelligence': typeof AuthenticatedAdminIntelligenceRouteRoute
   '/admin/ai': typeof AuthenticatedAdminAiRouteWithChildren
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRouteWithChildren
   '/admin/automation': typeof AuthenticatedAdminAutomationRouteWithChildren
@@ -1806,7 +1798,6 @@ export interface FileRoutesByTo {
   '/wp-json/$': typeof WpJsonSplatRoute
   '/journal': typeof JournalIndexRoute
   '/rooms': typeof RoomsIndexRoute
-  '/admin/intelligence': typeof AuthenticatedAdminIntelligenceRouteRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
@@ -2024,7 +2015,6 @@ export interface FileRoutesById {
   '/wp-json/$': typeof WpJsonSplatRoute
   '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
-  '/_authenticated/admin/intelligence': typeof AuthenticatedAdminIntelligenceRouteRoute
   '/_authenticated/admin/ai': typeof AuthenticatedAdminAiRouteWithChildren
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRouteWithChildren
   '/_authenticated/admin/automation': typeof AuthenticatedAdminAutomationRouteWithChildren
@@ -2251,7 +2241,6 @@ export interface FileRouteTypes {
     | '/wp-json/$'
     | '/journal/'
     | '/rooms/'
-    | '/admin/intelligence'
     | '/admin/ai'
     | '/admin/analytics'
     | '/admin/automation'
@@ -2473,7 +2462,6 @@ export interface FileRouteTypes {
     | '/wp-json/$'
     | '/journal'
     | '/rooms'
-    | '/admin/intelligence'
     | '/admin/bookings'
     | '/admin/calendar'
     | '/admin/front-desk'
@@ -2690,7 +2678,6 @@ export interface FileRouteTypes {
     | '/wp-json/$'
     | '/journal/'
     | '/rooms/'
-    | '/_authenticated/admin/intelligence'
     | '/_authenticated/admin/ai'
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/automation'
@@ -3491,13 +3478,6 @@ declare module '@tanstack/react-router' {
       path: '/ai'
       fullPath: '/admin/ai'
       preLoaderRoute: typeof AuthenticatedAdminAiRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/intelligence': {
-      id: '/_authenticated/admin/intelligence'
-      path: '/intelligence'
-      fullPath: '/admin/intelligence'
-      preLoaderRoute: typeof AuthenticatedAdminIntelligenceRouteRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/operations/': {
@@ -4917,7 +4897,6 @@ const AuthenticatedAdminGuestsCrmRouteWithChildren =
   )
 
 interface AuthenticatedAdminRouteChildren {
-  AuthenticatedAdminIntelligenceRouteRoute: typeof AuthenticatedAdminIntelligenceRouteRoute
   AuthenticatedAdminAiRoute: typeof AuthenticatedAdminAiRouteWithChildren
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRouteWithChildren
   AuthenticatedAdminAutomationRoute: typeof AuthenticatedAdminAutomationRouteWithChildren
@@ -4963,8 +4942,6 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
-  AuthenticatedAdminIntelligenceRouteRoute:
-    AuthenticatedAdminIntelligenceRouteRoute,
   AuthenticatedAdminAiRoute: AuthenticatedAdminAiRouteWithChildren,
   AuthenticatedAdminAnalyticsRoute:
     AuthenticatedAdminAnalyticsRouteWithChildren,
