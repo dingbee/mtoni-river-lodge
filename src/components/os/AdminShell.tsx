@@ -5,6 +5,7 @@ import { AdminTopbar } from "./AdminTopbar";
 import { AdminAssistantRail } from "./AdminAssistantRail";
 import { useCurrentUserRoles } from "@/lib/permissions";
 import { useRealtimeNotifications } from "@/lib/notifications";
+import { installIntelligenceBridge } from "@/modules/intelligence/activation/bridge";
 
 const COLLAPSED_KEY = "mtoni-os.sidebar.collapsed";
 const RAIL_KEY = "mtoni-os.rail.open";
@@ -16,6 +17,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [railOpen, setRailOpen] = useState(true);
   const { data: roles = [] } = useCurrentUserRoles();
   useRealtimeNotifications();
+
+  // Forward platform events into the Intelligence Core (best-effort).
+  useEffect(() => installIntelligenceBridge(), []);
 
   // Read persisted collapse state on mount (browser storage — avoid hydration mismatch)
   useEffect(() => {
