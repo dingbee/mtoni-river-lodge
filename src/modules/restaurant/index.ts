@@ -78,6 +78,20 @@ export {
   getRestaurantPurchasingIntelligenceFn,
 } from "./intelligence/insights.functions";
 
+/* Phase 4 — Restaurant Decision Intelligence */
+export * from "./decisions/decision.types";
+export { gatherFindings } from "./decisions/findings";
+export { optionsFor, constraintsFor, DOMAIN_FOR_KIND } from "./decisions/optionCatalogue";
+export {
+  buildRestaurantDecision,
+  buildRestaurantDecisions,
+  restaurantDecisionHeadline,
+} from "./decisions/restaurantDecisionEngine";
+export {
+  getRestaurantDecisionBoardFn,
+  runRestaurantDecisionPassFn,
+} from "./decisions/decisions.functions";
+
 /* Phase 2 contracts (declared, not implemented) */
 export * as SalesContracts from "./sales/contracts";
 export * as ServiceOpsContracts from "./operations/contracts";
