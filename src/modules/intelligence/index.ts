@@ -74,3 +74,9 @@ export {
   decideDecisionFn,
   updatePlanStepFn,
 } from "./decisions/decision.functions";
+
+/* Sprint 7 — Simulation, quality metrics & governance */
+export * from "./simulation/scenarios";
+export * from "./simulation/simulate";
+export * from "./quality/quality.types";
+export { getIntelligenceQualityFn } from "./quality/quality.functions";
