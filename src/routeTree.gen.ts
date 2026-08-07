@@ -127,6 +127,7 @@ import { Route as AuthenticatedAdminMarketingReviewsRouteImport } from './routes
 import { Route as AuthenticatedAdminMarketingCampaignsRouteImport } from './routes/_authenticated.admin.marketing.campaigns'
 import { Route as AuthenticatedAdminMarketingAnalyticsRouteImport } from './routes/_authenticated.admin.marketing.analytics'
 import { Route as AuthenticatedAdminMarketingAiAssistantRouteImport } from './routes/_authenticated.admin.marketing.ai-assistant'
+import { Route as AuthenticatedAdminIntelligenceSimulationRouteImport } from './routes/_authenticated.admin.intelligence.simulation'
 import { Route as AuthenticatedAdminIntelligenceQualityRouteImport } from './routes/_authenticated.admin.intelligence.quality'
 import { Route as AuthenticatedAdminIntelligenceOutcomesRouteImport } from './routes/_authenticated.admin.intelligence.outcomes'
 import { Route as AuthenticatedAdminIntelligenceHealthRouteImport } from './routes/_authenticated.admin.intelligence.health'
@@ -885,6 +886,12 @@ const AuthenticatedAdminMarketingAiAssistantRoute =
     id: '/marketing/ai-assistant',
     path: '/marketing/ai-assistant',
     getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminIntelligenceSimulationRoute =
+  AuthenticatedAdminIntelligenceSimulationRouteImport.update({
+    id: '/simulation',
+    path: '/simulation',
+    getParentRoute: () => AuthenticatedAdminIntelligenceRoute,
   } as any)
 const AuthenticatedAdminIntelligenceQualityRoute =
   AuthenticatedAdminIntelligenceQualityRouteImport.update({
@@ -1708,6 +1715,7 @@ export interface FileRoutesByFullPath {
   '/admin/intelligence/health': typeof AuthenticatedAdminIntelligenceHealthRoute
   '/admin/intelligence/outcomes': typeof AuthenticatedAdminIntelligenceOutcomesRoute
   '/admin/intelligence/quality': typeof AuthenticatedAdminIntelligenceQualityRoute
+  '/admin/intelligence/simulation': typeof AuthenticatedAdminIntelligenceSimulationRoute
   '/admin/marketing/ai-assistant': typeof AuthenticatedAdminMarketingAiAssistantRoute
   '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
@@ -1928,6 +1936,7 @@ export interface FileRoutesByTo {
   '/admin/intelligence/health': typeof AuthenticatedAdminIntelligenceHealthRoute
   '/admin/intelligence/outcomes': typeof AuthenticatedAdminIntelligenceOutcomesRoute
   '/admin/intelligence/quality': typeof AuthenticatedAdminIntelligenceQualityRoute
+  '/admin/intelligence/simulation': typeof AuthenticatedAdminIntelligenceSimulationRoute
   '/admin/marketing/ai-assistant': typeof AuthenticatedAdminMarketingAiAssistantRoute
   '/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
@@ -2163,6 +2172,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/intelligence/health': typeof AuthenticatedAdminIntelligenceHealthRoute
   '/_authenticated/admin/intelligence/outcomes': typeof AuthenticatedAdminIntelligenceOutcomesRoute
   '/_authenticated/admin/intelligence/quality': typeof AuthenticatedAdminIntelligenceQualityRoute
+  '/_authenticated/admin/intelligence/simulation': typeof AuthenticatedAdminIntelligenceSimulationRoute
   '/_authenticated/admin/marketing/ai-assistant': typeof AuthenticatedAdminMarketingAiAssistantRoute
   '/_authenticated/admin/marketing/analytics': typeof AuthenticatedAdminMarketingAnalyticsRoute
   '/_authenticated/admin/marketing/campaigns': typeof AuthenticatedAdminMarketingCampaignsRoute
@@ -2398,6 +2408,7 @@ export interface FileRouteTypes {
     | '/admin/intelligence/health'
     | '/admin/intelligence/outcomes'
     | '/admin/intelligence/quality'
+    | '/admin/intelligence/simulation'
     | '/admin/marketing/ai-assistant'
     | '/admin/marketing/analytics'
     | '/admin/marketing/campaigns'
@@ -2618,6 +2629,7 @@ export interface FileRouteTypes {
     | '/admin/intelligence/health'
     | '/admin/intelligence/outcomes'
     | '/admin/intelligence/quality'
+    | '/admin/intelligence/simulation'
     | '/admin/marketing/ai-assistant'
     | '/admin/marketing/analytics'
     | '/admin/marketing/campaigns'
@@ -2852,6 +2864,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/intelligence/health'
     | '/_authenticated/admin/intelligence/outcomes'
     | '/_authenticated/admin/intelligence/quality'
+    | '/_authenticated/admin/intelligence/simulation'
     | '/_authenticated/admin/marketing/ai-assistant'
     | '/_authenticated/admin/marketing/analytics'
     | '/_authenticated/admin/marketing/campaigns'
@@ -3846,6 +3859,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/marketing/ai-assistant'
       preLoaderRoute: typeof AuthenticatedAdminMarketingAiAssistantRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/intelligence/simulation': {
+      id: '/_authenticated/admin/intelligence/simulation'
+      path: '/simulation'
+      fullPath: '/admin/intelligence/simulation'
+      preLoaderRoute: typeof AuthenticatedAdminIntelligenceSimulationRouteImport
+      parentRoute: typeof AuthenticatedAdminIntelligenceRoute
     }
     '/_authenticated/admin/intelligence/quality': {
       id: '/_authenticated/admin/intelligence/quality'
@@ -5014,6 +5034,7 @@ interface AuthenticatedAdminIntelligenceRouteChildren {
   AuthenticatedAdminIntelligenceHealthRoute: typeof AuthenticatedAdminIntelligenceHealthRoute
   AuthenticatedAdminIntelligenceOutcomesRoute: typeof AuthenticatedAdminIntelligenceOutcomesRoute
   AuthenticatedAdminIntelligenceQualityRoute: typeof AuthenticatedAdminIntelligenceQualityRoute
+  AuthenticatedAdminIntelligenceSimulationRoute: typeof AuthenticatedAdminIntelligenceSimulationRoute
   AuthenticatedAdminIntelligenceIndexRoute: typeof AuthenticatedAdminIntelligenceIndexRoute
 }
 
@@ -5033,6 +5054,8 @@ const AuthenticatedAdminIntelligenceRouteChildren: AuthenticatedAdminIntelligenc
       AuthenticatedAdminIntelligenceOutcomesRoute,
     AuthenticatedAdminIntelligenceQualityRoute:
       AuthenticatedAdminIntelligenceQualityRoute,
+    AuthenticatedAdminIntelligenceSimulationRoute:
+      AuthenticatedAdminIntelligenceSimulationRoute,
     AuthenticatedAdminIntelligenceIndexRoute:
       AuthenticatedAdminIntelligenceIndexRoute,
   }
