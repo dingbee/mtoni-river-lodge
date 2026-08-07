@@ -74,6 +74,7 @@ export async function recordInsight(supabase: Sb, userId: string, input: RecordI
       entity_id: input.entityId ?? null,
       signal_ids: input.signalIds,
       evidence: input.evidence,
+      reasoning_sources: input.reasoningSources,
       model: input.model ?? null,
       generated_by: input.generatedBy,
       expires_at: input.expiresAt ?? null,
