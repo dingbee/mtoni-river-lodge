@@ -103,3 +103,7 @@ export * from "./procurement/lifecycle";
 export * from "./inventory/contracts";
 export * from "./inventory/units";
 export * from "./inventory/control.functions";
+
+/* Sprint 5.3 — Product, Recipe & Production Architecture */
+export * from "./products/contracts";
+export * from "./products/catalog.functions";
