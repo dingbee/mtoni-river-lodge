@@ -67,6 +67,7 @@ function ProductRecipeCentre() {
   const ws = useRestaurantWorkspace();
   const tenantId = ws.data?.tenant?.id;
   const qc = useQueryClient();
+  const { tab: searchTab } = Route.useSearch();
 
   const recipesFn = useServerFn(listRestaurantRecipesFn);
   const productsFn = useServerFn(listRestaurantProductsFn);
