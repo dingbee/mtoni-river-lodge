@@ -70,6 +70,7 @@ export interface PipelineResult {
   signalsCreated: number;
   insightsCreated: number;
   recommendationsCreated: number;
+  crossModuleFindings: number;
   details: Array<{ module: string; eventType: string; deltaPct: number; count: number; escalated: boolean }>;
 }
 
@@ -92,9 +93,24 @@ export async function runPipeline(
     signalsCreated: 0,
     insightsCreated: 0,
     recommendationsCreated: 0,
+    crossModuleFindings: 0,
     details: [],
   };
   if (modules.length === 0) return result;
+
+  // Sprint 3 — build the business context once per pass; every insight and
+  // recommendation produced below is stamped with it.
+  const { getBusinessContext } = await import("../context/context.server");
+  const { synthesiseCrossModule, persistCrossModuleFindings } = await import("../context/cross-module.server");
+  const businessContext = await getBusinessContext(supabase, userId, { windowDays: 14 });
+  const contextLine = businessContext.narrative.join(" ");
+
+  // Cross-module intelligence runs even when no single module escalated.
+  const findings = synthesiseCrossModule(businessContext);
+  const crossed = await persistCrossModuleFindings(supabase, findings, businessContext, modules);
+  result.crossModuleFindings = findings.length;
+  result.insightsCreated += crossed.insightsCreated;
+  result.recommendationsCreated += crossed.recommendationsCreated;
 
   const { data: pending, error } = await supabase
     .from("intelligence_events")
