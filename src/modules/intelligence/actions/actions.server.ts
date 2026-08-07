@@ -69,7 +69,7 @@ export async function transitionAction(supabase: Sb, userId: string, input: Tran
   const patch: Record<string, unknown> = { status: input.status };
   if (input.status === "approved") { patch.approved_by = userId; patch.approved_at = now; }
   if (input.status === "executing") patch.executed_at = now;
-  if (input.status === "completed" || input.status === "failed") patch.completed_at = now;
+  if (input.status === "completed" || input.status === "failed") patch.executed_at = now;
   if (input.result) patch.result = input.result;
   if (input.errorMessage) patch.error_message = input.errorMessage;
 

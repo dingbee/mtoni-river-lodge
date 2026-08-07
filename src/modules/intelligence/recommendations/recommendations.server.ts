@@ -61,8 +61,8 @@ export async function decideRecommendation(supabase: Sb, userId: string, input: 
     .update({
       status: input.decision,
       decision_note: input.note ?? null,
-      reviewed_by: userId,
-      reviewed_at: new Date().toISOString(),
+      decided_by: userId,
+      decided_at: new Date().toISOString(),
     })
     .eq("id", input.id);
   if (error) throw new Error(error.message);

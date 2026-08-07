@@ -12,29 +12,39 @@ type Sb = any;
 
 export async function remember(supabase: Sb, userId: string, input: RememberInput) {
   await assertIntelRead(supabase, userId);
-  const { data, error } = await supabase
+  const row = {
+    scope: input.scope,
+    scope_id: input.scopeId ?? null,
+    module: input.module ?? null,
+    memory_key: input.memoryKey,
+    memory_value: input.memoryValue,
+    memory_type: input.memoryType,
+    confidence: input.confidence,
+    source: input.source,
+    source_event_id: input.sourceEventId ?? null,
+    metadata: input.metadata,
+    expires_at: input.expiresAt ?? null,
+    last_used_at: new Date().toISOString(),
+  };
+
+  // Reinforce an existing memory in the same scope instead of duplicating it.
+  let existingQ = supabase
     .from("intelligence_memory")
-    .upsert(
-      {
-        scope: input.scope,
-        scope_id: input.scopeId ?? null,
-        module: input.module ?? null,
-        memory_key: input.memoryKey,
-        memory_value: input.memoryValue,
-        memory_type: input.memoryType,
-        confidence: input.confidence,
-        source: input.source,
-        source_event_id: input.sourceEventId ?? null,
-        metadata: input.metadata,
-        expires_at: input.expiresAt ?? null,
-        last_seen_at: new Date().toISOString(),
-      },
-      { onConflict: "scope,scope_id,memory_key" },
-    )
     .select("id")
-    .single();
+    .eq("scope", input.scope)
+    .eq("memory_key", input.memoryKey);
+  existingQ = input.scopeId ? existingQ.eq("scope_id", input.scopeId) : existingQ.is("scope_id", null);
+  const { data: existing } = await existingQ.maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase.from("intelligence_memory").update(row).eq("id", existing.id);
+    if (error) throw new Error(error.message);
+    return { id: existing.id as string, updated: true };
+  }
+
+  const { data, error } = await supabase.from("intelligence_memory").insert(row).select("id").single();
   if (error) throw new Error(error.message);
-  return { id: data.id as string };
+  return { id: data.id as string, updated: false };
 }
 
 export async function recall(supabase: Sb, userId: string, input: RecallInput) {
@@ -43,7 +53,7 @@ export async function recall(supabase: Sb, userId: string, input: RecallInput) {
     .from("intelligence_memory")
     .select("*")
     .order("confidence", { ascending: false })
-    .order("last_seen_at", { ascending: false })
+    .order("last_used_at", { ascending: false })
     .limit(input.limit);
   if (input.scope) q = q.eq("scope", input.scope);
   if (input.scopeId) q = q.eq("scope_id", input.scopeId);
@@ -81,7 +91,7 @@ export async function submitFeedback(supabase: Sb, userId: string, input: Submit
       useful: input.useful ?? null,
       correction: input.correction ?? null,
       comment: input.comment ?? null,
-      author_id: userId,
+      created_by: userId,
     })
     .select("id")
     .single();

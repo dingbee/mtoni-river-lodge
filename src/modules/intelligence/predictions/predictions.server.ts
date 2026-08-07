@@ -71,7 +71,7 @@ export async function scorePrediction(
     .update({
       actual_value: input.actualValue,
       accuracy,
-      scored_at: new Date().toISOString(),
+      actual_recorded_at: new Date().toISOString(),
     })
     .eq("id", input.id);
   if (error) throw new Error(error.message);
