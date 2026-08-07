@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- server function rows are untyped at this boundary. */
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -79,10 +80,10 @@ function StockPage() {
   }
 
   const rows = movements.data ?? [];
-  const names = new Map((inventory.data ?? []).map((i) => [i.id, i.name]));
+  const names = new Map((inventory.data ?? []).map((i: any) => [i.id, i.name]));
   const currency = ws.data?.properties[0]?.currency ?? "TZS";
-  const wastageCost = rows.filter((r) => r.movement_type === "wastage").reduce((s, r) => s + Number(r.total_cost ?? 0), 0);
-  const consumptionCost = rows.filter((r) => r.movement_type === "consumption").reduce((s, r) => s + Number(r.total_cost ?? 0), 0);
+  const wastageCost = rows.filter((r: any) => r.movement_type === "wastage").reduce((s: any, r: any) => s + Number(r.total_cost ?? 0), 0);
+  const consumptionCost = rows.filter((r: any) => r.movement_type === "consumption").reduce((s: any, r: any) => s + Number(r.total_cost ?? 0), 0);
 
   return (
     <div className="space-y-4">
@@ -101,14 +102,14 @@ function StockPage() {
         <div className="grid gap-2 sm:grid-cols-5">
           <select className="rounded-md border bg-transparent px-2 py-2 text-sm sm:col-span-2" value={itemId} onChange={(e) => setItemId(e.target.value)}>
             <option value="">Select stock item…</option>
-            {(inventory.data ?? []).map((i) => (
+            {(inventory.data ?? []).map((i: any) => (
               <option key={i.id} value={i.id}>
                 {i.name} ({Number(i.current_quantity)})
               </option>
             ))}
           </select>
           <select className="rounded-md border bg-transparent px-2 py-2 text-sm" value={type} onChange={(e) => setType(e.target.value as StockMovementType)}>
-            {STOCK_MOVEMENT_TYPES.filter((t) => t !== "transfer_in" && t !== "transfer_out").map((t) => (
+            {STOCK_MOVEMENT_TYPES.filter((t: any) => t !== "transfer_in" && t !== "transfer_out").map((t: any) => (
               <option key={t} value={t}>
                 {t.replace(/_/g, " ")}
               </option>
@@ -129,7 +130,7 @@ function StockPage() {
           <EmptyState title="No movements yet" description="Close an order or record wastage to populate the ledger." />
         ) : (
           <ul className="divide-y text-sm">
-            {rows.map((r) => (
+            {rows.map((r: any) => (
               <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <div className="min-w-0">
                   <span className="font-medium">{names.get(r.inventory_item_id) ?? "Stock item"}</span>

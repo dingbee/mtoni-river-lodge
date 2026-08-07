@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- server function rows are untyped at this boundary. */
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -118,7 +119,7 @@ function ProfitabilityPage() {
           />
         ) : (
           <ul className="divide-y text-sm">
-            {rows.map((r) => (
+            {rows.map((r: any) => (
               <li key={r.menu_item_id ?? r.menu_item_name} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <div className="min-w-0">
                   <span className="font-medium">{r.menu_item_name}</span>
@@ -143,7 +144,7 @@ function ProfitabilityPage() {
           <EmptyState title="No snapshots" description="Computed results are saved here automatically." />
         ) : (
           <ul className="divide-y text-sm">
-            {(snapshots.data ?? []).slice(0, 25).map((s) => (
+            {(snapshots.data ?? []).slice(0, 25).map((s: any) => (
               <li key={s.id} className="flex items-center justify-between py-2">
                 <span>{s.menu_item_name}</span>
                 <span className="text-xs text-muted-foreground">

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- server function rows are untyped at this boundary. */
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -98,7 +99,7 @@ function OrdersPage() {
   }
 
   const rows = orders.data ?? [];
-  const open = rows.filter((r) => OPEN_STATES.includes(r.status));
+  const open = rows.filter((r: any) => OPEN_STATES.includes(r.status));
   const currency = ws.data?.properties[0]?.currency ?? "TZS";
   const money = (v: unknown) => `${currency} ${Number(v ?? 0).toLocaleString()}`;
 
@@ -111,11 +112,11 @@ function OrdersPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Open orders" value={String(open.length)} icon={Receipt} />
-        <StatCard label="Covers (open)" value={String(open.reduce((s, r) => s + Number(r.guest_count ?? 0), 0))} icon={Users} />
-        <StatCard label="Open value" value={money(open.reduce((s, r) => s + Number(r.total ?? 0), 0))} icon={CircleDollarSign} tone="gold" />
+        <StatCard label="Covers (open)" value={String(open.reduce((s: any, r: any) => s + Number(r.guest_count ?? 0), 0))} icon={Users} />
+        <StatCard label="Open value" value={money(open.reduce((s: any, r: any) => s + Number(r.total ?? 0), 0))} icon={CircleDollarSign} tone="gold" />
         <StatCard
           label="Unpaid"
-          value={String(rows.filter((r) => r.payment_state === "unpaid" && r.status !== "cancelled").length)}
+          value={String(rows.filter((r: any) => r.payment_state === "unpaid" && r.status !== "cancelled").length)}
           icon={CircleDollarSign}
           tone="warn"
         />
@@ -144,8 +145,8 @@ function OrdersPage() {
             Walk-in / bar tab
           </Button>
           {(tables.data ?? [])
-            .filter((t) => t.status === "available" && t.active)
-            .map((t) => (
+            .filter((t: any) => t.status === "available" && t.active)
+            .map((t: any) => (
               <Button key={t.id} size="sm" variant="outline" disabled={openOrder.isPending} onClick={() => openOrder.mutate({ tableId: t.id })}>
                 {t.name} · {t.seats}p
               </Button>
@@ -158,13 +159,13 @@ function OrdersPage() {
           <EmptyState title="No orders yet" description="Open a table or bar tab to start recording sales." />
         ) : (
           <ul className="divide-y text-sm">
-            {rows.map((r) => (
+            {rows.map((r: any) => (
               <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{r.order_number}</span>
-                    <StatusChip status={r.status} />
-                    <StatusChip status={r.payment_state} />
+                    <StatusChip>{r.status}</StatusChip>
+                    <StatusChip>{r.payment_state}</StatusChip>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {r.order_type} · {r.guest_count} cover(s) · {money(r.total)} · cost {money(r.cost_total)}
