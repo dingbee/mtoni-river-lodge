@@ -90,7 +90,7 @@ export async function listReconciliation(
   userId: string,
   input: z.infer<typeof reconciliationSchema>,
 ) {
-  await assertCapability(sb, userId, input.tenantId, "reconciliation.view");
+  await assertCapability(sb, userId, input.tenantId, "reconciliation.run");
   const { data, error } = await sb
     .from("restaurant_stock_reconciliation_v")
     .select("*")
