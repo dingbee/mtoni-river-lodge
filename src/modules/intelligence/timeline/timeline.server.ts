@@ -4,7 +4,15 @@ import { assertIntelRead, visibleModules } from "../core/access.server";
 
 type Sb = any;
 
-export type TimelineStage = "observe" | "understand" | "reason" | "recommend" | "act" | "learn";
+export type TimelineStage =
+  | "observe"
+  | "understand"
+  | "reason"
+  | "recommend"
+  | "decide"
+  | "plan"
+  | "act"
+  | "learn";
 
 export interface TimelineEntry {
   id: string;
@@ -33,7 +41,7 @@ export async function getIntelligenceTimeline(
 
   const want = (s: TimelineStage) => !input.stage || input.stage === s;
 
-  const [events, signals, insights, recommendations, actions] = await Promise.all([
+  const [events, signals, insights, recommendations, actions, decisions] = await Promise.all([
     want("observe")
       ? supabase.from("intelligence_events").select("id, module, event_type, severity, source, payload, occurred_at").in("module", modules).order("occurred_at", { ascending: false }).limit(limit)
       : Promise.resolve({ data: [] }),
@@ -48,6 +56,9 @@ export async function getIntelligenceTimeline(
       : Promise.resolve({ data: [] }),
     want("act")
       ? supabase.from("intelligence_actions").select("id, module, action_type, title, status, created_at").in("module", modules).order("created_at", { ascending: false }).limit(limit)
+      : Promise.resolve({ data: [] }),
+    want("decide") || want("plan")
+      ? supabase.from("intelligence_decisions").select("id, module, title, trigger, status, risk_level, confidence, reasoning_sources, recommended_option_key, reasoning, created_at").in("module", modules).order("created_at", { ascending: false }).limit(limit)
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -88,6 +99,24 @@ export async function getIntelligenceTimeline(
       title: a.title ?? a.action_type, detail: a.action_type, status: a.status, severity: null,
       confidence: null, reasoningSources: [], source: null,
     });
+  }
+  for (const d of (decisions as any).data ?? []) {
+    const selected = d.reasoning?.selectedOption ?? d.recommended_option_key ?? null;
+    if (want("decide")) {
+      entries.push({
+        id: `decision:${d.id}`, stage: "decide", module: d.module, at: d.created_at,
+        title: d.title, detail: selected ? `Recommended: ${selected}` : d.trigger, status: d.status,
+        severity: d.risk_level, confidence: d.confidence, reasoningSources: d.reasoning_sources ?? [],
+        source: d.trigger,
+      });
+    }
+    if (want("plan") && selected) {
+      entries.push({
+        id: `plan:${d.id}`, stage: "plan", module: d.module, at: d.created_at,
+        title: `Plan — ${selected}`, detail: d.reasoning?.whatHappensNext?.join(" → ") ?? null,
+        status: d.status, severity: null, confidence: null, reasoningSources: [], source: null,
+      });
+    }
   }
 
   return entries.sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, limit);

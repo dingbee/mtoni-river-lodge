@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/os/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Activity, Brain, Lightbulb, ListChecks, RefreshCw, Radio, Check, X } from "lucide-react";
+import { Activity, Brain, Lightbulb, ListChecks, RefreshCw, Radio, Check, X, Scale, Map } from "lucide-react";
 import {
   getIntelligenceTimelineFn,
   runIntelligencePipeline,
@@ -32,11 +32,13 @@ const STAGE_META: Record<TimelineStage, { label: string; icon: typeof Radio; ton
   understand: { label: "Signal", icon: Activity, tone: "text-[color:var(--os-gold)]" },
   reason: { label: "Insight", icon: Brain, tone: "text-[color:var(--os-green)]" },
   recommend: { label: "Recommendation", icon: Lightbulb, tone: "text-[color:var(--os-warn)]" },
+  decide: { label: "Decision", icon: Scale, tone: "text-[color:var(--os-gold)]" },
+  plan: { label: "Plan", icon: Map, tone: "text-[color:var(--os-info)]" },
   act: { label: "Action", icon: ListChecks, tone: "text-[color:var(--os-ink-2)]" },
   learn: { label: "Learning", icon: Brain, tone: "text-[color:var(--os-ink-2)]" },
 };
 
-const STAGES: Array<TimelineStage | "all"> = ["all", "observe", "understand", "reason", "recommend", "act"];
+const STAGES: Array<TimelineStage | "all"> = ["all", "observe", "understand", "reason", "recommend", "decide", "plan", "act"];
 
 const time = (iso: string) =>
   new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });

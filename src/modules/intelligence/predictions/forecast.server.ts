@@ -396,7 +396,7 @@ async function loadAccuracy(supabase: Sb): Promise<ForecastAccuracy> {
   };
 }
 
-async function gatherForecasts(supabase: Sb, userId: string, horizonDays: number) {
+export async function gatherForecasts(supabase: Sb, userId: string, horizonDays: number) {
   const ctx = await getBusinessContext(supabase, userId, { windowDays: horizonDays });
   const [operationalDays, revenue, guests] = await Promise.all([
     loadOperationalDays(supabase, horizonDays),
