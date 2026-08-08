@@ -274,25 +274,40 @@ export function PosWorkspace() {
 
       <div className="grid gap-4 md:grid-cols-2 min-[1700px]:grid-cols-[260px_minmax(0,1fr)_340px]">
         {/* Floor */}
-        <SectionCard title="Floor" description="Tap a table to open or resume its bill.">
+        <SectionCard title="Floor" description="Colour follows the bill, not just the table row.">
           <div className="grid grid-cols-2 gap-2">
-            {((board.data as any)?.tables ?? []).map((t: any) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() =>
-                  t.order ? setOrderId(t.order.id) : openBill.mutate({ tableId: t.id, guestCount: t.seats ?? 2 })
-                }
-                className={`min-h-20 rounded-lg border p-3 text-left transition-colors hover:border-primary ${
-                  TABLE_TONE[t.status] ?? "border-border bg-card"
-                } ${orderId && t.order?.id === orderId ? "ring-2 ring-primary" : ""}`}
+            {((board.data as any)?.tables ?? []).map((t: any) => {
+              const tableLife = t.order ? deriveLifecycle({ order: t.order }) : null;
+              const tone = tableTone(t, tableLife);
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() =>
+                    t.order ? setOrderId(t.order.id) : openBill.mutate({ tableId: t.id, guestCount: t.seats ?? 2 })
+                  }
+                  className={`min-h-20 rounded-lg border p-3 text-left transition-colors hover:border-primary ${
+                    TABLE_TONE_CLASS[tone]
+                  } ${orderId && t.order?.id === orderId ? "ring-2 ring-primary" : ""}`}
+                >
+                  <span className="block text-sm font-semibold">{t.code}</span>
+                  <span className="block text-xs text-muted-foreground">{t.zone ?? t.name}</span>
+                  <span className="mt-1 block text-xs">
+                    {t.order ? money(Number(t.order.total ?? 0), currency) : `${t.seats} seats`}
+                  </span>
+                  <span className="block text-[11px] text-muted-foreground">{TABLE_TONE_LABEL[tone]}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1">
+            {FLOOR_LEGEND.map((tone) => (
+              <span
+                key={tone}
+                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] ${TABLE_TONE_CLASS[tone]}`}
               >
-                <span className="block text-sm font-semibold">{t.code}</span>
-                <span className="block text-xs text-muted-foreground">{t.zone ?? t.name}</span>
-                <span className="mt-1 block text-xs">
-                  {t.order ? money(Number(t.order.total ?? 0), currency) : `${t.seats} seats`}
-                </span>
-              </button>
+                {TABLE_TONE_LABEL[tone]}
+              </span>
             ))}
           </div>
           <Button
