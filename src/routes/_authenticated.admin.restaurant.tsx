@@ -16,6 +16,8 @@ import {
   Settings2,
   ShoppingCart,
   Truck,
+  ClipboardList,
+
 } from "lucide-react";
 // Declares Restaurant & Bar OS to the Intelligence Core registry (inert registration).
 import "@/modules/restaurant/intelligence/provider";
@@ -48,6 +50,7 @@ const GROUPS = [
       { to: "/admin/restaurant/inventory-control", label: "Inventory Centre", icon: Boxes },
       { to: "/admin/restaurant/inventory", label: "Stock items", icon: Boxes },
       { to: "/admin/restaurant/stock", label: "Movements", icon: Boxes },
+      { to: "/admin/restaurant/requisitions", label: "Requisitions", icon: ClipboardList },
     ],
   },
   {

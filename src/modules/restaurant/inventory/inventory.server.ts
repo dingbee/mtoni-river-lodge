@@ -57,6 +57,12 @@ export async function upsertInventoryItem(sb: Sb, userId: string, input: UpsertI
     reorder_point: input.reorderPoint ?? null,
     average_cost: input.averageCost,
     currency: input.currency,
+    track_batches: input.trackBatches,
+    allow_negative: input.allowNegative,
+    purchase_unit_id: input.purchaseUnitId ?? null,
+    consumption_unit_id: input.consumptionUnitId ?? null,
+    pack_size: input.packSize ?? null,
+    shelf_life_days: input.shelfLifeDays ?? null,
     updated_at: new Date().toISOString(),
   };
   const q = input.id

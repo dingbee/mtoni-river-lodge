@@ -61,6 +61,9 @@ export const RESTAURANT_CAPABILITIES = [
   "pricing.approve",
   "discount.manage",
   "tax.manage",
+  "requisition.create",
+  "requisition.approve",
+  "requisition.issue",
 ] as const;
 export type RestaurantCapability = (typeof RESTAURANT_CAPABILITIES)[number];
 
@@ -227,6 +230,17 @@ const CAPABILITY_ROLES: Record<RestaurantCapability, readonly RestaurantRole[]> 
   "pricing.approve": ["owner", "general_manager"],
   "discount.manage": ["owner", "general_manager", "restaurant_manager"],
   "tax.manage": ["owner", "general_manager", "accountant"],
+  "requisition.create": [
+    "owner",
+    "general_manager",
+    "restaurant_manager",
+    "chef",
+    "kitchen_manager",
+    "bartender",
+    "inventory_manager",
+  ],
+  "requisition.approve": ["owner", "general_manager", "restaurant_manager", "inventory_manager"],
+  "requisition.issue": ["owner", "general_manager", "restaurant_manager", "inventory_manager"],
 };
 
 export function rolesForCapability(capability: RestaurantCapability): readonly RestaurantRole[] {

@@ -78,6 +78,12 @@ export const RESTAURANT_EVENT_TYPES = [
   "restaurant.shift.closed",
   "restaurant.daily.revenue.closed",
   "restaurant.supplier.updated",
+  "restaurant.requisition.created",
+  "restaurant.requisition.submitted",
+  "restaurant.requisition.approved",
+  "restaurant.requisition.rejected",
+  "restaurant.requisition.issued",
+  "restaurant.requisition.fulfilled",
 ] as const;
 export type RestaurantEventType = (typeof RESTAURANT_EVENT_TYPES)[number];
 
@@ -152,6 +158,12 @@ export const RESTAURANT_EVENT_SEVERITY: Record<RestaurantEventType, "info" | "lo
   "restaurant.shift.closed": "info",
   "restaurant.daily.revenue.closed": "low",
   "restaurant.supplier.updated": "info",
+  "restaurant.requisition.created": "info",
+  "restaurant.requisition.submitted": "low",
+  "restaurant.requisition.approved": "low",
+  "restaurant.requisition.rejected": "medium",
+  "restaurant.requisition.issued": "low",
+  "restaurant.requisition.fulfilled": "low",
 };
 
 export const restaurantEventSchema = z.object({

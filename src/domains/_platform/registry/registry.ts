@@ -50,6 +50,7 @@ import {
   restaurantStockModule,
   restaurantProfitabilityModule,
   restaurantPricingModule,
+  restaurantRequisitionsModule,
 } from "./modules/restaurant.module";
 
 export const MODULE_REGISTRY: ModuleDefinition[] = [
@@ -60,6 +61,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
   onlineCheckInArrivalsModule,
   restaurantOsModule, restaurantOrdersModule, restaurantKitchenModule,
   restaurantMenuModule, restaurantPricingModule, restaurantInventoryModule, restaurantStockModule,
+  restaurantRequisitionsModule,
   restaurantSuppliersModule, restaurantPurchasingModule, restaurantProcurementModule, restaurantCostingModule,
   restaurantProfitabilityModule, restaurantSettingsModule,
   housekeepingModule,
