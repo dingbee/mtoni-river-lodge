@@ -32,6 +32,9 @@ export const EXCEPTION_CODES = [
   "payment.amount_mismatch",
   "payment.refund_without_original",
   "payment.refund_exceeds_original",
+  "payment.room_charge_unposted",
+  "payment.room_charge_unknown",
+  "payment.room_charge_orphaned",
   // Sales chain
   "sales.closed_order_no_receipt",
   "sales.receipt_without_payment",
@@ -96,6 +99,28 @@ export const EXCEPTION_CATALOGUE: Record<ExceptionCode, ExceptionDefinition> = {
     title: "Possible duplicate payment",
     severity: "high",
     requiredAction: "Confirm with the tender provider, then refund the duplicate through the POS.",
+  },
+  "payment.room_charge_unposted": {
+    code: "payment.room_charge_unposted",
+    domain: "payment",
+    title: "Room charge recorded without a folio posting",
+    severity: "critical",
+    requiredAction:
+      "Check the guest folio. If the charge is absent, post it manually or reopen the bill and take another tender.",
+  },
+  "payment.room_charge_unknown": {
+    code: "payment.room_charge_unknown",
+    domain: "payment",
+    title: "Room charge with an unknown posting outcome",
+    severity: "high",
+    requiredAction: "Verify the folio with reception before retrying — the charge may already be on the stay.",
+  },
+  "payment.room_charge_orphaned": {
+    code: "payment.room_charge_orphaned",
+    domain: "payment",
+    title: "Folio posting without a matching outlet payment",
+    severity: "high",
+    requiredAction: "The guest was charged but the outlet bill was not settled. Settle or reverse the posting.",
   },
   "payment.amount_mismatch": {
     code: "payment.amount_mismatch",
