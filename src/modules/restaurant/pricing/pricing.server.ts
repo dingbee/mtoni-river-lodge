@@ -228,6 +228,8 @@ export async function upsertPrice(
     : q.eq("menu_item_id", input.menuItemId);
   q = input.propertyId ? q.eq("property_id", input.propertyId) : q.is("property_id", null);
   q = input.locationId ? q.eq("location_id", input.locationId) : q.is("location_id", null);
+  q = input.priceListId ? q.eq("price_list_id", input.priceListId) : q.is("price_list_id", null);
+  q = input.channel ? q.eq("channel", input.channel) : q.is("channel", null);
   const { data: currentRows } = await q;
   const current = ((currentRows ?? []) as any[])[0] ?? null;
 
@@ -244,6 +246,8 @@ export async function upsertPrice(
       scope: input.scope,
       property_id: input.propertyId ?? null,
       location_id: input.locationId ?? null,
+      price_list_id: input.priceListId ?? null,
+      channel: input.channel ?? null,
       currency: input.currency.toUpperCase(),
       amount: input.amount,
       tax_inclusive: input.taxInclusive,
@@ -403,6 +407,7 @@ export async function upsertTaxRule(
     applies_to_products: input.appliesToProducts,
     priority: input.priority,
     compound: input.compound,
+    applies_to_channels: input.appliesToChannels,
     effective_from: input.effectiveFrom ?? new Date().toISOString(),
     effective_to: input.effectiveTo ?? null,
     active: input.active,
@@ -471,6 +476,7 @@ export async function upsertServiceCharge(
     applies_to_categories: input.appliesToCategories,
     applies_to_products: input.appliesToProducts,
     applies_to_order_types: input.appliesToOrderTypes,
+    applies_to_channels: input.appliesToChannels,
     taxable: input.taxable,
     effective_from: input.effectiveFrom ?? new Date().toISOString(),
     effective_to: input.effectiveTo ?? null,
@@ -726,6 +732,7 @@ export async function upsertPromotion(
     applies_to_categories: input.appliesToCategories,
     applies_to_products: input.appliesToProducts,
     days_of_week: input.daysOfWeek,
+    applies_to_channels: input.appliesToChannels,
     start_time: input.startTime ?? null,
     end_time: input.endTime ?? null,
     starts_at: input.startsAt ?? new Date().toISOString(),
