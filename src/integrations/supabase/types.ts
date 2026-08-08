@@ -7480,6 +7480,109 @@ export type Database = {
           },
         ]
       }
+      restaurant_daily_closes: {
+        Row: {
+          business_date: string
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          declared_at: string | null
+          declared_by: string | null
+          declared_totals: Json
+          declared_variance: number
+          exceptions_open: number
+          id: string
+          location_id: string | null
+          notes: string | null
+          opening_float: number
+          property_id: string | null
+          reopen_reason: string | null
+          reopened_at: string | null
+          reopened_by: string | null
+          service_periods: Json
+          status: string
+          system_totals: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          business_date: string
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          declared_at?: string | null
+          declared_by?: string | null
+          declared_totals?: Json
+          declared_variance?: number
+          exceptions_open?: number
+          id?: string
+          location_id?: string | null
+          notes?: string | null
+          opening_float?: number
+          property_id?: string | null
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          service_periods?: Json
+          status?: string
+          system_totals?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          business_date?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          declared_at?: string | null
+          declared_by?: string | null
+          declared_totals?: Json
+          declared_variance?: number
+          exceptions_open?: number
+          id?: string
+          location_id?: string | null
+          notes?: string | null
+          opening_float?: number
+          property_id?: string | null
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          service_periods?: Json
+          status?: string
+          system_totals?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_daily_closes_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_daily_closes_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_daily_closes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_discount_applications: {
         Row: {
           actor_id: string | null
@@ -11900,6 +12003,242 @@ export type Database = {
           },
         ]
       }
+      restaurant_reconciliation_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          business_date: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          new_state: string | null
+          previous_state: string | null
+          reason: string | null
+          subject_id: string
+          subject_type: string
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          business_date?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          new_state?: string | null
+          previous_state?: string | null
+          reason?: string | null
+          subject_id: string
+          subject_type: string
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          business_date?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          new_state?: string | null
+          previous_state?: string | null
+          reason?: string | null
+          subject_id?: string
+          subject_type?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_reconciliation_audit_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_reconciliation_exceptions: {
+        Row: {
+          business_date: string
+          close_id: string | null
+          code: string
+          created_at: string
+          currency: string
+          dedupe_key: string
+          detected_at: string
+          domain: string
+          entity_id: string | null
+          entity_type: string | null
+          evidence: Json
+          id: string
+          impact_value: number
+          location_id: string | null
+          property_id: string | null
+          required_action: string
+          resolution: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          run_id: string | null
+          severity: string
+          status: string
+          tenant_id: string
+          title: string
+          updated_at: string
+          what_happened: string
+        }
+        Insert: {
+          business_date: string
+          close_id?: string | null
+          code: string
+          created_at?: string
+          currency?: string
+          dedupe_key: string
+          detected_at?: string
+          domain: string
+          entity_id?: string | null
+          entity_type?: string | null
+          evidence?: Json
+          id?: string
+          impact_value?: number
+          location_id?: string | null
+          property_id?: string | null
+          required_action: string
+          resolution?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          run_id?: string | null
+          severity?: string
+          status?: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+          what_happened: string
+        }
+        Update: {
+          business_date?: string
+          close_id?: string | null
+          code?: string
+          created_at?: string
+          currency?: string
+          dedupe_key?: string
+          detected_at?: string
+          domain?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          evidence?: Json
+          id?: string
+          impact_value?: number
+          location_id?: string | null
+          property_id?: string | null
+          required_action?: string
+          resolution?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          run_id?: string | null
+          severity?: string
+          status?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          what_happened?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_reconciliation_exceptions_close_id_fkey"
+            columns: ["close_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_daily_closes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_reconciliation_exceptions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_reconciliation_exceptions_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_reconciliation_exceptions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_reconciliation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_reconciliation_exceptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_reconciliation_runs: {
+        Row: {
+          business_date: string
+          created_at: string
+          exceptions_existing: number
+          exceptions_opened: number
+          id: string
+          location_id: string | null
+          run_by: string | null
+          scope: string
+          summary: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          business_date: string
+          created_at?: string
+          exceptions_existing?: number
+          exceptions_opened?: number
+          id?: string
+          location_id?: string | null
+          run_by?: string | null
+          scope: string
+          summary?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          business_date?: string
+          created_at?: string
+          exceptions_existing?: number
+          exceptions_opened?: number
+          id?: string
+          location_id?: string | null
+          run_by?: string | null
+          scope?: string
+          summary?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_reconciliation_runs_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_reconciliation_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_requisition_lines: {
         Row: {
           approved_quantity: number | null
@@ -13975,6 +14314,66 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      restaurant_tender_declarations: {
+        Row: {
+          close_id: string
+          created_at: string
+          currency: string
+          declared_amount: number
+          declared_by: string | null
+          id: string
+          method: string
+          notes: string | null
+          system_amount: number
+          tenant_id: string
+          updated_at: string
+          variance: number
+        }
+        Insert: {
+          close_id: string
+          created_at?: string
+          currency?: string
+          declared_amount?: number
+          declared_by?: string | null
+          id?: string
+          method: string
+          notes?: string | null
+          system_amount?: number
+          tenant_id: string
+          updated_at?: string
+          variance?: number
+        }
+        Update: {
+          close_id?: string
+          created_at?: string
+          currency?: string
+          declared_amount?: number
+          declared_by?: string | null
+          id?: string
+          method?: string
+          notes?: string | null
+          system_amount?: number
+          tenant_id?: string
+          updated_at?: string
+          variance?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_tender_declarations_close_id_fkey"
+            columns: ["close_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_daily_closes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_tender_declarations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       review_statistics: {
         Row: {

@@ -52,6 +52,10 @@ export const RESTAURANT_CAPABILITIES = [
   "reservation.manage",
   "batch.manage",
   "reconciliation.run",
+  "reconciliation.declare",
+  "reconciliation.close",
+  "reconciliation.reopen",
+  "reconciliation.resolve",
   "sales.manage",
   "sales.void",
   "sales.reopen",
@@ -197,6 +201,17 @@ const CAPABILITY_ROLES: Record<RestaurantCapability, readonly RestaurantRole[]> 
     "purchasing_officer",
   ],
   "reconciliation.run": ["owner", "general_manager", "restaurant_manager", "inventory_manager", "accountant"],
+  // Declaring is a floor activity; closing and reopening the day are not.
+  "reconciliation.declare": [
+    "owner",
+    "general_manager",
+    "restaurant_manager",
+    "accountant",
+    "bartender",
+  ],
+  "reconciliation.close": ["owner", "general_manager", "restaurant_manager", "accountant"],
+  "reconciliation.reopen": ["owner", "general_manager", "accountant"],
+  "reconciliation.resolve": ["owner", "general_manager", "restaurant_manager", "accountant"],
   "sales.manage": [
     "owner",
     "general_manager",

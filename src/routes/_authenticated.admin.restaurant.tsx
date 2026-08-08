@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   PiggyBank,
   Receipt,
+  Scale as ScaleIcon,
   Tags,
   Settings2,
   ShoppingCart,
@@ -71,6 +72,7 @@ const GROUPS = [
       { to: "/admin/restaurant/pricing", label: "Pricing Centre", icon: Tags },
       { to: "/admin/restaurant/costing", label: "Costing", icon: Calculator },
       { to: "/admin/restaurant/profitability", label: "Profitability", icon: PiggyBank },
+      { to: "/admin/restaurant/reconciliation", label: "Reconciliation", icon: ScaleIcon },
     ],
   },
   {

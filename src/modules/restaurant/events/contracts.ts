@@ -119,6 +119,14 @@ export const RESTAURANT_EVENT_TYPES = [
   "restaurant.menu.recommendation.generated",
   "restaurant.menu.recommendation.accepted",
   "restaurant.menu.recommendation.dismissed",
+  /* --- Reconciliation & financial control (Sprint 5.12). --- */
+  "restaurant.day.close.opened",
+  "restaurant.day.tender.declared",
+  "restaurant.reconciliation.run.completed",
+  "restaurant.reconciliation.exception.detected",
+  "restaurant.reconciliation.exception.resolved",
+  "restaurant.day.closed",
+  "restaurant.day.reopened",
 ] as const;
 export type RestaurantEventType = (typeof RESTAURANT_EVENT_TYPES)[number];
 
@@ -232,6 +240,14 @@ export const RESTAURANT_EVENT_SEVERITY: Record<RestaurantEventType, "info" | "lo
   "restaurant.menu.recommendation.generated": "low",
   "restaurant.menu.recommendation.accepted": "low",
   "restaurant.menu.recommendation.dismissed": "info",
+  "restaurant.day.close.opened": "info",
+  "restaurant.day.tender.declared": "low",
+  "restaurant.reconciliation.run.completed": "low",
+  "restaurant.reconciliation.exception.detected": "high",
+  "restaurant.reconciliation.exception.resolved": "low",
+  "restaurant.day.closed": "low",
+  // Reopening a closed day rewrites financial evidence after the fact.
+  "restaurant.day.reopened": "high",
 };
 
 export const restaurantEventSchema = z.object({
