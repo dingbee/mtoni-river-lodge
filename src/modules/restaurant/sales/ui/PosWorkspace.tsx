@@ -483,6 +483,8 @@ export function PosWorkspace() {
                     {life.ready > 0 && <Badge>{life.ready} ready</Badge>}
                     {life.balance > 0 && <Badge variant="outline">Balance {money(life.balance, currency)}</Badge>}
                     {life.delayed && <Badge variant="destructive">Delayed</Badge>}
+                    {life.billRequestedAt && !life.billPresentedAt && <Badge variant="secondary">Bill asked for</Badge>}
+                    {life.receiptDelivered && <Badge variant="secondary">Receipt delivered</Badge>}
                   </div>
                   <Button
                     className="min-h-11 w-full"
@@ -584,10 +586,15 @@ export function PosWorkspace() {
                   variant="secondary"
                   className="min-h-11"
                   disabled={cart.length > 0 || !orderRow || Number(orderRow.total ?? 0) <= 0}
-                  onClick={() => setPayOpen(true)}
+                  onClick={() => setBillOpen(true)}
                 >
-                  <CreditCard className="size-4" /> Payment
+                  <ReceiptText className="size-4" /> Bill &amp; payment
                 </Button>
+                {orderRow?.status === "closed" && orderRow?.table_id && (
+                  <Button variant="outline" className="min-h-11" onClick={() => releaseTable.mutate({ orderId })}>
+                    <DoorOpen className="size-4" /> Release table
+                  </Button>
+                )}
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     variant="ghost"
@@ -616,12 +623,42 @@ export function PosWorkspace() {
                     <RotateCcw className="size-4" /> Reopen bill
                   </Button>
                 )}
+                {canVoid && orderPayments.some((p: any) => Number(p.amount ?? 0) > 0 && p.state !== "refunded") && (
+                  <Button
+                    variant="ghost"
+                    className="min-h-11 text-destructive"
+                    onClick={() => {
+                      const target = orderPayments.find(
+                        (p: any) => Number(p.amount ?? 0) > 0 && p.state !== "refunded",
+                      );
+                      if (!target) return;
+                      const reason = window.prompt(
+                        `Refund ${money(Number(target.amount), currency)} taken by ${target.method}. Reason?`,
+                      );
+                      if (reason && reason.trim().length >= 3) {
+                        refund.mutate({
+                          paymentId: target.id,
+                          amount: Number(target.amount),
+                          reason: reason.trim(),
+                        });
+                      }
+                    }}
+                  >
+                    <CreditCard className="size-4" /> Refund a payment
+                  </Button>
+                )}
               </div>
 
               <details className="rounded-lg border bg-card p-2">
                 <summary className="cursor-pointer text-xs font-medium">Service timeline</summary>
                 <div className="mt-2">
-                  <OrderTimeline order={orderRow} items={serverItems} tickets={orderTickets} payments={orderPayments} />
+                  <OrderTimeline
+                    order={orderRow}
+                    items={serverItems}
+                    tickets={orderTickets}
+                    payments={orderPayments}
+                    receipt={(bill.data as any)?.receipt ?? null}
+                  />
                 </div>
               </details>
             </div>
@@ -644,14 +681,39 @@ export function PosWorkspace() {
         total={Number(orderRow?.total ?? 0)}
         paid={Number(orderRow?.paid_total ?? 0)}
         pending={pay.isPending}
-        onClose={() => setPayOpen(false)}
+        suggestedAmount={shareAmount}
+        onClose={() => {
+          setPayOpen(false);
+          setShareAmount(null);
+        }}
         onPay={(input) => pay.mutate(input)}
+      />
+
+      <PosBillDialog
+        open={billOpen && Boolean(orderId)}
+        bill={bill.data as any}
+        loading={bill.isLoading}
+        currency={currency}
+        splitMode={splitMode}
+        ways={ways}
+        presenting={presentBill.isPending}
+        onSplitMode={setSplitMode}
+        onWays={setWays}
+        onClose={() => setBillOpen(false)}
+        onPresent={() => presentBill.mutate(undefined as never)}
+        onPayShare={(amount) => {
+          setShareAmount(amount);
+          setBillOpen(false);
+          setPayOpen(true);
+        }}
       />
 
       <PosReceiptDialog
         receipt={receipt}
         onClose={() => setReceipt(null)}
         onReprint={() => receipt && showReceipt.mutate({ orderId: receipt.order_id, reprint: true })}
+        delivering={deliverReceipt.isPending}
+        onDeliver={(input) => deliverReceipt.mutate(input)}
       />
     </div>
   );
