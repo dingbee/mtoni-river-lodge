@@ -203,7 +203,7 @@ export function PriceListsTab({ tenantId }: { tenantId: string }) {
                     </StatusChip>
                     <StatusChip tone="info">{l.code}</StatusChip>
                     {l.channel && <StatusChip tone="neutral">{l.channel}</StatusChip>}
-                    {l.is_default && <StatusChip tone="gold">default</StatusChip>}
+                    {l.is_default && <StatusChip tone="warning">default</StatusChip>}
                   </div>
                   <p className="truncate text-xs text-muted-foreground">
                     {l.currency} · priority {l.priority} ·{" "}
@@ -443,7 +443,7 @@ export function ResolutionPreview({ tenantId }: { tenantId: string }) {
         <div className="mt-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <StatusChip tone="info">{quote.priceSource}</StatusChip>
-            {quote.priceListId && <StatusChip tone="gold">price list</StatusChip>}
+            {quote.priceListId && <StatusChip tone="warning">price list</StatusChip>}
             <StatusChip tone="neutral">{quote.channel}</StatusChip>
             {quote.taxInclusive && <StatusChip tone="neutral">tax inclusive</StatusChip>}
           </div>
