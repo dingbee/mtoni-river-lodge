@@ -890,6 +890,7 @@ export async function upsertPriceList(
     tenantId: input.tenantId,
     entityType: "price_list",
     entityId: data.id,
+    source: "restaurant-pricing",
     action: input.id ? "price_list.updated" : "price_list.created",
     newValue: row,
   });
@@ -971,6 +972,7 @@ export async function upsertRoundingRule(
     locationId: input.locationId,
     entityType: "rounding_rule",
     entityId: data.id,
+    source: "restaurant-pricing",
     payload: { target: data.target, mode: data.mode, increment: Number(data.increment) },
   });
   return data;
