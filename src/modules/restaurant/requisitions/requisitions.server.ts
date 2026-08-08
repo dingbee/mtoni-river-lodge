@@ -203,6 +203,18 @@ export async function saveRequisitionDraft(sb: Sb, userId: string, input: SaveRe
     source: "restaurant-os",
     payload: { reference, kind: input.kind, lines: input.lines.length, to_location_id: input.destinationLocationId },
   });
+  if (input.kind === "bar") {
+    await emitRestaurantEvent(sb, userId, {
+      type: "bar.requisition.created",
+      tenantId: input.tenantId,
+      propertyId: input.propertyId,
+      locationId: input.destinationLocationId,
+      entityType: "restaurant_requisition",
+      entityId: requisitionId!,
+      source: "restaurant-os",
+      payload: { reference, lines: input.lines.length, from_location_id: input.sourceLocationId },
+    });
+  }
 
   if (input.submit) {
     await emitRestaurantEvent(sb, userId, {
@@ -444,6 +456,19 @@ export async function issueRequisition(sb: Sb, userId: string, input: IssueRequi
       payload: { reference: requisition.reference },
       dedupeKey: `requisition:fulfilled:${input.requisitionId}`,
     });
+    if (requisition.kind === "bar") {
+      await emitRestaurantEvent(sb, userId, {
+        type: "bar.requisition.fulfilled",
+        tenantId: input.tenantId,
+        propertyId: requisition.property_id ?? undefined,
+        locationId: requisition.destination_location_id,
+        entityType: "restaurant_requisition",
+        entityId: input.requisitionId,
+        source: "restaurant-os",
+        payload: { reference: requisition.reference },
+        dedupeKey: `bar:requisition:fulfilled:${input.requisitionId}`,
+      });
+    }
   }
 
   return { status: newStatus as "fulfilled" | "partially_issued" };
