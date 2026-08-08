@@ -262,6 +262,35 @@ export async function advanceTicket(sb: Sb, userId: string, input: AdvanceTicket
       },
       dedupeKey: `ticket-ready:${ticket.id}`,
     });
+
+    // Bar mirror: a delayed beverage ticket is a bar service fact.
+    if (delaySeconds > 0 && ticket.station_id) {
+      const { data: station } = await sb
+        .from("restaurant_stations")
+        .select("station_type, name")
+        .eq("tenant_id", input.tenantId)
+        .eq("id", ticket.station_id)
+        .maybeSingle();
+      const barTypes = ["bar", "cocktail", "coffee", "service_bar", "beverage"];
+      if (station && barTypes.includes(String(station.station_type))) {
+        await emitRestaurantEvent(sb, userId, {
+          type: "bar.ticket.delayed",
+          tenantId: input.tenantId,
+          locationId: ticket.location_id ?? undefined,
+          entityType: "restaurant_kitchen_ticket",
+          entityId: ticket.id,
+          source: "restaurant-os",
+          payload: {
+            ticket_number: ticket.ticket_number,
+            station_id: ticket.station_id,
+            station_name: station.name,
+            prep_seconds: prepSeconds,
+            delay_seconds: delaySeconds,
+          },
+          dedupeKey: `bar:ticket-delayed:${ticket.id}`,
+        });
+      }
+    }
   }
   return updated;
 }
