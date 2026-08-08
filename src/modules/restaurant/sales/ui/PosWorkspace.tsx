@@ -50,16 +50,6 @@ const FLOOR_LEGEND: TableTone[] = ["free", "seated", "production", "ready", "bil
 /** Which operating environment the till is rendering: restaurant service or bar service. */
 export type PosLens = "restaurant" | "bar";
 
-/** Category names that read as beverage categories. Data-driven, not hard-coded products. */
-const BEVERAGE_CATEGORY_HINTS = [
-  "drink", "beverage", "bar", "spirit", "whisk", "vodka", "gin", "rum", "tequila", "liqueur",
-  "wine", "beer", "cider", "cocktail", "mocktail", "soft", "juice", "water", "coffee", "tea",
-  "mixer", "shot", "energy",
-];
-
-const isBeverageCategory = (name: unknown) =>
-  typeof name === "string" && BEVERAGE_CATEGORY_HINTS.some((h) => name.toLowerCase().includes(h));
-
 /**
  * The till. Floor → bill → kitchen → payment → receipt, in one screen.
  *
@@ -303,7 +293,7 @@ export function PosWorkspace({ lens = "restaurant" }: { lens?: PosLens } = {}) {
   const items = (catalog.data?.items ?? []) as any[];
   const allCategories = (catalog.data?.categories ?? []) as any[];
   /** In the bar lens the catalogue narrows to beverage categories; falls back to all when none are tagged. */
-  const barCategories = useMemo(() => allCategories.filter((c) => isBeverageCategory(c.name)), [allCategories]);
+  const barCategories = useMemo(() => beverageCategories(allCategories), [allCategories]);
   const categories = isBar && barCategories.length > 0 ? barCategories : allCategories;
   const scoped = useMemo(() => {
     if (!isBar || barCategories.length === 0) return items;
