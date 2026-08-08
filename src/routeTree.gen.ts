@@ -137,6 +137,7 @@ import { Route as AuthenticatedAdminRestaurantInventoryRouteImport } from './rou
 import { Route as AuthenticatedAdminRestaurantIntelligenceRouteImport } from './routes/_authenticated.admin.restaurant.intelligence'
 import { Route as AuthenticatedAdminRestaurantDecisionsRouteImport } from './routes/_authenticated.admin.restaurant.decisions'
 import { Route as AuthenticatedAdminRestaurantCostingRouteImport } from './routes/_authenticated.admin.restaurant.costing'
+import { Route as AuthenticatedAdminRestaurantBarRouteImport } from './routes/_authenticated.admin.restaurant.bar'
 import { Route as AuthenticatedAdminOperationsTimelineRouteImport } from './routes/_authenticated.admin.operations.timeline'
 import { Route as AuthenticatedAdminOperationsTasksRouteImport } from './routes/_authenticated.admin.operations.tasks'
 import { Route as AuthenticatedAdminOperationsRoomsRouteImport } from './routes/_authenticated.admin.operations.rooms'
@@ -966,6 +967,12 @@ const AuthenticatedAdminRestaurantCostingRoute =
   AuthenticatedAdminRestaurantCostingRouteImport.update({
     id: '/costing',
     path: '/costing',
+    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
+  } as any)
+const AuthenticatedAdminRestaurantBarRoute =
+  AuthenticatedAdminRestaurantBarRouteImport.update({
+    id: '/bar',
+    path: '/bar',
     getParentRoute: () => AuthenticatedAdminRestaurantRoute,
   } as any)
 const AuthenticatedAdminOperationsTimelineRoute =
@@ -1875,6 +1882,7 @@ export interface FileRoutesByFullPath {
   '/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
   '/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
+  '/admin/restaurant/bar': typeof AuthenticatedAdminRestaurantBarRoute
   '/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
   '/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
   '/admin/restaurant/intelligence': typeof AuthenticatedAdminRestaurantIntelligenceRoute
@@ -2116,6 +2124,7 @@ export interface FileRoutesByTo {
   '/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
   '/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
+  '/admin/restaurant/bar': typeof AuthenticatedAdminRestaurantBarRoute
   '/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
   '/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
   '/admin/restaurant/intelligence': typeof AuthenticatedAdminRestaurantIntelligenceRoute
@@ -2373,6 +2382,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
   '/_authenticated/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/_authenticated/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
+  '/_authenticated/admin/restaurant/bar': typeof AuthenticatedAdminRestaurantBarRoute
   '/_authenticated/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
   '/_authenticated/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
   '/_authenticated/admin/restaurant/intelligence': typeof AuthenticatedAdminRestaurantIntelligenceRoute
@@ -2630,6 +2640,7 @@ export interface FileRouteTypes {
     | '/admin/operations/rooms'
     | '/admin/operations/tasks'
     | '/admin/operations/timeline'
+    | '/admin/restaurant/bar'
     | '/admin/restaurant/costing'
     | '/admin/restaurant/decisions'
     | '/admin/restaurant/intelligence'
@@ -2871,6 +2882,7 @@ export interface FileRouteTypes {
     | '/admin/operations/rooms'
     | '/admin/operations/tasks'
     | '/admin/operations/timeline'
+    | '/admin/restaurant/bar'
     | '/admin/restaurant/costing'
     | '/admin/restaurant/decisions'
     | '/admin/restaurant/intelligence'
@@ -3127,6 +3139,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations/rooms'
     | '/_authenticated/admin/operations/tasks'
     | '/_authenticated/admin/operations/timeline'
+    | '/_authenticated/admin/restaurant/bar'
     | '/_authenticated/admin/restaurant/costing'
     | '/_authenticated/admin/restaurant/decisions'
     | '/_authenticated/admin/restaurant/intelligence'
@@ -4199,6 +4212,13 @@ declare module '@tanstack/react-router' {
       path: '/costing'
       fullPath: '/admin/restaurant/costing'
       preLoaderRoute: typeof AuthenticatedAdminRestaurantCostingRouteImport
+      parentRoute: typeof AuthenticatedAdminRestaurantRoute
+    }
+    '/_authenticated/admin/restaurant/bar': {
+      id: '/_authenticated/admin/restaurant/bar'
+      path: '/bar'
+      fullPath: '/admin/restaurant/bar'
+      preLoaderRoute: typeof AuthenticatedAdminRestaurantBarRouteImport
       parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/operations/timeline': {
@@ -5535,6 +5555,7 @@ const AuthenticatedAdminOperationsRouteWithChildren =
   )
 
 interface AuthenticatedAdminRestaurantRouteChildren {
+  AuthenticatedAdminRestaurantBarRoute: typeof AuthenticatedAdminRestaurantBarRoute
   AuthenticatedAdminRestaurantCostingRoute: typeof AuthenticatedAdminRestaurantCostingRoute
   AuthenticatedAdminRestaurantDecisionsRoute: typeof AuthenticatedAdminRestaurantDecisionsRoute
   AuthenticatedAdminRestaurantIntelligenceRoute: typeof AuthenticatedAdminRestaurantIntelligenceRoute
@@ -5559,6 +5580,7 @@ interface AuthenticatedAdminRestaurantRouteChildren {
 
 const AuthenticatedAdminRestaurantRouteChildren: AuthenticatedAdminRestaurantRouteChildren =
   {
+    AuthenticatedAdminRestaurantBarRoute: AuthenticatedAdminRestaurantBarRoute,
     AuthenticatedAdminRestaurantCostingRoute:
       AuthenticatedAdminRestaurantCostingRoute,
     AuthenticatedAdminRestaurantDecisionsRoute:

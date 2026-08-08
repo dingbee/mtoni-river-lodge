@@ -8162,6 +8162,7 @@ export type Database = {
           currency: string
           current_quantity: number
           id: string
+          is_beverage: boolean
           item_type: string
           location_id: string | null
           metadata: Json
@@ -8171,6 +8172,8 @@ export type Database = {
           property_id: string | null
           purchase_unit_id: string | null
           reorder_point: number | null
+          serving_size: number | null
+          serving_unit_id: string | null
           shelf_life_days: number | null
           sku: string | null
           status: string
@@ -8188,6 +8191,7 @@ export type Database = {
           currency?: string
           current_quantity?: number
           id?: string
+          is_beverage?: boolean
           item_type?: string
           location_id?: string | null
           metadata?: Json
@@ -8197,6 +8201,8 @@ export type Database = {
           property_id?: string | null
           purchase_unit_id?: string | null
           reorder_point?: number | null
+          serving_size?: number | null
+          serving_unit_id?: string | null
           shelf_life_days?: number | null
           sku?: string | null
           status?: string
@@ -8214,6 +8220,7 @@ export type Database = {
           currency?: string
           current_quantity?: number
           id?: string
+          is_beverage?: boolean
           item_type?: string
           location_id?: string | null
           metadata?: Json
@@ -8223,6 +8230,8 @@ export type Database = {
           property_id?: string | null
           purchase_unit_id?: string | null
           reorder_point?: number | null
+          serving_size?: number | null
+          serving_unit_id?: string | null
           shelf_life_days?: number | null
           sku?: string | null
           status?: string
@@ -8263,6 +8272,13 @@ export type Database = {
           {
             foreignKeyName: "restaurant_inventory_items_purchase_unit_id_fkey"
             columns: ["purchase_unit_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_inventory_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_inventory_items_serving_unit_id_fkey"
+            columns: ["serving_unit_id"]
             isOneToOne: false
             referencedRelation: "restaurant_inventory_units"
             referencedColumns: ["id"]
@@ -8991,6 +9007,9 @@ export type Database = {
       restaurant_order_items: {
         Row: {
           base_unit_price: number | null
+          comp_at: string | null
+          comp_by: string | null
+          comp_reason: string | null
           course: string | null
           created_at: string
           created_by: string | null
@@ -9002,6 +9021,7 @@ export type Database = {
           exchange_rate: number
           guest_notes: string | null
           id: string
+          is_comp: boolean
           line_cost: number
           line_total: number
           menu_item_id: string | null
@@ -9038,6 +9058,9 @@ export type Database = {
         }
         Insert: {
           base_unit_price?: number | null
+          comp_at?: string | null
+          comp_by?: string | null
+          comp_reason?: string | null
           course?: string | null
           created_at?: string
           created_by?: string | null
@@ -9049,6 +9072,7 @@ export type Database = {
           exchange_rate?: number
           guest_notes?: string | null
           id?: string
+          is_comp?: boolean
           line_cost?: number
           line_total?: number
           menu_item_id?: string | null
@@ -9085,6 +9109,9 @@ export type Database = {
         }
         Update: {
           base_unit_price?: number | null
+          comp_at?: string | null
+          comp_by?: string | null
+          comp_reason?: string | null
           course?: string | null
           created_at?: string
           created_by?: string | null
@@ -9096,6 +9123,7 @@ export type Database = {
           exchange_rate?: number
           guest_notes?: string | null
           id?: string
+          is_comp?: boolean
           line_cost?: number
           line_total?: number
           menu_item_id?: string | null

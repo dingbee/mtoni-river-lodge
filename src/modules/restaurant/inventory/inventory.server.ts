@@ -63,6 +63,9 @@ export async function upsertInventoryItem(sb: Sb, userId: string, input: UpsertI
     consumption_unit_id: input.consumptionUnitId ?? null,
     pack_size: input.packSize ?? null,
     shelf_life_days: input.shelfLifeDays ?? null,
+    ...(input.isBeverage === undefined ? {} : { is_beverage: input.isBeverage }),
+    ...(input.servingSize === undefined ? {} : { serving_size: input.servingSize }),
+    ...(input.servingUnitId === undefined ? {} : { serving_unit_id: input.servingUnitId }),
     updated_at: new Date().toISOString(),
   };
   const q = input.id

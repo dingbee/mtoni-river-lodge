@@ -84,6 +84,18 @@ export const RESTAURANT_EVENT_TYPES = [
   "restaurant.requisition.rejected",
   "restaurant.requisition.issued",
   "restaurant.requisition.fulfilled",
+  /* --- Bar & beverage facts (Sprint 5.6). Same module, same envelope. --- */
+  "bar.stock.low",
+  "bar.stocktake.completed",
+  "bar.waste.recorded",
+  "bar.requisition.created",
+  "bar.requisition.fulfilled",
+  "bar.transfer.completed",
+  "bar.ticket.delayed",
+  "bar.beverage.variance.detected",
+  "bar.product.performance.changed",
+  "bar.pour.configured",
+  "bar.drink.comped",
 ] as const;
 export type RestaurantEventType = (typeof RESTAURANT_EVENT_TYPES)[number];
 
@@ -164,6 +176,17 @@ export const RESTAURANT_EVENT_SEVERITY: Record<RestaurantEventType, "info" | "lo
   "restaurant.requisition.rejected": "medium",
   "restaurant.requisition.issued": "low",
   "restaurant.requisition.fulfilled": "low",
+  "bar.stock.low": "high",
+  "bar.stocktake.completed": "medium",
+  "bar.waste.recorded": "medium",
+  "bar.requisition.created": "info",
+  "bar.requisition.fulfilled": "low",
+  "bar.transfer.completed": "low",
+  "bar.ticket.delayed": "high",
+  "bar.beverage.variance.detected": "high",
+  "bar.product.performance.changed": "medium",
+  "bar.pour.configured": "info",
+  "bar.drink.comped": "medium",
 };
 
 export const restaurantEventSchema = z.object({

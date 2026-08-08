@@ -1,4 +1,4 @@
-import { ClipboardCheck, ClipboardList, UtensilsCrossed, BookOpen, Boxes, Truck, ShoppingCart, Calculator, Settings2, Receipt, ChefHat, ArrowLeftRight, PiggyBank, Tags, Wrench } from "lucide-react";
+import { ClipboardCheck, ClipboardList, UtensilsCrossed, BookOpen, Boxes, Truck, ShoppingCart, Calculator, Settings2, Receipt, ChefHat, ArrowLeftRight, PiggyBank, Tags, Wrench, Wine } from "lucide-react";
 import { defineModule } from "../registry";
 
 const ROLES = ["owner", "manager", "finance"] as const;
@@ -113,6 +113,19 @@ export const restaurantKitchenModule = defineModule({
   route: "/admin/restaurant/kitchen",
   parentId: "restaurant",
   order: 8,
+  requiredRoles: [...ROLES],
+  featureFlag: "restaurant_os",
+  status: "beta",
+});
+
+export const restaurantBarModule = defineModule({
+  id: "restaurant.bar",
+  name: "Bar Operations",
+  description: "Bar service board, pour setup, beverage stock and pour-cost variance",
+  icon: Wine,
+  route: "/admin/restaurant/bar",
+  parentId: "restaurant",
+  order: 9,
   requiredRoles: [...ROLES],
   featureFlag: "restaurant_os",
   status: "beta",
