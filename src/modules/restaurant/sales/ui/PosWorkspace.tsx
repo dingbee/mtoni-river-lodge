@@ -371,6 +371,27 @@ export function PosWorkspace() {
             <EmptyState title="No bill selected" description="Tap a table or start a walk-in tab." />
           ) : (
             <div className="space-y-3">
+              {life && (
+                <div className="space-y-2 rounded-lg border bg-muted/30 p-2">
+                  <ServiceLifecycleBar life={life} compact />
+                  <p className="text-xs text-muted-foreground">{life.reason}</p>
+                  <div className="flex flex-wrap gap-1 text-[11px]">
+                    {life.staged > 0 && <Badge variant="outline">{life.staged} staged</Badge>}
+                    {life.unsent > 0 && <Badge variant="outline">{life.unsent} unsent</Badge>}
+                    {life.inProduction > 0 && <Badge variant="secondary">{life.inProduction} in production</Badge>}
+                    {life.ready > 0 && <Badge>{life.ready} ready</Badge>}
+                    {life.balance > 0 && <Badge variant="outline">Balance {money(life.balance, currency)}</Badge>}
+                    {life.delayed && <Badge variant="destructive">Delayed</Badge>}
+                  </div>
+                  <Button
+                    className="min-h-11 w-full"
+                    disabled={life.nextAction === "none" || life.blocked || sendLines.isPending}
+                    onClick={runNextAction}
+                  >
+                    Next: {life.nextActionLabel}
+                  </Button>
+                </div>
+              )}
               <div className="space-y-2">
                 {live.map((i) => (
                   <div key={i.id} className="flex items-start justify-between gap-2 rounded border bg-card p-2 text-sm">
