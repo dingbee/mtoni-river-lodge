@@ -17,6 +17,7 @@ import {
   getRestaurantMenuIntelligenceFn,
   getRestaurantPurchasingIntelligenceFn,
 } from "@/modules/restaurant/intelligence/insights.functions";
+import { getInventoryMenuOpportunitiesFn } from "@/modules/restaurant/intelligence/inventory-menu.functions";
 import {
   MENU_CLASS_LABEL,
   type InsightSeverity,
@@ -87,6 +88,7 @@ function RestaurantIntelligencePage() {
   const inventoryFn = useServerFn(getRestaurantInventoryIntelligenceFn);
   const kitchenFn = useServerFn(getRestaurantKitchenIntelligenceFn);
   const purchasingFn = useServerFn(getRestaurantPurchasingIntelligenceFn);
+  const opportunitiesFn = useServerFn(getInventoryMenuOpportunitiesFn);
 
   const args = { data: { tenantId: tenantId as string, windowDays } };
   const enabled = Boolean(tenantId);
