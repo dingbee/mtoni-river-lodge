@@ -50,6 +50,9 @@ export const RESTAURANT_CAPABILITIES = [
   "batch.manage",
   "reconciliation.run",
   "sales.manage",
+  "sales.void",
+  "sales.reopen",
+  "sales.discount",
   "kitchen.manage",
   "stock.manage",
   "profitability.manage",
@@ -186,6 +189,11 @@ const CAPABILITY_ROLES: Record<RestaurantCapability, readonly RestaurantRole[]> 
     "kitchen_manager",
     "accountant",
   ],
+  // Money-affecting corrections stay with supervisors: a void, a reopen or a
+  // manual discount rewrites revenue evidence after the fact.
+  "sales.void": ["owner", "general_manager", "restaurant_manager"],
+  "sales.reopen": ["owner", "general_manager", "restaurant_manager"],
+  "sales.discount": ["owner", "general_manager", "restaurant_manager"],
   "kitchen.manage": ["owner", "general_manager", "restaurant_manager", "chef", "kitchen_manager", "bartender"],
   "stock.manage": [
     "owner",
