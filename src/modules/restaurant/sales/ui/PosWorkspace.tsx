@@ -28,17 +28,14 @@ import { PosItemDialog } from "./PosItemDialog";
 import { PosPaymentDialog } from "./PosPaymentDialog";
 import { PosReceiptDialog } from "./PosReceiptDialog";
 import { lineTotal, money, type CartLine } from "./pos-types";
+import { deriveLifecycle, tableTone, TABLE_TONE_CLASS, TABLE_TONE_LABEL, type TableTone } from "./lifecycle";
+import { ServiceLifecycleBar } from "./ServiceLifecycleBar";
+import { OrderTimeline } from "./OrderTimeline";
 
 const newRequestId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `pos-${Date.now()}-${Math.random()}`;
 
-const TABLE_TONE: Record<string, string> = {
-  available: "border-border bg-card",
-  occupied: "border-primary/40 bg-primary/10",
-  reserved: "border-amber-500/40 bg-amber-500/10",
-  cleaning: "border-muted bg-muted",
-  out_of_service: "border-destructive/40 bg-destructive/10 opacity-60",
-};
+const FLOOR_LEGEND: TableTone[] = ["free", "seated", "production", "ready", "billing", "attention"];
 
 /**
  * The till. Floor → bill → kitchen → payment → receipt, in one screen.
