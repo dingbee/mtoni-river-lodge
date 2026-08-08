@@ -27,6 +27,12 @@ const METHOD_LABELS: Record<PosPaymentMethod, string> = {
 
 const PAD_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "back"] as const;
 
+/**
+ * A folio charge is not a tender taken at the counter — it is a receivable
+ * posted to a guest's stay, and it needs its own governed flow.
+ */
+const PAD_METHODS = POS_PAYMENT_METHODS.filter((m) => m !== "room_charge");
+
 /** Round-number notes a cashier is actually handed, above the amount due. */
 function quickTenders(balance: number): number[] {
   const steps = [1_000, 5_000, 10_000, 20_000, 50_000, 100_000];
@@ -52,6 +58,8 @@ export function PosPaymentDialog({
   suggestedAmount,
   onClose,
   onPay,
+  canRoomCharge = false,
+  onRoomCharge,
 }: {
   open: boolean;
   currency: string;
@@ -62,6 +70,10 @@ export function PosPaymentDialog({
   suggestedAmount?: number | null;
   onClose: () => void;
   onPay: (input: { method: PosPaymentMethod; amount: number; tendered?: number; reference?: string }) => void;
+  /** Whether this operator may post to a guest folio. */
+  canRoomCharge?: boolean;
+  /** Hands the amount to the governed room-charge flow. */
+  onRoomCharge?: (amount: number) => void;
 }) {
   const balance = Number(Math.max(0, total - paid).toFixed(2));
   const [method, setMethod] = useState<PosPaymentMethod>("cash");
@@ -120,7 +132,7 @@ export function PosPaymentDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            {POS_PAYMENT_METHODS.map((m) => (
+            {PAD_METHODS.map((m) => (
               <Button
                 key={m}
                 type="button"
@@ -135,6 +147,18 @@ export function PosPaymentDialog({
               </Button>
             ))}
           </div>
+
+          {canRoomCharge && onRoomCharge && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="min-h-12 w-full"
+              disabled={!(value > 0 && value <= balance + 0.001)}
+              onClick={() => onRoomCharge(Number(value.toFixed(2)))}
+            >
+              {METHOD_LABELS.room_charge} — {money(value, currency)}
+            </Button>
+          )}
 
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div className="grid grid-cols-3 gap-2">
