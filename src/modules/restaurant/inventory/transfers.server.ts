@@ -383,7 +383,7 @@ export async function receiveTransfer(sb: Sb, userId: string, input: ReceiveTran
   });
 
   // Bar mirror when the receiving location is a bar service point.
-  if (status === "completed" || status === "received") {
+  if (status === "completed") {
     const { data: destination } = await sb
       .from("restaurant_locations")
       .select("location_type")
