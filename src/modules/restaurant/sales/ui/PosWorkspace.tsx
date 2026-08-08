@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { SectionCard } from "@/components/os/SectionCard";
 import { StatCard } from "@/components/os/StatCard";
 import { EmptyState } from "@/components/os/EmptyState";
+import { GuestContextBanner } from "./GuestContextBanner";
 import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { useRestaurantWorkspace } from "@/modules/restaurant/ui/useRestaurantWorkspace";
 import { hasRestaurantCapability } from "@/modules/restaurant/core/permissions";
