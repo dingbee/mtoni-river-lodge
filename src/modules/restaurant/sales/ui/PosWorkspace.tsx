@@ -1,0 +1,481 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- server function rows are untyped at this boundary. */
+import { useMemo, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { ChefHat, CreditCard, Printer, RotateCcw, Send, Trash2, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { SectionCard } from "@/components/os/SectionCard";
+import { StatCard } from "@/components/os/StatCard";
+import { EmptyState } from "@/components/os/EmptyState";
+import { useAdminMutation } from "@/hooks/use-admin-mutation";
+import { useRestaurantWorkspace } from "@/modules/restaurant/ui/useRestaurantWorkspace";
+import { hasRestaurantCapability } from "@/modules/restaurant/core/permissions";
+import { getRestaurantOrderFn } from "../sales.functions";
+import { fireRestaurantOrderFn } from "@/modules/restaurant/kitchen/kitchen.functions";
+import {
+  addPosLinesFn,
+  openPosOrderFn,
+  posBoardFn,
+  posCatalogFn,
+  posReceiptFn,
+  reopenPosOrderFn,
+  takePosPaymentFn,
+  transferPosOrderFn,
+  voidPosLineFn,
+} from "../pos.functions";
+import { PosItemDialog } from "./PosItemDialog";
+import { PosPaymentDialog } from "./PosPaymentDialog";
+import { PosReceiptDialog } from "./PosReceiptDialog";
+import { lineTotal, money, type CartLine } from "./pos-types";
+
+const newRequestId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `pos-${Date.now()}-${Math.random()}`;
+
+const TABLE_TONE: Record<string, string> = {
+  available: "border-border bg-card",
+  occupied: "border-primary/40 bg-primary/10",
+  reserved: "border-amber-500/40 bg-amber-500/10",
+  cleaning: "border-muted bg-muted",
+  out_of_service: "border-destructive/40 bg-destructive/10 opacity-60",
+};
+
+/**
+ * The till. Floor → bill → kitchen → payment → receipt, in one screen.
+ *
+ * All money and stock consequences happen server-side in the sales core; this
+ * component only stages what the server has not yet accepted.
+ */
+export function PosWorkspace() {
+  const ws = useRestaurantWorkspace();
+  const tenantId = ws.data?.tenant?.id;
+  const roles = (ws.data?.roles ?? []) as readonly string[];
+  const platformAdmin = ws.data?.platformAdmin ?? false;
+  const canVoid = hasRestaurantCapability(roles, "sales.void", platformAdmin);
+  const canReopen = hasRestaurantCapability(roles, "sales.reopen", platformAdmin);
+  const currency = ws.data?.properties?.[0]?.currency ?? "TZS";
+  const qc = useQueryClient();
+
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [cart, setCart] = useState<CartLine[]>([]);
+  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [pickerItem, setPickerItem] = useState<any | null>(null);
+  const [payOpen, setPayOpen] = useState(false);
+  const [receipt, setReceipt] = useState<any | null>(null);
+  const openKey = useRef<string>(newRequestId());
+  const payKey = useRef<string>(newRequestId());
+
+  const boardFn = useServerFn(posBoardFn);
+  const catalogFn = useServerFn(posCatalogFn);
+  const orderFn = useServerFn(getRestaurantOrderFn);
+  const openFn = useServerFn(openPosOrderFn);
+  const addFn = useServerFn(addPosLinesFn);
+  const voidFn = useServerFn(voidPosLineFn);
+  const transferFn = useServerFn(transferPosOrderFn);
+  const payFn = useServerFn(takePosPaymentFn);
+  const reopenFn = useServerFn(reopenPosOrderFn);
+  const receiptFn = useServerFn(posReceiptFn);
+  const fireFn = useServerFn(fireRestaurantOrderFn);
+
+  const board = useQuery({
+    queryKey: ["restaurant.pos.board", tenantId],
+    queryFn: () => boardFn({ data: { tenantId: tenantId! } }),
+    enabled: Boolean(tenantId),
+    refetchInterval: 20_000,
+  });
+  const catalog = useQuery({
+    queryKey: ["restaurant.pos.catalog", tenantId],
+    queryFn: () => catalogFn({ data: { tenantId: tenantId! } }),
+    enabled: Boolean(tenantId),
+    staleTime: 120_000,
+  });
+  const order = useQuery({
+    queryKey: ["restaurant.pos.order", tenantId, orderId],
+    queryFn: () => orderFn({ data: { tenantId: tenantId!, orderId: orderId! } }),
+    enabled: Boolean(tenantId && orderId),
+    refetchInterval: 20_000,
+  });
+
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ["restaurant.pos.board"] });
+    void qc.invalidateQueries({ queryKey: ["restaurant.pos.order"] });
+    void qc.invalidateQueries({ queryKey: ["restaurant.tickets"] });
+    void qc.invalidateQueries({ queryKey: ["restaurant.orders"] });
+  };
+
+  const openBill = useAdminMutation({
+    mutationFn: (vars: { tableId?: string; guestCount: number }) =>
+      openFn({
+        data: {
+          tenantId: tenantId!,
+          tableId: vars.tableId,
+          orderType: vars.tableId ? "dine_in" : "bar",
+          guestCount: vars.guestCount,
+          currency,
+          terminalId: "pos-web",
+          clientRequestId: openKey.current,
+          lines: [],
+        },
+      }),
+    successMessage: "Bill opened",
+    onSuccess: (data: any) => {
+      openKey.current = newRequestId();
+      setOrderId(data.id);
+      setCart([]);
+      refresh();
+    },
+  });
+
+  const sendLines = useAdminMutation({
+    mutationFn: (vars: { fire: boolean }) =>
+      addFn({
+        data: {
+          tenantId: tenantId!,
+          orderId: orderId!,
+          lines: cart.map((l) => ({
+            menuItemId: l.menuItemId,
+            variantId: l.variantId,
+            stationId: l.stationId,
+            description: l.description,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            discount: 0,
+            seatNumber: l.seatNumber,
+            course: l.course,
+            notes: l.notes,
+            guestNotes: l.guestNotes,
+            modifiers: l.modifiers,
+          })),
+        },
+      }).then(async (res: any) => {
+        if (vars.fire) await fireFn({ data: { tenantId: tenantId!, orderId: orderId!, orderItemIds: [], priority: 0 } });
+        return res;
+      }),
+    successMessage: "Sent",
+    onSuccess: () => {
+      setCart([]);
+      refresh();
+    },
+  });
+
+  const voidLine = useAdminMutation({
+    mutationFn: (vars: { orderItemId: string; reason: string }) =>
+      voidFn({ data: { tenantId: tenantId!, orderId: orderId!, orderItemId: vars.orderItemId, reason: vars.reason } }),
+    successMessage: "Line voided",
+    onSuccess: refresh,
+  });
+
+  const transfer = useAdminMutation({
+    mutationFn: (vars: { tableId: string | null }) =>
+      transferFn({ data: { tenantId: tenantId!, orderId: orderId!, tableId: vars.tableId } }),
+    successMessage: "Bill moved",
+    onSuccess: refresh,
+  });
+
+  const pay = useAdminMutation({
+    mutationFn: (vars: { method: any; amount: number; tendered?: number; reference?: string }) =>
+      payFn({
+        data: {
+          tenantId: tenantId!,
+          orderId: orderId!,
+          clientRequestId: payKey.current,
+          method: vars.method,
+          amount: vars.amount,
+          tendered: vars.tendered,
+          reference: vars.reference,
+          state: vars.method === "room_charge" ? "room_charged" : vars.method === "comp" ? "comped" : "paid",
+          closeWhenSettled: true,
+        },
+      }),
+    successMessage: "Payment recorded",
+    onSuccess: (data: any) => {
+      payKey.current = newRequestId();
+      if (data?.receipt) {
+        setReceipt(data.receipt);
+        setPayOpen(false);
+        setOrderId(null);
+      }
+      refresh();
+    },
+  });
+
+  const reopen = useAdminMutation({
+    mutationFn: (vars: { orderId: string }) =>
+      reopenFn({ data: { tenantId: tenantId!, orderId: vars.orderId, reason: "Correction at the till" } }),
+    successMessage: "Bill reopened",
+    onSuccess: refresh,
+  });
+
+  const showReceipt = useAdminMutation({
+    mutationFn: (vars: { orderId: string; reprint: boolean }) =>
+      receiptFn({ data: { tenantId: tenantId!, orderId: vars.orderId, reprint: vars.reprint } }),
+    silentSuccess: true,
+    onSuccess: (data: any) => setReceipt(data),
+  });
+
+  const items = (catalog.data?.items ?? []) as any[];
+  const categories = (catalog.data?.categories ?? []) as any[];
+  const filtered = useMemo(
+    () => (categoryId ? items.filter((i) => i.category_id === categoryId) : items),
+    [items, categoryId],
+  );
+
+  const serverItems = ((order.data as any)?.items ?? []) as any[];
+  const live = serverItems.filter((i) => i.status !== "voided");
+  const orderRow = (order.data as any)?.order;
+  const billTotal = Number(orderRow?.total ?? 0) + cart.reduce((s, l) => s + lineTotal(l), 0);
+  const stats = (board.data as any)?.stats;
+
+  if (!tenantId) {
+    return <EmptyState title="No restaurant workspace" description="You are not a member of a restaurant tenant yet." />;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Open bills" value={String(stats?.openBills ?? 0)} icon={Users} />
+        <StatCard label="Open value" value={money(stats?.openValue ?? 0, currency)} icon={CreditCard} />
+        <StatCard label="Revenue today" value={money(stats?.revenueToday ?? 0, currency)} icon={CreditCard} />
+        <StatCard label="Average check" value={money(stats?.averageCheck ?? 0, currency)} icon={ChefHat} />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_340px]">
+        {/* Floor */}
+        <SectionCard title="Floor" description="Tap a table to open or resume its bill.">
+          <div className="grid grid-cols-2 gap-2">
+            {((board.data as any)?.tables ?? []).map((t: any) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() =>
+                  t.order ? setOrderId(t.order.id) : openBill.mutate({ tableId: t.id, guestCount: t.seats ?? 2 })
+                }
+                className={`min-h-20 rounded-lg border p-3 text-left transition-colors hover:border-primary ${
+                  TABLE_TONE[t.status] ?? "border-border bg-card"
+                } ${orderId && t.order?.id === orderId ? "ring-2 ring-primary" : ""}`}
+              >
+                <span className="block text-sm font-semibold">{t.code}</span>
+                <span className="block text-xs text-muted-foreground">{t.zone ?? t.name}</span>
+                <span className="mt-1 block text-xs">
+                  {t.order ? money(Number(t.order.total ?? 0), currency) : `${t.seats} seats`}
+                </span>
+              </button>
+            ))}
+          </div>
+          <Button
+            variant="outline"
+            className="mt-3 min-h-11 w-full"
+            onClick={() => openBill.mutate({ guestCount: 1 })}
+            disabled={openBill.isPending}
+          >
+            Walk-in / bar tab
+          </Button>
+        </SectionCard>
+
+        {/* Catalogue */}
+        <SectionCard title="Menu" description="Tap an item to configure and stage it on the bill.">
+          <div className="mb-3 flex flex-wrap gap-2">
+            <Button variant={categoryId ? "outline" : "default"} className="min-h-10" onClick={() => setCategoryId(null)}>
+              All
+            </Button>
+            {categories.map((c) => (
+              <Button
+                key={c.id}
+                variant={categoryId === c.id ? "default" : "outline"}
+                className="min-h-10"
+                onClick={() => setCategoryId(c.id)}
+              >
+                {c.name}
+              </Button>
+            ))}
+          </div>
+          {filtered.length === 0 ? (
+            <EmptyState title="No items" description="Publish a menu to sell from this till." />
+          ) : (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {filtered.map((i) => (
+                <button
+                  key={i.id}
+                  type="button"
+                  disabled={!orderId || i.available === false}
+                  onClick={() => setPickerItem(i)}
+                  className="min-h-20 rounded-lg border bg-card p-3 text-left transition-colors hover:border-primary disabled:opacity-50"
+                >
+                  <span className="block text-sm font-medium">{i.name}</span>
+                  <span className="block text-xs text-muted-foreground">{money(Number(i.price ?? 0), currency)}</span>
+                  {(i.variants ?? []).length > 0 && (
+                    <Badge variant="secondary" className="mt-1">
+                      {i.variants.length} variants
+                    </Badge>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </SectionCard>
+
+        {/* Bill */}
+        <SectionCard
+          title={orderRow ? `Bill ${orderRow.order_number}` : "Bill"}
+          description={orderRow ? `${orderRow.status} · ${orderRow.payment_state}` : "Open a table to start."}
+        >
+          {!orderId ? (
+            <EmptyState title="No bill selected" description="Tap a table or start a walk-in tab." />
+          ) : (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                {live.map((i) => (
+                  <div key={i.id} className="flex items-start justify-between gap-2 rounded border bg-card p-2 text-sm">
+                    <span className="min-w-0">
+                      <span className="block font-medium">
+                        {Number(i.quantity)} × {i.description}
+                      </span>
+                      {(i.modifiers ?? []).length > 0 && (
+                        <span className="block text-xs text-muted-foreground">
+                          {(i.modifiers ?? []).map((m: any) => m.name).join(", ")}
+                        </span>
+                      )}
+                      <span className="block text-xs text-muted-foreground">
+                        {i.seat_number ? `Seat ${i.seat_number} · ` : ""}
+                        {i.status}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1">
+                      <span className="tabular-nums">{money(Number(i.line_total ?? 0), currency)}</span>
+                      {canVoid && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="size-8"
+                          onClick={() => {
+                            const reason = window.prompt("Reason for voiding this line?");
+                            if (reason && reason.trim().length >= 3) {
+                              voidLine.mutate({ orderItemId: i.id, reason: reason.trim() });
+                            }
+                          }}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      )}
+                    </span>
+                  </div>
+                ))}
+
+                {cart.map((l) => (
+                  <div key={l.key} className="flex items-start justify-between gap-2 rounded border border-dashed p-2 text-sm">
+                    <span className="min-w-0">
+                      <span className="block font-medium">
+                        {l.quantity} × {l.description}
+                      </span>
+                      {l.modifiers.length > 0 && (
+                        <span className="block text-xs text-muted-foreground">
+                          {l.modifiers.map((m) => m.name).join(", ")}
+                        </span>
+                      )}
+                      <span className="block text-xs text-muted-foreground">staged</span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1">
+                      <span className="tabular-nums">{money(lineTotal(l), currency)}</span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-8"
+                        onClick={() => setCart((prev) => prev.filter((c) => c.key !== l.key))}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between border-t pt-2 text-sm font-semibold">
+                <span>Total</span>
+                <span className="tabular-nums">{money(billTotal, currency)}</span>
+              </div>
+
+              <div className="grid gap-2">
+                <Button
+                  className="min-h-11"
+                  disabled={cart.length === 0 || sendLines.isPending}
+                  onClick={() => sendLines.mutate({ fire: true })}
+                >
+                  <Send className="size-4" /> Send to kitchen
+                </Button>
+                <Button
+                  variant="outline"
+                  className="min-h-11"
+                  disabled={cart.length === 0 || sendLines.isPending}
+                  onClick={() => sendLines.mutate({ fire: false })}
+                >
+                  Hold on bill
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="min-h-11"
+                  disabled={cart.length > 0 || !orderRow || Number(orderRow.total ?? 0) <= 0}
+                  onClick={() => setPayOpen(true)}
+                >
+                  <CreditCard className="size-4" /> Payment
+                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="ghost"
+                    className="min-h-11"
+                    onClick={() => {
+                      const code = window.prompt("Move to which table code? Leave blank to detach.");
+                      if (code === null) return;
+                      const match = ((board.data as any)?.tables ?? []).find(
+                        (t: any) => String(t.code).toLowerCase() === code.trim().toLowerCase(),
+                      );
+                      transfer.mutate({ tableId: match?.id ?? null });
+                    }}
+                  >
+                    Move table
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="min-h-11"
+                    onClick={() => showReceipt.mutate({ orderId: orderId, reprint: false })}
+                  >
+                    <Printer className="size-4" /> Receipt
+                  </Button>
+                </div>
+                {canReopen && orderRow?.status === "closed" && (
+                  <Button variant="outline" className="min-h-11" onClick={() => reopen.mutate({ orderId })}>
+                    <RotateCcw className="size-4" /> Reopen bill
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </SectionCard>
+      </div>
+
+      <PosItemDialog
+        item={pickerItem}
+        groups={(catalog.data?.modifierGroups ?? []) as any[]}
+        currency={currency}
+        seats={Number(orderRow?.guest_count ?? 0)}
+        onClose={() => setPickerItem(null)}
+        onAdd={(line) => setCart((prev) => [...prev, line])}
+      />
+
+      <PosPaymentDialog
+        open={payOpen}
+        currency={currency}
+        total={Number(orderRow?.total ?? 0)}
+        paid={Number(orderRow?.paid_total ?? 0)}
+        pending={pay.isPending}
+        onClose={() => setPayOpen(false)}
+        onPay={(input) => pay.mutate(input)}
+      />
+
+      <PosReceiptDialog
+        receipt={receipt}
+        onClose={() => setReceipt(null)}
+        onReprint={() => receipt && showReceipt.mutate({ orderId: receipt.order_id, reprint: true })}
+      />
+    </div>
+  );
+}
