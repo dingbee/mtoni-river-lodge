@@ -263,17 +263,25 @@ export async function insertLines(
         productId: pinned?.productId ?? null,
         menuItemId: l.menuItemId ?? null,
         orderType: ctx.orderType ?? "dine_in",
+        channel: ctx.orderType ?? "dine_in",
+        variantId: l.variantId ?? null,
         quantity: l.quantity,
       },
-      { unitPrice: l.unitPrice, currency: ctx.currency, lineDiscount: l.discount },
+      {
+        unitPrice: l.unitPrice,
+        currency: ctx.currency,
+        lineDiscount: l.discount,
+        modifiers: l.modifiers ?? [],
+      },
     );
-    // Modifiers are a net addition on top of the resolved price, taxed at the
-    // same rate as the line so the receipt still balances.
     const chosen = l.modifiers ?? [];
-    const modifierPerUnit = chosen.reduce((s, m) => s + Number(m.priceDelta ?? 0) * Number(m.quantity ?? 1), 0);
-    const modifierAmount = Number((modifierPerUnit * l.quantity).toFixed(4));
-    const rateFraction = quote.taxRate > 1 ? quote.taxRate / 100 : quote.taxRate;
-    const modifierTax = quote.taxInclusive ? 0 : Number((modifierAmount * rateFraction).toFixed(4));
+    // Modifiers are priced inside the engine so the receipt, the bill preview
+    // and the pricing trace can never disagree about the same number.
+    const modifierPerUnit = chosen.reduce(
+      (s, m) => s + Number(m.priceDelta ?? 0) * Number(m.quantity ?? 1),
+      0,
+    );
+    const modifierAmount = quote.modifierTotal;
     return {
       tenant_id: tenantId,
       order_id: orderId,
@@ -293,12 +301,14 @@ export async function insertLines(
       unit_price: Number((quote.unitPrice + modifierPerUnit).toFixed(4)),
       base_unit_price: quote.basePrice,
       discount: l.discount,
-      tax_amount: l.taxAmount > 0 ? l.taxAmount : Number((quote.taxTotal + modifierTax).toFixed(4)),
-      line_total: Number((quote.lineTotal + modifierAmount + modifierTax).toFixed(2)),
+      tax_amount: l.taxAmount > 0 ? l.taxAmount : quote.taxTotal,
+      line_total: quote.lineTotal,
       currency: quote.currency,
       exchange_rate: ctx.exchangeRate ?? 1,
       price_id: quote.priceId,
       price_source: quote.priceSource,
+      price_list_id: quote.priceListId,
+      channel: quote.channel,
       promotion_id: quote.promotionId,
       tax_rule_id: quote.taxRuleId,
       tax_rate: quote.taxRate,
