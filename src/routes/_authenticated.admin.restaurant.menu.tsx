@@ -272,7 +272,6 @@ function MenuPage() {
       </SectionCard>
 
       <MenuSheet
-
         open={menuSheetOpen}
         onOpenChange={setMenuSheetOpen}
         initial={editingMenu}
