@@ -118,10 +118,6 @@ export const restaurantKitchenModule = defineModule({
   status: "beta",
 });
 
-export const restaurantStockModule = defineModule({
-  id: "restaurant.stock.placeholder-anchor",
-} as never);
-
 export const restaurantBarModule = defineModule({
   id: "restaurant.bar",
   name: "Bar Operations",
@@ -135,7 +131,7 @@ export const restaurantBarModule = defineModule({
   status: "beta",
 });
 
-export const restaurantStockMovementsModule = defineModule({
+export const restaurantStockModule = defineModule({
   id: "restaurant.stock",
   name: "Stock Movements",
   description: "Consumption, wastage, transfers and adjustments",
