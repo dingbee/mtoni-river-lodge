@@ -60,6 +60,7 @@ export const RESTAURANT_CAPABILITIES = [
   "sales.void",
   "sales.reopen",
   "sales.discount",
+  "sales.room_charge",
   "kitchen.manage",
   "stock.manage",
   "profitability.manage",
@@ -226,6 +227,9 @@ const CAPABILITY_ROLES: Record<RestaurantCapability, readonly RestaurantRole[]> 
   "sales.void": ["owner", "general_manager", "restaurant_manager"],
   "sales.reopen": ["owner", "general_manager", "restaurant_manager"],
   "sales.discount": ["owner", "general_manager", "restaurant_manager"],
+  // Charging a guest room moves money outside the outlet: it stays with
+  // supervisors and the bar/floor staff trusted to identify a guest.
+  "sales.room_charge": ["owner", "general_manager", "restaurant_manager", "bartender", "accountant"],
   "kitchen.manage": ["owner", "general_manager", "restaurant_manager", "chef", "kitchen_manager", "bartender"],
   "stock.manage": [
     "owner",

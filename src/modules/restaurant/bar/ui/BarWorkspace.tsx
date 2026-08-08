@@ -79,13 +79,17 @@ export function BarWorkspace({ initialTab }: { initialTab?: string }) {
           <Link to="/admin/restaurant/bar/pos">Open bar tab / Bar POS</Link>
         </Button>
         <Button asChild variant="outline" className="min-h-11">
-          <Link to="/admin/restaurant/requisitions">Request stock</Link>
+          <Link to="/admin/restaurant/requisitions" search={{ status: undefined }}>
+            Request stock
+          </Link>
         </Button>
         <Button asChild variant="outline" className="min-h-11">
           <Link to="/admin/restaurant/stock">Record wastage</Link>
         </Button>
         <Button asChild variant="outline" className="min-h-11">
-          <Link to="/admin/restaurant/inventory-control">Stocktake &amp; receive</Link>
+          <Link to="/admin/restaurant/inventory-control" search={{ tab: undefined }}>
+            Stocktake &amp; receive
+          </Link>
         </Button>
         <Button variant="outline" className="min-h-11" onClick={() => setTab("variance")}>
           View variance

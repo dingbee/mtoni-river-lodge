@@ -7155,6 +7155,139 @@ export type Database = {
         }
         Relationships: []
       }
+      pms_folio_postings: {
+        Row: {
+          amount: number
+          booking_id: string
+          correlation_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string
+          failure_code: string | null
+          failure_message: string | null
+          folio_reference: string | null
+          guest_id: string | null
+          id: string
+          idempotency_key: string
+          metadata: Json
+          posted_at: string | null
+          posting_reference: string | null
+          requested_at: string
+          room_id: string | null
+          source_location_id: string | null
+          source_order_id: string | null
+          source_payment_id: string | null
+          source_property_id: string | null
+          source_system: string
+          source_tenant_id: string | null
+          status: string
+          unit_label: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          booking_id: string
+          correlation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          description?: string
+          failure_code?: string | null
+          failure_message?: string | null
+          folio_reference?: string | null
+          guest_id?: string | null
+          id?: string
+          idempotency_key: string
+          metadata?: Json
+          posted_at?: string | null
+          posting_reference?: string | null
+          requested_at?: string
+          room_id?: string | null
+          source_location_id?: string | null
+          source_order_id?: string | null
+          source_payment_id?: string | null
+          source_property_id?: string | null
+          source_system?: string
+          source_tenant_id?: string | null
+          status?: string
+          unit_label?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string
+          correlation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string
+          failure_code?: string | null
+          failure_message?: string | null
+          folio_reference?: string | null
+          guest_id?: string | null
+          id?: string
+          idempotency_key?: string
+          metadata?: Json
+          posted_at?: string | null
+          posting_reference?: string | null
+          requested_at?: string
+          room_id?: string | null
+          source_location_id?: string | null
+          source_order_id?: string | null
+          source_payment_id?: string | null
+          source_property_id?: string | null
+          source_system?: string
+          source_tenant_id?: string | null
+          status?: string
+          unit_label?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pms_folio_postings_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pms_folio_postings_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pms_folio_postings_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pms_folio_postings_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_metrics"
+            referencedColumns: ["guest_id"]
+          },
+          {
+            foreignKeyName: "pms_folio_postings_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pms_folio_postings_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_rules: {
         Row: {
           active: boolean
@@ -15683,6 +15816,17 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      pms_post_folio_charge: {
+        Args: {
+          _amount: number
+          _booking_id: string
+          _currency: string
+          _description: string
+          _idempotency_key: string
+          _source?: Json
+        }
+        Returns: Json
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }

@@ -36,6 +36,7 @@ import type { BillSplitMode } from "../bill.contracts";
 import { PosItemDialog } from "./PosItemDialog";
 import { PosBillDialog } from "./PosBillDialog";
 import { PosPaymentDialog } from "./PosPaymentDialog";
+import { PosRoomChargeDialog } from "./PosRoomChargeDialog";
 import { PosReceiptDialog } from "./PosReceiptDialog";
 import { lineTotal, money, type CartLine } from "./pos-types";
 import { deriveLifecycle, tableTone, TABLE_TONE_CLASS, TABLE_TONE_LABEL, type TableTone } from "./lifecycle";
@@ -65,6 +66,7 @@ export function PosWorkspace({ lens = "restaurant" }: { lens?: PosLens } = {}) {
   const platformAdmin = ws.data?.platformAdmin ?? false;
   const canVoid = hasRestaurantCapability(roles, "sales.void", platformAdmin);
   const canReopen = hasRestaurantCapability(roles, "sales.reopen", platformAdmin);
+  const canRoomCharge = hasRestaurantCapability(roles, "sales.room_charge", platformAdmin);
   const currency = ws.data?.properties?.[0]?.currency ?? "TZS";
   const qc = useQueryClient();
 
@@ -73,6 +75,7 @@ export function PosWorkspace({ lens = "restaurant" }: { lens?: PosLens } = {}) {
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [pickerItem, setPickerItem] = useState<any | null>(null);
   const [payOpen, setPayOpen] = useState(false);
+  const [roomChargeAmount, setRoomChargeAmount] = useState<number | null>(null);
   const [billOpen, setBillOpen] = useState(false);
   const [splitMode, setSplitMode] = useState<BillSplitMode>("none");
   const [ways, setWays] = useState(2);
@@ -688,6 +691,7 @@ export function PosWorkspace({ lens = "restaurant" }: { lens?: PosLens } = {}) {
         groups={(catalog.data?.modifierGroups ?? []) as any[]}
         currency={currency}
         seats={Number(orderRow?.guest_count ?? 0)}
+        tenantId={tenantId}
         onClose={() => setPickerItem(null)}
         onAdd={(line) => setCart((prev) => [...prev, line])}
       />
@@ -699,11 +703,32 @@ export function PosWorkspace({ lens = "restaurant" }: { lens?: PosLens } = {}) {
         paid={Number(orderRow?.paid_total ?? 0)}
         pending={pay.isPending}
         suggestedAmount={shareAmount}
+        canRoomCharge={canRoomCharge}
+        onRoomCharge={(value) => {
+          setPayOpen(false);
+          setRoomChargeAmount(value);
+        }}
         onClose={() => {
           setPayOpen(false);
           setShareAmount(null);
         }}
         onPay={(input) => pay.mutate(input)}
+      />
+
+      <PosRoomChargeDialog
+        open={roomChargeAmount != null && Boolean(orderId)}
+        tenantId={tenantId}
+        orderId={orderId}
+        amount={roomChargeAmount ?? 0}
+        currency={currency}
+        onClose={() => setRoomChargeAmount(null)}
+        onPosted={(result) => {
+          setRoomChargeAmount(null);
+          setShareAmount(null);
+          setBillOpen(false);
+          if (result?.receipt) setReceipt(result.receipt);
+          refresh();
+        }}
       />
 
       <PosBillDialog
