@@ -16,9 +16,11 @@ export const SERVICE_STAGES = [
   "order",
   "production",
   "service",
-  "bill",
+  "bill_requested",
+  "bill_presented",
   "payment",
   "receipt",
+  "delivered",
   "closed",
 ] as const;
 export type ServiceStage = (typeof SERVICE_STAGES)[number];
@@ -28,9 +30,11 @@ export const STAGE_LABEL: Record<ServiceStage, string> = {
   order: "Order",
   production: "Production",
   service: "Service",
-  bill: "Bill",
+  bill_requested: "Bill asked",
+  bill_presented: "Bill given",
   payment: "Payment",
   receipt: "Receipt",
+  delivered: "Delivered",
   closed: "Closed",
 };
 
@@ -41,6 +45,8 @@ export type LifecycleInput = {
   payments?: any[];
   /** Lines staged at the till but not yet accepted by the server. */
   stagedCount?: number;
+  /** The issued receipt row, when one exists. */
+  receipt?: any | null;
 };
 
 export type NextAction =
@@ -48,9 +54,13 @@ export type NextAction =
   | "send-to-kitchen"
   | "await-kitchen"
   | "mark-served"
+  | "request-bill"
+  | "present-bill"
   | "take-payment"
   | "settle-balance"
   | "print-receipt"
+  | "deliver-receipt"
+  | "release-table"
   | "none";
 
 export const NEXT_ACTION_LABEL: Record<NextAction, string> = {
@@ -58,9 +68,13 @@ export const NEXT_ACTION_LABEL: Record<NextAction, string> = {
   "send-to-kitchen": "Send to kitchen",
   "await-kitchen": "Waiting on kitchen",
   "mark-served": "Mark served",
+  "request-bill": "Request bill",
+  "present-bill": "Present bill",
   "take-payment": "Take payment",
   "settle-balance": "Settle balance",
   "print-receipt": "Print receipt",
+  "deliver-receipt": "Give receipt to guest",
+  "release-table": "Release table",
   none: "Nothing pending",
 };
 
@@ -80,6 +94,11 @@ export type LifecycleState = {
   settled: boolean;
   delayed: boolean;
   blocked: boolean;
+  /** Settlement facts, so the floor can see how long a guest has waited. */
+  billRequestedAt: string | null;
+  billPresentedAt: string | null;
+  receiptDelivered: boolean;
+  tableAttached: boolean;
 };
 
 const SETTLED_PAYMENT_STATES = ["paid", "comped", "room_charged"];
@@ -91,6 +110,7 @@ export function deriveLifecycle({
   tickets = [],
   payments = [],
   stagedCount = 0,
+  receipt = null,
 }: LifecycleInput): LifecycleState {
   const live = items.filter((i) => !VOID_STATES.includes(String(i?.status)));
   const unsent = live.filter((i) => String(i.status) === "ordered").length;
@@ -104,15 +124,29 @@ export function deriveLifecycle({
   const balance = Number((total - paid).toFixed(2));
   const settled = SETTLED_PAYMENT_STATES.includes(String(order?.payment_state));
   const status = String(order?.status ?? "open");
+  const billRequestedAt = (order?.bill_requested_at as string | null) ?? null;
+  const billPresentedAt = (order?.bill_presented_at as string | null) ?? null;
+  const receiptDelivered = Boolean(receipt?.delivered_at);
+  const tableAttached = Boolean(order?.table_id);
 
   let stage: ServiceStage;
   let nextAction: NextAction;
   let reason: string;
 
   if (status === "closed") {
-    stage = "closed";
-    nextAction = "print-receipt";
-    reason = "Bill settled and closed. A receipt can be reprinted for the guest.";
+    if (!receiptDelivered) {
+      stage = "receipt";
+      nextAction = "deliver-receipt";
+      reason = "Settled and closed. Give the guest their receipt, then record how it was delivered.";
+    } else if (tableAttached) {
+      stage = "delivered";
+      nextAction = "release-table";
+      reason = "Receipt is with the guest. Release the table once it has been cleared.";
+    } else {
+      stage = "closed";
+      nextAction = "none";
+      reason = "Bill settled, receipt delivered. Nothing further is pending.";
+    }
   } else if (VOID_STATES.includes(status)) {
     stage = "closed";
     nextAction = "none";
@@ -124,7 +158,7 @@ export function deriveLifecycle({
   } else if (paid > 0 && balance > 0) {
     stage = "payment";
     nextAction = "settle-balance";
-    reason = "Part-paid. A balance is still outstanding on this bill.";
+    reason = `Part-paid — ${balance.toFixed(2)} still outstanding. The bill stays open until it clears.`;
   } else if (live.length === 0 && stagedCount === 0) {
     stage = "table";
     nextAction = "add-items";
@@ -147,14 +181,21 @@ export function deriveLifecycle({
     stage = "service";
     nextAction = "mark-served";
     reason = `${readyTickets.length} ticket(s) ready for the pass.`;
-  } else if (served > 0 || status === "served") {
-    stage = "bill";
+  } else if (billPresentedAt) {
+    stage = "bill_presented";
     nextAction = "take-payment";
-    reason = "Everything has been served. Present the bill and take payment.";
+    reason = "The bill is with the guest. Take payment when they are ready.";
+  } else if (billRequestedAt) {
+    stage = "bill_requested";
+    nextAction = "present-bill";
+    reason = "The guest has asked for the bill. Print it and take it to the table.";
   } else {
-    stage = "bill";
-    nextAction = "take-payment";
-    reason = "All lines are through production. Present the bill.";
+    stage = "service";
+    nextAction = "request-bill";
+    reason =
+      served > 0 || status === "served"
+        ? "Everything has been served. Start the bill when the guest asks."
+        : "All lines are through production. Start the bill when the guest asks.";
   }
 
   return {
@@ -172,6 +213,10 @@ export function deriveLifecycle({
     settled,
     delayed,
     blocked: nextAction === "await-kitchen",
+    billRequestedAt,
+    billPresentedAt,
+    receiptDelivered,
+    tableAttached,
   };
 }
 
@@ -214,7 +259,8 @@ export function tableTone(table: any, life: LifecycleState | null): TableTone {
       return "production";
     case "service":
       return "ready";
-    case "bill":
+    case "bill_requested":
+    case "bill_presented":
     case "payment":
     case "receipt":
       return "billing";
@@ -226,7 +272,13 @@ export function tableTone(table: any, life: LifecycleState | null): TableTone {
 export type TimelineEntry = { at: string; label: string; detail?: string };
 
 /** Chronological service story assembled from timestamps already recorded. */
-export function orderTimeline({ order, items = [], tickets = [], payments = [] }: LifecycleInput): TimelineEntry[] {
+export function orderTimeline({
+  order,
+  items = [],
+  tickets = [],
+  payments = [],
+  receipt = null,
+}: LifecycleInput): TimelineEntry[] {
   const out: TimelineEntry[] = [];
   const push = (at: unknown, label: string, detail?: string) => {
     if (at) out.push({ at: String(at), label, detail });
@@ -250,10 +302,19 @@ export function orderTimeline({ order, items = [], tickets = [], payments = [] }
     push(t?.served_at, `Ticket ${t?.ticket_number ?? ""} served`.trim());
   }
 
+  push(order?.bill_requested_at, "Bill requested", "Guest asked for the bill");
+  push(order?.bill_presented_at, "Bill presented", "Bill taken to the table");
+
   for (const p of payments) {
-    push(p?.captured_at, `Payment ${p?.method ?? ""}`.trim(), `${p?.state ?? ""} ${p?.amount ?? ""}`.trim());
+    push(
+      p?.captured_at,
+      Number(p?.amount ?? 0) < 0 ? `Refund ${p?.method ?? ""}`.trim() : `Payment ${p?.method ?? ""}`.trim(),
+      `${p?.state ?? ""} ${p?.amount ?? ""} ${p?.refund_reason ?? ""}`.trim(),
+    );
   }
   push(order?.closed_at, "Bill closed");
+  push(receipt?.issued_at, `Receipt ${receipt?.receipt_number ?? ""} issued`.trim());
+  push(receipt?.delivered_at, "Receipt delivered", receipt?.delivery_channel ?? undefined);
   push(order?.reopened_at, "Bill reopened", "Supervisor correction");
 
   return out.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());

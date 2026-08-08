@@ -2,7 +2,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ChefHat, CreditCard, Printer, RotateCcw, Send, Trash2, Users } from "lucide-react";
+import { ChefHat, CreditCard, DoorOpen, Printer, ReceiptText, RotateCcw, Send, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SectionCard } from "@/components/os/SectionCard";
@@ -24,7 +24,17 @@ import {
   transferPosOrderFn,
   voidPosLineFn,
 } from "../pos.functions";
+import {
+  deliverRestaurantReceiptFn,
+  getRestaurantBillFn,
+  presentRestaurantBillFn,
+  refundRestaurantPaymentFn,
+  releaseRestaurantTableFn,
+  requestRestaurantBillFn,
+} from "../bill.functions";
+import type { BillSplitMode } from "../bill.contracts";
 import { PosItemDialog } from "./PosItemDialog";
+import { PosBillDialog } from "./PosBillDialog";
 import { PosPaymentDialog } from "./PosPaymentDialog";
 import { PosReceiptDialog } from "./PosReceiptDialog";
 import { lineTotal, money, type CartLine } from "./pos-types";
@@ -58,9 +68,14 @@ export function PosWorkspace() {
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [pickerItem, setPickerItem] = useState<any | null>(null);
   const [payOpen, setPayOpen] = useState(false);
+  const [billOpen, setBillOpen] = useState(false);
+  const [splitMode, setSplitMode] = useState<BillSplitMode>("none");
+  const [ways, setWays] = useState(2);
+  const [shareAmount, setShareAmount] = useState<number | null>(null);
   const [receipt, setReceipt] = useState<any | null>(null);
   const openKey = useRef<string>(newRequestId());
   const payKey = useRef<string>(newRequestId());
+  const refundKey = useRef<string>(newRequestId());
 
   const boardFn = useServerFn(posBoardFn);
   const catalogFn = useServerFn(posCatalogFn);
@@ -73,6 +88,12 @@ export function PosWorkspace() {
   const reopenFn = useServerFn(reopenPosOrderFn);
   const receiptFn = useServerFn(posReceiptFn);
   const fireFn = useServerFn(fireRestaurantOrderFn);
+  const billFn = useServerFn(getRestaurantBillFn);
+  const requestBillFn = useServerFn(requestRestaurantBillFn);
+  const presentBillFn = useServerFn(presentRestaurantBillFn);
+  const releaseTableFn = useServerFn(releaseRestaurantTableFn);
+  const deliverFn = useServerFn(deliverRestaurantReceiptFn);
+  const refundFn = useServerFn(refundRestaurantPaymentFn);
 
   const board = useQuery({
     queryKey: ["restaurant.pos.board", tenantId],
@@ -92,10 +113,17 @@ export function PosWorkspace() {
     enabled: Boolean(tenantId && orderId),
     refetchInterval: 20_000,
   });
+  const bill = useQuery({
+    queryKey: ["restaurant.pos.bill", tenantId, orderId, splitMode, ways],
+    queryFn: () => billFn({ data: { tenantId: tenantId!, orderId: orderId!, splitMode, ways } }),
+    enabled: Boolean(tenantId && orderId),
+    refetchInterval: 30_000,
+  });
 
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ["restaurant.pos.board"] });
     void qc.invalidateQueries({ queryKey: ["restaurant.pos.order"] });
+    void qc.invalidateQueries({ queryKey: ["restaurant.pos.bill"] });
     void qc.invalidateQueries({ queryKey: ["restaurant.tickets"] });
     void qc.invalidateQueries({ queryKey: ["restaurant.orders"] });
   };
@@ -187,11 +215,70 @@ export function PosWorkspace() {
     successMessage: "Payment recorded",
     onSuccess: (data: any) => {
       payKey.current = newRequestId();
+      setShareAmount(null);
       if (data?.receipt) {
         setReceipt(data.receipt);
         setPayOpen(false);
-        setOrderId(null);
+        setBillOpen(false);
       }
+      refresh();
+    },
+  });
+
+  const requestBill = useAdminMutation({
+    mutationFn: () => requestBillFn({ data: { tenantId: tenantId!, orderId: orderId! } }),
+    successMessage: "Bill started",
+    onSuccess: () => {
+      setBillOpen(true);
+      refresh();
+    },
+  });
+
+  const presentBill = useAdminMutation({
+    mutationFn: () => presentBillFn({ data: { tenantId: tenantId!, orderId: orderId! } }),
+    successMessage: "Bill presented to the guest",
+    onSuccess: () => {
+      if (typeof window !== "undefined") window.print();
+      refresh();
+    },
+  });
+
+  const releaseTable = useAdminMutation({
+    mutationFn: (vars: { orderId: string }) =>
+      releaseTableFn({ data: { tenantId: tenantId!, orderId: vars.orderId } }),
+    successMessage: "Table released",
+    onSuccess: () => {
+      setOrderId(null);
+      setReceipt(null);
+      refresh();
+    },
+  });
+
+  const deliverReceipt = useAdminMutation({
+    mutationFn: (vars: { channel: any; to?: string }) =>
+      deliverFn({ data: { tenantId: tenantId!, orderId: receipt?.order_id ?? orderId!, ...vars } }),
+    successMessage: "Receipt delivery recorded",
+    onSuccess: (data: any) => {
+      setReceipt(data);
+      refresh();
+    },
+  });
+
+  const refund = useAdminMutation({
+    mutationFn: (vars: { paymentId: string; amount: number; reason: string }) =>
+      refundFn({
+        data: {
+          tenantId: tenantId!,
+          orderId: orderId!,
+          paymentId: vars.paymentId,
+          amount: vars.amount,
+          reason: vars.reason,
+          clientRequestId: refundKey.current,
+        },
+      }),
+    successMessage: "Refund recorded",
+    onSuccess: () => {
+      refundKey.current = newRequestId();
       refresh();
     },
   });
@@ -234,9 +321,10 @@ export function PosWorkspace() {
             tickets: orderTickets,
             payments: orderPayments,
             stagedCount: cart.length,
+            receipt: (bill.data as any)?.receipt ?? null,
           })
         : null,
-    [orderRow, serverItems, orderTickets, orderPayments, cart.length],
+    [orderRow, serverItems, orderTickets, orderPayments, cart.length, bill.data],
   );
 
   /** One primary action per state — the till never asks "what now?". */
@@ -246,13 +334,26 @@ export function PosWorkspace() {
       case "send-to-kitchen":
         sendLines.mutate({ fire: true });
         break;
+      case "request-bill":
+        requestBill.mutate(undefined as never);
+        break;
+      case "present-bill":
+        setBillOpen(true);
+        break;
       case "mark-served":
       case "take-payment":
       case "settle-balance":
-        setPayOpen(true);
+        setBillOpen(true);
         break;
       case "print-receipt":
         showReceipt.mutate({ orderId, reprint: false });
+        break;
+      case "deliver-receipt":
+        if ((bill.data as any)?.receipt) setReceipt((bill.data as any).receipt);
+        else showReceipt.mutate({ orderId, reprint: false });
+        break;
+      case "release-table":
+        releaseTable.mutate({ orderId });
         break;
       default:
         break;
@@ -382,6 +483,8 @@ export function PosWorkspace() {
                     {life.ready > 0 && <Badge>{life.ready} ready</Badge>}
                     {life.balance > 0 && <Badge variant="outline">Balance {money(life.balance, currency)}</Badge>}
                     {life.delayed && <Badge variant="destructive">Delayed</Badge>}
+                    {life.billRequestedAt && !life.billPresentedAt && <Badge variant="secondary">Bill asked for</Badge>}
+                    {life.receiptDelivered && <Badge variant="secondary">Receipt delivered</Badge>}
                   </div>
                   <Button
                     className="min-h-11 w-full"
@@ -483,10 +586,15 @@ export function PosWorkspace() {
                   variant="secondary"
                   className="min-h-11"
                   disabled={cart.length > 0 || !orderRow || Number(orderRow.total ?? 0) <= 0}
-                  onClick={() => setPayOpen(true)}
+                  onClick={() => setBillOpen(true)}
                 >
-                  <CreditCard className="size-4" /> Payment
+                  <ReceiptText className="size-4" /> Bill &amp; payment
                 </Button>
+                {orderRow?.status === "closed" && orderRow?.table_id && (
+                  <Button variant="outline" className="min-h-11" onClick={() => releaseTable.mutate({ orderId })}>
+                    <DoorOpen className="size-4" /> Release table
+                  </Button>
+                )}
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     variant="ghost"
@@ -515,12 +623,42 @@ export function PosWorkspace() {
                     <RotateCcw className="size-4" /> Reopen bill
                   </Button>
                 )}
+                {canVoid && orderPayments.some((p: any) => Number(p.amount ?? 0) > 0 && p.state !== "refunded") && (
+                  <Button
+                    variant="ghost"
+                    className="min-h-11 text-destructive"
+                    onClick={() => {
+                      const target = orderPayments.find(
+                        (p: any) => Number(p.amount ?? 0) > 0 && p.state !== "refunded",
+                      );
+                      if (!target) return;
+                      const reason = window.prompt(
+                        `Refund ${money(Number(target.amount), currency)} taken by ${target.method}. Reason?`,
+                      );
+                      if (reason && reason.trim().length >= 3) {
+                        refund.mutate({
+                          paymentId: target.id,
+                          amount: Number(target.amount),
+                          reason: reason.trim(),
+                        });
+                      }
+                    }}
+                  >
+                    <CreditCard className="size-4" /> Refund a payment
+                  </Button>
+                )}
               </div>
 
               <details className="rounded-lg border bg-card p-2">
                 <summary className="cursor-pointer text-xs font-medium">Service timeline</summary>
                 <div className="mt-2">
-                  <OrderTimeline order={orderRow} items={serverItems} tickets={orderTickets} payments={orderPayments} />
+                  <OrderTimeline
+                    order={orderRow}
+                    items={serverItems}
+                    tickets={orderTickets}
+                    payments={orderPayments}
+                    receipt={(bill.data as any)?.receipt ?? null}
+                  />
                 </div>
               </details>
             </div>
@@ -543,14 +681,39 @@ export function PosWorkspace() {
         total={Number(orderRow?.total ?? 0)}
         paid={Number(orderRow?.paid_total ?? 0)}
         pending={pay.isPending}
-        onClose={() => setPayOpen(false)}
+        suggestedAmount={shareAmount}
+        onClose={() => {
+          setPayOpen(false);
+          setShareAmount(null);
+        }}
         onPay={(input) => pay.mutate(input)}
+      />
+
+      <PosBillDialog
+        open={billOpen && Boolean(orderId)}
+        bill={bill.data as any}
+        loading={bill.isLoading}
+        currency={currency}
+        splitMode={splitMode}
+        ways={ways}
+        presenting={presentBill.isPending}
+        onSplitMode={setSplitMode}
+        onWays={setWays}
+        onClose={() => setBillOpen(false)}
+        onPresent={() => presentBill.mutate(undefined as never)}
+        onPayShare={(amount) => {
+          setShareAmount(amount);
+          setBillOpen(false);
+          setPayOpen(true);
+        }}
       />
 
       <PosReceiptDialog
         receipt={receipt}
         onClose={() => setReceipt(null)}
         onReprint={() => receipt && showReceipt.mutate({ orderId: receipt.order_id, reprint: true })}
+        delivering={deliverReceipt.isPending}
+        onDeliver={(input) => deliverReceipt.mutate(input)}
       />
     </div>
   );

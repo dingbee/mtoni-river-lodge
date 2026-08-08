@@ -123,6 +123,7 @@ import { Route as AuthenticatedAdminRestaurantStockRouteImport } from './routes/
 import { Route as AuthenticatedAdminRestaurantSetupRouteImport } from './routes/_authenticated.admin.restaurant.setup'
 import { Route as AuthenticatedAdminRestaurantSettingsRouteImport } from './routes/_authenticated.admin.restaurant.settings'
 import { Route as AuthenticatedAdminRestaurantRequisitionsRouteImport } from './routes/_authenticated.admin.restaurant.requisitions'
+import { Route as AuthenticatedAdminRestaurantReceiptsRouteImport } from './routes/_authenticated.admin.restaurant.receipts'
 import { Route as AuthenticatedAdminRestaurantPurchasingRouteImport } from './routes/_authenticated.admin.restaurant.purchasing'
 import { Route as AuthenticatedAdminRestaurantProfitabilityRouteImport } from './routes/_authenticated.admin.restaurant.profitability'
 import { Route as AuthenticatedAdminRestaurantProductsRouteImport } from './routes/_authenticated.admin.restaurant.products'
@@ -884,6 +885,12 @@ const AuthenticatedAdminRestaurantRequisitionsRoute =
   AuthenticatedAdminRestaurantRequisitionsRouteImport.update({
     id: '/requisitions',
     path: '/requisitions',
+    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
+  } as any)
+const AuthenticatedAdminRestaurantReceiptsRoute =
+  AuthenticatedAdminRestaurantReceiptsRouteImport.update({
+    id: '/receipts',
+    path: '/receipts',
     getParentRoute: () => AuthenticatedAdminRestaurantRoute,
   } as any)
 const AuthenticatedAdminRestaurantPurchasingRoute =
@@ -1905,6 +1912,7 @@ export interface FileRoutesByFullPath {
   '/admin/restaurant/products': typeof AuthenticatedAdminRestaurantProductsRoute
   '/admin/restaurant/profitability': typeof AuthenticatedAdminRestaurantProfitabilityRoute
   '/admin/restaurant/purchasing': typeof AuthenticatedAdminRestaurantPurchasingRoute
+  '/admin/restaurant/receipts': typeof AuthenticatedAdminRestaurantReceiptsRoute
   '/admin/restaurant/requisitions': typeof AuthenticatedAdminRestaurantRequisitionsRoute
   '/admin/restaurant/settings': typeof AuthenticatedAdminRestaurantSettingsRoute
   '/admin/restaurant/setup': typeof AuthenticatedAdminRestaurantSetupRoute
@@ -2148,6 +2156,7 @@ export interface FileRoutesByTo {
   '/admin/restaurant/products': typeof AuthenticatedAdminRestaurantProductsRoute
   '/admin/restaurant/profitability': typeof AuthenticatedAdminRestaurantProfitabilityRoute
   '/admin/restaurant/purchasing': typeof AuthenticatedAdminRestaurantPurchasingRoute
+  '/admin/restaurant/receipts': typeof AuthenticatedAdminRestaurantReceiptsRoute
   '/admin/restaurant/requisitions': typeof AuthenticatedAdminRestaurantRequisitionsRoute
   '/admin/restaurant/settings': typeof AuthenticatedAdminRestaurantSettingsRoute
   '/admin/restaurant/setup': typeof AuthenticatedAdminRestaurantSetupRoute
@@ -2407,6 +2416,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/restaurant/products': typeof AuthenticatedAdminRestaurantProductsRoute
   '/_authenticated/admin/restaurant/profitability': typeof AuthenticatedAdminRestaurantProfitabilityRoute
   '/_authenticated/admin/restaurant/purchasing': typeof AuthenticatedAdminRestaurantPurchasingRoute
+  '/_authenticated/admin/restaurant/receipts': typeof AuthenticatedAdminRestaurantReceiptsRoute
   '/_authenticated/admin/restaurant/requisitions': typeof AuthenticatedAdminRestaurantRequisitionsRoute
   '/_authenticated/admin/restaurant/settings': typeof AuthenticatedAdminRestaurantSettingsRoute
   '/_authenticated/admin/restaurant/setup': typeof AuthenticatedAdminRestaurantSetupRoute
@@ -2666,6 +2676,7 @@ export interface FileRouteTypes {
     | '/admin/restaurant/products'
     | '/admin/restaurant/profitability'
     | '/admin/restaurant/purchasing'
+    | '/admin/restaurant/receipts'
     | '/admin/restaurant/requisitions'
     | '/admin/restaurant/settings'
     | '/admin/restaurant/setup'
@@ -2909,6 +2920,7 @@ export interface FileRouteTypes {
     | '/admin/restaurant/products'
     | '/admin/restaurant/profitability'
     | '/admin/restaurant/purchasing'
+    | '/admin/restaurant/receipts'
     | '/admin/restaurant/requisitions'
     | '/admin/restaurant/settings'
     | '/admin/restaurant/setup'
@@ -3167,6 +3179,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/restaurant/products'
     | '/_authenticated/admin/restaurant/profitability'
     | '/_authenticated/admin/restaurant/purchasing'
+    | '/_authenticated/admin/restaurant/receipts'
     | '/_authenticated/admin/restaurant/requisitions'
     | '/_authenticated/admin/restaurant/settings'
     | '/_authenticated/admin/restaurant/setup'
@@ -4127,6 +4140,13 @@ declare module '@tanstack/react-router' {
       path: '/requisitions'
       fullPath: '/admin/restaurant/requisitions'
       preLoaderRoute: typeof AuthenticatedAdminRestaurantRequisitionsRouteImport
+      parentRoute: typeof AuthenticatedAdminRestaurantRoute
+    }
+    '/_authenticated/admin/restaurant/receipts': {
+      id: '/_authenticated/admin/restaurant/receipts'
+      path: '/receipts'
+      fullPath: '/admin/restaurant/receipts'
+      preLoaderRoute: typeof AuthenticatedAdminRestaurantReceiptsRouteImport
       parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/purchasing': {
@@ -5591,6 +5611,7 @@ interface AuthenticatedAdminRestaurantRouteChildren {
   AuthenticatedAdminRestaurantProductsRoute: typeof AuthenticatedAdminRestaurantProductsRoute
   AuthenticatedAdminRestaurantProfitabilityRoute: typeof AuthenticatedAdminRestaurantProfitabilityRoute
   AuthenticatedAdminRestaurantPurchasingRoute: typeof AuthenticatedAdminRestaurantPurchasingRoute
+  AuthenticatedAdminRestaurantReceiptsRoute: typeof AuthenticatedAdminRestaurantReceiptsRoute
   AuthenticatedAdminRestaurantRequisitionsRoute: typeof AuthenticatedAdminRestaurantRequisitionsRoute
   AuthenticatedAdminRestaurantSettingsRoute: typeof AuthenticatedAdminRestaurantSettingsRoute
   AuthenticatedAdminRestaurantSetupRoute: typeof AuthenticatedAdminRestaurantSetupRoute
@@ -5631,6 +5652,8 @@ const AuthenticatedAdminRestaurantRouteChildren: AuthenticatedAdminRestaurantRou
       AuthenticatedAdminRestaurantProfitabilityRoute,
     AuthenticatedAdminRestaurantPurchasingRoute:
       AuthenticatedAdminRestaurantPurchasingRoute,
+    AuthenticatedAdminRestaurantReceiptsRoute:
+      AuthenticatedAdminRestaurantReceiptsRoute,
     AuthenticatedAdminRestaurantRequisitionsRoute:
       AuthenticatedAdminRestaurantRequisitionsRoute,
     AuthenticatedAdminRestaurantSettingsRoute:
