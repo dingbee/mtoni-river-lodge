@@ -154,6 +154,8 @@ function PricesTab({ tenantId }: { tenantId: string }) {
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [scope, setScope] = useState<"tenant" | "property" | "location">("tenant");
+  const [priceChannel, setPriceChannel] = useState("");
+  const [priceListId, setPriceListId] = useState("");
   const [taxInclusive, setTaxInclusive] = useState(false);
   const [effectiveFrom, setEffectiveFrom] = useState("");
   const [reason, setReason] = useState("");
@@ -171,6 +173,8 @@ function PricesTab({ tenantId }: { tenantId: string }) {
           tenantId,
           menuItemId: menuItemId || undefined,
           scope,
+          channel: priceChannel ? (priceChannel as never) : null,
+          priceListId: priceListId || null,
           currency,
           amount: Number(amount),
           taxInclusive,
@@ -269,6 +273,28 @@ function PricesTab({ tenantId }: { tenantId: string }) {
               type="datetime-local"
               value={effectiveFrom}
               onChange={(e) => setEffectiveFrom(e.target.value)}
+            />
+          </Field>
+          <Field label="Channel">
+            <select
+              className="h-11 w-full rounded border border-border bg-background px-3 text-sm"
+              value={priceChannel}
+              onChange={(e) => setPriceChannel(e.target.value)}
+            >
+              <option value="">Every channel</option>
+              {SALES_CHANNELS.map((c) => (
+                <option key={c} value={c}>
+                  {c.replace(/_/g, " ")}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Price list (optional)">
+            <Input
+              className="h-11"
+              value={priceListId}
+              onChange={(e) => setPriceListId(e.target.value)}
+              placeholder="price list uuid"
             />
           </Field>
           <Field label="Change reason">
