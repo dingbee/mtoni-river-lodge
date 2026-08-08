@@ -516,6 +516,13 @@ export function PosWorkspace() {
                   </Button>
                 )}
               </div>
+
+              <details className="rounded-lg border bg-card p-2">
+                <summary className="cursor-pointer text-xs font-medium">Service timeline</summary>
+                <div className="mt-2">
+                  <OrderTimeline order={orderRow} items={serverItems} tickets={orderTickets} payments={orderPayments} />
+                </div>
+              </details>
             </div>
           )}
         </SectionCard>
