@@ -15,7 +15,7 @@ import { SearchSelect } from "@/modules/restaurant/ui/forms/SearchSelect";
 import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { listRestaurantUnitsFn } from "@/modules/restaurant/inventory/inventory.functions";
 import { saveBarPourConfigFn } from "../bar.functions";
-import { pourMaths } from "../pour";
+import { pourCost, pourMaths, poursAvailable } from "../pour";
 import type { BarBeverage } from "../contracts";
 
 export function PourConfigSheet({
@@ -56,13 +56,12 @@ export function PourConfigSheet({
 
   const preview = React.useMemo(() => {
     if (!beverage || !servingSize) return null;
-    return pourMaths({
-      servingSize,
-      servingUnit,
-      stockUnit,
-      averageCost: beverage.averageCost,
-      onHand: beverage.onHand,
-    });
+    const maths = pourMaths({ servingSize, servingUnit, stockUnit });
+    return {
+      ...maths,
+      pourCost: pourCost(beverage.averageCost, maths),
+      poursAvailable: poursAvailable(beverage.onHand, maths),
+    };
   }, [beverage, servingSize, servingUnit, stockUnit]);
 
   const save = useAdminMutation({
@@ -120,8 +119,8 @@ export function PourConfigSheet({
 
         {preview ? (
           <div className="rounded-lg border p-3 text-sm">
-            {preview.issue ? (
-              <p className="text-[color:var(--os-warn)]">{preview.issue}</p>
+            {!preview.exact ? (
+              <p className="text-[color:var(--os-warn)]">{preview.reason}</p>
             ) : (
               <ul className="space-y-1 text-muted-foreground">
                 <li>
