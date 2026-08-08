@@ -818,21 +818,45 @@ function BatchesTab({ tenantId }: { tenantId: string }) {
     queryFn: () => fn({ data: { tenantId, limit: 200 } }),
   });
   const rows = (q.data ?? []) as any[];
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editing, setEditing] = useState<any | null>(null);
 
   return (
-    <SectionCard title="Batches & expiry" description="Lot tracking is opt-in per item. Expiring stock is a cost that has not been recognised yet.">
+    <SectionCard
+      title="Batches & expiry"
+      description="Lot tracking is opt-in per item. Expiring stock is a cost that has not been recognised yet."
+      actions={
+        <Button
+          size="sm"
+          className="h-10"
+          onClick={() => {
+            setEditing(null);
+            setSheetOpen(true);
+          }}
+        >
+          Record batch
+        </Button>
+      }
+    >
       {rows.length === 0 ? (
         <EmptyState title="No tracked batches" description="Enable batch tracking on an item and record lots at receiving." />
       ) : (
         <ul className="divide-y text-sm">
           {rows.map((b) => (
             <Row key={b.id}>
-              <span className="min-w-0">
+              <button
+                type="button"
+                className="min-w-0 text-left"
+                onClick={() => {
+                  setEditing(b);
+                  setSheetOpen(true);
+                }}
+              >
                 <span className="font-medium">{b.item_name}</span>
                 <span className="block text-xs text-muted-foreground">
                   {b.batch_number} · {b.location_name} · {qty(b.quantity)} units · {money(b.value)}
                 </span>
-              </span>
+              </button>
               <span className="flex items-center gap-2 text-xs">
                 {b.expired ? (
                   <StatusChip tone="danger">expired</StatusChip>
@@ -846,6 +870,7 @@ function BatchesTab({ tenantId }: { tenantId: string }) {
           ))}
         </ul>
       )}
+      <BatchSheet open={sheetOpen} onOpenChange={setSheetOpen} tenantId={tenantId} batch={editing} />
     </SectionCard>
   );
 }
