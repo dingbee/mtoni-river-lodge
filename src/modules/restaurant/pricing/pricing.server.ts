@@ -890,7 +890,6 @@ export async function upsertPriceList(
     tenantId: input.tenantId,
     entityType: "price_list",
     entityId: data.id,
-    source: "restaurant-pricing",
     action: input.id ? "price_list.updated" : "price_list.created",
     newValue: row,
   });
@@ -901,6 +900,7 @@ export async function upsertPriceList(
     locationId: input.locationId,
     entityType: "price_list",
     entityId: data.id,
+    source: "restaurant-pricing",
     payload: { code: data.code, status: data.status, channel: data.channel },
   });
   return data;
