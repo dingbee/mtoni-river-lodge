@@ -31,6 +31,7 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 import { UserCheck } from "lucide-react";
+import { Wine } from "lucide-react";
 import { ListChecks, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 import { UtensilsCrossed, BookOpen, Boxes, Truck, ShoppingCart, Calculator, Settings2 } from "lucide-react";
 import type { ComponentType } from "react";
