@@ -12,6 +12,8 @@ import {
   listCurrenciesSchema,
   listExchangeRatesSchema,
   listPricesSchema,
+  listPriceListsSchema,
+  listRoundingRulesSchema,
   pricingAuditSchema,
   resolvePriceSchema,
   setPromotionStatusSchema,
@@ -20,10 +22,44 @@ import {
   upsertDiscountRuleSchema,
   upsertExchangeRateSchema,
   upsertPriceSchema,
+  upsertPriceListSchema,
   upsertPromotionSchema,
+  upsertRoundingRuleSchema,
   upsertServiceChargeSchema,
   upsertTaxRuleSchema,
 } from "./contracts";
+
+export const listRestaurantPriceListsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => listPriceListsSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const mod = await import("./pricing.server");
+    return mod.listPriceLists(context.supabase, context.userId, data);
+  });
+
+export const upsertRestaurantPriceListFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => upsertPriceListSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const mod = await import("./pricing.server");
+    return mod.upsertPriceList(context.supabase, context.userId, data);
+  });
+
+export const listRestaurantRoundingRulesFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => listRoundingRulesSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const mod = await import("./pricing.server");
+    return mod.listRoundingRules(context.supabase, context.userId, data);
+  });
+
+export const upsertRestaurantRoundingRuleFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => upsertRoundingRuleSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const mod = await import("./pricing.server");
+    return mod.upsertRoundingRule(context.supabase, context.userId, data);
+  });
 
 export const listRestaurantCurrenciesFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
