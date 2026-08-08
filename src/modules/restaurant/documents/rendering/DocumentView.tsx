@@ -13,6 +13,6 @@ export function DocumentView({ doc }: { doc: RestaurantDocument }) {
       title={doc.number ?? doc.title}
       srcDoc={html}
       className="h-[70vh] w-full rounded-lg border bg-white"
-solid    />
+    />
   );
 }
