@@ -190,6 +190,11 @@ export const upsertInventoryItemSchema = tenantScopeSchema.extend({
   consumptionUnitId: uuid.optional(),
   packSize: z.number().min(0).optional(),
   shelfLifeDays: z.number().int().min(0).max(3650).optional(),
+  /** Beverage / bar configuration — existing columns on restaurant_inventory_items. */
+  isBeverage: z.boolean().optional(),
+  /** Standard pour/serving magnitude, expressed in `servingUnitId`. */
+  servingSize: z.number().min(0).optional(),
+  servingUnitId: uuid.optional(),
 });
 export type UpsertInventoryItemInput = z.infer<typeof upsertInventoryItemSchema>;
 
