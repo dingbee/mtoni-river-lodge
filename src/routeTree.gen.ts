@@ -126,6 +126,7 @@ import { Route as AuthenticatedAdminRestaurantProfitabilityRouteImport } from '.
 import { Route as AuthenticatedAdminRestaurantProductsRouteImport } from './routes/_authenticated.admin.restaurant.products'
 import { Route as AuthenticatedAdminRestaurantProcurementRouteImport } from './routes/_authenticated.admin.restaurant.procurement'
 import { Route as AuthenticatedAdminRestaurantPricingRouteImport } from './routes/_authenticated.admin.restaurant.pricing'
+import { Route as AuthenticatedAdminRestaurantPosRouteImport } from './routes/_authenticated.admin.restaurant.pos'
 import { Route as AuthenticatedAdminRestaurantOrdersRouteImport } from './routes/_authenticated.admin.restaurant.orders'
 import { Route as AuthenticatedAdminRestaurantMenuRouteImport } from './routes/_authenticated.admin.restaurant.menu'
 import { Route as AuthenticatedAdminRestaurantKitchenRouteImport } from './routes/_authenticated.admin.restaurant.kitchen'
@@ -897,6 +898,12 @@ const AuthenticatedAdminRestaurantPricingRoute =
   AuthenticatedAdminRestaurantPricingRouteImport.update({
     id: '/pricing',
     path: '/pricing',
+    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
+  } as any)
+const AuthenticatedAdminRestaurantPosRoute =
+  AuthenticatedAdminRestaurantPosRouteImport.update({
+    id: '/pos',
+    path: '/pos',
     getParentRoute: () => AuthenticatedAdminRestaurantRoute,
   } as any)
 const AuthenticatedAdminRestaurantOrdersRoute =
@@ -1862,6 +1869,7 @@ export interface FileRoutesByFullPath {
   '/admin/restaurant/kitchen': typeof AuthenticatedAdminRestaurantKitchenRoute
   '/admin/restaurant/menu': typeof AuthenticatedAdminRestaurantMenuRoute
   '/admin/restaurant/orders': typeof AuthenticatedAdminRestaurantOrdersRoute
+  '/admin/restaurant/pos': typeof AuthenticatedAdminRestaurantPosRoute
   '/admin/restaurant/pricing': typeof AuthenticatedAdminRestaurantPricingRoute
   '/admin/restaurant/procurement': typeof AuthenticatedAdminRestaurantProcurementRoute
   '/admin/restaurant/products': typeof AuthenticatedAdminRestaurantProductsRoute
@@ -2100,6 +2108,7 @@ export interface FileRoutesByTo {
   '/admin/restaurant/kitchen': typeof AuthenticatedAdminRestaurantKitchenRoute
   '/admin/restaurant/menu': typeof AuthenticatedAdminRestaurantMenuRoute
   '/admin/restaurant/orders': typeof AuthenticatedAdminRestaurantOrdersRoute
+  '/admin/restaurant/pos': typeof AuthenticatedAdminRestaurantPosRoute
   '/admin/restaurant/pricing': typeof AuthenticatedAdminRestaurantPricingRoute
   '/admin/restaurant/procurement': typeof AuthenticatedAdminRestaurantProcurementRoute
   '/admin/restaurant/products': typeof AuthenticatedAdminRestaurantProductsRoute
@@ -2354,6 +2363,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/restaurant/kitchen': typeof AuthenticatedAdminRestaurantKitchenRoute
   '/_authenticated/admin/restaurant/menu': typeof AuthenticatedAdminRestaurantMenuRoute
   '/_authenticated/admin/restaurant/orders': typeof AuthenticatedAdminRestaurantOrdersRoute
+  '/_authenticated/admin/restaurant/pos': typeof AuthenticatedAdminRestaurantPosRoute
   '/_authenticated/admin/restaurant/pricing': typeof AuthenticatedAdminRestaurantPricingRoute
   '/_authenticated/admin/restaurant/procurement': typeof AuthenticatedAdminRestaurantProcurementRoute
   '/_authenticated/admin/restaurant/products': typeof AuthenticatedAdminRestaurantProductsRoute
@@ -2608,6 +2618,7 @@ export interface FileRouteTypes {
     | '/admin/restaurant/kitchen'
     | '/admin/restaurant/menu'
     | '/admin/restaurant/orders'
+    | '/admin/restaurant/pos'
     | '/admin/restaurant/pricing'
     | '/admin/restaurant/procurement'
     | '/admin/restaurant/products'
@@ -2846,6 +2857,7 @@ export interface FileRouteTypes {
     | '/admin/restaurant/kitchen'
     | '/admin/restaurant/menu'
     | '/admin/restaurant/orders'
+    | '/admin/restaurant/pos'
     | '/admin/restaurant/pricing'
     | '/admin/restaurant/procurement'
     | '/admin/restaurant/products'
@@ -3099,6 +3111,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/restaurant/kitchen'
     | '/_authenticated/admin/restaurant/menu'
     | '/_authenticated/admin/restaurant/orders'
+    | '/_authenticated/admin/restaurant/pos'
     | '/_authenticated/admin/restaurant/pricing'
     | '/_authenticated/admin/restaurant/procurement'
     | '/_authenticated/admin/restaurant/products'
@@ -4083,6 +4096,13 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/admin/restaurant/pricing'
       preLoaderRoute: typeof AuthenticatedAdminRestaurantPricingRouteImport
+      parentRoute: typeof AuthenticatedAdminRestaurantRoute
+    }
+    '/_authenticated/admin/restaurant/pos': {
+      id: '/_authenticated/admin/restaurant/pos'
+      path: '/pos'
+      fullPath: '/admin/restaurant/pos'
+      preLoaderRoute: typeof AuthenticatedAdminRestaurantPosRouteImport
       parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/orders': {
@@ -5483,6 +5503,7 @@ interface AuthenticatedAdminRestaurantRouteChildren {
   AuthenticatedAdminRestaurantKitchenRoute: typeof AuthenticatedAdminRestaurantKitchenRoute
   AuthenticatedAdminRestaurantMenuRoute: typeof AuthenticatedAdminRestaurantMenuRoute
   AuthenticatedAdminRestaurantOrdersRoute: typeof AuthenticatedAdminRestaurantOrdersRoute
+  AuthenticatedAdminRestaurantPosRoute: typeof AuthenticatedAdminRestaurantPosRoute
   AuthenticatedAdminRestaurantPricingRoute: typeof AuthenticatedAdminRestaurantPricingRoute
   AuthenticatedAdminRestaurantProcurementRoute: typeof AuthenticatedAdminRestaurantProcurementRoute
   AuthenticatedAdminRestaurantProductsRoute: typeof AuthenticatedAdminRestaurantProductsRoute
@@ -5512,6 +5533,7 @@ const AuthenticatedAdminRestaurantRouteChildren: AuthenticatedAdminRestaurantRou
       AuthenticatedAdminRestaurantMenuRoute,
     AuthenticatedAdminRestaurantOrdersRoute:
       AuthenticatedAdminRestaurantOrdersRoute,
+    AuthenticatedAdminRestaurantPosRoute: AuthenticatedAdminRestaurantPosRoute,
     AuthenticatedAdminRestaurantPricingRoute:
       AuthenticatedAdminRestaurantPricingRoute,
     AuthenticatedAdminRestaurantProcurementRoute:
@@ -5830,13 +5852,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

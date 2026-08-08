@@ -8,6 +8,7 @@ import {
   ChefHat,
   ClipboardCheck,
   CookingPot,
+  CreditCard,
   LayoutDashboard,
   PiggyBank,
   Receipt,
@@ -35,6 +36,7 @@ const GROUPS = [
     label: "Operations",
     items: [
       { to: "/admin/restaurant", label: "Overview", icon: LayoutDashboard, exact: true },
+      { to: "/admin/restaurant/pos", label: "POS", icon: CreditCard },
       { to: "/admin/restaurant/orders", label: "Orders", icon: Receipt },
       { to: "/admin/restaurant/kitchen", label: "Kitchen", icon: ChefHat },
       { to: "/admin/restaurant/menu", label: "Menu", icon: BookOpen },

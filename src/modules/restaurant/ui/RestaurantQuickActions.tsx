@@ -32,7 +32,7 @@ type QuickAction = {
  * no business logic lives here.
  */
 export const RESTAURANT_QUICK_ACTIONS: QuickAction[] = [
-  { label: "New order", hint: "Open the POS order pad", icon: Receipt, to: "/admin/restaurant/orders", capability: "sales.manage" },
+  { label: "Open the till", hint: "Tables, orders, payments, receipts", icon: Receipt, to: "/admin/restaurant/pos", capability: "sales.manage" },
   { label: "Receive delivery", hint: "Post a goods receipt against a PO", icon: Truck, to: "/admin/restaurant/procurement", tab: "receiving", capability: "receiving.manage" },
   { label: "Create purchase request", hint: "Raise a need for approval", icon: ClipboardList, to: "/admin/restaurant/procurement", tab: "requests", capability: "purchase.request" },
   { label: "Transfer stock", hint: "Move stock between outlets", icon: Boxes, to: "/admin/restaurant/inventory-control", tab: "transfers", capability: "transfer.manage" },
