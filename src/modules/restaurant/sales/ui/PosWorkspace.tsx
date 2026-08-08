@@ -47,13 +47,27 @@ const newRequestId = () =>
 
 const FLOOR_LEGEND: TableTone[] = ["free", "seated", "production", "ready", "billing", "attention"];
 
+/** Which operating environment the till is rendering: restaurant service or bar service. */
+export type PosLens = "restaurant" | "bar";
+
+/** Category names that read as beverage categories. Data-driven, not hard-coded products. */
+const BEVERAGE_CATEGORY_HINTS = [
+  "drink", "beverage", "bar", "spirit", "whisk", "vodka", "gin", "rum", "tequila", "liqueur",
+  "wine", "beer", "cider", "cocktail", "mocktail", "soft", "juice", "water", "coffee", "tea",
+  "mixer", "shot", "energy",
+];
+
+const isBeverageCategory = (name: unknown) =>
+  typeof name === "string" && BEVERAGE_CATEGORY_HINTS.some((h) => name.toLowerCase().includes(h));
+
 /**
  * The till. Floor → bill → kitchen → payment → receipt, in one screen.
  *
  * All money and stock consequences happen server-side in the sales core; this
  * component only stages what the server has not yet accepted.
  */
-export function PosWorkspace() {
+export function PosWorkspace({ lens = "restaurant" }: { lens?: PosLens } = {}) {
+  const isBar = lens === "bar";
   const ws = useRestaurantWorkspace();
   const tenantId = ws.data?.tenant?.id;
   const roles = (ws.data?.roles ?? []) as readonly string[];
@@ -287,10 +301,18 @@ export function PosWorkspace() {
   });
 
   const items = (catalog.data?.items ?? []) as any[];
-  const categories = (catalog.data?.categories ?? []) as any[];
+  const allCategories = (catalog.data?.categories ?? []) as any[];
+  /** In the bar lens the catalogue narrows to beverage categories; falls back to all when none are tagged. */
+  const barCategories = useMemo(() => allCategories.filter((c) => isBeverageCategory(c.name)), [allCategories]);
+  const categories = isBar && barCategories.length > 0 ? barCategories : allCategories;
+  const scoped = useMemo(() => {
+    if (!isBar || barCategories.length === 0) return items;
+    const ids = new Set(barCategories.map((c) => c.id));
+    return items.filter((i) => ids.has(i.category_id));
+  }, [items, isBar, barCategories]);
   const filtered = useMemo(
-    () => (categoryId ? items.filter((i) => i.category_id === categoryId) : items),
-    [items, categoryId],
+    () => (categoryId ? scoped.filter((i) => i.category_id === categoryId) : scoped),
+    [scoped, categoryId],
   );
 
   const serverItems = ((order.data as any)?.items ?? []) as any[];
@@ -366,7 +388,10 @@ export function PosWorkspace() {
 
       <div className="grid gap-4 md:grid-cols-2 min-[1700px]:grid-cols-[260px_minmax(0,1fr)_340px]">
         {/* Floor */}
-        <SectionCard title="Floor" description="Colour follows the bill, not just the table row.">
+        <SectionCard
+          title={isBar ? "Bar floor & tabs" : "Floor"}
+          description={isBar ? "Counter, bar seats and tables — colour follows the tab." : "Colour follows the bill, not just the table row."}
+        >
           <div className="grid grid-cols-2 gap-2">
             {((board.data as any)?.tables ?? []).map((t: any) => {
               const tableLife = t.order ? deriveLifecycle({ order: t.order }) : null;
@@ -408,12 +433,19 @@ export function PosWorkspace() {
             onClick={() => openBill.mutate({ guestCount: 1 })}
             disabled={openBill.isPending}
           >
-            Walk-in / bar tab
+            {isBar ? "Open counter tab" : "Walk-in / bar tab"}
           </Button>
         </SectionCard>
 
         {/* Catalogue */}
-        <SectionCard title="Menu" description="Tap an item to configure and stage it on the bill.">
+        <SectionCard
+          title={isBar ? "Drinks" : "Menu"}
+          description={
+            isBar
+              ? "Tap a drink, pick the serve (single, double, bottle, glass) and add it to the tab."
+              : "Tap an item to configure and stage it on the bill."
+          }
+        >
           <div className="mb-3 flex flex-wrap gap-2">
             <Button variant={categoryId ? "outline" : "default"} className="min-h-10" onClick={() => setCategoryId(null)}>
               All
@@ -430,7 +462,10 @@ export function PosWorkspace() {
             ))}
           </div>
           {filtered.length === 0 ? (
-            <EmptyState title="No items" description="Publish a menu to sell from this till." />
+            <EmptyState
+              title={isBar ? "No drinks" : "No items"}
+              description={isBar ? "Publish a beverage menu to sell from the bar till." : "Publish a menu to sell from this till."}
+            />
           ) : (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {filtered.map((i) => (
