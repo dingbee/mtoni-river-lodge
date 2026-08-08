@@ -288,6 +288,8 @@ function MenuPage() {
         pending={saveItem.isPending}
         onSubmit={(v) => saveItem.mutate(v)}
       />
+
+      {tenantId && <MenuLifecycleBoard tenantId={tenantId} canManage={canManage} />}
     </div>
   );
 }
