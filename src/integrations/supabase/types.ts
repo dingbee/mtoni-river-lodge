@@ -9314,6 +9314,9 @@ export type Database = {
       restaurant_orders: {
         Row: {
           base_currency: string | null
+          bill_presented_at: string | null
+          bill_requested_at: string | null
+          bill_requested_by: string | null
           booking_id: string | null
           client_request_id: string | null
           closed_at: string | null
@@ -9353,6 +9356,9 @@ export type Database = {
         }
         Insert: {
           base_currency?: string | null
+          bill_presented_at?: string | null
+          bill_requested_at?: string | null
+          bill_requested_by?: string | null
           booking_id?: string | null
           client_request_id?: string | null
           closed_at?: string | null
@@ -9392,6 +9398,9 @@ export type Database = {
         }
         Update: {
           base_currency?: string | null
+          bill_presented_at?: string | null
+          bill_requested_at?: string | null
+          bill_requested_by?: string | null
           booking_id?: string | null
           client_request_id?: string | null
           closed_at?: string | null
@@ -9496,6 +9505,7 @@ export type Database = {
           order_id: string
           reference: string | null
           refund_of: string | null
+          refund_reason: string | null
           state: Database["public"]["Enums"]["restaurant_payment_state"]
           tenant_id: string
           tendered: number | null
@@ -9515,6 +9525,7 @@ export type Database = {
           order_id: string
           reference?: string | null
           refund_of?: string | null
+          refund_reason?: string | null
           state?: Database["public"]["Enums"]["restaurant_payment_state"]
           tenant_id: string
           tendered?: number | null
@@ -9534,6 +9545,7 @@ export type Database = {
           order_id?: string
           reference?: string | null
           refund_of?: string | null
+          refund_reason?: string | null
           state?: Database["public"]["Enums"]["restaurant_payment_state"]
           tenant_id?: string
           tendered?: number | null
@@ -11295,10 +11307,15 @@ export type Database = {
           cost_total: number
           created_at: string
           currency: string
+          delivered_at: string | null
+          delivered_to: string | null
+          delivery_channel: string | null
           discount_total: number
           id: string
           issued_at: string
           issued_by: string | null
+          last_reprint_at: string | null
+          last_reprint_by: string | null
           location_id: string | null
           order_id: string
           paid_total: number
@@ -11317,10 +11334,15 @@ export type Database = {
           cost_total?: number
           created_at?: string
           currency?: string
+          delivered_at?: string | null
+          delivered_to?: string | null
+          delivery_channel?: string | null
           discount_total?: number
           id?: string
           issued_at?: string
           issued_by?: string | null
+          last_reprint_at?: string | null
+          last_reprint_by?: string | null
           location_id?: string | null
           order_id: string
           paid_total?: number
@@ -11339,10 +11361,15 @@ export type Database = {
           cost_total?: number
           created_at?: string
           currency?: string
+          delivered_at?: string | null
+          delivered_to?: string | null
+          delivery_channel?: string | null
           discount_total?: number
           id?: string
           issued_at?: string
           issued_by?: string | null
+          last_reprint_at?: string | null
+          last_reprint_by?: string | null
           location_id?: string | null
           order_id?: string
           paid_total?: number
