@@ -8,10 +8,13 @@ import {
   quoteLine,
   resolveFxRate,
   type ChargeRule,
+  type ModifierSelection,
   type PriceCandidate,
+  type PriceListRule,
   type PricingContext,
   type PricingQuote,
   type PromotionRule,
+  type RoundingRule,
 } from "./engine";
 import type { ResolvePriceInput } from "./contracts";
 
@@ -22,6 +25,8 @@ export type CommercialRuleSet = {
   promotions: PromotionRule[];
   taxes: ChargeRule[];
   serviceCharges: ChargeRule[];
+  priceLists: PriceListRule[];
+  roundingRules: RoundingRule[];
 };
 
 const arr = (v: unknown): string[] => (Array.isArray(v) ? (v as string[]) : []);
@@ -42,6 +47,42 @@ export function toPriceCandidate(r: any): PriceCandidate {
     productId: r.product_id ?? null,
     variantId: r.variant_id ?? null,
     menuItemId: r.menu_item_id ?? null,
+    priceListId: r.price_list_id ?? null,
+    channel: r.channel ?? null,
+  };
+}
+
+export function toPriceList(r: any): PriceListRule {
+  return {
+    id: r.id,
+    code: r.code,
+    name: r.name,
+    currency: r.currency,
+    channel: r.channel ?? null,
+    priority: Number(r.priority ?? 100),
+    status: r.status,
+    effectiveFrom: r.effective_from,
+    effectiveTo: r.effective_to ?? null,
+    propertyId: r.property_id ?? null,
+    locationId: r.location_id ?? null,
+  };
+}
+
+export function toRoundingRule(r: any): RoundingRule {
+  return {
+    id: r.id,
+    code: r.code,
+    target: r.target,
+    mode: r.mode,
+    increment: Number(r.increment ?? 0),
+    decimals: Number(r.decimals ?? 2),
+    currency: r.currency ?? null,
+    channel: r.channel ?? null,
+    active: Boolean(r.active),
+    effectiveFrom: r.effective_from,
+    effectiveTo: r.effective_to ?? null,
+    propertyId: r.property_id ?? null,
+    locationId: r.location_id ?? null,
   };
 }
 
@@ -64,6 +105,7 @@ function toPromotion(r: any): PromotionRule {
     locationId: r.location_id ?? null,
     products: arr(r.applies_to_products),
     categories: arr(r.applies_to_categories),
+    channels: arr(r.applies_to_channels),
   };
 }
 
@@ -86,6 +128,7 @@ function toCharge(r: any, kind: "tax" | "service"): ChargeRule {
     locationId: r.location_id ?? null,
     products: arr(r.applies_to_products),
     categories: arr(r.applies_to_categories),
+    channels: arr(r.applies_to_channels),
     orderTypes: kind === "service" ? arr(r.applies_to_order_types) : [],
   };
 }
@@ -102,7 +145,7 @@ export async function loadRuleSet(
   let priceQuery = sb
     .from("restaurant_prices")
     .select(
-      "id, scope, amount, currency, tax_inclusive, version, status, effective_from, effective_to, property_id, location_id, product_id, variant_id, menu_item_id",
+      "id, scope, amount, currency, tax_inclusive, version, status, effective_from, effective_to, property_id, location_id, product_id, variant_id, menu_item_id, price_list_id, channel",
     )
     .eq("tenant_id", tenantId)
     .eq("status", "active");
@@ -112,11 +155,13 @@ export async function loadRuleSet(
     priceQuery = priceQuery.in("product_id", productIds);
   }
 
-  const [prices, promos, taxes, svc] = await Promise.all([
+  const [prices, promos, taxes, svc, lists, rounding] = await Promise.all([
     priceQuery,
     sb.from("restaurant_promotions").select("*").eq("tenant_id", tenantId).eq("status", "active"),
     sb.from("restaurant_tax_rules").select("*").eq("tenant_id", tenantId).eq("active", true),
     sb.from("restaurant_service_charges").select("*").eq("tenant_id", tenantId).eq("active", true),
+    sb.from("restaurant_price_lists").select("*").eq("tenant_id", tenantId).eq("status", "active"),
+    sb.from("restaurant_rounding_rules").select("*").eq("tenant_id", tenantId).eq("active", true),
   ]);
 
   return {
@@ -124,13 +169,21 @@ export async function loadRuleSet(
     promotions: ((promos.data ?? []) as any[]).map(toPromotion),
     taxes: ((taxes.data ?? []) as any[]).map((r) => toCharge(r, "tax")),
     serviceCharges: ((svc.data ?? []) as any[]).map((r) => toCharge(r, "service")),
+    priceLists: ((lists.data ?? []) as any[]).map(toPriceList),
+    roundingRules: ((rounding.data ?? []) as any[]).map(toRoundingRule),
   };
 }
 
 export function quoteWithRuleSet(
   rules: CommercialRuleSet,
   ctx: PricingContext,
-  fallback: { unitPrice?: number; currency?: string; lineDiscount?: number } = {},
+  fallback: {
+    unitPrice?: number;
+    currency?: string;
+    lineDiscount?: number;
+    modifiers?: ModifierSelection[];
+    strict?: boolean;
+  } = {},
 ): PricingQuote {
   const scoped = rules.prices.filter((p) =>
     ctx.menuItemId
@@ -145,9 +198,13 @@ export function quoteWithRuleSet(
     promotions: rules.promotions,
     taxes: rules.taxes,
     serviceCharges: rules.serviceCharges,
+    priceLists: rules.priceLists,
+    roundingRules: rules.roundingRules,
+    modifiers: fallback.modifiers,
     fallbackUnitPrice: fallback.unitPrice,
     fallbackCurrency: fallback.currency,
     lineDiscount: fallback.lineDiscount,
+    strict: fallback.strict,
   });
 }
 
@@ -167,10 +224,16 @@ export async function resolvePrice(sb: Sb, userId: string, input: ResolvePriceIn
     menuItemId: input.menuItemId ?? null,
     categoryId: input.categoryId ?? null,
     orderType: input.orderType,
+    channel: input.channel ?? input.orderType ?? null,
+    priceListIds: input.priceListIds ?? [],
     quantity: input.quantity,
   };
   const quote = quoteWithRuleSet(rules, ctx);
-  return { quote, context: { ...ctx, at: ctx.at.toISOString() } };
+  return {
+    quote,
+    context: { ...ctx, at: ctx.at.toISOString() },
+    priceLists: rules.priceLists,
+  };
 }
 
 /** Rate in force now; callers snapshot it onto the transaction. */
