@@ -135,6 +135,7 @@ import { Route as AuthenticatedAdminRestaurantKitchenRouteImport } from './route
 import { Route as AuthenticatedAdminRestaurantInventoryControlRouteImport } from './routes/_authenticated.admin.restaurant.inventory-control'
 import { Route as AuthenticatedAdminRestaurantInventoryRouteImport } from './routes/_authenticated.admin.restaurant.inventory'
 import { Route as AuthenticatedAdminRestaurantIntelligenceRouteImport } from './routes/_authenticated.admin.restaurant.intelligence'
+import { Route as AuthenticatedAdminRestaurantDocumentsRouteImport } from './routes/_authenticated.admin.restaurant.documents'
 import { Route as AuthenticatedAdminRestaurantDecisionsRouteImport } from './routes/_authenticated.admin.restaurant.decisions'
 import { Route as AuthenticatedAdminRestaurantCostingRouteImport } from './routes/_authenticated.admin.restaurant.costing'
 import { Route as AuthenticatedAdminRestaurantBarRouteImport } from './routes/_authenticated.admin.restaurant.bar'
@@ -955,6 +956,12 @@ const AuthenticatedAdminRestaurantIntelligenceRoute =
   AuthenticatedAdminRestaurantIntelligenceRouteImport.update({
     id: '/intelligence',
     path: '/intelligence',
+    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
+  } as any)
+const AuthenticatedAdminRestaurantDocumentsRoute =
+  AuthenticatedAdminRestaurantDocumentsRouteImport.update({
+    id: '/documents',
+    path: '/documents',
     getParentRoute: () => AuthenticatedAdminRestaurantRoute,
   } as any)
 const AuthenticatedAdminRestaurantDecisionsRoute =
@@ -1885,6 +1892,7 @@ export interface FileRoutesByFullPath {
   '/admin/restaurant/bar': typeof AuthenticatedAdminRestaurantBarRoute
   '/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
   '/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
+  '/admin/restaurant/documents': typeof AuthenticatedAdminRestaurantDocumentsRoute
   '/admin/restaurant/intelligence': typeof AuthenticatedAdminRestaurantIntelligenceRoute
   '/admin/restaurant/inventory': typeof AuthenticatedAdminRestaurantInventoryRoute
   '/admin/restaurant/inventory-control': typeof AuthenticatedAdminRestaurantInventoryControlRoute
@@ -2127,6 +2135,7 @@ export interface FileRoutesByTo {
   '/admin/restaurant/bar': typeof AuthenticatedAdminRestaurantBarRoute
   '/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
   '/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
+  '/admin/restaurant/documents': typeof AuthenticatedAdminRestaurantDocumentsRoute
   '/admin/restaurant/intelligence': typeof AuthenticatedAdminRestaurantIntelligenceRoute
   '/admin/restaurant/inventory': typeof AuthenticatedAdminRestaurantInventoryRoute
   '/admin/restaurant/inventory-control': typeof AuthenticatedAdminRestaurantInventoryControlRoute
@@ -2385,6 +2394,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/restaurant/bar': typeof AuthenticatedAdminRestaurantBarRoute
   '/_authenticated/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
   '/_authenticated/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
+  '/_authenticated/admin/restaurant/documents': typeof AuthenticatedAdminRestaurantDocumentsRoute
   '/_authenticated/admin/restaurant/intelligence': typeof AuthenticatedAdminRestaurantIntelligenceRoute
   '/_authenticated/admin/restaurant/inventory': typeof AuthenticatedAdminRestaurantInventoryRoute
   '/_authenticated/admin/restaurant/inventory-control': typeof AuthenticatedAdminRestaurantInventoryControlRoute
@@ -2643,6 +2653,7 @@ export interface FileRouteTypes {
     | '/admin/restaurant/bar'
     | '/admin/restaurant/costing'
     | '/admin/restaurant/decisions'
+    | '/admin/restaurant/documents'
     | '/admin/restaurant/intelligence'
     | '/admin/restaurant/inventory'
     | '/admin/restaurant/inventory-control'
@@ -2885,6 +2896,7 @@ export interface FileRouteTypes {
     | '/admin/restaurant/bar'
     | '/admin/restaurant/costing'
     | '/admin/restaurant/decisions'
+    | '/admin/restaurant/documents'
     | '/admin/restaurant/intelligence'
     | '/admin/restaurant/inventory'
     | '/admin/restaurant/inventory-control'
@@ -3142,6 +3154,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/restaurant/bar'
     | '/_authenticated/admin/restaurant/costing'
     | '/_authenticated/admin/restaurant/decisions'
+    | '/_authenticated/admin/restaurant/documents'
     | '/_authenticated/admin/restaurant/intelligence'
     | '/_authenticated/admin/restaurant/inventory'
     | '/_authenticated/admin/restaurant/inventory-control'
@@ -4198,6 +4211,13 @@ declare module '@tanstack/react-router' {
       path: '/intelligence'
       fullPath: '/admin/restaurant/intelligence'
       preLoaderRoute: typeof AuthenticatedAdminRestaurantIntelligenceRouteImport
+      parentRoute: typeof AuthenticatedAdminRestaurantRoute
+    }
+    '/_authenticated/admin/restaurant/documents': {
+      id: '/_authenticated/admin/restaurant/documents'
+      path: '/documents'
+      fullPath: '/admin/restaurant/documents'
+      preLoaderRoute: typeof AuthenticatedAdminRestaurantDocumentsRouteImport
       parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/decisions': {
@@ -5558,6 +5578,7 @@ interface AuthenticatedAdminRestaurantRouteChildren {
   AuthenticatedAdminRestaurantBarRoute: typeof AuthenticatedAdminRestaurantBarRoute
   AuthenticatedAdminRestaurantCostingRoute: typeof AuthenticatedAdminRestaurantCostingRoute
   AuthenticatedAdminRestaurantDecisionsRoute: typeof AuthenticatedAdminRestaurantDecisionsRoute
+  AuthenticatedAdminRestaurantDocumentsRoute: typeof AuthenticatedAdminRestaurantDocumentsRoute
   AuthenticatedAdminRestaurantIntelligenceRoute: typeof AuthenticatedAdminRestaurantIntelligenceRoute
   AuthenticatedAdminRestaurantInventoryRoute: typeof AuthenticatedAdminRestaurantInventoryRoute
   AuthenticatedAdminRestaurantInventoryControlRoute: typeof AuthenticatedAdminRestaurantInventoryControlRoute
@@ -5585,6 +5606,8 @@ const AuthenticatedAdminRestaurantRouteChildren: AuthenticatedAdminRestaurantRou
       AuthenticatedAdminRestaurantCostingRoute,
     AuthenticatedAdminRestaurantDecisionsRoute:
       AuthenticatedAdminRestaurantDecisionsRoute,
+    AuthenticatedAdminRestaurantDocumentsRoute:
+      AuthenticatedAdminRestaurantDocumentsRoute,
     AuthenticatedAdminRestaurantIntelligenceRoute:
       AuthenticatedAdminRestaurantIntelligenceRoute,
     AuthenticatedAdminRestaurantInventoryRoute:
@@ -5920,13 +5943,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -174,7 +174,7 @@ export function DocumentCentre() {
                     {r.currency ?? ""} {Number(r.amount).toFixed(2)}
                   </span>
                 )}
-                {r.status && <StatusChip label={String(r.status)} tone="neutral" />}
+                {r.status && <StatusChip tone="neutral">{String(r.status)}</StatusChip>}
               </div>
             </button>
           ))}
