@@ -41,12 +41,16 @@ import {
   upsertRestaurantServiceChargeFn,
   upsertRestaurantTaxRuleFn,
 } from "../pricing.functions";
+import { PriceListsTab, RoundingTab } from "./CommercialRulesTabs";
+import { SALES_CHANNELS } from "../contracts";
 
 const TABS = [
   { id: "prices", label: "Prices" },
+  { id: "priceLists", label: "Price lists" },
   { id: "promotions", label: "Promotions" },
   { id: "taxes", label: "Taxes & service" },
   { id: "discounts", label: "Discount rules" },
+  { id: "rounding", label: "Rounding" },
   { id: "currencies", label: "Currencies" },
   { id: "simulation", label: "Simulation" },
   { id: "audit", label: "Audit history" },
@@ -111,9 +115,11 @@ export function PricingCentre() {
       {tenantId ? (
         <>
           {tab === "prices" && <PricesTab tenantId={tenantId} />}
+          {tab === "priceLists" && <PriceListsTab tenantId={tenantId} />}
           {tab === "promotions" && <PromotionsTab tenantId={tenantId} />}
           {tab === "taxes" && <TaxesTab tenantId={tenantId} />}
           {tab === "discounts" && <DiscountsTab tenantId={tenantId} />}
+          {tab === "rounding" && <RoundingTab tenantId={tenantId} />}
           {tab === "currencies" && <CurrenciesTab tenantId={tenantId} />}
           {tab === "simulation" && <SimulationTab tenantId={tenantId} />}
           {tab === "audit" && <AuditTab tenantId={tenantId} />}
@@ -149,6 +155,8 @@ function PricesTab({ tenantId }: { tenantId: string }) {
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [scope, setScope] = useState<"tenant" | "property" | "location">("tenant");
+  const [priceChannel, setPriceChannel] = useState("");
+  const [priceListId, setPriceListId] = useState("");
   const [taxInclusive, setTaxInclusive] = useState(false);
   const [effectiveFrom, setEffectiveFrom] = useState("");
   const [reason, setReason] = useState("");
@@ -166,6 +174,8 @@ function PricesTab({ tenantId }: { tenantId: string }) {
           tenantId,
           menuItemId: menuItemId || undefined,
           scope,
+          channel: priceChannel ? (priceChannel as never) : null,
+          priceListId: priceListId || null,
           currency,
           amount: Number(amount),
           taxInclusive,
@@ -264,6 +274,28 @@ function PricesTab({ tenantId }: { tenantId: string }) {
               type="datetime-local"
               value={effectiveFrom}
               onChange={(e) => setEffectiveFrom(e.target.value)}
+            />
+          </Field>
+          <Field label="Channel">
+            <select
+              className="h-11 w-full rounded border border-border bg-background px-3 text-sm"
+              value={priceChannel}
+              onChange={(e) => setPriceChannel(e.target.value)}
+            >
+              <option value="">Every channel</option>
+              {SALES_CHANNELS.map((c) => (
+                <option key={c} value={c}>
+                  {c.replace(/_/g, " ")}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Price list (optional)">
+            <Input
+              className="h-11"
+              value={priceListId}
+              onChange={(e) => setPriceListId(e.target.value)}
+              placeholder="price list uuid"
             />
           </Field>
           <Field label="Change reason">

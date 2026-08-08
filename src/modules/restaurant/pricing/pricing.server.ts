@@ -23,13 +23,17 @@ import type {
   listCurrenciesSchema,
   listExchangeRatesSchema,
   listPricesSchema,
+  listPriceListsSchema,
+  listRoundingRulesSchema,
   pricingAuditSchema,
   setPromotionStatusSchema,
   upsertCurrencySchema,
   upsertDiscountRuleSchema,
   upsertExchangeRateSchema,
   upsertPriceSchema,
+  upsertPriceListSchema,
   upsertPromotionSchema,
+  upsertRoundingRuleSchema,
   upsertServiceChargeSchema,
   upsertTaxRuleSchema,
 } from "./contracts";
@@ -228,6 +232,8 @@ export async function upsertPrice(
     : q.eq("menu_item_id", input.menuItemId);
   q = input.propertyId ? q.eq("property_id", input.propertyId) : q.is("property_id", null);
   q = input.locationId ? q.eq("location_id", input.locationId) : q.is("location_id", null);
+  q = input.priceListId ? q.eq("price_list_id", input.priceListId) : q.is("price_list_id", null);
+  q = input.channel ? q.eq("channel", input.channel) : q.is("channel", null);
   const { data: currentRows } = await q;
   const current = ((currentRows ?? []) as any[])[0] ?? null;
 
@@ -244,6 +250,8 @@ export async function upsertPrice(
       scope: input.scope,
       property_id: input.propertyId ?? null,
       location_id: input.locationId ?? null,
+      price_list_id: input.priceListId ?? null,
+      channel: input.channel ?? null,
       currency: input.currency.toUpperCase(),
       amount: input.amount,
       tax_inclusive: input.taxInclusive,
@@ -403,6 +411,7 @@ export async function upsertTaxRule(
     applies_to_products: input.appliesToProducts,
     priority: input.priority,
     compound: input.compound,
+    applies_to_channels: input.appliesToChannels,
     effective_from: input.effectiveFrom ?? new Date().toISOString(),
     effective_to: input.effectiveTo ?? null,
     active: input.active,
@@ -471,6 +480,7 @@ export async function upsertServiceCharge(
     applies_to_categories: input.appliesToCategories,
     applies_to_products: input.appliesToProducts,
     applies_to_order_types: input.appliesToOrderTypes,
+    applies_to_channels: input.appliesToChannels,
     taxable: input.taxable,
     effective_from: input.effectiveFrom ?? new Date().toISOString(),
     effective_to: input.effectiveTo ?? null,
@@ -726,6 +736,7 @@ export async function upsertPromotion(
     applies_to_categories: input.appliesToCategories,
     applies_to_products: input.appliesToProducts,
     days_of_week: input.daysOfWeek,
+    applies_to_channels: input.appliesToChannels,
     start_time: input.startTime ?? null,
     end_time: input.endTime ?? null,
     starts_at: input.startsAt ?? new Date().toISOString(),
@@ -809,4 +820,160 @@ export async function listPricingAudit(
   const { data, error } = await q;
   if (error) throw new Error(error.message);
   return data ?? [];
+}
+
+/* ---------------- Price lists ---------------- */
+
+/**
+ * A price list is a named, effective-dated set of prices — Standard, Corporate,
+ * Happy Hour, Staff. Items are not duplicated: the same product simply carries
+ * an additional price row that points at the list.
+ */
+export async function listPriceLists(
+  sb: Sb,
+  userId: string,
+  input: z.infer<typeof listPriceListsSchema>,
+) {
+  await assertTenantRead(sb, userId, input.tenantId);
+  let q = sb
+    .from("restaurant_price_lists")
+    .select("*")
+    .eq("tenant_id", input.tenantId)
+    .order("priority")
+    .order("code");
+  if (input.activeOnly) q = q.eq("status", "active");
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function upsertPriceList(
+  sb: Sb,
+  userId: string,
+  input: z.infer<typeof upsertPriceListSchema>,
+) {
+  await assertCapability(sb, userId, input.tenantId, "pricing.manage");
+  const row = {
+    tenant_id: input.tenantId,
+    property_id: input.propertyId ?? null,
+    location_id: input.locationId ?? null,
+    code: input.code,
+    name: input.name,
+    description: input.description ?? null,
+    currency: input.currency.toUpperCase(),
+    channel: input.channel ?? null,
+    priority: input.priority,
+    status: input.status,
+    is_default: input.isDefault,
+    effective_from: input.effectiveFrom ?? new Date().toISOString(),
+    effective_to: input.effectiveTo ?? null,
+    created_by: userId,
+  };
+  const q = input.id
+    ? sb
+        .from("restaurant_price_lists")
+        .update(row)
+        .eq("id", input.id)
+        .eq("tenant_id", input.tenantId)
+    : sb.from("restaurant_price_lists").insert(row);
+  const { data, error } = await q.select("*").single();
+  if (error) throw new Error(error.message);
+  // Exactly one default list keeps "which price applies" answerable.
+  if (input.isDefault) {
+    await sb
+      .from("restaurant_price_lists")
+      .update({ is_default: false })
+      .eq("tenant_id", input.tenantId)
+      .neq("id", data.id);
+  }
+  await audit(sb, userId, {
+    tenantId: input.tenantId,
+    entityType: "price_list",
+    entityId: data.id,
+    action: input.id ? "price_list.updated" : "price_list.created",
+    newValue: row,
+  });
+  await emitRestaurantEvent(sb, userId, {
+    type: input.id ? "restaurant.price_list.updated" : "restaurant.price_list.created",
+    tenantId: input.tenantId,
+    propertyId: input.propertyId,
+    locationId: input.locationId,
+    entityType: "price_list",
+    entityId: data.id,
+    source: "restaurant-pricing",
+    payload: { code: data.code, status: data.status, channel: data.channel },
+  });
+  return data;
+}
+
+/* ---------------- Rounding policies ---------------- */
+
+export async function listRoundingRules(
+  sb: Sb,
+  userId: string,
+  input: z.infer<typeof listRoundingRulesSchema>,
+) {
+  await assertTenantRead(sb, userId, input.tenantId);
+  let q = sb
+    .from("restaurant_rounding_rules")
+    .select("*")
+    .eq("tenant_id", input.tenantId)
+    .order("target")
+    .order("code");
+  if (input.activeOnly) q = q.eq("active", true);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function upsertRoundingRule(
+  sb: Sb,
+  userId: string,
+  input: z.infer<typeof upsertRoundingRuleSchema>,
+) {
+  await assertCapability(sb, userId, input.tenantId, "pricing.manage");
+  const row = {
+    tenant_id: input.tenantId,
+    property_id: input.propertyId ?? null,
+    location_id: input.locationId ?? null,
+    code: input.code,
+    name: input.name,
+    target: input.target,
+    mode: input.mode,
+    increment: input.increment,
+    decimals: input.decimals,
+    currency: input.currency ? input.currency.toUpperCase() : null,
+    channel: input.channel ?? null,
+    active: input.active,
+    effective_from: input.effectiveFrom ?? new Date().toISOString(),
+    effective_to: input.effectiveTo ?? null,
+    created_by: userId,
+  };
+  const q = input.id
+    ? sb
+        .from("restaurant_rounding_rules")
+        .update(row)
+        .eq("id", input.id)
+        .eq("tenant_id", input.tenantId)
+    : sb.from("restaurant_rounding_rules").insert(row);
+  const { data, error } = await q.select("*").single();
+  if (error) throw new Error(error.message);
+  await audit(sb, userId, {
+    tenantId: input.tenantId,
+    entityType: "rounding_rule",
+    entityId: data.id,
+    action: input.id ? "rounding.updated" : "rounding.created",
+    newValue: row,
+  });
+  await emitRestaurantEvent(sb, userId, {
+    type: "restaurant.rounding_rule.changed",
+    tenantId: input.tenantId,
+    propertyId: input.propertyId,
+    locationId: input.locationId,
+    entityType: "rounding_rule",
+    entityId: data.id,
+    source: "restaurant-pricing",
+    payload: { target: data.target, mode: data.mode, increment: Number(data.increment) },
+  });
+  return data;
 }

@@ -40,10 +40,70 @@ export type PromotionAction = (typeof PROMOTION_ACTIONS)[number];
 export const PROMOTION_STATUSES = ["draft", "scheduled", "active", "ended", "cancelled"] as const;
 export type PromotionStatus = (typeof PROMOTION_STATUSES)[number];
 
+/** Sales channels a commercial rule can be restricted to. */
+export const SALES_CHANNELS = [
+  "dine_in",
+  "takeaway",
+  "delivery",
+  "room_charge",
+  "event",
+  "corporate",
+] as const;
+export type SalesChannel = (typeof SALES_CHANNELS)[number];
+
+export const PRICE_LIST_STATUSES = ["draft", "active", "archived"] as const;
+export type PriceListStatus = (typeof PRICE_LIST_STATUSES)[number];
+
+export const ROUNDING_TARGETS = ["line", "total", "payment"] as const;
+export const ROUNDING_MODES = ["none", "nearest", "up", "down"] as const;
+
 const tenantScope = z.object({
   tenantId: uuid,
   propertyId: uuid.optional(),
   locationId: uuid.optional(),
+});
+
+/* ---------------- Price lists ---------------- */
+
+export const upsertPriceListSchema = tenantScope.extend({
+  id: uuid.optional(),
+  code: z.string().min(1).max(40),
+  name: z.string().min(1).max(120),
+  description: z.string().max(1000).optional(),
+  currency: z.string().min(3).max(8).default("TZS"),
+  channel: z.enum(SALES_CHANNELS).nullish(),
+  priority: z.number().int().default(100),
+  status: z.enum(PRICE_LIST_STATUSES).default("draft"),
+  isDefault: z.boolean().default(false),
+  effectiveFrom: z.string().optional(),
+  effectiveTo: z.string().nullish(),
+});
+export type UpsertPriceListInput = z.infer<typeof upsertPriceListSchema>;
+
+export const listPriceListsSchema = tenantScope.extend({
+  activeOnly: z.boolean().default(false),
+});
+
+/* ---------------- Rounding policies ---------------- */
+
+export const upsertRoundingRuleSchema = tenantScope.extend({
+  id: uuid.optional(),
+  code: z.string().min(1).max(40),
+  name: z.string().min(1).max(120),
+  target: z.enum(ROUNDING_TARGETS).default("total"),
+  mode: z.enum(ROUNDING_MODES).default("nearest"),
+  increment: z.number().min(0).max(100000).default(0.01),
+  decimals: z.number().int().min(0).max(6).default(2),
+  currency: z.string().min(3).max(8).nullish(),
+  channel: z.enum(SALES_CHANNELS).nullish(),
+  active: z.boolean().default(true),
+  effectiveFrom: z.string().optional(),
+  effectiveTo: z.string().nullish(),
+});
+export type UpsertRoundingRuleInput = z.infer<typeof upsertRoundingRuleSchema>;
+
+export const listRoundingRulesSchema = tenantScope.extend({
+  activeOnly: z.boolean().default(false),
 });
 
 /* ---------------- Currencies ---------------- */
@@ -96,6 +156,8 @@ export const upsertPriceSchema = tenantScope.extend({
   variantId: uuid.optional(),
   menuItemId: uuid.optional(),
   scope: z.enum(PRICE_SCOPES).default("tenant"),
+  priceListId: uuid.nullish(),
+  channel: z.enum(SALES_CHANNELS).nullish(),
   currency: z.string().min(3).max(8).default("USD"),
   amount: money.min(0),
   taxInclusive: z.boolean().default(false),
@@ -112,6 +174,7 @@ export type UpsertPriceInput = z.infer<typeof upsertPriceSchema>;
 export const listPricesSchema = tenantScope.extend({
   productId: uuid.optional(),
   menuItemId: uuid.optional(),
+  priceListId: uuid.optional(),
   status: z.enum(PRICE_STATUSES).optional(),
   includeHistory: z.boolean().default(true),
   limit: z.number().int().min(1).max(500).default(200),
@@ -139,6 +202,7 @@ export const upsertTaxRuleSchema = tenantScope.extend({
   appliesToProducts: z.array(uuid).default([]),
   priority: z.number().int().default(100),
   compound: z.boolean().default(false),
+  appliesToChannels: z.array(z.enum(SALES_CHANNELS)).default([]),
   effectiveFrom: z.string().optional(),
   effectiveTo: z.string().nullish(),
   active: z.boolean().default(true),
@@ -154,6 +218,7 @@ export const upsertServiceChargeSchema = tenantScope.extend({
   appliesToCategories: z.array(uuid).default([]),
   appliesToProducts: z.array(uuid).default([]),
   appliesToOrderTypes: z.array(z.string().max(40)).default([]),
+  appliesToChannels: z.array(z.enum(SALES_CHANNELS)).default([]),
   taxable: z.boolean().default(false),
   effectiveFrom: z.string().optional(),
   effectiveTo: z.string().nullish(),
@@ -206,6 +271,7 @@ export const upsertPromotionSchema = tenantScope.extend({
   appliesToCategories: z.array(uuid).default([]),
   appliesToProducts: z.array(uuid).default([]),
   daysOfWeek: z.array(z.number().int().min(0).max(6)).default([]),
+  appliesToChannels: z.array(z.enum(SALES_CHANNELS)).default([]),
   startTime: z.string().nullish(),
   endTime: z.string().nullish(),
   startsAt: z.string().optional(),
@@ -236,6 +302,8 @@ export const resolvePriceSchema = tenantScope.extend({
   categoryId: uuid.optional(),
   quantity: z.number().min(0.001).default(1),
   orderType: z.string().max(40).default("dine_in"),
+  channel: z.enum(SALES_CHANNELS).optional(),
+  priceListIds: z.array(uuid).default([]),
   currency: z.string().min(3).max(8).optional(),
   at: z.string().optional(),
 });
