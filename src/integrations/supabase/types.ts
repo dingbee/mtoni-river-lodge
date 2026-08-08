@@ -9007,6 +9007,7 @@ export type Database = {
       restaurant_order_items: {
         Row: {
           base_unit_price: number | null
+          channel: string | null
           comp_at: string | null
           comp_by: string | null
           comp_reason: string | null
@@ -9030,6 +9031,7 @@ export type Database = {
           notes: string | null
           order_id: string
           price_id: string | null
+          price_list_id: string | null
           price_source: string | null
           pricing_trace: Json
           product_id: string | null
@@ -9058,6 +9060,7 @@ export type Database = {
         }
         Insert: {
           base_unit_price?: number | null
+          channel?: string | null
           comp_at?: string | null
           comp_by?: string | null
           comp_reason?: string | null
@@ -9081,6 +9084,7 @@ export type Database = {
           notes?: string | null
           order_id: string
           price_id?: string | null
+          price_list_id?: string | null
           price_source?: string | null
           pricing_trace?: Json
           product_id?: string | null
@@ -9109,6 +9113,7 @@ export type Database = {
         }
         Update: {
           base_unit_price?: number | null
+          channel?: string | null
           comp_at?: string | null
           comp_by?: string | null
           comp_reason?: string | null
@@ -9132,6 +9137,7 @@ export type Database = {
           notes?: string | null
           order_id?: string
           price_id?: string | null
+          price_list_id?: string | null
           price_source?: string | null
           pricing_trace?: Json
           product_id?: string | null
@@ -9185,6 +9191,13 @@ export type Database = {
             columns: ["price_id"]
             isOneToOne: false
             referencedRelation: "restaurant_prices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_order_items_price_list_id_fkey"
+            columns: ["price_list_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_price_lists"
             referencedColumns: ["id"]
           },
           {
@@ -9511,11 +9524,97 @@ export type Database = {
           },
         ]
       }
+      restaurant_price_lists: {
+        Row: {
+          channel: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_default: boolean
+          location_id: string | null
+          metadata: Json
+          name: string
+          priority: number
+          property_id: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          channel?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_default?: boolean
+          location_id?: string | null
+          metadata?: Json
+          name: string
+          priority?: number
+          property_id?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_default?: boolean
+          location_id?: string | null
+          metadata?: Json
+          name?: string
+          priority?: number
+          property_id?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_price_lists_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_price_lists_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_price_lists_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_prices: {
         Row: {
           amount: number
           approved_at: string | null
           approved_by: string | null
+          channel: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -9524,6 +9623,7 @@ export type Database = {
           id: string
           location_id: string | null
           menu_item_id: string | null
+          price_list_id: string | null
           product_id: string | null
           property_id: string | null
           reason: string | null
@@ -9542,6 +9642,7 @@ export type Database = {
           amount: number
           approved_at?: string | null
           approved_by?: string | null
+          channel?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -9550,6 +9651,7 @@ export type Database = {
           id?: string
           location_id?: string | null
           menu_item_id?: string | null
+          price_list_id?: string | null
           product_id?: string | null
           property_id?: string | null
           reason?: string | null
@@ -9568,6 +9670,7 @@ export type Database = {
           amount?: number
           approved_at?: string | null
           approved_by?: string | null
+          channel?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -9576,6 +9679,7 @@ export type Database = {
           id?: string
           location_id?: string | null
           menu_item_id?: string | null
+          price_list_id?: string | null
           product_id?: string | null
           property_id?: string | null
           reason?: string | null
@@ -9603,6 +9707,13 @@ export type Database = {
             columns: ["menu_item_id"]
             isOneToOne: false
             referencedRelation: "restaurant_menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_prices_price_list_id_fkey"
+            columns: ["price_list_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_price_lists"
             referencedColumns: ["id"]
           },
           {
@@ -10499,6 +10610,7 @@ export type Database = {
         Row: {
           action: Database["public"]["Enums"]["restaurant_promotion_action"]
           applies_to_categories: string[]
+          applies_to_channels: string[]
           applies_to_products: string[]
           code: string
           created_at: string
@@ -10525,6 +10637,7 @@ export type Database = {
         Insert: {
           action?: Database["public"]["Enums"]["restaurant_promotion_action"]
           applies_to_categories?: string[]
+          applies_to_channels?: string[]
           applies_to_products?: string[]
           code: string
           created_at?: string
@@ -10551,6 +10664,7 @@ export type Database = {
         Update: {
           action?: Database["public"]["Enums"]["restaurant_promotion_action"]
           applies_to_categories?: string[]
+          applies_to_channels?: string[]
           applies_to_products?: string[]
           code?: string
           created_at?: string
@@ -11834,10 +11948,96 @@ export type Database = {
           },
         ]
       }
+      restaurant_rounding_rules: {
+        Row: {
+          active: boolean
+          channel: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          decimals: number
+          effective_from: string
+          effective_to: string | null
+          id: string
+          increment: number
+          location_id: string | null
+          mode: string
+          name: string
+          property_id: string | null
+          target: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          channel?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          decimals?: number
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          increment?: number
+          location_id?: string | null
+          mode?: string
+          name: string
+          property_id?: string | null
+          target?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          channel?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          decimals?: number
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          increment?: number
+          location_id?: string | null
+          mode?: string
+          name?: string
+          property_id?: string | null
+          target?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_rounding_rules_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_rounding_rules_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_rounding_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_service_charges: {
         Row: {
           active: boolean
           applies_to_categories: string[]
+          applies_to_channels: string[]
           applies_to_order_types: string[]
           applies_to_products: string[]
           basis: Database["public"]["Enums"]["restaurant_charge_basis"]
@@ -11859,6 +12059,7 @@ export type Database = {
         Insert: {
           active?: boolean
           applies_to_categories?: string[]
+          applies_to_channels?: string[]
           applies_to_order_types?: string[]
           applies_to_products?: string[]
           basis?: Database["public"]["Enums"]["restaurant_charge_basis"]
@@ -11880,6 +12081,7 @@ export type Database = {
         Update: {
           active?: boolean
           applies_to_categories?: string[]
+          applies_to_channels?: string[]
           applies_to_order_types?: string[]
           applies_to_products?: string[]
           basis?: Database["public"]["Enums"]["restaurant_charge_basis"]
@@ -13514,6 +13716,7 @@ export type Database = {
         Row: {
           active: boolean
           applies_to_categories: string[]
+          applies_to_channels: string[]
           applies_to_products: string[]
           basis: Database["public"]["Enums"]["restaurant_charge_basis"]
           code: string
@@ -13536,6 +13739,7 @@ export type Database = {
         Insert: {
           active?: boolean
           applies_to_categories?: string[]
+          applies_to_channels?: string[]
           applies_to_products?: string[]
           basis?: Database["public"]["Enums"]["restaurant_charge_basis"]
           code: string
@@ -13558,6 +13762,7 @@ export type Database = {
         Update: {
           active?: boolean
           applies_to_categories?: string[]
+          applies_to_channels?: string[]
           applies_to_products?: string[]
           basis?: Database["public"]["Enums"]["restaurant_charge_basis"]
           code?: string
