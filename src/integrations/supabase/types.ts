@@ -8993,16 +8993,20 @@ export type Database = {
           base_unit_price: number | null
           course: string | null
           created_at: string
+          created_by: string | null
           currency: string | null
           description: string
           discount: number
           discount_reason: string | null
           discount_rule_id: string | null
           exchange_rate: number
+          guest_notes: string | null
           id: string
           line_cost: number
           line_total: number
           menu_item_id: string | null
+          modifier_total: number
+          modifiers: Json
           notes: string | null
           order_id: string
           price_id: string | null
@@ -9013,6 +9017,7 @@ export type Database = {
           quantity: number
           recipe_id: string | null
           recipe_version: number | null
+          seat_number: number | null
           service_charge_amount: number
           service_charge_id: string | null
           station_id: string | null
@@ -9026,22 +9031,29 @@ export type Database = {
           unit_cost: number
           unit_price: number
           updated_at: string
+          variant_id: string | null
           void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
           base_unit_price?: number | null
           course?: string | null
           created_at?: string
+          created_by?: string | null
           currency?: string | null
           description: string
           discount?: number
           discount_reason?: string | null
           discount_rule_id?: string | null
           exchange_rate?: number
+          guest_notes?: string | null
           id?: string
           line_cost?: number
           line_total?: number
           menu_item_id?: string | null
+          modifier_total?: number
+          modifiers?: Json
           notes?: string | null
           order_id: string
           price_id?: string | null
@@ -9052,6 +9064,7 @@ export type Database = {
           quantity?: number
           recipe_id?: string | null
           recipe_version?: number | null
+          seat_number?: number | null
           service_charge_amount?: number
           service_charge_id?: string | null
           station_id?: string | null
@@ -9065,22 +9078,29 @@ export type Database = {
           unit_cost?: number
           unit_price?: number
           updated_at?: string
+          variant_id?: string | null
           void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
           base_unit_price?: number | null
           course?: string | null
           created_at?: string
+          created_by?: string | null
           currency?: string | null
           description?: string
           discount?: number
           discount_reason?: string | null
           discount_rule_id?: string | null
           exchange_rate?: number
+          guest_notes?: string | null
           id?: string
           line_cost?: number
           line_total?: number
           menu_item_id?: string | null
+          modifier_total?: number
+          modifiers?: Json
           notes?: string | null
           order_id?: string
           price_id?: string | null
@@ -9091,6 +9111,7 @@ export type Database = {
           quantity?: number
           recipe_id?: string | null
           recipe_version?: number | null
+          seat_number?: number | null
           service_charge_amount?: number
           service_charge_id?: string | null
           station_id?: string | null
@@ -9104,7 +9125,10 @@ export type Database = {
           unit_cost?: number
           unit_price?: number
           updated_at?: string
+          variant_id?: string | null
           void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {
@@ -9184,12 +9208,20 @@ export type Database = {
             referencedRelation: "restaurant_tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "restaurant_order_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_product_variants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       restaurant_orders: {
         Row: {
           base_currency: string | null
           booking_id: string | null
+          client_request_id: string | null
           closed_at: string | null
           cost_total: number
           created_at: string
@@ -9209,6 +9241,9 @@ export type Database = {
           paid_total: number
           payment_state: Database["public"]["Enums"]["restaurant_payment_state"]
           property_id: string | null
+          reopen_reason: string | null
+          reopened_at: string | null
+          reopened_by: string | null
           server_user_id: string | null
           service_charge: number
           service_period_id: string | null
@@ -9218,12 +9253,14 @@ export type Database = {
           table_id: string | null
           tax_total: number
           tenant_id: string
+          terminal_id: string | null
           total: number
           updated_at: string
         }
         Insert: {
           base_currency?: string | null
           booking_id?: string | null
+          client_request_id?: string | null
           closed_at?: string | null
           cost_total?: number
           created_at?: string
@@ -9243,6 +9280,9 @@ export type Database = {
           paid_total?: number
           payment_state?: Database["public"]["Enums"]["restaurant_payment_state"]
           property_id?: string | null
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
           server_user_id?: string | null
           service_charge?: number
           service_period_id?: string | null
@@ -9252,12 +9292,14 @@ export type Database = {
           table_id?: string | null
           tax_total?: number
           tenant_id: string
+          terminal_id?: string | null
           total?: number
           updated_at?: string
         }
         Update: {
           base_currency?: string | null
           booking_id?: string | null
+          client_request_id?: string | null
           closed_at?: string | null
           cost_total?: number
           created_at?: string
@@ -9277,6 +9319,9 @@ export type Database = {
           paid_total?: number
           payment_state?: Database["public"]["Enums"]["restaurant_payment_state"]
           property_id?: string | null
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
           server_user_id?: string | null
           service_charge?: number
           service_period_id?: string | null
@@ -9286,6 +9331,7 @@ export type Database = {
           table_id?: string | null
           tax_total?: number
           tenant_id?: string
+          terminal_id?: string | null
           total?: number
           updated_at?: string
         }
@@ -9347,6 +9393,7 @@ export type Database = {
           booking_id: string | null
           captured_at: string
           change_due: number
+          client_request_id: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -9354,6 +9401,7 @@ export type Database = {
           method: string
           order_id: string
           reference: string | null
+          refund_of: string | null
           state: Database["public"]["Enums"]["restaurant_payment_state"]
           tenant_id: string
           tendered: number | null
@@ -9364,6 +9412,7 @@ export type Database = {
           booking_id?: string | null
           captured_at?: string
           change_due?: number
+          client_request_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -9371,6 +9420,7 @@ export type Database = {
           method?: string
           order_id: string
           reference?: string | null
+          refund_of?: string | null
           state?: Database["public"]["Enums"]["restaurant_payment_state"]
           tenant_id: string
           tendered?: number | null
@@ -9381,6 +9431,7 @@ export type Database = {
           booking_id?: string | null
           captured_at?: string
           change_due?: number
+          client_request_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -9388,6 +9439,7 @@ export type Database = {
           method?: string
           order_id?: string
           reference?: string | null
+          refund_of?: string | null
           state?: Database["public"]["Enums"]["restaurant_payment_state"]
           tenant_id?: string
           tendered?: number | null
@@ -9413,6 +9465,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "restaurant_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_payments_refund_of_fkey"
+            columns: ["refund_of"]
+            isOneToOne: false
+            referencedRelation: "restaurant_payments"
             referencedColumns: ["id"]
           },
           {
@@ -11029,6 +11088,90 @@ export type Database = {
           },
           {
             foreignKeyName: "restaurant_purchase_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_receipts: {
+        Row: {
+          cost_total: number
+          created_at: string
+          currency: string
+          discount_total: number
+          id: string
+          issued_at: string
+          issued_by: string | null
+          location_id: string | null
+          order_id: string
+          paid_total: number
+          property_id: string | null
+          receipt_number: string
+          reprint_count: number
+          service_charge: number
+          snapshot: Json
+          subtotal: number
+          tax_total: number
+          tenant_id: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          cost_total?: number
+          created_at?: string
+          currency?: string
+          discount_total?: number
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          location_id?: string | null
+          order_id: string
+          paid_total?: number
+          property_id?: string | null
+          receipt_number: string
+          reprint_count?: number
+          service_charge?: number
+          snapshot?: Json
+          subtotal?: number
+          tax_total?: number
+          tenant_id: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          cost_total?: number
+          created_at?: string
+          currency?: string
+          discount_total?: number
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          location_id?: string | null
+          order_id?: string
+          paid_total?: number
+          property_id?: string | null
+          receipt_number?: string
+          reprint_count?: number
+          service_charge?: number
+          snapshot?: Json
+          subtotal?: number
+          tax_total?: number
+          tenant_id?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_receipts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_receipts_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "restaurant_tenants"
