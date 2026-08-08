@@ -78,7 +78,6 @@ const GROUPS = [
     items: [
       { to: "/admin/restaurant/intelligence", label: "Insights", icon: Brain },
       { to: "/admin/restaurant/decisions", label: "Decisions", icon: Scale },
-      { to: "/admin/restaurant/setup", label: "Setup", icon: Wrench },
       { to: "/admin/restaurant/settings", label: "Settings", icon: Settings2 },
     ],
   },
