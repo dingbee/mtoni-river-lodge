@@ -305,6 +305,34 @@ export async function postStocktake(
     dedupeKey: `stocktake:completed:${head.id}`,
   });
 
+  // Bar mirror when the counted location is a bar service point.
+  if (head.location_id) {
+    const { data: loc } = await sb
+      .from("restaurant_locations")
+      .select("location_type, name")
+      .eq("tenant_id", input.tenantId)
+      .eq("id", head.location_id)
+      .maybeSingle();
+    if (loc?.location_type === "bar") {
+      await emitRestaurantEvent(sb, userId, {
+        type: "bar.stocktake.completed",
+        tenantId: input.tenantId,
+        propertyId: head.property_id ?? undefined,
+        locationId: head.location_id,
+        entityType: "restaurant_stocktake",
+        entityId: head.id,
+        source: "restaurant-os",
+        payload: {
+          stocktake_number: head.stocktake_number,
+          location_name: loc.name,
+          adjustments: posted,
+          variance_value: Number(varianceValue.toFixed(2)),
+        },
+        dedupeKey: `bar:stocktake:completed:${head.id}`,
+      });
+    }
+  }
+
   if (varianceValue > 0) {
     await emitRestaurantEvent(sb, userId, {
       type: "restaurant.inventory.variance.detected",
