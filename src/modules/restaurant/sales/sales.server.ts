@@ -187,17 +187,39 @@ async function unitCostsForMenuItems(sb: Sb, tenantId: string, menuItemIds: stri
   return map;
 }
 
-async function insertLines(
+/** A modifier exactly as chosen at the till, snapshotted onto the sold line. */
+export type SalesLineModifier = {
+  modifierId?: string;
+  groupId?: string;
+  name: string;
+  priceDelta: number;
+  quantity: number;
+};
+
+/**
+ * The POS sends a richer line than the admin order pad: a seat, a variant and
+ * the modifiers the guest chose. Everything else stays identical, so both
+ * entry points produce the same priced, cost-pinned order item.
+ */
+export type SalesLineInput = OrderLineInput & {
+  variantId?: string;
+  seatNumber?: number;
+  guestNotes?: string;
+  modifiers?: SalesLineModifier[];
+};
+
+export async function insertLines(
   sb: Sb,
   tenantId: string,
   orderId: string,
-  lines: OrderLineInput[],
+  lines: SalesLineInput[],
   ctx: {
     currency: string;
     propertyId?: string | null;
     locationId?: string | null;
     orderType?: string;
     exchangeRate?: number;
+    userId?: string;
   },
 ) {
   const ids = lines.map((l) => l.menuItemId).filter(Boolean) as string[];
@@ -245,6 +267,13 @@ async function insertLines(
       },
       { unitPrice: l.unitPrice, currency: ctx.currency, lineDiscount: l.discount },
     );
+    // Modifiers are a net addition on top of the resolved price, taxed at the
+    // same rate as the line so the receipt still balances.
+    const chosen = l.modifiers ?? [];
+    const modifierPerUnit = chosen.reduce((s, m) => s + Number(m.priceDelta ?? 0) * Number(m.quantity ?? 1), 0);
+    const modifierAmount = Number((modifierPerUnit * l.quantity).toFixed(4));
+    const rateFraction = quote.taxRate > 1 ? quote.taxRate / 100 : quote.taxRate;
+    const modifierTax = quote.taxInclusive ? 0 : Number((modifierAmount * rateFraction).toFixed(4));
     return {
       tenant_id: tenantId,
       order_id: orderId,
@@ -252,14 +281,20 @@ async function insertLines(
       product_id: pinned?.productId ?? null,
       recipe_id: pinned?.recipeId ?? null,
       recipe_version: pinned?.version ?? null,
+      variant_id: l.variantId ?? null,
+      seat_number: l.seatNumber ?? null,
+      modifiers: chosen,
+      modifier_total: modifierAmount,
+      guest_notes: l.guestNotes ?? null,
+      created_by: ctx.userId ?? null,
       station_id: l.stationId ?? null,
       description: l.description,
       quantity: l.quantity,
-      unit_price: quote.unitPrice,
+      unit_price: Number((quote.unitPrice + modifierPerUnit).toFixed(4)),
       base_unit_price: quote.basePrice,
       discount: l.discount,
-      tax_amount: l.taxAmount > 0 ? l.taxAmount : quote.taxTotal,
-      line_total: quote.lineTotal,
+      tax_amount: l.taxAmount > 0 ? l.taxAmount : Number((quote.taxTotal + modifierTax).toFixed(4)),
+      line_total: Number((quote.lineTotal + modifierAmount + modifierTax).toFixed(2)),
       currency: quote.currency,
       exchange_rate: ctx.exchangeRate ?? 1,
       price_id: quote.priceId,
@@ -285,7 +320,7 @@ async function insertLines(
 }
 
 /** Recomputes money + cost on the order header from its own lines. */
-async function recalcOrder(sb: Sb, tenantId: string, orderId: string) {
+export async function recalcOrder(sb: Sb, tenantId: string, orderId: string) {
   const [{ data: items }, { data: payments }] = await Promise.all([
     sb
       .from("restaurant_order_items")
@@ -373,6 +408,7 @@ export async function createOrder(sb: Sb, userId: string, input: CreateOrderInpu
       locationId: input.locationId ?? null,
       orderType: input.orderType,
       exchangeRate,
+      userId,
     });
   }
   if (input.tableId) {
@@ -417,6 +453,7 @@ export async function addOrderItems(sb: Sb, userId: string, input: AddOrderItems
     locationId: order.location_id,
     orderType: order.order_type,
     exchangeRate: Number(order.exchange_rate ?? 1),
+    userId,
   });
   return recalcOrder(sb, input.tenantId, input.orderId);
 }
@@ -497,7 +534,7 @@ export async function transitionOrder(sb: Sb, userId: string, input: TransitionO
   if (input.status === "closed") {
     const { data: items } = await sb
       .from("restaurant_order_items")
-      .select("id, menu_item_id, recipe_id, recipe_version, description, quantity, unit_price, line_total, line_cost, status")
+      .select("id, menu_item_id, recipe_id, recipe_version, description, quantity, unit_price, line_total, line_cost, status, modifiers")
       .eq("tenant_id", input.tenantId)
       .eq("order_id", input.orderId);
 
@@ -526,6 +563,22 @@ export async function transitionOrder(sb: Sb, userId: string, input: TransitionO
             quantity: Number(item.quantity),
             occurredAt: new Date().toISOString(),
           });
+
+      // Stock-affecting modifiers leave their own ledger trail.
+      const chosen = Array.isArray(item.modifiers) ? item.modifiers : [];
+      if (chosen.length > 0) {
+        const { consumeLineModifiers } = await import("./modifiers.server");
+        actualCost += await consumeLineModifiers(sb, userId, {
+          tenantId: input.tenantId,
+          propertyId: order.property_id,
+          locationId: order.location_id,
+          orderId: order.id,
+          orderItemId: item.id,
+          quantity: Number(item.quantity),
+          modifiers: chosen,
+          occurredAt: new Date().toISOString(),
+        });
+      }
 
       await emitRestaurantEvent(sb, userId, {
         type: "restaurant.item.sold",
@@ -574,6 +627,14 @@ export async function transitionOrder(sb: Sb, userId: string, input: TransitionO
       },
       dedupeKey: `order-closed:${order.id}`,
     });
+
+    // Evidence of the sale, frozen at close. Never recomputed.
+    try {
+      const { issueReceipt } = await import("./receipts.server");
+      await issueReceipt(sb, userId, { tenantId: input.tenantId, orderId: order.id, reprint: false });
+    } catch (err) {
+      console.warn("[restaurant-os] receipt not issued", (err as Error).message);
+    }
     return { ...updated, cost_total: Number(actualCost.toFixed(4)) };
   }
 
