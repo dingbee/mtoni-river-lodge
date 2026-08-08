@@ -408,6 +408,7 @@ export async function createOrder(sb: Sb, userId: string, input: CreateOrderInpu
       locationId: input.locationId ?? null,
       orderType: input.orderType,
       exchangeRate,
+      userId,
     });
   }
   if (input.tableId) {
@@ -452,6 +453,7 @@ export async function addOrderItems(sb: Sb, userId: string, input: AddOrderItems
     locationId: order.location_id,
     orderType: order.order_type,
     exchangeRate: Number(order.exchange_rate ?? 1),
+    userId,
   });
   return recalcOrder(sb, input.tenantId, input.orderId);
 }
@@ -532,7 +534,7 @@ export async function transitionOrder(sb: Sb, userId: string, input: TransitionO
   if (input.status === "closed") {
     const { data: items } = await sb
       .from("restaurant_order_items")
-      .select("id, menu_item_id, recipe_id, recipe_version, description, quantity, unit_price, line_total, line_cost, status")
+      .select("id, menu_item_id, recipe_id, recipe_version, description, quantity, unit_price, line_total, line_cost, status, modifiers")
       .eq("tenant_id", input.tenantId)
       .eq("order_id", input.orderId);
 
@@ -561,6 +563,22 @@ export async function transitionOrder(sb: Sb, userId: string, input: TransitionO
             quantity: Number(item.quantity),
             occurredAt: new Date().toISOString(),
           });
+
+      // Stock-affecting modifiers leave their own ledger trail.
+      const chosen = Array.isArray(item.modifiers) ? item.modifiers : [];
+      if (chosen.length > 0) {
+        const { consumeLineModifiers } = await import("./modifiers.server");
+        actualCost += await consumeLineModifiers(sb, userId, {
+          tenantId: input.tenantId,
+          propertyId: order.property_id,
+          locationId: order.location_id,
+          orderId: order.id,
+          orderItemId: item.id,
+          quantity: Number(item.quantity),
+          modifiers: chosen,
+          occurredAt: new Date().toISOString(),
+        });
+      }
 
       await emitRestaurantEvent(sb, userId, {
         type: "restaurant.item.sold",
@@ -609,6 +627,14 @@ export async function transitionOrder(sb: Sb, userId: string, input: TransitionO
       },
       dedupeKey: `order-closed:${order.id}`,
     });
+
+    // Evidence of the sale, frozen at close. Never recomputed.
+    try {
+      const { issueReceipt } = await import("./receipts.server");
+      await issueReceipt(sb, userId, { tenantId: input.tenantId, orderId: order.id, reprint: false });
+    } catch (err) {
+      console.warn("[restaurant-os] receipt not issued", (err as Error).message);
+    }
     return { ...updated, cost_total: Number(actualCost.toFixed(4)) };
   }
 
