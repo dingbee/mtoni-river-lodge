@@ -239,7 +239,7 @@ export function PosWorkspace() {
         <StatCard label="Average check" value={money(stats?.averageCheck ?? 0, currency)} icon={ChefHat} />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_340px]">
+      <div className="grid gap-4 md:grid-cols-2 min-[1700px]:grid-cols-[260px_minmax(0,1fr)_340px]">
         {/* Floor */}
         <SectionCard title="Floor" description="Tap a table to open or resume its bill.">
           <div className="grid grid-cols-2 gap-2">
