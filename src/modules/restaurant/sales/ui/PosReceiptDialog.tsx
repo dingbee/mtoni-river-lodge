@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- receipt snapshot is untyped at this boundary. */
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,21 +9,35 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { money } from "./pos-types";
+import type { ReceiptDeliveryChannel } from "../bill.contracts";
 
-/** Renders the frozen receipt snapshot. Nothing here is recomputed. */
+/**
+ * The frozen receipt snapshot, plus the one remaining service act: getting it
+ * into the guest's hands. Nothing here is recomputed; delivery is recorded
+ * against the receipt rather than changing it.
+ */
 export function PosReceiptDialog({
   receipt,
   onClose,
   onReprint,
+  onDeliver,
+  delivering,
 }: {
   receipt: any | null;
   onClose: () => void;
   onReprint?: () => void;
+  onDeliver?: (input: { channel: ReceiptDeliveryChannel; to?: string }) => void;
+  delivering?: boolean;
 }) {
+  const [contact, setContact] = useState("");
   if (!receipt) return null;
   const snapshot = receipt.snapshot ?? {};
   const currency = receipt.currency ?? "TZS";
+  const change = Number(snapshot.payments?.reduce?.((s: number, p: any) => s + Number(p.change_due ?? 0), 0) ?? 0);
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -34,6 +49,19 @@ export function PosReceiptDialog({
             {receipt.reprint_count > 0 ? `reprint ×${receipt.reprint_count}` : "original"}
           </DialogDescription>
         </DialogHeader>
+
+        <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
+          <p className="font-semibold">Paid in full · {money(Number(receipt.total ?? 0), currency)}</p>
+          {change > 0 && <p className="text-xs">Change given {money(change, currency)}</p>}
+          {receipt.delivered_at ? (
+            <Badge variant="secondary" className="mt-1">
+              Delivered by {receipt.delivery_channel}
+              {receipt.delivered_to ? ` · ${receipt.delivered_to}` : ""}
+            </Badge>
+          ) : (
+            <p className="text-xs text-muted-foreground">Record how the guest receives this receipt.</p>
+          )}
+        </div>
 
         <div className="space-y-3 font-mono text-xs">
           {(snapshot.lines ?? []).map((l: any) => (
