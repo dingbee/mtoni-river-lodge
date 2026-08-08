@@ -19,6 +19,7 @@ import {
   transitionRestaurantOrderFn,
 } from "@/modules/restaurant/sales/sales.functions";
 import { fireRestaurantOrderFn } from "@/modules/restaurant/kitchen/kitchen.functions";
+import { deriveLifecycle, STAGE_LABEL } from "@/modules/restaurant/sales/ui/lifecycle";
 
 export const Route = createFileRoute("/_authenticated/admin/restaurant/orders")({
   head: () => ({
@@ -159,17 +160,21 @@ function OrdersPage() {
           <EmptyState title="No orders yet" description="Open a table or bar tab to start recording sales." />
         ) : (
           <ul className="divide-y text-sm">
-            {rows.map((r: any) => (
+            {rows.map((r: any) => {
+              const life = deriveLifecycle({ order: r });
+              return (
               <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{r.order_number}</span>
+                    <StatusChip>{STAGE_LABEL[life.stage]}</StatusChip>
                     <StatusChip>{r.status}</StatusChip>
                     <StatusChip>{r.payment_state}</StatusChip>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {r.order_type} · {r.guest_count} cover(s) · {money(r.total)} · cost {money(r.cost_total)}
                   </p>
+                  <p className="text-xs text-muted-foreground">Next: {life.nextActionLabel} — {life.reason}</p>
                 </div>
                 {OPEN_STATES.includes(r.status) && (
                   <div className="flex gap-1">
@@ -182,7 +187,8 @@ function OrdersPage() {
                   </div>
                 )}
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </SectionCard>
