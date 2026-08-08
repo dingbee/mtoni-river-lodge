@@ -28,17 +28,14 @@ import { PosItemDialog } from "./PosItemDialog";
 import { PosPaymentDialog } from "./PosPaymentDialog";
 import { PosReceiptDialog } from "./PosReceiptDialog";
 import { lineTotal, money, type CartLine } from "./pos-types";
+import { deriveLifecycle, tableTone, TABLE_TONE_CLASS, TABLE_TONE_LABEL, type TableTone } from "./lifecycle";
+import { ServiceLifecycleBar } from "./ServiceLifecycleBar";
+import { OrderTimeline } from "./OrderTimeline";
 
 const newRequestId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `pos-${Date.now()}-${Math.random()}`;
 
-const TABLE_TONE: Record<string, string> = {
-  available: "border-border bg-card",
-  occupied: "border-primary/40 bg-primary/10",
-  reserved: "border-amber-500/40 bg-amber-500/10",
-  cleaning: "border-muted bg-muted",
-  out_of_service: "border-destructive/40 bg-destructive/10 opacity-60",
-};
+const FLOOR_LEGEND: TableTone[] = ["free", "seated", "production", "ready", "billing", "attention"];
 
 /**
  * The till. Floor → bill → kitchen → payment → receipt, in one screen.
@@ -223,8 +220,44 @@ export function PosWorkspace() {
   const serverItems = ((order.data as any)?.items ?? []) as any[];
   const live = serverItems.filter((i) => i.status !== "voided");
   const orderRow = (order.data as any)?.order;
+  const orderTickets = ((order.data as any)?.tickets ?? []) as any[];
+  const orderPayments = ((order.data as any)?.payments ?? []) as any[];
   const billTotal = Number(orderRow?.total ?? 0) + cart.reduce((s, l) => s + lineTotal(l), 0);
   const stats = (board.data as any)?.stats;
+
+  const life = useMemo(
+    () =>
+      orderRow
+        ? deriveLifecycle({
+            order: orderRow,
+            items: serverItems,
+            tickets: orderTickets,
+            payments: orderPayments,
+            stagedCount: cart.length,
+          })
+        : null,
+    [orderRow, serverItems, orderTickets, orderPayments, cart.length],
+  );
+
+  /** One primary action per state — the till never asks "what now?". */
+  const runNextAction = () => {
+    if (!life || !orderId) return;
+    switch (life.nextAction) {
+      case "send-to-kitchen":
+        sendLines.mutate({ fire: true });
+        break;
+      case "mark-served":
+      case "take-payment":
+      case "settle-balance":
+        setPayOpen(true);
+        break;
+      case "print-receipt":
+        showReceipt.mutate({ orderId, reprint: false });
+        break;
+      default:
+        break;
+    }
+  };
 
   if (!tenantId) {
     return <EmptyState title="No restaurant workspace" description="You are not a member of a restaurant tenant yet." />;
@@ -241,25 +274,40 @@ export function PosWorkspace() {
 
       <div className="grid gap-4 md:grid-cols-2 min-[1700px]:grid-cols-[260px_minmax(0,1fr)_340px]">
         {/* Floor */}
-        <SectionCard title="Floor" description="Tap a table to open or resume its bill.">
+        <SectionCard title="Floor" description="Colour follows the bill, not just the table row.">
           <div className="grid grid-cols-2 gap-2">
-            {((board.data as any)?.tables ?? []).map((t: any) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() =>
-                  t.order ? setOrderId(t.order.id) : openBill.mutate({ tableId: t.id, guestCount: t.seats ?? 2 })
-                }
-                className={`min-h-20 rounded-lg border p-3 text-left transition-colors hover:border-primary ${
-                  TABLE_TONE[t.status] ?? "border-border bg-card"
-                } ${orderId && t.order?.id === orderId ? "ring-2 ring-primary" : ""}`}
+            {((board.data as any)?.tables ?? []).map((t: any) => {
+              const tableLife = t.order ? deriveLifecycle({ order: t.order }) : null;
+              const tone = tableTone(t, tableLife);
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() =>
+                    t.order ? setOrderId(t.order.id) : openBill.mutate({ tableId: t.id, guestCount: t.seats ?? 2 })
+                  }
+                  className={`min-h-20 rounded-lg border p-3 text-left transition-colors hover:border-primary ${
+                    TABLE_TONE_CLASS[tone]
+                  } ${orderId && t.order?.id === orderId ? "ring-2 ring-primary" : ""}`}
+                >
+                  <span className="block text-sm font-semibold">{t.code}</span>
+                  <span className="block text-xs text-muted-foreground">{t.zone ?? t.name}</span>
+                  <span className="mt-1 block text-xs">
+                    {t.order ? money(Number(t.order.total ?? 0), currency) : `${t.seats} seats`}
+                  </span>
+                  <span className="block text-[11px] text-muted-foreground">{TABLE_TONE_LABEL[tone]}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1">
+            {FLOOR_LEGEND.map((tone) => (
+              <span
+                key={tone}
+                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] ${TABLE_TONE_CLASS[tone]}`}
               >
-                <span className="block text-sm font-semibold">{t.code}</span>
-                <span className="block text-xs text-muted-foreground">{t.zone ?? t.name}</span>
-                <span className="mt-1 block text-xs">
-                  {t.order ? money(Number(t.order.total ?? 0), currency) : `${t.seats} seats`}
-                </span>
-              </button>
+                {TABLE_TONE_LABEL[tone]}
+              </span>
             ))}
           </div>
           <Button
@@ -323,6 +371,27 @@ export function PosWorkspace() {
             <EmptyState title="No bill selected" description="Tap a table or start a walk-in tab." />
           ) : (
             <div className="space-y-3">
+              {life && (
+                <div className="space-y-2 rounded-lg border bg-muted/30 p-2">
+                  <ServiceLifecycleBar life={life} compact />
+                  <p className="text-xs text-muted-foreground">{life.reason}</p>
+                  <div className="flex flex-wrap gap-1 text-[11px]">
+                    {life.staged > 0 && <Badge variant="outline">{life.staged} staged</Badge>}
+                    {life.unsent > 0 && <Badge variant="outline">{life.unsent} unsent</Badge>}
+                    {life.inProduction > 0 && <Badge variant="secondary">{life.inProduction} in production</Badge>}
+                    {life.ready > 0 && <Badge>{life.ready} ready</Badge>}
+                    {life.balance > 0 && <Badge variant="outline">Balance {money(life.balance, currency)}</Badge>}
+                    {life.delayed && <Badge variant="destructive">Delayed</Badge>}
+                  </div>
+                  <Button
+                    className="min-h-11 w-full"
+                    disabled={life.nextAction === "none" || life.blocked || sendLines.isPending}
+                    onClick={runNextAction}
+                  >
+                    Next: {life.nextActionLabel}
+                  </Button>
+                </div>
+              )}
               <div className="space-y-2">
                 {live.map((i) => (
                   <div key={i.id} className="flex items-start justify-between gap-2 rounded border bg-card p-2 text-sm">
@@ -447,6 +516,13 @@ export function PosWorkspace() {
                   </Button>
                 )}
               </div>
+
+              <details className="rounded-lg border bg-card p-2">
+                <summary className="cursor-pointer text-xs font-medium">Service timeline</summary>
+                <div className="mt-2">
+                  <OrderTimeline order={orderRow} items={serverItems} tickets={orderTickets} payments={orderPayments} />
+                </div>
+              </details>
             </div>
           )}
         </SectionCard>
