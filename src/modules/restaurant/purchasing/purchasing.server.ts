@@ -125,3 +125,117 @@ export async function transitionPurchaseOrder(
   }
   return data;
 }
+
+/**
+ * Document-centric read of one purchase order and everything that hangs off
+ * it: ordered lines, what the supplier confirmed, what was actually received
+ * and what we were invoiced. Read-only — no stage is collapsed into another.
+ */
+export async function getPurchaseOrderDetail(sb: Sb, userId: string, tenantId: string, id: string) {
+  await assertTenantRead(sb, userId, tenantId);
+
+  const { data: order, error } = await sb
+    .from("restaurant_purchase_orders")
+    .select(
+      "id, reference, document_number, status, confirmation_status, confirmed_at, supplier_reference, supplier_id, property_id, location_id, order_date, expected_at, received_at, subtotal, total, currency, notes",
+    )
+    .eq("tenant_id", tenantId)
+    .eq("id", id)
+    .single();
+  if (error || !order) throw new Error("Purchase order not found.");
+
+  const [
+    { data: items },
+    { data: supplier },
+    { data: confirmations },
+    { data: receipts },
+    { data: invoices },
+  ] = await Promise.all([
+    sb
+      .from("restaurant_purchase_order_items")
+      .select("id, inventory_item_id, unit_id, description, quantity, unit_price, line_total")
+      .eq("tenant_id", tenantId)
+      .eq("purchase_order_id", id),
+    order.supplier_id
+      ? sb.from("restaurant_suppliers").select("id, name, code, payment_terms").eq("id", order.supplier_id).single()
+      : Promise.resolve({ data: null }),
+    sb
+      .from("restaurant_supplier_confirmations")
+      .select("id, status, supplier_reference, confirmed_delivery_date, notes, created_at")
+      .eq("tenant_id", tenantId)
+      .eq("purchase_order_id", id)
+      .order("created_at", { ascending: false }),
+    sb
+      .from("restaurant_goods_receipts")
+      .select("id, document_number, status, received_at, accepted_value, currency, delivery_note_ref")
+      .eq("tenant_id", tenantId)
+      .eq("purchase_order_id", id)
+      .order("received_at", { ascending: false }),
+    sb
+      .from("restaurant_supplier_invoices")
+      .select(
+        "id, document_number, supplier_invoice_number, invoice_date, due_date, total, currency, status, match_status, payment_status",
+      )
+      .eq("tenant_id", tenantId)
+      .eq("purchase_order_id", id)
+      .order("invoice_date", { ascending: false }),
+  ]);
+
+  const confirmationIds = ((confirmations ?? []) as any[]).map((c) => c.id);
+  const receiptIds = ((receipts ?? []) as any[]).map((r) => r.id);
+
+  const [{ data: confirmationItems }, { data: receiptItems }] = await Promise.all([
+    confirmationIds.length
+      ? sb
+          .from("restaurant_supplier_confirmation_items")
+          .select(
+            "id, confirmation_id, purchase_order_item_id, ordered_quantity, ordered_unit_price, confirmed_quantity, confirmed_unit_price, confirmed_delivery_date, notes",
+          )
+          .in("confirmation_id", confirmationIds)
+      : Promise.resolve({ data: [] }),
+    receiptIds.length
+      ? sb
+          .from("restaurant_goods_receipt_items")
+          .select(
+            "id, goods_receipt_id, purchase_order_item_id, description, ordered_quantity, received_quantity, accepted_quantity, rejected_quantity, unit_cost",
+          )
+          .in("goods_receipt_id", receiptIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const acceptedByOrderItem = new Map<string, number>();
+  for (const r of (receiptItems ?? []) as any[]) {
+    if (!r.purchase_order_item_id) continue;
+    acceptedByOrderItem.set(
+      r.purchase_order_item_id,
+      (acceptedByOrderItem.get(r.purchase_order_item_id) ?? 0) + Number(r.accepted_quantity ?? 0),
+    );
+  }
+  const latestConfirmation = ((confirmations ?? []) as any[])[0] ?? null;
+  const confirmedByOrderItem = new Map<string, { quantity: number; unitPrice: number }>();
+  for (const c of (confirmationItems ?? []) as any[]) {
+    if (latestConfirmation && c.confirmation_id !== latestConfirmation.id) continue;
+    confirmedByOrderItem.set(c.purchase_order_item_id, {
+      quantity: Number(c.confirmed_quantity ?? 0),
+      unitPrice: Number(c.confirmed_unit_price ?? 0),
+    });
+  }
+
+  return {
+    order,
+    supplier: supplier ?? null,
+    items: ((items ?? []) as any[]).map((i) => ({
+      ...i,
+      quantity: Number(i.quantity ?? 0),
+      unit_price: Number(i.unit_price ?? 0),
+      confirmed_quantity: confirmedByOrderItem.get(i.id)?.quantity ?? null,
+      confirmed_unit_price: confirmedByOrderItem.get(i.id)?.unitPrice ?? null,
+      accepted_quantity: acceptedByOrderItem.get(i.id) ?? 0,
+    })),
+    confirmations: (confirmations ?? []) as any[],
+    confirmationItems: (confirmationItems ?? []) as any[],
+    receipts: (receipts ?? []) as any[],
+    receiptItems: (receiptItems ?? []) as any[],
+    invoices: (invoices ?? []) as any[],
+  };
+}

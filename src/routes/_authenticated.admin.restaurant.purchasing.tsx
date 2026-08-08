@@ -16,6 +16,8 @@ import { listRestaurantPurchaseOrdersFn, createRestaurantPurchaseOrderFn } from 
 import { listRestaurantSuppliersFn } from "@/modules/restaurant/suppliers/suppliers.functions";
 import { listRestaurantInventoryFn } from "@/modules/restaurant/inventory/inventory.functions";
 import { PurchaseOrderSheet, type PurchaseOrderFormValue } from "@/modules/restaurant/purchasing/ui/PurchaseOrderSheet";
+import { SupplierConfirmationSheet } from "@/modules/restaurant/procurement/ui/SupplierConfirmationSheet";
+import { SupplierInvoiceSheet } from "@/modules/restaurant/procurement/ui/SupplierInvoiceSheet";
 
 export const Route = createFileRoute("/_authenticated/admin/restaurant/purchasing")({
   head: () => ({
@@ -67,6 +69,8 @@ function PurchasingPage() {
   });
 
   const [open, setOpen] = useState(false);
+  const [confirmFor, setConfirmFor] = useState<string | null>(null);
+  const [invoiceFor, setInvoiceFor] = useState<string | null>(null);
 
   const create = useAdminMutation({
     mutationFn: (v: PurchaseOrderFormValue) =>
@@ -124,11 +128,21 @@ function PurchasingPage() {
         ) : (
           <ul className="divide-y text-sm">
             {(q.data ?? []).map((o: any) => (
-              <li key={o.id} className="flex min-h-14 items-center justify-between gap-3 py-2">
-                <span>{o.reference ?? o.id.slice(0, 8)}</span>
-                <span className="flex items-center gap-2 text-xs text-muted-foreground">
+              <li key={o.id} className="flex min-h-14 flex-wrap items-center justify-between gap-3 py-2">
+                <span>{o.document_number ?? o.reference ?? o.id.slice(0, 8)}</span>
+                <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <StatusChip tone={PO_TONE[o.status] ?? "neutral"}>{o.status}</StatusChip>
                   {o.currency} {Number(o.total ?? 0).toLocaleString()}
+                  {canManage ? (
+                    <>
+                      <Button size="sm" variant="outline" className="h-10" onClick={() => setConfirmFor(o.id)}>
+                        Supplier confirmation
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-10" onClick={() => setInvoiceFor(o.id)}>
+                        Record invoice
+                      </Button>
+                    </>
+                  ) : null}
                 </span>
               </li>
             ))}
@@ -144,6 +158,23 @@ function PurchasingPage() {
         pending={create.isPending}
         onSubmit={(v) => create.mutate(v)}
       />
+
+      {tenantId ? (
+        <>
+          <SupplierConfirmationSheet
+            open={Boolean(confirmFor)}
+            onOpenChange={(v) => !v && setConfirmFor(null)}
+            tenantId={tenantId}
+            purchaseOrderId={confirmFor}
+          />
+          <SupplierInvoiceSheet
+            open={Boolean(invoiceFor)}
+            onOpenChange={(v) => !v && setInvoiceFor(null)}
+            tenantId={tenantId}
+            purchaseOrderId={invoiceFor}
+          />
+        </>
+      ) : null}
     </div>
   );
 }

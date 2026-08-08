@@ -120,6 +120,7 @@ import { Route as AuthenticatedAdminStaffRolesRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminStaffActivityRouteImport } from './routes/_authenticated.admin.staff.activity'
 import { Route as AuthenticatedAdminRestaurantSuppliersRouteImport } from './routes/_authenticated.admin.restaurant.suppliers'
 import { Route as AuthenticatedAdminRestaurantStockRouteImport } from './routes/_authenticated.admin.restaurant.stock'
+import { Route as AuthenticatedAdminRestaurantSetupRouteImport } from './routes/_authenticated.admin.restaurant.setup'
 import { Route as AuthenticatedAdminRestaurantSettingsRouteImport } from './routes/_authenticated.admin.restaurant.settings'
 import { Route as AuthenticatedAdminRestaurantRequisitionsRouteImport } from './routes/_authenticated.admin.restaurant.requisitions'
 import { Route as AuthenticatedAdminRestaurantPurchasingRouteImport } from './routes/_authenticated.admin.restaurant.purchasing'
@@ -863,6 +864,12 @@ const AuthenticatedAdminRestaurantStockRoute =
   AuthenticatedAdminRestaurantStockRouteImport.update({
     id: '/stock',
     path: '/stock',
+    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
+  } as any)
+const AuthenticatedAdminRestaurantSetupRoute =
+  AuthenticatedAdminRestaurantSetupRouteImport.update({
+    id: '/setup',
+    path: '/setup',
     getParentRoute: () => AuthenticatedAdminRestaurantRoute,
   } as any)
 const AuthenticatedAdminRestaurantSettingsRoute =
@@ -1884,6 +1891,7 @@ export interface FileRoutesByFullPath {
   '/admin/restaurant/purchasing': typeof AuthenticatedAdminRestaurantPurchasingRoute
   '/admin/restaurant/requisitions': typeof AuthenticatedAdminRestaurantRequisitionsRoute
   '/admin/restaurant/settings': typeof AuthenticatedAdminRestaurantSettingsRoute
+  '/admin/restaurant/setup': typeof AuthenticatedAdminRestaurantSetupRoute
   '/admin/restaurant/stock': typeof AuthenticatedAdminRestaurantStockRoute
   '/admin/restaurant/suppliers': typeof AuthenticatedAdminRestaurantSuppliersRoute
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
@@ -2124,6 +2132,7 @@ export interface FileRoutesByTo {
   '/admin/restaurant/purchasing': typeof AuthenticatedAdminRestaurantPurchasingRoute
   '/admin/restaurant/requisitions': typeof AuthenticatedAdminRestaurantRequisitionsRoute
   '/admin/restaurant/settings': typeof AuthenticatedAdminRestaurantSettingsRoute
+  '/admin/restaurant/setup': typeof AuthenticatedAdminRestaurantSetupRoute
   '/admin/restaurant/stock': typeof AuthenticatedAdminRestaurantStockRoute
   '/admin/restaurant/suppliers': typeof AuthenticatedAdminRestaurantSuppliersRoute
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
@@ -2380,6 +2389,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/restaurant/purchasing': typeof AuthenticatedAdminRestaurantPurchasingRoute
   '/_authenticated/admin/restaurant/requisitions': typeof AuthenticatedAdminRestaurantRequisitionsRoute
   '/_authenticated/admin/restaurant/settings': typeof AuthenticatedAdminRestaurantSettingsRoute
+  '/_authenticated/admin/restaurant/setup': typeof AuthenticatedAdminRestaurantSetupRoute
   '/_authenticated/admin/restaurant/stock': typeof AuthenticatedAdminRestaurantStockRoute
   '/_authenticated/admin/restaurant/suppliers': typeof AuthenticatedAdminRestaurantSuppliersRoute
   '/_authenticated/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
@@ -2636,6 +2646,7 @@ export interface FileRouteTypes {
     | '/admin/restaurant/purchasing'
     | '/admin/restaurant/requisitions'
     | '/admin/restaurant/settings'
+    | '/admin/restaurant/setup'
     | '/admin/restaurant/stock'
     | '/admin/restaurant/suppliers'
     | '/admin/staff/activity'
@@ -2876,6 +2887,7 @@ export interface FileRouteTypes {
     | '/admin/restaurant/purchasing'
     | '/admin/restaurant/requisitions'
     | '/admin/restaurant/settings'
+    | '/admin/restaurant/setup'
     | '/admin/restaurant/stock'
     | '/admin/restaurant/suppliers'
     | '/admin/staff/activity'
@@ -3131,6 +3143,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/restaurant/purchasing'
     | '/_authenticated/admin/restaurant/requisitions'
     | '/_authenticated/admin/restaurant/settings'
+    | '/_authenticated/admin/restaurant/setup'
     | '/_authenticated/admin/restaurant/stock'
     | '/_authenticated/admin/restaurant/suppliers'
     | '/_authenticated/admin/staff/activity'
@@ -4067,6 +4080,13 @@ declare module '@tanstack/react-router' {
       path: '/stock'
       fullPath: '/admin/restaurant/stock'
       preLoaderRoute: typeof AuthenticatedAdminRestaurantStockRouteImport
+      parentRoute: typeof AuthenticatedAdminRestaurantRoute
+    }
+    '/_authenticated/admin/restaurant/setup': {
+      id: '/_authenticated/admin/restaurant/setup'
+      path: '/setup'
+      fullPath: '/admin/restaurant/setup'
+      preLoaderRoute: typeof AuthenticatedAdminRestaurantSetupRouteImport
       parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/settings': {
@@ -5531,6 +5551,7 @@ interface AuthenticatedAdminRestaurantRouteChildren {
   AuthenticatedAdminRestaurantPurchasingRoute: typeof AuthenticatedAdminRestaurantPurchasingRoute
   AuthenticatedAdminRestaurantRequisitionsRoute: typeof AuthenticatedAdminRestaurantRequisitionsRoute
   AuthenticatedAdminRestaurantSettingsRoute: typeof AuthenticatedAdminRestaurantSettingsRoute
+  AuthenticatedAdminRestaurantSetupRoute: typeof AuthenticatedAdminRestaurantSetupRoute
   AuthenticatedAdminRestaurantStockRoute: typeof AuthenticatedAdminRestaurantStockRoute
   AuthenticatedAdminRestaurantSuppliersRoute: typeof AuthenticatedAdminRestaurantSuppliersRoute
   AuthenticatedAdminRestaurantIndexRoute: typeof AuthenticatedAdminRestaurantIndexRoute
@@ -5569,6 +5590,8 @@ const AuthenticatedAdminRestaurantRouteChildren: AuthenticatedAdminRestaurantRou
       AuthenticatedAdminRestaurantRequisitionsRoute,
     AuthenticatedAdminRestaurantSettingsRoute:
       AuthenticatedAdminRestaurantSettingsRoute,
+    AuthenticatedAdminRestaurantSetupRoute:
+      AuthenticatedAdminRestaurantSetupRoute,
     AuthenticatedAdminRestaurantStockRoute:
       AuthenticatedAdminRestaurantStockRoute,
     AuthenticatedAdminRestaurantSuppliersRoute:

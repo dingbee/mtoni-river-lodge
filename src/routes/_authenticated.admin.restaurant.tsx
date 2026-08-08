@@ -17,7 +17,7 @@ import {
   ShoppingCart,
   Truck,
   ClipboardList,
-
+  Wrench,
 } from "lucide-react";
 // Declares Restaurant & Bar OS to the Intelligence Core registry (inert registration).
 import "@/modules/restaurant/intelligence/provider";
@@ -80,6 +80,10 @@ const GROUPS = [
       { to: "/admin/restaurant/decisions", label: "Decisions", icon: Scale },
       { to: "/admin/restaurant/settings", label: "Settings", icon: Settings2 },
     ],
+  },
+  {
+    label: "Setup",
+    items: [{ to: "/admin/restaurant/setup", label: "Restaurant setup", icon: Wrench }],
   },
 ] as const;
 
