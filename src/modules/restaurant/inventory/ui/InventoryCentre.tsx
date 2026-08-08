@@ -20,6 +20,7 @@ import { StatCard } from "@/components/os/StatCard";
 import { StatusChip } from "@/components/os/StatusChip";
 import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { useRestaurantWorkspace } from "../../ui/useRestaurantWorkspace";
+import { BatchSheet } from "./BatchSheet";
 import { stocktakeBadge, transferBadge, type StockPosition } from "../contracts";
 import {
   approveStockTransferFn,
