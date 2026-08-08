@@ -98,13 +98,60 @@ export function PosReceiptDialog({
           </div>
         </div>
 
+        {onDeliver && (
+          <div className="space-y-2 border-t pt-3">
+            <Label className="text-xs text-muted-foreground">Send a copy to (optional)</Label>
+            <Input
+              value={contact}
+              onChange={(e) => setContact(e.target.value)}
+              placeholder="Email address or phone number"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                className="min-h-11"
+                disabled={delivering}
+                onClick={() => onDeliver({ channel: "print" })}
+              >
+                Printed copy
+              </Button>
+              <Button
+                variant="outline"
+                className="min-h-11"
+                disabled={delivering || !contact.includes("@")}
+                onClick={() => onDeliver({ channel: "email", to: contact })}
+              >
+                Email
+              </Button>
+              <Button
+                variant="outline"
+                className="min-h-11"
+                disabled={delivering || contact.trim().length < 6}
+                onClick={() => onDeliver({ channel: "whatsapp", to: contact })}
+              >
+                WhatsApp
+              </Button>
+              <Button
+                variant="ghost"
+                className="min-h-11"
+                disabled={delivering}
+                onClick={() => onDeliver({ channel: "none" })}
+              >
+                Guest declined
+              </Button>
+            </div>
+          </div>
+        )}
+
         <DialogFooter>
           {onReprint && (
-            <Button variant="outline" onClick={onReprint}>
+            <Button variant="outline" className="min-h-11" onClick={onReprint}>
               Reprint
             </Button>
           )}
-          <Button onClick={onClose}>Done</Button>
+          <Button className="min-h-11" onClick={onClose}>
+            Done
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
