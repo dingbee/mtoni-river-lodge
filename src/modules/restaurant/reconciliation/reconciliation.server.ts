@@ -20,6 +20,7 @@ import {
   dedupeDrafts,
   detectInventoryExceptions,
   detectPaymentExceptions,
+  detectRoomChargeExceptions,
   detectProcurementExceptions,
   detectSalesChainExceptions,
   detectTenderExceptions,
@@ -595,6 +596,18 @@ export async function runReconciliation(sb: Sb, userId: string, input: z.infer<t
 
   if (wants("payment")) {
     drafts.push(...detectPaymentExceptions(input.businessDate, facts.orders, facts.payments));
+    // Room charges are only real once the folio says so: compare the outlet's
+    // settlement evidence against the PMS posting log for the same orders.
+    const orderIds = facts.orders.map((o: any) => o.id);
+    if (orderIds.length > 0) {
+      const { data: postings } = await sb
+        .from("pms_folio_postings")
+        .select("id, source_order_id, booking_id, amount, status, idempotency_key, failure_code")
+        .in("source_order_id", orderIds);
+      drafts.push(
+        ...detectRoomChargeExceptions(input.businessDate, facts.payments, (postings ?? []) as any[]),
+      );
+    }
   }
 
   if (wants("sales")) {

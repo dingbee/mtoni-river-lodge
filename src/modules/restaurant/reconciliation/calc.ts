@@ -771,3 +771,88 @@ export function dedupeDrafts(drafts: ExceptionDraft[]): ExceptionDraft[] {
   for (const d of drafts) if (!seen.has(d.dedupeKey)) seen.set(d.dedupeKey, d);
   return [...seen.values()];
 }
+/* ------------------------------------------------- room charge / folio ---- */
+
+export interface FolioPostingFact {
+  id: string;
+  source_order_id?: string | null;
+  booking_id?: string | null;
+  amount?: number | null;
+  status: string;
+  idempotency_key?: string | null;
+  failure_code?: string | null;
+}
+
+/**
+ * The two ways a room charge can go wrong, and neither is allowed to pass
+ * silently: money settled in the outlet that never reached the folio, and money
+ * on a guest's folio that never settled the outlet bill.
+ */
+export function detectRoomChargeExceptions(
+  businessDate: string,
+  payments: PaymentFact[],
+  postings: FolioPostingFact[],
+): ExceptionDraft[] {
+  const out: ExceptionDraft[] = [];
+  const roomCharges = payments.filter(
+    (p) => p.method === "room_charge" && !p.refund_of && p.state !== "voided" && p.state !== "failed",
+  );
+  const postedByOrder = new Map<string, FolioPostingFact[]>();
+  for (const post of postings) {
+    if (!post.source_order_id) continue;
+    postedByOrder.set(post.source_order_id, [...(postedByOrder.get(post.source_order_id) ?? []), post]);
+  }
+
+  for (const p of roomCharges) {
+    const related = postedByOrder.get(p.order_id) ?? [];
+    const posted = related.filter((r) => r.status === "posted");
+    const settledAmount = posted.reduce((s, r) => s + n(r.amount), 0);
+    if (posted.length === 0) {
+      const unresolved = related.find((r) => r.status === "unknown" || r.status === "pending");
+      out.push(
+        draftException(
+          unresolved ? "payment.room_charge_unknown" : "payment.room_charge_unposted",
+          businessDate,
+          p.id,
+          {
+            whatHappened: unresolved
+              ? `A room charge of ${round2(n(p.amount))} was attempted but the property system never confirmed it.`
+              : `A room charge of ${round2(n(p.amount))} settled the bill with no folio posting behind it.`,
+            evidence: { orderId: p.order_id, paymentId: p.id, amount: n(p.amount), postings: related.map((r) => r.id) },
+            impactValue: Math.abs(n(p.amount)),
+            entityType: "restaurant_payments",
+            entityId: p.id,
+          },
+        ),
+      );
+      continue;
+    }
+    if (Math.abs(settledAmount - n(p.amount)) > MATERIALITY.moneyEpsilon) {
+      out.push(
+        draftException("payment.amount_mismatch", businessDate, `roomcharge:${p.id}`, {
+          whatHappened: `A room charge of ${round2(n(p.amount))} does not match the ${round2(settledAmount)} posted to the folio.`,
+          evidence: { orderId: p.order_id, paymentId: p.id, paid: n(p.amount), posted: settledAmount },
+          impactValue: Math.abs(settledAmount - n(p.amount)),
+          entityType: "restaurant_payments",
+          entityId: p.id,
+        }),
+      );
+    }
+  }
+
+  const chargedOrders = new Set(roomCharges.map((p) => p.order_id));
+  for (const post of postings) {
+    if (post.status !== "posted" || !post.source_order_id) continue;
+    if (chargedOrders.has(post.source_order_id)) continue;
+    out.push(
+      draftException("payment.room_charge_orphaned", businessDate, post.id, {
+        whatHappened: `A guest folio was charged ${round2(n(post.amount))} but the outlet bill was never settled.`,
+        evidence: { postingId: post.id, orderId: post.source_order_id, bookingId: post.booking_id, amount: n(post.amount) },
+        impactValue: Math.abs(n(post.amount)),
+        entityType: "pms_folio_postings",
+        entityId: post.id,
+      }),
+    );
+  }
+  return out;
+}
