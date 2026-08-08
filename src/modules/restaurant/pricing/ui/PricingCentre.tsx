@@ -41,12 +41,15 @@ import {
   upsertRestaurantServiceChargeFn,
   upsertRestaurantTaxRuleFn,
 } from "../pricing.functions";
+import { PriceListsTab, RoundingTab } from "./CommercialRulesTabs";
 
 const TABS = [
   { id: "prices", label: "Prices" },
+  { id: "priceLists", label: "Price lists" },
   { id: "promotions", label: "Promotions" },
   { id: "taxes", label: "Taxes & service" },
   { id: "discounts", label: "Discount rules" },
+  { id: "rounding", label: "Rounding" },
   { id: "currencies", label: "Currencies" },
   { id: "simulation", label: "Simulation" },
   { id: "audit", label: "Audit history" },
@@ -111,9 +114,11 @@ export function PricingCentre() {
       {tenantId ? (
         <>
           {tab === "prices" && <PricesTab tenantId={tenantId} />}
+          {tab === "priceLists" && <PriceListsTab tenantId={tenantId} />}
           {tab === "promotions" && <PromotionsTab tenantId={tenantId} />}
           {tab === "taxes" && <TaxesTab tenantId={tenantId} />}
           {tab === "discounts" && <DiscountsTab tenantId={tenantId} />}
+          {tab === "rounding" && <RoundingTab tenantId={tenantId} />}
           {tab === "currencies" && <CurrenciesTab tenantId={tenantId} />}
           {tab === "simulation" && <SimulationTab tenantId={tenantId} />}
           {tab === "audit" && <AuditTab tenantId={tenantId} />}
