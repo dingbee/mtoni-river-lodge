@@ -382,6 +382,29 @@ export async function receiveTransfer(sb: Sb, userId: string, input: ReceiveTran
     dedupeKey: `transfer:received:${transfer.id}:${status}`,
   });
 
+  // Bar mirror when the receiving location is a bar service point.
+  if (status === "completed" || status === "received") {
+    const { data: destination } = await sb
+      .from("restaurant_locations")
+      .select("location_type")
+      .eq("tenant_id", input.tenantId)
+      .eq("id", transfer.destination_location_id)
+      .maybeSingle();
+    if (destination?.location_type === "bar") {
+      await emitRestaurantEvent(sb, userId, {
+        type: "bar.transfer.completed",
+        tenantId: input.tenantId,
+        propertyId: transfer.property_id ?? undefined,
+        locationId: transfer.destination_location_id,
+        entityType: "restaurant_stock_transfer",
+        entityId: transfer.id,
+        source: "restaurant-os",
+        payload: { transfer_number: transfer.transfer_number, status },
+        dedupeKey: `bar:transfer:completed:${transfer.id}:${status}`,
+      });
+    }
+  }
+
   if (variance > 0) {
     await emitRestaurantEvent(sb, userId, {
       type: "restaurant.inventory.variance.detected",
