@@ -210,7 +210,7 @@ export function SetupWorkbench() {
         </div>
         {ready ? (
           <div className="mt-3 flex flex-wrap gap-3 text-sm">
-            <Link to="/admin/restaurant/products" className="underline">
+            <Link to="/admin/restaurant/products" search={{}} className="underline">
               Products &amp; recipes
             </Link>
             <Link to="/admin/restaurant/menu" className="underline">
