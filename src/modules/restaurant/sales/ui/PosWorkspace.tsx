@@ -373,6 +373,8 @@ export function PosWorkspace() {
         <StatCard label="Average check" value={money(stats?.averageCheck ?? 0, currency)} icon={ChefHat} />
       </div>
 
+      {orderId && <GuestContextBanner tenantId={tenantId} orderId={orderId} />}
+
       <div className="grid gap-4 md:grid-cols-2 min-[1700px]:grid-cols-[260px_minmax(0,1fr)_340px]">
         {/* Floor */}
         <SectionCard title="Floor" description="Colour follows the bill, not just the table row.">
