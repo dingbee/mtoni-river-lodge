@@ -77,7 +77,7 @@ const SOURCES: SourceSpec[] = [
     numberColumn: "receipt_number",
     dateColumn: "issued_at",
     amountColumn: "total",
-    select: "id, receipt_number, status:currency, issued_at, total, currency",
+    select: "id, receipt_number, issued_at, total, currency",
   },
 ];
 
