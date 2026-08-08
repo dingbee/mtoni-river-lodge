@@ -108,7 +108,7 @@ async function resolveReason(sb: Sb, userId: string, tenantId: string, kind: str
 async function itemMeta(sb: Sb, tenantId: string, itemId: string) {
   const { data, error } = await sb
     .from("restaurant_inventory_items")
-    .select("id, name, average_cost, currency, unit_id, location_id, property_id, reorder_point, allow_negative, current_quantity")
+    .select("id, name, average_cost, currency, unit_id, location_id, property_id, reorder_point, allow_negative, current_quantity, is_beverage, item_type")
     .eq("tenant_id", tenantId)
     .eq("id", itemId)
     .single();
@@ -163,6 +163,25 @@ export async function recordWaste(sb: Sb, userId: string, input: RecordWasteInpu
     },
     dedupeKey: `waste:${moved.id}`,
   });
+  // Bar mirror: same fact, beverage dimension, for the Intelligence Core.
+  if (item.is_beverage || item.item_type === "beverage") {
+    await emitRestaurantEvent(sb, userId, {
+      type: "bar.waste.recorded",
+      tenantId: input.tenantId,
+      propertyId: input.propertyId,
+      locationId: locationId ?? undefined,
+      entityType: "restaurant_inventory_item",
+      entityId: input.inventoryItemId,
+      source: "restaurant-os",
+      payload: {
+        name: item.name,
+        quantity: Math.abs(input.quantity),
+        reason_code: reason.code,
+        value: Number(value.toFixed(2)),
+      },
+      dedupeKey: `bar:waste:${moved.id}`,
+    });
+  }
   return { duplicate: false as const, movementId: moved.id as string, value: Number(value.toFixed(2)) };
 }
 
