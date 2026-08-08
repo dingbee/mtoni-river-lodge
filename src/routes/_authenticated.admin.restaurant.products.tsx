@@ -18,6 +18,7 @@ import { useRestaurantWorkspace } from "@/modules/restaurant/ui/useRestaurantWor
 import {
   completeRestaurantProductionFn,
   getRestaurantProductEvidenceFn,
+  getRestaurantProductFn,
   getRestaurantRecipeFn,
   listRestaurantProductionsFn,
   listRestaurantProductsFn,
@@ -25,8 +26,17 @@ import {
   setRestaurantRecipeStatusFn,
   startRestaurantProductionFn,
   versionRestaurantRecipeFn,
+  listRestaurantModifierGroupsFn,
 } from "@/modules/restaurant/products/catalog.functions";
-import { ChefHat, Factory, Package, TrendingUp } from "lucide-react";
+import { ChefHat, Factory, Package, Plus, TrendingUp } from "lucide-react";
+import { hasRestaurantCapability } from "@/modules/restaurant/core/permissions";
+import { ProductSheet } from "@/modules/restaurant/products/ui/ProductSheet";
+import { VariantSheet } from "@/modules/restaurant/products/ui/VariantSheet";
+import { ModifierGroupSheet } from "@/modules/restaurant/products/ui/ModifierGroupSheet";
+import { ModifierSheet } from "@/modules/restaurant/products/ui/ModifierSheet";
+import { AttachModifierGroupsPanel } from "@/modules/restaurant/products/ui/AttachModifierGroupsPanel";
+import { RecipeSheet } from "@/modules/restaurant/products/ui/RecipeSheet";
+
 
 export const Route = createFileRoute("/_authenticated/admin/restaurant/products")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -61,7 +71,7 @@ function money(value: unknown, currency = "TZS") {
   return `${currency} ${Number(value ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 }
 
-const PRODUCT_TABS = ["recipes", "products", "production", "evidence"];
+const PRODUCT_TABS = ["recipes", "products", "modifiers", "production", "evidence"];
 
 function ProductRecipeCentre() {
   const ws = useRestaurantWorkspace();
@@ -106,11 +116,38 @@ function ProductRecipeCentre() {
   const [batches, setBatches] = useState("1");
   const [completing, setCompleting] = useState<any | null>(null);
   const [actualQuantity, setActualQuantity] = useState("");
+  const roles = (ws.data?.roles ?? []) as readonly string[];
+  const platformAdmin = ws.data?.platformAdmin ?? false;
+  const canManageProducts = hasRestaurantCapability(roles, "product.manage", platformAdmin);
+  const canManageRecipes = hasRestaurantCapability(roles, "recipe.manage", platformAdmin);
+  const [productSheetOpen, setProductSheetOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [recipeSheetOpen, setRecipeSheetOpen] = useState(false);
+  const [editingRecipeLines, setEditingRecipeLines] = useState<any[] | undefined>(undefined);
+  const [modifierGroupSheetOpen, setModifierGroupSheetOpen] = useState(false);
+  const [editingModifierGroup, setEditingModifierGroup] = useState<any | null>(null);
+  const [modifierSheetOpen, setModifierSheetOpen] = useState<{ groupId: string; modifier?: any | null } | null>(null);
+  const [openProductId, setOpenProductId] = useState<string | null>(null);
+  const [editingVariant, setEditingVariant] = useState<any | null>(null);
+  const [variantSheetOpen, setVariantSheetOpen] = useState(false);
+  const modifierGroupsFn = useServerFn(listRestaurantModifierGroupsFn);
+  const productFn = useServerFn(getRestaurantProductFn);
+  const modifierGroups = useQuery({
+    queryKey: ["restaurant.modifier-groups", tenantId],
+    queryFn: () => modifierGroupsFn({ data: { tenantId: tenantId! } }),
+    enabled,
+  });
 
   const recipeDetail = useQuery({
     queryKey: ["restaurant.recipe", tenantId, openRecipeId],
     queryFn: () => recipeFn({ data: { tenantId: tenantId!, recipeId: openRecipeId! } }),
     enabled: enabled && Boolean(openRecipeId),
+  });
+
+  const productDetail = useQuery({
+    queryKey: ["restaurant.product", tenantId, openProductId],
+    queryFn: () => productFn({ data: { tenantId: tenantId!, productId: openProductId! } }),
+    enabled: enabled && Boolean(openProductId),
   });
 
   const invalidate = () => {
@@ -196,12 +233,23 @@ function ProductRecipeCentre() {
         <TabsList>
           <TabsTrigger value="recipes">Recipes</TabsTrigger>
           <TabsTrigger value="products">Products</TabsTrigger>
+          <TabsTrigger value="modifiers">Modifiers</TabsTrigger>
           <TabsTrigger value="production">Production</TabsTrigger>
           <TabsTrigger value="evidence">Cost evidence</TabsTrigger>
         </TabsList>
 
         <TabsContent value="recipes" className="mt-4">
-          <SectionCard title="Recipes" description="Latest version of each lineage. Sub-recipes and menu recipes share one model.">
+          <SectionCard
+            title="Recipes"
+            description="Latest version of each lineage. Sub-recipes and menu recipes share one model."
+            actions={
+              canManageRecipes ? (
+                <Button size="sm" className="h-10" onClick={() => { setEditingRecipeLines(undefined); setOpenRecipeId(null); setRecipeSheetOpen(true); }}>
+                  <Plus className="mr-1 h-4 w-4" /> New recipe
+                </Button>
+              ) : undefined
+            }
+          >
             {recipeRows.length === 0 ? (
               <EmptyState title="No recipes yet" description="Recipes define what a product actually costs to make." />
             ) : (
@@ -237,24 +285,109 @@ function ProductRecipeCentre() {
         </TabsContent>
 
         <TabsContent value="products" className="mt-4">
-          <SectionCard title="Sellable products" description="Products are what the POS sells; recipes are what they consume.">
+          <SectionCard
+            title="Sellable products"
+            description="Products are what the POS sells; recipes are what they consume."
+            actions={
+              canManageProducts ? (
+                <Button size="sm" className="h-10" onClick={() => { setEditingProduct(null); setProductSheetOpen(true); }}>
+                  <Plus className="mr-1 h-4 w-4" /> New product
+                </Button>
+              ) : undefined
+            }
+          >
             {productRows.length === 0 ? (
               <EmptyState title="No products" description="Create products to sell recipes, retail lines or bundles." />
             ) : (
               <ul className="divide-y text-sm">
                 {productRows.map((p) => (
                   <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                    <span>
+                    <button
+                      type="button"
+                      className="text-left hover:underline"
+                      onClick={() => setOpenProductId(p.id)}
+                    >
                       <span className="font-medium">{p.name}</span>{" "}
                       <span className="text-muted-foreground">
                         {p.sku} · {String(p.product_type).replace("_", " ")}
                       </span>
-                    </span>
+                    </button>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span>{money(p.price, p.currency ?? "TZS")}</span>
                       {p.recipe_id ? null : <StatusChip tone="warning">no recipe</StatusChip>}
                       <StatusChip tone={p.active ? "success" : "neutral"}>{p.active ? "active" : "off"}</StatusChip>
                     </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+        </TabsContent>
+
+        <TabsContent value="modifiers" className="mt-4">
+          <SectionCard
+            title="Modifier groups"
+            description="Reusable option groups (toppings, spice level) attached to products."
+            actions={
+              canManageProducts ? (
+                <Button size="sm" className="h-10" onClick={() => { setEditingModifierGroup(null); setModifierGroupSheetOpen(true); }}>
+                  <Plus className="mr-1 h-4 w-4" /> New group
+                </Button>
+              ) : undefined
+            }
+          >
+            {(modifierGroups.data ?? []).length === 0 ? (
+              <EmptyState title="No modifier groups" description="Create groups like 'Toppings' or 'Spice level' to attach to products." />
+            ) : (
+              <ul className="space-y-3">
+                {(modifierGroups.data as any[]).map((g: any) => (
+                  <li key={g.id} className="rounded-md border p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        className="text-left hover:underline"
+                        disabled={!canManageProducts}
+                        onClick={() => { setEditingModifierGroup(g); setModifierGroupSheetOpen(true); }}
+                      >
+                        <span className="font-medium">{g.name}</span>{" "}
+                        <span className="text-xs text-muted-foreground">
+                          {g.code} · select {g.min_select}-{g.max_select}
+                          {g.required ? " · required" : ""}
+                        </span>
+                      </button>
+                      {canManageProducts ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-9"
+                          onClick={() => setModifierSheetOpen({ groupId: g.id, modifier: null })}
+                        >
+                          <Plus className="mr-1 h-3.5 w-3.5" /> Modifier
+                        </Button>
+                      ) : null}
+                    </div>
+                    {(g.modifiers ?? []).length > 0 ? (
+                      <ul className="mt-2 divide-y text-xs">
+                        {g.modifiers.map((m: any) => (
+                          <li key={m.id} className="flex items-center justify-between py-1.5">
+                            <button
+                              type="button"
+                              className="text-left hover:underline disabled:no-underline"
+                              disabled={!canManageProducts}
+                              onClick={() => setModifierSheetOpen({ groupId: g.id, modifier: m })}
+                            >
+                              {m.name}
+                            </button>
+                            <span className="text-muted-foreground">
+                              {money(m.price_delta)} · {m.effect}
+                              {!m.active ? " · inactive" : ""}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-2 text-xs text-muted-foreground">No modifiers in this group yet.</p>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -416,6 +549,30 @@ function ProductRecipeCentre() {
               </div>
 
               <div className="flex flex-wrap gap-2">
+                {canManageRecipes ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setEditingRecipeLines(
+                        (detail.lines ?? []).map((l: any) => ({
+                          componentKind: l.component_kind,
+                          inventoryItemId: l.inventory_item_id,
+                          subRecipeId: l.sub_recipe_id,
+                          quantity: Number(l.quantity),
+                          unitId: l.unit_id,
+                          yieldPercent: Number(l.yield_percent ?? 100),
+                          isOptional: Boolean(l.is_optional),
+                          sortOrder: l.sort_order ?? 0,
+                          notes: l.notes ?? null,
+                        })),
+                      );
+                      setRecipeSheetOpen(true);
+                    }}
+                  >
+                    Edit recipe
+                  </Button>
+                ) : null}
                 {detail.recipe.status === "draft" ? (
                   <Button
                     size="sm"
@@ -496,6 +653,133 @@ function ProductRecipeCentre() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Product detail */}
+      <Dialog open={Boolean(openProductId)} onOpenChange={(o) => !o && setOpenProductId(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{(productDetail.data as any)?.product?.name ?? "Product"}</DialogTitle>
+          </DialogHeader>
+          {productDetail.isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : productDetail.data ? (
+            <div className="space-y-4 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-muted-foreground">
+                  {(productDetail.data as any).product.sku} ·{" "}
+                  {String((productDetail.data as any).product.product_type).replace("_", " ")}
+                </span>
+                {canManageProducts ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setEditingProduct((productDetail.data as any).product);
+                      setProductSheetOpen(true);
+                    }}
+                  >
+                    Edit product
+                  </Button>
+                ) : null}
+              </div>
+
+              <div className="rounded-md border p-3">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium">Variants</p>
+                  {canManageProducts ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-9"
+                      onClick={() => { setEditingVariant(null); setVariantSheetOpen(true); }}
+                    >
+                      <Plus className="mr-1 h-3.5 w-3.5" /> Variant
+                    </Button>
+                  ) : null}
+                </div>
+                {((productDetail.data as any).variants ?? []).length === 0 ? (
+                  <p className="mt-2 text-xs text-muted-foreground">No variants — this product sells as-is.</p>
+                ) : (
+                  <ul className="mt-2 divide-y text-xs">
+                    {(productDetail.data as any).variants.map((v: any) => (
+                      <li key={v.id} className="flex items-center justify-between py-1.5">
+                        <button
+                          type="button"
+                          className="text-left hover:underline disabled:no-underline"
+                          disabled={!canManageProducts}
+                          onClick={() => { setEditingVariant(v); setVariantSheetOpen(true); }}
+                        >
+                          {v.name}
+                        </button>
+                        <span className="text-muted-foreground">
+                          {v.price_is_delta ? "Δ" : ""}
+                          {money(v.price)}
+                          {!v.active ? " · inactive" : ""}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <AttachModifierGroupsPanel
+                tenantId={tenantId!}
+                productId={(productDetail.data as any).product.id}
+                attachedGroupIds={((productDetail.data as any).modifierGroups ?? []).map((g: any) => g.group_id)}
+              />
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <ProductSheet
+        open={productSheetOpen}
+        onOpenChange={(o) => {
+          setProductSheetOpen(o);
+          if (!o) void qc.invalidateQueries({ queryKey: ["restaurant.product", tenantId] });
+        }}
+        tenantId={tenantId ?? ""}
+        product={editingProduct}
+      />
+
+      {openProductId ? (
+        <VariantSheet
+          open={variantSheetOpen}
+          onOpenChange={(o) => {
+            setVariantSheetOpen(o);
+            if (!o) void qc.invalidateQueries({ queryKey: ["restaurant.product", tenantId, openProductId] });
+          }}
+          tenantId={tenantId ?? ""}
+          productId={openProductId}
+          variant={editingVariant}
+        />
+      ) : null}
+
+      <RecipeSheet
+        open={recipeSheetOpen}
+        onOpenChange={setRecipeSheetOpen}
+        tenantId={tenantId ?? ""}
+        recipe={openRecipeId ? detail?.recipe : null}
+        lines={editingRecipeLines}
+      />
+
+      <ModifierGroupSheet
+        open={modifierGroupSheetOpen}
+        onOpenChange={setModifierGroupSheetOpen}
+        tenantId={tenantId ?? ""}
+        group={editingModifierGroup}
+      />
+
+      {modifierSheetOpen ? (
+        <ModifierSheet
+          open={Boolean(modifierSheetOpen)}
+          onOpenChange={(o) => !o && setModifierSheetOpen(null)}
+          tenantId={tenantId ?? ""}
+          groupId={modifierSheetOpen.groupId}
+          modifier={modifierSheetOpen.modifier}
+        />
+      ) : null}
+
     </div>
   );
 }

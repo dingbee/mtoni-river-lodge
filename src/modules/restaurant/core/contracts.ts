@@ -183,6 +183,13 @@ export const upsertInventoryItemSchema = tenantScopeSchema.extend({
   reorderPoint: z.number().optional(),
   averageCost: z.number().min(0).default(0),
   currency: z.string().min(3).max(3).default("TZS"),
+  /** Extended setup fields — existing columns on restaurant_inventory_items. */
+  trackBatches: z.boolean().default(false),
+  allowNegative: z.boolean().default(false),
+  purchaseUnitId: uuid.optional(),
+  consumptionUnitId: uuid.optional(),
+  packSize: z.number().min(0).optional(),
+  shelfLifeDays: z.number().int().min(0).max(3650).optional(),
 });
 export type UpsertInventoryItemInput = z.infer<typeof upsertInventoryItemSchema>;
 
@@ -205,6 +212,15 @@ export const upsertSupplierSchema = z.object({
   paymentTerms: z.string().max(120).optional(),
   leadTimeDays: z.number().int().min(0).max(365).optional(),
   status: z.string().max(30).default("active"),
+  /** Extended profile — persisted into restaurant_suppliers.metadata (no new columns). */
+  tradingName: z.string().max(160).optional(),
+  taxNumber: z.string().max(80).optional(),
+  billingAddress: z.string().max(400).optional(),
+  deliveryAddress: z.string().max(400).optional(),
+  deliveryDays: z.array(z.string().max(20)).default([]),
+  minimumOrderValue: z.number().min(0).optional(),
+  preferred: z.boolean().default(false),
+  suppliedCategoryIds: z.array(uuid).default([]),
 });
 export type UpsertSupplierInput = z.infer<typeof upsertSupplierSchema>;
 

@@ -11618,6 +11618,194 @@ export type Database = {
           },
         ]
       }
+      restaurant_requisition_lines: {
+        Row: {
+          approved_quantity: number | null
+          created_at: string
+          description: string | null
+          id: string
+          inventory_item_id: string
+          issued_quantity: number
+          notes: string | null
+          requested_quantity: number
+          requisition_id: string
+          sort_order: number
+          tenant_id: string
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_quantity?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          inventory_item_id: string
+          issued_quantity?: number
+          notes?: string | null
+          requested_quantity?: number
+          requisition_id: string
+          sort_order?: number
+          tenant_id: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_quantity?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          inventory_item_id?: string
+          issued_quantity?: number
+          notes?: string | null
+          requested_quantity?: number
+          requisition_id?: string
+          sort_order?: number
+          tenant_id?: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_requisition_lines_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_requisition_lines_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_stock_reconciliation_v"
+            referencedColumns: ["inventory_item_id"]
+          },
+          {
+            foreignKeyName: "restaurant_requisition_lines_requisition_id_fkey"
+            columns: ["requisition_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_requisitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_requisition_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_requisition_lines_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_inventory_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_requisitions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          correlation_id: string | null
+          created_at: string
+          department: string | null
+          destination_location_id: string | null
+          id: string
+          issued_at: string | null
+          issued_by: string | null
+          kind: string
+          metadata: Json
+          notes: string | null
+          property_id: string | null
+          reference: string
+          rejected_reason: string | null
+          requested_by: string | null
+          required_date: string | null
+          source_location_id: string | null
+          status: Database["public"]["Enums"]["restaurant_requisition_status"]
+          submitted_at: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          department?: string | null
+          destination_location_id?: string | null
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          kind?: string
+          metadata?: Json
+          notes?: string | null
+          property_id?: string | null
+          reference: string
+          rejected_reason?: string | null
+          requested_by?: string | null
+          required_date?: string | null
+          source_location_id?: string | null
+          status?: Database["public"]["Enums"]["restaurant_requisition_status"]
+          submitted_at?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          department?: string | null
+          destination_location_id?: string | null
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          kind?: string
+          metadata?: Json
+          notes?: string | null
+          property_id?: string | null
+          reference?: string
+          rejected_reason?: string | null
+          requested_by?: string | null
+          required_date?: string | null
+          source_location_id?: string | null
+          status?: Database["public"]["Enums"]["restaurant_requisition_status"]
+          submitted_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_requisitions_destination_location_id_fkey"
+            columns: ["destination_location_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_requisitions_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_requisitions_source_location_id_fkey"
+            columns: ["source_location_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_requisitions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_service_charges: {
         Row: {
           active: boolean
@@ -14912,6 +15100,14 @@ export type Database = {
       restaurant_recipe_component_kind: "inventory_item" | "sub_recipe"
       restaurant_recipe_kind: "menu" | "sub_recipe" | "production"
       restaurant_recipe_status: "draft" | "active" | "inactive" | "archived"
+      restaurant_requisition_status:
+        | "draft"
+        | "submitted"
+        | "approved"
+        | "partially_issued"
+        | "fulfilled"
+        | "rejected"
+        | "cancelled"
       restaurant_reservation_status:
         | "active"
         | "released"
@@ -15380,6 +15576,15 @@ export const Constants = {
       restaurant_recipe_component_kind: ["inventory_item", "sub_recipe"],
       restaurant_recipe_kind: ["menu", "sub_recipe", "production"],
       restaurant_recipe_status: ["draft", "active", "inactive", "archived"],
+      restaurant_requisition_status: [
+        "draft",
+        "submitted",
+        "approved",
+        "partially_issued",
+        "fulfilled",
+        "rejected",
+        "cancelled",
+      ],
       restaurant_reservation_status: [
         "active",
         "released",

@@ -1,4 +1,4 @@
-import { ClipboardCheck, UtensilsCrossed, BookOpen, Boxes, Truck, ShoppingCart, Calculator, Settings2, Receipt, ChefHat, ArrowLeftRight, PiggyBank, Tags } from "lucide-react";
+import { ClipboardCheck, ClipboardList, UtensilsCrossed, BookOpen, Boxes, Truck, ShoppingCart, Calculator, Settings2, Receipt, ChefHat, ArrowLeftRight, PiggyBank, Tags, Wrench } from "lucide-react";
 import { defineModule } from "../registry";
 
 const ROLES = ["owner", "manager", "finance"] as const;
@@ -166,6 +166,32 @@ export const restaurantPricingModule = defineModule({
   parentId: "restaurant",
   order: 15,
   requiredRoles: [...ROLES],
+  featureFlag: "restaurant_os",
+  status: "beta",
+});
+
+export const restaurantRequisitionsModule = defineModule({
+  id: "restaurant.requisitions",
+  name: "Requisitions",
+  description: "Kitchen, bar and department stock requests, approvals and issues",
+  icon: ClipboardList,
+  route: "/admin/restaurant/requisitions",
+  parentId: "restaurant",
+  order: 22,
+  requiredRoles: [...ROLES],
+  featureFlag: "restaurant_os",
+  status: "beta",
+});
+
+export const restaurantSetupModule = defineModule({
+  id: "restaurant.setup",
+  name: "Restaurant Setup",
+  description: "Business, outlets, stores, units, categories and master data",
+  icon: Wrench,
+  route: "/admin/restaurant/setup",
+  parentId: "restaurant",
+  order: 58,
+  requiredRoles: ["owner", "manager"],
   featureFlag: "restaurant_os",
   status: "beta",
 });

@@ -1,12 +1,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- server function rows are untyped at this boundary. */
-import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { EmptyState } from "@/components/os/EmptyState";
-import { listRestaurantPurchaseOrdersFn } from "@/modules/restaurant/purchasing/purchasing.functions";
+import { StatusChip, type StatusTone } from "@/components/os/StatusChip";
+import { Button } from "@/components/ui/button";
+import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { useRestaurantWorkspace } from "@/modules/restaurant/ui/useRestaurantWorkspace";
+import { hasRestaurantCapability } from "@/modules/restaurant/core/permissions";
+import { listRestaurantPurchaseOrdersFn, createRestaurantPurchaseOrderFn } from "@/modules/restaurant/purchasing/purchasing.functions";
+import { listRestaurantSuppliersFn } from "@/modules/restaurant/suppliers/suppliers.functions";
+import { listRestaurantInventoryFn } from "@/modules/restaurant/inventory/inventory.functions";
+import { PurchaseOrderSheet, type PurchaseOrderFormValue } from "@/modules/restaurant/purchasing/ui/PurchaseOrderSheet";
 
 export const Route = createFileRoute("/_authenticated/admin/restaurant/purchasing")({
   head: () => ({
@@ -19,15 +28,73 @@ export const Route = createFileRoute("/_authenticated/admin/restaurant/purchasin
   component: PurchasingPage,
 });
 
+const PO_TONE: Record<string, StatusTone> = {
+  draft: "neutral",
+  submitted: "warning",
+  approved: "info",
+  partially_received: "info",
+  received: "success",
+  cancelled: "danger",
+};
+
 function PurchasingPage() {
   const ws = useRestaurantWorkspace();
   const tenantId = ws.data?.tenant?.id;
+  const roles = ws.data?.roles ?? [];
+  const platformAdmin = Boolean(ws.data?.platformAdmin);
+  const canManage = hasRestaurantCapability(roles, "purchasing.manage", platformAdmin);
+  const qc = useQueryClient();
+
   const fn = useServerFn(listRestaurantPurchaseOrdersFn);
+  const createFn = useServerFn(createRestaurantPurchaseOrderFn);
+  const suppliersFn = useServerFn(listRestaurantSuppliersFn);
+  const itemsFn = useServerFn(listRestaurantInventoryFn);
+
   const q = useQuery({
     queryKey: ["restaurant.purchase-orders", tenantId],
     queryFn: () => fn({ data: { tenantId: tenantId!, limit: 50 } }),
     enabled: Boolean(tenantId),
   });
+  const suppliers = useQuery({
+    queryKey: ["restaurant.suppliers", tenantId],
+    queryFn: () => suppliersFn({ data: { tenantId: tenantId!, limit: 200 } }),
+    enabled: Boolean(tenantId),
+  });
+  const items = useQuery({
+    queryKey: ["restaurant.inventory", tenantId],
+    queryFn: () => itemsFn({ data: { tenantId: tenantId!, lowOnly: false, limit: 300 } }),
+    enabled: Boolean(tenantId),
+  });
+
+  const [open, setOpen] = useState(false);
+
+  const create = useAdminMutation({
+    mutationFn: (v: PurchaseOrderFormValue) =>
+      createFn({
+        data: {
+          tenantId: tenantId!,
+          supplierId: v.supplierId ?? undefined,
+          reference: v.reference || undefined,
+          expectedAt: v.expectedAt || undefined,
+          currency: v.currency,
+          notes: v.notes || undefined,
+          lines: v.lines.map((l) => ({
+            description: l.description,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            inventoryItemId: l.inventoryItemId ?? undefined,
+          })),
+        },
+      }),
+    successMessage: "Purchase order created",
+    onSuccess: () => {
+      setOpen(false);
+      void qc.invalidateQueries({ queryKey: ["restaurant.purchase-orders", tenantId] });
+    },
+  });
+
+  const supplierOptions = ((suppliers.data ?? []) as any[]).map((s) => ({ value: s.id, label: s.name }));
+  const itemOptions = ((items.data ?? []) as any[]).map((i) => ({ value: i.id, label: i.name, hint: i.sku ?? undefined }));
 
   return (
     <div className="space-y-4">
@@ -35,22 +102,48 @@ function PurchasingPage() {
         title="Purchasing"
         description="Draft → submitted → approved → received. Every transition is an event the Intelligence Core can observe."
       />
-      <SectionCard title="Purchase orders">
+      <SectionCard
+        title="Purchase orders"
+        actions={
+          canManage ? (
+            <Button size="sm" className="h-10" onClick={() => setOpen(true)}>
+              <Plus className="mr-1 h-4 w-4" /> New order
+            </Button>
+          ) : undefined
+        }
+      >
+        <p className="mb-3 text-xs text-muted-foreground">
+          Need to negotiate against a request first? Use the{" "}
+          <Link to="/admin/restaurant/procurement" search={{ tab: "requests" }} className="underline">
+            Procurement Centre
+          </Link>{" "}
+          for the request → approval → conversion lifecycle.
+        </p>
         {(q.data ?? []).length === 0 ? (
           <EmptyState title="No purchase orders" description="Create a purchase order from a supplier catalogue." />
         ) : (
           <ul className="divide-y text-sm">
             {(q.data ?? []).map((o: any) => (
-              <li key={o.id} className="flex items-center justify-between py-2">
-                <span>{o.reference}</span>
-                <span className="text-xs text-muted-foreground">
-                  {o.status} · {o.currency} {Number(o.total ?? 0).toLocaleString()}
+              <li key={o.id} className="flex min-h-14 items-center justify-between gap-3 py-2">
+                <span>{o.reference ?? o.id.slice(0, 8)}</span>
+                <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <StatusChip tone={PO_TONE[o.status] ?? "neutral"}>{o.status}</StatusChip>
+                  {o.currency} {Number(o.total ?? 0).toLocaleString()}
                 </span>
               </li>
             ))}
           </ul>
         )}
       </SectionCard>
+
+      <PurchaseOrderSheet
+        open={open}
+        onOpenChange={setOpen}
+        suppliers={supplierOptions}
+        items={itemOptions}
+        pending={create.isPending}
+        onSubmit={(v) => create.mutate(v)}
+      />
     </div>
   );
 }
