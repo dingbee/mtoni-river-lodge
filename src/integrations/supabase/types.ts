@@ -11465,6 +11465,95 @@ export type Database = {
           },
         ]
       }
+      restaurant_receipt_deliveries: {
+        Row: {
+          attempt: number
+          completed_at: string | null
+          correlation_id: string | null
+          created_at: string
+          failure_code: string | null
+          failure_reason: string | null
+          id: string
+          idempotency_key: string
+          initiated_by: string | null
+          location_id: string | null
+          metadata: Json
+          method: string
+          order_id: string
+          property_id: string | null
+          provider: string | null
+          provider_reference: string | null
+          receipt_id: string
+          receipt_number: string | null
+          recipient: string | null
+          requested_at: string
+          share_expires_at: string | null
+          share_token: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          attempt?: number
+          completed_at?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          failure_code?: string | null
+          failure_reason?: string | null
+          id?: string
+          idempotency_key: string
+          initiated_by?: string | null
+          location_id?: string | null
+          metadata?: Json
+          method: string
+          order_id: string
+          property_id?: string | null
+          provider?: string | null
+          provider_reference?: string | null
+          receipt_id: string
+          receipt_number?: string | null
+          recipient?: string | null
+          requested_at?: string
+          share_expires_at?: string | null
+          share_token?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          attempt?: number
+          completed_at?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          failure_code?: string | null
+          failure_reason?: string | null
+          id?: string
+          idempotency_key?: string
+          initiated_by?: string | null
+          location_id?: string | null
+          metadata?: Json
+          method?: string
+          order_id?: string
+          property_id?: string | null
+          provider?: string | null
+          provider_reference?: string | null
+          receipt_id?: string
+          receipt_number?: string | null
+          recipient?: string | null
+          requested_at?: string
+          share_expires_at?: string | null
+          share_token?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_receipt_deliveries_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_receipts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_receipts: {
         Row: {
           cost_total: number
