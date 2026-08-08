@@ -109,6 +109,7 @@ export const NAV: NavEntry[] = [
         { id: "restaurant.profitability", label: "Menu Profitability", href: "/admin/restaurant/profitability", icon: PiggyBank },
         { id: "restaurant.intelligence", label: "Intelligence", href: "/admin/restaurant/intelligence", icon: Brain },
         { id: "restaurant.decisions", label: "Decisions", href: "/admin/restaurant/decisions", icon: Scale },
+        { id: "restaurant.documents", label: "Document Centre", href: "/admin/restaurant/documents", icon: FileText },
         { id: "restaurant.settings", label: "Tenant Settings", href: "/admin/restaurant/settings", icon: Settings2 },
       ],
     },

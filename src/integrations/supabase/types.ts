@@ -7639,6 +7639,59 @@ export type Database = {
           },
         ]
       }
+      restaurant_document_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          document_id: string | null
+          document_number: string | null
+          document_type: string
+          format: string | null
+          id: string
+          location_id: string | null
+          metadata: Json
+          property_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          document_id?: string | null
+          document_number?: string | null
+          document_type: string
+          format?: string | null
+          id?: string
+          location_id?: string | null
+          metadata?: Json
+          property_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          document_id?: string | null
+          document_number?: string | null
+          document_type?: string
+          format?: string | null
+          id?: string
+          location_id?: string | null
+          metadata?: Json
+          property_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_document_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_document_sequences: {
         Row: {
           created_at: string
