@@ -17,7 +17,7 @@ import {
   ShoppingCart,
   Truck,
   ClipboardList,
-
+  Wrench,
 } from "lucide-react";
 // Declares Restaurant & Bar OS to the Intelligence Core registry (inert registration).
 import "@/modules/restaurant/intelligence/provider";
