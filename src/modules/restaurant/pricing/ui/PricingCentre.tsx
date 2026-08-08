@@ -42,6 +42,7 @@ import {
   upsertRestaurantTaxRuleFn,
 } from "../pricing.functions";
 import { PriceListsTab, RoundingTab } from "./CommercialRulesTabs";
+import { SALES_CHANNELS } from "../contracts";
 
 const TABS = [
   { id: "prices", label: "Prices" },
