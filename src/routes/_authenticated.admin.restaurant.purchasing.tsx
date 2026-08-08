@@ -141,6 +141,7 @@ function PurchasingPage() {
                       <Button size="sm" variant="outline" className="h-10" onClick={() => setInvoiceFor(o.id)}>
                         Record invoice
                       </Button>
+                      <DocumentActions tenantId={tenantId!} type="purchase_order" recordId={o.id} documentNumber={o.document_number} />
                     </>
                   ) : null}
                 </span>
