@@ -119,6 +119,23 @@ export const restaurantKitchenModule = defineModule({
 });
 
 export const restaurantStockModule = defineModule({
+  id: "restaurant.stock.placeholder-anchor",
+} as never);
+
+export const restaurantBarModule = defineModule({
+  id: "restaurant.bar",
+  name: "Bar Operations",
+  description: "Bar service board, pour setup, beverage stock and pour-cost variance",
+  icon: Wine,
+  route: "/admin/restaurant/bar",
+  parentId: "restaurant",
+  order: 9,
+  requiredRoles: [...ROLES],
+  featureFlag: "restaurant_os",
+  status: "beta",
+});
+
+export const restaurantStockMovementsModule = defineModule({
   id: "restaurant.stock",
   name: "Stock Movements",
   description: "Consumption, wastage, transfers and adjustments",
