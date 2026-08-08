@@ -20,6 +20,7 @@ import { StatCard } from "@/components/os/StatCard";
 import { StatusChip } from "@/components/os/StatusChip";
 import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { useRestaurantWorkspace } from "../../ui/useRestaurantWorkspace";
+import { SupplierInvoiceSheet } from "./SupplierInvoiceSheet";
 import { formatMoney, formatQty, lifecycleBadge, VARIANCE_LABELS } from "../lifecycle";
 import {
   convertRestaurantRequestToOrderFn,
@@ -476,6 +477,7 @@ function InvoicesTab({ tenantId }: { tenantId: string }) {
     queryKey: ["restaurant.procurement.invoices", tenantId],
     queryFn: () => listFn({ data: { tenantId, limit: 100 } }),
   });
+  const [entryOpen, setEntryOpen] = useState(false);
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ["restaurant.procurement.invoices", tenantId] });
     void qc.invalidateQueries({ queryKey: ["restaurant.procurement.overview", tenantId] });
@@ -494,7 +496,15 @@ function InvoicesTab({ tenantId }: { tenantId: string }) {
   });
 
   return (
-    <SectionCard title="Supplier invoices" description="Matched against the order and the goods actually accepted.">
+    <SectionCard
+      title="Supplier invoices"
+      description="Matched against the order and the goods actually accepted."
+      actions={
+        <Button size="sm" className="h-10" onClick={() => setEntryOpen(true)}>
+          Record invoice
+        </Button>
+      }
+    >
       {(q.data as any[] | undefined)?.length ? (
         <ul className="divide-y text-sm">
           {(q.data as any[]).map((i) => (
@@ -536,6 +546,7 @@ function InvoicesTab({ tenantId }: { tenantId: string }) {
       ) : (
         <EmptyState title="No supplier invoices" description="Invoices appear here once recorded against a supplier." />
       )}
+      <SupplierInvoiceSheet open={entryOpen} onOpenChange={setEntryOpen} tenantId={tenantId} />
     </SectionCard>
   );
 }
