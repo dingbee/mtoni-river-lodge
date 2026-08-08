@@ -220,8 +220,44 @@ export function PosWorkspace() {
   const serverItems = ((order.data as any)?.items ?? []) as any[];
   const live = serverItems.filter((i) => i.status !== "voided");
   const orderRow = (order.data as any)?.order;
+  const orderTickets = ((order.data as any)?.tickets ?? []) as any[];
+  const orderPayments = ((order.data as any)?.payments ?? []) as any[];
   const billTotal = Number(orderRow?.total ?? 0) + cart.reduce((s, l) => s + lineTotal(l), 0);
   const stats = (board.data as any)?.stats;
+
+  const life = useMemo(
+    () =>
+      orderRow
+        ? deriveLifecycle({
+            order: orderRow,
+            items: serverItems,
+            tickets: orderTickets,
+            payments: orderPayments,
+            stagedCount: cart.length,
+          })
+        : null,
+    [orderRow, serverItems, orderTickets, orderPayments, cart.length],
+  );
+
+  /** One primary action per state — the till never asks "what now?". */
+  const runNextAction = () => {
+    if (!life || !orderId) return;
+    switch (life.nextAction) {
+      case "send-to-kitchen":
+        sendLines.mutate({ fire: true });
+        break;
+      case "mark-served":
+      case "take-payment":
+      case "settle-balance":
+        setPayOpen(true);
+        break;
+      case "print-receipt":
+        showReceipt.mutate({ orderId, reprint: false });
+        break;
+      default:
+        break;
+    }
+  };
 
   if (!tenantId) {
     return <EmptyState title="No restaurant workspace" description="You are not a member of a restaurant tenant yet." />;
