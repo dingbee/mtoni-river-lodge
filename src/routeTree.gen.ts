@@ -55,6 +55,7 @@ import { Route as TagSplatRouteImport } from './routes/tag.$'
 import { Route as RoomsStandardRiverRouteImport } from './routes/rooms.standard-river'
 import { Route as RoomsRiverfrontDeluxeRouteImport } from './routes/rooms.riverfront-deluxe'
 import { Route as RoomsFamilyRoomRouteImport } from './routes/rooms.family-room'
+import { Route as ReceiptTokenRouteImport } from './routes/receipt.$token'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as JournalWhereToStayBeforeClimbingMountKilimanjaroRouteImport } from './routes/journal.where-to-stay-before-climbing-mount-kilimanjaro'
 import { Route as JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport } from './routes/journal.what-the-river-has-taught-us-about-time'
@@ -500,6 +501,11 @@ const RoomsFamilyRoomRoute = RoomsFamilyRoomRouteImport.update({
   id: '/family-room',
   path: '/family-room',
   getParentRoute: () => RoomsRoute,
+} as any)
+const ReceiptTokenRoute = ReceiptTokenRouteImport.update({
+  id: '/receipt/$token',
+  path: '/receipt/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PSlugRoute = PSlugRouteImport.update({
   id: '/p/$slug',
@@ -1812,6 +1818,7 @@ export interface FileRoutesByFullPath {
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/journal/where-to-stay-before-climbing-mount-kilimanjaro': typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRoute
   '/p/$slug': typeof PSlugRoute
+  '/receipt/$token': typeof ReceiptTokenRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
@@ -2068,6 +2075,7 @@ export interface FileRoutesByTo {
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/journal/where-to-stay-before-climbing-mount-kilimanjaro': typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRoute
   '/p/$slug': typeof PSlugRoute
+  '/receipt/$token': typeof ReceiptTokenRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
@@ -2318,6 +2326,7 @@ export interface FileRoutesById {
   '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
   '/journal/where-to-stay-before-climbing-mount-kilimanjaro': typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRoute
   '/p/$slug': typeof PSlugRoute
+  '/receipt/$token': typeof ReceiptTokenRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
@@ -2579,6 +2588,7 @@ export interface FileRouteTypes {
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
     | '/p/$slug'
+    | '/receipt/$token'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
@@ -2835,6 +2845,7 @@ export interface FileRouteTypes {
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
     | '/p/$slug'
+    | '/receipt/$token'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
@@ -3084,6 +3095,7 @@ export interface FileRouteTypes {
     | '/journal/what-the-river-has-taught-us-about-time'
     | '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
     | '/p/$slug'
+    | '/receipt/$token'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
@@ -3331,6 +3343,7 @@ export interface RootRouteChildren {
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   FeedSplatRoute: typeof FeedSplatRoute
   PSlugRoute: typeof PSlugRoute
+  ReceiptTokenRoute: typeof ReceiptTokenRoute
   TagSplatRoute: typeof TagSplatRoute
   WpAdminSplatRoute: typeof WpAdminSplatRoute
   WpContentSplatRoute: typeof WpContentSplatRoute
@@ -3678,6 +3691,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/rooms/family-room'
       preLoaderRoute: typeof RoomsFamilyRoomRouteImport
       parentRoute: typeof RoomsRoute
+    }
+    '/receipt/$token': {
+      id: '/receipt/$token'
+      path: '/receipt/$token'
+      fullPath: '/receipt/$token'
+      preLoaderRoute: typeof ReceiptTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/p/$slug': {
       id: '/p/$slug'
@@ -5963,6 +5983,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   FeedSplatRoute: FeedSplatRoute,
   PSlugRoute: PSlugRoute,
+  ReceiptTokenRoute: ReceiptTokenRoute,
   TagSplatRoute: TagSplatRoute,
   WpAdminSplatRoute: WpAdminSplatRoute,
   WpContentSplatRoute: WpContentSplatRoute,
@@ -5989,3 +6010,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

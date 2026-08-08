@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- receipt snapshot is untyped at this boundary. */
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,11 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { money } from "./pos-types";
-import type { ReceiptDeliveryChannel } from "../bill.contracts";
+import { ReceiptDeliveryPanel } from "@/modules/restaurant/receipts/ui/ReceiptDeliveryPanel";
 
 /**
  * The frozen receipt snapshot, plus the one remaining service act: getting it
@@ -24,16 +21,13 @@ export function PosReceiptDialog({
   receipt,
   onClose,
   onReprint,
-  onDeliver,
-  delivering,
+  tenantId,
 }: {
   receipt: any | null;
   onClose: () => void;
   onReprint?: () => void;
-  onDeliver?: (input: { channel: ReceiptDeliveryChannel; to?: string }) => void;
-  delivering?: boolean;
+  tenantId?: string;
 }) {
-  const [contact, setContact] = useState("");
   if (!receipt) return null;
   const snapshot = receipt.snapshot ?? {};
   const currency = receipt.currency ?? "TZS";
@@ -98,49 +92,14 @@ export function PosReceiptDialog({
           </div>
         </div>
 
-        {onDeliver && (
-          <div className="space-y-2 border-t pt-3">
-            <Label className="text-xs text-muted-foreground">Send a copy to (optional)</Label>
-            <Input
-              value={contact}
-              onChange={(e) => setContact(e.target.value)}
-              placeholder="Email address or phone number"
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                className="min-h-11"
-                disabled={delivering}
-                onClick={() => onDeliver({ channel: "print" })}
-              >
-                Printed copy
-              </Button>
-              <Button
-                variant="outline"
-                className="min-h-11"
-                disabled={delivering || !contact.includes("@")}
-                onClick={() => onDeliver({ channel: "email", to: contact })}
-              >
-                Email
-              </Button>
-              <Button
-                variant="outline"
-                className="min-h-11"
-                disabled={delivering || contact.trim().length < 6}
-                onClick={() => onDeliver({ channel: "whatsapp", to: contact })}
-              >
-                WhatsApp
-              </Button>
-              <Button
-                variant="ghost"
-                className="min-h-11"
-                disabled={delivering}
-                onClick={() => onDeliver({ channel: "none" })}
-              >
-                Guest declined
-              </Button>
-            </div>
-          </div>
+        {tenantId && (
+          <ReceiptDeliveryPanel
+            tenantId={tenantId}
+            receiptId={receipt.id}
+            orderId={receipt.order_id}
+            receiptNumber={receipt.receipt_number}
+            total={money(Number(receipt.total ?? 0), currency)}
+          />
         )}
 
         <DialogFooter>

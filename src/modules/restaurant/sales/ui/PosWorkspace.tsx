@@ -26,7 +26,6 @@ import {
   voidPosLineFn,
 } from "../pos.functions";
 import {
-  deliverRestaurantReceiptFn,
   getRestaurantBillFn,
   presentRestaurantBillFn,
   refundRestaurantPaymentFn,
@@ -93,7 +92,6 @@ export function PosWorkspace() {
   const requestBillFn = useServerFn(requestRestaurantBillFn);
   const presentBillFn = useServerFn(presentRestaurantBillFn);
   const releaseTableFn = useServerFn(releaseRestaurantTableFn);
-  const deliverFn = useServerFn(deliverRestaurantReceiptFn);
   const refundFn = useServerFn(refundRestaurantPaymentFn);
 
   const board = useQuery({
@@ -251,16 +249,6 @@ export function PosWorkspace() {
     onSuccess: () => {
       setOrderId(null);
       setReceipt(null);
-      refresh();
-    },
-  });
-
-  const deliverReceipt = useAdminMutation({
-    mutationFn: (vars: { channel: any; to?: string }) =>
-      deliverFn({ data: { tenantId: tenantId!, orderId: receipt?.order_id ?? orderId!, ...vars } }),
-    successMessage: "Receipt delivery recorded",
-    onSuccess: (data: any) => {
-      setReceipt(data);
       refresh();
     },
   });
@@ -715,8 +703,7 @@ export function PosWorkspace() {
         receipt={receipt}
         onClose={() => setReceipt(null)}
         onReprint={() => receipt && showReceipt.mutate({ orderId: receipt.order_id, reprint: true })}
-        delivering={deliverReceipt.isPending}
-        onDeliver={(input) => deliverReceipt.mutate(input)}
+        tenantId={tenantId ?? undefined}
       />
     </div>
   );

@@ -20,7 +20,10 @@ import { StatusChip } from "@/components/os/StatusChip";
 import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { useRestaurantWorkspace } from "@/modules/restaurant/ui/useRestaurantWorkspace";
 import { DocumentActions } from "@/modules/restaurant/documents/ui/DocumentActions";
-import { listRestaurantReceiptsFn, deliverRestaurantReceiptFn } from "../bill.functions";
+import { listReceiptDeliveriesFn } from "@/modules/restaurant/receipts/delivery.functions";
+import { DeliveryRow } from "@/modules/restaurant/receipts/ui/ReceiptDeliveryPanel";
+import type { DeliveryRecord } from "@/modules/restaurant/receipts/delivery.types";
+import { listRestaurantReceiptsFn } from "../bill.functions";
 import { posReceiptFn } from "../pos.functions";
 import { PosReceiptDialog } from "./PosReceiptDialog";
 import { money } from "./pos-types";
@@ -35,7 +38,7 @@ export function ReceiptCentre() {
 
   const listFn = useServerFn(listRestaurantReceiptsFn);
   const receiptFn = useServerFn(posReceiptFn);
-  const deliverFn = useServerFn(deliverRestaurantReceiptFn);
+  const deliveriesFn = useServerFn(listReceiptDeliveriesFn);
 
   const [query, setQuery] = useState("");
   const [from, setFrom] = useState(weekAgo);
@@ -48,21 +51,17 @@ export function ReceiptCentre() {
     queryFn: () => listFn({ data: { tenantId, query, from, to, limit: 100 } }) as any,
   });
 
+  const deliveries = useQuery({
+    queryKey: ["restaurant.receipt.deliveries.all", tenantId],
+    enabled: Boolean(tenantId),
+    queryFn: () => deliveriesFn({ data: { tenantId, limit: 50 } }) as any,
+  });
+
   const load = useAdminMutation({
     mutationFn: (vars: { orderId: string; reprint: boolean }) =>
       receiptFn({ data: { tenantId, orderId: vars.orderId, reprint: vars.reprint } }),
     silentSuccess: true,
     onSuccess: (data: any) => setOpen(data),
-  });
-
-  const deliver = useAdminMutation({
-    mutationFn: (vars: { channel: any; to?: string }) =>
-      deliverFn({ data: { tenantId, orderId: open?.order_id, ...vars } }),
-    successMessage: "Receipt delivery recorded",
-    onSuccess: (data: any) => {
-      setOpen(data);
-      void receipts.refetch();
-    },
   });
 
   if (ws.isLoading) return <LoadingState />;
@@ -136,12 +135,29 @@ export function ReceiptCentre() {
         </div>
       </SectionCard>
 
+      <SectionCard
+        title="Delivery history"
+        description="Every attempt to hand a receipt to a guest, kept separately from reprints. Failed attempts are never overwritten by a later retry."
+      >
+        {deliveries.isLoading && <LoadingState />}
+        {!deliveries.isLoading && ((deliveries.data as DeliveryRecord[]) ?? []).length === 0 && (
+          <p className="text-sm text-muted-foreground">No receipt has been sent or shared yet.</p>
+        )}
+        <div className="space-y-2">
+          {((deliveries.data as DeliveryRecord[]) ?? []).map((d) => (
+            <div key={d.id} className="space-y-1">
+              <p className="text-xs font-medium">{d.receiptNumber ?? "—"}</p>
+              <DeliveryRow attempt={d} />
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+
       <PosReceiptDialog
         receipt={open}
         onClose={() => setOpen(null)}
         onReprint={() => open && load.mutate({ orderId: open.order_id, reprint: true })}
-        delivering={deliver.isPending}
-        onDeliver={(input) => deliver.mutate(input)}
+        tenantId={tenantId}
       />
     </div>
   );
