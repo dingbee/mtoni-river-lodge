@@ -104,6 +104,21 @@ export const RESTAURANT_EVENT_TYPES = [
   "bar.product.performance.changed",
   "bar.pour.configured",
   "bar.drink.comped",
+  /* --- Menu lifecycle, guest context & menu intelligence (Sprint 5.11). --- */
+  "restaurant.menu.item.updated",
+  "restaurant.menu.item.activated",
+  "restaurant.menu.item.paused",
+  "restaurant.menu.item.discontinued",
+  "restaurant.menu.item.archived",
+  "restaurant.menu.item.deleted",
+  "restaurant.guest.preference.observed",
+  "restaurant.guest.preference.confirmed",
+  "restaurant.guest.allergen.recorded",
+  "restaurant.guest.dietary_requirement.recorded",
+  "restaurant.menu.opportunity.detected",
+  "restaurant.menu.recommendation.generated",
+  "restaurant.menu.recommendation.accepted",
+  "restaurant.menu.recommendation.dismissed",
 ] as const;
 export type RestaurantEventType = (typeof RESTAURANT_EVENT_TYPES)[number];
 
@@ -203,6 +218,20 @@ export const RESTAURANT_EVENT_SEVERITY: Record<RestaurantEventType, "info" | "lo
   "bar.product.performance.changed": "medium",
   "bar.pour.configured": "info",
   "bar.drink.comped": "medium",
+  "restaurant.menu.item.updated": "info",
+  "restaurant.menu.item.activated": "low",
+  "restaurant.menu.item.paused": "low",
+  "restaurant.menu.item.discontinued": "medium",
+  "restaurant.menu.item.archived": "low",
+  "restaurant.menu.item.deleted": "medium",
+  "restaurant.guest.preference.observed": "info",
+  "restaurant.guest.preference.confirmed": "low",
+  "restaurant.guest.allergen.recorded": "high",
+  "restaurant.guest.dietary_requirement.recorded": "medium",
+  "restaurant.menu.opportunity.detected": "low",
+  "restaurant.menu.recommendation.generated": "low",
+  "restaurant.menu.recommendation.accepted": "low",
+  "restaurant.menu.recommendation.dismissed": "info",
 };
 
 export const restaurantEventSchema = z.object({

@@ -28,6 +28,9 @@ export const RESTAURANT_CAPABILITIES = [
   "tenant.manage",
   "location.manage",
   "menu.manage",
+  "menu.delete",
+  "guest.context.read",
+  "guest.context.manage",
   "recipe.manage",
   "product.manage",
   "production.manage",
@@ -71,6 +74,17 @@ const CAPABILITY_ROLES: Record<RestaurantCapability, readonly RestaurantRole[]> 
   "tenant.manage": ["owner", "general_manager"],
   "location.manage": ["owner", "general_manager", "restaurant_manager"],
   "menu.manage": ["owner", "general_manager", "restaurant_manager", "chef", "kitchen_manager"],
+  // Destructive deletion and guest health data are narrower than menu editing.
+  "menu.delete": ["owner", "general_manager", "restaurant_manager"],
+  "guest.context.read": [
+    "owner",
+    "general_manager",
+    "restaurant_manager",
+    "chef",
+    "kitchen_manager",
+    "bartender",
+  ],
+  "guest.context.manage": ["owner", "general_manager", "restaurant_manager", "chef", "kitchen_manager"],
   "recipe.manage": ["owner", "general_manager", "restaurant_manager", "chef", "kitchen_manager"],
   "product.manage": ["owner", "general_manager", "restaurant_manager", "chef", "kitchen_manager"],
   "production.manage": [

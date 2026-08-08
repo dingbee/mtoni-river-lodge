@@ -4997,33 +4997,54 @@ export type Database = {
       guest_preferences: {
         Row: {
           category: string
+          confidence: number | null
           created_at: string
+          evidence: Json
           guest_id: string
           id: string
           key: string
+          kind: string
+          last_observed_at: string | null
+          observed_count: number
+          severity: string | null
           source: string
+          state: string
           updated_at: string
           updated_by: string | null
           value: string
         }
         Insert: {
           category?: string
+          confidence?: number | null
           created_at?: string
+          evidence?: Json
           guest_id: string
           id?: string
           key: string
+          kind?: string
+          last_observed_at?: string | null
+          observed_count?: number
+          severity?: string | null
           source?: string
+          state?: string
           updated_at?: string
           updated_by?: string | null
           value: string
         }
         Update: {
           category?: string
+          confidence?: number | null
           created_at?: string
+          evidence?: Json
           guest_id?: string
           id?: string
           key?: string
+          kind?: string
+          last_observed_at?: string | null
+          observed_count?: number
+          severity?: string | null
           source?: string
+          state?: string
           updated_at?: string
           updated_by?: string | null
           value?: string
@@ -8207,6 +8228,10 @@ export type Database = {
       }
       restaurant_inventory_items: {
         Row: {
+          allergen_reviewed_at: string | null
+          allergen_reviewed_by: string | null
+          allergen_status: string
+          allergens: string[]
           allow_negative: boolean
           average_cost: number
           category_id: string | null
@@ -8236,6 +8261,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allergen_reviewed_at?: string | null
+          allergen_reviewed_by?: string | null
+          allergen_status?: string
+          allergens?: string[]
           allow_negative?: boolean
           average_cost?: number
           category_id?: string | null
@@ -8265,6 +8294,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allergen_reviewed_at?: string | null
+          allergen_reviewed_by?: string | null
+          allergen_status?: string
+          allergens?: string[]
           allow_negative?: boolean
           average_cost?: number
           category_id?: string | null
@@ -8748,7 +8781,11 @@ export type Database = {
       }
       restaurant_menu_items: {
         Row: {
+          allergen_reviewed_at: string | null
+          allergen_reviewed_by: string | null
+          allergen_status: string
           allergens: string[]
+          archived_at: string | null
           availability: Json
           available: boolean
           category_id: string | null
@@ -8756,8 +8793,12 @@ export type Database = {
           created_at: string
           currency: string
           description: string | null
+          discontinued_at: string | null
           id: string
           image_url: string | null
+          lifecycle_changed_at: string
+          lifecycle_changed_by: string | null
+          lifecycle_status: string
           menu_id: string
           metadata: Json
           name: string
@@ -8766,10 +8807,15 @@ export type Database = {
           sort_order: number
           tags: string[]
           tenant_id: string
+          unavailable_reason: string | null
           updated_at: string
         }
         Insert: {
+          allergen_reviewed_at?: string | null
+          allergen_reviewed_by?: string | null
+          allergen_status?: string
           allergens?: string[]
+          archived_at?: string | null
           availability?: Json
           available?: boolean
           category_id?: string | null
@@ -8777,8 +8823,12 @@ export type Database = {
           created_at?: string
           currency?: string
           description?: string | null
+          discontinued_at?: string | null
           id?: string
           image_url?: string | null
+          lifecycle_changed_at?: string
+          lifecycle_changed_by?: string | null
+          lifecycle_status?: string
           menu_id: string
           metadata?: Json
           name: string
@@ -8787,10 +8837,15 @@ export type Database = {
           sort_order?: number
           tags?: string[]
           tenant_id: string
+          unavailable_reason?: string | null
           updated_at?: string
         }
         Update: {
+          allergen_reviewed_at?: string | null
+          allergen_reviewed_by?: string | null
+          allergen_status?: string
           allergens?: string[]
+          archived_at?: string | null
           availability?: Json
           available?: boolean
           category_id?: string | null
@@ -8798,8 +8853,12 @@ export type Database = {
           created_at?: string
           currency?: string
           description?: string | null
+          discontinued_at?: string | null
           id?: string
           image_url?: string | null
+          lifecycle_changed_at?: string
+          lifecycle_changed_by?: string | null
+          lifecycle_status?: string
           menu_id?: string
           metadata?: Json
           name?: string
@@ -8808,6 +8867,7 @@ export type Database = {
           sort_order?: number
           tags?: string[]
           tenant_id?: string
+          unavailable_reason?: string | null
           updated_at?: string
         }
         Relationships: [
