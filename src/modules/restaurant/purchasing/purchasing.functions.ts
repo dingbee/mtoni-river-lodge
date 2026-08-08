@@ -5,6 +5,7 @@ import {
   listPurchaseOrdersSchema,
   transitionPurchaseOrderSchema,
 } from "../core/contracts";
+import { getPurchaseOrderDetailSchema } from "./contracts";
 
 export const listRestaurantPurchaseOrdersFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -28,4 +29,12 @@ export const transitionRestaurantPurchaseOrderFn = createServerFn({ method: "POS
   .handler(async ({ data, context }) => {
     const mod = await import("./purchasing.server");
     return mod.transitionPurchaseOrder(context.supabase, context.userId, data);
+  });
+
+export const getRestaurantPurchaseOrderDetailFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => getPurchaseOrderDetailSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const mod = await import("./purchasing.server");
+    return mod.getPurchaseOrderDetail(context.supabase, context.userId, data.tenantId, data.id);
   });
