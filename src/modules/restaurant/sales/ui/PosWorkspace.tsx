@@ -41,6 +41,7 @@ import { lineTotal, money, type CartLine } from "./pos-types";
 import { deriveLifecycle, tableTone, TABLE_TONE_CLASS, TABLE_TONE_LABEL, type TableTone } from "./lifecycle";
 import { ServiceLifecycleBar } from "./ServiceLifecycleBar";
 import { OrderTimeline } from "./OrderTimeline";
+import { beverageCategories } from "@/modules/restaurant/bar/lens";
 
 const newRequestId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `pos-${Date.now()}-${Math.random()}`;
@@ -293,7 +294,7 @@ export function PosWorkspace({ lens = "restaurant" }: { lens?: PosLens } = {}) {
   const items = (catalog.data?.items ?? []) as any[];
   const allCategories = (catalog.data?.categories ?? []) as any[];
   /** In the bar lens the catalogue narrows to beverage categories; falls back to all when none are tagged. */
-  const barCategories = useMemo(() => beverageCategories(allCategories), [allCategories]);
+  const barCategories = useMemo(() => beverageCategories<any>(allCategories), [allCategories]);
   const categories = isBar && barCategories.length > 0 ? barCategories : allCategories;
   const scoped = useMemo(() => {
     if (!isBar || barCategories.length === 0) return items;
