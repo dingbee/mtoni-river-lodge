@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { PosModifierInput } from "../pos.contracts";
 import { money, type CartLine } from "./pos-types";
+import { PosCompositionPanel } from "./PosCompositionPanel";
 
 /**
  * Choice pad for one item: variant, modifiers, seat and notes.
@@ -25,6 +26,7 @@ export function PosItemDialog({
   groups,
   currency,
   seats,
+  tenantId,
   onClose,
   onAdd,
 }: {
@@ -32,6 +34,8 @@ export function PosItemDialog({
   groups: any[];
   currency: string;
   seats: number;
+  /** Enables the live composition and stock read for composed items. */
+  tenantId?: string;
   onClose: () => void;
   onAdd: (line: CartLine) => void;
 }) {
@@ -122,6 +126,8 @@ export function PosItemDialog({
               />
             </div>
           </div>
+
+          <PosCompositionPanel tenantId={tenantId} menuItemId={item.id} quantity={quantity} />
 
           {(item.variants ?? []).length > 0 && (
             <div className="space-y-2">

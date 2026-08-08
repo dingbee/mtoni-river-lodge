@@ -691,6 +691,7 @@ export function PosWorkspace({ lens = "restaurant" }: { lens?: PosLens } = {}) {
         groups={(catalog.data?.modifierGroups ?? []) as any[]}
         currency={currency}
         seats={Number(orderRow?.guest_count ?? 0)}
+        tenantId={tenantId}
         onClose={() => setPickerItem(null)}
         onAdd={(line) => setCart((prev) => [...prev, line])}
       />
