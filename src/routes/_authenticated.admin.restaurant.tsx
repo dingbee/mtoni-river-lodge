@@ -81,6 +81,10 @@ const GROUPS = [
       { to: "/admin/restaurant/settings", label: "Settings", icon: Settings2 },
     ],
   },
+  {
+    label: "Setup",
+    items: [{ to: "/admin/restaurant/setup", label: "Restaurant setup", icon: Wrench }],
+  },
 ] as const;
 
 function RestaurantLayout() {
