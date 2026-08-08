@@ -453,6 +453,7 @@ function ReceivingTab({ tenantId }: { tenantId: string }) {
                       Post to stock
                     </Button>
                   )}
+                  <DocumentActions tenantId={tenantId} type="goods_receipt" recordId={r.id} documentNumber={r.document_number} />
                 </div>
               </Row>
             ))}
