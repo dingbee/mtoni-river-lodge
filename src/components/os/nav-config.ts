@@ -31,6 +31,7 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 import { UserCheck } from "lucide-react";
+import { Wine } from "lucide-react";
 import { ListChecks, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 import { UtensilsCrossed, BookOpen, Boxes, Truck, ShoppingCart, Calculator, Settings2 } from "lucide-react";
 import type { ComponentType } from "react";
@@ -98,6 +99,8 @@ export const NAV: NavEntry[] = [
         { id: "restaurant.overview", label: "Overview", href: "/admin/restaurant", icon: UtensilsCrossed },
         { id: "restaurant.orders", label: "Orders", href: "/admin/restaurant/orders", icon: Receipt },
         { id: "restaurant.kitchen", label: "Kitchen", href: "/admin/restaurant/kitchen", icon: ChefHat },
+        { id: "restaurant.bar", label: "Bar", href: "/admin/restaurant/bar", icon: Wine },
+        { id: "restaurant.barPos", label: "Bar POS", href: "/admin/restaurant/bar/pos", icon: Wine },
         { id: "restaurant.menu", label: "Menu Management", href: "/admin/restaurant/menu", icon: BookOpen },
         { id: "restaurant.pricing", label: "Pricing Centre", href: "/admin/restaurant/pricing", icon: Calculator },
         { id: "restaurant.inventory", label: "Inventory", href: "/admin/restaurant/inventory", icon: Boxes },

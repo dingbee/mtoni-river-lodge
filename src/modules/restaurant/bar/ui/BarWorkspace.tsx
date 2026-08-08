@@ -5,6 +5,7 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { Link } from "@tanstack/react-router";
 import { AlertTriangle, ArrowLeftRight, ClipboardList, GlassWater, Timer, Wine } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
@@ -72,6 +73,27 @@ export function BarWorkspace({ initialTab }: { initialTab?: string }) {
         title="Bar operations"
         description="Pour configuration, beverage stock, service tickets and theoretical-versus-actual variance — all posted through the same inventory ledger."
       />
+
+      <div className="flex flex-wrap gap-2">
+        <Button asChild className="min-h-11">
+          <Link to="/admin/restaurant/bar/pos">Open bar tab / Bar POS</Link>
+        </Button>
+        <Button asChild variant="outline" className="min-h-11">
+          <Link to="/admin/restaurant/requisitions">Request stock</Link>
+        </Button>
+        <Button asChild variant="outline" className="min-h-11">
+          <Link to="/admin/restaurant/stock">Record wastage</Link>
+        </Button>
+        <Button asChild variant="outline" className="min-h-11">
+          <Link to="/admin/restaurant/inventory-control">Stocktake &amp; receive</Link>
+        </Button>
+        <Button variant="outline" className="min-h-11" onClick={() => setTab("variance")}>
+          View variance
+        </Button>
+        <Button asChild variant="outline" className="min-h-11">
+          <Link to="/admin/restaurant/intelligence">Bar intelligence</Link>
+        </Button>
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Open drink tickets" value={String(snap?.openTicketCount ?? 0)} icon={GlassWater} />
