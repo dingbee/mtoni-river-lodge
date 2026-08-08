@@ -21,6 +21,7 @@ import { StatusChip } from "@/components/os/StatusChip";
 import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { useRestaurantWorkspace } from "../../ui/useRestaurantWorkspace";
 import { SupplierInvoiceSheet } from "./SupplierInvoiceSheet";
+import { DocumentActions } from "../../documents/ui/DocumentActions";
 import { formatMoney, formatQty, lifecycleBadge, VARIANCE_LABELS } from "../lifecycle";
 import {
   convertRestaurantRequestToOrderFn,
