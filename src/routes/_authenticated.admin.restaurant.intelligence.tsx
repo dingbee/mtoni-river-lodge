@@ -17,6 +17,7 @@ import {
   getRestaurantMenuIntelligenceFn,
   getRestaurantPurchasingIntelligenceFn,
 } from "@/modules/restaurant/intelligence/insights.functions";
+import { getInventoryMenuOpportunitiesFn } from "@/modules/restaurant/intelligence/inventory-menu.functions";
 import {
   MENU_CLASS_LABEL,
   type InsightSeverity,
@@ -87,6 +88,7 @@ function RestaurantIntelligencePage() {
   const inventoryFn = useServerFn(getRestaurantInventoryIntelligenceFn);
   const kitchenFn = useServerFn(getRestaurantKitchenIntelligenceFn);
   const purchasingFn = useServerFn(getRestaurantPurchasingIntelligenceFn);
+  const opportunitiesFn = useServerFn(getInventoryMenuOpportunitiesFn);
 
   const args = { data: { tenantId: tenantId as string, windowDays } };
   const enabled = Boolean(tenantId);
@@ -111,11 +113,17 @@ function RestaurantIntelligencePage() {
     queryFn: () => purchasingFn(args),
     enabled,
   });
+  const opportunities = useQuery({
+    queryKey: ["restaurant", "intel", "opportunities", tenantId, windowDays],
+    queryFn: () => opportunitiesFn({ data: { tenantId: tenantId as string, windowDays, targetCoverDays: 7 } }),
+    enabled,
+  });
 
   const m = menu.data as any;
   const inv = inventory.data as any;
   const kit = kitchen.data as any;
   const pur = purchasing.data as any;
+  const opp = opportunities.data as any;
   const money = (n: number, c = m?.currency ?? "TZS") => `${c} ${Number(n ?? 0).toLocaleString()}`;
 
   return (
@@ -296,6 +304,40 @@ function RestaurantIntelligencePage() {
             </div>
           ) : null}
         </div>
+      </SectionCard>
+
+      <SectionCard
+        title="Inventory → menu opportunities"
+        description="Findings with evidence. Confidence is derived from measured facts only — advisory, never automatic."
+      >
+        {((opp?.opportunities ?? []) as any[]).length === 0 ? (
+          <EmptyState
+            title="No opportunities detected"
+            description="Stock cover, expiry and margin are within normal ranges for this window."
+            icon={Brain}
+          />
+        ) : (
+          <ul className="divide-y text-sm">
+            {(opp.opportunities as any[]).slice(0, 12).map((o) => (
+              <li key={o.key} className="space-y-1 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-medium">{o.title}</span>
+                  <span className="text-xs text-muted-foreground">
+                    priority {o.priority} ·{" "}
+                    {o.confidence == null ? "confidence unknown" : `${Math.round(o.confidence * 100)}% confidence`}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">{o.summary}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {(o.evidence as any[]).map((e) => `${e.label}: ${e.value}`).join(" · ")}
+                </p>
+                {(o.blockers as string[]).length > 0 && (
+                  <p className="text-[11px] text-amber-600">Blocked: {(o.blockers as string[]).join(", ")}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </SectionCard>
     </div>
   );

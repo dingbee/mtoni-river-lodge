@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { SectionCard } from "@/components/os/SectionCard";
 import { StatCard } from "@/components/os/StatCard";
 import { EmptyState } from "@/components/os/EmptyState";
+import { GuestContextBanner } from "./GuestContextBanner";
 import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { useRestaurantWorkspace } from "@/modules/restaurant/ui/useRestaurantWorkspace";
 import { hasRestaurantCapability } from "@/modules/restaurant/core/permissions";
@@ -372,6 +373,8 @@ export function PosWorkspace() {
         <StatCard label="Revenue today" value={money(stats?.revenueToday ?? 0, currency)} icon={CreditCard} />
         <StatCard label="Average check" value={money(stats?.averageCheck ?? 0, currency)} icon={ChefHat} />
       </div>
+
+      {orderId && <GuestContextBanner tenantId={tenantId} orderId={orderId} />}
 
       <div className="grid gap-4 md:grid-cols-2 min-[1700px]:grid-cols-[260px_minmax(0,1fr)_340px]">
         {/* Floor */}

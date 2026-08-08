@@ -21,6 +21,7 @@ import {
 } from "@/modules/restaurant/menu/menu.functions";
 import { MenuSheet, type MenuFormValue } from "@/modules/restaurant/menu/ui/MenuSheet";
 import { MenuItemSheet, type MenuItemFormValue } from "@/modules/restaurant/menu/ui/MenuItemSheet";
+import { MenuLifecycleBoard } from "@/modules/restaurant/menu/ui/MenuLifecycleBoard";
 
 export const Route = createFileRoute("/_authenticated/admin/restaurant/menu")({
   head: () => ({
@@ -287,6 +288,8 @@ function MenuPage() {
         pending={saveItem.isPending}
         onSubmit={(v) => saveItem.mutate(v)}
       />
+
+      {tenantId && <MenuLifecycleBoard tenantId={tenantId} canManage={canManage} />}
     </div>
   );
 }
