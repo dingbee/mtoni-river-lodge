@@ -170,6 +170,7 @@ function finishStructured(f: ExtractedFile, ex: Extracted, isJson: boolean): Ext
     detectedRowCount: ex.rows.length,
     records,
     sample: ex.rows.slice(0, 8),
+    rawRows: ex.rows,
     notes: [...(ex.notes ?? []), ...(isJson ? ["Native ResPad JSON — existing pipeline, no mapping required."] : [])],
     sheetNames: ex.sheetNames,
     status: ready ? "ready_for_staging" : "needs_mapping",
@@ -273,6 +274,7 @@ function finishDocument(f: ExtractedFile, text: string): ExtractedFile {
     detectedRowCount: table.rows.length,
     records: rowsToRecords(table.rows, plan.mapping),
     sample: table.rows.slice(0, 8),
+    rawRows: table.rows,
     textPreview: preview,
     status: "needs_review",
     notes: [
