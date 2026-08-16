@@ -111,15 +111,11 @@ export function RespadFileIntake({
         }
         overrides[header] = target;
         const plan = buildMappingPlan(f.headers, overrides);
-        const records = rowsToRecords(f.sample.length ? f.sample : [], plan.mapping);
+        const rows = f.rawRows ?? f.sample;
         return {
           ...f,
           mapping: plan.mapping,
-          records: f.records.length
-            ? rowsToRecords(f.sample.length ? f.sample : [], plan.mapping).length
-              ? rowsToRecords(rebuildRows(f), plan.mapping)
-              : records
-            : records,
+          records: rowsToRecords(rows, plan.mapping),
           status: plan.hasIdentity && plan.reviewCount === 0 ? "ready_for_staging" : "needs_mapping",
         };
       }),
@@ -323,9 +319,4 @@ export function RespadFileIntake({
       </SectionCard>
     </div>
   );
-}
-
-/** Rows are not retained after extraction; reconstruct from records for remapping. */
-function rebuildRows(f: ExtractedFile): Record<string, unknown>[] {
-  return f.rawRows ?? f.sample;
 }
