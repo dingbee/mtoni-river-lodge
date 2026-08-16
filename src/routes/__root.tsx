@@ -91,6 +91,13 @@ export const Route = createRootRoute({
       } as unknown as { rel: string; href: string },
     ],
     scripts: [
+      // Mtoni OS adaptive theme — set the resolved theme before first paint
+      // on admin routes so there is no flash of the wrong theme. Scoped to
+      // /admin so the public website is never themed.
+      {
+        type: "text/javascript",
+        children: `(function(){try{if(location.pathname.indexOf('/admin')!==0)return;var p=localStorage.getItem('mtoni-os.theme')||'system';var d=p==='dark'||(p==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-os-theme',d?'dark':'light');}catch(e){}})();`,
+      },
       // Promote the deferred Google Fonts stylesheet from media="print" to
       // all media as soon as the browser has a chance — keeps fonts off the
       // critical render path without delaying their first paint.
