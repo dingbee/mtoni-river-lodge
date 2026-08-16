@@ -217,6 +217,7 @@ import { Route as AuthenticatedAdminAiOperationsIndexRouteImport } from './route
 import { Route as AuthenticatedAdminAiMarketingIndexRouteImport } from './routes/_authenticated.admin.ai.marketing.index'
 import { Route as AuthenticatedAdminAiExecutiveIndexRouteImport } from './routes/_authenticated.admin.ai.executive.index'
 import { Route as AuthenticatedAdminAiConciergeIndexRouteImport } from './routes/_authenticated.admin.ai.concierge.index'
+import { Route as AuthenticatedAdminSettingsMigrationsRespadRouteImport } from './routes/_authenticated.admin.settings.migrations.respad'
 import { Route as AuthenticatedAdminRestaurantBarPosRouteImport } from './routes/_authenticated.admin.restaurant.bar.pos'
 import { Route as AuthenticatedAdminOperationsReservationsIdRouteImport } from './routes/_authenticated.admin.operations.reservations.$id'
 import { Route as AuthenticatedAdminOperationsCheckoutIdRouteImport } from './routes/_authenticated.admin.operations.checkout.$id'
@@ -1454,6 +1455,12 @@ const AuthenticatedAdminAiConciergeIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAdminAiConciergeRoute,
   } as any)
+const AuthenticatedAdminSettingsMigrationsRespadRoute =
+  AuthenticatedAdminSettingsMigrationsRespadRouteImport.update({
+    id: '/migrations/respad',
+    path: '/migrations/respad',
+    getParentRoute: () => AuthenticatedAdminSettingsRoute,
+  } as any)
 const AuthenticatedAdminRestaurantBarPosRoute =
   AuthenticatedAdminRestaurantBarPosRouteImport.update({
     id: '/pos',
@@ -1853,7 +1860,7 @@ export interface FileRoutesByFullPath {
   '/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/admin/restaurant': typeof AuthenticatedAdminRestaurantRouteWithChildren
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
-  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRouteWithChildren
   '/api/public/health': typeof ApiPublicHealthRoute
   '/check-in/pass/$passToken': typeof CheckInPassPassTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -2023,6 +2030,7 @@ export interface FileRoutesByFullPath {
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
   '/admin/restaurant/bar/pos': typeof AuthenticatedAdminRestaurantBarPosRoute
+  '/admin/settings/migrations/respad': typeof AuthenticatedAdminSettingsMigrationsRespadRoute
   '/admin/ai/concierge/': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/admin/ai/executive/': typeof AuthenticatedAdminAiExecutiveIndexRoute
   '/admin/ai/marketing/': typeof AuthenticatedAdminAiMarketingIndexRoute
@@ -2106,7 +2114,7 @@ export interface FileRoutesByTo {
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
-  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRouteWithChildren
   '/api/public/health': typeof ApiPublicHealthRoute
   '/check-in/pass/$passToken': typeof CheckInPassPassTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -2270,6 +2278,7 @@ export interface FileRoutesByTo {
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
   '/admin/restaurant/bar/pos': typeof AuthenticatedAdminRestaurantBarPosRoute
+  '/admin/settings/migrations/respad': typeof AuthenticatedAdminSettingsMigrationsRespadRoute
   '/admin/ai/concierge': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/admin/ai/executive': typeof AuthenticatedAdminAiExecutiveIndexRoute
   '/admin/ai/marketing': typeof AuthenticatedAdminAiMarketingIndexRoute
@@ -2364,7 +2373,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/_authenticated/admin/restaurant': typeof AuthenticatedAdminRestaurantRouteWithChildren
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
-  '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRouteWithChildren
   '/api/public/health': typeof ApiPublicHealthRoute
   '/check-in/pass/$passToken': typeof CheckInPassPassTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -2534,6 +2543,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/_authenticated/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
   '/_authenticated/admin/restaurant/bar/pos': typeof AuthenticatedAdminRestaurantBarPosRoute
+  '/_authenticated/admin/settings/migrations/respad': typeof AuthenticatedAdminSettingsMigrationsRespadRoute
   '/_authenticated/admin/ai/concierge/': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/_authenticated/admin/ai/executive/': typeof AuthenticatedAdminAiExecutiveIndexRoute
   '/_authenticated/admin/ai/marketing/': typeof AuthenticatedAdminAiMarketingIndexRoute
@@ -2798,6 +2808,7 @@ export interface FileRouteTypes {
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
     | '/admin/restaurant/bar/pos'
+    | '/admin/settings/migrations/respad'
     | '/admin/ai/concierge/'
     | '/admin/ai/executive/'
     | '/admin/ai/marketing/'
@@ -3045,6 +3056,7 @@ export interface FileRouteTypes {
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
     | '/admin/restaurant/bar/pos'
+    | '/admin/settings/migrations/respad'
     | '/admin/ai/concierge'
     | '/admin/ai/executive'
     | '/admin/ai/marketing'
@@ -3308,6 +3320,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations/checkout/$id'
     | '/_authenticated/admin/operations/reservations/$id'
     | '/_authenticated/admin/restaurant/bar/pos'
+    | '/_authenticated/admin/settings/migrations/respad'
     | '/_authenticated/admin/ai/concierge/'
     | '/_authenticated/admin/ai/executive/'
     | '/_authenticated/admin/ai/marketing/'
@@ -4850,6 +4863,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAiConciergeIndexRouteImport
       parentRoute: typeof AuthenticatedAdminAiConciergeRoute
     }
+    '/_authenticated/admin/settings/migrations/respad': {
+      id: '/_authenticated/admin/settings/migrations/respad'
+      path: '/migrations/respad'
+      fullPath: '/admin/settings/migrations/respad'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsMigrationsRespadRouteImport
+      parentRoute: typeof AuthenticatedAdminSettingsRoute
+    }
     '/_authenticated/admin/restaurant/bar/pos': {
       id: '/_authenticated/admin/restaurant/bar/pos'
       path: '/pos'
@@ -5773,6 +5793,21 @@ const AuthenticatedAdminRestaurantRouteWithChildren =
     AuthenticatedAdminRestaurantRouteChildren,
   )
 
+interface AuthenticatedAdminSettingsRouteChildren {
+  AuthenticatedAdminSettingsMigrationsRespadRoute: typeof AuthenticatedAdminSettingsMigrationsRespadRoute
+}
+
+const AuthenticatedAdminSettingsRouteChildren: AuthenticatedAdminSettingsRouteChildren =
+  {
+    AuthenticatedAdminSettingsMigrationsRespadRoute:
+      AuthenticatedAdminSettingsMigrationsRespadRoute,
+  }
+
+const AuthenticatedAdminSettingsRouteWithChildren =
+  AuthenticatedAdminSettingsRoute._addFileChildren(
+    AuthenticatedAdminSettingsRouteChildren,
+  )
+
 interface AuthenticatedAdminGuestsCrmRouteChildren {
   AuthenticatedAdminGuestsCrmIdRoute: typeof AuthenticatedAdminGuestsCrmIdRoute
   AuthenticatedAdminGuestsCrmDuplicatesRoute: typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
@@ -5801,7 +5836,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminOperationsRoute: typeof AuthenticatedAdminOperationsRouteWithChildren
   AuthenticatedAdminRestaurantRoute: typeof AuthenticatedAdminRestaurantRouteWithChildren
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
-  AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
+  AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRouteWithChildren
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminContentBrandRoute: typeof AuthenticatedAdminContentBrandRoute
   AuthenticatedAdminContentCalendarRoute: typeof AuthenticatedAdminContentCalendarRoute
@@ -5853,7 +5888,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminRestaurantRoute:
     AuthenticatedAdminRestaurantRouteWithChildren,
   AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
-  AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
+  AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRouteWithChildren,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminContentBrandRoute: AuthenticatedAdminContentBrandRoute,
   AuthenticatedAdminContentCalendarRoute:
