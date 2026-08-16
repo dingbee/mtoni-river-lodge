@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -280,7 +280,7 @@ function BatchWorkspace({ batchId, batch }: { batchId: string; batch?: AnyRow })
   );
 }
 
-function SimpleTable({ head, rows }: { head: string[]; rows: (string | JSX.Element)[][] }) {
+function SimpleTable({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
   if (!rows.length) return <p className="text-sm text-muted-foreground">No data.</p>;
   return (
     <div className="overflow-x-auto">
