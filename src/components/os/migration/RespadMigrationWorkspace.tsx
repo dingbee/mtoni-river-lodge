@@ -1,9 +1,7 @@
-import { useMemo, useRef, useState, type ReactNode } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState, type ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { toast } from "sonner";
 import {
-  importRespadBatch,
   listRespadAuditLog,
   listRespadBatches,
   listRespadDuplicates,
@@ -21,7 +19,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SectionCard } from "@/components/os/SectionCard";
 import { EmptyState } from "@/components/os/EmptyState";
 import { RespadReconciliation } from "./RespadReconciliation";
-import { ShieldAlert, Upload } from "lucide-react";
+import { RespadFileIntake } from "./RespadFileIntake";
+import { ShieldAlert } from "lucide-react";
 
 type AnyRow = Record<string, any>;
 
@@ -57,47 +56,13 @@ const CONF_VARIANT: Record<string, "destructive" | "default" | "secondary"> = {
 export function RespadMigrationWorkspace() {
   const qc = useQueryClient();
   const batchesFn = useServerFn(listRespadBatches);
-  const importFn = useServerFn(importRespadBatch);
 
   const batches = useQuery({ queryKey: ["respad", "batches"], queryFn: () => batchesFn() });
   const [selected, setSelected] = useState<string | null>(null);
   const batchId = selected ?? (batches.data as AnyRow[] | undefined)?.[0]?.id ?? null;
   const batch = ((batches.data as AnyRow[]) ?? []).find((b) => b.id === batchId);
 
-  const fileRef = useRef<HTMLInputElement>(null);
   const [batchName, setBatchName] = useState("ResPad accounts — phase 1");
-
-  const runImport = useMutation({
-    mutationFn: async (files: FileList) => {
-      const payload: { source_file: string; records: AnyRow[] }[] = [];
-      for (const f of Array.from(files)) {
-        const text = await f.text();
-        let parsed: unknown;
-        try {
-          parsed = JSON.parse(text);
-        } catch {
-          throw new Error(`${f.name} is not valid JSON`);
-        }
-        const records = Array.isArray(parsed)
-          ? parsed
-          : Array.isArray((parsed as AnyRow)?.data)
-            ? (parsed as AnyRow).data
-            : Array.isArray((parsed as AnyRow)?.records)
-              ? (parsed as AnyRow).records
-              : [parsed];
-        payload.push({ source_file: f.name, records: records as AnyRow[] });
-      }
-      return importFn({ data: { batch_name: batchName, files: payload, notes: null } });
-    },
-    onSuccess: (res: AnyRow) => {
-      toast.success(
-        `Staged ${res.staged_record_count} records → ${res.normalized_account_count} account candidates`,
-      );
-      setSelected(res.batch_id);
-      qc.invalidateQueries({ queryKey: ["respad"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
   return (
     <div className="space-y-6">
@@ -111,27 +76,12 @@ export function RespadMigrationWorkspace() {
         </AlertDescription>
       </Alert>
 
-      <SectionCard title="Import source files" description="Select RACK_RATES.json, STO.json and STO_-_LOW.json.">
+      <SectionCard title="Batch" description="Records stage into the batch named here.">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-[240px] flex-1">
             <label className="text-xs text-muted-foreground">Batch name</label>
             <Input value={batchName} onChange={(e) => setBatchName(e.target.value)} />
           </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".json,application/json"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              if (e.target.files?.length) runImport.mutate(e.target.files);
-              e.target.value = "";
-            }}
-          />
-          <Button onClick={() => fileRef.current?.click()} disabled={runImport.isPending}>
-            <Upload className="mr-2 size-4" />
-            {runImport.isPending ? "Staging…" : "Choose JSON files"}
-          </Button>
           {((batches.data as AnyRow[]) ?? []).length > 1 && (
             <select
               className="h-9 rounded-md border bg-background px-2 text-sm"
@@ -148,10 +98,18 @@ export function RespadMigrationWorkspace() {
         </div>
       </SectionCard>
 
+      <RespadFileIntake
+        batchName={batchName}
+        onBatchStaged={(id) => {
+          setSelected(id);
+          qc.invalidateQueries({ queryKey: ["respad"] });
+        }}
+      />
+
       {!batchId ? (
         <EmptyState
           title="No migration batch staged yet"
-          description="Upload the three ResPad JSON files to build the staging and audit layer."
+          description="Upload ResPad exports (JSON, CSV, XLSX) or supporting documents to build the staging and audit layer."
         />
       ) : (
         <BatchWorkspace batchId={batchId} batch={batch} />
