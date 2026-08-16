@@ -186,7 +186,7 @@ export async function listDuplicateGroups(supabase: Sb, batchId: string) {
 
   const order = { high: 0, medium: 1, low: 2 } as Record<string, number>;
   return [...byGroup.values()]
-    .map((g) => ({ ...g, analysis: analyseGroup(g.members as Row[]) }))
+    .map((g): Row => ({ ...g, analysis: analyseGroup(g.members as Row[]) }))
     .sort(
       (a, b) =>
         (a.resolution_status === "pending" ? 0 : 1) - (b.resolution_status === "pending" ? 0 : 1) ||
@@ -492,7 +492,7 @@ export async function buildReadinessReport(supabase: Sb, batchId: string) {
   const accs = (accounts ?? []) as Row[];
 
   const byStatus = (s: string) => accs.filter((a) => a.review_status === s).length;
-  const groups = new Map<string, { confidence: string; resolution_status: string }>();
+  const groups = new Map<string, Row>();
   for (const d of (dupes ?? []) as Row[]) groups.set(d.duplicate_group_id, d);
   const groupList = [...groups.values()];
 
