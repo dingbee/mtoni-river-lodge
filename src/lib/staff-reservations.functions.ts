@@ -89,6 +89,9 @@ export const createStaffReservation = createServerFn({ method: "POST" })
       _country: data.country || null,
       _special_requests: data.specialRequests || null,
       _extras: [],
+      // disambiguates the overloaded RPC signature (latest overload)
+      _hold_id: null,
+      _session_id: null,
     });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
