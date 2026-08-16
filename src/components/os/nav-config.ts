@@ -245,6 +245,7 @@ export const NAV: NavEntry[] = [
     },
   },
   { kind: "item", item: { id: "system.health", label: "System Health", href: "/admin/system/health", icon: Activity } },
+  { kind: "item", item: { id: "settings.migrations.respad", label: "ResPad Migration", href: "/admin/settings/migrations/respad", icon: Truck } },
   { kind: "item", item: { id: "settings", label: "Settings", href: "/admin/settings", icon: Settings } },
 ];
 

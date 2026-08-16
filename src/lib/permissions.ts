@@ -55,6 +55,7 @@ export const MODULE_ROLES: Record<string, Role[] | null> = {
   "staff.activity": ["owner", "manager"],
   automation: ["owner", "manager"],
   settings: ["owner", "manager"],
+  "settings.migrations.respad": ["owner", "manager"],
   "ai.command": ["owner", "manager", "reception", "marketing", "finance", "housekeeping", "editor"],
   "ai.insights": ["owner", "manager"],
   "ai.knowledge": ["owner", "manager", "marketing", "editor"],

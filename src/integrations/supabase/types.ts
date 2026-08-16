@@ -7356,6 +7356,500 @@ export type Database = {
           },
         ]
       }
+      respad_account_relationship_staging: {
+        Row: {
+          created_at: string
+          id: string
+          legacy_company_id: string | null
+          legacy_groupname: string
+          legacy_source: string
+          migration_batch_id: string
+          normalized_account_id: string | null
+          raw_record: Json | null
+          relationship_type: string
+          source_file: string
+          staging_account_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          legacy_company_id?: string | null
+          legacy_groupname: string
+          legacy_source?: string
+          migration_batch_id: string
+          normalized_account_id?: string | null
+          raw_record?: Json | null
+          relationship_type?: string
+          source_file: string
+          staging_account_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          legacy_company_id?: string | null
+          legacy_groupname?: string
+          legacy_source?: string
+          migration_batch_id?: string
+          normalized_account_id?: string | null
+          raw_record?: Json | null
+          relationship_type?: string
+          source_file?: string
+          staging_account_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "respad_account_relationship_staging_migration_batch_id_fkey"
+            columns: ["migration_batch_id"]
+            isOneToOne: false
+            referencedRelation: "respad_migration_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "respad_account_relationship_staging_normalized_account_id_fkey"
+            columns: ["normalized_account_id"]
+            isOneToOne: false
+            referencedRelation: "respad_normalized_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "respad_account_relationship_staging_staging_account_id_fkey"
+            columns: ["staging_account_id"]
+            isOneToOne: false
+            referencedRelation: "respad_account_staging"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      respad_account_staging: {
+        Row: {
+          account_status: string
+          account_type: string
+          classification_source: string
+          created_at: string
+          duplicate_group_id: string | null
+          duplicate_status: string
+          id: string
+          legacy_address: string | null
+          legacy_clientname: string | null
+          legacy_company_id: string | null
+          legacy_country: string | null
+          legacy_email: string | null
+          legacy_groupname: string | null
+          legacy_mobile: string | null
+          legacy_other: string | null
+          legacy_payment_mode: string | null
+          legacy_source: string
+          legacy_telephone: string | null
+          legacy_tin: string | null
+          legacy_vrn: string | null
+          legacy_website: string | null
+          migration_batch_id: string
+          normalization_status: string
+          normalized_account_id: string | null
+          normalized_account_name: string | null
+          normalized_address: string | null
+          normalized_country: string | null
+          normalized_domain: string | null
+          normalized_email: string | null
+          normalized_emails: string[]
+          normalized_match_key: string | null
+          normalized_phone: string | null
+          normalized_phones: string[]
+          normalized_tin: string | null
+          normalized_vrn: string | null
+          normalized_website: string | null
+          notes: string | null
+          quality_flags: string[]
+          raw_record: Json
+          review_status: string
+          source_file: string
+          source_row_index: number
+          source_row_key: string
+          updated_at: string
+        }
+        Insert: {
+          account_status?: string
+          account_type?: string
+          classification_source?: string
+          created_at?: string
+          duplicate_group_id?: string | null
+          duplicate_status?: string
+          id?: string
+          legacy_address?: string | null
+          legacy_clientname?: string | null
+          legacy_company_id?: string | null
+          legacy_country?: string | null
+          legacy_email?: string | null
+          legacy_groupname?: string | null
+          legacy_mobile?: string | null
+          legacy_other?: string | null
+          legacy_payment_mode?: string | null
+          legacy_source?: string
+          legacy_telephone?: string | null
+          legacy_tin?: string | null
+          legacy_vrn?: string | null
+          legacy_website?: string | null
+          migration_batch_id: string
+          normalization_status?: string
+          normalized_account_id?: string | null
+          normalized_account_name?: string | null
+          normalized_address?: string | null
+          normalized_country?: string | null
+          normalized_domain?: string | null
+          normalized_email?: string | null
+          normalized_emails?: string[]
+          normalized_match_key?: string | null
+          normalized_phone?: string | null
+          normalized_phones?: string[]
+          normalized_tin?: string | null
+          normalized_vrn?: string | null
+          normalized_website?: string | null
+          notes?: string | null
+          quality_flags?: string[]
+          raw_record: Json
+          review_status?: string
+          source_file: string
+          source_row_index?: number
+          source_row_key: string
+          updated_at?: string
+        }
+        Update: {
+          account_status?: string
+          account_type?: string
+          classification_source?: string
+          created_at?: string
+          duplicate_group_id?: string | null
+          duplicate_status?: string
+          id?: string
+          legacy_address?: string | null
+          legacy_clientname?: string | null
+          legacy_company_id?: string | null
+          legacy_country?: string | null
+          legacy_email?: string | null
+          legacy_groupname?: string | null
+          legacy_mobile?: string | null
+          legacy_other?: string | null
+          legacy_payment_mode?: string | null
+          legacy_source?: string
+          legacy_telephone?: string | null
+          legacy_tin?: string | null
+          legacy_vrn?: string | null
+          legacy_website?: string | null
+          migration_batch_id?: string
+          normalization_status?: string
+          normalized_account_id?: string | null
+          normalized_account_name?: string | null
+          normalized_address?: string | null
+          normalized_country?: string | null
+          normalized_domain?: string | null
+          normalized_email?: string | null
+          normalized_emails?: string[]
+          normalized_match_key?: string | null
+          normalized_phone?: string | null
+          normalized_phones?: string[]
+          normalized_tin?: string | null
+          normalized_vrn?: string | null
+          normalized_website?: string | null
+          notes?: string | null
+          quality_flags?: string[]
+          raw_record?: Json
+          review_status?: string
+          source_file?: string
+          source_row_index?: number
+          source_row_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "respad_account_staging_migration_batch_id_fkey"
+            columns: ["migration_batch_id"]
+            isOneToOne: false
+            referencedRelation: "respad_migration_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "respad_account_staging_normalized_account_id_fkey"
+            columns: ["normalized_account_id"]
+            isOneToOne: false
+            referencedRelation: "respad_normalized_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      respad_duplicate_candidates: {
+        Row: {
+          confidence: string
+          created_at: string
+          duplicate_group_id: string
+          id: string
+          is_proposed_master: boolean
+          match_reason: string | null
+          match_signals: string[]
+          migration_batch_id: string
+          normalized_account_id: string
+          proposed_action: string
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+        }
+        Insert: {
+          confidence: string
+          created_at?: string
+          duplicate_group_id: string
+          id?: string
+          is_proposed_master?: boolean
+          match_reason?: string | null
+          match_signals?: string[]
+          migration_batch_id: string
+          normalized_account_id: string
+          proposed_action?: string
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Update: {
+          confidence?: string
+          created_at?: string
+          duplicate_group_id?: string
+          id?: string
+          is_proposed_master?: boolean
+          match_reason?: string | null
+          match_signals?: string[]
+          migration_batch_id?: string
+          normalized_account_id?: string
+          proposed_action?: string
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "respad_duplicate_candidates_migration_batch_id_fkey"
+            columns: ["migration_batch_id"]
+            isOneToOne: false
+            referencedRelation: "respad_migration_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "respad_duplicate_candidates_normalized_account_id_fkey"
+            columns: ["normalized_account_id"]
+            isOneToOne: false
+            referencedRelation: "respad_normalized_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      respad_migration_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          id: string
+          migration_batch_id: string | null
+          phase: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          migration_batch_id?: string | null
+          phase?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          migration_batch_id?: string | null
+          phase?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "respad_migration_audit_log_migration_batch_id_fkey"
+            columns: ["migration_batch_id"]
+            isOneToOne: false
+            referencedRelation: "respad_migration_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      respad_migration_batches: {
+        Row: {
+          batch_name: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          duplicate_candidate_count: number
+          error_count: number
+          high_confidence_duplicate_count: number
+          id: string
+          imported_at: string | null
+          normalized_account_count: number
+          notes: string | null
+          relationship_count: number
+          review_required_count: number
+          source_files: string[]
+          source_record_count: number
+          source_system: string
+          staged_record_count: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          batch_name: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          duplicate_candidate_count?: number
+          error_count?: number
+          high_confidence_duplicate_count?: number
+          id?: string
+          imported_at?: string | null
+          normalized_account_count?: number
+          notes?: string | null
+          relationship_count?: number
+          review_required_count?: number
+          source_files?: string[]
+          source_record_count?: number
+          source_system?: string
+          staged_record_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          batch_name?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          duplicate_candidate_count?: number
+          error_count?: number
+          high_confidence_duplicate_count?: number
+          id?: string
+          imported_at?: string | null
+          normalized_account_count?: number
+          notes?: string | null
+          relationship_count?: number
+          review_required_count?: number
+          source_files?: string[]
+          source_record_count?: number
+          source_system?: string
+          staged_record_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      respad_normalized_accounts: {
+        Row: {
+          account_name: string
+          account_type: string
+          addresses: string[]
+          classification_evidence: string | null
+          classification_source: string
+          country: string | null
+          created_at: string
+          domains: string[]
+          duplicate_confidence: string | null
+          duplicate_group_id: string | null
+          emails: string[]
+          groupnames: string[]
+          id: string
+          legacy_clientnames: string[]
+          legacy_company_ids: string[]
+          legacy_source: string
+          match_key: string
+          migration_batch_id: string
+          notes: string | null
+          payment_modes: string[]
+          phones: string[]
+          quality_flags: string[]
+          relationship_count: number
+          review_status: string
+          source_files: string[]
+          source_record_count: number
+          tins: string[]
+          updated_at: string
+          vrns: string[]
+          websites: string[]
+        }
+        Insert: {
+          account_name: string
+          account_type?: string
+          addresses?: string[]
+          classification_evidence?: string | null
+          classification_source?: string
+          country?: string | null
+          created_at?: string
+          domains?: string[]
+          duplicate_confidence?: string | null
+          duplicate_group_id?: string | null
+          emails?: string[]
+          groupnames?: string[]
+          id?: string
+          legacy_clientnames?: string[]
+          legacy_company_ids?: string[]
+          legacy_source?: string
+          match_key: string
+          migration_batch_id: string
+          notes?: string | null
+          payment_modes?: string[]
+          phones?: string[]
+          quality_flags?: string[]
+          relationship_count?: number
+          review_status?: string
+          source_files?: string[]
+          source_record_count?: number
+          tins?: string[]
+          updated_at?: string
+          vrns?: string[]
+          websites?: string[]
+        }
+        Update: {
+          account_name?: string
+          account_type?: string
+          addresses?: string[]
+          classification_evidence?: string | null
+          classification_source?: string
+          country?: string | null
+          created_at?: string
+          domains?: string[]
+          duplicate_confidence?: string | null
+          duplicate_group_id?: string | null
+          emails?: string[]
+          groupnames?: string[]
+          id?: string
+          legacy_clientnames?: string[]
+          legacy_company_ids?: string[]
+          legacy_source?: string
+          match_key?: string
+          migration_batch_id?: string
+          notes?: string | null
+          payment_modes?: string[]
+          phones?: string[]
+          quality_flags?: string[]
+          relationship_count?: number
+          review_status?: string
+          source_files?: string[]
+          source_record_count?: number
+          tins?: string[]
+          updated_at?: string
+          vrns?: string[]
+          websites?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "respad_normalized_accounts_migration_batch_id_fkey"
+            columns: ["migration_batch_id"]
+            isOneToOne: false
+            referencedRelation: "respad_migration_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_approval_rules: {
         Row: {
           active: boolean
