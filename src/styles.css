@@ -883,3 +883,143 @@
    Any component that used the old "rounded-lg border bg-card"
    pattern (SEO nav, module tab bars, etc.) inherits the unified
    card token via the remaps above; no further work required. */
+
+/* ============================================================
+   MTONI OS — ADAPTIVE THEME LAYER (Sprint 3A)
+   Light is the base for `.mtoni-os`; the dark rules above are
+   scoped to [data-os-theme="dark"], which the ThemeProvider sets
+   on <html> only while the OS shell is mounted. The public
+   website therefore never inherits OS theming.
+   ============================================================ */
+
+/* ---------- Light OS surface + semantic mapping ---------- */
+.mtoni-os {
+  --os-canvas: #F7F7F5;
+  --os-surface: #FFFFFF;
+  --os-surface-2: #FAFAF8;
+  --os-hairline: rgba(26,26,26,0.06);
+  --os-hairline-strong: rgba(26,26,26,0.10);
+  --os-ink: #0F1210;
+  --os-ink-2: #4A4E4B;
+  --os-ink-3: #5F6462;
+
+  /* shadcn token remap → OS surfaces (light) */
+  --background: var(--os-canvas);
+  --foreground: var(--os-ink);
+  --card: var(--os-surface);
+  --card-foreground: var(--os-ink);
+  --popover: var(--os-surface);
+  --popover-foreground: var(--os-ink);
+  --primary: var(--os-green);
+  --primary-foreground: #FFFFFF;
+  --secondary: var(--os-surface-2);
+  --secondary-foreground: var(--os-ink);
+  --muted: var(--os-surface-2);
+  --muted-foreground: var(--os-ink-3);
+  --accent: rgba(26,26,26,0.04);
+  --accent-foreground: var(--os-ink);
+  --destructive: var(--os-danger);
+  --destructive-foreground: #FFFFFF;
+  --border: var(--os-hairline);
+  --input: var(--os-hairline-strong);
+  --ring: var(--os-green);
+}
+
+/* ---------- Canonical semantic aliases (both themes) ----------
+   Derived from the OS tokens so a single palette drives everything. */
+.mtoni-os {
+  --surface: var(--os-surface);
+  --surface-elevated: var(--os-surface-2);
+  --surface-muted: var(--os-surface-2);
+  --border-subtle: var(--os-hairline);
+  --input-foreground: var(--os-ink);
+  --success: var(--os-success);
+  --success-foreground: #FFFFFF;
+  --warning: var(--os-warn);
+  --warning-foreground: #FFFFFF;
+  --danger: var(--os-danger);
+  --danger-foreground: #FFFFFF;
+  --info: var(--os-info);
+  --info-foreground: #FFFFFF;
+  --focus: var(--os-green);
+}
+
+/* ---------- Focus visibility (WCAG 2.2 AA, both themes) ---------- */
+.mtoni-os :focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ---------- Light-mode primitive polish ---------- */
+.mtoni-os [data-slot="card"],
+.mtoni-os .bg-card {
+  background: var(--os-surface);
+  border-color: var(--os-hairline);
+  color: var(--os-ink);
+}
+.mtoni-os [data-nav-active="true"] {
+  position: relative;
+  background: var(--os-green-soft);
+  color: var(--os-green);
+}
+.mtoni-os [data-nav-active="true"]::before {
+  content: "";
+  position: absolute; left: 4px; top: 8px; bottom: 8px;
+  width: 2px; border-radius: 2px;
+  background: var(--os-green);
+}
+.mtoni-os th { color: var(--os-ink-3); }
+.mtoni-os tbody tr:hover { background-color: rgba(26,26,26,0.025); }
+
+/* ---------- Portalled overlays follow the OS theme ----------
+   Radix portals render outside `.mtoni-os`, so target the root
+   attribute instead. Only present while the OS shell is mounted. */
+[data-os-theme="dark"] [data-slot="dialog-content"],
+[data-os-theme="dark"] [data-slot="sheet-content"],
+[data-os-theme="dark"] [data-slot="popover-content"],
+[data-os-theme="dark"] [data-slot="dropdown-menu-content"],
+[data-os-theme="dark"] [data-slot="select-content"],
+[data-os-theme="dark"] [data-slot="command"],
+[data-os-theme="dark"] [data-radix-popper-content-wrapper] > * {
+  --background: #1E2225;
+  --foreground: #F5F5F3;
+  --card: #202427;
+  --card-foreground: #F5F5F3;
+  --popover: #1E2225;
+  --popover-foreground: #F5F5F3;
+  --muted: rgba(255,255,255,0.04);
+  --muted-foreground: #9DA1A4;
+  --accent: rgba(255,255,255,0.06);
+  --accent-foreground: #F5F5F3;
+  --border: rgba(255,255,255,0.10);
+  --input: rgba(255,255,255,0.14);
+  --primary: #5EA56D;
+  --primary-foreground: #ffffff;
+  --ring: #5EA56D;
+  background-color: #1E2225;
+  color: #F5F5F3;
+  border-color: rgba(255,255,255,0.10);
+}
+[data-os-theme="dark"] [data-slot="dialog-overlay"],
+[data-os-theme="dark"] [data-slot="sheet-overlay"] {
+  background-color: rgba(6,8,9,0.72);
+}
+[data-os-theme="dark"] [data-radix-popper-content-wrapper] input,
+[data-os-theme="dark"] [data-slot="dialog-content"] input,
+[data-os-theme="dark"] [data-slot="sheet-content"] input,
+[data-os-theme="dark"] [data-slot="dialog-content"] textarea,
+[data-os-theme="dark"] [data-slot="sheet-content"] textarea,
+[data-os-theme="dark"] [data-slot="command"] input {
+  background-color: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.10);
+  color: #F5F5F3;
+}
+[data-os-theme="dark"] [data-slot="command"] input::placeholder,
+[data-os-theme="dark"] [data-slot="dialog-content"] input::placeholder,
+[data-os-theme="dark"] [data-slot="sheet-content"] textarea::placeholder {
+  color: #7E8185;
+}
+
+/* ---------- Colour-scheme hint (native controls, scrollbars) ---------- */
+[data-os-theme="dark"] { color-scheme: dark; }
+[data-os-theme="light"] { color-scheme: light; }
