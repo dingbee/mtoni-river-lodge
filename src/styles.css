@@ -708,6 +708,22 @@
 }
 .os-hero-bleed > * { position: relative; z-index: 1; }
 
+/* The dashboard hero keeps its cinematic dark plate in both themes, so
+   invert the ink tokens locally in Light Mode to preserve contrast. */
+[data-os-theme="light"] .mtoni-os .os-hero-bleed {
+  --os-ink: #F4F6F5;
+  --os-ink-2: rgba(244, 246, 245, 0.78);
+  --os-ink-3: rgba(244, 246, 245, 0.6);
+  --os-hairline: rgba(255, 255, 255, 0.16);
+  --os-hairline-strong: rgba(255, 255, 255, 0.26);
+  --os-surface: rgba(255, 255, 255, 0.08);
+  --os-surface-2: rgba(255, 255, 255, 0.1);
+  color: #F4F6F5;
+}
+[data-os-theme="light"] .mtoni-os .os-hero-bleed :is(h1, h2, h3, p, span, a, strong) {
+  color: inherit;
+}
+
 /* Active nav indicator */
 [data-os-theme="dark"] .mtoni-os [data-nav-active="true"] {
   position: relative;
