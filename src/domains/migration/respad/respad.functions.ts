@@ -45,6 +45,58 @@ export const listRespadBatches = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+/* ------------------------------------------------------------------------ */
+/* Migration file intake registry (provenance + idempotency)                 */
+/* ------------------------------------------------------------------------ */
+
+const fileIntakeSchema = z.object({
+  content_hash: z.string().min(8).max(200),
+  original_filename: z.string().min(1).max(300),
+  file_type: z.string().min(1).max(20),
+  mime_type: z.string().max(200).nullable().optional(),
+  file_size_bytes: z.number().int().min(0),
+  intake_kind: z.enum(["structured", "document"]),
+  processing_status: z.string().min(1).max(40),
+  detected_row_count: z.number().int().min(0).optional(),
+  detected_field_count: z.number().int().min(0).optional(),
+  mapped_field_count: z.number().int().min(0).optional(),
+  review_field_count: z.number().int().min(0).optional(),
+  staged_record_count: z.number().int().min(0).optional(),
+  field_mapping: z.unknown().optional(),
+  extraction_summary: z.unknown().optional(),
+  error_message: z.string().max(2000).nullable().optional(),
+  migration_batch_id: z.string().uuid().nullable().optional(),
+});
+
+export const recordRespadFileIntake = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => fileIntakeSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { assertMigrationAdmin } = await import("./respad.server");
+    const { recordFileIntake } = await import("./intake.server");
+    await assertMigrationAdmin(context.supabase, context.userId);
+    return recordFileIntake(context.supabase, context.userId, data);
+  });
+
+export const checkRespadFileHash = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ content_hash: z.string().min(8).max(200) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { assertMigrationAdmin } = await import("./respad.server");
+    const { findFileByHash } = await import("./intake.server");
+    await assertMigrationAdmin(context.supabase, context.userId);
+    return findFileByHash(context.supabase, data.content_hash);
+  });
+
+export const listRespadMigrationFiles = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { assertMigrationAdmin } = await import("./respad.server");
+    const { listFileIntake } = await import("./intake.server");
+    await assertMigrationAdmin(context.supabase, context.userId);
+    return listFileIntake(context.supabase);
+  });
+
 const batchInput = z.object({ batch_id: z.string().uuid() });
 const listInput = batchInput.extend({
   search: z.string().max(200).optional(),

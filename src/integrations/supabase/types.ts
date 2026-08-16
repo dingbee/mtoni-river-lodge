@@ -7771,6 +7771,89 @@ export type Database = {
         }
         Relationships: []
       }
+      respad_migration_files: {
+        Row: {
+          content_hash: string
+          created_at: string
+          detected_field_count: number
+          detected_row_count: number
+          error_message: string | null
+          extraction_summary: Json
+          field_mapping: Json
+          file_size_bytes: number
+          file_type: string
+          id: string
+          intake_kind: string
+          mapped_field_count: number
+          migration_batch_id: string | null
+          mime_type: string | null
+          original_filename: string
+          processed_by: string | null
+          processing_status: string
+          review_field_count: number
+          source_system: string
+          staged_record_count: number
+          updated_at: string
+          uploaded_at: string
+        }
+        Insert: {
+          content_hash: string
+          created_at?: string
+          detected_field_count?: number
+          detected_row_count?: number
+          error_message?: string | null
+          extraction_summary?: Json
+          field_mapping?: Json
+          file_size_bytes?: number
+          file_type: string
+          id?: string
+          intake_kind?: string
+          mapped_field_count?: number
+          migration_batch_id?: string | null
+          mime_type?: string | null
+          original_filename: string
+          processed_by?: string | null
+          processing_status?: string
+          review_field_count?: number
+          source_system?: string
+          staged_record_count?: number
+          updated_at?: string
+          uploaded_at?: string
+        }
+        Update: {
+          content_hash?: string
+          created_at?: string
+          detected_field_count?: number
+          detected_row_count?: number
+          error_message?: string | null
+          extraction_summary?: Json
+          field_mapping?: Json
+          file_size_bytes?: number
+          file_type?: string
+          id?: string
+          intake_kind?: string
+          mapped_field_count?: number
+          migration_batch_id?: string | null
+          mime_type?: string | null
+          original_filename?: string
+          processed_by?: string | null
+          processing_status?: string
+          review_field_count?: number
+          source_system?: string
+          staged_record_count?: number
+          updated_at?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "respad_migration_files_migration_batch_id_fkey"
+            columns: ["migration_batch_id"]
+            isOneToOne: false
+            referencedRelation: "respad_migration_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       respad_normalized_accounts: {
         Row: {
           account_name: string
