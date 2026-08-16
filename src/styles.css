@@ -35,6 +35,21 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  /* Adaptive OS semantic aliases (resolved inside .mtoni-os) */
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-muted: var(--surface-muted);
+  --color-border-subtle: var(--border-subtle);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-focus: var(--focus);
+
   --color-ivory: var(--ivory);
   --color-bone: var(--bone);
   --color-clay: var(--clay);
