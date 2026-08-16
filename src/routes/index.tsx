@@ -36,7 +36,7 @@ import diningCandle800 from "@/assets/hero-dining-candlelit-800w.webp.asset.json
 import diningCandle1600 from "@/assets/hero-dining-candlelit-1600w.webp.asset.json";
 
 
-const HOME_FAQS: FAQItem[] = [
+export const HOME_FAQS: FAQItem[] = [
   {
     q: "Where is Mtoni River Lodge located?",
     a: "Mtoni River Lodge sits on the banks of the Nduruma River in Arusha, Tanzania — a quiet riverside retreat between Kilimanjaro International Airport and Arusha town, well placed for Northern Tanzania safaris.",

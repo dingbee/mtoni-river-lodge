@@ -11,11 +11,11 @@ import {
   buildBreadcrumbJsonLd,
 } from "@/lib/seo-schema";
 
-const TITLE = "What the River Has Taught Us About Time";
-const DESCRIPTION =
+export const TITLE = "What the River Has Taught Us About Time";
+export const DESCRIPTION =
   "On the slow art of arriving, and why we removed every clock from the lodge.";
-const ROUTE_PATH = "/journal/what-the-river-has-taught-us-about-time";
-const PUBLISHED = "2026-03-01";
+export const ROUTE_PATH = "/journal/what-the-river-has-taught-us-about-time";
+export const PUBLISHED = "2026-03-01";
 
 export const Route = createFileRoute(
   "/journal/what-the-river-has-taught-us-about-time",

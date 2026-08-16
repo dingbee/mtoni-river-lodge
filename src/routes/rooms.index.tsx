@@ -16,7 +16,7 @@ import roomImg from "@/assets/suite-interior.jpg";
 import { usePublicCms } from "@/lib/use-public-cms";
 import { CmsBody, hasCmsBody } from "@/components/site/CmsBody";
 
-const ROOMS_FAQS: FAQItem[] = [
+export const ROOMS_FAQS: FAQItem[] = [
   {
     q: "What room types are available at Mtoni River Lodge?",
     a: "We offer three room types — Riverfront Standard, Riverfront Deluxe, and the Family & Garden Suite — each designed in the spirit of Maasai boma architecture and grounded in natural materials.",

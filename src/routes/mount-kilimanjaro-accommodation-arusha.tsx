@@ -13,9 +13,9 @@ import riverWalk from "@/assets/xp-river-walk.jpg";
 import deluxeInterior from "@/assets/riverfront-deluxe-interior.jpg";
 import diningImg from "@/assets/dining-hero.jpg";
 
-const CANONICAL = "https://mtoniriverlodge.com/mount-kilimanjaro-accommodation-arusha";
+export const CANONICAL = "https://mtoniriverlodge.com/mount-kilimanjaro-accommodation-arusha";
 
-const KILI_FAQS: FAQItem[] = [
+export const KILI_FAQS: FAQItem[] = [
   {
     q: "Do you accommodate Mount Kilimanjaro climbers?",
     a: "Yes. Mtoni River Lodge is a popular base for climbers preparing for, or recovering from, Mount Kilimanjaro. Our reservations team coordinates early breakfasts, secure gear storage, quiet rooms, and transfers to and from Moshi or Kilimanjaro International Airport (JRO).",

@@ -9,12 +9,12 @@ import {
   buildBreadcrumbJsonLd,
 } from "@/lib/seo-schema";
 
-const TITLE =
+export const TITLE =
   "Maasai Boma Architecture: The Earth and Thatch Design Philosophy of Mtoni River Lodge";
-const DESCRIPTION =
+export const DESCRIPTION =
   "Earth, thatch, and circular spatial logic — how the rooms at Mtoni are grounded in a Maasai boma tradition shaped by climate, culture, and the Arusha landscape.";
-const ROUTE_PATH = "/journal/the-architecture-of-disappearing";
-const PUBLISHED = "2025-12-01";
+export const ROUTE_PATH = "/journal/the-architecture-of-disappearing";
+export const PUBLISHED = "2025-12-01";
 
 const RELATED = [
   { to: "/lodge", label: "About Mtoni River Lodge", description: "How the lodge was designed to disappear into the riverbank." },

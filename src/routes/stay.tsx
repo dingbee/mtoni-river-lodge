@@ -37,7 +37,7 @@ const BRAND = {
 
 /* ────────────── Content ────────────── */
 
-const STAY_FAQS: FAQItem[] = [
+export const STAY_FAQS: FAQItem[] = [
   {
     q: "Where is Mtoni River Lodge located?",
     a: "Mtoni River Lodge is a peaceful riverside lodge on the banks of the Nduruma River in Arusha, Northern Tanzania — approximately 50 minutes from Kilimanjaro International Airport and well placed for Northern Tanzania safaris.",
@@ -60,7 +60,7 @@ const STAY_FAQS: FAQItem[] = [
   },
 ];
 
-const ROOM_DETAILS: Record<RoomSlug, { price: string; sleeps: string; blurb: string }> = {
+export const ROOM_DETAILS: Record<RoomSlug, { price: string; sleeps: string; blurb: string }> = {
   "standard-river": {
     price: "From $260 / night",
     sleeps: "Sleeps up to 3 guests",

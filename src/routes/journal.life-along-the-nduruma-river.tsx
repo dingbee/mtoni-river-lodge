@@ -9,12 +9,12 @@ import {
   buildBreadcrumbJsonLd,
 } from "@/lib/seo-schema";
 
-const TITLE =
+export const TITLE =
   "Life Along the Nduruma River: Farming Traditions, Irrigation Streams, and the Green Heart of Mtoni River Lodge";
-const DESCRIPTION =
+export const DESCRIPTION =
   "Where the Nduruma River branches into quiet irrigation streams, ox-ploughed fields, banana groves, and river-fed gardens shape the green sanctuary around Mtoni.";
-const ROUTE_PATH = "/journal/life-along-the-nduruma-river";
-const PUBLISHED = "2026-02-01";
+export const ROUTE_PATH = "/journal/life-along-the-nduruma-river";
+export const PUBLISHED = "2026-02-01";
 
 const RELATED = [
   { to: "/lodge", label: "About Mtoni River Lodge", description: "The philosophy and family story behind this riverfront sanctuary." },
