@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Bell, LogOut, Menu, PanelLeft, PanelRight, Search, User } from "lucide-react";
+import { Bell, Check, LogOut, Menu, Monitor, Moon, PanelLeft, PanelRight, Search, Sun, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,6 +17,7 @@ import { CommandPalette } from "./CommandPalette";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { findNavByHref } from "./nav-config";
 import { useUnreadCount } from "@/lib/notifications";
+import { useOsTheme, type ThemePreference } from "@/lib/os-theme";
 import { cn } from "@/lib/utils";
 
 export function AdminTopbar({
@@ -41,6 +42,12 @@ export function AdminTopbar({
   const unread = useUnreadCount();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { preference, setTheme } = useOsTheme();
+  const appearance: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
+    { value: "light", label: "Light", Icon: Sun },
+    { value: "dark", label: "Dark", Icon: Moon },
+    { value: "system", label: "System", Icon: Monitor },
+  ];
 
   async function handleSignOut() {
     await qc.cancelQueries();
@@ -132,6 +139,23 @@ export function AdminTopbar({
             <DropdownMenuItem asChild>
               <Link to="/">View website</Link>
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Appearance</DropdownMenuLabel>
+            {appearance.map(({ value, label, Icon }) => (
+              <DropdownMenuItem
+                key={value}
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setTheme(value);
+                }}
+                aria-checked={preference === value}
+                role="menuitemradio"
+              >
+                <Icon className="mr-2 h-4 w-4" aria-hidden />
+                <span className="flex-1">{label}</span>
+                {preference === value && <Check className="h-3.5 w-3.5" aria-hidden />}
+              </DropdownMenuItem>
+            ))}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleSignOut}
