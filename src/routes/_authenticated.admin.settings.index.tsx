@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
+import { AppearanceControl } from "@/components/os/AppearanceControl";
 import { Badge } from "@/components/ui/badge";
 import { getBrandContext } from "@/domains/content/brand/brand.functions";
 
@@ -114,6 +115,16 @@ function SettingsHub() {
         title="Settings"
         description="Property, integrations, access and preferences."
       />
+
+      <SectionCard title="Appearance">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-[color:var(--os-ink-3)]">
+            Choose Light, Dark, or follow your device setting. Applies to Mtoni OS only —
+            the public website keeps its own identity.
+          </p>
+          <AppearanceControl />
+        </div>
+      </SectionCard>
 
       <SectionCard title="Property">
         <div className="grid gap-3 sm:grid-cols-2">

@@ -6,6 +6,7 @@ import { AdminAssistantRail } from "./AdminAssistantRail";
 import { useCurrentUserRoles } from "@/lib/permissions";
 import { useRealtimeNotifications } from "@/lib/notifications";
 import { installIntelligenceBridge } from "@/modules/intelligence/activation/bridge";
+import { applyOsTheme, useOsTheme } from "@/lib/os-theme";
 
 const COLLAPSED_KEY = "mtoni-os.sidebar.collapsed";
 const RAIL_KEY = "mtoni-os.rail.open";
@@ -17,6 +18,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [railOpen, setRailOpen] = useState(true);
   const { data: roles = [] } = useCurrentUserRoles();
   useRealtimeNotifications();
+  const { resolved } = useOsTheme();
+
+  // Apply the resolved OS theme at the document root while the shell is
+  // mounted; removed on unmount so the public website is never themed.
+  useEffect(() => {
+    applyOsTheme(resolved);
+    return () => applyOsTheme(null);
+  }, [resolved]);
 
   // Forward platform events into the Intelligence Core (best-effort).
   useEffect(() => installIntelligenceBridge(), []);
