@@ -17,7 +17,7 @@ import { SectionCard } from "@/components/os/SectionCard";
 import { Badge } from "@/components/ui/badge";
 import { getBrandContext } from "@/domains/content/brand/brand.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/settings")({
+export const Route = createFileRoute("/_authenticated/admin/settings/")({
   head: () => ({
     meta: [
       { title: "Settings — Mtoni OS" },

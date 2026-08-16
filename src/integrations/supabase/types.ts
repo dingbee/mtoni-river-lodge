@@ -7578,6 +7578,7 @@ export type Database = {
       }
       respad_duplicate_candidates: {
         Row: {
+          canonical_account_id: string | null
           confidence: string
           created_at: string
           duplicate_group_id: string
@@ -7588,11 +7589,13 @@ export type Database = {
           migration_batch_id: string
           normalized_account_id: string
           proposed_action: string
+          resolution_notes: string | null
           resolution_status: string
           resolved_at: string | null
           resolved_by: string | null
         }
         Insert: {
+          canonical_account_id?: string | null
           confidence: string
           created_at?: string
           duplicate_group_id: string
@@ -7603,11 +7606,13 @@ export type Database = {
           migration_batch_id: string
           normalized_account_id: string
           proposed_action?: string
+          resolution_notes?: string | null
           resolution_status?: string
           resolved_at?: string | null
           resolved_by?: string | null
         }
         Update: {
+          canonical_account_id?: string | null
           confidence?: string
           created_at?: string
           duplicate_group_id?: string
@@ -7618,11 +7623,19 @@ export type Database = {
           migration_batch_id?: string
           normalized_account_id?: string
           proposed_action?: string
+          resolution_notes?: string | null
           resolution_status?: string
           resolved_at?: string | null
           resolved_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "respad_duplicate_candidates_canonical_account_id_fkey"
+            columns: ["canonical_account_id"]
+            isOneToOne: false
+            referencedRelation: "respad_normalized_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "respad_duplicate_candidates_migration_batch_id_fkey"
             columns: ["migration_batch_id"]
@@ -7647,7 +7660,12 @@ export type Database = {
           detail: Json
           id: string
           migration_batch_id: string | null
+          new_value: Json | null
+          notes: string | null
           phase: string
+          previous_value: Json | null
+          target_id: string | null
+          target_table: string | null
         }
         Insert: {
           action: string
@@ -7656,7 +7674,12 @@ export type Database = {
           detail?: Json
           id?: string
           migration_batch_id?: string | null
+          new_value?: Json | null
+          notes?: string | null
           phase?: string
+          previous_value?: Json | null
+          target_id?: string | null
+          target_table?: string | null
         }
         Update: {
           action?: string
@@ -7665,7 +7688,12 @@ export type Database = {
           detail?: Json
           id?: string
           migration_batch_id?: string | null
+          new_value?: Json | null
+          notes?: string | null
           phase?: string
+          previous_value?: Json | null
+          target_id?: string | null
+          target_table?: string | null
         }
         Relationships: [
           {
@@ -7748,7 +7776,19 @@ export type Database = {
           account_name: string
           account_type: string
           addresses: string[]
+          canonical_account_type: string | null
+          canonical_address: string | null
+          canonical_contacts: Json
+          canonical_email: string | null
+          canonical_mobile: string | null
+          canonical_name: string | null
+          canonical_notes: string | null
+          canonical_phone: string | null
+          canonical_tin: string | null
+          canonical_vrn: string | null
+          canonical_website: string | null
           classification_evidence: string | null
+          classification_reviewed: boolean
           classification_source: string
           country: string | null
           created_at: string
@@ -7762,13 +7802,17 @@ export type Database = {
           legacy_company_ids: string[]
           legacy_source: string
           match_key: string
+          merged_into_account_id: string | null
           migration_batch_id: string
           notes: string | null
           payment_modes: string[]
           phones: string[]
           quality_flags: string[]
           relationship_count: number
+          review_notes: string | null
           review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
           source_files: string[]
           source_record_count: number
           tins: string[]
@@ -7780,7 +7824,19 @@ export type Database = {
           account_name: string
           account_type?: string
           addresses?: string[]
+          canonical_account_type?: string | null
+          canonical_address?: string | null
+          canonical_contacts?: Json
+          canonical_email?: string | null
+          canonical_mobile?: string | null
+          canonical_name?: string | null
+          canonical_notes?: string | null
+          canonical_phone?: string | null
+          canonical_tin?: string | null
+          canonical_vrn?: string | null
+          canonical_website?: string | null
           classification_evidence?: string | null
+          classification_reviewed?: boolean
           classification_source?: string
           country?: string | null
           created_at?: string
@@ -7794,13 +7850,17 @@ export type Database = {
           legacy_company_ids?: string[]
           legacy_source?: string
           match_key: string
+          merged_into_account_id?: string | null
           migration_batch_id: string
           notes?: string | null
           payment_modes?: string[]
           phones?: string[]
           quality_flags?: string[]
           relationship_count?: number
+          review_notes?: string | null
           review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           source_files?: string[]
           source_record_count?: number
           tins?: string[]
@@ -7812,7 +7872,19 @@ export type Database = {
           account_name?: string
           account_type?: string
           addresses?: string[]
+          canonical_account_type?: string | null
+          canonical_address?: string | null
+          canonical_contacts?: Json
+          canonical_email?: string | null
+          canonical_mobile?: string | null
+          canonical_name?: string | null
+          canonical_notes?: string | null
+          canonical_phone?: string | null
+          canonical_tin?: string | null
+          canonical_vrn?: string | null
+          canonical_website?: string | null
           classification_evidence?: string | null
+          classification_reviewed?: boolean
           classification_source?: string
           country?: string | null
           created_at?: string
@@ -7826,13 +7898,17 @@ export type Database = {
           legacy_company_ids?: string[]
           legacy_source?: string
           match_key?: string
+          merged_into_account_id?: string | null
           migration_batch_id?: string
           notes?: string | null
           payment_modes?: string[]
           phones?: string[]
           quality_flags?: string[]
           relationship_count?: number
+          review_notes?: string | null
           review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           source_files?: string[]
           source_record_count?: number
           tins?: string[]
@@ -7841,6 +7917,13 @@ export type Database = {
           websites?: string[]
         }
         Relationships: [
+          {
+            foreignKeyName: "respad_normalized_accounts_merged_into_account_id_fkey"
+            columns: ["merged_into_account_id"]
+            isOneToOne: false
+            referencedRelation: "respad_normalized_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "respad_normalized_accounts_migration_batch_id_fkey"
             columns: ["migration_batch_id"]

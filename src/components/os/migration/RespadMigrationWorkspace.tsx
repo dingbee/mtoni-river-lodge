@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SectionCard } from "@/components/os/SectionCard";
 import { EmptyState } from "@/components/os/EmptyState";
+import { RespadReconciliation } from "./RespadReconciliation";
 import { ShieldAlert, Upload } from "lucide-react";
 
 type AnyRow = Record<string, any>;
@@ -174,6 +175,7 @@ function BatchWorkspace({ batchId, batch }: { batchId: string; batch?: AnyRow })
         <TabsTrigger value="files">Source files</TabsTrigger>
         <TabsTrigger value="raw">Raw records</TabsTrigger>
         <TabsTrigger value="accounts">Normalized accounts</TabsTrigger>
+        <TabsTrigger value="reconciliation">Reconciliation</TabsTrigger>
         <TabsTrigger value="duplicates">Duplicates</TabsTrigger>
         <TabsTrigger value="groups">Commercial groups</TabsTrigger>
         <TabsTrigger value="quality">Data quality</TabsTrigger>
@@ -222,6 +224,10 @@ function BatchWorkspace({ batchId, batch }: { batchId: string; batch?: AnyRow })
 
       <TabsContent value="accounts">
         <NormalizedAccounts batchId={batchId} />
+      </TabsContent>
+
+      <TabsContent value="reconciliation">
+        <RespadReconciliation batchId={batchId} />
       </TabsContent>
 
       <TabsContent value="duplicates">
