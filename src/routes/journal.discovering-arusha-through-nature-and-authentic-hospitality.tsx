@@ -9,13 +9,13 @@ import {
   buildBreadcrumbJsonLd,
 } from "@/lib/seo-schema";
 
-const TITLE = "Discovering Arusha Through Nature and Authentic Hospitality";
-const META_TITLE = "Discover Arusha: Nature & Authentic Hospitality";
-const DESCRIPTION =
+export const TITLE = "Discovering Arusha Through Nature and Authentic Hospitality";
+export const META_TITLE = "Discover Arusha: Nature & Authentic Hospitality";
+export const DESCRIPTION =
   "Discover Arusha through nature, culture, and authentic hospitality at Mtoni River Lodge — a peaceful retreat close to Tanzania's iconic attractions.";
-const ROUTE_PATH =
+export const ROUTE_PATH =
   "/journal/discovering-arusha-through-nature-and-authentic-hospitality";
-const PUBLISHED = "2026-06-01";
+export const PUBLISHED = "2026-06-01";
 
 const RELATED = [
   { to: "/lodge", label: "About Mtoni River Lodge", description: "Our story, design philosophy, and the people behind the lodge." },

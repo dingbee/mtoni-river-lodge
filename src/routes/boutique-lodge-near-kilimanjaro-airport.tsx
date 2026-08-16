@@ -5,18 +5,18 @@ import hero from "@/assets/lodge-hero-aerial.jpg";
 import { buildBreadcrumbJsonLd, absoluteUrl } from "@/lib/seo-schema";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
 
-const TITLE =
+export const TITLE =
   "The Perfect Boutique Lodge Near Kilimanjaro Airport for Your Tanzania Safari";
-const PAGE_TITLE =
+export const PAGE_TITLE =
   "Boutique Lodge Near Kilimanjaro Airport | Before & After Safari | Mtoni River Lodge";
-const DESCRIPTION =
+export const DESCRIPTION =
   "Looking for a peaceful boutique lodge near Kilimanjaro International Airport? Stay at Mtoni River Lodge before or after your safari or Mount Kilimanjaro adventure and experience authentic Tanzanian hospitality surrounded by nature.";
-const ROUTE = "/boutique-lodge-near-kilimanjaro-airport";
-const URL = absoluteUrl(ROUTE);
-const HERO_URL = absoluteUrl(hero);
-const PUBLISHED = "2026-07-02";
+export const ROUTE = "/boutique-lodge-near-kilimanjaro-airport";
+export const URL = absoluteUrl(ROUTE);
+export const HERO_URL = absoluteUrl(hero);
+export const PUBLISHED = "2026-07-02";
 
-const FAQS: ReadonlyArray<FAQItem> = [
+export const FAQS: ReadonlyArray<FAQItem> = [
   {
     q: "How far is Mtoni River Lodge from Kilimanjaro International Airport?",
     a: "Mtoni River Lodge is a comfortable drive from Kilimanjaro International Airport (JRO) — close enough for a convenient transfer on arrival or departure, yet far enough to offer the peace of a nature-led riverside setting rather than the noise of an airport hotel. Our team can help arrange a private transfer to match your flight schedule.",

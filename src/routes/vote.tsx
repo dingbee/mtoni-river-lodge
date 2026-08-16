@@ -21,7 +21,7 @@ import voteMaasaiRiverAsset from "@/assets/vote-maasai-river.jpg.asset.json";
 const VOTE_URL = "https://luxuryhotelawards.com/vote/";
 const SHARE_TEXT =
   "Help Mtoni River Lodge win at the World Luxury Hotel Awards — vote here:";
-const SHARE_URL = "https://mtoniriverlodge.com/vote";
+export const SHARE_URL = "https://mtoniriverlodge.com/vote";
 
 export const Route = createFileRoute("/vote")({
   head: () => ({

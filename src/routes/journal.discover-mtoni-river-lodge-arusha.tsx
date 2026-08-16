@@ -4,15 +4,15 @@ import { ArticleLayout } from "@/components/site/ArticleLayout";
 import heroAsset from "@/assets/pool-aerial-slow-living.jpg.asset.json";
 const hero = heroAsset.url;
 
-const TITLE =
+export const TITLE =
   "Discover Mtoni River Lodge: A Hidden Nature Retreat in Arusha, Tanzania";
-const META_TITLE =
+export const META_TITLE =
   "Mtoni River Lodge Arusha | Boutique Nature Retreat & Luxury Accommodation";
-const DESCRIPTION =
+export const DESCRIPTION =
   "Experience authentic Maasai-inspired hospitality at Mtoni River Lodge in Arusha. Stay surrounded by nature, explore Tanzania's iconic attractions, and enjoy personalized luxury.";
-const URL =
+export const URL =
   "https://mtoniriverlodge.com/journal/discover-mtoni-river-lodge-arusha";
-const IMAGE_URL = `https://mtoniriverlodge.com${hero}`;
+export const IMAGE_URL = `https://mtoniriverlodge.com${hero}`;
 
 const RELATED = [
   { to: "/rooms", label: "Explore Our Rooms", description: "Maasai-inspired cottages and riverfront suites set within the lodge gardens." },
@@ -22,7 +22,7 @@ const RELATED = [
   { to: "/contact", label: "Contact Our Team", description: "Plan transfers, excursions, and tailored stays with our hosts." },
 ];
 
-const FAQ = [
+export const FAQ = [
   {
     q: "Where is Mtoni River Lodge located?",
     a: "Mtoni River Lodge sits on the tranquil banks of the Nduruma River in Arusha, Tanzania — between Kilimanjaro International Airport and Arusha City, a convenient base for Northern Tanzania safaris.",

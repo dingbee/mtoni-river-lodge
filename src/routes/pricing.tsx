@@ -14,7 +14,7 @@ import riverfrontDeluxe from "@/assets/riverfront-deluxe-interior.jpg";
 import standardRiver from "@/assets/standard-river-exterior.jpg";
 import familyRoom from "@/assets/family-room-hero.jpg";
 
-const PRICING_FAQS: FAQItem[] = [
+export const PRICING_FAQS: FAQItem[] = [
   {
     q: "Are rates per room or per person?",
     a: "Rates are quoted per room, per night, and include breakfast. The base rate covers two adults; extra adults or children aged 7 and older are charged a per-night supplement up to the room's maximum capacity.",

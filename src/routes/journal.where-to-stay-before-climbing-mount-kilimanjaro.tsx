@@ -5,16 +5,16 @@ import hero from "@/assets/lodge-hero-aerial.jpg";
 import { buildBreadcrumbJsonLd, absoluteUrl } from "@/lib/seo-schema";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
 
-const TITLE = "Where to Stay Before Climbing Mount Kilimanjaro";
-const PAGE_TITLE = `${TITLE} | Mtoni River Lodge`;
-const DESCRIPTION =
+export const TITLE = "Where to Stay Before Climbing Mount Kilimanjaro";
+export const PAGE_TITLE = `${TITLE} | Mtoni River Lodge`;
+export const DESCRIPTION =
   "Planning to climb Mount Kilimanjaro? Discover why staying in Arusha before your trek improves your experience and why Mtoni River Lodge is the ideal place to rest before and after your adventure.";
-const ROUTE = "/journal/where-to-stay-before-climbing-mount-kilimanjaro";
-const URL = absoluteUrl(ROUTE);
-const HERO_URL = absoluteUrl(hero);
-const PUBLISHED = "2026-06-29";
+export const ROUTE = "/journal/where-to-stay-before-climbing-mount-kilimanjaro";
+export const URL = absoluteUrl(ROUTE);
+export const HERO_URL = absoluteUrl(hero);
+export const PUBLISHED = "2026-06-29";
 
-const FAQS: ReadonlyArray<FAQItem> = [
+export const FAQS: ReadonlyArray<FAQItem> = [
   {
     q: "How many days should I stay in Arusha before climbing Kilimanjaro?",
     a: "Most climbers spend one to two nights in Arusha before their trek. This allows time to recover from long-haul flights, complete equipment checks with your guide, and acclimatise to the altitude and climate before transferring to the mountain.",

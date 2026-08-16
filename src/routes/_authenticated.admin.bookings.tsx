@@ -4,10 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { listBookings, getBookingDetail, updateBookingStatus } from "@/lib/admin.functions";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { Button } from "@/components/ui/button";
+import { NewReservationDialog } from "@/components/os/reservations/NewReservationDialog";
+import { CheckinAccessPanel } from "@/components/os/reservations/CheckinAccessPanel";
 
 export const Route = createFileRoute("/_authenticated/admin/bookings")({
   head: () => ({
@@ -40,6 +42,7 @@ function AdminBookings() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const listFn = useServerFn(listBookings);
   const detailFn = useServerFn(getBookingDetail);
@@ -81,6 +84,19 @@ function AdminBookings() {
       <PageHeader
         title="Bookings"
         description="Every direct reservation, its payment state and status history."
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> New reservation
+          </Button>
+        }
+      />
+
+      <NewReservationDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={() => {
+          qc.invalidateQueries({ queryKey: ["admin-bookings"] });
+        }}
       />
 
       <SectionCard
@@ -339,6 +355,8 @@ function AdminBookings() {
                     <p className="mt-1">{detail.data.booking.special_requests}</p>
                   </div>
                 )}
+
+                <CheckinAccessPanel bookingId={detail.data.booking.id} />
 
                 <div className="mt-5">
                   <p className="text-[0.65rem] uppercase tracking-[0.22em] text-muted-foreground">

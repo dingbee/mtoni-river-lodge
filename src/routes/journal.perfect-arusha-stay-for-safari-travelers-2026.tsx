@@ -5,11 +5,11 @@ import { Link } from "@tanstack/react-router";
 import hero from "@/assets/hero-cottage-exterior.jpg";
 import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
 
-const TITLE =
+export const TITLE =
   "Why Mtoni River Lodge Is the Perfect Arusha Stay for Safari Travelers in 2026";
-const DESCRIPTION =
+export const DESCRIPTION =
   "Discover why Mtoni River Lodge is the ideal accommodation in Arusha for safari travelers, Kilimanjaro climbers, and visitors seeking authentic Tanzanian hospitality.";
-const URL = "https://mtoniriverlodge.com/journal/perfect-arusha-stay-for-safari-travelers-2026";
+export const URL = "https://mtoniriverlodge.com/journal/perfect-arusha-stay-for-safari-travelers-2026";
 
 const RELATED = [
   { to: "/rooms/riverfront-deluxe", label: "Riverfront Deluxe Rooms", description: "The signature room for travellers arriving before or after safari." },

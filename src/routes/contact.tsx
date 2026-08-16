@@ -19,7 +19,7 @@ const ADDRESS_LINES = ["Mtoni River Lodge", "Gomba Estate, Arusha", "Tanzania"];
 const MAP_EMBED = "https://www.google.com/maps?q=Mtoni%20River%20Lodge&output=embed";
 const MAP_DIRECTIONS = "https://www.google.com/maps?q=Mtoni+River+Lodge";
 
-const CONTACT_FAQS: FAQItem[] = [
+export const CONTACT_FAQS: FAQItem[] = [
   {
     q: "What is the fastest way to reach the reservations team?",
     a: "WhatsApp is the fastest channel during the day — message us at +255 752 441 443. You can also call the same number, or email bookings@mtoniriverlodge.com for written enquiries.",

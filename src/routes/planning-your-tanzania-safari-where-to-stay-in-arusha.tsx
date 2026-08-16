@@ -5,18 +5,18 @@ import hero from "@/assets/mtoni-entrance-hero.webp";
 import { absoluteUrl, buildBreadcrumbJsonLd } from "@/lib/seo-schema";
 import { buildFAQJsonLd, type FAQItem } from "@/lib/faq-schema";
 
-const TITLE =
+export const TITLE =
   "Planning Your Tanzania Safari? Here's Why Your Stay in Arusha Matters More Than You Think";
-const PAGE_TITLE =
+export const PAGE_TITLE =
   "Planning a Tanzania Safari? Where to Stay in Arusha | Mtoni River Lodge";
-const DESCRIPTION =
+export const DESCRIPTION =
   "Planning a safari in Tanzania? Discover why staying in Arusha before and after your safari makes your journey smoother, more comfortable, and more memorable. Explore expert travel tips from Mtoni River Lodge.";
-const ROUTE = "/planning-your-tanzania-safari-where-to-stay-in-arusha";
-const URL = absoluteUrl(ROUTE);
-const HERO_URL = absoluteUrl(hero);
-const PUBLISHED = "2026-07-13";
+export const ROUTE = "/planning-your-tanzania-safari-where-to-stay-in-arusha";
+export const URL = absoluteUrl(ROUTE);
+export const HERO_URL = absoluteUrl(hero);
+export const PUBLISHED = "2026-07-13";
 
-const FAQS: ReadonlyArray<FAQItem> = [
+export const FAQS: ReadonlyArray<FAQItem> = [
   {
     q: "Is Arusha better than Moshi for a Tanzania safari?",
     a: "Arusha is the recognised safari capital of Northern Tanzania. Nearly every operator, park permit office and safari transfer is based here, and the town is closer to the Serengeti, Ngorongoro Crater, Tarangire and Lake Manyara. Moshi is better suited to Mount Kilimanjaro climbs. For a safari-first trip, choose Arusha.",

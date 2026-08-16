@@ -9,7 +9,7 @@ import {
   buildBreadcrumbJsonLd,
 } from "@/lib/seo-schema";
 
-const TITLE = "Building With the Community";
+export const TITLE = "Building With the Community";
 
 const RELATED = [
   { to: "/lodge", label: "About Mtoni River Lodge", description: "The family and philosophy behind a community-rooted retreat." },
@@ -18,10 +18,10 @@ const RELATED = [
   { to: "/experiences", label: "Experiences With Our Neighbours", description: "Spend a morning with the people and crafts that shape this place." },
   { to: "/contact", label: "Contact the Lodge", description: "Speak with our team about community visits and custom journeys." },
 ];
-const DESCRIPTION =
+export const DESCRIPTION =
   "Employment, infrastructure, and shared growth at Mtoni River Lodge — how hospitality and community development flow together along the Nduruma River.";
-const ROUTE_PATH = "/journal/building-with-the-community";
-const PUBLISHED = "2026-01-01";
+export const ROUTE_PATH = "/journal/building-with-the-community";
+export const PUBLISHED = "2026-01-01";
 
 export const Route = createFileRoute("/journal/building-with-the-community")({
   head: () => ({
