@@ -424,7 +424,7 @@ export async function buildQualityReport(supabase: Sb, batchId: string) {
       high_confidence: [...confOf.values()].filter((c) => c === "high").length,
       medium_confidence: [...confOf.values()].filter((c) => c === "medium").length,
       low_confidence: [...confOf.values()].filter((c) => c === "low").length,
-      manual_review: accs.filter((a) => (a as unknown as { review_status: string }).review_status === "pending").length,
+      manual_review: accs.filter((a) => (a as unknown as { review_status: string }).review_status !== "approved").length,
     },
     per_file: [...perFile.entries()]
       .map(([source_file, records]) => ({ source_file, records }))
