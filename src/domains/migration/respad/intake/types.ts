@@ -58,6 +58,8 @@ export type ExtractedFile = {
   detectedRowCount: number;
   records: RespadRawRecord[];
   sample: Record<string, unknown>[];
+  /** Full extracted tabular rows, retained so mapping can be re-applied. */
+  rawRows?: Record<string, unknown>[];
   textPreview?: string;
   sheetNames?: string[];
 };
