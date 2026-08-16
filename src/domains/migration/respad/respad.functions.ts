@@ -160,3 +160,161 @@ export const listRespadAuditLog = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+/* ------------------------------------------------------------------------ */
+/* Phase 1B — human reconciliation (staging only, no production writes)      */
+/* ------------------------------------------------------------------------ */
+
+const reviewStatusEnum = z.enum(["needs_review", "pending", "approved", "rejected", "merged"]);
+const accountTypeEnum = z.enum([
+  "tour_operator",
+  "ota",
+  "booking_channel",
+  "corporate",
+  "organization",
+  "direct",
+  "other",
+  "unknown",
+]);
+
+const reviewListInput = batchInput.extend({
+  review_status: reviewStatusEnum.optional(),
+  account_type: accountTypeEnum.optional(),
+  quality_flag: z.string().max(60).optional(),
+  search: z.string().max(200).optional(),
+  only_multi_record: z.boolean().optional(),
+  only_multi_group: z.boolean().optional(),
+  limit: z.number().int().min(1).max(200).optional(),
+  offset: z.number().int().min(0).optional(),
+});
+
+export const listRespadReviewAccounts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => reviewListInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { assertMigrationAdmin, listReviewAccounts } = await import("./review.server");
+    await assertMigrationAdmin(context.supabase, context.userId);
+    return listReviewAccounts(context.supabase, data);
+  });
+
+export const getRespadAccountDossier = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ account_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { assertMigrationAdmin, getAccountDossier } = await import("./review.server");
+    await assertMigrationAdmin(context.supabase, context.userId);
+    return getAccountDossier(context.supabase, data.account_id);
+  });
+
+export const listRespadDuplicateGroups = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => batchInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { assertMigrationAdmin, listDuplicateGroups } = await import("./review.server");
+    await assertMigrationAdmin(context.supabase, context.userId);
+    return listDuplicateGroups(context.supabase, data.batch_id);
+  });
+
+export const getRespadReadinessReport = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => batchInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { assertMigrationAdmin, buildReadinessReport } = await import("./review.server");
+    await assertMigrationAdmin(context.supabase, context.userId);
+    return buildReadinessReport(context.supabase, data.batch_id);
+  });
+
+export const resolveRespadDuplicateGroup = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    batchInput
+      .extend({
+        duplicate_group_id: z.string().uuid(),
+        decision: z.enum(["merge", "separate", "needs_review"]),
+        canonical_account_id: z.string().uuid().nullable().optional(),
+        notes: z.string().max(2000).nullable().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertMigrationAdmin, resolveDuplicateGroup } = await import("./review.server");
+    await assertMigrationAdmin(context.supabase, context.userId);
+    return resolveDuplicateGroup(context.supabase, context.userId, data);
+  });
+
+export const setRespadAccountReview = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        account_id: z.string().uuid(),
+        review_status: reviewStatusEnum,
+        notes: z.string().max(2000).nullable().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertMigrationAdmin, setAccountReview } = await import("./review.server");
+    await assertMigrationAdmin(context.supabase, context.userId);
+    return setAccountReview(context.supabase, context.userId, data);
+  });
+
+export const bulkSetRespadAccountReview = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    batchInput
+      .extend({
+        account_ids: z.array(z.string().uuid()).min(1).max(200),
+        review_status: reviewStatusEnum,
+        notes: z.string().max(2000).nullable().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertMigrationAdmin, bulkSetAccountReview } = await import("./review.server");
+    await assertMigrationAdmin(context.supabase, context.userId);
+    return bulkSetAccountReview(context.supabase, context.userId, data);
+  });
+
+export const setRespadAccountClassification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        account_id: z.string().uuid(),
+        account_type: accountTypeEnum,
+        notes: z.string().max(2000).nullable().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertMigrationAdmin, setAccountClassification } = await import("./review.server");
+    await assertMigrationAdmin(context.supabase, context.userId);
+    return setAccountClassification(context.supabase, context.userId, data);
+  });
+
+export const updateRespadCanonicalAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        account_id: z.string().uuid(),
+        patch: z.record(z.string(), z.string().max(500).nullable()),
+        contacts: z
+          .array(z.object({ email: z.string().max(200), label: z.string().max(80).optional() }))
+          .max(20)
+          .nullable()
+          .optional(),
+        notes: z.string().max(2000).nullable().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertMigrationAdmin, updateCanonicalAccount } = await import("./review.server");
+    await assertMigrationAdmin(context.supabase, context.userId);
+    return updateCanonicalAccount(context.supabase, context.userId, {
+      account_id: data.account_id,
+      patch: data.patch,
+      contacts: data.contacts ?? null,
+      notes: data.notes ?? null,
+    });
+  });

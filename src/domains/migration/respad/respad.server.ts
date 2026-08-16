@@ -197,7 +197,9 @@ export async function stageRespadBatch(
       source_record_count: a.source_record_count,
       relationship_count: a.groupnames.length,
       quality_flags: a.quality_flags,
-      review_status: a.quality_flags.length ? "pending" : "auto_ok",
+      // review_status is intentionally omitted: reviewer decisions (Phase 1B)
+      // must survive re-imports; new rows fall back to the column default
+      // ('needs_review').
     }));
     const { data, error } = await supabase
       .from("respad_normalized_accounts")
