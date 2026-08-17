@@ -7,6 +7,10 @@ import {
 } from "../core/contracts";
 import { assertCapability, assertTenantRead } from "../core/access.server";
 import { emitRestaurantEvent } from "../events/emit.server";
+import { assertPurchaseOrderTransition } from "./state-machine";
+import { nextDocumentNumber, recordProcurementAudit } from "../procurement/audit.server";
+import { DOCUMENT_PREFIX } from "../procurement/contracts";
+import type { PurchaseOrderStatus } from "../core/contracts";
 
 type Sb = any;
 
@@ -31,11 +35,19 @@ export async function listPurchaseOrders(
 }
 
 export async function createPurchaseOrder(sb: Sb, userId: string, input: CreatePurchaseOrderInput) {
+  // A purchase order raised outside the requisition flow is a management
+  // exception: it needs ordering authority, not just purchasing access.
   await assertCapability(sb, userId, input.tenantId, "purchasing.manage");
+  await assertCapability(sb, userId, input.tenantId, "purchasing.approve");
 
   const subtotal = input.lines.reduce((sum, l) => sum + l.quantity * l.unitPrice, 0);
-  const reference =
-    input.reference ?? `PO-${new Date().toISOString().slice(2, 10).replace(/-/g, "")}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  const documentNumber = await nextDocumentNumber(
+    sb,
+    input.tenantId,
+    "purchase_order",
+    DOCUMENT_PREFIX.purchase_order,
+  );
+  const reference = input.reference ?? documentNumber;
 
   const { data: po, error } = await sb
     .from("restaurant_purchase_orders")
@@ -45,6 +57,7 @@ export async function createPurchaseOrder(sb: Sb, userId: string, input: CreateP
       location_id: input.locationId ?? null,
       supplier_id: input.supplierId ?? null,
       reference,
+      document_number: documentNumber,
       status: "draft",
       expected_at: input.expectedAt ?? null,
       subtotal,
@@ -52,8 +65,10 @@ export async function createPurchaseOrder(sb: Sb, userId: string, input: CreateP
       currency: input.currency,
       notes: input.notes ?? null,
       created_by: userId,
+      buyer_id: userId,
+      metadata: { origin: "direct", direct_reason: input.directReason, authorised_by: userId },
     })
-    .select("id, reference, total, currency")
+    .select("id, reference, document_number, total, currency")
     .single();
   if (error) throw new Error(error.message);
 
@@ -74,6 +89,17 @@ export async function createPurchaseOrder(sb: Sb, userId: string, input: CreateP
     if (lineError) throw new Error(lineError.message);
   }
 
+  await recordProcurementAudit(sb, userId, {
+    tenantId: input.tenantId,
+    documentType: "purchase_order",
+    documentId: po.id,
+    documentNumber: po.document_number,
+    action: "created_direct",
+    newState: "draft",
+    reason: input.directReason,
+    metadata: { origin: "direct", lines: input.lines.length, subtotal },
+  });
+
   await emitRestaurantEvent(sb, userId, {
     type: "restaurant.purchase.created",
     tenantId: input.tenantId,
@@ -82,11 +108,25 @@ export async function createPurchaseOrder(sb: Sb, userId: string, input: CreateP
     entityType: "restaurant_purchase_order",
     entityId: po.id,
     source: "restaurant-os",
-    payload: { reference: po.reference, total: Number(po.total), lines: input.lines.length },
+    dedupeKey: `restaurant.po.${po.id}.created`,
+    payload: {
+      reference: po.reference,
+      document_number: po.document_number,
+      total: Number(po.total),
+      lines: input.lines.length,
+      origin: "direct",
+    },
   });
   return po;
 }
 
+/**
+ * The single governed purchase-order transition service.
+ *
+ * State-machine validated, capability checked, tenant checked, idempotent and
+ * audited. There is deliberately no generic "set status" path: fulfilment
+ * states are derived from posted goods receipts, never asserted by a user.
+ */
 export async function transitionPurchaseOrder(
   sb: Sb,
   userId: string,
@@ -95,34 +135,89 @@ export async function transitionPurchaseOrder(
   const capability = input.status === "approved" ? "purchasing.approve" : "purchasing.manage";
   await assertCapability(sb, userId, input.tenantId, capability);
 
+  const { data: current, error: readErr } = await sb
+    .from("restaurant_purchase_orders")
+    .select("id, reference, document_number, status, total, location_id, property_id, correlation_id, created_by, buyer_id")
+    .eq("tenant_id", input.tenantId)
+    .eq("id", input.id)
+    .single();
+  if (readErr || !current) throw new Error("Purchase order not found.");
+
+  // Idempotent: repeating the same decision is not a second business effect.
+  if (current.status === input.status) {
+    return {
+      id: current.id,
+      reference: current.reference,
+      status: current.status,
+      total: current.total,
+      location_id: current.location_id,
+      property_id: current.property_id,
+      unchanged: true,
+    };
+  }
+
+  assertPurchaseOrderTransition(current.status as PurchaseOrderStatus, input.status);
+
+  if (input.status === "cancelled" && !input.reason) {
+    throw new Error("A reason is required to cancel a purchase order.");
+  }
+  if (input.status === "approved" && (current.created_by === userId || current.buyer_id === userId)) {
+    const { isPlatformAdmin } = await import("../core/access.server");
+    if (!(await isPlatformAdmin(sb, userId))) {
+      throw new Error("Separation of duties — the buyer who raised this order cannot approve it.");
+    }
+  }
+
   const patch: Record<string, unknown> = { status: input.status, updated_at: new Date().toISOString() };
   if (input.status === "approved") {
     patch.approved_by = userId;
     patch.approved_at = new Date().toISOString();
   }
-  if (input.status === "received") patch.received_at = new Date().toISOString();
 
   const { data, error } = await sb
     .from("restaurant_purchase_orders")
     .update(patch)
     .eq("id", input.id)
     .eq("tenant_id", input.tenantId)
+    .eq("status", current.status)
     .select("id, reference, status, total, location_id, property_id")
     .single();
   if (error) throw new Error(error.message);
 
-  if (input.status === "received") {
-    await emitRestaurantEvent(sb, userId, {
-      type: "restaurant.purchase.received",
-      tenantId: input.tenantId,
-      propertyId: data.property_id ?? undefined,
-      locationId: data.location_id ?? undefined,
-      entityType: "restaurant_purchase_order",
-      entityId: data.id,
-      source: "restaurant-os",
-      payload: { reference: data.reference, total: Number(data.total) },
-    });
-  }
+  await recordProcurementAudit(sb, userId, {
+    tenantId: input.tenantId,
+    documentType: "purchase_order",
+    documentId: input.id,
+    documentNumber: current.document_number ?? current.reference,
+    action: `transition_${input.status}`,
+    previousState: current.status,
+    newState: input.status,
+    reason: input.reason ?? null,
+    correlationId: current.correlation_id,
+  });
+
+  await emitRestaurantEvent(sb, userId, {
+    type:
+      input.status === "cancelled"
+        ? "restaurant.purchase.order.cancelled"
+        : input.status === "approved"
+          ? "restaurant.purchase.order.approved"
+          : "restaurant.purchase.order.submitted",
+    tenantId: input.tenantId,
+    propertyId: data.property_id ?? undefined,
+    locationId: data.location_id ?? undefined,
+    entityType: "restaurant_purchase_order",
+    entityId: data.id,
+    source: "restaurant-os",
+    correlationId: current.correlation_id ?? undefined,
+    dedupeKey: `restaurant.po.${data.id}.${input.status}`,
+    payload: {
+      reference: data.reference,
+      document_number: current.document_number ?? null,
+      total: Number(data.total),
+      previous_status: current.status,
+    },
+  });
   return data;
 }
 

@@ -242,6 +242,12 @@ export const createPurchaseOrderSchema = tenantScopeSchema.extend({
   expectedAt: z.string().optional(),
   currency: z.string().min(3).max(3).default("TZS"),
   notes: z.string().max(2000).optional(),
+  /**
+   * A purchase order raised without a requisition is an exception, not a
+   * shortcut: the reason for bypassing the request stage is mandatory and is
+   * written to the audit trail.
+   */
+  directReason: z.string().min(10).max(500),
   lines: z
     .array(
       z.object({
@@ -260,7 +266,12 @@ export type CreatePurchaseOrderInput = z.infer<typeof createPurchaseOrderSchema>
 export const transitionPurchaseOrderSchema = z.object({
   tenantId: uuid,
   id: uuid,
-  status: z.enum(PO_STATUSES),
+  /**
+   * Only user-driven statuses are accepted. `partially_received` / `received`
+   * are derived by the receiving service from posted stock.
+   */
+  status: z.enum(["submitted", "approved", "cancelled"]),
+  reason: z.string().max(500).optional(),
 });
 
 /* ---------------- Costing ---------------- */
