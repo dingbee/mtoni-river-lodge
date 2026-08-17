@@ -7,7 +7,12 @@ export * from "./core/permissions";
 export * from "./events/contracts";
 export { registerRestaurantIntelligence } from "./intelligence/provider";
 
-export { getRestaurantWorkspaceFn } from "./core/tenancy.functions";
+export {
+  getRestaurantWorkspaceFn,
+  listRestaurantMembersFn,
+  upsertRestaurantMemberFn,
+  removeRestaurantMemberFn,
+} from "./core/tenancy.functions";
 export { emitRestaurantEventFn } from "./events/events.functions";
 export {
   listRestaurantMenusFn,

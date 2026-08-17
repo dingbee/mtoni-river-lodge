@@ -515,3 +515,15 @@ export type ProfitabilityInput = z.infer<typeof profitabilitySchema>;
 export const listProfitabilitySchema = tenantScopeSchema.extend({
   limit: z.number().int().min(1).max(300).default(100),
 });
+
+/* ---------------- Tenant membership ---------------- */
+
+export const listMembersSchema = z.object({ tenantId: uuid });
+
+export const upsertMemberSchema = z.object({
+  tenantId: uuid,
+  userId: uuid,
+  role: z.enum(RESTAURANT_ROLES),
+});
+
+export const removeMemberSchema = z.object({ tenantId: uuid, memberId: uuid });

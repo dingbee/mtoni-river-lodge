@@ -17,6 +17,7 @@ import {
   listRestaurantStockMovementsFn,
   recordRestaurantStockMovementFn,
 } from "@/modules/restaurant/inventory/movements.functions";
+import { reverseStockMovementFn } from "@/modules/restaurant/inventory/control.functions";
 import { STOCK_MOVEMENT_TYPES, type StockMovementType } from "@/modules/restaurant/core/contracts";
 
 export const Route = createFileRoute("/_authenticated/admin/restaurant/stock")({
@@ -38,6 +39,7 @@ function StockPage() {
   const invFn = useServerFn(listRestaurantInventoryFn);
   const listFn = useServerFn(listRestaurantStockMovementsFn);
   const recordFn = useServerFn(recordRestaurantStockMovementFn);
+  const reverseFn = useServerFn(reverseStockMovementFn);
 
   const [itemId, setItemId] = useState("");
   const [type, setType] = useState<StockMovementType>("wastage");
@@ -74,6 +76,22 @@ function StockPage() {
       void qc.invalidateQueries({ queryKey: ["restaurant.inventory"] });
     },
   });
+
+  const reverse = useAdminMutation({
+    mutationFn: (vars: { movementId: string; reason: string }) =>
+      reverseFn({ data: { tenantId: tenantId!, movementId: vars.movementId, reason: vars.reason } }),
+    successMessage: "Movement reversed",
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["restaurant.movements"] });
+      void qc.invalidateQueries({ queryKey: ["restaurant.inventory"] });
+    },
+  });
+
+  const onReverse = (movementId: string) => {
+    const why = window.prompt("Why is this movement being reversed? (kept on the audit trail)");
+    if (!why || why.trim().length < 2) return;
+    reverse.mutate({ movementId, reason: why.trim() });
+  };
 
   if (!ws.isLoading && !ws.data?.tenant) {
     return <EmptyState title="No restaurant tenant" description="You are not a member of a Restaurant & Bar OS tenant." />;
@@ -139,10 +157,21 @@ function StockPage() {
                     {r.reason ? ` · ${r.reason}` : ""}
                   </p>
                 </div>
-                <span className={`text-xs ${Number(r.quantity) < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                  {Number(r.quantity) > 0 ? "+" : ""}
-                  {Number(r.quantity)} → {Number(r.balance_after ?? 0)} · {currency} {Number(r.total_cost ?? 0).toLocaleString()}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs ${Number(r.quantity) < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                    {Number(r.quantity) > 0 ? "+" : ""}
+                    {Number(r.quantity)} → {Number(r.balance_after ?? 0)} · {currency} {Number(r.total_cost ?? 0).toLocaleString()}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs"
+                    disabled={reverse.isPending || r.movement_type === "reversal"}
+                    onClick={() => onReverse(r.id)}
+                  >
+                    Reverse
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>
