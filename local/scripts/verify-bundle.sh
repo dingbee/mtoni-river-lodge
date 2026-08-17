@@ -17,9 +17,9 @@ fail() { echo "FATAL: $*" >&2; exit 1; }
 # Any hosted backend origin baked into the shipped assets is disqualifying.
 # Vendored SDKs ship documentation placeholders (xyzcompany/project-id/example)
 # in their JSDoc; those are not real origins and are excluded explicitly.
-PLACEHOLDERS='^https://(xyzcompany|project-id|example|your-project|<[^>]+>)\.supabase\.(co|in)'
-HITS="$(grep -rhoE 'https://[a-z0-9-]+\.supabase\.(co|in)' "$BUNDLE/client" "$BUNDLE/server" 2>/dev/null \
-  | sort -u | grep -vE "$PLACEHOLDERS" || true)"
+# A real hosted origin is a 20-character project ref (https://<ref>.supabase.co).
+HITS="$(grep -rhoE 'https://[a-z0-9]{20}\.supabase\.(co|in)' "$BUNDLE/client" "$BUNDLE/server" 2>/dev/null \
+  | sort -u || true)"
 if [[ -n "$HITS" ]]; then
   echo "$HITS" | head -5 >&2
   grep -rlE "$(echo "$HITS" | head -1)" "$BUNDLE/client" "$BUNDLE/server" 2>/dev/null | head -5 >&2
