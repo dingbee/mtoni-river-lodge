@@ -53,7 +53,7 @@ export function RespadFileIntake({
     const next: ExtractedFile[] = [];
     // Loaded lazily: extraction is browser-only (FileReader/WASM parsers) and must
     // never enter the server bundle graph.
-    const { extractFile } = await import("@/domains/migration/respad/intake/extract.client");
+    const { extractFile } = await import("@/domains/migration/respad/intake/extract.browser");
     for (const file of Array.from(list)) {
       const extracted = await extractFile(file);
       const already = ((history.data as Record<string, unknown>[]) ?? []).find(
