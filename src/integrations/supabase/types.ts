@@ -16438,6 +16438,7 @@ export type Database = {
         Returns: boolean
       }
       is_any_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_guest_pii_staff: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       knowledge_can_read_document: {
         Args: { _doc_id: string }
