@@ -57,3 +57,41 @@ export function assertPurchaseOrderTransition(
     throw new Error(`Invalid purchase order transition: ${from} → ${to}.`);
   }
 }
+
+/**
+ * Statuses an order must hold for goods to be received against it. `draft` has
+ * not been issued to anyone; `received` and `cancelled` are final. Receiving
+ * owns the business fact, this machine owns whether the state may move.
+ */
+export const PO_RECEIVABLE_STATUSES: readonly PurchaseOrderStatus[] = [
+  "submitted",
+  "approved",
+  "partially_received",
+];
+
+export function assertPurchaseOrderReceivable(status: string): void {
+  if (isTerminalPurchaseOrderStatus(status)) {
+    throw new Error(
+      `A ${status} purchase order is final — goods cannot be received against it, and receiving can never return it to an open state.`,
+    );
+  }
+  if (!(PO_RECEIVABLE_STATUSES as readonly string[]).includes(status)) {
+    throw new Error(`Goods cannot be received against a ${status} purchase order.`);
+  }
+}
+
+/**
+ * The single decision point for fulfilment state after a receipt is posted.
+ * Returns the status to persist, or `null` when the order is already in that
+ * state (a further partial delivery). Never bypasses the transition rules:
+ * an order that is terminal — cancelled included — throws instead.
+ */
+export function resolveFulfilmentTransition(
+  from: PurchaseOrderStatus,
+  to: Extract<PurchaseOrderStatus, "partially_received" | "received">,
+): PurchaseOrderStatus | null {
+  assertPurchaseOrderReceivable(from);
+  if (from === to) return null;
+  assertPurchaseOrderTransition(from, to, { serviceOwned: true });
+  return to;
+}
