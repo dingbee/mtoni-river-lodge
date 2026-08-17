@@ -30,10 +30,16 @@ wait_for "PostgreSQL" pg_isready -h "$NOVA_DB_HOST" -p "$NOVA_DB_PORT"
 export NOVA_DB_HOST NOVA_DB_PORT NOVA_DB_NAME NOVA_DB_AUTHENTICATOR NOVA_DB_AUTHENTICATOR_PASSWORD
 export NOVA_POSTGREST_HOST NOVA_POSTGREST_PORT NOVA_POSTGREST_SCHEMAS
 # Rendered with bash only — the appliance must not depend on gettext/envsubst.
+# Only ${VAR} expansion is intended: backticks, $(...) and backslashes are
+# escaped first so a template comment can never execute a command.
 render_template() {
-  local line
+  local line safe
   while IFS= read -r line; do
-    eval "printf '%s\n' \"${line//\"/\\\"}\""
+    safe=${line//\\/\\\\}
+    safe=${safe//\"/\\\"}
+    safe=${safe//\`/\\\`}
+    safe=${safe//\$(/\\\$(}
+    eval "printf '%s\n' \"$safe\""
   done < "$1"
 }
 render_template "$NOVA_LOCAL_DIR/config/postgrest.conf.template" > "$RENDERED"
