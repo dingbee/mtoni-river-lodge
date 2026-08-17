@@ -94,6 +94,48 @@ export async function createGoodsReceipt(sb: Sb, userId: string, input: CreateRe
     }
   }
 
+  // ---- over-receipt control ----------------------------------------------
+  // Cumulative deliveries may never silently enlarge the order. Over-delivery
+  // is allowed only as an explicitly authorised, reasoned exception.
+  const overReceipts: Array<{ description: string; ordered: number; alreadyReceived: number; now: number }> = [];
+  if (po) {
+    const orderItemIds = input.lines.map((l) => l.purchaseOrderItemId).filter(Boolean) as string[];
+    if (orderItemIds.length > 0) {
+      const { data: poItems } = await sb
+        .from("restaurant_purchase_order_items")
+        .select("id, description, quantity, received_quantity")
+        .eq("tenant_id", input.tenantId)
+        .eq("purchase_order_id", po.id)
+        .in("id", orderItemIds);
+      const byId = new Map(((poItems ?? []) as any[]).map((i) => [i.id, i]));
+      for (const l of input.lines) {
+        if (!l.purchaseOrderItemId) continue;
+        const poi = byId.get(l.purchaseOrderItemId);
+        if (!poi) throw new Error(`"${l.description}": order line does not belong to this purchase order.`);
+        const ordered = Number(poi.quantity ?? 0);
+        const already = Number(poi.received_quantity ?? 0);
+        if (already + l.receivedQuantity > ordered + 0.0001) {
+          overReceipts.push({
+            description: l.description,
+            ordered,
+            alreadyReceived: already,
+            now: l.receivedQuantity,
+          });
+        }
+      }
+    }
+  }
+  if (overReceipts.length > 0) {
+    if (!input.overReceiptReason) {
+      const first = overReceipts[0]!;
+      throw new Error(
+        `"${first.description}": receiving ${first.now} would exceed the ordered ${first.ordered} (already received ${first.alreadyReceived}). An authorised over-receipt reason is required — the purchase order is never enlarged silently.`,
+      );
+    }
+    // Over-receipt is a buying decision, so it needs ordering authority.
+    await assertCapability(sb, userId, input.tenantId, "purchasing.approve");
+  }
+
   const documentNumber = await nextDocumentNumber(
     sb,
     input.tenantId,
@@ -126,6 +168,35 @@ export async function createGoodsReceipt(sb: Sb, userId: string, input: CreateRe
     .select("id, document_number, status")
     .single();
   if (error) throw new Error(error.message);
+
+  if (overReceipts.length > 0) {
+    for (const o of overReceipts) {
+      await raiseVariance(sb, userId, {
+        tenantId: input.tenantId,
+        propertyId: input.propertyId ?? po?.property_id ?? null,
+        locationId: input.locationId ?? po?.location_id ?? null,
+        varianceType: "quantity",
+        severity: "high",
+        label: `${o.description}: over-receipt — ${o.alreadyReceived + o.now} delivered against ${o.ordered} ordered`,
+        purchaseOrderId: po?.id ?? null,
+        receiptId: receipt.id,
+        supplierId: input.supplierId ?? po?.supplier_id ?? null,
+        expectedValue: o.ordered,
+        actualValue: o.alreadyReceived + o.now,
+        detail: { stage: "receiving", over_receipt: true, reason: input.overReceiptReason },
+        dedupeKey: `receipt-over:${receipt.id}:${o.description}`,
+      });
+    }
+    await recordProcurementAudit(sb, userId, {
+      tenantId: input.tenantId,
+      documentType: "goods_receipt",
+      documentId: receipt.id,
+      documentNumber,
+      action: "over_receipt_authorised",
+      reason: input.overReceiptReason ?? null,
+      metadata: { lines: overReceipts },
+    });
+  }
 
   const { error: lineErr } = await sb.from("restaurant_goods_receipt_items").insert(
     input.lines.map((l) => ({
