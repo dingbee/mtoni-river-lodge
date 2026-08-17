@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DEFAULT_TIMEZONE } from "@/modules/restaurant/core/product";
 import { SectionCard } from "@/components/os/SectionCard";
 import { Field, FieldRow } from "@/modules/restaurant/ui/forms";
 import { useAdminMutation } from "@/hooks/use-admin-mutation";
@@ -18,7 +19,7 @@ export function BusinessPanel({ tenantId, data }: { tenantId: string; data: Mast
     code: (business.code as string) ?? "",
     taxId: (business.taxId as string) ?? "",
     defaultCurrency: (business.defaultCurrency as string) ?? "TZS",
-    timezone: (business.timezone as string) ?? "Africa/Dar_es_Salaam",
+    timezone: (business.timezone as string) ?? DEFAULT_TIMEZONE,
     phone: (business.phone as string) ?? "",
     email: (business.email as string) ?? "",
     address: (business.address as string) ?? "",
@@ -31,7 +32,7 @@ export function BusinessPanel({ tenantId, data }: { tenantId: string; data: Mast
       code: (business.code as string) ?? "",
       taxId: (business.taxId as string) ?? "",
       defaultCurrency: (business.defaultCurrency as string) ?? "TZS",
-      timezone: (business.timezone as string) ?? "Africa/Dar_es_Salaam",
+      timezone: (business.timezone as string) ?? DEFAULT_TIMEZONE,
       phone: (business.phone as string) ?? "",
       email: (business.email as string) ?? "",
       address: (business.address as string) ?? "",

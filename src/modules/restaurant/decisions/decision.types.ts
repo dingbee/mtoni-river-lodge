@@ -7,7 +7,7 @@
  * Findings come from Phase 3 (menu / inventory / kitchen / purchasing
  * intelligence). Everything downstream reuses the Intelligence Core decision
  * types so restaurant decisions land in the same board, ledger and governance
- * flow as every other Mtoni decision.
+ * flow as every other platform decision.
  */
 import { z } from "zod";
 import type { Decision, StoredDecision } from "@/modules/intelligence/decisions/decision.types";

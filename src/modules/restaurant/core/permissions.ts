@@ -2,7 +2,7 @@
  * Restaurant & Bar OS — capability map.
  *
  * Roles are commercial hospitality roles stored in `restaurant_members`
- * (tenant-scoped). They are separate from Mtoni platform roles: a Mtoni
+ * (tenant-scoped). They are separate from host platform roles: a platform
  * owner/admin/manager keeps oversight, but day-to-day restaurant permissions
  * are per-tenant so the module can be sold to other operators.
  *
