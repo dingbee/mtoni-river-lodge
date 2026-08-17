@@ -661,6 +661,19 @@ export function PosWorkspace({ lens = "restaurant" }: { lens?: PosLens } = {}) {
                     <RotateCcw className="size-4" /> Reopen bill
                   </Button>
                 )}
+                {canVoid && orderRow?.status !== "cancelled" && (
+                  <Button
+                    variant="ghost"
+                    className="min-h-11 text-destructive"
+                    disabled={cancelBill.isPending}
+                    onClick={() => {
+                      const reason = window.prompt("Cancel this whole bill. Reason?");
+                      if (reason && reason.trim().length >= 3) cancelBill.mutate({ orderId, reason: reason.trim() });
+                    }}
+                  >
+                    Cancel bill
+                  </Button>
+                )}
                 {canVoid && orderPayments.some((p: any) => Number(p.amount ?? 0) > 0 && p.state !== "refunded") && (
                   <Button
                     variant="ghost"
