@@ -72,6 +72,61 @@ describe("installer pre-flight", () => {
   });
 });
 
+describe("standalone Docker PostgreSQL pre-flight (P-4F)", () => {
+  const dockerDb = {
+    mode: "docker" as const,
+    dockerAvailable: true,
+    containerName: "nova-fnb-postgres",
+    containerRunning: true,
+    serverVersion: "17.11",
+    ready: true,
+    hostPort: 55432,
+    portReachable: true,
+  };
+
+  it("passes with a Docker PostgreSQL 17 container and no host psql", () => {
+    const report = evaluatePreflight({ ...healthyFacts, postgresVersion: null, database: dockerDb });
+    expect(report.ok).toBe(true);
+    expect(report.checks.find((c) => c.id === "postgres")?.status).toBe("pass");
+    // The host's 5432 is irrelevant in Docker mode.
+    expect(report.checks.find((c) => c.id === "port-5432")).toBeUndefined();
+  });
+
+  it("still fails on an incompatible container PostgreSQL version", () => {
+    const report = evaluatePreflight({
+      ...healthyFacts,
+      postgresVersion: null,
+      database: { ...dockerDb, serverVersion: "14.2" },
+    });
+    expect(report.ok).toBe(false);
+    expect(report.checks.find((c) => c.id === "postgres")?.status).toBe("fail");
+  });
+
+  it("fails when Docker, the container, readiness or the port is unavailable", () => {
+    const report = evaluatePreflight({
+      ...healthyFacts,
+      database: {
+        mode: "docker",
+        dockerAvailable: false,
+        containerRunning: false,
+        serverVersion: null,
+        ready: false,
+        portReachable: false,
+      },
+    });
+    const failed = report.checks.filter((c) => c.status === "fail").map((c) => c.id);
+    expect(failed).toEqual(
+      expect.arrayContaining(["docker", "db-container", "postgres", "db-ready", "db-port"]),
+    );
+  });
+
+  it("keeps host-mode behaviour unchanged", () => {
+    const report = evaluatePreflight({ ...healthyFacts, database: { mode: "host" } });
+    expect(report.ok).toBe(true);
+    expect(report.checks.length).toBe(5 + HOST_REQUIREMENTS.requiredPorts.length);
+  });
+});
+
 describe("installation state", () => {
   it("classifies a clean machine as fresh install", () => {
     expect(classifyInstall({ installMarkerPresent: false, databasePresent: false, migrationsApplied: 0 })).toMatchObject(
