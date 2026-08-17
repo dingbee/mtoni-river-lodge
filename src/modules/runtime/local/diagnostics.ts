@@ -58,6 +58,9 @@ export interface SystemInformation {
   lastBackupAt: string | null;
   lastBackupStatus: "verified" | "unverified" | "failed" | "none";
   health: "ok" | "degraded" | "down" | "unknown";
+  /** Application UI serving layer state — a terminal cannot trade without it. */
+  uiStatus: "ok" | "down" | "unknown";
+  uiVersion: string | null;
   ready: boolean;
 }
 
@@ -89,6 +92,8 @@ export function buildDiagnosticBundle(input: {
     lastBackupAt: null,
     lastBackupStatus: "none",
     health: "unknown",
+    uiStatus: "unknown",
+    uiVersion: null,
     ready: false,
     ...input.system,
   };

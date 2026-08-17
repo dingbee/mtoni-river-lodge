@@ -7,6 +7,7 @@ export type ComponentStatus = "ok" | "degraded" | "down" | "unknown";
 export interface HealthComponent {
   id:
     | "application"
+    | "application-ui"
     | "database"
     | "postgrest"
     | "auth"

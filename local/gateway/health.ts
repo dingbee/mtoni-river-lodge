@@ -9,10 +9,17 @@ import {
   type HealthReport,
 } from "../../src/modules/runtime/local/health";
 
-export async function collectHealth(sql: SQL, postgrestUrl: string): Promise<HealthReport> {
+export async function collectHealth(
+  sql: SQL,
+  postgrestUrl: string,
+  ui?: { status: "ok" | "down"; detail: string },
+): Promise<HealthReport> {
   const components: HealthComponent[] = [
     { id: "application", status: "ok", detail: "gateway responding" },
   ];
+  // A terminal with no UI cannot trade, so this is a first-class component:
+  // /ready must fail honestly when the application bundle is unavailable.
+  if (ui) components.push({ id: "application-ui", status: ui.status, detail: ui.detail });
   let schemaVersion: string | null = null;
   let appVersion = "unknown";
 

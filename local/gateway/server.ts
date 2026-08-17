@@ -14,6 +14,7 @@
 import { SQL } from "bun";
 import { existsSync, readFileSync } from "node:fs";
 import { AuthError, refreshSession, signInWithPassword, signOut, type AuthDeps } from "./auth";
+import { LocalAppHost, resolveBundle } from "./app";
 import { bootstrapProperty } from "./bootstrap";
 import { collectHealth } from "./health";
 import { resolveTlsConfig, terminalOrigin } from "../../src/modules/runtime/local/tls";
@@ -28,6 +29,13 @@ const env = (key: string, fallback?: string): string => {
 const PORT = Number(env("NOVA_GATEWAY_PORT", "8000"));
 const HOST = env("NOVA_GATEWAY_HOST", "0.0.0.0");
 const POSTGREST = `http://${env("NOVA_POSTGREST_HOST", "127.0.0.1")}:${env("NOVA_POSTGREST_PORT", "3001")}`;
+
+// ---- application UI ----------------------------------------------------
+// Same artefact as the hosted deployment, hosted in-process. Everything that
+// is not an API path is the application's to answer.
+const appHost = new LocalAppHost(
+  resolveBundle(new URL("../..", import.meta.url).pathname, process.env as Record<string, string | undefined>),
+);
 
 // ---- TLS ---------------------------------------------------------------
 // Android Chrome only treats HTTPS as a secure origin, so the LAN listener is
@@ -116,14 +124,14 @@ const handler = {
     try {
       // ---- liveness / readiness (no auth; never returns secrets) ----------
       if (path === "/health" || path === "/ready") {
-        const report = await collectHealth(sql, POSTGREST);
+        const report = await collectHealth(sql, POSTGREST, appHost.state());
         const ok = report.components.every((c) => c.status === "ok" || c.status === "degraded");
         return json(report, path === "/ready" && !ok ? 503 : 200);
       }
 
       // ---- product / system information (versions only, never secrets) ----
       if (path === "/nova/v1/system" && request.method === "GET") {
-        return json(await collectSystemInformation(sql, POSTGREST));
+        return json(await collectSystemInformation(sql, POSTGREST, appHost.state()));
       }
 
       // ---- local auth -----------------------------------------------------
@@ -167,7 +175,12 @@ const handler = {
         return await proxyToPostgrest(request, path.replace("/rest/v1", ""));
       }
 
-      return json({ error: "Not found" }, 404);
+      if (path.startsWith("/auth/v1/") || path.startsWith("/nova/v1/")) {
+        return json({ error: "Not found" }, 404);
+      }
+
+      // ---- application UI (React router stays authoritative) --------------
+      return await appHost.serve(request);
     } catch (error) {
       if (error instanceof AuthError) return json({ error: error.message }, error.status);
       // Details go to the local log, never to the caller.
