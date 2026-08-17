@@ -21,6 +21,7 @@ import {
   posCatalogFn,
   posReceiptFn,
   reopenPosOrderFn,
+  cancelPosOrderFn,
   takePosPaymentFn,
   transferPosOrderFn,
   voidPosLineFn,
@@ -94,6 +95,7 @@ export function PosWorkspace({ lens = "restaurant" }: { lens?: PosLens } = {}) {
   const transferFn = useServerFn(transferPosOrderFn);
   const payFn = useServerFn(takePosPaymentFn);
   const reopenFn = useServerFn(reopenPosOrderFn);
+  const cancelFn = useServerFn(cancelPosOrderFn);
   const receiptFn = useServerFn(posReceiptFn);
   const fireFn = useServerFn(fireRestaurantOrderFn);
   const billFn = useServerFn(getRestaurantBillFn);
@@ -285,6 +287,22 @@ export function PosWorkspace({ lens = "restaurant" }: { lens?: PosLens } = {}) {
       reopenFn({ data: { tenantId: tenantId!, orderId: vars.orderId, reason: "Correction at the till" } }),
     successMessage: "Bill reopened",
     onSuccess: refresh,
+  });
+
+  // Cancelling a whole bill is a governed correction, not a delete: the server
+  // decides whether it is allowed and unwinds any stock the sale consumed.
+  const cancelBill = useAdminMutation({
+    mutationFn: (vars: { orderId: string; reason: string }) =>
+      cancelFn({ data: { tenantId: tenantId!, orderId: vars.orderId, reason: vars.reason } }),
+    onSuccessToast: (d: any) =>
+      d?.reversal?.reversed
+        ? `Bill cancelled — ${d.reversal.reversed} stock movement(s) reversed`
+        : "Bill cancelled",
+    onSuccess: () => {
+      setOrderId(null);
+      setCart([]);
+      refresh();
+    },
   });
 
   const showReceipt = useAdminMutation({
@@ -641,6 +659,19 @@ export function PosWorkspace({ lens = "restaurant" }: { lens?: PosLens } = {}) {
                 {canReopen && orderRow?.status === "closed" && (
                   <Button variant="outline" className="min-h-11" onClick={() => reopen.mutate({ orderId })}>
                     <RotateCcw className="size-4" /> Reopen bill
+                  </Button>
+                )}
+                {canVoid && orderRow?.status !== "cancelled" && (
+                  <Button
+                    variant="ghost"
+                    className="min-h-11 text-destructive"
+                    disabled={cancelBill.isPending}
+                    onClick={() => {
+                      const reason = window.prompt("Cancel this whole bill. Reason?");
+                      if (reason && reason.trim().length >= 3) cancelBill.mutate({ orderId, reason: reason.trim() });
+                    }}
+                  >
+                    Cancel bill
                   </Button>
                 )}
                 {canVoid && orderPayments.some((p: any) => Number(p.amount ?? 0) > 0 && p.state !== "refunded") && (

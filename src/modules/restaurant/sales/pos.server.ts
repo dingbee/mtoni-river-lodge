@@ -16,6 +16,8 @@
  */
 import { assertCapability, assertTenantRead } from "../core/access.server";
 import { emitRestaurantEvent } from "../events/emit.server";
+import { reverseMovementsForOrderItem } from "../inventory/reversal.server";
+import { REASON_CODES } from "../inventory/policy";
 import { createOrder, insertLines, recalcOrder, transitionOrder, type SalesLineInput } from "./sales.server";
 import type {
   AddPosLinesInput,
@@ -281,18 +283,32 @@ export async function addPosLines(sb: Sb, userId: string, input: AddPosLinesInpu
 /**
  * Voids a line. A line already fired to the kitchen keeps its ticket history —
  * the void is a correction on the record, never an erasure.
+ *
+ * If the line had already consumed stock (the bill was closed and later
+ * reopened, or the line was room-charged), the consumption is unwound through
+ * the ledger in the same operation: a void that leaves stock deducted is a
+ * silent inventory loss, which is exactly what UAT-1 exists to stop.
  */
 export async function voidPosLine(sb: Sb, userId: string, input: VoidPosLineInput) {
   await assertCapability(sb, userId, input.tenantId, "sales.void");
 
   const { data: item } = await sb
     .from("restaurant_order_items")
-    .select("id, order_id, description, quantity, line_total, status")
+    .select("id, order_id, description, quantity, line_total, line_cost, status")
     .eq("tenant_id", input.tenantId)
     .eq("id", input.orderItemId)
     .single();
   if (!item || item.order_id !== input.orderId) throw new Error("Line not found on this bill.");
   if (item.status === "voided") throw new Error("This line is already voided.");
+
+  // Ledger first: if the correction cannot be written, the line stays live and
+  // the operator sees why, rather than money and stock disagreeing.
+  const reversal = await reverseMovementsForOrderItem(sb, userId, {
+    tenantId: input.tenantId,
+    orderItemId: item.id,
+    reason: `Line void: ${input.reason}`,
+    reasonCode: REASON_CODES.saleReversal,
+  });
 
   const { error } = await sb
     .from("restaurant_order_items")
@@ -320,10 +336,13 @@ export async function voidPosLine(sb: Sb, userId: string, input: VoidPosLineInpu
       quantity: Number(item.quantity),
       value: Number(item.line_total ?? 0),
       reason: input.reason,
+      stock_movements_reversed: reversal.reversed,
+      stock_already_reversed: reversal.alreadyReversed,
+      cost_restored: reversal.costRestored,
     },
     dedupeKey: `void:${item.id}`,
   });
-  return totals;
+  return { ...totals, reversal };
 }
 
 /** Moves a bill to another table (or off the floor) and keeps table states honest. */
