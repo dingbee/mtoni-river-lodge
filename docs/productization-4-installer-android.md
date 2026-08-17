@@ -476,3 +476,67 @@ failures return a neutral page; API paths keep precedence over UI paths.
 
 The appliance now serves the real NOVA Hospitality UI over HTTPS on the LAN with
 honest readiness. Commercial tablet certification requires a physical device.
+
+---
+
+# PRODUCTIZATION-4E — PHYSICAL DEVICE CERTIFICATION
+
+## Evidence status
+
+**NOT VERIFIED — no physical Android tablet is reachable from this environment.**
+
+This build/verification environment is a headless Linux sandbox. It has no
+Android device attached, no ADB target, no LAN with tablets on it, and no way to
+put hands on a screen. Every acceptance item in sections 1–11 of the
+Productization-4E brief requires a real device, and the brief explicitly forbids
+substituting desktop Chrome emulation, responsive mode, screenshots, or
+theoretical compatibility. No substitute was used and no device claim is made.
+
+| Item | Result | Evidence class |
+| --- | --- | --- |
+| Device details (make/model/Android/Chrome/resolution/Wi-Fi) | none recorded | NOT VERIFIED |
+| LAN connection from tablet | not performed | NOT VERIFIED |
+| HTTPS / certificate acceptance on device | not performed | NOT VERIFIED |
+| Authentication on device (login → admin → restaurant → bar → logout → login) | not performed | NOT VERIFIED |
+| Restaurant POS full service lifecycle on device | not performed | NOT VERIFIED |
+| Bar POS distinct lifecycle on device | not performed | NOT VERIFIED |
+| Portrait behaviour | not performed | NOT VERIFIED |
+| Landscape / rotation during operation | not performed | NOT VERIFIED |
+| PWA install offered / installed / launched from home screen | not performed | NOT VERIFIED |
+| Service worker + cache version on device | not performed | NOT VERIFIED |
+| Network interruption (Wi-Fi off/on) on device | not performed | NOT VERIFIED |
+| Service stop/restart recovery observed from device | not performed | NOT VERIFIED |
+| Printing from device browser | not performed | NOT VERIFIED |
+| Transaction integrity created *by the tablet* (no duplicates) | not performed | NOT VERIFIED |
+| Security inspection from the device browser/network | not performed | NOT VERIFIED |
+
+## What remains verified from earlier sprints (unchanged, not re-claimed as device evidence)
+
+| Item | Result | Evidence class |
+| --- | --- | --- |
+| TLS on the LAN origin, HTTP→HTTPS 308, DB/data service loopback-only | pass | CODE/HOST VERIFIED (4C) |
+| Appliance serves the real NOVA UI; POS, bar, procurement, inventory, reconciliation, receipts, system, `/auth`, `/sw.js`, terminal manifest → 200 | pass | CODE VERIFIED (4D) |
+| `/` redirects terminals to the OS entry point | pass | CODE VERIFIED (4D) |
+| Missing/corrupt UI bundle → 503 and `/ready` → 503 | pass | CODE VERIFIED (4D) |
+| Path traversal blocked; API paths keep precedence | pass | CODE VERIFIED (4D) |
+| Local bundle contains no hosted backend URL, no sentinel; same-origin API | pass | CODE VERIFIED (4D) |
+| Manifest, scope `/admin`, start URL `/admin/restaurant/pos`, icons served over local HTTPS | pass | CODE VERIFIED (4D) |
+| Restaurant and bar order→payment→receipt→close integrity, ledger and inventory movements | pass | API VERIFIED (4C) |
+| Backup / restore / disaster recovery drill | pass | HOST VERIFIED (4C) |
+| Printing | browser print only | SUPPORTED WITH DEVICE/OS CONFIGURATION — no printer physically verified |
+
+## Regression (this sprint, 2026-08-17)
+
+- `bunx vitest run` → **173 passed / 14 files**, exit 0.
+- `bunx tsgo -p tsconfig.json` → **clean**, exit 0.
+- `bun run build` → **success**, exit 0.
+
+No tests were weakened, skipped, or altered. No product code was changed in 4E.
+
+## Verdict
+
+🟡 **PRODUCTIZATION-4 IMPLEMENTED — PHYSICAL CERTIFICATION PENDING**
+
+The appliance is functionally complete and regression-clean. Closure requires a
+human running the 4E script on at least one physical Android tablet on the
+appliance LAN and recording the device details and results in this section.
