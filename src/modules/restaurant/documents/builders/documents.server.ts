@@ -33,6 +33,169 @@ async function finish(
   };
 }
 
+/* --------------------------------------------------------- Requisition */
+
+/**
+ * A requisition note is a *representation* of the requisition record: every
+ * quantity below is the one the requisition service stored, and issuing is
+ * evidenced by the transfer pair it posted to the stock ledger. Nothing here
+ * writes, recomputes or reconciles.
+ */
+async function buildRequisition(sb: Sb, userId: string, tenantId: string, id: string) {
+  const { getRequisition } = await import("../../requisitions/requisitions.server");
+  const r: any = await getRequisition(sb, userId, tenantId, id);
+  const lines: any[] = r.lines ?? [];
+
+  const itemIds = [...new Set(lines.map((l) => l.inventory_item_id).filter(Boolean))];
+  const unitIds = [...new Set(lines.map((l) => l.unit_id).filter(Boolean))];
+
+  const [header, { data: itemRows }, { data: unitRows }, { data: movements }] = await Promise.all([
+    documentHeader(sb, tenantId, r.property_id, r.source_location_id),
+    itemIds.length
+      ? sb.from("restaurant_inventory_items").select("id, name, sku, unit_id").eq("tenant_id", tenantId).in("id", itemIds)
+      : Promise.resolve({ data: [] }),
+    unitIds.length
+      ? sb.from("restaurant_inventory_units").select("id, code").eq("tenant_id", tenantId).in("id", unitIds)
+      : Promise.resolve({ data: [] }),
+    sb
+      .from("restaurant_stock_movements")
+      .select("id, movement_type, quantity, occurred_at, inventory_item_id")
+      .eq("tenant_id", tenantId)
+      .eq("reference_type", "restaurant_requisition")
+      .eq("reference_id", id)
+      .order("occurred_at"),
+  ]);
+
+  const items = new Map(((itemRows ?? []) as any[]).map((i) => [i.id as string, i]));
+  const units = new Map(((unitRows ?? []) as any[]).map((u) => [u.id as string, u.code as string]));
+  const movementRows = (movements ?? []) as any[];
+
+  const rows = lines.map((l) => {
+    const item = items.get(l.inventory_item_id);
+    const approved = l.approved_quantity;
+    return {
+      item: l.item_name ?? item?.name ?? "Item",
+      sku: item?.sku ?? "—",
+      unit: units.get(l.unit_id ?? item?.unit_id) ?? "—",
+      requested_quantity: num(l.requested_quantity),
+      // A requisition that has not been approved has no approved quantity —
+      // that is different from an approved quantity of zero.
+      approved_quantity: approved == null ? null : num(approved),
+      issued_quantity: num(l.issued_quantity),
+      outstanding_quantity: num(l.outstanding_quantity),
+      notes: l.notes ?? "",
+    };
+  });
+
+  const totalRequested = rows.reduce((s, l) => s + Number(l.requested_quantity ?? 0), 0);
+  const totalIssued = rows.reduce((s, l) => s + Number(l.issued_quantity ?? 0), 0);
+  const anyApproved = rows.some((l) => l.approved_quantity != null);
+  const totalApproved = rows.reduce((s, l) => s + Number(l.approved_quantity ?? 0), 0);
+
+  const actor = (v: unknown) => (v ? String(v) : "Not recorded");
+
+  return finish(sb, tenantId, "requisition", id, {
+    title: "Requisition Note",
+    number: r.reference ?? null,
+    status: String(r.status ?? "").toUpperCase(),
+    // Requisitions move stock, not money: they carry no commercial currency.
+    currency: null,
+    issuedAt: r.issued_at ?? r.submitted_at ?? r.created_at ?? null,
+    header,
+    parties: [
+      { label: "Issuing store", value: r.source_name ?? "—", emphasis: true },
+      { label: "Destination", value: r.destination_name ?? "—", emphasis: true },
+      { label: "Department", value: r.department ?? r.kind ?? "—" },
+    ],
+    meta: [
+      { label: "Requisition type", value: r.kind ?? "—" },
+      { label: "Required date", value: r.required_date ?? "—" },
+      { label: "Created", value: r.created_at ?? "—" },
+      { label: "Submitted", value: r.submitted_at ?? "Not submitted" },
+      { label: "Approved", value: r.approved_at ?? "Not approved" },
+      { label: "Issued", value: r.issued_at ?? "Not issued" },
+      { label: "Requested by", value: actor(r.requested_by) },
+      { label: "Approved by", value: actor(r.approved_by) },
+      { label: "Issued by", value: actor(r.issued_by) },
+      ...(r.rejected_reason
+        ? [{ label: "Rejection / cancellation reason", value: r.rejected_reason, emphasis: true }]
+        : []),
+    ],
+    tables: [
+      {
+        title: "Requisition lines",
+        columns: [
+          { key: "item", label: "Item" },
+          { key: "sku", label: "SKU" },
+          { key: "unit", label: "Unit" },
+          { key: "requested_quantity", label: "Requested", format: "number" },
+          { key: "approved_quantity", label: "Approved", format: "number" },
+          { key: "issued_quantity", label: "Issued", format: "number" },
+          { key: "outstanding_quantity", label: "Outstanding", format: "number" },
+          { key: "notes", label: "Notes" },
+        ],
+        rows,
+        totalsRow: {
+          item: "Total",
+          sku: null,
+          unit: null,
+          requested_quantity: totalRequested,
+          approved_quantity: anyApproved ? totalApproved : null,
+          issued_quantity: totalIssued,
+          outstanding_quantity: rows.reduce((s, l) => s + Number(l.outstanding_quantity ?? 0), 0),
+          notes: null,
+        },
+        note:
+          "Requested, approved and issued are separate facts. An empty approved quantity means the line has not been approved yet — it is not a zero.",
+      },
+      ...(movementRows.length
+        ? [
+            {
+              title: "Stock ledger movements",
+              columns: [
+                { key: "occurred_at", label: "When", format: "datetime" as const },
+                { key: "item", label: "Item" },
+                { key: "movement_type", label: "Movement" },
+                { key: "quantity", label: "Quantity", format: "number" as const },
+              ],
+              rows: movementRows.map((m) => ({
+                occurred_at: m.occurred_at,
+                item: items.get(m.inventory_item_id)?.name ?? "Item",
+                movement_type: String(m.movement_type ?? "").replace(/_/g, " "),
+                quantity: num(m.quantity),
+              })),
+              note: "Issuing posts a transfer out of the store and a transfer into the destination — this is the ledger's own record.",
+            },
+          ]
+        : []),
+    ],
+    totals: [
+      { label: "Lines", value: rows.length },
+      { label: "Total requested", value: totalRequested },
+      {
+        label: "Total approved",
+        value: anyApproved ? totalApproved : 0,
+        unavailable: !anyApproved,
+      },
+      { label: "Total issued", value: totalIssued, emphasis: true },
+    ],
+    signatures: ["Requested by", "Approved by", "Issued by", "Received by"],
+    notes: r.notes ?? null,
+    traceability: [
+      { label: "Requisition", recordType: "restaurant_requisitions", recordId: r.id, recordNumber: r.reference },
+      ...movementRows.map((m) => ({
+        label: `Stock movement (${String(m.movement_type ?? "").replace(/_/g, " ")})`,
+        recordType: "restaurant_stock_movements",
+        recordId: m.id as string,
+        recordNumber: null,
+      })),
+    ],
+    snapshot: false,
+    snapshotNote:
+      "Quantities are read live from the requisition and the stock ledger; receipt confirmation is not separately captured by the requisition record.",
+  });
+}
+
 /* ------------------------------------------------------------------ PO */
 
 async function buildPurchaseOrder(sb: Sb, userId: string, tenantId: string, id: string) {
@@ -629,6 +792,7 @@ type Builder = (sb: Sb, userId: string, tenantId: string, id: string) => Promise
 
 const BUILDERS: Partial<Record<DocumentTypeId, Builder>> = {
   purchase_order: buildPurchaseOrder,
+  requisition: buildRequisition,
   goods_receipt: buildGoodsReceipt,
   supplier_invoice: buildSupplierInvoice,
   stock_transfer: buildStockTransfer,
