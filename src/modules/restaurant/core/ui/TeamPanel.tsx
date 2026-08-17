@@ -56,7 +56,7 @@ export function TeamPanel({ tenantId, canManage }: { tenantId: string; canManage
     >
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No tenant roles assigned yet — only Mtoni platform administrators can operate this tenant.
+          No tenant roles assigned yet — only platform administrators can operate this tenant.
         </p>
       ) : (
         <ul className="divide-y text-sm">

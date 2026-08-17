@@ -2,7 +2,7 @@
 /**
  * Tenant membership administration (server-only).
  *
- * RLS restricts writes to tenant owners/general managers and Mtoni platform
+ * RLS restricts writes to tenant owners/general managers and platform
  * admins; these guards fail fast with a readable error before the round trip.
  */
 import type { z } from "zod";

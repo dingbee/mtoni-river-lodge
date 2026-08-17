@@ -109,7 +109,7 @@ export interface RestaurantWorkspace {
   subscription: RestaurantSubscription | null;
   /** Restaurant roles the caller holds in the active tenant. */
   roles: RestaurantRole[];
-  /** True when the caller is a Mtoni platform owner/admin/manager. */
+  /** True when the caller is a host-platform owner/admin/manager. */
   platformAdmin: boolean;
 }
 

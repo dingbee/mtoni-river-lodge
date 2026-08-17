@@ -2,6 +2,7 @@
  * Master Data Workbench contracts — browser-safe.
  */
 import { z } from "zod";
+import { DEFAULT_CURRENCY, DEFAULT_TIMEZONE } from "../core/product";
 
 const uuid = z.string().uuid();
 
@@ -10,8 +11,8 @@ export const upsertPropertySchema = z.object({
   id: uuid.optional(),
   name: z.string().min(2).max(160),
   slug: z.string().min(2).max(120).regex(/^[a-z0-9-]+$/),
-  timezone: z.string().min(2).max(60).default("Africa/Dar_es_Salaam"),
-  currency: z.string().min(3).max(3).default("TZS"),
+  timezone: z.string().min(2).max(60).default(DEFAULT_TIMEZONE),
+  currency: z.string().min(3).max(3).default(DEFAULT_CURRENCY),
   status: z.string().max(30).default("active"),
 });
 export type UpsertPropertyInput = z.infer<typeof upsertPropertySchema>;
@@ -22,8 +23,8 @@ export const upsertBusinessProfileSchema = z.object({
   tradingName: z.string().max(200).optional(),
   code: z.string().max(40).optional(),
   taxId: z.string().max(80).optional(),
-  defaultCurrency: z.string().min(3).max(3).default("TZS"),
-  timezone: z.string().min(2).max(60).default("Africa/Dar_es_Salaam"),
+  defaultCurrency: z.string().min(3).max(3).default(DEFAULT_CURRENCY),
+  timezone: z.string().min(2).max(60).default(DEFAULT_TIMEZONE),
   phone: z.string().max(40).optional(),
   email: z.string().email().optional(),
   address: z.string().max(400).optional(),

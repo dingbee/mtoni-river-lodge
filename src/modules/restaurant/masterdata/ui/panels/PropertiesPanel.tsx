@@ -12,7 +12,9 @@ import type { MasterData } from "../types";
 
 type Property = MasterData["properties"][number];
 
-const EMPTY = { name: "", slug: "", timezone: "Africa/Dar_es_Salaam", currency: "TZS", status: "active" };
+import { DEFAULT_CURRENCY, DEFAULT_TIMEZONE } from "@/modules/restaurant/core/product";
+
+const EMPTY = { name: "", slug: "", timezone: DEFAULT_TIMEZONE, currency: DEFAULT_CURRENCY, status: "active" };
 
 export function PropertiesPanel({ tenantId, data }: { tenantId: string; data: MasterData }) {
   const [search, setSearch] = React.useState("");

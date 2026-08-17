@@ -476,7 +476,7 @@ export function constraintsFor(f: RestaurantFinding): DecisionConstraint[] {
       label: "Brand positioning",
       source: "policy",
       description:
-        "Mtoni positions on quality, so ingredient downgrades and guest-visible cuts are penalised before cost levers are considered.",
+        "The business positions on quality, so ingredient downgrades and guest-visible cuts are penalised before cost levers are considered.",
       effect: "penalise",
       penalty: 0.08,
       violatedByTags: ["quality_risk", "guest_visible"],
