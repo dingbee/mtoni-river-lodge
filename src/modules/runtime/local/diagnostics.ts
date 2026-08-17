@@ -92,6 +92,8 @@ export function buildDiagnosticBundle(input: {
     lastBackupAt: null,
     lastBackupStatus: "none",
     health: "unknown",
+    uiStatus: "unknown",
+    uiVersion: null,
     ready: false,
     ...input.system,
   };

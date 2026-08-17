@@ -66,6 +66,9 @@ export async function collectSystemInformation(sql: SQL, postgrestUrl: string, u
     lastBackupAt: backup.at,
     lastBackupStatus: backup.status,
     health: down ? "down" : degraded ? "degraded" : "ok",
+    uiStatus: ui?.status ?? "unknown",
+    uiVersion: ui ? APP_VERSION : null,
+    // Ready means "the business can trade": APIs AND the terminal UI.
     ready: !down,
   };
 }
