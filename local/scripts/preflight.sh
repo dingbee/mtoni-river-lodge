@@ -26,7 +26,7 @@ pg_version="$(psql --version 2>/dev/null | awk '{print $3}')"
 ports_json="[]"
 collect_ports() {
   local entries=()
-  for port in 5432 "$NOVA_POSTGREST_PORT" "$NOVA_GATEWAY_PORT"; do
+  for port in 5432 "$NOVA_POSTGREST_PORT" "$NOVA_GATEWAY_PORT" "$NOVA_GATEWAY_TLS_PORT"; do
     local owner
     owner="$(ss -lntp 2>/dev/null | awk -v p=":$port$" '$4 ~ p {print $NF}' | head -1)"
     [[ -z "$owner" ]] && continue
