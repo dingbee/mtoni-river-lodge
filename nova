@@ -20,6 +20,10 @@ ENV_FILE="$ROOT/standalone/.env"
 log() { printf '\033[36m[nova]\033[0m %s\n' "$*"; }
 die() { printf '\033[31m[nova] %s\033[0m\n' "$*" >&2; exit 1; }
 
+# Standalone packages carry a build marker so a terminal can prove which
+# package it is running. Absent in the source repository.
+[[ -f "$ROOT/standalone/BUILD_INFO" ]] && log "$(grep '^STANDALONE_BUILD=' "$ROOT/standalone/BUILD_INFO")"
+
 [[ -f "$ENV_FILE" ]] || die "missing standalone/.env — run: cp standalone/.env.example standalone/.env"
 set -a; source "$ENV_FILE"; set +a
 
