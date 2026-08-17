@@ -13,7 +13,12 @@ import { Button } from "@/components/ui/button";
 import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { useRestaurantWorkspace } from "@/modules/restaurant/ui/useRestaurantWorkspace";
 import { hasRestaurantCapability } from "@/modules/restaurant/core/permissions";
-import { listRestaurantPurchaseOrdersFn, createRestaurantPurchaseOrderFn } from "@/modules/restaurant/purchasing/purchasing.functions";
+import {
+  listRestaurantPurchaseOrdersFn,
+  createRestaurantPurchaseOrderFn,
+  transitionRestaurantPurchaseOrderFn,
+} from "@/modules/restaurant/purchasing/purchasing.functions";
+import { PO_TRANSITIONS, PO_MANUAL_STATUSES } from "@/modules/restaurant/purchasing/state-machine";
 import { listRestaurantSuppliersFn } from "@/modules/restaurant/suppliers/suppliers.functions";
 import { listRestaurantInventoryFn } from "@/modules/restaurant/inventory/inventory.functions";
 import { PurchaseOrderSheet, type PurchaseOrderFormValue } from "@/modules/restaurant/purchasing/ui/PurchaseOrderSheet";
@@ -50,6 +55,7 @@ function PurchasingPage() {
 
   const fn = useServerFn(listRestaurantPurchaseOrdersFn);
   const createFn = useServerFn(createRestaurantPurchaseOrderFn);
+  const transitionFn = useServerFn(transitionRestaurantPurchaseOrderFn);
   const suppliersFn = useServerFn(listRestaurantSuppliersFn);
   const itemsFn = useServerFn(listRestaurantInventoryFn);
 
@@ -72,6 +78,13 @@ function PurchasingPage() {
   const [open, setOpen] = useState(false);
   const [confirmFor, setConfirmFor] = useState<string | null>(null);
   const [invoiceFor, setInvoiceFor] = useState<string | null>(null);
+
+  const transition = useAdminMutation({
+    mutationFn: (v: { id: string; status: "submitted" | "approved" | "cancelled"; reason?: string }) =>
+      transitionFn({ data: { tenantId: tenantId!, id: v.id, status: v.status, reason: v.reason } }),
+    successMessage: "Purchase order updated",
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["restaurant.purchase-orders", tenantId] }),
+  });
 
   const create = useAdminMutation({
     mutationFn: (v: PurchaseOrderFormValue) =>
@@ -137,6 +150,28 @@ function PurchasingPage() {
                   {o.currency} {Number(o.total ?? 0).toLocaleString()}
                   {canManage ? (
                     <>
+                      {(PO_TRANSITIONS[o.status as keyof typeof PO_TRANSITIONS] ?? [])
+                        .filter((s) => (PO_MANUAL_STATUSES as readonly string[]).includes(s))
+                        .map((s) => (
+                          <Button
+                            key={s}
+                            size="sm"
+                            variant={s === "cancelled" ? "ghost" : "secondary"}
+                            className="h-10"
+                            disabled={transition.isPending}
+                            onClick={() => {
+                              if (s === "cancelled") {
+                                const reason = window.prompt("Reason for cancelling this purchase order?");
+                                if (!reason) return;
+                                transition.mutate({ id: o.id, status: s, reason });
+                                return;
+                              }
+                              transition.mutate({ id: o.id, status: s });
+                            }}
+                          >
+                            {s === "submitted" ? "Issue to supplier" : s === "approved" ? "Approve" : "Cancel"}
+                          </Button>
+                        ))}
                       <Button size="sm" variant="outline" className="h-10" onClick={() => setConfirmFor(o.id)}>
                         Supplier confirmation
                       </Button>
