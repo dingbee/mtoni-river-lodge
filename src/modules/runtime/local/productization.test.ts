@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { inspectBundle, resolveBundle } from "../../../../local/gateway/app";
 import { evaluatePreflight, HOST_REQUIREMENTS } from "./preflight";
 import { classifyInstall } from "./install-state";
 import {
@@ -206,5 +208,45 @@ describe("local TLS origin (P-4C)", () => {
     expect(pwaInstallability({ https: false, certificateTrustedByDevice: true, host: "192.168.1.20" }).installable).toBe(false);
     expect(pwaInstallability({ https: true, certificateTrustedByDevice: false, host: "192.168.1.20" }).installable).toBe(false);
     expect(pwaInstallability({ https: true, certificateTrustedByDevice: true, host: "192.168.1.20" }).installable).toBe(true);
+  });
+});
+
+// --- PRODUCTIZATION-4D: local application UI serving -------------------------
+describe("local application UI bundle", () => {
+  const root = "/tmp/nova-ui-bundle-test";
+
+  it("resolves the bundle beside the runtime by default", () => {
+    const bundle = resolveBundle("/opt/nova", {});
+    expect(bundle.clientDir).toBe("/opt/nova/dist/client");
+    expect(bundle.serverEntry).toBe("/opt/nova/dist/server/index.mjs");
+  });
+
+  it("honours an explicit bundle directory", () => {
+    expect(resolveBundle("/opt/nova", { NOVA_APP_BUNDLE_DIR: "/srv/ui" }).clientDir).toBe(
+      "/srv/ui/client",
+    );
+  });
+
+  it("reports a missing bundle as down rather than ready", () => {
+    const state = inspectBundle(resolveBundle("/nonexistent-appliance", {}));
+    expect(state.status).toBe("down");
+    expect(state.detail).toMatch(/missing/);
+  });
+
+  it("reports a truncated server bundle as down", () => {
+    mkdirSync(`${root}/client`, { recursive: true });
+    mkdirSync(`${root}/server`, { recursive: true });
+    writeFileSync(`${root}/server/index.mjs`, "x");
+    expect(inspectBundle(resolveBundle(root, { NOVA_APP_BUNDLE_DIR: root })).status).toBe("down");
+
+    writeFileSync(`${root}/server/index.mjs`, "x".repeat(2048));
+    expect(inspectBundle(resolveBundle(root, { NOVA_APP_BUNDLE_DIR: root })).status).toBe("ok");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("keeps application UI state out of secret-bearing payloads", () => {
+    const bundle = buildDiagnosticBundle({ system: { uiStatus: "ok", uiVersion: APP_VERSION } });
+    expect(bundle.system.uiStatus).toBe("ok");
+    expect(JSON.stringify(bundle)).not.toMatch(/BEGIN [A-Z ]*PRIVATE KEY/);
   });
 });
