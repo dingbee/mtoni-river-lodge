@@ -12,6 +12,7 @@
 import { assertCapability } from "../core/access.server";
 import { emitRestaurantEvent } from "../events/emit.server";
 import { folioIdempotencyKey, folioFailureMessage } from "@/domains/hospitality/folio/folio.rules";
+import { loadPmsFolioPort } from "../core/ports/pms-folio.port";
 import type { RoomChargeCommitInput, RoomChargeQuoteInput, RoomChargeSearchInput } from "./roomcharge.contracts";
 import { takePosPayment } from "./pos.server";
 
@@ -31,7 +32,7 @@ async function loadOrder(sb: Sb, tenantId: string, orderId: string) {
 /** In-house stays this till may charge. Read-only, capability-gated. */
 export async function searchRoomChargeTargets(sb: Sb, userId: string, input: RoomChargeSearchInput) {
   await assertCapability(sb, userId, input.tenantId, "sales.room_charge");
-  const { findChargeableStays } = await import("@/domains/hospitality/folio/folioAdapter.server");
+  const { findChargeableStays } = await loadPmsFolioPort();
   return findChargeableStays(sb, userId, { query: input.query, limit: 20 });
 }
 
@@ -43,7 +44,7 @@ export async function quoteRoomCharge(sb: Sb, userId: string, input: RoomChargeQ
   if (input.amount > outstanding + 0.001) {
     return { eligible: false, code: "invalid_amount", message: folioFailureMessage("invalid_amount"), stay: null };
   }
-  const { validateRoomCharge } = await import("@/domains/hospitality/folio/folioAdapter.server");
+  const { validateRoomCharge } = await loadPmsFolioPort();
   return validateRoomCharge(sb, userId, {
     bookingId: input.bookingId,
     amount: input.amount,
@@ -64,7 +65,7 @@ export async function commitRoomCharge(sb: Sb, userId: string, input: RoomCharge
     clientRequestId: input.clientRequestId,
   });
 
-  const adapter = await import("@/domains/hospitality/folio/folioAdapter.server");
+  const adapter = await loadPmsFolioPort();
   const posting = await adapter.postRoomCharge(sb, userId, {
     bookingId: input.bookingId,
     amount: input.amount,

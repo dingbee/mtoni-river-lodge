@@ -8,7 +8,10 @@
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 nova_load_env
 
-MIGRATIONS_DIR="$NOVA_ROOT/supabase/migrations"
+# Default: the host product's authoritative migrations. A standalone
+# installation points this at the extracted Restaurant & Bar OS schema.
+MIGRATIONS_DIR="${NOVA_MIGRATIONS_DIR:-$NOVA_ROOT/supabase/migrations}"
+nova_log "migrations source: $MIGRATIONS_DIR"
 
 # The ledger must exist before the product migrations so re-runs are safe;
 # the full nova_local schema is created afterwards by sql/post.

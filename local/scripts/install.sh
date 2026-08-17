@@ -80,6 +80,9 @@ bash "$NOVA_LOCAL_DIR/scripts/gen-keys.sh"
 # 4. Database + migrations (idempotent, checksum-verified) --------------------
 bash "$NOVA_LOCAL_DIR/scripts/init-db.sh"
 
+# 4b. Synthetic demo data (opt-in, no-op unless NOVA_DEMO_SEED=true) -----------
+bash "$NOVA_LOCAL_DIR/scripts/seed-demo.sh"
+
 # 5. Permissions ---------------------------------------------------------------
 chmod 700 "${NOVA_KEY_DIR:-$NOVA_LOCAL_DIR/keys}" 2>/dev/null || true
 chmod 600 "${NOVA_KEY_DIR:-$NOVA_LOCAL_DIR/keys}/jwt-private.pem" 2>/dev/null || true
