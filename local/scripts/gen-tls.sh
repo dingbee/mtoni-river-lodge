@@ -22,8 +22,10 @@ if [[ -f "$SRV_CRT" && "${1:-}" != "--force" ]]; then
   exit 0
 fi
 
-HOSTNAMES="$(hostname 2>/dev/null || echo nova)"
-IPS="$(hostname -I 2>/dev/null || true)"
+# Overridable so an appliance behind a NAT/port-proxy (e.g. WSL2 on Windows)
+# can put the address terminals actually dial into the certificate.
+HOSTNAMES="${NOVA_TLS_HOSTNAMES:-$(hostname 2>/dev/null || echo nova)}"
+IPS="${NOVA_TLS_IPS:-$(hostname -I 2>/dev/null || true)}"
 export NOVA_TLS_HOSTNAMES="$HOSTNAMES" NOVA_TLS_IPS="$IPS"
 SAN=$(bun --silent -e "
   const { buildSanList } = await import('$NOVA_ROOT/src/modules/runtime/local/tls.ts');
