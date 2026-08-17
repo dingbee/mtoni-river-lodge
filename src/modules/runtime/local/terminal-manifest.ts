@@ -12,11 +12,6 @@
 export const TERMINAL_MANIFEST = "/nova-terminal.webmanifest";
 export const TERMINAL_THEME_COLOUR = "#141c2b";
 
-export function useTerminalManifest(): void {
-  // Implemented as a plain function so it can also be called from an effect
-  // in non-React contexts (tests); see applyTerminalManifest below.
-}
-
 export function applyTerminalManifest(doc: Document = document): () => void {
   const link = doc.querySelector<HTMLLinkElement>('link[rel="manifest"]');
   const theme = doc.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
