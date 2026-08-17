@@ -16,8 +16,21 @@ import type {
 } from "../core/contracts";
 import { assertCapability, assertTenantRead } from "../core/access.server";
 import { emitRestaurantEvent } from "../events/emit.server";
+import { evaluateNegativeStock } from "./policy";
 
 type Sb = any;
+
+/** Refusal raised when a movement would breach the tenant's negative-stock policy. */
+export class NegativeStockError extends Error {
+  readonly code = "negative_stock";
+  constructor(
+    message: string,
+    readonly detail: { inventoryItemId: string; movementType: StockMovementType; shortfall: number },
+  ) {
+    super(message);
+    this.name = "NegativeStockError";
+  }
+}
 
 /** Direction is a property of the movement type, never of caller input. */
 const OUTBOUND: readonly StockMovementType[] = [
@@ -87,6 +100,36 @@ export async function insertMovement(
     dedupeKey?: string | null;
   },
 ) {
+  // One policy for every stock-affecting path. Corrections and inbound
+  // movements pass straight through; an outbound movement that would push the
+  // balance below zero is refused unless the item allows it or a supervisor
+  // has approved this specific movement.
+  {
+    const { data: item } = await sb
+      .from("restaurant_inventory_items")
+      .select("id, name, current_quantity, allow_negative")
+      .eq("tenant_id", row.tenantId)
+      .eq("id", row.inventoryItemId)
+      .maybeSingle();
+    if (item) {
+      const decision = evaluateNegativeStock({
+        movementType: row.movementType,
+        quantity: row.quantity,
+        currentQuantity: Number(item.current_quantity ?? 0),
+        allowNegative: Boolean(item.allow_negative),
+        approvedBy: row.approvedBy ?? null,
+        itemName: item.name,
+      });
+      if (!decision.allowed) {
+        throw new NegativeStockError(decision.message, {
+          inventoryItemId: row.inventoryItemId,
+          movementType: row.movementType,
+          shortfall: decision.shortfall,
+        });
+      }
+    }
+  }
+
   const { data, error } = await sb
     .from("restaurant_stock_movements")
     .insert({
