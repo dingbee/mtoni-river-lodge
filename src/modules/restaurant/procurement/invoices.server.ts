@@ -172,6 +172,7 @@ export async function matchSupplierInvoice(sb: Sb, userId: string, tenantId: str
   const invoiceTotal = Number(invoice.total ?? 0);
   let orderTotal: number | null = null;
   let receivedValue: number | null = null;
+  const dimensions: Array<{ dimension: "quantity" | "price"; label: string; expected: number; actual: number }> = [];
 
   if (invoice.purchase_order_id) {
     const { data: po } = await sb
@@ -189,6 +190,86 @@ export async function matchSupplierInvoice(sb: Sb, userId: string, tenantId: str
       .eq("purchase_order_id", invoice.purchase_order_id)
       .eq("status", "posted");
     receivedValue = ((receipts ?? []) as any[]).reduce((s, r) => s + Number(r.accepted_value ?? 0), 0);
+
+    // ---- line-level match: quantity and price are separate dimensions -----
+    const [{ data: invoiceLines }, { data: orderLines }, { data: receiptLines }] = await Promise.all([
+      sb
+        .from("restaurant_supplier_invoice_items")
+        .select("id, purchase_order_item_id, description, quantity, unit_price")
+        .eq("tenant_id", tenantId)
+        .eq("invoice_id", invoice.id),
+      sb
+        .from("restaurant_purchase_order_items")
+        .select("id, description, quantity, unit_price")
+        .eq("tenant_id", tenantId)
+        .eq("purchase_order_id", invoice.purchase_order_id),
+      ((receipts ?? []) as any[]).length
+        ? sb
+            .from("restaurant_goods_receipt_items")
+            .select("purchase_order_item_id, accepted_quantity")
+            .eq("tenant_id", tenantId)
+            .in(
+              "goods_receipt_id",
+              ((receipts ?? []) as any[]).map((r) => r.id),
+            )
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    const orderById = new Map(((orderLines ?? []) as any[]).map((o) => [o.id, o]));
+    const acceptedByOrderItem = new Map<string, number>();
+    for (const r of (receiptLines ?? []) as any[]) {
+      if (!r.purchase_order_item_id) continue;
+      acceptedByOrderItem.set(
+        r.purchase_order_item_id,
+        (acceptedByOrderItem.get(r.purchase_order_item_id) ?? 0) + Number(r.accepted_quantity ?? 0),
+      );
+    }
+
+    for (const line of (invoiceLines ?? []) as any[]) {
+      if (!line.purchase_order_item_id) continue;
+      const order = orderById.get(line.purchase_order_item_id);
+      if (!order) continue;
+      const invoicedQty = Number(line.quantity ?? 0);
+      const invoicedPrice = Number(line.unit_price ?? 0);
+      const acceptedQty = acceptedByOrderItem.get(line.purchase_order_item_id) ?? 0;
+      const orderedPrice = Number(order.unit_price ?? 0);
+
+      if (Math.abs(invoicedQty - acceptedQty) > 0.0001) {
+        dimensions.push({
+          dimension: "quantity",
+          label: `${line.description}: invoiced ${invoicedQty} against ${acceptedQty} accepted`,
+          expected: acceptedQty,
+          actual: invoicedQty,
+        });
+      }
+      if (orderedPrice > 0 && Math.abs(invoicedPrice - orderedPrice) > 0.0001) {
+        dimensions.push({
+          dimension: "price",
+          label: `${line.description}: invoiced at ${invoicedPrice} against ${orderedPrice} ordered`,
+          expected: orderedPrice,
+          actual: invoicedPrice,
+        });
+      }
+    }
+
+    for (const d of dimensions) {
+      await raiseVariance(sb, userId, {
+        tenantId,
+        propertyId: invoice.property_id,
+        locationId: invoice.location_id,
+        varianceType: d.dimension,
+        severity: "high",
+        label: d.label,
+        purchaseOrderId: invoice.purchase_order_id,
+        invoiceId: invoice.id,
+        supplierId: invoice.supplier_id,
+        expectedValue: d.expected,
+        actualValue: d.actual,
+        currency: invoice.currency,
+        detail: { stage: "three_way_match", dimension: d.dimension },
+        dedupeKey: `invoice-${d.dimension}:${invoice.id}:${d.label}`,
+      });
+    }
   }
 
   const tolerance = 0.01; // 1% commercial tolerance
@@ -200,6 +281,7 @@ export async function matchSupplierInvoice(sb: Sb, userId: string, tenantId: str
 
   let matchStatus: "unmatched" | "matched" | "partially_matched" | "mismatched";
   if (orderTotal == null && receivedValue == null) matchStatus = "unmatched";
+  else if (dimensions.length > 0) matchStatus = "mismatched";
   else if (orderOk !== false && receiptOk !== false) matchStatus = "matched";
   else if (orderOk === true || receiptOk === true) matchStatus = "partially_matched";
   else matchStatus = "mismatched";
@@ -257,10 +339,11 @@ export async function matchSupplierInvoice(sb: Sb, userId: string, tenantId: str
       order_total: orderTotal,
       received_value: receivedValue,
       invoice_total: invoiceTotal,
+      variance_dimensions: dimensions.map((d) => d.dimension),
     },
   });
 
-  return { matchStatus, orderTotal, receivedValue, invoiceTotal };
+  return { matchStatus, orderTotal, receivedValue, invoiceTotal, dimensions };
 }
 
 export async function setInvoicePaymentStatus(
@@ -276,8 +359,16 @@ export async function setInvoicePaymentStatus(
     .eq("id", input.invoiceId)
     .single();
   if (!before) throw new Error("Supplier invoice not found.");
-  if (input.paymentStatus === "paid" && before.match_status === "mismatched" && !input.reason) {
-    throw new Error("A mismatched invoice needs a written reason before it can be marked paid.");
+  // Settlement is separate from matching: paying an invoice never resolves a
+  // procurement variance, and an unmatched invoice is never quietly settled.
+  const settling = input.paymentStatus === "paid" || input.paymentStatus === "partially_paid";
+  if (settling && before.match_status !== "matched" && !input.reason) {
+    throw new Error(
+      `This invoice is "${before.match_status ?? "unmatched"}" — an authorised written reason is required before it can be settled.`,
+    );
+  }
+  if (settling && before.match_status !== "matched") {
+    await assertCapability(sb, userId, input.tenantId, "variance.manage");
   }
 
   const { data, error } = await sb
