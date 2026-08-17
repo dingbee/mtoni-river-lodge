@@ -335,6 +335,8 @@ function ReceivingTab({ tenantId }: { tenantId: string }) {
   const listFn = useServerFn(listRestaurantGoodsReceiptsFn);
   const postFn = useServerFn(postRestaurantGoodsReceiptFn);
   const createFn = useServerFn(createRestaurantGoodsReceiptFn);
+  const listOrdersFn = useServerFn(listRestaurantPurchaseOrdersFn);
+  const orderDetailFn = useServerFn(getRestaurantPurchaseOrderDetailFn);
 
   const q = useQuery({
     queryKey: ["restaurant.procurement.receipts", tenantId],
@@ -344,12 +346,96 @@ function ReceivingTab({ tenantId }: { tenantId: string }) {
     void qc.invalidateQueries({ queryKey: ["restaurant.procurement.receipts", tenantId] });
     void qc.invalidateQueries({ queryKey: ["restaurant.procurement.overview", tenantId] });
     void qc.invalidateQueries({ queryKey: ["restaurant.procurement.variances", tenantId] });
+    void qc.invalidateQueries({ queryKey: ["restaurant.purchasing.orders", tenantId] });
   };
 
   const post = useAdminMutation({
     mutationFn: (id: string) => postFn({ data: { tenantId, id } }),
     successMessage: "Receipt posted — accepted quantities entered stock",
     onSuccess: invalidate,
+  });
+
+  /* --- Receiving against a purchase order (the three-way match chain) --- */
+  const [purchaseOrderId, setPurchaseOrderId] = useState("");
+  const [edits, setEdits] = useState<Record<string, LineEdit>>({});
+  const [overReceiptReason, setOverReceiptReason] = useState("");
+
+  const ordersQ = useQuery({
+    queryKey: ["restaurant.purchasing.orders", tenantId, "receivable"],
+    queryFn: () => listOrdersFn({ data: { tenantId, limit: 100 } }),
+  });
+  const receivableOrders = useMemo(
+    () =>
+      ((ordersQ.data as any[]) ?? []).filter((o) =>
+        ["submitted", "approved", "partially_received"].includes(String(o.status)),
+      ),
+    [ordersQ.data],
+  );
+
+  const detailQ = useQuery({
+    queryKey: ["restaurant.purchasing.order", tenantId, purchaseOrderId],
+    queryFn: () => orderDetailFn({ data: { tenantId, id: purchaseOrderId } }),
+    enabled: Boolean(purchaseOrderId),
+  });
+  const detail = detailQ.data as any | undefined;
+  const orderLines: any[] = useMemo(() => (detail?.items as any[]) ?? [], [detail]);
+
+  const lineEdit = (item: any): LineEdit =>
+    edits[item.id] ?? {
+      received: String(item.quantity ?? 0),
+      accepted: String(item.quantity ?? 0),
+      rejected: "0",
+      unitCost: String(item.unit_price ?? 0),
+      batchCode: "",
+      expiryDate: "",
+    };
+  const setLineEdit = (id: string, patch: Partial<LineEdit>, base: LineEdit) =>
+    setEdits((prev) => ({ ...prev, [id]: { ...base, ...patch } }));
+
+  const hasOverReceipt = orderLines.some(
+    (i) => (Number(lineEdit(i).received) || 0) > Number(i.quantity ?? 0) + 0.0001,
+  );
+
+  const receiveAgainstOrder = useAdminMutation({
+    mutationFn: () =>
+      createFn({
+        data: {
+          tenantId,
+          purchaseOrderId,
+          supplierId: detail?.order?.supplier_id ?? undefined,
+          propertyId: detail?.order?.property_id ?? undefined,
+          locationId: detail?.order?.location_id ?? undefined,
+          deliveryNoteRef: deliveryNote || undefined,
+          currency: detail?.order?.currency ?? "TZS",
+          post: false,
+          overReceiptReason: hasOverReceipt ? overReceiptReason : undefined,
+          lines: orderLines.map((i) => {
+            const e = lineEdit(i);
+            return {
+              purchaseOrderItemId: i.id,
+              inventoryItemId: i.inventory_item_id ?? undefined,
+              unitId: i.unit_id ?? undefined,
+              description: i.description,
+              orderedQuantity: Number(i.quantity ?? 0),
+              receivedQuantity: Number(e.received) || 0,
+              acceptedQuantity: Number(e.accepted) || 0,
+              rejectedQuantity: Number(e.rejected) || 0,
+              damagedQuantity: 0,
+              orderedUnitCost: Number(i.unit_price ?? 0),
+              unitCost: Number(e.unitCost) || 0,
+              batchCode: e.batchCode || undefined,
+              expiryDate: e.expiryDate || undefined,
+            };
+          }),
+        },
+      }),
+    successMessage: "Delivery recorded against the purchase order",
+    onSuccess: () => {
+      setEdits({});
+      setOverReceiptReason("");
+      setDeliveryNote("");
+      invalidate();
+    },
   });
 
   const [description, setDescription] = useState("");
@@ -399,8 +485,154 @@ function ReceivingTab({ tenantId }: { tenantId: string }) {
   return (
     <div className="space-y-4">
       <SectionCard
+        title="Receive against a purchase order"
+        description="Receiving a delivery against its order is what makes the three-way match possible. Ordered quantities and prices come from the order; what actually arrived is yours to enter."
+      >
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <Label htmlFor="gr-po">Purchase order</Label>
+            <select
+              id="gr-po"
+              className="mt-1 h-11 w-full rounded-md border bg-background px-3 text-sm"
+              value={purchaseOrderId}
+              onChange={(e) => {
+                setPurchaseOrderId(e.target.value);
+                setEdits({});
+              }}
+            >
+              <option value="">Select an issued order…</option>
+              {receivableOrders.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.document_number ?? o.reference} · {o.supplier_name ?? "Supplier"} · {o.status}
+                </option>
+              ))}
+            </select>
+            {!receivableOrders.length && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                No issued orders awaiting delivery. Issue an order from Purchasing first.
+              </p>
+            )}
+          </div>
+          <div>
+            <Label htmlFor="gr-po-note">Delivery note ref</Label>
+            <Input
+              id="gr-po-note"
+              className="mt-1 h-11"
+              value={deliveryNote}
+              onChange={(e) => setDeliveryNote(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {purchaseOrderId && orderLines.length > 0 && (
+          <div className="mt-4 space-y-3">
+            {orderLines.map((i) => {
+              const e = lineEdit(i);
+              const over = (Number(e.received) || 0) > Number(i.quantity ?? 0) + 0.0001;
+              return (
+                <div key={i.id} className="rounded-lg border p-3">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-medium">{i.description}</span>
+                    <span className="text-xs text-muted-foreground">
+                      Ordered {formatQty(i.quantity)} @ {formatMoney(i.unit_price, detail?.order?.currency)}
+                    </span>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+                    <div>
+                      <Label htmlFor={`r-${i.id}`}>Received</Label>
+                      <Input
+                        id={`r-${i.id}`}
+                        className="mt-1 h-11"
+                        inputMode="decimal"
+                        value={e.received}
+                        onChange={(ev) => setLineEdit(i.id, { received: ev.target.value }, e)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`a-${i.id}`}>Accepted</Label>
+                      <Input
+                        id={`a-${i.id}`}
+                        className="mt-1 h-11"
+                        inputMode="decimal"
+                        value={e.accepted}
+                        onChange={(ev) => setLineEdit(i.id, { accepted: ev.target.value }, e)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`x-${i.id}`}>Rejected</Label>
+                      <Input
+                        id={`x-${i.id}`}
+                        className="mt-1 h-11"
+                        inputMode="decimal"
+                        value={e.rejected}
+                        onChange={(ev) => setLineEdit(i.id, { rejected: ev.target.value }, e)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`c-${i.id}`}>Invoiced unit cost</Label>
+                      <Input
+                        id={`c-${i.id}`}
+                        className="mt-1 h-11"
+                        inputMode="decimal"
+                        value={e.unitCost}
+                        onChange={(ev) => setLineEdit(i.id, { unitCost: ev.target.value }, e)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`b-${i.id}`}>Lot / batch code</Label>
+                      <Input
+                        id={`b-${i.id}`}
+                        className="mt-1 h-11"
+                        value={e.batchCode}
+                        onChange={(ev) => setLineEdit(i.id, { batchCode: ev.target.value }, e)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`e-${i.id}`}>Expiry</Label>
+                      <Input
+                        id={`e-${i.id}`}
+                        type="date"
+                        className="mt-1 h-11"
+                        value={e.expiryDate}
+                        onChange={(ev) => setLineEdit(i.id, { expiryDate: ev.target.value }, e)}
+                      />
+                    </div>
+                  </div>
+                  {over && (
+                    <p className="mt-2 text-xs text-destructive">
+                      More than ordered — this needs purchasing approval and a written reason.
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+
+            {hasOverReceipt && (
+              <div>
+                <Label htmlFor="gr-over">Over-receipt reason (required, min 10 characters)</Label>
+                <Textarea
+                  id="gr-over"
+                  className="mt-1"
+                  value={overReceiptReason}
+                  onChange={(ev) => setOverReceiptReason(ev.target.value)}
+                />
+              </div>
+            )}
+
+            <Button
+              className="h-11"
+              disabled={receiveAgainstOrder.isPending || (hasOverReceipt && overReceiptReason.trim().length < 10)}
+              onClick={() => receiveAgainstOrder.mutate()}
+            >
+              Record delivery against order
+            </Button>
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard
         title="Record a delivery"
-        description="Received, accepted and rejected are separate facts. Only accepted quantities enter inventory, and only when you post."
+        description="Unlinked delivery, for goods that arrived without a purchase order. Received, accepted and rejected are separate facts. Only accepted quantities enter inventory, and only when you post."
       >
         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
           <div className="lg:col-span-2">
