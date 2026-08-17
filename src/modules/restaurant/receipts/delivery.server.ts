@@ -8,6 +8,7 @@
  * unless a provider actually confirmed it.
  */
 import { assertCapability, assertTenantRead } from "../core/access.server";
+import { resolvePublicOrigin } from "../core/product";
 import { emitRestaurantEvent } from "../events/emit.server";
 import {
   DELIVERY_FAILURE_MESSAGES,
@@ -30,7 +31,17 @@ const SHARE_TTL_DAYS = 30;
 const TWILIO_GATEWAY = "https://connector-gateway.lovable.dev/twilio";
 
 function siteOrigin(): string {
-  return process.env["PUBLIC_APP_URL"] ?? "https://mtoniriverlodge.com";
+  // No customer domain is baked into the product: deployment config first,
+  // then the live request host, then a relative link.
+  try {
+    // Lazily required so non-request callers (jobs, tests) do not fail.
+    const { getRequestHeader } = require("@tanstack/react-start/server") as {
+      getRequestHeader: (n: string) => string | undefined;
+    };
+    return resolvePublicOrigin(getRequestHeader("host"), getRequestHeader("x-forwarded-proto") ?? "https");
+  } catch {
+    return resolvePublicOrigin(null);
+  }
 }
 
 export function emailProviderConfigured(): boolean {
