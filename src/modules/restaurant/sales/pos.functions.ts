@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   addPosLinesSchema,
+  cancelOrderSchema,
   openPosOrderSchema,
   posBoardSchema,
   posCatalogSchema,
@@ -74,6 +75,14 @@ export const reopenPosOrderFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const mod = await import("./pos.server");
     return mod.reopenPosOrder(context.supabase, context.userId, data);
+  });
+
+export const cancelPosOrderFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => cancelOrderSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const mod = await import("./cancellation.server");
+    return mod.cancelOrder(context.supabase, context.userId, data);
   });
 
 export const posReceiptFn = createServerFn({ method: "POST" })
