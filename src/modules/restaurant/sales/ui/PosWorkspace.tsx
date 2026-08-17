@@ -21,6 +21,7 @@ import {
   posCatalogFn,
   posReceiptFn,
   reopenPosOrderFn,
+  cancelPosOrderFn,
   takePosPaymentFn,
   transferPosOrderFn,
   voidPosLineFn,
