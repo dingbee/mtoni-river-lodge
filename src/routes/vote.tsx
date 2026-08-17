@@ -18,7 +18,7 @@ import sunsetImg from "@/assets/lodge-hero-aerial.jpg";
 import voteWelcomeAsset from "@/assets/vote-welcome.jpg.asset.json";
 import voteMaasaiRiverAsset from "@/assets/vote-maasai-river.jpg.asset.json";
 
-const VOTE_URL = "https://luxuryhotelawards.com/vote/";
+const VOTE_URL = "https://www.luxuryhotelawards.com/hotel/mtoni-river-lodge/";
 const SHARE_TEXT =
   "Help Mtoni River Lodge win at the World Luxury Hotel Awards — vote here:";
 export const SHARE_URL = "https://mtoniriverlodge.com/vote";

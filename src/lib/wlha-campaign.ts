@@ -23,8 +23,8 @@ export const WLHA_CAMPAIGN = {
     return `Voting opens on ${this.votingOpens} and closes on ${this.votingCloses}.`;
   },
 
-  /** Official WLHA voting page — replace when organisers publish the final URL. */
-  votingUrl: "https://luxuryhotelawards.com/vote/",
+  /** Official WLHA voting page for Mtoni River Lodge. */
+  votingUrl: "https://www.luxuryhotelawards.com/hotel/mtoni-river-lodge/",
 
   states: {
     upcoming: "Voting begins in",
