@@ -30,3 +30,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# NOVA local runtime (per-installation state — never committed)
+local/.env
+local/keys/
+local/run/
+local/backups/

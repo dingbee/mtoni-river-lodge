@@ -51,7 +51,7 @@ export async function collectHealth(sql: SQL, postgrestUrl: string): Promise<Hea
           : "awaiting first-run setup",
     });
   } catch (error) {
-    components.push({ id: "database", status: "down", detail: describe(error) });
+    components.push({ id: "database", status: "down", detail: operatorDetail("database", error) });
     components.push({ id: "auth", status: "unknown" });
   }
 
@@ -66,7 +66,7 @@ export async function collectHealth(sql: SQL, postgrestUrl: string): Promise<Hea
       detail: `HTTP ${response.status}`,
     });
   } catch (error) {
-    components.push({ id: "postgrest", status: "down", detail: describe(error) });
+    components.push({ id: "postgrest", status: "down", detail: operatorDetail("postgrest", error) });
   }
 
   return buildReport({ runtime: "local", appVersion, schemaVersion, components });
@@ -76,4 +76,15 @@ function describe(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   // Connection strings can carry credentials — report the shape, not the value.
   return message.replace(/postgres(ql)?:\/\/[^\s]*/gi, "[connection]").slice(0, 160);
+}
+
+/**
+ * Health is read by on-site staff, not by developers: report the component and
+ * the remedy in plain language. The raw driver/fetch error stays in the log.
+ */
+function operatorDetail(component: "database" | "postgrest", error: unknown): string {
+  console.error(`[health:${component}]`, describe(error));
+  return component === "database"
+    ? "not reachable — check that the database service is running"
+    : "not reachable — check that the data service is running";
 }
