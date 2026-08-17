@@ -106,11 +106,9 @@ async function proxyToPostgrest(request: Request, path: string): Promise<Respons
   return new Response(response.body, { status: response.status, headers: out });
 }
 
-const server = Bun.serve({
-  hostname: HOST,
-  port: PORT,
+const handler = {
   idleTimeout: 60,
-  async fetch(request, srv) {
+  async fetch(request: Request, srv: { requestIP(r: Request): { address: string } | null }) {
     const url = new URL(request.url);
     const path = url.pathname;
     const ip = srv.requestIP(request)?.address ?? "unknown";
@@ -177,6 +175,33 @@ const server = Bun.serve({
       return json({ error: "Internal error" }, 500);
     }
   },
+};
+
+const server = Bun.serve({
+  hostname: HOST,
+  port: tls.enabled ? tls.httpsPort : PORT,
+  ...(tls.enabled
+    ? { tls: { cert: readFileSync(TLS_CERT_FILE), key: readFileSync(TLS_KEY_FILE) } }
+    : {}),
+  ...handler,
 });
 
-console.log(`[nova-local] gateway listening on http://${HOST}:${server.port} -> ${POSTGREST}`);
+// When TLS is on, the plain port exists only to send terminals to the secure
+// origin — it never serves data.
+if (tls.enabled) {
+  Bun.serve({
+    hostname: HOST,
+    port: tls.httpPort,
+    fetch(request) {
+      const url = new URL(request.url);
+      url.protocol = "https:";
+      url.port = String(tls.httpsPort);
+      return Response.redirect(url.toString(), 308);
+    },
+  });
+}
+
+console.log(
+  `[nova-local] gateway listening on ${terminalOrigin(tls, HOST)} -> ${POSTGREST}` +
+    (tls.enabled ? ` (HTTP :${tls.httpPort} redirects to HTTPS)` : ` (TLS off: ${tls.reason})`),
+);
