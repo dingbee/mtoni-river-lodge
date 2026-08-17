@@ -292,9 +292,9 @@ export async function getPurchaseOrderDetail(sb: Sb, userId: string, tenantId: s
       ? sb
           .from("restaurant_goods_receipt_items")
           .select(
-            "id, goods_receipt_id, purchase_order_item_id, description, ordered_quantity, received_quantity, accepted_quantity, rejected_quantity, unit_cost",
+            "id, receipt_id, purchase_order_item_id, description, ordered_quantity, received_quantity, accepted_quantity, rejected_quantity, unit_cost",
           )
-          .in("goods_receipt_id", receiptIds)
+          .in("receipt_id", receiptIds)
       : Promise.resolve({ data: [] }),
   ]);
 
