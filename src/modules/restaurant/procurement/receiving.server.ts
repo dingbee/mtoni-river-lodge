@@ -191,7 +191,7 @@ export async function postGoodsReceipt(sb: Sb, userId: string, tenantId: string,
   const { data: lines } = await sb
     .from("restaurant_goods_receipt_items")
     .select(
-      "id, purchase_order_item_id, inventory_item_id, unit_id, storage_location_id, description, ordered_quantity, received_quantity, accepted_quantity, rejected_quantity, damaged_quantity, ordered_unit_cost, unit_cost",
+      "id, purchase_order_item_id, inventory_item_id, unit_id, storage_location_id, description, ordered_quantity, received_quantity, accepted_quantity, rejected_quantity, damaged_quantity, ordered_unit_cost, unit_cost, batch_code, expiry_date, batch_id",
     )
     .eq("tenant_id", tenantId)
     .eq("receipt_id", receipt.id);
@@ -228,6 +228,17 @@ export async function postGoodsReceipt(sb: Sb, userId: string, tenantId: string,
           .eq("tenant_id", tenantId)
           .eq("id", l.id);
       }
+
+      // Lot traceability: the batch code and expiry captured at the door are
+      // only useful if they survive into stock. Without this, a recall or an
+      // expiry sweep has nothing to work from.
+      await persistReceiptBatch(sb, userId, {
+        tenantId,
+        receipt,
+        line: l,
+        accepted,
+        unitCost,
+      });
     }
 
     // ---- variance detection (recorded, never auto-approved) ----
