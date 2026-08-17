@@ -56,7 +56,13 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   fi
 fi
 psql -X -q -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$TARGET'" | grep -q 1 \
-  && psql -X -q -d postgres -c "DROP DATABASE \"$TARGET\""
+  && {
+    # Terminals and the data service hold sessions open; without closing them
+    # the drop fails and the operator is left with no restore at all.
+    psql -X -q -d postgres -c \
+      "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='$TARGET' AND pid <> pg_backend_pid()" >/dev/null
+    psql -X -q -d postgres -c "DROP DATABASE \"$TARGET\""
+  }
 psql -X -q -d postgres -c "CREATE DATABASE \"$TARGET\""
 
 # Roles live in the cluster, not the dump; recreate the compatibility roles so
