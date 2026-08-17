@@ -150,8 +150,10 @@ function PurchasingPage() {
                   {o.currency} {Number(o.total ?? 0).toLocaleString()}
                   {canManage ? (
                     <>
-                      {(PO_TRANSITIONS[o.status as keyof typeof PO_TRANSITIONS] ?? [])
-                        .filter((s) => (PO_MANUAL_STATUSES as readonly string[]).includes(s))
+                      {((PO_TRANSITIONS[o.status as keyof typeof PO_TRANSITIONS] ?? []) as readonly string[])
+                        .filter((s): s is "submitted" | "approved" | "cancelled" =>
+                          (PO_MANUAL_STATUSES as readonly string[]).includes(s),
+                        )
                         .map((s) => (
                           <Button
                             key={s}
