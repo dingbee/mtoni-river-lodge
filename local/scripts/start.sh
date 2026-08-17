@@ -32,6 +32,13 @@ wait_for "PostgreSQL" pg_isready -h "$NOVA_DB_HOST" -p "$NOVA_DB_PORT"
 chmod 600 "$NOVA_JWT_PRIVATE_KEY_FILE"
 [[ -f "${NOVA_ENV_FILE:-$NOVA_LOCAL_DIR/.env}" ]] && chmod 600 "${NOVA_ENV_FILE:-$NOVA_LOCAL_DIR/.env}"
 
+# TLS material for the LAN origin (per installation; no cloud dependency).
+if [[ "${NOVA_TLS_MODE:-auto}" != "off" ]]; then
+  [[ -f "$NOVA_TLS_CERT_FILE" ]] || bash "$NOVA_LOCAL_DIR/scripts/gen-tls.sh"
+  chmod 600 "$NOVA_TLS_KEY_FILE" "$NOVA_TLS_DIR/nova-local-ca.key" 2>/dev/null || true
+  export NOVA_TLS_MODE NOVA_TLS_DIR NOVA_TLS_CERT_FILE NOVA_TLS_KEY_FILE NOVA_GATEWAY_TLS_PORT
+fi
+
 export NOVA_DB_HOST NOVA_DB_PORT NOVA_DB_NAME NOVA_DB_AUTHENTICATOR NOVA_DB_AUTHENTICATOR_PASSWORD
 export NOVA_POSTGREST_HOST NOVA_POSTGREST_PORT NOVA_POSTGREST_SCHEMAS
 # Rendered with bash only — the appliance must not depend on gettext/envsubst.
@@ -56,6 +63,7 @@ wait_for "PostgREST" curl -sf -o /dev/null "http://$NOVA_POSTGREST_HOST:$NOVA_PO
 
 # 3. Gateway -------------------------------------------------------------------
 ( cd "$NOVA_ROOT" && bun run local/gateway/server.ts > "$NOVA_RUN_DIR/gateway.log" 2>&1 & echo $! > "$NOVA_RUN_DIR/gateway.pid" )
-wait_for "Gateway" curl -sf -o /dev/null "http://127.0.0.1:$NOVA_GATEWAY_PORT/health"
+GW_URL="$(nova_gateway_url 127.0.0.1)"
+wait_for "Gateway" curl -sfk -o /dev/null "$GW_URL/health"
 
-nova_log "Local runtime up. Terminals: http://<this-machine>:$NOVA_GATEWAY_PORT"
+nova_log "Local runtime up. Terminals: $(nova_gateway_url '<this-machine>')"

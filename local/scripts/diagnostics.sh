@@ -11,9 +11,9 @@ mkdir -p "$OUT_DIR"; chmod 700 "$OUT_DIR"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="$OUT_DIR/nova-diagnostics-$STAMP.json"
 
-gw="http://127.0.0.1:$NOVA_GATEWAY_PORT"
-HEALTH=$(curl -s "$gw/health" || echo '{}')
-SYSTEM=$(curl -s "$gw/nova/v1/system" || echo '{}')
+gw="$(nova_gateway_url 127.0.0.1)"
+HEALTH=$(curl -sk "$gw/health" || echo '{}')
+SYSTEM=$(curl -sk "$gw/nova/v1/system" || echo '{}')
 LAST_BACKUP=$( (ls -1t "$NOVA_BACKUP_DIR"/*.manifest.json 2>/dev/null || true) | head -1 )
 BACKUP_META=$([[ -n "$LAST_BACKUP" ]] && cat "$LAST_BACKUP" || echo '{}')
 

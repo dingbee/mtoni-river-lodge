@@ -104,7 +104,8 @@ cat <<BANNER
   Installation: $ACTION complete
   Install id:   $INSTALL_ID
 
-  First-run setup:  http://$HOSTIP:$NOVA_GATEWAY_PORT/
-  Terminals (LAN):  http://$HOSTIP:$NOVA_GATEWAY_PORT/
+  First-run setup:  $(nova_gateway_url "$HOSTIP")/
+  Terminals (LAN):  $(nova_gateway_url "$HOSTIP")/
+  Terminal trust:   install ${NOVA_TLS_DIR}/nova-local-ca.crt on each tablet
 
 BANNER
