@@ -2,6 +2,7 @@
 # PRODUCTIZATION-4 Phase E — service lifecycle control.
 #
 #   start | stop | restart | status | health | ready | version
+#   tls | backup | restore | diagnostics
 #
 # "status" answers "are the processes running"; "ready" answers "can the
 # business trade" — the two are deliberately different questions.
@@ -37,5 +38,8 @@ case "${1:-status}" in
   ready)   cmd_ready ;;
   version) "${CURL[@]}" "$gw/nova/v1/system"; echo ;;
   tls)     bash "$NOVA_LOCAL_DIR/scripts/gen-tls.sh" "${2:-}" ;;
-  *) echo "usage: novactl.sh {start|stop|restart|status|health|ready|version|tls}" >&2; exit 2 ;;
+  backup)      bash "$NOVA_LOCAL_DIR/scripts/backup.sh" "${@:2}" ;;
+  restore)     bash "$NOVA_LOCAL_DIR/scripts/restore.sh" "${@:2}" ;;
+  diagnostics) bash "$NOVA_LOCAL_DIR/scripts/diagnostics.sh" "${@:2}" ;;
+  *) echo "usage: novactl.sh {start|stop|restart|status|health|ready|version|tls|backup|restore|diagnostics}" >&2; exit 2 ;;
 esac
