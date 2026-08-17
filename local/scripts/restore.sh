@@ -75,3 +75,13 @@ pg_restore --dbname="$TARGET" --no-owner --exit-on-error "$DUMP"
 
 COUNT="$(psql -X -d "$TARGET" -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'" | tr -d '[:space:]')"
 nova_log "restore complete: $COUNT public tables in $TARGET"
+
+# The data service caches the schema and holds pooled connections to a database
+# that no longer exists; ask it to reconnect and reload so terminals can trade
+# again without a full appliance restart.
+if [[ -f "$NOVA_RUN_DIR/postgrest.pid" ]] && kill -0 "$(cat "$NOVA_RUN_DIR/postgrest.pid")" 2>/dev/null; then
+  kill -USR1 "$(cat "$NOVA_RUN_DIR/postgrest.pid")" 2>/dev/null || true
+  nova_log "data service asked to reconnect and reload its schema"
+else
+  nova_log "data service is not running — start the appliance with: novactl.sh start"
+fi
