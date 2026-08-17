@@ -1,16 +1,34 @@
 #!/usr/bin/env bash
 # PRODUCTIZATION-3 Phase 11 — local restore.
 #
-#   restore.sh <dump-file> [target-database]
+#   restore.sh <dump-file> [target-database] [--yes]
 #
 # Restore verifies the manifest checksum first: an artifact that does not match
 # its manifest is never applied. The target database is created fresh, so a
 # restore never merges into live data by accident.
+#
+# Restore is destructive for the target database, so the target is validated
+# (never inferred from a stray flag) and overwriting the live database must be
+# confirmed, either interactively or with --yes.
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 nova_load_env
 
-DUMP="${1:?usage: restore.sh <dump-file> [target-database]}"
-TARGET="${2:-$PGDATABASE}"
+DUMP=""; TARGET=""; ASSUME_YES=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --yes|-y) ASSUME_YES=1 ;;
+    --target) shift; TARGET="${1:?--target needs a database name}" ;;
+    -*) echo "FATAL: unknown option '$1'. usage: restore.sh <dump-file> [target-database] [--yes]" >&2; exit 2 ;;
+    *)
+      if [[ -z "$DUMP" ]]; then DUMP="$1"
+      elif [[ -z "$TARGET" ]]; then TARGET="$1"
+      else echo "FATAL: unexpected argument '$1'" >&2; exit 2; fi ;;
+  esac
+  shift
+done
+[[ -n "$DUMP" ]] || { echo "usage: restore.sh <dump-file> [target-database] [--yes]" >&2; exit 2; }
+TARGET="${TARGET:-$PGDATABASE}"
+[[ "$TARGET" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || { echo "FATAL: invalid target database name '$TARGET'." >&2; exit 2; }
 MANIFEST="${DUMP%.dump}.manifest.json"
 
 [[ -f "$DUMP" ]] || { echo "FATAL: $DUMP not found" >&2; exit 1; }
@@ -28,6 +46,15 @@ else
 fi
 
 nova_log "restore -> database $TARGET"
+if [[ "$ASSUME_YES" -ne 1 ]]; then
+  if [[ -t 0 ]]; then
+    read -r -p "This REPLACES database \"$TARGET\" and everything in it. Type the database name to continue: " confirm
+    [[ "$confirm" == "$TARGET" ]] || { echo "Restore cancelled; nothing was changed." >&2; exit 1; }
+  else
+    echo "FATAL: refusing to replace database \"$TARGET\" without confirmation. Re-run with --yes." >&2
+    exit 1
+  fi
+fi
 psql -X -q -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$TARGET'" | grep -q 1 \
   && psql -X -q -d postgres -c "DROP DATABASE \"$TARGET\""
 psql -X -q -d postgres -c "CREATE DATABASE \"$TARGET\""
