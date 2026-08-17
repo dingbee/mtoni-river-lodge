@@ -29,7 +29,7 @@ export interface AppState {
 }
 
 // The appliance runs on Bun; the hosted typecheck does not ship Bun types.
-declare const Bun: { file(path: string): { exists(): Promise<boolean> } };
+declare const Bun: { file(path: string): Blob & { exists(): Promise<boolean> } };
 
 const IMMUTABLE = /^\/assets\//;
 const NEVER_CACHE = new Set(["/sw.js", "/site.webmanifest", "/nova-terminal.webmanifest"]);
