@@ -122,8 +122,15 @@ export class LocalAppHost {
     // Contain the lookup inside the client directory — no traversal.
     const safe = normalize(path).replace(/^(\.\.[/\\])+/, "");
     if (safe.includes("..")) return null;
-    const file = Bun.file(join(this.bundle.clientDir, safe));
-    if (!(await file.exists())) return null;
+    let file = Bun.file(join(this.bundle.clientDir, safe));
+    if (!(await file.exists())) {
+      // The service worker and its workbox runtime are emitted beside the
+      // client directory, not inside it — serve them from the bundle root so
+      // the PWA can register at scope "/".
+      if (!/^\/(sw\.js|workbox-[\w-]+\.js)$/.test(path)) return null;
+      file = Bun.file(join(this.bundle.dir, safe));
+      if (!(await file.exists())) return null;
+    }
 
     const headers: Record<string, string> = {
       // Hashed asset URLs are immutable; control files must always revalidate
