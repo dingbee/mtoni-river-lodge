@@ -132,6 +132,7 @@ describe("requisition document registration", () => {
   it("is a first-class registered document, not a bespoke print", () => {
     const type = documentType("requisition");
     expect(type).toBeDefined();
+    if (!type) throw new Error("requisition document type is not registered");
     expect(type.group).toBe("inventory");
     expect(type.numberPrefix).toBe("REQ");
     // Same formats as every other governed document: the Centre gets view,
