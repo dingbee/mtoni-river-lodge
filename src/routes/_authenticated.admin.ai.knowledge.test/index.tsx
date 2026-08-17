@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { testKnowledgeQuery } from "@/domains/ai/knowledge-sync.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/ai/knowledge/test")({
+export const Route = createFileRoute("/_authenticated/admin/ai/knowledge/test/")({
   head: () => ({
     meta: [{ title: "Knowledge Test — Mtoni AI" }, { name: "robots", content: "noindex,nofollow" }],
   }),
