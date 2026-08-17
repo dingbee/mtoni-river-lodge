@@ -58,6 +58,9 @@ export interface SystemInformation {
   lastBackupAt: string | null;
   lastBackupStatus: "verified" | "unverified" | "failed" | "none";
   health: "ok" | "degraded" | "down" | "unknown";
+  /** Application UI serving layer state — a terminal cannot trade without it. */
+  uiStatus: "ok" | "down" | "unknown";
+  uiVersion: string | null;
   ready: boolean;
 }
 
