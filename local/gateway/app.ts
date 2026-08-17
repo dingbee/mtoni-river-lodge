@@ -100,6 +100,13 @@ export class LocalAppHost {
     if (structural.status === "down") return unavailable(structural.detail);
 
     const path = decodeURIComponent(new URL(request.url).pathname);
+
+    // A terminal that opens the appliance origin wants the OS, not the
+    // public marketing site that shares this source tree.
+    if (path === "/") {
+      const entry = process.env["NOVA_APP_ENTRY"] ?? "/admin";
+      return new Response(null, { status: 302, headers: { location: entry, "cache-control": "no-store" } });
+    }
     const asset = await this.staticAsset(path);
     if (asset) return asset;
 
