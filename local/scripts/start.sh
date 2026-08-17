@@ -65,6 +65,7 @@ wait_for "PostgREST" curl -sf -o /dev/null "http://$NOVA_POSTGREST_HOST:$NOVA_PO
 # Bound to this appliance's origin before the gateway accepts terminals.
 BUNDLE_DIR="${NOVA_APP_BUNDLE_DIR:-$NOVA_ROOT/dist}"
 if [[ -d "$BUNDLE_DIR/client" ]]; then
+  bash "$NOVA_LOCAL_DIR/scripts/verify-bundle.sh" "$BUNDLE_DIR"
   bash "$NOVA_LOCAL_DIR/scripts/stamp-ui.sh" || nova_log "WARNING: could not bind UI bundle origin"
 else
   nova_log "WARNING: no application UI bundle at $BUNDLE_DIR — terminals will report the UI unavailable"
@@ -72,7 +73,14 @@ fi
 export NOVA_APP_BUNDLE_DIR="$BUNDLE_DIR"
 
 # 4. Gateway -------------------------------------------------------------------
-( cd "$NOVA_ROOT" && bun run local/gateway/server.ts > "$NOVA_RUN_DIR/gateway.log" 2>&1 & echo $! > "$NOVA_RUN_DIR/gateway.pid" )
+# The gateway must never inherit hosted backend configuration from the
+# developer shell or a repository .env (4F): those variables are stripped and
+# the appliance's own values are supplied explicitly.
+( cd "$NOVA_ROOT" && env -u VITE_SUPABASE_URL -u VITE_SUPABASE_PUBLISHABLE_KEY -u VITE_SUPABASE_ANON_KEY \
+    -u VITE_SUPABASE_PROJECT_ID -u SUPABASE_URL -u SUPABASE_PUBLISHABLE_KEY -u SUPABASE_ANON_KEY \
+    -u SUPABASE_SERVICE_ROLE_KEY -u SUPABASE_PROJECT_ID -u SUPABASE_DB_URL -u DATABASE_URL -u LOVABLE_API_KEY \
+    NOVA_RUNTIME_MODE=local \
+    bun --env-file=/dev/null run local/gateway/server.ts > "$NOVA_RUN_DIR/gateway.log" 2>&1 & echo $! > "$NOVA_RUN_DIR/gateway.pid" )
 GW_URL="$(nova_gateway_url 127.0.0.1)"
 wait_for "Gateway" curl -sfk -o /dev/null "$GW_URL/health"
 

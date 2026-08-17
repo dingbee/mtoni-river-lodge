@@ -48,6 +48,7 @@ case "${1:-status}" in
   version) "${CURL[@]}" "$gw/nova/v1/system"; echo ;;
   ui)      bash "$NOVA_LOCAL_DIR/scripts/stamp-ui.sh" ;;
   build-ui) bash "$NOVA_LOCAL_DIR/scripts/build-ui.sh" ;;
+  verify-ui) bash "$NOVA_LOCAL_DIR/scripts/verify-bundle.sh" "${2:-}" ;;
   tls)     bash "$NOVA_LOCAL_DIR/scripts/gen-tls.sh" "${2:-}" ;;
   backup)      bash "$NOVA_LOCAL_DIR/scripts/backup.sh" "${@:2}" ;;
   restore)     bash "$NOVA_LOCAL_DIR/scripts/restore.sh" "${@:2}" ;;
