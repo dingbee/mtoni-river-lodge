@@ -13,7 +13,7 @@ DECLARE
   u_ea uuid; u_kg uuid; u_g uuid; u_l uuid; u_ml uuid; u_btl uuid;
   ic_prod uuid; ic_meat uuid; ic_dry uuid; ic_bev uuid;
   mc_start uuid; mc_main uuid; mc_dess uuid; mc_cock uuid; mc_beer uuid;
-  menu_id uuid;
+  v_menu_id uuid;
   st_hot uuid; st_cold uuid; st_bar uuid;
   sup_a uuid; sup_b uuid; sup_c uuid; sup_d uuid;
   rec_id uuid; mi_id uuid; usr uuid;
@@ -104,24 +104,24 @@ BEGIN
   INSERT INTO restaurant_menus (tenant_id, property_id, location_id, name, slug, version, status, currency, description)
   VALUES (t_id, p_id, loc_rest, 'All Day Menu', 'all-day', 1, 'published', 'TZS', 'Demo published menu')
   ON CONFLICT (tenant_id, slug, version) DO NOTHING;
-  SELECT id INTO menu_id FROM restaurant_menus WHERE tenant_id=t_id AND slug='all-day' AND version=1;
+  SELECT id INTO v_menu_id FROM restaurant_menus WHERE tenant_id=t_id AND slug='all-day' AND version=1;
 
   INSERT INTO restaurant_menu_items (tenant_id, menu_id, category_id, name, slug, description, price, currency, cost_price, allergens, sort_order) VALUES
-    (t_id,menu_id,mc_start,'Tomato & Onion Salad','tomato-onion-salad','Vine tomato, red onion, herbs',9000,'TZS',2600,'{}',10),
-    (t_id,menu_id,mc_start,'Prawn Skewers','prawn-skewers','Grilled prawns, lime butter',18000,'TZS',7400,'{shellfish,dairy}',20),
-    (t_id,menu_id,mc_start,'Soup of the Day','soup-of-the-day','Chef selection',7500,'TZS',2100,'{dairy}',30),
-    (t_id,menu_id,mc_main ,'Grilled Snapper','grilled-snapper','Whole snapper, rice, salad',32000,'TZS',12400,'{fish}',10),
-    (t_id,menu_id,mc_main ,'Beef Striploin','beef-striploin','250g striploin, potatoes',46000,'TZS',18600,'{}',20),
-    (t_id,menu_id,mc_main ,'Chicken Curry','chicken-curry','Coconut curry, basmati rice',26000,'TZS',8900,'{}',30),
-    (t_id,menu_id,mc_main ,'Vegetable Biryani','vegetable-biryani','Spiced rice, seasonal vegetables',21000,'TZS',5600,'{}',40),
-    (t_id,menu_id,mc_dess ,'Chocolate Tart','chocolate-tart','Dark chocolate, cream',12000,'TZS',3900,'{dairy,gluten,eggs}',10),
-    (t_id,menu_id,mc_dess ,'Fresh Fruit Plate','fresh-fruit-plate','Seasonal fruit',9000,'TZS',2400,'{}',20),
-    (t_id,menu_id,mc_cock ,'Gin & Tonic','gin-tonic','Double gin, tonic, lime',14000,'TZS',4600,'{}',10),
-    (t_id,menu_id,mc_cock ,'Daiquiri','daiquiri','White rum, lime, sugar',15000,'TZS',4300,'{}',20),
-    (t_id,menu_id,mc_cock ,'Old Fashioned','old-fashioned','Whisky, sugar, bitters',18000,'TZS',6100,'{}',30),
-    (t_id,menu_id,mc_beer ,'Local Lager','local-lager','500ml bottle',6000,'TZS',2300,'{gluten}',10),
-    (t_id,menu_id,mc_beer ,'House Red (Glass)','house-red-glass','175ml pour',11000,'TZS',6100,'{sulphites}',20),
-    (t_id,menu_id,mc_beer ,'Soda','soda','300ml bottle',3500,'TZS',900,'{}',30)
+    (t_id,v_menu_id,mc_start,'Tomato & Onion Salad','tomato-onion-salad','Vine tomato, red onion, herbs',9000,'TZS',2600,'{}',10),
+    (t_id,v_menu_id,mc_start,'Prawn Skewers','prawn-skewers','Grilled prawns, lime butter',18000,'TZS',7400,'{shellfish,dairy}',20),
+    (t_id,v_menu_id,mc_start,'Soup of the Day','soup-of-the-day','Chef selection',7500,'TZS',2100,'{dairy}',30),
+    (t_id,v_menu_id,mc_main ,'Grilled Snapper','grilled-snapper','Whole snapper, rice, salad',32000,'TZS',12400,'{fish}',10),
+    (t_id,v_menu_id,mc_main ,'Beef Striploin','beef-striploin','250g striploin, potatoes',46000,'TZS',18600,'{}',20),
+    (t_id,v_menu_id,mc_main ,'Chicken Curry','chicken-curry','Coconut curry, basmati rice',26000,'TZS',8900,'{}',30),
+    (t_id,v_menu_id,mc_main ,'Vegetable Biryani','vegetable-biryani','Spiced rice, seasonal vegetables',21000,'TZS',5600,'{}',40),
+    (t_id,v_menu_id,mc_dess ,'Chocolate Tart','chocolate-tart','Dark chocolate, cream',12000,'TZS',3900,'{dairy,gluten,eggs}',10),
+    (t_id,v_menu_id,mc_dess ,'Fresh Fruit Plate','fresh-fruit-plate','Seasonal fruit',9000,'TZS',2400,'{}',20),
+    (t_id,v_menu_id,mc_cock ,'Gin & Tonic','gin-tonic','Double gin, tonic, lime',14000,'TZS',4600,'{}',10),
+    (t_id,v_menu_id,mc_cock ,'Daiquiri','daiquiri','White rum, lime, sugar',15000,'TZS',4300,'{}',20),
+    (t_id,v_menu_id,mc_cock ,'Old Fashioned','old-fashioned','Whisky, sugar, bitters',18000,'TZS',6100,'{}',30),
+    (t_id,v_menu_id,mc_beer ,'Local Lager','local-lager','500ml bottle',6000,'TZS',2300,'{gluten}',10),
+    (t_id,v_menu_id,mc_beer ,'House Red (Glass)','house-red-glass','175ml pour',11000,'TZS',6100,'{sulphites}',20),
+    (t_id,v_menu_id,mc_beer ,'Soda','soda','300ml bottle',3500,'TZS',900,'{}',30)
   ON CONFLICT (menu_id, slug) DO NOTHING;
 
   ---------------------------------------------------------------- stations, periods, tables
@@ -162,7 +162,7 @@ BEGIN
          'SKU-'||upper(left(md5(mi.slug),6)), mi.name, mi.category_id, mi.id,
          CASE WHEN mi.category_id IN (mc_cock, mc_beer) THEN st_bar ELSE st_hot END,
          mi.price, 'TZS', 18, mi.sort_order
-  FROM restaurant_menu_items mi WHERE mi.menu_id = menu_id
+  FROM restaurant_menu_items mi WHERE mi.menu_id = v_menu_id
   ON CONFLICT (tenant_id, sku) DO NOTHING;
 
   ---------------------------------------------------------------- membership for every local user
