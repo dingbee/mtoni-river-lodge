@@ -19,6 +19,15 @@ cmd_status() {
     && echo "  database    RUNNING" || echo "  database    STOPPED"
   pid_alive postgrest && echo "  data-service RUNNING" || echo "  data-service STOPPED"
   pid_alive gateway   && echo "  gateway      RUNNING" || echo "  gateway      STOPPED"
+  # "Running" is not "serving": the UI layer is reported from health, because a
+  # gateway with a missing bundle is a terminal that cannot trade.
+  local ui
+  ui=$("${CURL[@]}" "$gw/health" 2>/dev/null | grep -o '"id":"application-ui","status":"[a-z]*"' | sed 's/.*"status":"\([a-z]*\)".*/\1/')
+  case "${ui:-}" in
+    ok)   echo "  application  READY" ;;
+    down) echo "  application  UNAVAILABLE (UI bundle missing or failed)" ;;
+    *)    echo "  application  UNKNOWN" ;;
+  esac
 }
 
 cmd_ready() {
@@ -37,9 +46,11 @@ case "${1:-status}" in
   health)  "${CURL[@]}" "$gw/health"; echo ;;
   ready)   cmd_ready ;;
   version) "${CURL[@]}" "$gw/nova/v1/system"; echo ;;
+  ui)      bash "$NOVA_LOCAL_DIR/scripts/stamp-ui.sh" ;;
+  build-ui) bash "$NOVA_LOCAL_DIR/scripts/build-ui.sh" ;;
   tls)     bash "$NOVA_LOCAL_DIR/scripts/gen-tls.sh" "${2:-}" ;;
   backup)      bash "$NOVA_LOCAL_DIR/scripts/backup.sh" "${@:2}" ;;
   restore)     bash "$NOVA_LOCAL_DIR/scripts/restore.sh" "${@:2}" ;;
   diagnostics) bash "$NOVA_LOCAL_DIR/scripts/diagnostics.sh" "${@:2}" ;;
-  *) echo "usage: novactl.sh {start|stop|restart|status|health|ready|version|tls|backup|restore|diagnostics}" >&2; exit 2 ;;
+  *) echo "usage: novactl.sh {start|stop|restart|status|health|ready|version|tls|ui|build-ui|backup|restore|diagnostics}" >&2; exit 2 ;;
 esac

@@ -61,9 +61,26 @@ chmod 600 "$RENDERED"
 echo $! > "$NOVA_RUN_DIR/postgrest.pid"
 wait_for "PostgREST" curl -sf -o /dev/null "http://$NOVA_POSTGREST_HOST:$NOVA_POSTGREST_PORT/"
 
-# 3. Gateway -------------------------------------------------------------------
+# 3. Application UI bundle ----------------------------------------------------
+# Bound to this appliance's origin before the gateway accepts terminals.
+BUNDLE_DIR="${NOVA_APP_BUNDLE_DIR:-$NOVA_ROOT/dist}"
+if [[ -d "$BUNDLE_DIR/client" ]]; then
+  bash "$NOVA_LOCAL_DIR/scripts/stamp-ui.sh" || nova_log "WARNING: could not bind UI bundle origin"
+else
+  nova_log "WARNING: no application UI bundle at $BUNDLE_DIR — terminals will report the UI unavailable"
+fi
+export NOVA_APP_BUNDLE_DIR="$BUNDLE_DIR"
+
+# 4. Gateway -------------------------------------------------------------------
 ( cd "$NOVA_ROOT" && bun run local/gateway/server.ts > "$NOVA_RUN_DIR/gateway.log" 2>&1 & echo $! > "$NOVA_RUN_DIR/gateway.pid" )
 GW_URL="$(nova_gateway_url 127.0.0.1)"
 wait_for "Gateway" curl -sfk -o /dev/null "$GW_URL/health"
+
+# 5. Application readiness -----------------------------------------------------
+if curl -sfk "$GW_URL/ready" >/dev/null 2>&1; then
+  nova_log "Application UI ready"
+else
+  nova_log "WARNING: system is NOT ready — run 'novactl.sh ready' for the failing component"
+fi
 
 nova_log "Local runtime up. Terminals: $(nova_gateway_url '<this-machine>')"

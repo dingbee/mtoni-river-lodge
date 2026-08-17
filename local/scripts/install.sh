@@ -86,6 +86,21 @@ chmod 600 "${NOVA_KEY_DIR:-$NOVA_LOCAL_DIR/keys}/jwt-private.pem" 2>/dev/null ||
 chmod 600 "$ENV_FILE"
 mkdir -p "$NOVA_BACKUP_DIR" && chmod 700 "$NOVA_BACKUP_DIR"
 
+# 5b. Application UI bundle ----------------------------------------------------
+# Shipped with the release; built from the same source as the hosted runtime.
+BUNDLE_DIR="${NOVA_APP_BUNDLE_DIR:-$NOVA_ROOT/dist}"
+if [[ ! -d "$BUNDLE_DIR/client" || ! -f "$BUNDLE_DIR/server/index.mjs" ]]; then
+  if [[ "${NOVA_BUILD_UI:-auto}" != "off" ]]; then
+    nova_log "No application UI bundle found — building it"
+    bash "$NOVA_LOCAL_DIR/scripts/build-ui.sh"
+  fi
+fi
+if [[ ! -d "$BUNDLE_DIR/client" || ! -f "$BUNDLE_DIR/server/index.mjs" ]]; then
+  echo "FATAL: application UI bundle missing at $BUNDLE_DIR — installation cannot report READY." >&2
+  exit 1
+fi
+export NOVA_APP_BUNDLE_DIR="$BUNDLE_DIR"
+
 # 6. Ordered start + readiness -------------------------------------------------
 bash "$NOVA_LOCAL_DIR/scripts/start.sh"
 bash "$NOVA_LOCAL_DIR/scripts/novactl.sh" ready
