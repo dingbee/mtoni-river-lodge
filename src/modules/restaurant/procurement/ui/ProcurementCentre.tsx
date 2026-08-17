@@ -40,6 +40,10 @@ import {
   setRestaurantInvoicePaymentStatusFn,
   transitionRestaurantPurchaseRequestFn,
 } from "../procurement.functions";
+import {
+  getRestaurantPurchaseOrderDetailFn,
+  listRestaurantPurchaseOrdersFn,
+} from "../../purchasing/purchasing.functions";
 
 const TABS = [
   { id: "overview", label: "Overview" },

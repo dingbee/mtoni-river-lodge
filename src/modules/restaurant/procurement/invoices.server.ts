@@ -209,7 +209,7 @@ export async function matchSupplierInvoice(sb: Sb, userId: string, tenantId: str
             .select("purchase_order_item_id, accepted_quantity")
             .eq("tenant_id", tenantId)
             .in(
-              "goods_receipt_id",
+              "receipt_id",
               ((receipts ?? []) as any[]).map((r) => r.id),
             )
         : Promise.resolve({ data: [] }),
