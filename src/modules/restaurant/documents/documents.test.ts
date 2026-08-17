@@ -128,3 +128,15 @@ describe("printed html", () => {
     expect(documentToHtml({ ...doc, snapshot: true })).toContain("stored snapshot");
   });
 });
+describe("requisition document registration", () => {
+  it("is a first-class registered document, not a bespoke print", () => {
+    const type = documentType("requisition");
+    expect(type).toBeDefined();
+    expect(type.group).toBe("inventory");
+    expect(type.numberPrefix).toBe("REQ");
+    // Same formats as every other governed document: the Centre gets view,
+    // print, PDF and export for free precisely because nothing is bespoke.
+    expect(type.formats.length).toBeGreaterThan(0);
+    expect(type.capability).toBe("requisition.create");
+  });
+});

@@ -56,6 +56,13 @@ const SOURCES: SourceSpec[] = [
     select: "id, document_number, status, invoice_date, total, currency",
   },
   {
+    type: "requisition",
+    table: "restaurant_requisitions",
+    numberColumn: "reference",
+    dateColumn: "created_at",
+    select: "id, reference, status, created_at",
+  },
+  {
     type: "stock_transfer",
     table: "restaurant_stock_transfers",
     numberColumn: "transfer_number",

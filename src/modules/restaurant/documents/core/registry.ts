@@ -22,6 +22,7 @@ export const DOCUMENT_TYPE_IDS = [
   "variance_report",
   "supplier_statement",
   // Inventory
+  "requisition",
   "stock_transfer",
   "stocktake_sheet",
   "waste_report",
@@ -149,6 +150,19 @@ export const DOCUMENT_TYPES: Record<DocumentTypeId, DocumentTypeDefinition> = {
     sourceTable: "restaurant_suppliers",
     workflowRoute: "/admin/restaurant/suppliers",
     description: "Purchases and invoices per supplier over a period.",
+    immutable: false,
+  },
+  requisition: {
+    id: "requisition",
+    label: "Requisition Note",
+    group: "inventory",
+    kind: "document",
+    capability: "requisition.create",
+    numberPrefix: "REQ",
+    formats: DOC_FORMATS,
+    sourceTable: "restaurant_requisitions",
+    workflowRoute: "/admin/restaurant/requisitions",
+    description: "Department request, approval, issue and receipt of stock from a store.",
     immutable: false,
   },
   stock_transfer: {

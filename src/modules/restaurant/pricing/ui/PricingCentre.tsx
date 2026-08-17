@@ -31,6 +31,7 @@ import {
   listRestaurantPromotionsFn,
   listRestaurantServiceChargesFn,
   listRestaurantTaxRulesFn,
+  restaurantPricingReadinessFn,
   setRestaurantPromotionStatusFn,
   simulateRestaurantPricingFn,
   upsertRestaurantCurrencyFn,
@@ -45,6 +46,7 @@ import { PriceListsTab, RoundingTab } from "./CommercialRulesTabs";
 import { SALES_CHANNELS } from "../contracts";
 
 const TABS = [
+  { id: "readiness", label: "Readiness" },
   { id: "prices", label: "Prices" },
   { id: "priceLists", label: "Price lists" },
   { id: "promotions", label: "Promotions" },
@@ -114,6 +116,7 @@ export function PricingCentre() {
       </nav>
       {tenantId ? (
         <>
+          {tab === "readiness" && <ReadinessTab tenantId={tenantId} />}
           {tab === "prices" && <PricesTab tenantId={tenantId} />}
           {tab === "priceLists" && <PriceListsTab tenantId={tenantId} />}
           {tab === "promotions" && <PromotionsTab tenantId={tenantId} />}
@@ -129,6 +132,114 @@ export function PricingCentre() {
           <p className="text-sm text-muted-foreground">Resolving your restaurant workspace…</p>
         </SectionCard>
       )}
+    </div>
+  );
+}
+
+/* ---------------- Readiness ---------------- */
+
+/**
+ * Answers one operational question: could the till sell this, right now?
+ * It re-runs the real pricing engine per item and reports what it found —
+ * it never creates a price, so "not ready" stays visible until someone
+ * configures a price deliberately.
+ */
+function ReadinessTab({ tenantId }: { tenantId: string }) {
+  const readinessFn = useServerFn(restaurantPricingReadinessFn);
+  const [channel, setChannel] = useState<string>("dine_in");
+  const [onlyBlocked, setOnlyBlocked] = useState(true);
+
+  const q = useQuery({
+    queryKey: ["restaurant.pricing.readiness", tenantId, channel],
+    queryFn: () => readinessFn({ data: { tenantId, channel } }),
+  });
+  const report = q.data as any;
+  const rows: any[] = report?.rows ?? [];
+  const shown = onlyBlocked ? rows.filter((r) => !r.ready || r.divergent) : rows;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-4">
+        <StatCard label="Sellable items" value={num(report?.total ?? 0, 0)} />
+        <StatCard label="Priced by rules" value={num(report?.ready ?? 0, 0)} />
+        <StatCard label="Cannot be sold" value={num(report?.blocked ?? 0, 0)} />
+        <StatCard label="Menu card differs" value={num(report?.divergent ?? 0, 0)} />
+      </div>
+
+      <SectionCard
+        title="Commercial readiness"
+        description="Each available item on a published menu is quoted through the live pricing engine, exactly as the POS would. Nothing is created or corrected here."
+      >
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {SALES_CHANNELS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setChannel(c)}
+              className={`min-h-11 rounded border px-3 text-sm ${
+                channel === c ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+              }`}
+            >
+              {c.replace(/_/g, " ")}
+            </button>
+          ))}
+          <Button variant="outline" className="h-11" onClick={() => setOnlyBlocked((v) => !v)}>
+            {onlyBlocked ? "Show every item" : "Show only exceptions"}
+          </Button>
+        </div>
+
+        {q.isLoading ? (
+          <p className="text-sm text-muted-foreground">Quoting every sellable item…</p>
+        ) : rows.length === 0 ? (
+          <EmptyState
+            title="Nothing to audit"
+            description="No available items on a published menu were found for this tenant."
+          />
+        ) : shown.length === 0 ? (
+          <EmptyState
+            title="Every item is priced"
+            description={`All ${report.total} sellable items resolve to a configured price on the ${channel.replace(/_/g, " ")} channel.`}
+          />
+        ) : (
+          <ul className="divide-y">
+            {shown.map((r) => (
+              <Row key={`${r.menuItemId}-${r.channel}`}>
+                <span className="min-w-0">
+                  <span className="block font-medium">{r.name}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {r.menuName} · {r.locationName}
+                    {r.reason ? ` · ${r.reason}` : ""}
+                    {r.ready && r.divergent
+                      ? ` · menu card shows ${money(r.menuCardPrice, r.currency ?? "USD")}`
+                      : ""}
+                  </span>
+                </span>
+                <span className="flex items-center gap-2">
+                  {r.ready ? (
+                    <>
+                      <span className="text-sm tabular-nums">{money(r.unitPrice, r.currency ?? "USD")}</span>
+                      <StatusChip tone="neutral">{String(r.priceSource ?? "rule")}</StatusChip>
+                      {r.divergent ? <StatusChip tone="warning">Menu card differs</StatusChip> : null}
+                      <StatusChip tone="success">Sellable</StatusChip>
+                    </>
+                  ) : (
+                    <StatusChip tone="danger">No price configured</StatusChip>
+                  )}
+                </span>
+              </Row>
+            ))}
+          </ul>
+        )}
+
+        {report ? (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Rules in force: {report.rulesInForce.prices} prices · {report.rulesInForce.priceLists} price
+            lists · {report.rulesInForce.taxes} tax rules · {report.rulesInForce.serviceCharges} service
+            charges · {report.rulesInForce.promotions} promotions · {report.rulesInForce.roundingRules}{" "}
+            rounding rules.
+          </p>
+        ) : null}
+      </SectionCard>
     </div>
   );
 }

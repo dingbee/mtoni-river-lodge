@@ -328,3 +328,10 @@ export const pricingAuditSchema = tenantScope.extend({
 export const commercialEvidenceSchema = tenantScope.extend({
   lookbackDays: z.number().int().min(1).max(365).default(30),
 });
+
+/** Commercial readiness audit — read-only, mirrors the POS pricing contract. */
+export const pricingReadinessSchema = z.object({
+  tenantId: z.string().uuid(),
+  channel: z.string().min(1).optional(),
+  limit: z.number().int().positive().max(1000).optional(),
+});
