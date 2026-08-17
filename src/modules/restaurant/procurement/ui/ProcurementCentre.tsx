@@ -330,6 +330,15 @@ function RequestsTab({ tenantId }: { tenantId: string }) {
 
 /* ---------------- Receiving ---------------- */
 
+interface LineEdit {
+  received: string;
+  accepted: string;
+  rejected: string;
+  unitCost: string;
+  batchCode: string;
+  expiryDate: string;
+}
+
 function ReceivingTab({ tenantId }: { tenantId: string }) {
   const qc = useQueryClient();
   const listFn = useServerFn(listRestaurantGoodsReceiptsFn);
