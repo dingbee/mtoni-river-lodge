@@ -29,8 +29,8 @@ function lastBackup(dir: string): { at: string | null; status: SystemInformation
   }
 }
 
-export async function collectSystemInformation(sql: SQL, postgrestUrl: string): Promise<SystemInformation & { product: string }> {
-  const health = await collectHealth(sql, postgrestUrl);
+export async function collectSystemInformation(sql: SQL, postgrestUrl: string, ui?: { status: "ok" | "down"; detail: string }): Promise<SystemInformation & { product: string }> {
+  const health = await collectHealth(sql, postgrestUrl, ui);
   const down = health.components.some((c) => c.status === "down");
   const degraded = health.components.some((c) => c.status === "degraded");
 
