@@ -15,8 +15,14 @@ fail() { echo "FATAL: $*" >&2; exit 1; }
 [[ -f "$BUNDLE/.nova-local-build" ]] || fail "bundle at $BUNDLE was not built for the appliance (missing .nova-local-build) — run: bash local/scripts/build-ui.sh"
 
 # Any hosted backend origin baked into the shipped assets is disqualifying.
-if grep -rlE 'https://[a-z0-9-]+\.supabase\.(co|in)' "$BUNDLE/client" "$BUNDLE/server" >/dev/null 2>&1; then
-  grep -rlE 'https://[a-z0-9-]+\.supabase\.(co|in)' "$BUNDLE/client" "$BUNDLE/server" | head -5 >&2
+# Vendored SDKs ship documentation placeholders (xyzcompany/project-id/example)
+# in their JSDoc; those are not real origins and are excluded explicitly.
+PLACEHOLDERS='^https://(xyzcompany|project-id|example|your-project|<[^>]+>)\.supabase\.(co|in)'
+HITS="$(grep -rhoE 'https://[a-z0-9-]+\.supabase\.(co|in)' "$BUNDLE/client" "$BUNDLE/server" 2>/dev/null \
+  | sort -u | grep -vE "$PLACEHOLDERS" || true)"
+if [[ -n "$HITS" ]]; then
+  echo "$HITS" | head -5 >&2
+  grep -rlE "$(echo "$HITS" | head -1)" "$BUNDLE/client" "$BUNDLE/server" 2>/dev/null | head -5 >&2
   fail "hosted backend origin found in the bundle — rebuild with build-ui.sh"
 fi
 
