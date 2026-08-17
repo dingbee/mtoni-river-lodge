@@ -288,6 +288,22 @@ export function PosWorkspace({ lens = "restaurant" }: { lens?: PosLens } = {}) {
     onSuccess: refresh,
   });
 
+  // Cancelling a whole bill is a governed correction, not a delete: the server
+  // decides whether it is allowed and unwinds any stock the sale consumed.
+  const cancelBill = useAdminMutation({
+    mutationFn: (vars: { orderId: string; reason: string }) =>
+      cancelFn({ data: { tenantId: tenantId!, orderId: vars.orderId, reason: vars.reason } }),
+    onSuccessToast: (d: any) =>
+      d?.reversal?.reversed
+        ? `Bill cancelled — ${d.reversal.reversed} stock movement(s) reversed`
+        : "Bill cancelled",
+    onSuccess: () => {
+      setOrderId(undefined);
+      setCart([]);
+      refresh();
+    },
+  });
+
   const showReceipt = useAdminMutation({
     mutationFn: (vars: { orderId: string; reprint: boolean }) =>
       receiptFn({ data: { tenantId: tenantId!, orderId: vars.orderId, reprint: vars.reprint } }),
