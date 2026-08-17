@@ -13,7 +13,6 @@ import {
   listRespadMigrationFiles,
   recordRespadFileIntake,
 } from "@/domains/migration/respad/respad.functions";
-import { extractFile } from "@/domains/migration/respad/intake/extract.client";
 import { buildMappingPlan, RESPAD_FIELDS, rowsToRecords } from "@/domains/migration/respad/intake/fieldMap";
 import {
   INTAKE_STATUS_LABEL,
@@ -52,6 +51,9 @@ export function RespadFileIntake({
   async function onPick(list: FileList) {
     setBusy(true);
     const next: ExtractedFile[] = [];
+    // Loaded lazily: extraction is browser-only (FileReader/WASM parsers) and must
+    // never enter the server bundle graph.
+    const { extractFile } = await import("@/domains/migration/respad/intake/extract.browser");
     for (const file of Array.from(list)) {
       const extracted = await extractFile(file);
       const already = ((history.data as Record<string, unknown>[]) ?? []).find(
