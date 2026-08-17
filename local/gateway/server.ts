@@ -12,10 +12,11 @@
  * the frozen application code runs unchanged against either runtime.
  */
 import { SQL } from "bun";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { AuthError, refreshSession, signInWithPassword, signOut, type AuthDeps } from "./auth";
 import { bootstrapProperty } from "./bootstrap";
 import { collectHealth } from "./health";
+import { resolveTlsConfig, terminalOrigin } from "../../src/modules/runtime/local/tls";
 import { collectSystemInformation } from "./system";
 
 const env = (key: string, fallback?: string): string => {
@@ -27,6 +28,17 @@ const env = (key: string, fallback?: string): string => {
 const PORT = Number(env("NOVA_GATEWAY_PORT", "8000"));
 const HOST = env("NOVA_GATEWAY_HOST", "0.0.0.0");
 const POSTGREST = `http://${env("NOVA_POSTGREST_HOST", "127.0.0.1")}:${env("NOVA_POSTGREST_PORT", "3001")}`;
+
+// ---- TLS ---------------------------------------------------------------
+// Android Chrome only treats HTTPS as a secure origin, so the LAN listener is
+// TLS whenever certificate material exists. PostgreSQL and PostgREST stay on
+// loopback either way; the gateway remains the only LAN surface.
+const TLS_CERT_FILE = process.env["NOVA_TLS_CERT_FILE"] ?? "";
+const TLS_KEY_FILE = process.env["NOVA_TLS_KEY_FILE"] ?? "";
+const tls = resolveTlsConfig(process.env as Record<string, string | undefined>, {
+  certPresent: TLS_CERT_FILE !== "" && existsSync(TLS_CERT_FILE),
+  keyPresent: TLS_KEY_FILE !== "" && existsSync(TLS_KEY_FILE),
+});
 
 const sql = new SQL({
   hostname: env("NOVA_DB_HOST", "127.0.0.1"),
