@@ -199,6 +199,11 @@ export const createReceiptSchema = z.object({
   notes: z.string().max(2000).optional(),
   /** Post immediately: accepted quantities enter the stock ledger. */
   post: z.boolean().default(true),
+  /**
+   * Receiving more than was ordered is an authorised exception, never a
+   * silent increase of the order. Required when any line over-delivers.
+   */
+  overReceiptReason: z.string().min(10).max(500).optional(),
   lines: z.array(receiptLineSchema).min(1),
 });
 export type CreateReceiptInput = z.infer<typeof createReceiptSchema>;
