@@ -410,3 +410,70 @@ export async function postGoodsReceipt(sb: Sb, userId: string, tenantId: string,
     orderStatus,
   };
 }
+
+/**
+ * Writes (or completes) the stock batch a receipt line created.
+ *
+ * Idempotent by receipt line: reposting or retrying a receipt never duplicates
+ * a lot. Batches are recorded when the item is lot-tracked, or whenever the
+ * receiver actually captured a lot code or an expiry date — a captured expiry
+ * that is thrown away is worse than none at all.
+ */
+async function persistReceiptBatch(
+  sb: Sb,
+  userId: string,
+  args: { tenantId: string; receipt: any; line: any; accepted: number; unitCost: number },
+): Promise<void> {
+  const { tenantId, receipt, line, accepted, unitCost } = args;
+
+  const { data: item } = await sb
+    .from("restaurant_inventory_items")
+    .select("id, track_batches")
+    .eq("tenant_id", tenantId)
+    .eq("id", line.inventory_item_id)
+    .maybeSingle();
+
+  const captured = Boolean(line.batch_code) || Boolean(line.expiry_date);
+  if (!captured && !item?.track_batches) return;
+
+  const { data: existing } = await sb
+    .from("restaurant_inventory_batches")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("reference_type", "restaurant_goods_receipt_item")
+    .eq("reference_id", line.id)
+    .maybeSingle();
+  if (existing) return;
+
+  const batchNumber =
+    (line.batch_code as string | null) ?? `${receipt.document_number ?? "GRN"}-${String(line.id).slice(0, 8)}`;
+
+  const { data: batch, error } = await sb
+    .from("restaurant_inventory_batches")
+    .insert({
+      tenant_id: tenantId,
+      property_id: receipt.property_id ?? null,
+      location_id: line.storage_location_id ?? receipt.location_id ?? null,
+      inventory_item_id: line.inventory_item_id,
+      supplier_id: receipt.supplier_id ?? null,
+      batch_number: batchNumber,
+      received_date: (receipt.received_at ?? new Date().toISOString()).slice(0, 10),
+      expiry_date: line.expiry_date ?? null,
+      quantity: accepted,
+      unit_id: line.unit_id ?? null,
+      unit_cost: unitCost,
+      status: "active",
+      reference_type: "restaurant_goods_receipt_item",
+      reference_id: line.id,
+      created_by: userId,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+
+  await sb
+    .from("restaurant_goods_receipt_items")
+    .update({ batch_id: batch.id })
+    .eq("tenant_id", tenantId)
+    .eq("id", line.id);
+}
