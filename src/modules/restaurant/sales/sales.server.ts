@@ -254,6 +254,13 @@ export async function insertLines(
       : l.menuItemId
         ? (costs.get(l.menuItemId) ?? 0)
         : 0;
+    // Pricing authority: anything that exists in the catalogue is priced by the
+    // server from the rules in force. The till may propose a price, but a
+    // proposal is never authoritative — if no rule resolves, the line is
+    // refused rather than sold at whatever the client sent. Only a genuine
+    // open item (no menu item, no product) may carry an operator-entered price.
+    const catalogued = Boolean(l.menuItemId ?? pinned?.productId);
+    const proposedUnitPrice = Number(l.unitPrice ?? 0);
     const quote = quoteWithRuleSet(
       ruleSet,
       {
@@ -268,10 +275,11 @@ export async function insertLines(
         quantity: l.quantity,
       },
       {
-        unitPrice: l.unitPrice,
+        unitPrice: catalogued ? undefined : proposedUnitPrice,
         currency: ctx.currency,
         lineDiscount: l.discount,
         modifiers: l.modifiers ?? [],
+        strict: catalogued,
       },
     );
     const chosen = l.modifiers ?? [];
@@ -315,7 +323,16 @@ export async function insertLines(
       tax_inclusive: quote.taxInclusive,
       service_charge_id: quote.serviceChargeId,
       service_charge_amount: quote.serviceCharge,
-      pricing_trace: { steps: quote.trace, resolved_at: at.toISOString() },
+      pricing_trace: {
+        steps: quote.trace,
+        resolved_at: at.toISOString(),
+        authority: catalogued ? "server" : "open_item",
+        // Kept for audit: what the till asked for, when that differs from what
+        // the rules decided. Divergence is a signal worth investigating.
+        proposed_unit_price: proposedUnitPrice || null,
+        proposal_overridden:
+          catalogued && proposedUnitPrice > 0 && Math.abs(proposedUnitPrice - quote.unitPrice) > 0.009,
+      },
       unit_cost: unitCost,
       line_cost: Number((unitCost * l.quantity).toFixed(4)),
       theoretical_cost: Number((unitCost * l.quantity).toFixed(4)),
