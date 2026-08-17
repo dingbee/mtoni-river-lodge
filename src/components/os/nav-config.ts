@@ -34,6 +34,7 @@ import { UserCheck } from "lucide-react";
 import { Wine } from "lucide-react";
 import { ListChecks, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 import { UtensilsCrossed, BookOpen, Boxes, Truck, ShoppingCart, Calculator, Settings2 } from "lucide-react";
+import { CookingPot, ClipboardList, Wrench } from "lucide-react";
 import type { ComponentType } from "react";
 
 export type NavItem = {
@@ -97,6 +98,7 @@ export const NAV: NavEntry[] = [
       icon: UtensilsCrossed,
       items: [
         { id: "restaurant.overview", label: "Overview", href: "/admin/restaurant", icon: UtensilsCrossed },
+        { id: "restaurant.pos", label: "POS", href: "/admin/restaurant/pos", icon: CreditCard },
         { id: "restaurant.orders", label: "Orders", href: "/admin/restaurant/orders", icon: Receipt },
         { id: "restaurant.kitchen", label: "Kitchen", href: "/admin/restaurant/kitchen", icon: ChefHat },
         { id: "restaurant.bar", label: "Bar", href: "/admin/restaurant/bar", icon: Wine },
@@ -106,14 +108,19 @@ export const NAV: NavEntry[] = [
         { id: "restaurant.inventory", label: "Inventory", href: "/admin/restaurant/inventory", icon: Boxes },
         { id: "restaurant.inventoryControl", label: "Inventory Centre", href: "/admin/restaurant/inventory-control", icon: Boxes },
         { id: "restaurant.stock", label: "Stock Movements", href: "/admin/restaurant/stock", icon: Boxes },
+        { id: "restaurant.requisitions", label: "Requisitions", href: "/admin/restaurant/requisitions", icon: ClipboardList },
+        { id: "restaurant.products", label: "Products & Recipes", href: "/admin/restaurant/products", icon: CookingPot },
+        { id: "restaurant.procurement", label: "Procurement Centre", href: "/admin/restaurant/procurement", icon: ClipboardCheck },
         { id: "restaurant.suppliers", label: "Suppliers", href: "/admin/restaurant/suppliers", icon: Truck },
         { id: "restaurant.purchasing", label: "Purchasing", href: "/admin/restaurant/purchasing", icon: ShoppingCart },
         { id: "restaurant.costing", label: "Recipe Costing", href: "/admin/restaurant/costing", icon: Calculator },
         { id: "restaurant.profitability", label: "Menu Profitability", href: "/admin/restaurant/profitability", icon: PiggyBank },
+        { id: "restaurant.reconciliation", label: "Reconciliation", href: "/admin/restaurant/reconciliation", icon: Scale },
         { id: "restaurant.intelligence", label: "Intelligence", href: "/admin/restaurant/intelligence", icon: Brain },
         { id: "restaurant.decisions", label: "Decisions", href: "/admin/restaurant/decisions", icon: Scale },
         { id: "restaurant.documents", label: "Document Centre", href: "/admin/restaurant/documents", icon: FileText },
         { id: "restaurant.receipts", label: "Receipt Centre", href: "/admin/restaurant/receipts", icon: Receipt },
+        { id: "restaurant.setup", label: "Restaurant Setup", href: "/admin/restaurant/setup", icon: Wrench },
         { id: "restaurant.settings", label: "Tenant Settings", href: "/admin/restaurant/settings", icon: Settings2 },
       ],
     },
