@@ -339,3 +339,140 @@ Root cause: the web application builds for the hosted Workers runtime (`preset: 
 **Not yet.** The server side is genuinely ready: a clean install on a fresh machine, a real tenant provisioned, restaurant and bar trading end to end, procurement now governed at the data layer, encrypted LAN access, safe re-installation, and a proven backup/restore drill. What is missing is the terminal itself — the appliance does not yet serve the application to a tablet, so staff have nothing to open. Until the appliance ships and serves its own application bundle (and one physical Android tablet is certified against it), NOVA Hospitality can be sold as a local back-office and data appliance, not as a tablet POS product.
 
 **STATUS: 🟡 PRODUCTIZATION-4 — SERVER APPLIANCE CERTIFIED, TABLET TERMINAL NOT CERTIFIED**
+
+---
+
+# PRODUCTIZATION-4D — FINAL UI SERVING + TABLET CERTIFICATION
+
+## A. Root cause
+
+`dist/client` contains **no `index.html`** and no application shell: the build
+is an SSR artefact (`vite build` → Nitro `cloudflare-module` preset) whose HTML
+is produced at request time by `dist/server/index.mjs`. The gateway only routed
+`/auth/v1/*`, `/rest/v1/*`, `/nova/v1/*`, `/health`, `/ready` and returned
+`{"error":"Not found"}` for everything else. Therefore `/admin/restaurant`,
+`/admin/restaurant/pos`, `/admin/restaurant/bar`, `/admin/restaurant/bar/pos`
+and `/admin/system/nova` had no server able to answer them on the appliance.
+Nothing was broken in the client bundle — no one was serving it.
+
+## B. Architecture decision
+
+The Nitro `cloudflare-module` output is a **standards-based fetch handler**.
+Verified: Bun can import `dist/server/index.mjs` and call
+`default.fetch(request, env, ctx)` directly. The appliance therefore hosts the
+*same artefact the hosted runtime deploys*, in-process inside the gateway.
+No second runtime, no workerd, no forked application source, no route-specific
+server implementations. The React router stays authoritative.
+
+```
+Android/HTTPS → NOVA Gateway ─┬─ /auth /rest /nova /health → APIs
+                              └─ everything else → LocalAppHost
+                                    ├─ dist/client/**        (static)
+                                    └─ dist/server/index.mjs (SSR handler)
+```
+
+## C. Local UI serving implementation
+
+`local/gateway/app.ts` (`LocalAppHost`):
+- static assets from `dist/client` (hashed `/assets/*` immutable, `sw.js` and
+  manifests `no-cache, must-revalidate`, `sw.js`/`workbox-*.js` also resolved
+  from the bundle root where Vite emits them);
+- path traversal contained inside the client directory;
+- lazy, failure-captured load of the SSR handler — a load failure never takes
+  the APIs down, it degrades health;
+- `/` redirects to `NOVA_APP_ENTRY` (default `/admin`) so a terminal opening the
+  appliance origin gets the OS, not the public marketing site;
+- missing/truncated/corrupt bundle ⇒ neutral 503 page, no stack traces.
+
+Verified on the appliance gateway (HTTP smoke run, DB intentionally down):
+`/admin/restaurant/pos`, `/admin/restaurant/bar/pos`, `/admin/restaurant/procurement`,
+`/admin/restaurant/inventory`, `/admin/restaurant/reconciliation`,
+`/admin/restaurant/receipts`, `/admin/system/nova`, `/auth`, `/sw.js`,
+`/nova-terminal.webmanifest` → **200**; `/rest/v1/*` and `/auth/v1/*` unknown → 404
+(API precedence preserved); missing bundle → **503**, `/ready` → **503**.
+
+## D. Hosted/local build strategy
+
+One source, one build pipeline, two configurations:
+- `bun run build:hosted` — unchanged hosted deployment.
+- `bun run build:local` (`local/scripts/build-ui.sh`) — same command with
+  `VITE_NOVA_RUNTIME_MODE=local` and the API origin set to the sentinel
+  `https://nova-appliance.invalid`.
+- `local/scripts/stamp-ui.sh` rewrites the sentinel to the real LAN origin at
+  install/start time and records it in `dist/.nova-origin`.
+
+Verified: after `build:local` + stamp, **zero** occurrences of the hosted
+backend URL remain in the bundle and zero sentinels remain; all app/API traffic
+is same-origin with the gateway.
+
+## E. Gateway integration
+
+`application-ui` is now a first-class health component. `/health` reports it,
+`/ready` returns 503 when it is down, `novactl status` prints
+`application READY | UNAVAILABLE | UNKNOWN`, `start.sh` binds the bundle origin
+before the gateway accepts terminals and reports honest readiness afterwards.
+The UI starts and stops with the appliance because it lives in the gateway
+process. `/nova/v1/system` now carries `uiStatus` and `uiVersion`.
+
+## F. Installer changes
+
+`install.sh` builds the UI bundle if absent, **aborts** if it is still missing,
+and only then starts services and asserts readiness. Existing-installation
+detection and data protection are untouched.
+
+## G. TLS
+
+Unchanged from 4C: HTTPS on the LAN with the per-installation local CA, HTTP
+308 → HTTPS, database and data service on loopback only.
+
+## H. Android device — NOT PERFORMED
+
+No physical Android tablet is reachable from this environment. Manufacturer,
+model, Android/Chrome versions, orientation behaviour and touch ergonomics are
+therefore **unverified**. Not claimed.
+
+## I. PWA
+
+Manifest, scope (`/admin`), `start_url` (`/admin/restaurant/pos`), icons and the
+guarded registrar are served correctly from the local HTTPS origin, and control
+files revalidate so a new appliance version cannot be masked by a stale worker.
+Installation on a physical device is **not** certified.
+
+## J/K. Restaurant and Bar transactions on a tablet — NOT PERFORMED
+
+The order → send → bill → payment → receipt → close lifecycle remains verified
+via the API on the appliance (4C evidence); it is **not** verified through a
+physical tablet UI.
+
+## L. Network interruption — NOT PERFORMED on device.
+
+## M. Printing
+
+Browser print only: **SUPPORTED WITH DEVICE/OS CONFIGURATION**. No direct
+printer integration is claimed.
+
+## N. Security
+
+No secrets in health, system info or diagnostics; traversal blocked; bundle
+failures return a neutral page; API paths keep precedence over UI paths.
+
+## O. Regression
+
+`bunx vitest run` → **173 passed / 14 files**; `tsgo -p tsconfig.json` → clean;
+`bun run build` (local target) → success.
+
+## P. Known limitations
+
+1. Physical Android and PWA install certification outstanding.
+2. The bundle still contains the public marketing routes of the shared source
+   tree (root redirects away from them); a marketing-free local route target is
+   a follow-up.
+3. Web-font stylesheets are fetched from Google Fonts when the WAN is available;
+   offline the UI falls back to system fonts. Self-hosting fonts is a follow-up.
+
+## Q. Final verdict
+
+🟡 **PRODUCTIZATION-4 IMPLEMENTED — PHYSICAL ANDROID CERTIFICATION PENDING**
+
+The appliance now serves the real NOVA Hospitality UI over HTTPS on the LAN with
+honest readiness. Commercial tablet certification requires a physical device.
