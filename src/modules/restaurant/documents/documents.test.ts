@@ -130,7 +130,7 @@ describe("printed html", () => {
 });
 describe("requisition document registration", () => {
   it("is a first-class registered document, not a bespoke print", () => {
-    const type = DOCUMENT_TYPES["requisition"];
+    const type = documentType("requisition");
     expect(type).toBeDefined();
     expect(type.group).toBe("inventory");
     expect(type.numberPrefix).toBe("REQ");
