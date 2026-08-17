@@ -25,7 +25,12 @@ wait_for() { # wait_for <label> <command...>
 wait_for "PostgreSQL" pg_isready -h "$NOVA_DB_HOST" -p "$NOVA_DB_PORT"
 
 # 2. Signing key + PostgREST ---------------------------------------------------
-[[ -f "$NOVA_JWT_PRIVATE_KEY_FILE" ]] || "$NOVA_LOCAL_DIR/scripts/gen-keys.sh"
+[[ -f "$NOVA_JWT_PRIVATE_KEY_FILE" ]] || bash "$NOVA_LOCAL_DIR/scripts/gen-keys.sh"
+
+# The signing key and the environment file are the only local secrets on the
+# appliance; a terminal user account must never be able to read them.
+chmod 600 "$NOVA_JWT_PRIVATE_KEY_FILE"
+[[ -f "${NOVA_ENV_FILE:-$NOVA_LOCAL_DIR/.env}" ]] && chmod 600 "${NOVA_ENV_FILE:-$NOVA_LOCAL_DIR/.env}"
 
 export NOVA_DB_HOST NOVA_DB_PORT NOVA_DB_NAME NOVA_DB_AUTHENTICATOR NOVA_DB_AUTHENTICATOR_PASSWORD
 export NOVA_POSTGREST_HOST NOVA_POSTGREST_PORT NOVA_POSTGREST_SCHEMAS
