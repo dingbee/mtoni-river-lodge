@@ -45,6 +45,35 @@ ENVFILE
 
 nova_log "Building NOVA Hospitality UI for the local appliance"
 ( cd "$NOVA_ROOT" && bun run build )
+
+# The Vite/Nitro build emits `.output/{public,server}`, but the appliance
+# runtime contract (gateway + verify-bundle.sh + tests) is `dist/client` and
+# `dist/server/index.mjs`. Package the generated output into that contract
+# rather than changing the consumer contract.
+OUT="$NOVA_ROOT/.output"
+if [[ -d "$OUT/public" && -f "$OUT/server/index.mjs" ]]; then
+  nova_log "Packaging Nitro output into the appliance bundle contract (dist/)"
+  rm -rf "$NOVA_ROOT/dist/client" "$NOVA_ROOT/dist/server"
+  mkdir -p "$NOVA_ROOT/dist/client" "$NOVA_ROOT/dist/server"
+  cp -R "$OUT/public/." "$NOVA_ROOT/dist/client/"
+  cp -R "$OUT/server/." "$NOVA_ROOT/dist/server/"
+elif [[ -d "$NOVA_ROOT/dist/client" && -f "$NOVA_ROOT/dist/server/index.mjs" ]]; then
+  nova_log "Build already emitted the appliance bundle layout in dist/"
+else
+  echo "FATAL: application build completed but expected Nitro output was not found" >&2
+  echo "       looked for: $OUT/public and $OUT/server/index.mjs" >&2
+  echo "       (and no pre-existing $NOVA_ROOT/dist/client + dist/server/index.mjs)" >&2
+  exit 1
+fi
+
+[[ -f "$NOVA_ROOT/dist/server/index.mjs" ]] || {
+  echo "FATAL: dist/server/index.mjs missing after packaging — refusing to write a partial bundle" >&2
+  exit 1
+}
+# Never ship environment files or key material inside the served bundle.
+find "$NOVA_ROOT/dist/client" "$NOVA_ROOT/dist/server" \
+  \( -name '.env' -o -name '.env.*' -o -name '*.pem' -o -name '*.key' \) -type f -delete 2>/dev/null || true
+
 printf '{"built_at":"%s","origin_sentinel":"%s","runtime_mode":"local"}\n' \
   "$(date -u +%FT%TZ)" "$SENTINEL" > "$NOVA_ROOT/dist/.nova-local-build"
 nova_log "UI bundle written to $NOVA_ROOT/dist (local build marker written)"
