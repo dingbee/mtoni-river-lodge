@@ -5,14 +5,35 @@ set -euo pipefail
 NOVA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 NOVA_LOCAL_DIR="$NOVA_ROOT/local"
 
+# Authoritative environment resolution.
+# Order: explicit NOVA_ENV_FILE -> standalone/.env (standalone package) ->
+#        local/.env (host appliance install). Exactly one file wins and is
+#        exported so every child script inherits the same environment.
+nova_resolve_env_file() {
+  if [[ -n "${NOVA_ENV_FILE:-}" && -f "$NOVA_ENV_FILE" ]]; then
+    echo "$NOVA_ENV_FILE"; return 0
+  fi
+  if [[ -f "$NOVA_ROOT/standalone/.env" ]]; then
+    echo "$NOVA_ROOT/standalone/.env"; return 0
+  fi
+  echo "${NOVA_ENV_FILE:-$NOVA_LOCAL_DIR/.env}"
+}
+
 nova_load_env() {
-  local env_file="${NOVA_ENV_FILE:-$NOVA_LOCAL_DIR/.env}"
+  local env_file
+  env_file="$(nova_resolve_env_file)"
+  export NOVA_ENV_FILE="$env_file"
   if [[ -f "$env_file" ]]; then
     set -a
     # shellcheck disable=SC1090
     source "$env_file"
     set +a
   fi
+  # Relative migration/seed paths in the env file resolve against the repo root.
+  case "${NOVA_MIGRATIONS_DIR:-}" in ./*) NOVA_MIGRATIONS_DIR="$NOVA_ROOT/${NOVA_MIGRATIONS_DIR#./}";; esac
+  case "${NOVA_SEED_DIR:-}" in ./*) NOVA_SEED_DIR="$NOVA_ROOT/${NOVA_SEED_DIR#./}";; esac
+  [[ -n "${NOVA_MIGRATIONS_DIR:-}" ]] && export NOVA_MIGRATIONS_DIR
+  [[ -n "${NOVA_SEED_DIR:-}" ]] && export NOVA_SEED_DIR
   : "${NOVA_DB_HOST:=127.0.0.1}"
   : "${NOVA_DB_PORT:=5432}"
   : "${NOVA_DB_NAME:=nova_local}"
