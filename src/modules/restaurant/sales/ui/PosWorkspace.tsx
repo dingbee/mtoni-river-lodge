@@ -95,6 +95,7 @@ export function PosWorkspace({ lens = "restaurant" }: { lens?: PosLens } = {}) {
   const transferFn = useServerFn(transferPosOrderFn);
   const payFn = useServerFn(takePosPaymentFn);
   const reopenFn = useServerFn(reopenPosOrderFn);
+  const cancelFn = useServerFn(cancelPosOrderFn);
   const receiptFn = useServerFn(posReceiptFn);
   const fireFn = useServerFn(fireRestaurantOrderFn);
   const billFn = useServerFn(getRestaurantBillFn);
@@ -298,7 +299,7 @@ export function PosWorkspace({ lens = "restaurant" }: { lens?: PosLens } = {}) {
         ? `Bill cancelled — ${d.reversal.reversed} stock movement(s) reversed`
         : "Bill cancelled",
     onSuccess: () => {
-      setOrderId(undefined);
+      setOrderId(null);
       setCart([]);
       refresh();
     },
