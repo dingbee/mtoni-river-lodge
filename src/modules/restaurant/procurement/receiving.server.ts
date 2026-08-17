@@ -13,6 +13,10 @@ import type { z } from "zod";
 import { assertCapability, assertTenantRead } from "../core/access.server";
 import { emitRestaurantEvent } from "../events/emit.server";
 import { insertMovement } from "../inventory/movements.server";
+import {
+  assertPurchaseOrderReceivable,
+  resolveFulfilmentTransition,
+} from "../purchasing/state-machine";
 import { nextDocumentNumber, recordProcurementAudit } from "./audit.server";
 import { recordPriceObservation } from "./pricing.server";
 import { raiseVariance } from "./variances.server";
@@ -79,9 +83,8 @@ export async function createGoodsReceipt(sb: Sb, userId: string, input: CreateRe
       .eq("id", input.purchaseOrderId)
       .single();
     if (!data) throw new Error("Purchase order not found.");
-    if (["draft", "cancelled"].includes(data.status)) {
-      throw new Error("Goods cannot be received against a draft or cancelled order.");
-    }
+    // The state machine decides whether this order may receive at all.
+    assertPurchaseOrderReceivable(data.status);
     po = data;
   }
 
@@ -259,6 +262,22 @@ export async function postGoodsReceipt(sb: Sb, userId: string, tenantId: string,
     return { id: receipt.id, documentNumber: receipt.document_number, status: "posted" as const, posted: true };
   }
 
+  // The order's right to receive is re-checked at posting time, before any
+  // stock moves: a receipt drafted while the order was open must not resurrect
+  // an order that has since been cancelled or completed.
+  let orderStatusBefore: string | null = null;
+  if (receipt.purchase_order_id) {
+    const { data: order } = await sb
+      .from("restaurant_purchase_orders")
+      .select("id, status")
+      .eq("tenant_id", tenantId)
+      .eq("id", receipt.purchase_order_id)
+      .single();
+    if (!order) throw new Error("Purchase order not found.");
+    assertPurchaseOrderReceivable(order.status);
+    orderStatusBefore = order.status;
+  }
+
   const { data: lines } = await sb
     .from("restaurant_goods_receipt_items")
     .select(
@@ -421,7 +440,10 @@ export async function postGoodsReceipt(sb: Sb, userId: string, tenantId: string,
     .eq("tenant_id", tenantId)
     .eq("id", receipt.id);
 
-  // Order fulfilment state: partially vs fully received, judged on the order lines.
+  // Order fulfilment state: receiving establishes the business fact (how much
+  // arrived); the purchase-order state machine decides whether — and to what —
+  // the lifecycle state may move. Re-read the status so a concurrent
+  // cancellation is still respected.
   let orderStatus: string | null = null;
   if (receipt.purchase_order_id) {
     const { data: poItems } = await sb
@@ -433,12 +455,29 @@ export async function postGoodsReceipt(sb: Sb, userId: string, tenantId: string,
     const complete =
       items.length > 0 &&
       items.every((i) => Number(i.received_quantity ?? 0) >= Number(i.quantity ?? 0) - 0.0001);
-    orderStatus = complete ? "received" : "partially_received";
-    await sb
+
+    const { data: current } = await sb
       .from("restaurant_purchase_orders")
-      .update({ status: orderStatus, received_at: complete ? new Date().toISOString() : null })
+      .select("status")
       .eq("tenant_id", tenantId)
-      .eq("id", receipt.purchase_order_id);
+      .eq("id", receipt.purchase_order_id)
+      .single();
+    const from = (current?.status ?? orderStatusBefore) as any;
+    const target = complete ? "received" : "partially_received";
+
+    // Throws for a cancelled or already-received order; returns null when the
+    // order is already in the target state (a further partial delivery).
+    const next = resolveFulfilmentTransition(from, target);
+    orderStatus = next ?? from;
+    if (next) {
+      await sb
+        .from("restaurant_purchase_orders")
+        .update({ status: next, received_at: next === "received" ? new Date().toISOString() : null })
+        .eq("tenant_id", tenantId)
+        .eq("id", receipt.purchase_order_id)
+        // Optimistic guard: only move the order we actually evaluated.
+        .eq("status", from);
+    }
   }
 
   await recordProcurementAudit(sb, userId, {
