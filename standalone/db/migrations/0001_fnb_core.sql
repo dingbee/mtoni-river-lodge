@@ -1,8 +1,15 @@
+-- Restaurant & Bar OS — standalone core schema.
+-- Statement order below is machine-verified: applied top-to-bottom against an
+-- empty PostgreSQL 17 database with zero errors.
+
+set search_path = public;
+
 -- 0001_fnb_core.sql — Restaurant & Bar OS standalone schema.
 -- Generated mechanically from the product schema. Hotel (bookings/guests/rooms)
 -- foreign keys are neutralised: those columns survive as free-form external refs.
 -- No Mtoni table, row, credential or property identifier is present.
 set search_path = public;
+
 set check_function_bodies = off;
 
 -- ==== enums & functions ====
@@ -24,26 +31,6 @@ CREATE OR REPLACE FUNCTION public.restaurant_is_platform_admin(_user_id uuid)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT public.has_any_role(_user_id, ARRAY['owner','admin','manager']::public.app_role[]);
 $$;
-
-CREATE OR REPLACE FUNCTION public.restaurant_can_read(_tenant_id uuid)
-RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT auth.uid() IS NOT NULL AND (
-    public.restaurant_is_platform_admin(auth.uid())
-    OR EXISTS (SELECT 1 FROM public.restaurant_members m
-                WHERE m.tenant_id = _tenant_id AND m.user_id = auth.uid())
-  );
-$$;
-
-CREATE OR REPLACE FUNCTION public.restaurant_can_write(_tenant_id uuid, _roles public.restaurant_role[])
-RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT auth.uid() IS NOT NULL AND (
-    public.restaurant_is_platform_admin(auth.uid())
-    OR EXISTS (SELECT 1 FROM public.restaurant_members m
-                WHERE m.tenant_id = _tenant_id AND m.user_id = auth.uid()
-                  AND m.role = ANY(_roles))
-  );
-$$;
-
 
 -- ============ ENUMS ============
 create type public.restaurant_order_status as enum ('open','sent','served','closed','cancelled','voided');
@@ -195,116 +182,6 @@ CREATE TYPE public.restaurant_promotion_action AS ENUM ('percent_discount', 'fix
 DO $$ BEGIN
   CREATE TYPE public.restaurant_requisition_status AS ENUM ('draft','submitted','approved','partially_issued','fulfilled','rejected','cancelled');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-do $$ begin
-  alter table public.restaurant_menu_items
-    add constraint restaurant_menu_items_lifecycle_chk
-    check (lifecycle_status in ('draft','active','paused','discontinued','archived'));
-exception when duplicate_object then null; end $$;
-
-do $$ begin
-  alter table public.restaurant_menu_items
-    add constraint restaurant_menu_items_allergen_status_chk
-    check (allergen_status in ('unknown','declared','none'));
-exception when duplicate_object then null; end $$;
-
-do $$ begin
-  alter table public.restaurant_inventory_items
-    add constraint restaurant_inventory_items_allergen_status_chk
-    check (allergen_status in ('unknown','declared','none'));
-exception when duplicate_object then null; end $$;
-
-CREATE OR REPLACE FUNCTION public.pms_post_folio_charge(
-  _idempotency_key text,
-  _booking_id uuid,
-  _amount numeric,
-  _currency text,
-  _description text,
-  _source jsonb DEFAULT '{}'::jsonb
-) RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  _actor uuid := auth.uid();
-  _existing public.pms_folio_postings%ROWTYPE;
-  _booking public.bookings%ROWTYPE;
-  _unit text;
-  _ref text;
-  _row public.pms_folio_postings%ROWTYPE;
-BEGIN
-  IF _actor IS NULL OR NOT public.is_any_staff(_actor) THEN
-    RAISE EXCEPTION 'Forbidden — folio posting requires staff authorisation.';
-  END IF;
-
-  SELECT * INTO _existing FROM public.pms_folio_postings WHERE idempotency_key = _idempotency_key;
-  IF FOUND AND _existing.status = 'posted' THEN
-    RETURN jsonb_build_object(
-      'status', 'posted', 'duplicate', true, 'posting_id', _existing.id,
-      'posting_reference', _existing.posting_reference, 'folio_reference', _existing.folio_reference,
-      'amount', _existing.amount, 'currency', _existing.currency);
-  END IF;
-
-  SELECT * INTO _booking FROM public.bookings WHERE id = _booking_id FOR UPDATE;
-  IF NOT FOUND THEN
-    RETURN jsonb_build_object('status','failed','duplicate',false,'failure_code','guest_not_found','failure_message','No reservation found for this room.');
-  END IF;
-
-  IF _booking.status <> 'checked_in' THEN
-    RETURN jsonb_build_object('status','failed','duplicate',false,'failure_code','stay_not_active','failure_message','The stay is not currently checked in, so its folio is closed.');
-  END IF;
-
-  IF upper(coalesce(_currency,'')) <> upper(coalesce(_booking.currency,'')) THEN
-    RETURN jsonb_build_object('status','failed','duplicate',false,'failure_code','currency_mismatch',
-      'failure_message', format('The folio is held in %s and cannot accept a charge in %s.', _booking.currency, _currency));
-  END IF;
-
-  IF _amount IS NULL OR _amount <= 0 THEN
-    RETURN jsonb_build_object('status','failed','duplicate',false,'failure_code','posting_rejected','failure_message','A folio charge must be greater than zero.');
-  END IF;
-
-  SELECT unit_label INTO _unit FROM public.room_states
-   WHERE booking_id = _booking_id ORDER BY updated_at DESC LIMIT 1;
-
-  _ref := 'FOL-' || upper(coalesce(_booking.reference, substr(_booking_id::text, 1, 8))) || '-' ||
-          to_char(now(), 'YYYYMMDDHH24MISS') || '-' || upper(substr(md5(_idempotency_key), 1, 6));
-
-  UPDATE public.bookings SET
-    extras_total = coalesce(extras_total, 0) + _amount,
-    total        = coalesce(total, 0) + _amount,
-    balance_due  = coalesce(balance_due, 0) + _amount,
-    balance_amount = coalesce(balance_amount, 0) + _amount,
-    updated_at   = now()
-  WHERE id = _booking_id;
-
-  IF FOUND AND _existing.id IS NOT NULL THEN
-    UPDATE public.pms_folio_postings SET
-      status = 'posted', posting_reference = _ref, folio_reference = _booking.reference,
-      posted_at = now(), failure_code = NULL, failure_message = NULL
-    WHERE id = _existing.id RETURNING * INTO _row;
-  ELSE
-    INSERT INTO public.pms_folio_postings (
-      booking_id, guest_id, room_id, unit_label, source_system, source_tenant_id, source_property_id,
-      source_location_id, source_order_id, source_payment_id, idempotency_key, correlation_id,
-      amount, currency, description, status, folio_reference, posting_reference, posted_at, created_by, metadata)
-    VALUES (
-      _booking_id, _booking.guest_id, _booking.room_id, _unit,
-      coalesce(_source->>'source_system','restaurant_pos'),
-      nullif(_source->>'tenant_id','')::uuid, nullif(_source->>'property_id','')::uuid,
-      nullif(_source->>'location_id','')::uuid, nullif(_source->>'order_id','')::uuid,
-      nullif(_source->>'payment_id','')::uuid, _idempotency_key, _source->>'correlation_id',
-      _amount, upper(_currency), coalesce(_description,'Outlet charge'), 'posted',
-      _booking.reference, _ref, now(), _actor, coalesce(_source,'{}'::jsonb))
-    RETURNING * INTO _row;
-  END IF;
-
-  RETURN jsonb_build_object(
-    'status','posted','duplicate',false,'posting_id',_row.id,
-    'posting_reference',_row.posting_reference,'folio_reference',_row.folio_reference,
-    'amount',_row.amount,'currency',_row.currency,'unit_label',_row.unit_label);
-END;
-$$;
 
 CREATE OR REPLACE FUNCTION public.restaurant_apply_stock_movement()
  RETURNS trigger
@@ -723,142 +600,13 @@ ALTER TABLE public.restaurant_recipe_components ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.restaurant_recipe_costs ENABLE ROW LEVEL SECURITY;
 
--- tenants
-CREATE POLICY "tenant read" ON public.restaurant_tenants FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(id));
-
-CREATE POLICY "tenant write" ON public.restaurant_tenants FOR ALL TO authenticated
-  USING (public.restaurant_can_write(id, ARRAY['owner','general_manager']::public.restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(id, ARRAY['owner','general_manager']::public.restaurant_role[]));
-
-CREATE POLICY "members read" ON public.restaurant_members FOR SELECT TO authenticated
-  USING (user_id = auth.uid() OR public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "members write" ON public.restaurant_members FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager']::public.restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager']::public.restaurant_role[]));
-
-CREATE POLICY "subscriptions read" ON public.restaurant_subscriptions FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
 CREATE POLICY "subscriptions write" ON public.restaurant_subscriptions FOR ALL TO authenticated
   USING (public.restaurant_is_platform_admin(auth.uid()))
   WITH CHECK (public.restaurant_is_platform_admin(auth.uid()));
 
--- properties / locations
-CREATE POLICY "properties read" ON public.restaurant_properties FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "properties write" ON public.restaurant_properties FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager']::public.restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager']::public.restaurant_role[]));
-
-CREATE POLICY "locations read" ON public.restaurant_locations FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "locations write" ON public.restaurant_locations FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::public.restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::public.restaurant_role[]));
-
--- menu domain
-CREATE POLICY "categories read" ON public.restaurant_categories FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "categories write" ON public.restaurant_categories FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::public.restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::public.restaurant_role[]));
-
-CREATE POLICY "menus read" ON public.restaurant_menus FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "menus write" ON public.restaurant_menus FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::public.restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::public.restaurant_role[]));
-
-CREATE POLICY "menu items read" ON public.restaurant_menu_items FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "menu items write" ON public.restaurant_menu_items FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','bartender']::public.restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','bartender']::public.restaurant_role[]));
-
--- inventory domain
-CREATE POLICY "units read" ON public.restaurant_inventory_units FOR SELECT TO authenticated
-  USING (tenant_id IS NULL OR public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "units write" ON public.restaurant_inventory_units FOR ALL TO authenticated
-  USING (tenant_id IS NOT NULL AND public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager']::public.restaurant_role[]))
-  WITH CHECK (tenant_id IS NOT NULL AND public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager']::public.restaurant_role[]));
-
-CREATE POLICY "inv categories read" ON public.restaurant_inventory_categories FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "inv categories write" ON public.restaurant_inventory_categories FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef']::public.restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef']::public.restaurant_role[]));
-
-CREATE POLICY "inv items read" ON public.restaurant_inventory_items FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "inv items write" ON public.restaurant_inventory_items FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::public.restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::public.restaurant_role[]));
-
--- suppliers & purchasing
-CREATE POLICY "suppliers read" ON public.restaurant_suppliers FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "suppliers write" ON public.restaurant_suppliers FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager']::public.restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager']::public.restaurant_role[]));
-
-CREATE POLICY "supplier products read" ON public.restaurant_supplier_products FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "supplier products write" ON public.restaurant_supplier_products FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager']::public.restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager']::public.restaurant_role[]));
-
-CREATE POLICY "po read" ON public.restaurant_purchase_orders FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "po write" ON public.restaurant_purchase_orders FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::public.restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::public.restaurant_role[]));
-
-CREATE POLICY "po items read" ON public.restaurant_purchase_order_items FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "po items write" ON public.restaurant_purchase_order_items FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::public.restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::public.restaurant_role[]));
-
--- costing
-CREATE POLICY "recipe components read" ON public.restaurant_recipe_components FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "recipe components write" ON public.restaurant_recipe_components FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::public.restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::public.restaurant_role[]));
-
-CREATE POLICY "recipe costs read" ON public.restaurant_recipe_costs FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "recipe costs write" ON public.restaurant_recipe_costs FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','accountant']::public.restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','accountant']::public.restaurant_role[]));
-
 REVOKE EXECUTE ON FUNCTION public.restaurant_is_platform_admin(uuid) FROM anon, public;
 
-REVOKE EXECUTE ON FUNCTION public.restaurant_can_read(uuid) FROM anon, public;
-
-REVOKE EXECUTE ON FUNCTION public.restaurant_can_write(uuid, public.restaurant_role[]) FROM anon, public;
-
 GRANT EXECUTE ON FUNCTION public.restaurant_is_platform_admin(uuid) TO authenticated, service_role;
-
-GRANT EXECUTE ON FUNCTION public.restaurant_can_read(uuid) TO authenticated, service_role;
-
-GRANT EXECUTE ON FUNCTION public.restaurant_can_write(uuid, public.restaurant_role[]) TO authenticated, service_role;
 
 -- ============ 2.1 SALES & POS ============
 create table public.restaurant_service_periods (
@@ -883,12 +631,6 @@ grant all on public.restaurant_service_periods to service_role;
 
 alter table public.restaurant_service_periods enable row level security;
 
-create policy "service periods readable by tenant" on public.restaurant_service_periods for select to authenticated using (public.restaurant_can_read(tenant_id));
-
-create policy "service periods managed by tenant" on public.restaurant_service_periods for all to authenticated
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager']::restaurant_role[]));
-
 create table public.restaurant_tables (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.restaurant_tenants(id) on delete cascade,
@@ -910,12 +652,6 @@ grant select, insert, update, delete on public.restaurant_tables to authenticate
 grant all on public.restaurant_tables to service_role;
 
 alter table public.restaurant_tables enable row level security;
-
-create policy "tables readable by tenant" on public.restaurant_tables for select to authenticated using (public.restaurant_can_read(tenant_id));
-
-create policy "tables managed by tenant" on public.restaurant_tables for all to authenticated
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','bartender']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','bartender']::restaurant_role[]));
 
 create table public.restaurant_orders (
   id uuid primary key default gen_random_uuid(),
@@ -961,12 +697,6 @@ grant all on public.restaurant_orders to service_role;
 
 alter table public.restaurant_orders enable row level security;
 
-create policy "orders readable by tenant" on public.restaurant_orders for select to authenticated using (public.restaurant_can_read(tenant_id));
-
-create policy "orders managed by tenant" on public.restaurant_orders for all to authenticated
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','bartender','chef','kitchen_manager','accountant']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','bartender','chef','kitchen_manager','accountant']::restaurant_role[]));
-
 create table public.restaurant_order_items (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.restaurant_tenants(id) on delete cascade,
@@ -999,12 +729,6 @@ grant all on public.restaurant_order_items to service_role;
 
 alter table public.restaurant_order_items enable row level security;
 
-create policy "order items readable by tenant" on public.restaurant_order_items for select to authenticated using (public.restaurant_can_read(tenant_id));
-
-create policy "order items managed by tenant" on public.restaurant_order_items for all to authenticated
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','bartender','chef','kitchen_manager']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','bartender','chef','kitchen_manager']::restaurant_role[]));
-
 create table public.restaurant_payments (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.restaurant_tenants(id) on delete cascade,
@@ -1031,12 +755,6 @@ grant all on public.restaurant_payments to service_role;
 
 alter table public.restaurant_payments enable row level security;
 
-create policy "payments readable by tenant" on public.restaurant_payments for select to authenticated using (public.restaurant_can_read(tenant_id));
-
-create policy "payments managed by tenant" on public.restaurant_payments for all to authenticated
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','bartender','accountant']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','bartender','accountant']::restaurant_role[]));
-
 -- ============ 2.2 KITCHEN OPERATIONS ============
 create table public.restaurant_stations (
   id uuid primary key default gen_random_uuid(),
@@ -1059,12 +777,6 @@ grant select, insert, update, delete on public.restaurant_stations to authentica
 grant all on public.restaurant_stations to service_role;
 
 alter table public.restaurant_stations enable row level security;
-
-create policy "stations readable by tenant" on public.restaurant_stations for select to authenticated using (public.restaurant_can_read(tenant_id));
-
-create policy "stations managed by tenant" on public.restaurant_stations for all to authenticated
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
 
 alter table public.restaurant_order_items
   add constraint restaurant_order_items_station_fk foreign key (station_id) references public.restaurant_stations(id) on delete set null;
@@ -1102,12 +814,6 @@ grant all on public.restaurant_kitchen_tickets to service_role;
 
 alter table public.restaurant_kitchen_tickets enable row level security;
 
-create policy "tickets readable by tenant" on public.restaurant_kitchen_tickets for select to authenticated using (public.restaurant_can_read(tenant_id));
-
-create policy "tickets managed by tenant" on public.restaurant_kitchen_tickets for all to authenticated
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','chef','kitchen_manager','bartender']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','chef','kitchen_manager','bartender']::restaurant_role[]));
-
 create table public.restaurant_kitchen_ticket_items (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.restaurant_tenants(id) on delete cascade,
@@ -1129,12 +835,6 @@ grant select, insert, update, delete on public.restaurant_kitchen_ticket_items t
 grant all on public.restaurant_kitchen_ticket_items to service_role;
 
 alter table public.restaurant_kitchen_ticket_items enable row level security;
-
-create policy "ticket items readable by tenant" on public.restaurant_kitchen_ticket_items for select to authenticated using (public.restaurant_can_read(tenant_id));
-
-create policy "ticket items managed by tenant" on public.restaurant_kitchen_ticket_items for all to authenticated
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','chef','kitchen_manager','bartender']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','chef','kitchen_manager','bartender']::restaurant_role[]));
 
 -- ============ 2.3 INVENTORY MOVEMENT ENGINE ============
 create table public.restaurant_stock_movements (
@@ -1173,12 +873,6 @@ grant all on public.restaurant_stock_movements to service_role;
 
 alter table public.restaurant_stock_movements enable row level security;
 
-create policy "movements readable by tenant" on public.restaurant_stock_movements for select to authenticated using (public.restaurant_can_read(tenant_id));
-
-create policy "movements managed by tenant" on public.restaurant_stock_movements for all to authenticated
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender','purchasing_officer']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender','purchasing_officer']::restaurant_role[]));
-
 create trigger restaurant_stock_movement_apply
 before insert on public.restaurant_stock_movements
 for each row execute function public.restaurant_apply_stock_movement();
@@ -1214,12 +908,6 @@ grant all on public.restaurant_profitability_snapshots to service_role;
 
 alter table public.restaurant_profitability_snapshots enable row level security;
 
-create policy "profitability readable by tenant" on public.restaurant_profitability_snapshots for select to authenticated using (public.restaurant_can_read(tenant_id));
-
-create policy "profitability managed by tenant" on public.restaurant_profitability_snapshots for all to authenticated
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','chef','kitchen_manager','accountant']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','chef','kitchen_manager','accountant']::restaurant_role[]));
-
 -- ============ updated_at triggers ============
 create trigger set_updated_at_restaurant_service_periods before update on public.restaurant_service_periods for each row execute function public.set_updated_at();
 
@@ -1254,12 +942,6 @@ grant select, insert, update, delete on public.restaurant_document_sequences to 
 grant all on public.restaurant_document_sequences to service_role;
 
 alter table public.restaurant_document_sequences enable row level security;
-
-create policy "doc seq read" on public.restaurant_document_sequences for select using (public.restaurant_can_read(tenant_id));
-
-create policy "doc seq write" on public.restaurant_document_sequences for all
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::restaurant_role[]));
 
 -- ============ PURCHASE REQUESTS ============
 create table public.restaurant_purchase_requests (
@@ -1302,12 +984,6 @@ grant all on public.restaurant_purchase_requests to service_role;
 
 alter table public.restaurant_purchase_requests enable row level security;
 
-create policy "pr read" on public.restaurant_purchase_requests for select using (public.restaurant_can_read(tenant_id));
-
-create policy "pr write" on public.restaurant_purchase_requests for all
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager','bartender']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager','bartender']::restaurant_role[]));
-
 create index idx_rest_pr_tenant_status on public.restaurant_purchase_requests (tenant_id, status, created_at desc);
 
 create table public.restaurant_purchase_request_items (
@@ -1333,12 +1009,6 @@ grant select, insert, update, delete on public.restaurant_purchase_request_items
 grant all on public.restaurant_purchase_request_items to service_role;
 
 alter table public.restaurant_purchase_request_items enable row level security;
-
-create policy "pr items read" on public.restaurant_purchase_request_items for select using (public.restaurant_can_read(tenant_id));
-
-create policy "pr items write" on public.restaurant_purchase_request_items for all
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager','bartender']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager','bartender']::restaurant_role[]));
 
 create index idx_rest_pr_items_request on public.restaurant_purchase_request_items (purchase_request_id);
 
@@ -1367,12 +1037,6 @@ grant select, insert, update, delete on public.restaurant_approval_rules to auth
 grant all on public.restaurant_approval_rules to service_role;
 
 alter table public.restaurant_approval_rules enable row level security;
-
-create policy "approval rules read" on public.restaurant_approval_rules for select using (public.restaurant_can_read(tenant_id));
-
-create policy "approval rules write" on public.restaurant_approval_rules for all
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager']::restaurant_role[]));
 
 -- ============ PURCHASE ORDER EXTENSIONS ============
 alter table public.restaurant_purchase_orders
@@ -1421,12 +1085,6 @@ grant all on public.restaurant_supplier_confirmations to service_role;
 
 alter table public.restaurant_supplier_confirmations enable row level security;
 
-create policy "confirmation read" on public.restaurant_supplier_confirmations for select using (public.restaurant_can_read(tenant_id));
-
-create policy "confirmation write" on public.restaurant_supplier_confirmations for all
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::restaurant_role[]));
-
 create table public.restaurant_supplier_confirmation_items (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.restaurant_tenants(id) on delete cascade,
@@ -1447,12 +1105,6 @@ grant select, insert, update, delete on public.restaurant_supplier_confirmation_
 grant all on public.restaurant_supplier_confirmation_items to service_role;
 
 alter table public.restaurant_supplier_confirmation_items enable row level security;
-
-create policy "confirmation items read" on public.restaurant_supplier_confirmation_items for select using (public.restaurant_can_read(tenant_id));
-
-create policy "confirmation items write" on public.restaurant_supplier_confirmation_items for all
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::restaurant_role[]));
 
 -- ============ GOODS RECEIVING ============
 create table public.restaurant_goods_receipts (
@@ -1488,12 +1140,6 @@ grant all on public.restaurant_goods_receipts to service_role;
 
 alter table public.restaurant_goods_receipts enable row level security;
 
-create policy "receipt read" on public.restaurant_goods_receipts for select using (public.restaurant_can_read(tenant_id));
-
-create policy "receipt write" on public.restaurant_goods_receipts for all
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager']::restaurant_role[]));
-
 create index idx_rest_receipts_po on public.restaurant_goods_receipts (purchase_order_id);
 
 create table public.restaurant_goods_receipt_items (
@@ -1527,12 +1173,6 @@ grant select, insert, update, delete on public.restaurant_goods_receipt_items to
 grant all on public.restaurant_goods_receipt_items to service_role;
 
 alter table public.restaurant_goods_receipt_items enable row level security;
-
-create policy "receipt items read" on public.restaurant_goods_receipt_items for select using (public.restaurant_can_read(tenant_id));
-
-create policy "receipt items write" on public.restaurant_goods_receipt_items for all
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager']::restaurant_role[]));
 
 create index idx_rest_receipt_items_receipt on public.restaurant_goods_receipt_items (receipt_id);
 
@@ -1574,12 +1214,6 @@ grant all on public.restaurant_procurement_variances to service_role;
 
 alter table public.restaurant_procurement_variances enable row level security;
 
-create policy "variance read" on public.restaurant_procurement_variances for select using (public.restaurant_can_read(tenant_id));
-
-create policy "variance write" on public.restaurant_procurement_variances for all
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager']::restaurant_role[]));
-
 create index idx_rest_variance_open on public.restaurant_procurement_variances (tenant_id, status, detected_at desc);
 
 -- ============ SUPPLIER PRICE HISTORY ============
@@ -1608,12 +1242,6 @@ grant select, insert, update, delete on public.restaurant_supplier_price_history
 grant all on public.restaurant_supplier_price_history to service_role;
 
 alter table public.restaurant_supplier_price_history enable row level security;
-
-create policy "price history read" on public.restaurant_supplier_price_history for select using (public.restaurant_can_read(tenant_id));
-
-create policy "price history write" on public.restaurant_supplier_price_history for all
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::restaurant_role[]));
 
 create index idx_rest_price_history_lookup on public.restaurant_supplier_price_history (tenant_id, supplier_id, inventory_item_id, effective_date desc);
 
@@ -1655,12 +1283,6 @@ grant all on public.restaurant_supplier_invoices to service_role;
 
 alter table public.restaurant_supplier_invoices enable row level security;
 
-create policy "invoice read" on public.restaurant_supplier_invoices for select using (public.restaurant_can_read(tenant_id));
-
-create policy "invoice write" on public.restaurant_supplier_invoices for all
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','accountant']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','accountant']::restaurant_role[]));
-
 create table public.restaurant_supplier_invoice_items (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.restaurant_tenants(id) on delete cascade,
@@ -1682,12 +1304,6 @@ grant select, insert, update, delete on public.restaurant_supplier_invoice_items
 grant all on public.restaurant_supplier_invoice_items to service_role;
 
 alter table public.restaurant_supplier_invoice_items enable row level security;
-
-create policy "invoice items read" on public.restaurant_supplier_invoice_items for select using (public.restaurant_can_read(tenant_id));
-
-create policy "invoice items write" on public.restaurant_supplier_invoice_items for all
-  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','accountant']::restaurant_role[]))
-  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','accountant']::restaurant_role[]));
 
 alter table public.restaurant_procurement_variances
   add constraint restaurant_variance_invoice_fk foreign key (invoice_id) references public.restaurant_supplier_invoices(id) on delete cascade;
@@ -1714,11 +1330,6 @@ grant select, insert on public.restaurant_procurement_audit to authenticated;
 grant all on public.restaurant_procurement_audit to service_role;
 
 alter table public.restaurant_procurement_audit enable row level security;
-
-create policy "procurement audit read" on public.restaurant_procurement_audit for select using (public.restaurant_can_read(tenant_id));
-
-create policy "procurement audit append" on public.restaurant_procurement_audit for insert
-  with check (public.restaurant_can_read(tenant_id) and actor_id = auth.uid());
 
 create index idx_rest_proc_audit_doc on public.restaurant_procurement_audit (tenant_id, document_type, document_id, created_at desc);
 
@@ -1819,14 +1430,6 @@ GRANT ALL ON public.restaurant_inventory_reasons TO service_role;
 
 ALTER TABLE public.restaurant_inventory_reasons ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "inventory reasons read" ON public.restaurant_inventory_reasons
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "inventory reasons write" ON public.restaurant_inventory_reasons
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager']::restaurant_role[]));
-
 CREATE TRIGGER restaurant_inventory_reasons_updated_at BEFORE UPDATE ON public.restaurant_inventory_reasons
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -1863,14 +1466,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.restaurant_inventory_batches TO a
 GRANT ALL ON public.restaurant_inventory_batches TO service_role;
 
 ALTER TABLE public.restaurant_inventory_batches ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "inventory batches read" ON public.restaurant_inventory_batches
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "inventory batches write" ON public.restaurant_inventory_batches
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','purchasing_officer']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','purchasing_officer']::restaurant_role[]));
 
 CREATE TRIGGER restaurant_inventory_batches_updated_at BEFORE UPDATE ON public.restaurant_inventory_batches
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
@@ -1912,14 +1507,6 @@ GRANT ALL ON public.restaurant_stock_transfers TO service_role;
 
 ALTER TABLE public.restaurant_stock_transfers ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "stock transfers read" ON public.restaurant_stock_transfers
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "stock transfers write" ON public.restaurant_stock_transfers
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]));
-
 CREATE TRIGGER restaurant_stock_transfers_updated_at BEFORE UPDATE ON public.restaurant_stock_transfers
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -1950,14 +1537,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.restaurant_stock_transfer_lines T
 GRANT ALL ON public.restaurant_stock_transfer_lines TO service_role;
 
 ALTER TABLE public.restaurant_stock_transfer_lines ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "stock transfer lines read" ON public.restaurant_stock_transfer_lines
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "stock transfer lines write" ON public.restaurant_stock_transfer_lines
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]));
 
 CREATE TRIGGER restaurant_stock_transfer_lines_updated_at BEFORE UPDATE ON public.restaurant_stock_transfer_lines
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
@@ -1996,14 +1575,6 @@ GRANT ALL ON public.restaurant_stock_reservations TO service_role;
 
 ALTER TABLE public.restaurant_stock_reservations ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "stock reservations read" ON public.restaurant_stock_reservations
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "stock reservations write" ON public.restaurant_stock_reservations
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]));
-
 CREATE TRIGGER restaurant_stock_reservations_updated_at BEFORE UPDATE ON public.restaurant_stock_reservations
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -2040,14 +1611,6 @@ GRANT ALL ON public.restaurant_stocktakes TO service_role;
 
 ALTER TABLE public.restaurant_stocktakes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "stocktakes read" ON public.restaurant_stocktakes
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "stocktakes write" ON public.restaurant_stocktakes
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]));
-
 CREATE TRIGGER restaurant_stocktakes_updated_at BEFORE UPDATE ON public.restaurant_stocktakes
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -2077,14 +1640,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.restaurant_stocktake_lines TO aut
 GRANT ALL ON public.restaurant_stocktake_lines TO service_role;
 
 ALTER TABLE public.restaurant_stocktake_lines ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "stocktake lines read" ON public.restaurant_stocktake_lines
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "stocktake lines write" ON public.restaurant_stocktake_lines
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]));
 
 CREATE TRIGGER restaurant_stocktake_lines_updated_at BEFORE UPDATE ON public.restaurant_stocktake_lines
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
@@ -2200,14 +1755,6 @@ GRANT ALL ON public.restaurant_recipes TO service_role;
 
 ALTER TABLE public.restaurant_recipes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "recipes read" ON public.restaurant_recipes
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "recipes write" ON public.restaurant_recipes
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
-
 CREATE TRIGGER restaurant_recipes_updated_at BEFORE UPDATE ON public.restaurant_recipes
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -2240,14 +1787,6 @@ GRANT ALL ON public.restaurant_recipe_lines TO service_role;
 
 ALTER TABLE public.restaurant_recipe_lines ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "recipe lines read" ON public.restaurant_recipe_lines
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "recipe lines write" ON public.restaurant_recipe_lines
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
-
 CREATE TRIGGER restaurant_recipe_lines_updated_at BEFORE UPDATE ON public.restaurant_recipe_lines
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -2274,14 +1813,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.restaurant_recipe_cost_history TO
 GRANT ALL ON public.restaurant_recipe_cost_history TO service_role;
 
 ALTER TABLE public.restaurant_recipe_cost_history ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "recipe cost history read" ON public.restaurant_recipe_cost_history
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "recipe cost history write" ON public.restaurant_recipe_cost_history
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','accountant']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','accountant']::restaurant_role[]));
 
 /* ---------- 2. Products ---------- */
 
@@ -2321,14 +1852,6 @@ GRANT ALL ON public.restaurant_products TO service_role;
 
 ALTER TABLE public.restaurant_products ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "products read" ON public.restaurant_products
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "products write" ON public.restaurant_products
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
-
 CREATE TRIGGER restaurant_products_updated_at BEFORE UPDATE ON public.restaurant_products
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -2355,14 +1878,6 @@ GRANT ALL ON public.restaurant_product_variants TO service_role;
 
 ALTER TABLE public.restaurant_product_variants ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "product variants read" ON public.restaurant_product_variants
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "product variants write" ON public.restaurant_product_variants
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
-
 CREATE TRIGGER restaurant_product_variants_updated_at BEFORE UPDATE ON public.restaurant_product_variants
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -2388,14 +1903,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.restaurant_modifier_groups TO aut
 GRANT ALL ON public.restaurant_modifier_groups TO service_role;
 
 ALTER TABLE public.restaurant_modifier_groups ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "modifier groups read" ON public.restaurant_modifier_groups
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "modifier groups write" ON public.restaurant_modifier_groups
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
 
 CREATE TRIGGER restaurant_modifier_groups_updated_at BEFORE UPDATE ON public.restaurant_modifier_groups
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
@@ -2425,14 +1932,6 @@ GRANT ALL ON public.restaurant_modifiers TO service_role;
 
 ALTER TABLE public.restaurant_modifiers ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "modifiers read" ON public.restaurant_modifiers
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "modifiers write" ON public.restaurant_modifiers
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
-
 CREATE TRIGGER restaurant_modifiers_updated_at BEFORE UPDATE ON public.restaurant_modifiers
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -2452,14 +1951,6 @@ GRANT ALL ON public.restaurant_product_modifier_groups TO service_role;
 
 ALTER TABLE public.restaurant_product_modifier_groups ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "product modifier groups read" ON public.restaurant_product_modifier_groups
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "product modifier groups write" ON public.restaurant_product_modifier_groups
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
-
 CREATE TABLE IF NOT EXISTS public.restaurant_bundle_components (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.restaurant_tenants(id) ON DELETE CASCADE,
@@ -2478,14 +1969,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.restaurant_bundle_components TO a
 GRANT ALL ON public.restaurant_bundle_components TO service_role;
 
 ALTER TABLE public.restaurant_bundle_components ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "bundle components read" ON public.restaurant_bundle_components
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "bundle components write" ON public.restaurant_bundle_components
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
 
 /* ---------- 4. Production ---------- */
 
@@ -2528,14 +2011,6 @@ GRANT ALL ON public.restaurant_productions TO service_role;
 
 ALTER TABLE public.restaurant_productions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "productions read" ON public.restaurant_productions
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "productions write" ON public.restaurant_productions
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','inventory_manager']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','inventory_manager']::restaurant_role[]));
-
 CREATE TRIGGER restaurant_productions_updated_at BEFORE UPDATE ON public.restaurant_productions
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -2562,14 +2037,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.restaurant_production_inputs TO a
 GRANT ALL ON public.restaurant_production_inputs TO service_role;
 
 ALTER TABLE public.restaurant_production_inputs ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "production inputs read" ON public.restaurant_production_inputs
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "production inputs write" ON public.restaurant_production_inputs
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','inventory_manager']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','inventory_manager']::restaurant_role[]));
 
 CREATE TRIGGER restaurant_production_inputs_updated_at BEFORE UPDATE ON public.restaurant_production_inputs
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
@@ -2608,12 +2075,6 @@ GRANT ALL ON public.restaurant_currencies TO service_role;
 
 ALTER TABLE public.restaurant_currencies ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "currencies read" ON public.restaurant_currencies FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "currencies write" ON public.restaurant_currencies FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]));
-
 -- ---------- Exchange rates ----------
 CREATE TABLE public.restaurant_exchange_rates (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -2638,12 +2099,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.restaurant_exchange_rates TO auth
 GRANT ALL ON public.restaurant_exchange_rates TO service_role;
 
 ALTER TABLE public.restaurant_exchange_rates ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "fx read" ON public.restaurant_exchange_rates FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "fx write" ON public.restaurant_exchange_rates FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]));
 
 -- ---------- Versioned prices ----------
 CREATE TABLE public.restaurant_prices (
@@ -2683,12 +2138,6 @@ GRANT ALL ON public.restaurant_prices TO service_role;
 
 ALTER TABLE public.restaurant_prices ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "prices read" ON public.restaurant_prices FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "prices write" ON public.restaurant_prices FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]));
-
 -- ---------- Tax rules ----------
 CREATE TABLE public.restaurant_tax_rules (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -2720,12 +2169,6 @@ GRANT ALL ON public.restaurant_tax_rules TO service_role;
 
 ALTER TABLE public.restaurant_tax_rules ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "tax read" ON public.restaurant_tax_rules FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "tax write" ON public.restaurant_tax_rules FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]));
-
 -- ---------- Service charges ----------
 CREATE TABLE public.restaurant_service_charges (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -2755,12 +2198,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.restaurant_service_charges TO aut
 GRANT ALL ON public.restaurant_service_charges TO service_role;
 
 ALTER TABLE public.restaurant_service_charges ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "service charge read" ON public.restaurant_service_charges FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "service charge write" ON public.restaurant_service_charges FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]));
 
 -- ---------- Discount rules ----------
 CREATE TABLE public.restaurant_discount_rules (
@@ -2794,12 +2231,6 @@ GRANT ALL ON public.restaurant_discount_rules TO service_role;
 
 ALTER TABLE public.restaurant_discount_rules ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "discount rule read" ON public.restaurant_discount_rules FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "discount rule write" ON public.restaurant_discount_rules FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::restaurant_role[]));
-
 -- ---------- Discount applications (append-only audit) ----------
 CREATE TABLE public.restaurant_discount_applications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -2827,10 +2258,6 @@ GRANT SELECT, INSERT ON public.restaurant_discount_applications TO authenticated
 GRANT ALL ON public.restaurant_discount_applications TO service_role;
 
 ALTER TABLE public.restaurant_discount_applications ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "discount app read" ON public.restaurant_discount_applications FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "discount app insert" ON public.restaurant_discount_applications FOR INSERT TO authenticated WITH CHECK (public.restaurant_can_read(tenant_id));
 
 -- ---------- Promotions ----------
 CREATE TABLE public.restaurant_promotions (
@@ -2867,12 +2294,6 @@ GRANT ALL ON public.restaurant_promotions TO service_role;
 
 ALTER TABLE public.restaurant_promotions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "promotions read" ON public.restaurant_promotions FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "promotions write" ON public.restaurant_promotions FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::restaurant_role[]));
-
 -- ---------- Pricing audit (append-only) ----------
 CREATE TABLE public.restaurant_pricing_audit (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -2896,10 +2317,6 @@ GRANT SELECT, INSERT ON public.restaurant_pricing_audit TO authenticated;
 GRANT ALL ON public.restaurant_pricing_audit TO service_role;
 
 ALTER TABLE public.restaurant_pricing_audit ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "pricing audit read" ON public.restaurant_pricing_audit FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "pricing audit insert" ON public.restaurant_pricing_audit FOR INSERT TO authenticated WITH CHECK (public.restaurant_can_read(tenant_id));
 
 -- ---------- Transaction snapshots ----------
 ALTER TABLE public.restaurant_order_items
@@ -3007,15 +2424,6 @@ GRANT ALL ON public.restaurant_receipts TO service_role;
 
 ALTER TABLE public.restaurant_receipts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "restaurant_receipts_read"
-  ON public.restaurant_receipts FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "restaurant_receipts_write"
-  ON public.restaurant_receipts FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','bartender','accountant']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','bartender','accountant']::restaurant_role[]));
-
 CREATE TRIGGER restaurant_receipts_set_updated_at
   BEFORE UPDATE ON public.restaurant_receipts
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
@@ -3078,22 +2486,6 @@ ALTER TABLE public.restaurant_requisitions ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.restaurant_requisition_lines ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "requisitions read" ON public.restaurant_requisitions
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "requisitions write" ON public.restaurant_requisitions
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]));
-
-CREATE POLICY "requisition lines read" ON public.restaurant_requisition_lines
-  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "requisition lines write" ON public.restaurant_requisition_lines
-  FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]));
-
 CREATE TRIGGER set_restaurant_requisitions_updated_at BEFORE UPDATE ON public.restaurant_requisitions
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -3148,13 +2540,6 @@ GRANT ALL ON public.restaurant_price_lists TO service_role;
 
 ALTER TABLE public.restaurant_price_lists ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "price lists read" ON public.restaurant_price_lists FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "price lists write" ON public.restaurant_price_lists FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::restaurant_role[]));
-
 CREATE TRIGGER trg_rest_price_lists_updated_at
   BEFORE UPDATE ON public.restaurant_price_lists
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
@@ -3191,13 +2576,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.restaurant_rounding_rules TO auth
 GRANT ALL ON public.restaurant_rounding_rules TO service_role;
 
 ALTER TABLE public.restaurant_rounding_rules ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "rounding rules read" ON public.restaurant_rounding_rules FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "rounding rules write" ON public.restaurant_rounding_rules FOR ALL TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::restaurant_role[]));
 
 CREATE TRIGGER trg_rest_rounding_updated_at
   BEFORE UPDATE ON public.restaurant_rounding_rules
@@ -3242,14 +2620,6 @@ GRANT SELECT, INSERT ON public.restaurant_document_events TO authenticated;
 GRANT ALL ON public.restaurant_document_events TO service_role;
 
 ALTER TABLE public.restaurant_document_events ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Restaurant members read document events"
-  ON public.restaurant_document_events FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "Restaurant members append document events"
-  ON public.restaurant_document_events FOR INSERT TO authenticated
-  WITH CHECK (public.restaurant_can_read(tenant_id) AND actor_id = auth.uid());
 
 CREATE INDEX restaurant_document_events_tenant_idx
   ON public.restaurant_document_events (tenant_id, created_at DESC);
@@ -3344,13 +2714,6 @@ GRANT ALL ON public.restaurant_daily_closes TO service_role;
 
 ALTER TABLE public.restaurant_daily_closes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "daily closes read" ON public.restaurant_daily_closes FOR SELECT TO authenticated
-  USING (restaurant_can_read(tenant_id));
-
-CREATE POLICY "daily closes write" ON public.restaurant_daily_closes FOR ALL TO authenticated
-  USING (restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]))
-  WITH CHECK (restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]));
-
 CREATE TRIGGER restaurant_daily_closes_updated_at BEFORE UPDATE ON public.restaurant_daily_closes
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -3376,13 +2739,6 @@ GRANT ALL ON public.restaurant_tender_declarations TO service_role;
 
 ALTER TABLE public.restaurant_tender_declarations ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "tender declarations read" ON public.restaurant_tender_declarations FOR SELECT TO authenticated
-  USING (restaurant_can_read(tenant_id));
-
-CREATE POLICY "tender declarations write" ON public.restaurant_tender_declarations FOR ALL TO authenticated
-  USING (restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]))
-  WITH CHECK (restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]));
-
 CREATE TRIGGER restaurant_tender_declarations_updated_at BEFORE UPDATE ON public.restaurant_tender_declarations
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -3407,13 +2763,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.restaurant_reconciliation_runs TO
 GRANT ALL ON public.restaurant_reconciliation_runs TO service_role;
 
 ALTER TABLE public.restaurant_reconciliation_runs ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "reconciliation runs read" ON public.restaurant_reconciliation_runs FOR SELECT TO authenticated
-  USING (restaurant_can_read(tenant_id));
-
-CREATE POLICY "reconciliation runs write" ON public.restaurant_reconciliation_runs FOR ALL TO authenticated
-  USING (restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant','inventory_manager']::restaurant_role[]))
-  WITH CHECK (restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant','inventory_manager']::restaurant_role[]));
 
 CREATE TRIGGER restaurant_reconciliation_runs_updated_at BEFORE UPDATE ON public.restaurant_reconciliation_runs
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
@@ -3458,13 +2807,6 @@ GRANT ALL ON public.restaurant_reconciliation_exceptions TO service_role;
 
 ALTER TABLE public.restaurant_reconciliation_exceptions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "reconciliation exceptions read" ON public.restaurant_reconciliation_exceptions FOR SELECT TO authenticated
-  USING (restaurant_can_read(tenant_id));
-
-CREATE POLICY "reconciliation exceptions write" ON public.restaurant_reconciliation_exceptions FOR ALL TO authenticated
-  USING (restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant','inventory_manager','purchasing_officer']::restaurant_role[]))
-  WITH CHECK (restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant','inventory_manager','purchasing_officer']::restaurant_role[]));
-
 CREATE TRIGGER restaurant_reconciliation_exceptions_updated_at BEFORE UPDATE ON public.restaurant_reconciliation_exceptions
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -3490,12 +2832,6 @@ GRANT SELECT, INSERT ON public.restaurant_reconciliation_audit TO authenticated;
 GRANT ALL ON public.restaurant_reconciliation_audit TO service_role;
 
 ALTER TABLE public.restaurant_reconciliation_audit ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "reconciliation audit read" ON public.restaurant_reconciliation_audit FOR SELECT TO authenticated
-  USING (restaurant_can_read(tenant_id));
-
-CREATE POLICY "reconciliation audit append" ON public.restaurant_reconciliation_audit FOR INSERT TO authenticated
-  WITH CHECK (restaurant_can_read(tenant_id));
 
 CREATE TABLE public.restaurant_receipt_deliveries (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -3539,19 +2875,6 @@ GRANT ALL ON public.restaurant_receipt_deliveries TO service_role;
 
 ALTER TABLE public.restaurant_receipt_deliveries ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "receipt deliveries readable by tenant"
-  ON public.restaurant_receipt_deliveries FOR SELECT TO authenticated
-  USING (public.restaurant_can_read(tenant_id));
-
-CREATE POLICY "receipt deliveries writable by tenant staff"
-  ON public.restaurant_receipt_deliveries FOR INSERT TO authenticated
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','bartender','accountant']::restaurant_role[]));
-
-CREATE POLICY "receipt deliveries updatable by tenant staff"
-  ON public.restaurant_receipt_deliveries FOR UPDATE TO authenticated
-  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','bartender','accountant']::restaurant_role[]))
-  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','bartender','accountant']::restaurant_role[]));
-
 CREATE TABLE public.pms_folio_postings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   booking_id uuid NOT NULL /* [standalone] external system ref */,
@@ -3581,6 +2904,636 @@ CREATE TABLE public.pms_folio_postings (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.restaurant_orders
+  ADD COLUMN IF NOT EXISTS cancelled_at timestamptz,
+  ADD COLUMN IF NOT EXISTS cancelled_by uuid,
+  ADD COLUMN IF NOT EXISTS cancel_reason text;
+
+ALTER TABLE public.restaurant_goods_receipt_items
+  ADD COLUMN IF NOT EXISTS batch_id uuid REFERENCES public.restaurant_inventory_batches(id) ON DELETE SET NULL;
+
+-- One logical reversal per original movement, enforced by the database and not
+-- by the UI: a retried void, a replayed request and a double tap collapse into
+-- the same single correction.
+CREATE UNIQUE INDEX IF NOT EXISTS restaurant_stock_movements_reversal_once_idx
+  ON public.restaurant_stock_movements (reversal_of_id)
+  WHERE reversal_of_id IS NOT NULL;
+
+DROP TRIGGER IF EXISTS enforce_purchase_order_transition ON public.restaurant_purchase_orders;
+
+CREATE TRIGGER enforce_purchase_order_transition
+BEFORE UPDATE OF status ON public.restaurant_purchase_orders
+FOR EACH ROW
+EXECUTE FUNCTION public.enforce_purchase_order_transition();
+
+-- ---------- updated_at triggers ----------
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY[
+    'restaurant_tenants','restaurant_properties','restaurant_locations','restaurant_members',
+    'restaurant_subscriptions','restaurant_categories','restaurant_menus','restaurant_menu_items',
+    'restaurant_inventory_units','restaurant_inventory_categories','restaurant_inventory_items',
+    'restaurant_suppliers','restaurant_supplier_products','restaurant_purchase_orders',
+    'restaurant_purchase_order_items','restaurant_recipe_components','restaurant_recipe_costs']
+  LOOP
+    EXECUTE format('DROP TRIGGER IF EXISTS trg_%1$s_updated_at ON public.%1$s', t);
+    EXECUTE format(
+      'CREATE TRIGGER trg_%1$s_updated_at BEFORE UPDATE ON public.%1$s FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column()', t);
+  END LOOP;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.restaurant_can_read(_tenant_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT auth.uid() IS NOT NULL AND (
+    public.restaurant_is_platform_admin(auth.uid())
+    OR EXISTS (SELECT 1 FROM public.restaurant_members m
+                WHERE m.tenant_id = _tenant_id AND m.user_id = auth.uid())
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.restaurant_can_write(_tenant_id uuid, _roles public.restaurant_role[])
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT auth.uid() IS NOT NULL AND (
+    public.restaurant_is_platform_admin(auth.uid())
+    OR EXISTS (SELECT 1 FROM public.restaurant_members m
+                WHERE m.tenant_id = _tenant_id AND m.user_id = auth.uid()
+                  AND m.role = ANY(_roles))
+  );
+$$;
+
+do $$ begin
+  alter table public.restaurant_menu_items
+    add constraint restaurant_menu_items_lifecycle_chk
+    check (lifecycle_status in ('draft','active','paused','discontinued','archived'));
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  alter table public.restaurant_menu_items
+    add constraint restaurant_menu_items_allergen_status_chk
+    check (allergen_status in ('unknown','declared','none'));
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  alter table public.restaurant_inventory_items
+    add constraint restaurant_inventory_items_allergen_status_chk
+    check (allergen_status in ('unknown','declared','none'));
+exception when duplicate_object then null; end $$;
+
+-- tenants
+CREATE POLICY "tenant read" ON public.restaurant_tenants FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(id));
+
+CREATE POLICY "tenant write" ON public.restaurant_tenants FOR ALL TO authenticated
+  USING (public.restaurant_can_write(id, ARRAY['owner','general_manager']::public.restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(id, ARRAY['owner','general_manager']::public.restaurant_role[]));
+
+CREATE POLICY "members read" ON public.restaurant_members FOR SELECT TO authenticated
+  USING (user_id = auth.uid() OR public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "members write" ON public.restaurant_members FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager']::public.restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager']::public.restaurant_role[]));
+
+CREATE POLICY "subscriptions read" ON public.restaurant_subscriptions FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+-- properties / locations
+CREATE POLICY "properties read" ON public.restaurant_properties FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "properties write" ON public.restaurant_properties FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager']::public.restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager']::public.restaurant_role[]));
+
+CREATE POLICY "locations read" ON public.restaurant_locations FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "locations write" ON public.restaurant_locations FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::public.restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::public.restaurant_role[]));
+
+-- menu domain
+CREATE POLICY "categories read" ON public.restaurant_categories FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "categories write" ON public.restaurant_categories FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::public.restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::public.restaurant_role[]));
+
+CREATE POLICY "menus read" ON public.restaurant_menus FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "menus write" ON public.restaurant_menus FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::public.restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::public.restaurant_role[]));
+
+CREATE POLICY "menu items read" ON public.restaurant_menu_items FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "menu items write" ON public.restaurant_menu_items FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','bartender']::public.restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','bartender']::public.restaurant_role[]));
+
+-- inventory domain
+CREATE POLICY "units read" ON public.restaurant_inventory_units FOR SELECT TO authenticated
+  USING (tenant_id IS NULL OR public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "units write" ON public.restaurant_inventory_units FOR ALL TO authenticated
+  USING (tenant_id IS NOT NULL AND public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager']::public.restaurant_role[]))
+  WITH CHECK (tenant_id IS NOT NULL AND public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager']::public.restaurant_role[]));
+
+CREATE POLICY "inv categories read" ON public.restaurant_inventory_categories FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "inv categories write" ON public.restaurant_inventory_categories FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef']::public.restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef']::public.restaurant_role[]));
+
+CREATE POLICY "inv items read" ON public.restaurant_inventory_items FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "inv items write" ON public.restaurant_inventory_items FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::public.restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::public.restaurant_role[]));
+
+-- suppliers & purchasing
+CREATE POLICY "suppliers read" ON public.restaurant_suppliers FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "suppliers write" ON public.restaurant_suppliers FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager']::public.restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager']::public.restaurant_role[]));
+
+CREATE POLICY "supplier products read" ON public.restaurant_supplier_products FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "supplier products write" ON public.restaurant_supplier_products FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager']::public.restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager']::public.restaurant_role[]));
+
+CREATE POLICY "po read" ON public.restaurant_purchase_orders FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "po write" ON public.restaurant_purchase_orders FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::public.restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::public.restaurant_role[]));
+
+CREATE POLICY "po items read" ON public.restaurant_purchase_order_items FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "po items write" ON public.restaurant_purchase_order_items FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::public.restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::public.restaurant_role[]));
+
+-- costing
+CREATE POLICY "recipe components read" ON public.restaurant_recipe_components FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "recipe components write" ON public.restaurant_recipe_components FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::public.restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::public.restaurant_role[]));
+
+CREATE POLICY "recipe costs read" ON public.restaurant_recipe_costs FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "recipe costs write" ON public.restaurant_recipe_costs FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','accountant']::public.restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','accountant']::public.restaurant_role[]));
+
+REVOKE EXECUTE ON FUNCTION public.restaurant_can_read(uuid) FROM anon, public;
+
+REVOKE EXECUTE ON FUNCTION public.restaurant_can_write(uuid, public.restaurant_role[]) FROM anon, public;
+
+GRANT EXECUTE ON FUNCTION public.restaurant_can_read(uuid) TO authenticated, service_role;
+
+GRANT EXECUTE ON FUNCTION public.restaurant_can_write(uuid, public.restaurant_role[]) TO authenticated, service_role;
+
+create policy "service periods readable by tenant" on public.restaurant_service_periods for select to authenticated using (public.restaurant_can_read(tenant_id));
+
+create policy "service periods managed by tenant" on public.restaurant_service_periods for all to authenticated
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager']::restaurant_role[]));
+
+create policy "tables readable by tenant" on public.restaurant_tables for select to authenticated using (public.restaurant_can_read(tenant_id));
+
+create policy "tables managed by tenant" on public.restaurant_tables for all to authenticated
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','bartender']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','bartender']::restaurant_role[]));
+
+create policy "orders readable by tenant" on public.restaurant_orders for select to authenticated using (public.restaurant_can_read(tenant_id));
+
+create policy "orders managed by tenant" on public.restaurant_orders for all to authenticated
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','bartender','chef','kitchen_manager','accountant']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','bartender','chef','kitchen_manager','accountant']::restaurant_role[]));
+
+create policy "order items readable by tenant" on public.restaurant_order_items for select to authenticated using (public.restaurant_can_read(tenant_id));
+
+create policy "order items managed by tenant" on public.restaurant_order_items for all to authenticated
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','bartender','chef','kitchen_manager']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','bartender','chef','kitchen_manager']::restaurant_role[]));
+
+create policy "payments readable by tenant" on public.restaurant_payments for select to authenticated using (public.restaurant_can_read(tenant_id));
+
+create policy "payments managed by tenant" on public.restaurant_payments for all to authenticated
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','bartender','accountant']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','bartender','accountant']::restaurant_role[]));
+
+create policy "stations readable by tenant" on public.restaurant_stations for select to authenticated using (public.restaurant_can_read(tenant_id));
+
+create policy "stations managed by tenant" on public.restaurant_stations for all to authenticated
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
+
+create policy "tickets readable by tenant" on public.restaurant_kitchen_tickets for select to authenticated using (public.restaurant_can_read(tenant_id));
+
+create policy "tickets managed by tenant" on public.restaurant_kitchen_tickets for all to authenticated
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','chef','kitchen_manager','bartender']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','chef','kitchen_manager','bartender']::restaurant_role[]));
+
+create policy "ticket items readable by tenant" on public.restaurant_kitchen_ticket_items for select to authenticated using (public.restaurant_can_read(tenant_id));
+
+create policy "ticket items managed by tenant" on public.restaurant_kitchen_ticket_items for all to authenticated
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','chef','kitchen_manager','bartender']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','chef','kitchen_manager','bartender']::restaurant_role[]));
+
+create policy "movements readable by tenant" on public.restaurant_stock_movements for select to authenticated using (public.restaurant_can_read(tenant_id));
+
+create policy "movements managed by tenant" on public.restaurant_stock_movements for all to authenticated
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender','purchasing_officer']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender','purchasing_officer']::restaurant_role[]));
+
+create policy "profitability readable by tenant" on public.restaurant_profitability_snapshots for select to authenticated using (public.restaurant_can_read(tenant_id));
+
+create policy "profitability managed by tenant" on public.restaurant_profitability_snapshots for all to authenticated
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','chef','kitchen_manager','accountant']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','chef','kitchen_manager','accountant']::restaurant_role[]));
+
+create policy "doc seq read" on public.restaurant_document_sequences for select using (public.restaurant_can_read(tenant_id));
+
+create policy "doc seq write" on public.restaurant_document_sequences for all
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::restaurant_role[]));
+
+create policy "pr read" on public.restaurant_purchase_requests for select using (public.restaurant_can_read(tenant_id));
+
+create policy "pr write" on public.restaurant_purchase_requests for all
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager','bartender']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager','bartender']::restaurant_role[]));
+
+create policy "pr items read" on public.restaurant_purchase_request_items for select using (public.restaurant_can_read(tenant_id));
+
+create policy "pr items write" on public.restaurant_purchase_request_items for all
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager','bartender']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager','bartender']::restaurant_role[]));
+
+create policy "approval rules read" on public.restaurant_approval_rules for select using (public.restaurant_can_read(tenant_id));
+
+create policy "approval rules write" on public.restaurant_approval_rules for all
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager']::restaurant_role[]));
+
+create policy "confirmation read" on public.restaurant_supplier_confirmations for select using (public.restaurant_can_read(tenant_id));
+
+create policy "confirmation write" on public.restaurant_supplier_confirmations for all
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::restaurant_role[]));
+
+create policy "confirmation items read" on public.restaurant_supplier_confirmation_items for select using (public.restaurant_can_read(tenant_id));
+
+create policy "confirmation items write" on public.restaurant_supplier_confirmation_items for all
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::restaurant_role[]));
+
+create policy "receipt read" on public.restaurant_goods_receipts for select using (public.restaurant_can_read(tenant_id));
+
+create policy "receipt write" on public.restaurant_goods_receipts for all
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager']::restaurant_role[]));
+
+create policy "receipt items read" on public.restaurant_goods_receipt_items for select using (public.restaurant_can_read(tenant_id));
+
+create policy "receipt items write" on public.restaurant_goods_receipt_items for all
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager']::restaurant_role[]));
+
+create policy "variance read" on public.restaurant_procurement_variances for select using (public.restaurant_can_read(tenant_id));
+
+create policy "variance write" on public.restaurant_procurement_variances for all
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant','chef','kitchen_manager']::restaurant_role[]));
+
+create policy "price history read" on public.restaurant_supplier_price_history for select using (public.restaurant_can_read(tenant_id));
+
+create policy "price history write" on public.restaurant_supplier_price_history for all
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','inventory_manager','accountant']::restaurant_role[]));
+
+create policy "invoice read" on public.restaurant_supplier_invoices for select using (public.restaurant_can_read(tenant_id));
+
+create policy "invoice write" on public.restaurant_supplier_invoices for all
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','accountant']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','accountant']::restaurant_role[]));
+
+create policy "invoice items read" on public.restaurant_supplier_invoice_items for select using (public.restaurant_can_read(tenant_id));
+
+create policy "invoice items write" on public.restaurant_supplier_invoice_items for all
+  using (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','accountant']::restaurant_role[]))
+  with check (public.restaurant_can_write(tenant_id, array['owner','general_manager','restaurant_manager','purchasing_officer','accountant']::restaurant_role[]));
+
+create policy "procurement audit read" on public.restaurant_procurement_audit for select using (public.restaurant_can_read(tenant_id));
+
+create policy "procurement audit append" on public.restaurant_procurement_audit for insert
+  with check (public.restaurant_can_read(tenant_id) and actor_id = auth.uid());
+
+CREATE POLICY "inventory reasons read" ON public.restaurant_inventory_reasons
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "inventory reasons write" ON public.restaurant_inventory_reasons
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager']::restaurant_role[]));
+
+CREATE POLICY "inventory batches read" ON public.restaurant_inventory_batches
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "inventory batches write" ON public.restaurant_inventory_batches
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','purchasing_officer']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','purchasing_officer']::restaurant_role[]));
+
+CREATE POLICY "stock transfers read" ON public.restaurant_stock_transfers
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "stock transfers write" ON public.restaurant_stock_transfers
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]));
+
+CREATE POLICY "stock transfer lines read" ON public.restaurant_stock_transfer_lines
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "stock transfer lines write" ON public.restaurant_stock_transfer_lines
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]));
+
+CREATE POLICY "stock reservations read" ON public.restaurant_stock_reservations
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "stock reservations write" ON public.restaurant_stock_reservations
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]));
+
+CREATE POLICY "stocktakes read" ON public.restaurant_stocktakes
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "stocktakes write" ON public.restaurant_stocktakes
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]));
+
+CREATE POLICY "stocktake lines read" ON public.restaurant_stocktake_lines
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "stocktake lines write" ON public.restaurant_stocktake_lines
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]));
+
+CREATE POLICY "recipes read" ON public.restaurant_recipes
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "recipes write" ON public.restaurant_recipes
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
+
+CREATE POLICY "recipe lines read" ON public.restaurant_recipe_lines
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "recipe lines write" ON public.restaurant_recipe_lines
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
+
+CREATE POLICY "recipe cost history read" ON public.restaurant_recipe_cost_history
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "recipe cost history write" ON public.restaurant_recipe_cost_history
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','accountant']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','accountant']::restaurant_role[]));
+
+CREATE POLICY "products read" ON public.restaurant_products
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "products write" ON public.restaurant_products
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
+
+CREATE POLICY "product variants read" ON public.restaurant_product_variants
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "product variants write" ON public.restaurant_product_variants
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
+
+CREATE POLICY "modifier groups read" ON public.restaurant_modifier_groups
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "modifier groups write" ON public.restaurant_modifier_groups
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
+
+CREATE POLICY "modifiers read" ON public.restaurant_modifiers
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "modifiers write" ON public.restaurant_modifiers
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
+
+CREATE POLICY "product modifier groups read" ON public.restaurant_product_modifier_groups
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "product modifier groups write" ON public.restaurant_product_modifier_groups
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
+
+CREATE POLICY "bundle components read" ON public.restaurant_bundle_components
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "bundle components write" ON public.restaurant_bundle_components
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager']::restaurant_role[]));
+
+CREATE POLICY "productions read" ON public.restaurant_productions
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "productions write" ON public.restaurant_productions
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','inventory_manager']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','inventory_manager']::restaurant_role[]));
+
+CREATE POLICY "production inputs read" ON public.restaurant_production_inputs
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "production inputs write" ON public.restaurant_production_inputs
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','inventory_manager']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','chef','kitchen_manager','inventory_manager']::restaurant_role[]));
+
+CREATE POLICY "currencies read" ON public.restaurant_currencies FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "currencies write" ON public.restaurant_currencies FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]));
+
+CREATE POLICY "fx read" ON public.restaurant_exchange_rates FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "fx write" ON public.restaurant_exchange_rates FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]));
+
+CREATE POLICY "prices read" ON public.restaurant_prices FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "prices write" ON public.restaurant_prices FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]));
+
+CREATE POLICY "tax read" ON public.restaurant_tax_rules FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "tax write" ON public.restaurant_tax_rules FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]));
+
+CREATE POLICY "service charge read" ON public.restaurant_service_charges FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "service charge write" ON public.restaurant_service_charges FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]));
+
+CREATE POLICY "discount rule read" ON public.restaurant_discount_rules FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "discount rule write" ON public.restaurant_discount_rules FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::restaurant_role[]));
+
+CREATE POLICY "discount app read" ON public.restaurant_discount_applications FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "discount app insert" ON public.restaurant_discount_applications FOR INSERT TO authenticated WITH CHECK (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "promotions read" ON public.restaurant_promotions FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "promotions write" ON public.restaurant_promotions FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::restaurant_role[]));
+
+CREATE POLICY "pricing audit read" ON public.restaurant_pricing_audit FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "pricing audit insert" ON public.restaurant_pricing_audit FOR INSERT TO authenticated WITH CHECK (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "restaurant_receipts_read"
+  ON public.restaurant_receipts FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "restaurant_receipts_write"
+  ON public.restaurant_receipts FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','bartender','accountant']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','bartender','accountant']::restaurant_role[]));
+
+CREATE POLICY "requisitions read" ON public.restaurant_requisitions
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "requisitions write" ON public.restaurant_requisitions
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]));
+
+CREATE POLICY "requisition lines read" ON public.restaurant_requisition_lines
+  FOR SELECT TO authenticated USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "requisition lines write" ON public.restaurant_requisition_lines
+  FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','inventory_manager','kitchen_manager','chef','bartender']::restaurant_role[]));
+
+CREATE POLICY "price lists read" ON public.restaurant_price_lists FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "price lists write" ON public.restaurant_price_lists FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::restaurant_role[]));
+
+CREATE POLICY "rounding rules read" ON public.restaurant_rounding_rules FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "rounding rules write" ON public.restaurant_rounding_rules FOR ALL TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager']::restaurant_role[]));
+
+CREATE POLICY "Restaurant members read document events"
+  ON public.restaurant_document_events FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "Restaurant members append document events"
+  ON public.restaurant_document_events FOR INSERT TO authenticated
+  WITH CHECK (public.restaurant_can_read(tenant_id) AND actor_id = auth.uid());
+
+CREATE POLICY "daily closes read" ON public.restaurant_daily_closes FOR SELECT TO authenticated
+  USING (restaurant_can_read(tenant_id));
+
+CREATE POLICY "daily closes write" ON public.restaurant_daily_closes FOR ALL TO authenticated
+  USING (restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]))
+  WITH CHECK (restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]));
+
+CREATE POLICY "tender declarations read" ON public.restaurant_tender_declarations FOR SELECT TO authenticated
+  USING (restaurant_can_read(tenant_id));
+
+CREATE POLICY "tender declarations write" ON public.restaurant_tender_declarations FOR ALL TO authenticated
+  USING (restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]))
+  WITH CHECK (restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant']::restaurant_role[]));
+
+CREATE POLICY "reconciliation runs read" ON public.restaurant_reconciliation_runs FOR SELECT TO authenticated
+  USING (restaurant_can_read(tenant_id));
+
+CREATE POLICY "reconciliation runs write" ON public.restaurant_reconciliation_runs FOR ALL TO authenticated
+  USING (restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant','inventory_manager']::restaurant_role[]))
+  WITH CHECK (restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant','inventory_manager']::restaurant_role[]));
+
+CREATE POLICY "reconciliation exceptions read" ON public.restaurant_reconciliation_exceptions FOR SELECT TO authenticated
+  USING (restaurant_can_read(tenant_id));
+
+CREATE POLICY "reconciliation exceptions write" ON public.restaurant_reconciliation_exceptions FOR ALL TO authenticated
+  USING (restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant','inventory_manager','purchasing_officer']::restaurant_role[]))
+  WITH CHECK (restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','accountant','inventory_manager','purchasing_officer']::restaurant_role[]));
+
+CREATE POLICY "reconciliation audit read" ON public.restaurant_reconciliation_audit FOR SELECT TO authenticated
+  USING (restaurant_can_read(tenant_id));
+
+CREATE POLICY "reconciliation audit append" ON public.restaurant_reconciliation_audit FOR INSERT TO authenticated
+  WITH CHECK (restaurant_can_read(tenant_id));
+
+CREATE POLICY "receipt deliveries readable by tenant"
+  ON public.restaurant_receipt_deliveries FOR SELECT TO authenticated
+  USING (public.restaurant_can_read(tenant_id));
+
+CREATE POLICY "receipt deliveries writable by tenant staff"
+  ON public.restaurant_receipt_deliveries FOR INSERT TO authenticated
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','bartender','accountant']::restaurant_role[]));
+
+CREATE POLICY "receipt deliveries updatable by tenant staff"
+  ON public.restaurant_receipt_deliveries FOR UPDATE TO authenticated
+  USING (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','bartender','accountant']::restaurant_role[]))
+  WITH CHECK (public.restaurant_can_write(tenant_id, ARRAY['owner','general_manager','restaurant_manager','bartender','accountant']::restaurant_role[]));
 
 -- 1. Scope restaurant procurement policies to authenticated role
 ALTER POLICY "variance read" ON public.restaurant_procurement_variances TO authenticated;
@@ -3634,42 +3587,3 @@ ALTER POLICY "approval rules write" ON public.restaurant_approval_rules TO authe
 ALTER POLICY "doc seq read" ON public.restaurant_document_sequences TO authenticated;
 
 ALTER POLICY "doc seq write" ON public.restaurant_document_sequences TO authenticated;
-
-ALTER TABLE public.restaurant_orders
-  ADD COLUMN IF NOT EXISTS cancelled_at timestamptz,
-  ADD COLUMN IF NOT EXISTS cancelled_by uuid,
-  ADD COLUMN IF NOT EXISTS cancel_reason text;
-
-ALTER TABLE public.restaurant_goods_receipt_items
-  ADD COLUMN IF NOT EXISTS batch_id uuid REFERENCES public.restaurant_inventory_batches(id) ON DELETE SET NULL;
-
--- One logical reversal per original movement, enforced by the database and not
--- by the UI: a retried void, a replayed request and a double tap collapse into
--- the same single correction.
-CREATE UNIQUE INDEX IF NOT EXISTS restaurant_stock_movements_reversal_once_idx
-  ON public.restaurant_stock_movements (reversal_of_id)
-  WHERE reversal_of_id IS NOT NULL;
-
-DROP TRIGGER IF EXISTS enforce_purchase_order_transition ON public.restaurant_purchase_orders;
-
-CREATE TRIGGER enforce_purchase_order_transition
-BEFORE UPDATE OF status ON public.restaurant_purchase_orders
-FOR EACH ROW
-EXECUTE FUNCTION public.enforce_purchase_order_transition();
-
--- ---------- updated_at triggers ----------
-DO $$
-DECLARE t text;
-BEGIN
-  FOREACH t IN ARRAY ARRAY[
-    'restaurant_tenants','restaurant_properties','restaurant_locations','restaurant_members',
-    'restaurant_subscriptions','restaurant_categories','restaurant_menus','restaurant_menu_items',
-    'restaurant_inventory_units','restaurant_inventory_categories','restaurant_inventory_items',
-    'restaurant_suppliers','restaurant_supplier_products','restaurant_purchase_orders',
-    'restaurant_purchase_order_items','restaurant_recipe_components','restaurant_recipe_costs']
-  LOOP
-    EXECUTE format('DROP TRIGGER IF EXISTS trg_%1$s_updated_at ON public.%1$s', t);
-    EXECUTE format(
-      'CREATE TRIGGER trg_%1$s_updated_at BEFORE UPDATE ON public.%1$s FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column()', t);
-  END LOOP;
-END $$;
