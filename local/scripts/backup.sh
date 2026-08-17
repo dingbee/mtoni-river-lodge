@@ -24,7 +24,10 @@ TENANTS="$(psql -X -tAc "SELECT coalesce(json_agg(json_build_object('id', id, 's
 
 nova_log "backup: $DUMP"
 # Custom format: compressed, selectively restorable, and restore-order aware.
-pg_dump --format=custom --compress=9 --no-owner --no-privileges \
+# Privileges ARE included: PostgREST resolves the anon/authenticated/service_role
+# grants at runtime, and a restore without them leaves a silently unreadable
+# database. Ownership is not, because the restoring superuser may differ.
+pg_dump --format=custom --compress=9 \
         --file="$DUMP" "$PGDATABASE"
 
 CHECKSUM="$(sha256sum "$DUMP" | cut -d' ' -f1)"

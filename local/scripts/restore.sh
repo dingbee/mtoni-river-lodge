@@ -38,7 +38,7 @@ for f in "$NOVA_LOCAL_DIR"/sql/pre/00-roles.sql; do
   PGDATABASE="$TARGET" nova_psql -d "$TARGET" -f "$f" >/dev/null
 done
 
-pg_restore --dbname="$TARGET" --no-owner --no-privileges --exit-on-error "$DUMP"
+pg_restore --dbname="$TARGET" --no-owner --exit-on-error "$DUMP"
 
 COUNT="$(psql -X -d "$TARGET" -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'" | tr -d '[:space:]')"
 nova_log "restore complete: $COUNT public tables in $TARGET"
