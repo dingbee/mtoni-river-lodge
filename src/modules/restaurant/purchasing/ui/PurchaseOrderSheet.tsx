@@ -1,6 +1,8 @@
 /**
- * Create a purchase order directly against a supplier — the fast path for
- * stock that does not need a purchase request first.
+ * Create a purchase order directly against a supplier.
+ *
+ * A direct order bypasses the requisition stage, so it is an authorised
+ * exception: the reason is mandatory and is written to the audit trail.
  */
 import * as React from "react";
 import { Plus, Trash2 } from "lucide-react";
@@ -22,6 +24,7 @@ export interface PurchaseOrderFormValue {
   expectedAt: string;
   currency: string;
   notes: string;
+  directReason: string;
   lines: PurchaseOrderLineValue[];
 }
 
@@ -32,6 +35,7 @@ const EMPTY: PurchaseOrderFormValue = {
   expectedAt: "",
   currency: "TZS",
   notes: "",
+  directReason: "",
   lines: [{ ...EMPTY_LINE }],
 };
 
@@ -56,14 +60,17 @@ export function PurchaseOrderSheet({
   }, [open]);
 
   const total = value.lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0);
-  const valid = Boolean(value.supplierId) && value.lines.every((l) => l.description.trim() && l.quantity > 0);
+  const valid =
+    Boolean(value.supplierId) &&
+    value.directReason.trim().length >= 10 &&
+    value.lines.every((l) => l.description.trim() && l.quantity > 0);
 
   return (
     <EntitySheet
       open={open}
       onOpenChange={onOpenChange}
       title="New purchase order"
-      description="Order lines go straight to the supplier. Receiving and invoicing happen later, against this order."
+      description="A direct order skips the requisition stage, so it needs an authorised reason. Receiving and invoicing happen later, against this order."
       submitLabel="Create order"
       pending={pending}
       disabled={!valid}
@@ -89,6 +96,18 @@ export function PurchaseOrderSheet({
       </FieldRow>
       <Field label="Currency" required>
         <Input className="h-11 w-32" value={value.currency} onChange={(e) => setValue((v) => ({ ...v, currency: e.target.value.toUpperCase() }))} />
+      </Field>
+
+      <Field
+        label="Reason for ordering without a request"
+        required
+        hint="At least 10 characters, e.g. emergency purchase, approved operational exception. Recorded in the audit trail."
+      >
+        <Textarea
+          rows={2}
+          value={value.directReason}
+          onChange={(e) => setValue((v) => ({ ...v, directReason: e.target.value }))}
+        />
       </Field>
 
       <div className="space-y-3">
