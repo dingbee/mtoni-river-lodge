@@ -398,7 +398,9 @@ export function PosWorkspace({ lens = "restaurant" }: { lens?: PosLens } = {}) {
 
       {orderId && <GuestContextBanner tenantId={tenantId} orderId={orderId} />}
 
-      <div className="grid gap-4 md:grid-cols-2 min-[1700px]:grid-cols-[260px_minmax(0,1fr)_340px]">
+      {/* Tablet-first: 8"/10" portrait (<1024px) stays single column so the
+          floor, catalogue and bill each keep full-width touch targets. */}
+      <div className="grid gap-4 lg:grid-cols-2 min-[1700px]:grid-cols-[260px_minmax(0,1fr)_340px]">
         {/* Floor */}
         <SectionCard
           title={isBar ? "Bar floor & tabs" : "Floor"}
