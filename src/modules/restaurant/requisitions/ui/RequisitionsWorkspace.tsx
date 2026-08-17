@@ -17,6 +17,7 @@ import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { EmptyState } from "@/components/os/EmptyState";
 import { StatusChip } from "@/components/os/StatusChip";
+import { DocumentActions } from "@/modules/restaurant/documents/ui/DocumentActions";
 import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { useRestaurantWorkspace } from "../../ui/useRestaurantWorkspace";
 import { hasRestaurantCapability } from "../../core/permissions";
