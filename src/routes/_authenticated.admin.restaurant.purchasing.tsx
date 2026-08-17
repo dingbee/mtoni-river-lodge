@@ -83,6 +83,7 @@ function PurchasingPage() {
           expectedAt: v.expectedAt || undefined,
           currency: v.currency,
           notes: v.notes || undefined,
+          directReason: v.directReason,
           lines: v.lines.map((l) => ({
             description: l.description,
             quantity: l.quantity,
