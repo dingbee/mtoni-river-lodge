@@ -18,6 +18,7 @@ export const HOST_REQUIREMENTS = {
     { port: 5432, component: "database", exposure: "loopback" },
     { port: 3001, component: "data-service", exposure: "loopback" },
     { port: 8000, component: "gateway", exposure: "lan" },
+    { port: 8443, component: "gateway-tls", exposure: "lan" },
   ] as const,
 };
 
