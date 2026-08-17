@@ -111,6 +111,14 @@ export const reopenPosOrderSchema = z.object({
 });
 export type ReopenPosOrderInput = z.infer<typeof reopenPosOrderSchema>;
 
+/** Whole-order cancellation. A reason is mandatory: cancellation is auditable. */
+export const cancelOrderSchema = z.object({
+  tenantId: uuid,
+  orderId: uuid,
+  reason: z.string().min(3).max(300),
+});
+export type CancelOrderInput = z.infer<typeof cancelOrderSchema>;
+
 export const posBoardSchema = tenantScopeSchema;
 export const posCatalogSchema = tenantScopeSchema.extend({
   menuId: uuid.optional(),
