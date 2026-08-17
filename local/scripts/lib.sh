@@ -23,6 +23,11 @@ nova_load_env() {
   : "${NOVA_POSTGREST_SCHEMAS:=public,storage}"
   : "${NOVA_GATEWAY_HOST:=0.0.0.0}"
   : "${NOVA_GATEWAY_PORT:=8000}"
+  : "${NOVA_GATEWAY_TLS_PORT:=8443}"
+  : "${NOVA_TLS_MODE:=auto}"
+  : "${NOVA_TLS_DIR:=${NOVA_KEY_DIR:-$NOVA_LOCAL_DIR/keys}/tls}"
+  : "${NOVA_TLS_CERT_FILE:=$NOVA_TLS_DIR/gateway.crt}"
+  : "${NOVA_TLS_KEY_FILE:=$NOVA_TLS_DIR/gateway.key}"
   : "${NOVA_BACKUP_DIR:=$NOVA_LOCAL_DIR/backups}"
   : "${NOVA_RUN_DIR:=$NOVA_LOCAL_DIR/run}"
   export PGHOST="$NOVA_DB_HOST" PGPORT="$NOVA_DB_PORT" PGUSER="$NOVA_DB_SUPERUSER" PGDATABASE="$NOVA_DB_NAME"
@@ -41,6 +46,25 @@ nova_require() {
 
 nova_psql() {
   psql -v ON_ERROR_STOP=1 -X -q "$@"
+}
+
+# The scheme depends on whether this installation has TLS material, so every
+# script asks here instead of hardcoding http://.
+nova_gateway_url() {
+  local host="${1:-127.0.0.1}"
+  if [[ "$NOVA_TLS_MODE" != "off" && -f "$NOVA_TLS_CERT_FILE" && -f "$NOVA_TLS_KEY_FILE" ]]; then
+    echo "https://$host:$NOVA_GATEWAY_TLS_PORT"
+  else
+    echo "http://$host:$NOVA_GATEWAY_PORT"
+  fi
+}
+
+# Local curl against our own appliance certificate: the CA is pinned, never
+# --insecure.
+nova_curl() {
+  local ca="$NOVA_TLS_DIR/nova-local-ca.crt"
+  if [[ -f "$ca" ]]; then curl --cacert "$ca" --resolve "$(hostname):$NOVA_GATEWAY_TLS_PORT:127.0.0.1" "$@"
+  else curl "$@"; fi
 }
 
 nova_log() { printf '[nova-local] %s\n' "$*"; }

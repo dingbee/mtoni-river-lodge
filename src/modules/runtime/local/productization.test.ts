@@ -8,6 +8,13 @@ import {
   redactRecord,
   redactText,
 } from "./diagnostics";
+import {
+  buildSanList,
+  evaluateCertificate,
+  pwaInstallability,
+  resolveTlsConfig,
+  terminalOrigin,
+} from "./tls";
 import { checkCompatibility, APP_VERSION, REQUIRED_SCHEMA_VERSION } from "../version";
 
 const healthyFacts = {
@@ -153,5 +160,51 @@ describe("version contract", () => {
     expect(checkCompatibility({ schemaVersion: REQUIRED_SCHEMA_VERSION, postgresVersion: "14.1" }).reason).toBe(
       "postgres-too-old",
     );
+  });
+});
+
+describe("local TLS origin (P-4C)", () => {
+  const present = { certPresent: true, keyPresent: true };
+
+  it("enables HTTPS when certificate material exists", () => {
+    const cfg = resolveTlsConfig({}, present);
+    expect(cfg).toMatchObject({ enabled: true, httpsPort: 8443, httpPort: 8000 });
+    expect(terminalOrigin(cfg, "10.0.0.5")).toBe("https://10.0.0.5:8443");
+  });
+
+  it("stays on HTTP, with a stated reason, when material is missing or disabled", () => {
+    const missing = resolveTlsConfig({}, { certPresent: false, keyPresent: true });
+    expect(missing.enabled).toBe(false);
+    expect(missing.reason).toMatch(/certificate/i);
+    const off = resolveTlsConfig({ NOVA_TLS_MODE: "off" }, present);
+    expect(off.enabled).toBe(false);
+    expect(terminalOrigin(off, "10.0.0.5")).toBe("http://10.0.0.5:8000");
+  });
+
+  it("covers hostname, mDNS name and LAN address in the certificate", () => {
+    const san = buildSanList({
+      hostnames: ["nova-appliance", "localhost"],
+      ipAddresses: ["192.168.1.20", "169.254.3.4", "127.0.0.1"],
+    });
+    expect(san).toContain("DNS:localhost");
+    expect(san).toContain("DNS:nova-appliance");
+    expect(san).toContain("DNS:nova-appliance.local");
+    expect(san).toContain("IP:192.168.1.20");
+    expect(san).not.toContain("IP:169.254.3.4");
+    expect(san.filter((s) => s === "IP:127.0.0.1")).toHaveLength(1);
+  });
+
+  it("reports certificate lifecycle honestly", () => {
+    const now = new Date("2026-01-01T00:00:00Z");
+    expect(evaluateCertificate("2027-01-01T00:00:00Z", now).status).toBe("ok");
+    expect(evaluateCertificate("2026-01-20T00:00:00Z", now).status).toBe("expiring");
+    expect(evaluateCertificate("2025-12-01T00:00:00Z", now).status).toBe("expired");
+    expect(evaluateCertificate(null, now).status).toBe("unknown");
+  });
+
+  it("does not claim PWA installability on an untrusted or insecure origin", () => {
+    expect(pwaInstallability({ https: false, certificateTrustedByDevice: true, host: "192.168.1.20" }).installable).toBe(false);
+    expect(pwaInstallability({ https: true, certificateTrustedByDevice: false, host: "192.168.1.20" }).installable).toBe(false);
+    expect(pwaInstallability({ https: true, certificateTrustedByDevice: true, host: "192.168.1.20" }).installable).toBe(true);
   });
 });

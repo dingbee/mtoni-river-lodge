@@ -12,10 +12,11 @@
  * the frozen application code runs unchanged against either runtime.
  */
 import { SQL } from "bun";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { AuthError, refreshSession, signInWithPassword, signOut, type AuthDeps } from "./auth";
 import { bootstrapProperty } from "./bootstrap";
 import { collectHealth } from "./health";
+import { resolveTlsConfig, terminalOrigin } from "../../src/modules/runtime/local/tls";
 import { collectSystemInformation } from "./system";
 
 const env = (key: string, fallback?: string): string => {
@@ -27,6 +28,17 @@ const env = (key: string, fallback?: string): string => {
 const PORT = Number(env("NOVA_GATEWAY_PORT", "8000"));
 const HOST = env("NOVA_GATEWAY_HOST", "0.0.0.0");
 const POSTGREST = `http://${env("NOVA_POSTGREST_HOST", "127.0.0.1")}:${env("NOVA_POSTGREST_PORT", "3001")}`;
+
+// ---- TLS ---------------------------------------------------------------
+// Android Chrome only treats HTTPS as a secure origin, so the LAN listener is
+// TLS whenever certificate material exists. PostgreSQL and PostgREST stay on
+// loopback either way; the gateway remains the only LAN surface.
+const TLS_CERT_FILE = process.env["NOVA_TLS_CERT_FILE"] ?? "";
+const TLS_KEY_FILE = process.env["NOVA_TLS_KEY_FILE"] ?? "";
+const tls = resolveTlsConfig(process.env as Record<string, string | undefined>, {
+  certPresent: TLS_CERT_FILE !== "" && existsSync(TLS_CERT_FILE),
+  keyPresent: TLS_KEY_FILE !== "" && existsSync(TLS_KEY_FILE),
+});
 
 const sql = new SQL({
   hostname: env("NOVA_DB_HOST", "127.0.0.1"),
@@ -94,11 +106,9 @@ async function proxyToPostgrest(request: Request, path: string): Promise<Respons
   return new Response(response.body, { status: response.status, headers: out });
 }
 
-const server = Bun.serve({
-  hostname: HOST,
-  port: PORT,
+const handler = {
   idleTimeout: 60,
-  async fetch(request, srv) {
+  async fetch(request: Request, srv: { requestIP(r: Request): { address: string } | null }) {
     const url = new URL(request.url);
     const path = url.pathname;
     const ip = srv.requestIP(request)?.address ?? "unknown";
@@ -165,6 +175,33 @@ const server = Bun.serve({
       return json({ error: "Internal error" }, 500);
     }
   },
+};
+
+const server = Bun.serve({
+  hostname: HOST,
+  port: tls.enabled ? tls.httpsPort : PORT,
+  ...(tls.enabled
+    ? { tls: { cert: readFileSync(TLS_CERT_FILE), key: readFileSync(TLS_KEY_FILE) } }
+    : {}),
+  ...handler,
 });
 
-console.log(`[nova-local] gateway listening on http://${HOST}:${server.port} -> ${POSTGREST}`);
+// When TLS is on, the plain port exists only to send terminals to the secure
+// origin — it never serves data.
+if (tls.enabled) {
+  Bun.serve({
+    hostname: HOST,
+    port: tls.httpPort,
+    fetch(request) {
+      const url = new URL(request.url);
+      url.protocol = "https:";
+      url.port = String(tls.httpsPort);
+      return Response.redirect(url.toString(), 308);
+    },
+  });
+}
+
+console.log(
+  `[nova-local] gateway listening on ${terminalOrigin(tls, HOST)} -> ${POSTGREST}` +
+    (tls.enabled ? ` (HTTP :${tls.httpPort} redirects to HTTPS)` : ` (TLS off: ${tls.reason})`),
+);

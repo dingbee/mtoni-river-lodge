@@ -293,3 +293,49 @@ origin (which unblocks Android PWA installation), an install profile that
 suppresses the seed tenant, and a tablet certification pass with a provisioned
 restaurant tenant. No P-4 change touched the frozen operational core, so the
 Restaurant + Bar freeze still holds.
+
+---
+
+## PRODUCTIZATION-4C — Final certification pass (2026-08-17)
+
+### Evidence collected on a bare-host rehearsal install (`/tmp/nova-cert`, database `nova_cert`, ports 8100/8543/3101/55432)
+
+| Area | Result | Evidence |
+| --- | --- | --- |
+| TLS on the LAN origin | PASS | `curl --cacert nova-local-ca.crt https://<lan-ip>:8543/ready` → HTTP 200, `ssl_verify_result=0`; certificate covers hostname, mDNS name and LAN IP |
+| Untrusted client rejected | PASS | request without the local CA fails TLS (exit 60) |
+| HTTP → HTTPS | PASS | `http://<lan-ip>:8100/admin/restaurant/pos` → 308 to the HTTPS origin |
+| Network exposure | PASS | PostgREST (3101) and PostgreSQL (55432) refuse LAN connections; only the gateway is reachable |
+| Installer safety | PASS | second `install.sh` run detects install `66b47d0f…` v1.2.0 and aborts with "re-run with --upgrade or --repair"; no data touched |
+| Real (non-Mtoni) tenant | PASS | "NOVA Hospitality Certification Property" bootstrapped over HTTPS; admin signs in; tenant listing contains no Mtoni identifiers |
+| Restaurant trading spine | PASS | catalogue → price → table → order → modifier line → production → bill → payment → receipt → close, ledgered inventory |
+| Bar trading spine | PASS | same chain with bar category/tab and beverage modifier |
+| Payment replay | PASS | resubmitted payment with the same request id does not duplicate |
+| Purchase-order governance | FIXED, PASS | direct `draft → approved` and `draft → received` writes through the data API are now refused; `submitted → approved → partially_received → received` succeeds; a received order can no longer be cancelled |
+| Backup | PASS | `novactl.sh backup` → dump + manifest, sha256 recorded |
+| Restore drill | FIXED, PASS | receipts and payments deleted, restored from the artifact, counts recovered (orders 2, receipts 2, payments 2, movements 4) and the appliance returned to SYSTEM READY |
+| Corrupted artifact | PASS | checksum mismatch refuses to restore |
+| Secret hygiene | PASS | `/health` and `/nova/v1/system` expose versions only |
+| Android tablet terminal | **FAIL** | the appliance does not serve the application UI — see blocker below |
+
+### Defects found and fixed in this pass
+
+1. **Purchase-order lifecycle bypass on the local appliance.** Governance lived only in the cloud server functions, so a staff token could `PATCH` a purchase order straight from `draft` to `approved` or `received` through the data API. A database trigger now enforces the same state machine (`draft → submitted → approved → partially_received → received`, cancel before terminal), on both the hosted and local runtimes.
+2. **Restore could create a junk database.** A stray flag (`--yes`) was silently treated as the target database name. Arguments are now validated and unknown options rejected.
+3. **Restore was unconfirmed and destructive.** Replacing a live database now requires typing the database name, or `--yes` for scripted use; non-interactive runs without `--yes` refuse.
+4. **Restore failed while the appliance was trading** ("database is being accessed by other users"). Sessions are now closed before the swap, and the data service is asked to reconnect and reload afterwards.
+5. **No operator route to backup/restore/diagnostics.** `novactl.sh` now exposes `backup`, `restore` and `diagnostics` alongside the lifecycle commands.
+
+### Remaining blocker — Android tablet terminals
+
+The gateway serves auth, bootstrap, health and the data API, but has no route that serves the application itself: every UI path returns `{"error":"Not found"}`. Browser certification at 8" and 10" tablet viewports therefore could not assess the POS layout, and PWA installability cannot be evaluated because no manifest or app shell is served from the appliance origin.
+
+Root cause: the web application builds for the hosted Workers runtime (`preset: cloudflare-module`, server-rendered). Overriding the preset at build time does not change it. To ship tablet terminals the appliance needs an application bundle it can serve locally, plus a gateway route that serves it with SPA-style fallback and the terminal web manifest.
+
+### Answer to the commercial question
+
+**Can Nolmark hand NOVA Hospitality to a real hospitality customer today as a local-server product with Android tablet terminals?**
+
+**Not yet.** The server side is genuinely ready: a clean install on a fresh machine, a real tenant provisioned, restaurant and bar trading end to end, procurement now governed at the data layer, encrypted LAN access, safe re-installation, and a proven backup/restore drill. What is missing is the terminal itself — the appliance does not yet serve the application to a tablet, so staff have nothing to open. Until the appliance ships and serves its own application bundle (and one physical Android tablet is certified against it), NOVA Hospitality can be sold as a local back-office and data appliance, not as a tablet POS product.
+
+**STATUS: 🟡 PRODUCTIZATION-4 — SERVER APPLIANCE CERTIFIED, TABLET TERMINAL NOT CERTIFIED**

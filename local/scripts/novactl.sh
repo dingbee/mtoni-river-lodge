@@ -2,13 +2,15 @@
 # PRODUCTIZATION-4 Phase E — service lifecycle control.
 #
 #   start | stop | restart | status | health | ready | version
+#   tls | backup | restore | diagnostics
 #
 # "status" answers "are the processes running"; "ready" answers "can the
 # business trade" — the two are deliberately different questions.
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 nova_load_env
 
-gw="http://127.0.0.1:$NOVA_GATEWAY_PORT"
+gw="$(nova_gateway_url 127.0.0.1)"
+CURL=(curl -sk)   # loopback to our own appliance certificate
 
 pid_alive() { [[ -f "$NOVA_RUN_DIR/$1.pid" ]] && kill -0 "$(cat "$NOVA_RUN_DIR/$1.pid")" 2>/dev/null; }
 
@@ -21,7 +23,7 @@ cmd_status() {
 
 cmd_ready() {
   local code
-  code=$(curl -s -o "$NOVA_RUN_DIR/ready.json" -w '%{http_code}' "$gw/ready" || echo 000)
+  code=$("${CURL[@]}" -o "$NOVA_RUN_DIR/ready.json" -w '%{http_code}' "$gw/ready" || echo 000)
   cat "$NOVA_RUN_DIR/ready.json" 2>/dev/null; echo
   if [[ "$code" == "200" ]]; then nova_log "SYSTEM READY"; return 0; fi
   echo "SYSTEM NOT READY (HTTP $code)" >&2; return 1
@@ -32,8 +34,12 @@ case "${1:-status}" in
   stop)    bash "$NOVA_LOCAL_DIR/scripts/stop.sh" ;;      # reverse dependency order
   restart) bash "$NOVA_LOCAL_DIR/scripts/stop.sh"; bash "$NOVA_LOCAL_DIR/scripts/start.sh" ;;
   status)  cmd_status ;;
-  health)  curl -s "$gw/health"; echo ;;
+  health)  "${CURL[@]}" "$gw/health"; echo ;;
   ready)   cmd_ready ;;
-  version) curl -s "$gw/nova/v1/system"; echo ;;
-  *) echo "usage: novactl.sh {start|stop|restart|status|health|ready|version}" >&2; exit 2 ;;
+  version) "${CURL[@]}" "$gw/nova/v1/system"; echo ;;
+  tls)     bash "$NOVA_LOCAL_DIR/scripts/gen-tls.sh" "${2:-}" ;;
+  backup)      bash "$NOVA_LOCAL_DIR/scripts/backup.sh" "${@:2}" ;;
+  restore)     bash "$NOVA_LOCAL_DIR/scripts/restore.sh" "${@:2}" ;;
+  diagnostics) bash "$NOVA_LOCAL_DIR/scripts/diagnostics.sh" "${@:2}" ;;
+  *) echo "usage: novactl.sh {start|stop|restart|status|health|ready|version|tls|backup|restore|diagnostics}" >&2; exit 2 ;;
 esac
