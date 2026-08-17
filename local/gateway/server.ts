@@ -16,6 +16,7 @@ import { readFileSync } from "node:fs";
 import { AuthError, refreshSession, signInWithPassword, signOut, type AuthDeps } from "./auth";
 import { bootstrapProperty } from "./bootstrap";
 import { collectHealth } from "./health";
+import { collectSystemInformation } from "./system";
 
 const env = (key: string, fallback?: string): string => {
   const value = process.env[key] ?? fallback;
@@ -108,6 +109,11 @@ const server = Bun.serve({
         const report = await collectHealth(sql, POSTGREST);
         const ok = report.components.every((c) => c.status === "ok" || c.status === "degraded");
         return json(report, path === "/ready" && !ok ? 503 : 200);
+      }
+
+      // ---- product / system information (versions only, never secrets) ----
+      if (path === "/nova/v1/system" && request.method === "GET") {
+        return json(await collectSystemInformation(sql, POSTGREST));
       }
 
       // ---- local auth -----------------------------------------------------
