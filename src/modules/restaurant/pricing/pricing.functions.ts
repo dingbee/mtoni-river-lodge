@@ -15,6 +15,7 @@ import {
   listPriceListsSchema,
   listRoundingRulesSchema,
   pricingAuditSchema,
+  pricingReadinessSchema,
   resolvePriceSchema,
   setPromotionStatusSchema,
   simulatePricingSchema,
@@ -227,4 +228,12 @@ export const getRestaurantCommercialEvidenceFn = createServerFn({ method: "POST"
   .handler(async ({ data, context }) => {
     const mod = await import("./evidence.server");
     return mod.commercialEvidence(context.supabase, context.userId, data);
+  });
+
+export const restaurantPricingReadinessFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => pricingReadinessSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const mod = await import("./readiness.server");
+    return mod.pricingReadiness(context.supabase, context.userId, data);
   });
