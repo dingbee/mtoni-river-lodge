@@ -194,6 +194,7 @@ import { Route as AuthenticatedAdminStaffActivityRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminStaffRolesRouteImport } from './routes/_authenticated.admin.staff.roles'
 import { Route as AuthenticatedAdminStaffUsersRouteImport } from './routes/_authenticated.admin.staff.users'
 import { Route as AuthenticatedAdminSystemHealthRouteImport } from './routes/_authenticated.admin.system.health'
+import { Route as AuthenticatedAdminSystemNovaRouteImport } from './routes/_authenticated.admin.system.nova'
 import { Route as ApiPublicAvailabilitySearchRouteImport } from './routes/api/public/availability.search'
 import { Route as ApiPublicConciergeAttributionRouteImport } from './routes/api/public/concierge.attribution'
 import { Route as ApiPublicConciergeChatRouteImport } from './routes/api/public/concierge.chat'
@@ -1322,6 +1323,12 @@ const AuthenticatedAdminSystemHealthRoute =
     path: '/system/health',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminSystemNovaRoute =
+  AuthenticatedAdminSystemNovaRouteImport.update({
+    id: '/system/nova',
+    path: '/system/nova',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const ApiPublicAvailabilitySearchRoute =
   ApiPublicAvailabilitySearchRouteImport.update({
     id: '/api/public/availability/search',
@@ -1957,6 +1964,7 @@ export interface FileRoutesByFullPath {
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
   '/admin/system/health': typeof AuthenticatedAdminSystemHealthRoute
+  '/admin/system/nova': typeof AuthenticatedAdminSystemNovaRoute
   '/api/public/availability/search': typeof ApiPublicAvailabilitySearchRoute
   '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
@@ -2205,6 +2213,7 @@ export interface FileRoutesByTo {
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
   '/admin/system/health': typeof AuthenticatedAdminSystemHealthRoute
+  '/admin/system/nova': typeof AuthenticatedAdminSystemNovaRoute
   '/api/public/availability/search': typeof ApiPublicAvailabilitySearchRoute
   '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
@@ -2470,6 +2479,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/_authenticated/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
   '/_authenticated/admin/system/health': typeof AuthenticatedAdminSystemHealthRoute
+  '/_authenticated/admin/system/nova': typeof AuthenticatedAdminSystemNovaRoute
   '/api/public/availability/search': typeof ApiPublicAvailabilitySearchRoute
   '/api/public/concierge/attribution': typeof ApiPublicConciergeAttributionRoute
   '/api/public/concierge/chat': typeof ApiPublicConciergeChatRoute
@@ -2735,6 +2745,7 @@ export interface FileRouteTypes {
     | '/admin/staff/roles'
     | '/admin/staff/users'
     | '/admin/system/health'
+    | '/admin/system/nova'
     | '/api/public/availability/search'
     | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
@@ -2983,6 +2994,7 @@ export interface FileRouteTypes {
     | '/admin/staff/roles'
     | '/admin/staff/users'
     | '/admin/system/health'
+    | '/admin/system/nova'
     | '/api/public/availability/search'
     | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
@@ -3247,6 +3259,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/staff/roles'
     | '/_authenticated/admin/staff/users'
     | '/_authenticated/admin/system/health'
+    | '/_authenticated/admin/system/nova'
     | '/api/public/availability/search'
     | '/api/public/concierge/attribution'
     | '/api/public/concierge/chat'
@@ -4702,6 +4715,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSystemHealthRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/system/nova': {
+      id: '/_authenticated/admin/system/nova'
+      path: '/system/nova'
+      fullPath: '/admin/system/nova'
+      preLoaderRoute: typeof AuthenticatedAdminSystemNovaRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/api/public/availability/search': {
       id: '/api/public/availability/search'
       path: '/api/public/availability/search'
@@ -5848,6 +5868,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminStaffRolesRoute: typeof AuthenticatedAdminStaffRolesRoute
   AuthenticatedAdminStaffUsersRoute: typeof AuthenticatedAdminStaffUsersRoute
   AuthenticatedAdminSystemHealthRoute: typeof AuthenticatedAdminSystemHealthRoute
+  AuthenticatedAdminSystemNovaRoute: typeof AuthenticatedAdminSystemNovaRoute
   AuthenticatedAdminFinanceIndexRoute: typeof AuthenticatedAdminFinanceIndexRoute
   AuthenticatedAdminSettingsIndexRoute: typeof AuthenticatedAdminSettingsIndexRoute
   AuthenticatedAdminContentJournalIdRoute: typeof AuthenticatedAdminContentJournalIdRoute
@@ -5914,6 +5935,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminStaffRolesRoute: AuthenticatedAdminStaffRolesRoute,
   AuthenticatedAdminStaffUsersRoute: AuthenticatedAdminStaffUsersRoute,
   AuthenticatedAdminSystemHealthRoute: AuthenticatedAdminSystemHealthRoute,
+  AuthenticatedAdminSystemNovaRoute: AuthenticatedAdminSystemNovaRoute,
   AuthenticatedAdminFinanceIndexRoute: AuthenticatedAdminFinanceIndexRoute,
   AuthenticatedAdminSettingsIndexRoute: AuthenticatedAdminSettingsIndexRoute,
   AuthenticatedAdminContentJournalIdRoute:
