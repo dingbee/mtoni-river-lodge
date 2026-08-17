@@ -19,8 +19,41 @@ fi
 disk_mb=$(df -Pm "$NOVA_LOCAL_DIR" 2>/dev/null | awk 'NR==2 {print $4}')
 : "${disk_mb:=0}"
 
-pg_version="$(psql --version 2>/dev/null | awk '{print $3}')"
-[[ -z "$pg_version" ]] && pg_version="$(postgres --version 2>/dev/null | awk '{print $3}')"
+# --- database facts ---------------------------------------------------------
+# Standalone installs run PostgreSQL in the nova-fnb-postgres container, so the
+# host is never required to carry a PostgreSQL server or client. Every probe
+# below is read-only and must never abort the script (set -e / pipefail).
+NOVA_DB_CONTAINER="${NOVA_DB_CONTAINER:-nova-fnb-postgres}"
+db_mode="host"
+if [[ "${NOVA_DB_MODE:-auto}" == "docker" ]]; then
+  db_mode="docker"
+elif [[ "${NOVA_DB_MODE:-auto}" == "auto" ]] && command -v docker >/dev/null 2>&1 &&
+     docker ps -a --format '{{.Names}}' 2>/dev/null | grep -qx "$NOVA_DB_CONTAINER"; then
+  db_mode="docker"
+fi
+
+pg_version=""
+database_json="null"
+
+if [[ "$db_mode" == "docker" ]]; then
+  docker_available=false; container_running=false; db_ready=false; port_reachable=false
+  container_pg_version=""
+  command -v docker >/dev/null 2>&1 && docker_available=true
+  if [[ "$docker_available" == true ]]; then
+    [[ "$(docker inspect -f '{{.State.Running}}' "$NOVA_DB_CONTAINER" 2>/dev/null || echo false)" == "true" ]] &&
+      container_running=true
+    if [[ "$container_running" == true ]]; then
+      container_pg_version="$(docker exec "$NOVA_DB_CONTAINER" postgres --version 2>/dev/null | awk '{print $3}' || true)"
+      docker exec "$NOVA_DB_CONTAINER" pg_isready -U "${NOVA_DB_SUPERUSER}" >/dev/null 2>&1 && db_ready=true
+    fi
+  fi
+  (exec 3<>"/dev/tcp/127.0.0.1/${NOVA_DB_PORT}") 2>/dev/null && port_reachable=true
+  database_json="{\"mode\":\"docker\",\"dockerAvailable\":$docker_available,\"containerName\":\"$NOVA_DB_CONTAINER\",\"containerRunning\":$container_running,\"serverVersion\":$( [[ -n "$container_pg_version" ]] && echo "\"$container_pg_version\"" || echo null ),\"ready\":$db_ready,\"hostPort\":${NOVA_DB_PORT},\"portReachable\":$port_reachable}"
+else
+  pg_version="$( { psql --version 2>/dev/null || true; } | awk '{print $3}')"
+  [[ -z "$pg_version" ]] && pg_version="$( { postgres --version 2>/dev/null || true; } | awk '{print $3}')"
+  database_json="{\"mode\":\"host\"}"
+fi
 
 # Ports: a port held by our own pidfile process is an upgrade, not a conflict.
 ports_json="[]"
@@ -44,7 +77,8 @@ collect_ports
 
 FACTS=$(cat <<JSON
 {"platform":"$platform","architecture":"$arch","memoryMb":$memory_mb,"diskFreeMb":$disk_mb,
- "postgresVersion":$( [[ -n "$pg_version" ]] && echo "\"$pg_version\"" || echo null ),"portsInUse":$ports_json}
+ "postgresVersion":$( [[ -n "$pg_version" ]] && echo "\"$pg_version\"" || echo null ),
+ "database":$database_json,"portsInUse":$ports_json}
 JSON
 )
 
