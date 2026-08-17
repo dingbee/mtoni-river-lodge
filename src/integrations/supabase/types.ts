@@ -8707,6 +8707,7 @@ export type Database = {
         Row: {
           accepted_quantity: number
           batch_code: string | null
+          batch_id: string | null
           created_at: string
           currency: string
           damaged_quantity: number
@@ -8732,6 +8733,7 @@ export type Database = {
         Insert: {
           accepted_quantity?: number
           batch_code?: string | null
+          batch_id?: string | null
           created_at?: string
           currency?: string
           damaged_quantity?: number
@@ -8757,6 +8759,7 @@ export type Database = {
         Update: {
           accepted_quantity?: number
           batch_code?: string | null
+          batch_id?: string | null
           created_at?: string
           currency?: string
           damaged_quantity?: number
@@ -8780,6 +8783,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "restaurant_goods_receipt_items_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_inventory_batches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "restaurant_goods_receipt_items_inventory_item_id_fkey"
             columns: ["inventory_item_id"]
@@ -10274,6 +10284,9 @@ export type Database = {
           bill_requested_at: string | null
           bill_requested_by: string | null
           booking_id: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           client_request_id: string | null
           closed_at: string | null
           cost_total: number
@@ -10316,6 +10329,9 @@ export type Database = {
           bill_requested_at?: string | null
           bill_requested_by?: string | null
           booking_id?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           client_request_id?: string | null
           closed_at?: string | null
           cost_total?: number
@@ -10358,6 +10374,9 @@ export type Database = {
           bill_requested_at?: string | null
           bill_requested_by?: string | null
           booking_id?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           client_request_id?: string | null
           closed_at?: string | null
           cost_total?: number
