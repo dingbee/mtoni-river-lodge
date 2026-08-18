@@ -117,7 +117,7 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
   });
 
   const counts: any = queue.data?.counts ?? {};
-  const rows: any[] = queue.data?.rows ?? [];
+  const rows: any[] = React.useMemo(() => queue.data?.rows ?? [], [queue.data]);
   const recipes: any[] = queue.data?.recipes ?? [];
 
   const openDetail = (row: any) => {
