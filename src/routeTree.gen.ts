@@ -167,6 +167,7 @@ import { Route as AuthenticatedAdminOperationsTasksRouteImport } from './routes/
 import { Route as AuthenticatedAdminOperationsTimelineRouteImport } from './routes/_authenticated.admin.operations.timeline'
 import { Route as AuthenticatedAdminRestaurantIndexRouteImport } from './routes/_authenticated.admin.restaurant.index'
 import { Route as AuthenticatedAdminRestaurantBarRouteImport } from './routes/_authenticated.admin.restaurant.bar'
+import { Route as AuthenticatedAdminRestaurantCatalogRouteImport } from './routes/_authenticated.admin.restaurant.catalog'
 import { Route as AuthenticatedAdminRestaurantCostingRouteImport } from './routes/_authenticated.admin.restaurant.costing'
 import { Route as AuthenticatedAdminRestaurantDecisionsRouteImport } from './routes/_authenticated.admin.restaurant.decisions'
 import { Route as AuthenticatedAdminRestaurantDocumentsRouteImport } from './routes/_authenticated.admin.restaurant.documents'
@@ -1161,6 +1162,12 @@ const AuthenticatedAdminRestaurantBarRoute =
     path: '/bar',
     getParentRoute: () => AuthenticatedAdminRestaurantRoute,
   } as any)
+const AuthenticatedAdminRestaurantCatalogRoute =
+  AuthenticatedAdminRestaurantCatalogRouteImport.update({
+    id: '/catalog',
+    path: '/catalog',
+    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
+  } as any)
 const AuthenticatedAdminRestaurantCostingRoute =
   AuthenticatedAdminRestaurantCostingRouteImport.update({
     id: '/costing',
@@ -1938,6 +1945,7 @@ export interface FileRoutesByFullPath {
   '/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
   '/admin/restaurant/bar': typeof AuthenticatedAdminRestaurantBarRouteWithChildren
+  '/admin/restaurant/catalog': typeof AuthenticatedAdminRestaurantCatalogRoute
   '/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
   '/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
   '/admin/restaurant/documents': typeof AuthenticatedAdminRestaurantDocumentsRoute
@@ -2187,6 +2195,7 @@ export interface FileRoutesByTo {
   '/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
   '/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
+  '/admin/restaurant/catalog': typeof AuthenticatedAdminRestaurantCatalogRoute
   '/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
   '/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
   '/admin/restaurant/documents': typeof AuthenticatedAdminRestaurantDocumentsRoute
@@ -2453,6 +2462,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/_authenticated/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
   '/_authenticated/admin/restaurant/bar': typeof AuthenticatedAdminRestaurantBarRouteWithChildren
+  '/_authenticated/admin/restaurant/catalog': typeof AuthenticatedAdminRestaurantCatalogRoute
   '/_authenticated/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
   '/_authenticated/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
   '/_authenticated/admin/restaurant/documents': typeof AuthenticatedAdminRestaurantDocumentsRoute
@@ -2719,6 +2729,7 @@ export interface FileRouteTypes {
     | '/admin/operations/tasks'
     | '/admin/operations/timeline'
     | '/admin/restaurant/bar'
+    | '/admin/restaurant/catalog'
     | '/admin/restaurant/costing'
     | '/admin/restaurant/decisions'
     | '/admin/restaurant/documents'
@@ -2968,6 +2979,7 @@ export interface FileRouteTypes {
     | '/admin/operations/rooms'
     | '/admin/operations/tasks'
     | '/admin/operations/timeline'
+    | '/admin/restaurant/catalog'
     | '/admin/restaurant/costing'
     | '/admin/restaurant/decisions'
     | '/admin/restaurant/documents'
@@ -3233,6 +3245,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations/tasks'
     | '/_authenticated/admin/operations/timeline'
     | '/_authenticated/admin/restaurant/bar'
+    | '/_authenticated/admin/restaurant/catalog'
     | '/_authenticated/admin/restaurant/costing'
     | '/_authenticated/admin/restaurant/decisions'
     | '/_authenticated/admin/restaurant/documents'
@@ -4526,6 +4539,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRestaurantBarRouteImport
       parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
+    '/_authenticated/admin/restaurant/catalog': {
+      id: '/_authenticated/admin/restaurant/catalog'
+      path: '/catalog'
+      fullPath: '/admin/restaurant/catalog'
+      preLoaderRoute: typeof AuthenticatedAdminRestaurantCatalogRouteImport
+      parentRoute: typeof AuthenticatedAdminRestaurantRoute
+    }
     '/_authenticated/admin/restaurant/costing': {
       id: '/_authenticated/admin/restaurant/costing'
       path: '/costing'
@@ -5732,6 +5752,7 @@ const AuthenticatedAdminRestaurantBarRouteWithChildren =
 
 interface AuthenticatedAdminRestaurantRouteChildren {
   AuthenticatedAdminRestaurantBarRoute: typeof AuthenticatedAdminRestaurantBarRouteWithChildren
+  AuthenticatedAdminRestaurantCatalogRoute: typeof AuthenticatedAdminRestaurantCatalogRoute
   AuthenticatedAdminRestaurantCostingRoute: typeof AuthenticatedAdminRestaurantCostingRoute
   AuthenticatedAdminRestaurantDecisionsRoute: typeof AuthenticatedAdminRestaurantDecisionsRoute
   AuthenticatedAdminRestaurantDocumentsRoute: typeof AuthenticatedAdminRestaurantDocumentsRoute
@@ -5761,6 +5782,8 @@ const AuthenticatedAdminRestaurantRouteChildren: AuthenticatedAdminRestaurantRou
   {
     AuthenticatedAdminRestaurantBarRoute:
       AuthenticatedAdminRestaurantBarRouteWithChildren,
+    AuthenticatedAdminRestaurantCatalogRoute:
+      AuthenticatedAdminRestaurantCatalogRoute,
     AuthenticatedAdminRestaurantCostingRoute:
       AuthenticatedAdminRestaurantCostingRoute,
     AuthenticatedAdminRestaurantDecisionsRoute:
