@@ -226,8 +226,8 @@ export async function importMasterCatalog(
               source: r.source,
               source_row: r.sourceRow,
               import_batch_id: batchId,
-              pack_size: desired.pack_size ?? 1,
               ...desired,
+              pack_size: desired.pack_size ?? 1,
             })
             .select("id")
             .single();

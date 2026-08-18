@@ -255,10 +255,9 @@ export function CatalogWorkbench() {
                       <td className="py-2 pr-3">{i.pack_label ?? "—"}</td>
                       <td className="py-2 pr-3">{unitById.get(i.unit_id)?.code ?? "—"}</td>
                       <td className="py-2 pr-3">
-                        <StatusChip
-                          label={i.data_status === "CONFIRMED" ? "Confirmed" : "Unconfirmed"}
-                          tone={i.data_status === "CONFIRMED" ? "success" : "warning"}
-                        />
+                        <StatusChip tone={i.data_status === "CONFIRMED" ? "success" : "warning"}>
+                          {i.data_status === "CONFIRMED" ? "Confirmed" : "Unconfirmed"}
+                        </StatusChip>
                       </td>
                     </tr>
                   ))}

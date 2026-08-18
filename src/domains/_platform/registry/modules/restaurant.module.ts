@@ -54,19 +54,6 @@ export const restaurantCatalogModule = defineModule({
   status: "beta",
 });
 
-const _restaurantInventoryModuleLegacy = defineModule({
-  id: "restaurant.inventory",
-  name: "Inventory",
-  description: "Stock items, units and par levels",
-  icon: Boxes,
-  route: "/admin/restaurant/inventory",
-  parentId: "restaurant",
-  order: 20,
-  requiredRoles: [...ROLES],
-  featureFlag: "restaurant_os",
-  status: "beta",
-});
-
 export const restaurantSuppliersModule = defineModule({
   id: "restaurant.suppliers",
   name: "Suppliers",
