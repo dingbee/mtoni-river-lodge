@@ -276,6 +276,13 @@ export interface DecideMappingInput {
   note?: string | null;
   /** Deliberate opt-in: also apply this confirmation to identical ingredient text elsewhere. */
   applyToMatchingLines?: boolean;
+  /**
+   * Accept a mapping whose unit compatibility cannot be established because a
+   * unit is missing from the source or the catalog. The mapping is kept, but
+   * the line stays in review so the recipe cannot be costed or activated on an
+   * unverified conversion.
+   */
+  acknowledgeUnknownUnit?: boolean;
 }
 
 /**
@@ -312,6 +319,7 @@ export async function decideIngredientMapping(sb: Sb, userId: string, input: Dec
   let newStatus = line.mapping_status as string;
   let newItemId: string | null = line.inventory_item_id ?? null;
   let item: any = null;
+  let unitVerified = false;
   const alsoApplied: string[] = [];
 
   if (input.decision === "confirmed" || input.decision === "rejected") {
@@ -336,13 +344,21 @@ export async function decideIngredientMapping(sb: Sb, userId: string, input: Dec
       .in("id", [line.unit_id, item.unit_id].filter(Boolean));
     const unitById = new Map<string, any>(((units ?? []) as any[]).map((u) => [u.id, u]));
     const compat = unitCompatibility(unitById, line.unit_id, item.unit_id);
-    if (compat !== true) {
+    if (compat === false) {
       throw new Error(
-        `The recipe unit ("${line.source_unit ?? "not stated"}") cannot be converted to the stock unit of ${item.sku}. Resolve the unit before confirming this mapping.`,
+        `The recipe unit ("${line.source_unit ?? "not stated"}") measures something different from the stock unit of ${item.sku}. Resolve the unit before confirming this mapping.`,
       );
     }
+    if (compat === null && !input.acknowledgeUnknownUnit) {
+      throw new Error(
+        `Unit compatibility cannot be established for ${item.sku} — the recipe unit ("${line.source_unit ?? "not stated"}") or the catalog stock unit is missing. Complete the unit, or confirm explicitly and the line will stay in review.`,
+      );
+    }
+    unitVerified = compat === true;
     newItemId = item.id;
-    newStatus = "resolved";
+    // An unverified unit means an unknown conversion, so the line stays in
+    // review: mapped for provenance, but never counted as costable.
+    newStatus = compat === true ? "resolved" : "review_required";
   } else if (input.decision === "rejected") {
     if (line.inventory_item_id === item.id) newItemId = null;
     newStatus = newItemId ? line.mapping_status : "unresolved";
@@ -370,6 +386,7 @@ export async function decideIngredientMapping(sb: Sb, userId: string, input: Dec
         ingredient_name: line.ingredient_name ?? key,
         inventory_item_id: item.id,
         status: input.decision === "confirmed" ? "confirmed" : "rejected",
+        evidence: { unit_verified: input.decision === "confirmed" ? unitVerified : null },
         note: input.note ?? null,
         updated_by: userId,
         created_by: userId,
@@ -381,7 +398,7 @@ export async function decideIngredientMapping(sb: Sb, userId: string, input: Dec
   }
 
   /* -------- optional, explicit fan-out to identical ingredient text -------- */
-  if (input.decision === "confirmed" && input.applyToMatchingLines) {
+  if (input.decision === "confirmed" && input.applyToMatchingLines && unitVerified) {
     const { data: siblings } = await sb
       .from("restaurant_recipe_lines")
       .select(

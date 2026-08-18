@@ -109,6 +109,7 @@ export const decideIngredientMappingFn = createServerFn({ method: "POST" })
         inventoryItemId: z.string().uuid().nullish(),
         note: z.string().trim().max(500).nullish(),
         applyToMatchingLines: z.boolean().optional(),
+        acknowledgeUnknownUnit: z.boolean().optional(),
       })
       .parse(d),
   )
