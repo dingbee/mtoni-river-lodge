@@ -240,47 +240,7 @@ export function RecipeImportWorkbench() {
         </SectionCard>
       )}
 
-      {tab === "mapping" && (
-        <SectionCard
-          title="Ingredient mapping"
-          description="Ingredients the workbook could not vouch for. No stock item is ever created to satisfy a recipe — each of these needs a deliberate match against the master catalog."
-        >
-          {unresolvedLines.length === 0 ? (
-            <EmptyState title="Every ingredient is mapped" description="All imported recipe lines resolve to a catalog SKU." />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-muted-foreground">
-                  <tr className="border-b">
-                    <th className="py-2 pr-3">Recipe</th>
-                    <th className="py-2 pr-3">Ingredient</th>
-                    <th className="py-2 pr-3">Quantity</th>
-                    <th className="py-2 pr-3">Candidate SKU</th>
-                    <th className="py-2 pr-3">Mapping</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {unresolvedLines.map((l) => (
-                    <tr key={l.id} className="border-b last:border-0">
-                      <td className="py-2 pr-3">
-                        <span className="font-mono text-xs text-muted-foreground">{l.recipe.code}</span> {l.recipe.name}
-                      </td>
-                      <td className="py-2 pr-3">{l.ingredient_name}</td>
-                      <td className="py-2 pr-3">{quantityLabel(l)}</td>
-                      <td className="py-2 pr-3 font-mono text-xs">{l.candidate_sku ?? "—"}</td>
-                      <td className="py-2 pr-3">
-                        <StatusChip tone={l.mapping_status === "review_required" ? "warning" : "neutral"}>
-                          {l.mapping_status === "review_required" ? "Review required" : "Match required"}
-                        </StatusChip>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </SectionCard>
-      )}
+      {tab === "mapping" && <IngredientMappingPanel tenantId={tenantId} />}
 
       {tab === "quality" && (
         <SectionCard
