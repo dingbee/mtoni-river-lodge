@@ -28,8 +28,20 @@ import { assertCapability, assertTenantRead } from "../core/access.server";
 
 type Sb = any;
 
-const RECIPE_COMPARED_FIELDS = ["name", "service_period", "source_section", "portion_basis", "instructions"] as const;
-const LINE_COMPARED_FIELDS = ["ingredient_name", "quantity_min", "quantity_max", "source_unit", "candidate_sku"] as const;
+const RECIPE_COMPARED_FIELDS = [
+  "name",
+  "service_period",
+  "source_section",
+  "portion_basis",
+  "instructions",
+] as const;
+const LINE_COMPARED_FIELDS = [
+  "ingredient_name",
+  "quantity_min",
+  "quantity_max",
+  "source_unit",
+  "candidate_sku",
+] as const;
 
 type MappingStatus = "resolved" | "unresolved" | "review_required";
 
@@ -137,9 +149,14 @@ export async function importRecipeMaster(
 
   const { data: existingRecipes, error: recErr } = await sb
     .from("restaurant_recipes")
-    .select("id, code, name, version, status, service_period, source_section, portion_basis, instructions, source_recipe_code")
+    .select(
+      "id, code, name, version, status, service_period, source_section, portion_basis, instructions, source_recipe_code",
+    )
     .eq("tenant_id", input.tenantId)
-    .in("source_recipe_code", recipes.map((r) => r.code));
+    .in(
+      "source_recipe_code",
+      recipes.map((r) => r.code),
+    );
   if (recErr) throw new Error(recErr.message);
   const existingByKey = new Map<string, any>(
     ((existingRecipes ?? []) as any[]).map((r) => [`${r.source_recipe_code}@${r.version}`, r]),
@@ -185,21 +202,43 @@ export async function importRecipeMaster(
     const recipeUnit = line.unitCode ? unitsByCode.get(line.unitCode) : null;
 
     if (!line.candidateSku) {
-      return { itemId: null as string | null, unitId: recipeUnit?.id ?? null, status: "unresolved" as MappingStatus, issues };
+      return {
+        itemId: null as string | null,
+        unitId: recipeUnit?.id ?? null,
+        status: "unresolved" as MappingStatus,
+        issues,
+      };
     }
     const item = itemsBySku.get(line.candidateSku);
     if (!item) {
-      issues.push(`Candidate SKU "${line.candidateSku}" is not in the master catalog. No stock item was created.`);
-      return { itemId: null, unitId: recipeUnit?.id ?? null, status: "review_required" as MappingStatus, issues };
+      issues.push(
+        `Candidate SKU "${line.candidateSku}" is not in the master catalog. No stock item was created.`,
+      );
+      return {
+        itemId: null,
+        unitId: recipeUnit?.id ?? null,
+        status: "review_required" as MappingStatus,
+        issues,
+      };
     }
     const itemUnit = item.unit_id ? unitsById.get(item.unit_id) : null;
     if (!unitsComparable(recipeUnit, itemUnit)) {
       issues.push(
         `Recipe unit "${line.sourceUnit ?? "—"}" cannot be converted to the stock unit of ${item.sku} without a new conversion rule.`,
       );
-      return { itemId: null, unitId: recipeUnit?.id ?? null, status: "review_required" as MappingStatus, issues };
+      return {
+        itemId: null,
+        unitId: recipeUnit?.id ?? null,
+        status: "review_required" as MappingStatus,
+        issues,
+      };
     }
-    return { itemId: item.id as string, unitId: recipeUnit?.id ?? null, status: "resolved" as MappingStatus, issues };
+    return {
+      itemId: item.id as string,
+      unitId: recipeUnit?.id ?? null,
+      status: "resolved" as MappingStatus,
+      issues,
+    };
   }
 
   for (const r of recipes) {
@@ -295,12 +334,16 @@ export async function importRecipeMaster(
     if (recipeId && !input.dryRun) {
       const { data } = await sb
         .from("restaurant_recipe_lines")
-        .select("id, source_row, ingredient_name, quantity, quantity_min, quantity_max, source_unit, candidate_sku, inventory_item_id, mapping_status")
+        .select(
+          "id, source_row, ingredient_name, quantity, quantity_min, quantity_max, source_unit, candidate_sku, inventory_item_id, mapping_status",
+        )
         .eq("tenant_id", input.tenantId)
         .eq("recipe_id", recipeId);
       existingLines = (data ?? []) as any[];
     }
-    const existingLineByRow = new Map<number, any>(existingLines.map((l) => [Number(l.source_row), l]));
+    const existingLineByRow = new Map<number, any>(
+      existingLines.map((l) => [Number(l.source_row), l]),
+    );
 
     for (const line of sourceLines) {
       const mapping = resolveMapping(line);
@@ -332,7 +375,8 @@ export async function importRecipeMaster(
         recipe_id: recipeId,
         recipe_line_id: null,
         inventory_item_id: mapping.itemId,
-        review_status: mapping.status === "resolved" && mapping.issues.length === 0 ? "none" : "REVIEW_REQUIRED",
+        review_status:
+          mapping.status === "resolved" && mapping.issues.length === 0 ? "none" : "REVIEW_REQUIRED",
       };
 
       try {
@@ -453,14 +497,15 @@ export async function recipeReadiness(sb: Sb, tenantId: string) {
 
   const unresolvedByRecipe = new Map<string, number>();
   const totalByRecipe = new Map<string, number>();
-  for (const l of ((lines ?? []) as any[])) {
+  for (const l of (lines ?? []) as any[]) {
     totalByRecipe.set(l.recipe_id, (totalByRecipe.get(l.recipe_id) ?? 0) + 1);
-    if (l.mapping_status !== "resolved") unresolvedByRecipe.set(l.recipe_id, (unresolvedByRecipe.get(l.recipe_id) ?? 0) + 1);
+    if (l.mapping_status !== "resolved")
+      unresolvedByRecipe.set(l.recipe_id, (unresolvedByRecipe.get(l.recipe_id) ?? 0) + 1);
   }
 
   let eligible = 0;
   let draft = 0;
-  for (const r of ((recipes ?? []) as any[])) {
+  for (const r of (recipes ?? []) as any[]) {
     const unresolved = unresolvedByRecipe.get(r.id) ?? 0;
     const total = totalByRecipe.get(r.id) ?? 0;
     if (total > 0 && unresolved === 0) eligible += 1;
@@ -550,7 +595,13 @@ export async function listRecipeImportBatches(sb: Sb, userId: string, tenantId: 
 export async function listRecipeReviewQueue(
   sb: Sb,
   userId: string,
-  input: { tenantId: string; batchId?: string; entityType?: string; includeResolved?: boolean; limit?: number },
+  input: {
+    tenantId: string;
+    batchId?: string;
+    entityType?: string;
+    includeResolved?: boolean;
+    limit?: number;
+  },
 ) {
   await assertTenantRead(sb, userId, input.tenantId);
   let q = sb
