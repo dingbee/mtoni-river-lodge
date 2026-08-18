@@ -8150,6 +8150,170 @@ export type Database = {
           },
         ]
       }
+      restaurant_catalog_import_batches: {
+        Row: {
+          conflict_count: number
+          created_at: string
+          created_count: number
+          error_count: number
+          id: string
+          imported_at: string
+          imported_by: string | null
+          property_id: string | null
+          skipped_count: number
+          source_file: string
+          source_label: string
+          status: string
+          tenant_id: string
+          total_rows: number
+          unchanged_count: number
+          unconfirmed_count: number
+          updated_at: string
+          updated_count: number
+        }
+        Insert: {
+          conflict_count?: number
+          created_at?: string
+          created_count?: number
+          error_count?: number
+          id?: string
+          imported_at?: string
+          imported_by?: string | null
+          property_id?: string | null
+          skipped_count?: number
+          source_file: string
+          source_label?: string
+          status?: string
+          tenant_id: string
+          total_rows?: number
+          unchanged_count?: number
+          unconfirmed_count?: number
+          updated_at?: string
+          updated_count?: number
+        }
+        Update: {
+          conflict_count?: number
+          created_at?: string
+          created_count?: number
+          error_count?: number
+          id?: string
+          imported_at?: string
+          imported_by?: string | null
+          property_id?: string | null
+          skipped_count?: number
+          source_file?: string
+          source_label?: string
+          status?: string
+          tenant_id?: string
+          total_rows?: number
+          unchanged_count?: number
+          unconfirmed_count?: number
+          updated_at?: string
+          updated_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_catalog_import_batches_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_catalog_import_batches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_catalog_import_rows: {
+        Row: {
+          batch_id: string
+          conflicts: Json
+          created_at: string
+          id: string
+          item_id: string | null
+          message: string | null
+          name: string
+          resolved_at: string | null
+          resolved_by: string | null
+          result: string
+          review_status: string
+          sku: string
+          source_row: number
+          source_values: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          batch_id: string
+          conflicts?: Json
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          message?: string | null
+          name: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          result: string
+          review_status?: string
+          sku: string
+          source_row: number
+          source_values?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string
+          conflicts?: Json
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          message?: string | null
+          name?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          result?: string
+          review_status?: string
+          sku?: string
+          source_row?: number
+          source_values?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_catalog_import_rows_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_catalog_import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_catalog_import_rows_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_catalog_import_rows_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_stock_reconciliation_v"
+            referencedColumns: ["inventory_item_id"]
+          },
+          {
+            foreignKeyName: "restaurant_catalog_import_rows_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_categories: {
         Row: {
           active: boolean
@@ -9145,12 +9309,16 @@ export type Database = {
           created_at: string
           currency: string
           current_quantity: number
+          data_status: string
+          domain: string
           id: string
+          import_batch_id: string | null
           is_beverage: boolean
           item_type: string
           location_id: string | null
           metadata: Json
           name: string
+          pack_label: string | null
           pack_size: number
           par_level: number | null
           property_id: string | null
@@ -9160,7 +9328,10 @@ export type Database = {
           serving_unit_id: string | null
           shelf_life_days: number | null
           sku: string | null
+          source: string | null
+          source_row: number | null
           status: string
+          subcategory: string | null
           tenant_id: string
           track_batches: boolean
           unit_id: string | null
@@ -9178,12 +9349,16 @@ export type Database = {
           created_at?: string
           currency?: string
           current_quantity?: number
+          data_status?: string
+          domain?: string
           id?: string
+          import_batch_id?: string | null
           is_beverage?: boolean
           item_type?: string
           location_id?: string | null
           metadata?: Json
           name: string
+          pack_label?: string | null
           pack_size?: number
           par_level?: number | null
           property_id?: string | null
@@ -9193,7 +9368,10 @@ export type Database = {
           serving_unit_id?: string | null
           shelf_life_days?: number | null
           sku?: string | null
+          source?: string | null
+          source_row?: number | null
           status?: string
+          subcategory?: string | null
           tenant_id: string
           track_batches?: boolean
           unit_id?: string | null
@@ -9211,12 +9389,16 @@ export type Database = {
           created_at?: string
           currency?: string
           current_quantity?: number
+          data_status?: string
+          domain?: string
           id?: string
+          import_batch_id?: string | null
           is_beverage?: boolean
           item_type?: string
           location_id?: string | null
           metadata?: Json
           name?: string
+          pack_label?: string | null
           pack_size?: number
           par_level?: number | null
           property_id?: string | null
@@ -9226,7 +9408,10 @@ export type Database = {
           serving_unit_id?: string | null
           shelf_life_days?: number | null
           sku?: string | null
+          source?: string | null
+          source_row?: number | null
           status?: string
+          subcategory?: string | null
           tenant_id?: string
           track_batches?: boolean
           unit_id?: string | null
