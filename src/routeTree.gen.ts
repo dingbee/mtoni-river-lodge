@@ -184,6 +184,7 @@ import { Route as AuthenticatedAdminRestaurantProductsRouteImport } from './rout
 import { Route as AuthenticatedAdminRestaurantProfitabilityRouteImport } from './routes/_authenticated.admin.restaurant.profitability'
 import { Route as AuthenticatedAdminRestaurantPurchasingRouteImport } from './routes/_authenticated.admin.restaurant.purchasing'
 import { Route as AuthenticatedAdminRestaurantReceiptsRouteImport } from './routes/_authenticated.admin.restaurant.receipts'
+import { Route as AuthenticatedAdminRestaurantRecipeMasterRouteImport } from './routes/_authenticated.admin.restaurant.recipe-master'
 import { Route as AuthenticatedAdminRestaurantReconciliationRouteImport } from './routes/_authenticated.admin.restaurant.reconciliation'
 import { Route as AuthenticatedAdminRestaurantRequisitionsRouteImport } from './routes/_authenticated.admin.restaurant.requisitions'
 import { Route as AuthenticatedAdminRestaurantSettingsRouteImport } from './routes/_authenticated.admin.restaurant.settings'
@@ -1264,6 +1265,12 @@ const AuthenticatedAdminRestaurantReceiptsRoute =
     path: '/receipts',
     getParentRoute: () => AuthenticatedAdminRestaurantRoute,
   } as any)
+const AuthenticatedAdminRestaurantRecipeMasterRoute =
+  AuthenticatedAdminRestaurantRecipeMasterRouteImport.update({
+    id: '/recipe-master',
+    path: '/recipe-master',
+    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
+  } as any)
 const AuthenticatedAdminRestaurantReconciliationRoute =
   AuthenticatedAdminRestaurantReconciliationRouteImport.update({
     id: '/reconciliation',
@@ -1962,6 +1969,7 @@ export interface FileRoutesByFullPath {
   '/admin/restaurant/profitability': typeof AuthenticatedAdminRestaurantProfitabilityRoute
   '/admin/restaurant/purchasing': typeof AuthenticatedAdminRestaurantPurchasingRoute
   '/admin/restaurant/receipts': typeof AuthenticatedAdminRestaurantReceiptsRoute
+  '/admin/restaurant/recipe-master': typeof AuthenticatedAdminRestaurantRecipeMasterRoute
   '/admin/restaurant/reconciliation': typeof AuthenticatedAdminRestaurantReconciliationRoute
   '/admin/restaurant/requisitions': typeof AuthenticatedAdminRestaurantRequisitionsRoute
   '/admin/restaurant/settings': typeof AuthenticatedAdminRestaurantSettingsRoute
@@ -2212,6 +2220,7 @@ export interface FileRoutesByTo {
   '/admin/restaurant/profitability': typeof AuthenticatedAdminRestaurantProfitabilityRoute
   '/admin/restaurant/purchasing': typeof AuthenticatedAdminRestaurantPurchasingRoute
   '/admin/restaurant/receipts': typeof AuthenticatedAdminRestaurantReceiptsRoute
+  '/admin/restaurant/recipe-master': typeof AuthenticatedAdminRestaurantRecipeMasterRoute
   '/admin/restaurant/reconciliation': typeof AuthenticatedAdminRestaurantReconciliationRoute
   '/admin/restaurant/requisitions': typeof AuthenticatedAdminRestaurantRequisitionsRoute
   '/admin/restaurant/settings': typeof AuthenticatedAdminRestaurantSettingsRoute
@@ -2479,6 +2488,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/restaurant/profitability': typeof AuthenticatedAdminRestaurantProfitabilityRoute
   '/_authenticated/admin/restaurant/purchasing': typeof AuthenticatedAdminRestaurantPurchasingRoute
   '/_authenticated/admin/restaurant/receipts': typeof AuthenticatedAdminRestaurantReceiptsRoute
+  '/_authenticated/admin/restaurant/recipe-master': typeof AuthenticatedAdminRestaurantRecipeMasterRoute
   '/_authenticated/admin/restaurant/reconciliation': typeof AuthenticatedAdminRestaurantReconciliationRoute
   '/_authenticated/admin/restaurant/requisitions': typeof AuthenticatedAdminRestaurantRequisitionsRoute
   '/_authenticated/admin/restaurant/settings': typeof AuthenticatedAdminRestaurantSettingsRoute
@@ -2746,6 +2756,7 @@ export interface FileRouteTypes {
     | '/admin/restaurant/profitability'
     | '/admin/restaurant/purchasing'
     | '/admin/restaurant/receipts'
+    | '/admin/restaurant/recipe-master'
     | '/admin/restaurant/reconciliation'
     | '/admin/restaurant/requisitions'
     | '/admin/restaurant/settings'
@@ -2996,6 +3007,7 @@ export interface FileRouteTypes {
     | '/admin/restaurant/profitability'
     | '/admin/restaurant/purchasing'
     | '/admin/restaurant/receipts'
+    | '/admin/restaurant/recipe-master'
     | '/admin/restaurant/reconciliation'
     | '/admin/restaurant/requisitions'
     | '/admin/restaurant/settings'
@@ -3262,6 +3274,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/restaurant/profitability'
     | '/_authenticated/admin/restaurant/purchasing'
     | '/_authenticated/admin/restaurant/receipts'
+    | '/_authenticated/admin/restaurant/recipe-master'
     | '/_authenticated/admin/restaurant/reconciliation'
     | '/_authenticated/admin/restaurant/requisitions'
     | '/_authenticated/admin/restaurant/settings'
@@ -4658,6 +4671,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRestaurantReceiptsRouteImport
       parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
+    '/_authenticated/admin/restaurant/recipe-master': {
+      id: '/_authenticated/admin/restaurant/recipe-master'
+      path: '/recipe-master'
+      fullPath: '/admin/restaurant/recipe-master'
+      preLoaderRoute: typeof AuthenticatedAdminRestaurantRecipeMasterRouteImport
+      parentRoute: typeof AuthenticatedAdminRestaurantRoute
+    }
     '/_authenticated/admin/restaurant/reconciliation': {
       id: '/_authenticated/admin/restaurant/reconciliation'
       path: '/reconciliation'
@@ -5769,6 +5789,7 @@ interface AuthenticatedAdminRestaurantRouteChildren {
   AuthenticatedAdminRestaurantProfitabilityRoute: typeof AuthenticatedAdminRestaurantProfitabilityRoute
   AuthenticatedAdminRestaurantPurchasingRoute: typeof AuthenticatedAdminRestaurantPurchasingRoute
   AuthenticatedAdminRestaurantReceiptsRoute: typeof AuthenticatedAdminRestaurantReceiptsRoute
+  AuthenticatedAdminRestaurantRecipeMasterRoute: typeof AuthenticatedAdminRestaurantRecipeMasterRoute
   AuthenticatedAdminRestaurantReconciliationRoute: typeof AuthenticatedAdminRestaurantReconciliationRoute
   AuthenticatedAdminRestaurantRequisitionsRoute: typeof AuthenticatedAdminRestaurantRequisitionsRoute
   AuthenticatedAdminRestaurantSettingsRoute: typeof AuthenticatedAdminRestaurantSettingsRoute
@@ -5815,6 +5836,8 @@ const AuthenticatedAdminRestaurantRouteChildren: AuthenticatedAdminRestaurantRou
       AuthenticatedAdminRestaurantPurchasingRoute,
     AuthenticatedAdminRestaurantReceiptsRoute:
       AuthenticatedAdminRestaurantReceiptsRoute,
+    AuthenticatedAdminRestaurantRecipeMasterRoute:
+      AuthenticatedAdminRestaurantRecipeMasterRoute,
     AuthenticatedAdminRestaurantReconciliationRoute:
       AuthenticatedAdminRestaurantReconciliationRoute,
     AuthenticatedAdminRestaurantRequisitionsRoute:

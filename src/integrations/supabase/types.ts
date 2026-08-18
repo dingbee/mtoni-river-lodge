@@ -12861,17 +12861,188 @@ export type Database = {
           },
         ]
       }
+      restaurant_recipe_import_batches: {
+        Row: {
+          created_at: string
+          error_count: number
+          id: string
+          imported_at: string
+          imported_by: string | null
+          lines_conflicted: number
+          lines_created: number
+          lines_matched: number
+          lines_review_required: number
+          lines_unchanged: number
+          lines_unresolved: number
+          property_id: string | null
+          recipes_conflicted: number
+          recipes_created: number
+          recipes_unchanged: number
+          skipped_count: number
+          source_file: string
+          source_label: string
+          status: string
+          tenant_id: string
+          total_lines: number
+          total_recipes: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_count?: number
+          id?: string
+          imported_at?: string
+          imported_by?: string | null
+          lines_conflicted?: number
+          lines_created?: number
+          lines_matched?: number
+          lines_review_required?: number
+          lines_unchanged?: number
+          lines_unresolved?: number
+          property_id?: string | null
+          recipes_conflicted?: number
+          recipes_created?: number
+          recipes_unchanged?: number
+          skipped_count?: number
+          source_file: string
+          source_label: string
+          status?: string
+          tenant_id: string
+          total_lines?: number
+          total_recipes?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_count?: number
+          id?: string
+          imported_at?: string
+          imported_by?: string | null
+          lines_conflicted?: number
+          lines_created?: number
+          lines_matched?: number
+          lines_review_required?: number
+          lines_unchanged?: number
+          lines_unresolved?: number
+          property_id?: string | null
+          recipes_conflicted?: number
+          recipes_created?: number
+          recipes_unchanged?: number
+          skipped_count?: number
+          source_file?: string
+          source_label?: string
+          status?: string
+          tenant_id?: string
+          total_lines?: number
+          total_recipes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      restaurant_recipe_import_rows: {
+        Row: {
+          batch_id: string
+          candidate_sku: string | null
+          conflicts: Json
+          created_at: string
+          entity_type: string
+          id: string
+          ingredient_name: string | null
+          inventory_item_id: string | null
+          mapping_result: string | null
+          message: string | null
+          recipe_code: string
+          recipe_id: string | null
+          recipe_line_id: string | null
+          recipe_name: string
+          resolved_at: string | null
+          resolved_by: string | null
+          result: string
+          review_status: string
+          source_row: number
+          source_values: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          batch_id: string
+          candidate_sku?: string | null
+          conflicts?: Json
+          created_at?: string
+          entity_type: string
+          id?: string
+          ingredient_name?: string | null
+          inventory_item_id?: string | null
+          mapping_result?: string | null
+          message?: string | null
+          recipe_code: string
+          recipe_id?: string | null
+          recipe_line_id?: string | null
+          recipe_name: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          result: string
+          review_status?: string
+          source_row: number
+          source_values?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string
+          candidate_sku?: string | null
+          conflicts?: Json
+          created_at?: string
+          entity_type?: string
+          id?: string
+          ingredient_name?: string | null
+          inventory_item_id?: string | null
+          mapping_result?: string | null
+          message?: string | null
+          recipe_code?: string
+          recipe_id?: string | null
+          recipe_line_id?: string | null
+          recipe_name?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          result?: string
+          review_status?: string
+          source_row?: number
+          source_values?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_recipe_import_rows_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_recipe_import_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_recipe_lines: {
         Row: {
+          candidate_sku: string | null
           component_kind: Database["public"]["Enums"]["restaurant_recipe_component_kind"]
           created_at: string
           id: string
+          import_batch_id: string | null
+          ingredient_name: string | null
           inventory_item_id: string | null
           is_optional: boolean
+          mapping_status: string
           notes: string | null
           quantity: number
+          quantity_max: number | null
+          quantity_min: number | null
           recipe_id: string
           sort_order: number
+          source_file: string | null
+          source_row: number | null
+          source_sheet: string | null
+          source_unit: string | null
           sub_recipe_id: string | null
           tenant_id: string
           unit_id: string | null
@@ -12879,15 +13050,25 @@ export type Database = {
           yield_percent: number
         }
         Insert: {
+          candidate_sku?: string | null
           component_kind?: Database["public"]["Enums"]["restaurant_recipe_component_kind"]
           created_at?: string
           id?: string
+          import_batch_id?: string | null
+          ingredient_name?: string | null
           inventory_item_id?: string | null
           is_optional?: boolean
+          mapping_status?: string
           notes?: string | null
           quantity?: number
+          quantity_max?: number | null
+          quantity_min?: number | null
           recipe_id: string
           sort_order?: number
+          source_file?: string | null
+          source_row?: number | null
+          source_sheet?: string | null
+          source_unit?: string | null
           sub_recipe_id?: string | null
           tenant_id: string
           unit_id?: string | null
@@ -12895,15 +13076,25 @@ export type Database = {
           yield_percent?: number
         }
         Update: {
+          candidate_sku?: string | null
           component_kind?: Database["public"]["Enums"]["restaurant_recipe_component_kind"]
           created_at?: string
           id?: string
+          import_batch_id?: string | null
+          ingredient_name?: string | null
           inventory_item_id?: string | null
           is_optional?: boolean
+          mapping_status?: string
           notes?: string | null
           quantity?: number
+          quantity_max?: number | null
+          quantity_min?: number | null
           recipe_id?: string
           sort_order?: number
+          source_file?: string | null
+          source_row?: number | null
+          source_sheet?: string | null
+          source_unit?: string | null
           sub_recipe_id?: string | null
           tenant_id?: string
           unit_id?: string | null
@@ -12966,14 +13157,22 @@ export type Database = {
           effective_from: string | null
           effective_to: string | null
           id: string
+          import_batch_id: string | null
+          import_status: string | null
           instructions: string | null
           kind: Database["public"]["Enums"]["restaurant_recipe_kind"]
           last_reviewed_at: string | null
           lineage_id: string | null
           name: string
           notes: string | null
+          portion_basis: string | null
           produces_inventory_item_id: string | null
           property_id: string | null
+          service_period: string | null
+          source_file: string | null
+          source_recipe_code: string | null
+          source_section: string | null
+          source_sheet: string | null
           status: Database["public"]["Enums"]["restaurant_recipe_status"]
           supersedes_id: string | null
           target_cost: number | null
@@ -12993,14 +13192,22 @@ export type Database = {
           effective_from?: string | null
           effective_to?: string | null
           id?: string
+          import_batch_id?: string | null
+          import_status?: string | null
           instructions?: string | null
           kind?: Database["public"]["Enums"]["restaurant_recipe_kind"]
           last_reviewed_at?: string | null
           lineage_id?: string | null
           name: string
           notes?: string | null
+          portion_basis?: string | null
           produces_inventory_item_id?: string | null
           property_id?: string | null
+          service_period?: string | null
+          source_file?: string | null
+          source_recipe_code?: string | null
+          source_section?: string | null
+          source_sheet?: string | null
           status?: Database["public"]["Enums"]["restaurant_recipe_status"]
           supersedes_id?: string | null
           target_cost?: number | null
@@ -13020,14 +13227,22 @@ export type Database = {
           effective_from?: string | null
           effective_to?: string | null
           id?: string
+          import_batch_id?: string | null
+          import_status?: string | null
           instructions?: string | null
           kind?: Database["public"]["Enums"]["restaurant_recipe_kind"]
           last_reviewed_at?: string | null
           lineage_id?: string | null
           name?: string
           notes?: string | null
+          portion_basis?: string | null
           produces_inventory_item_id?: string | null
           property_id?: string | null
+          service_period?: string | null
+          source_file?: string | null
+          source_recipe_code?: string | null
+          source_section?: string | null
+          source_sheet?: string | null
           status?: Database["public"]["Enums"]["restaurant_recipe_status"]
           supersedes_id?: string | null
           target_cost?: number | null

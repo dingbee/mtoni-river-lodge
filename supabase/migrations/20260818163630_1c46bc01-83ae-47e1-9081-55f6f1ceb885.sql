@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.restaurant_recipe_activation_guard() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.restaurant_recipe_line_activation_guard() FROM PUBLIC, anon, authenticated;
