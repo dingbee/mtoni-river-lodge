@@ -55,6 +55,19 @@ export const restaurantCatalogModule = defineModule({
 });
 
 export const restaurantSuppliersModule = defineModule({
+  id: "restaurant.recipeMaster",
+  name: "Recipe Master",
+  description: "Imported recipe books, ingredient-to-SKU mapping and costing completeness",
+  icon: Library,
+  route: "/admin/restaurant/recipe-master",
+  parentId: "restaurant",
+  order: 19,
+  requiredRoles: [...ROLES],
+  featureFlag: "restaurant_os",
+  status: "beta",
+});
+
+export const restaurantSuppliersModuleDefinition = defineModule({
   id: "restaurant.suppliers",
   name: "Suppliers",
   description: "Supplier directory and product catalogues",
