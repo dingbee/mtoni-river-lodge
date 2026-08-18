@@ -20,6 +20,7 @@ import { StatusChip } from "@/components/os/StatusChip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { useRestaurantWorkspace } from "../../ui/useRestaurantWorkspace";
+import { IngredientMappingPanel } from "./IngredientMappingPanel";
 import {
   importRecipeMasterFn,
   listImportedRecipesFn,
