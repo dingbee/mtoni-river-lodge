@@ -1,4 +1,4 @@
-import { ClipboardCheck, ClipboardList, UtensilsCrossed, BookOpen, Boxes, Truck, ShoppingCart, Calculator, Settings2, Receipt, ChefHat, ArrowLeftRight, PiggyBank, Tags, Wrench, Wine } from "lucide-react";
+import { ClipboardCheck, ClipboardList, UtensilsCrossed, BookOpen, Boxes, Truck, ShoppingCart, Calculator, Settings2, Receipt, ChefHat, ArrowLeftRight, PiggyBank, Tags, Wrench, Wine, Library } from "lucide-react";
 import { defineModule } from "../registry";
 
 const ROLES = ["owner", "manager", "finance"] as const;
@@ -29,6 +29,32 @@ export const restaurantMenuModule = defineModule({
 });
 
 export const restaurantInventoryModule = defineModule({
+  id: "restaurant.inventory",
+  name: "Inventory",
+  description: "Stock items, units and par levels",
+  icon: Boxes,
+  route: "/admin/restaurant/inventory",
+  parentId: "restaurant",
+  order: 20,
+  requiredRoles: [...ROLES],
+  featureFlag: "restaurant_os",
+  status: "beta",
+});
+
+export const restaurantCatalogModule = defineModule({
+  id: "restaurant.catalog",
+  name: "Master Catalog",
+  description: "Master SKU catalog, domains, pack sizes and import data quality",
+  icon: Library,
+  route: "/admin/restaurant/catalog",
+  parentId: "restaurant",
+  order: 18,
+  requiredRoles: [...ROLES],
+  featureFlag: "restaurant_os",
+  status: "beta",
+});
+
+const _restaurantInventoryModuleLegacy = defineModule({
   id: "restaurant.inventory",
   name: "Inventory",
   description: "Stock items, units and par levels",
