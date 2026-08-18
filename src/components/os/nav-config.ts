@@ -105,6 +105,7 @@ export const NAV: NavEntry[] = [
         { id: "restaurant.barPos", label: "Bar POS", href: "/admin/restaurant/bar/pos", icon: Wine },
         { id: "restaurant.menu", label: "Menu Management", href: "/admin/restaurant/menu", icon: BookOpen },
         { id: "restaurant.pricing", label: "Pricing Centre", href: "/admin/restaurant/pricing", icon: Calculator },
+        { id: "restaurant.catalog", label: "Master Catalog", href: "/admin/restaurant/catalog", icon: BookOpen },
         { id: "restaurant.inventory", label: "Inventory", href: "/admin/restaurant/inventory", icon: Boxes },
         { id: "restaurant.inventoryControl", label: "Inventory Centre", href: "/admin/restaurant/inventory-control", icon: Boxes },
         { id: "restaurant.stock", label: "Stock Movements", href: "/admin/restaurant/stock", icon: Boxes },
