@@ -65,3 +65,73 @@ describe("standalone environment wiring", () => {
     expect(env.envFile).toBe(join(env.root, "local/.env"));
   });
 });
+
+// --- PRODUCTIZATION-4G: appliance bundle packaging ---------------------------
+describe("appliance bundle packaging (package-bundle.sh)", () => {
+  const script = `${process.cwd()}/local/scripts/package-bundle.sh`;
+  const run = (root: string) => spawnSync("bash", [script, root], { encoding: "utf8" });
+
+  const makeRoot = (name: string) => {
+    const root = `/tmp/nova-pkg-${name}-${Date.now()}`;
+    rmSync(root, { recursive: true, force: true });
+    return root;
+  };
+
+  it("packages .output/public + .output/server into dist/client + dist/server", () => {
+    const root = makeRoot("public");
+    mkdirSync(`${root}/.output/public/assets`, { recursive: true });
+    mkdirSync(`${root}/.output/server/chunks`, { recursive: true });
+    writeFileSync(`${root}/.output/public/index.html`, "<html></html>");
+    writeFileSync(`${root}/.output/public/assets/app.js`, "app");
+    writeFileSync(`${root}/.output/server/index.mjs`, "export default {}");
+    writeFileSync(`${root}/.output/server/chunks/a.mjs`, "chunk");
+    writeFileSync(`${root}/.output/server/.env`, "SECRET=1");
+    mkdirSync(`${root}/dist`, { recursive: true });
+    writeFileSync(`${root}/dist/sw.js`, "// pwa");
+
+    const res = run(root);
+    expect(res.status).toBe(0);
+    expect(existsSync(`${root}/dist/client/index.html`)).toBe(true);
+    expect(existsSync(`${root}/dist/client/assets/app.js`)).toBe(true);
+    expect(existsSync(`${root}/dist/server/index.mjs`)).toBe(true);
+    expect(existsSync(`${root}/dist/server/chunks/a.mjs`)).toBe(true);
+    // secrets stripped, PWA artefacts preserved
+    expect(existsSync(`${root}/dist/server/.env`)).toBe(false);
+    expect(existsSync(`${root}/dist/sw.js`)).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("supports the newer .output/client layout", () => {
+    const root = makeRoot("client");
+    mkdirSync(`${root}/.output/client`, { recursive: true });
+    mkdirSync(`${root}/.output/server`, { recursive: true });
+    writeFileSync(`${root}/.output/client/index.html`, "<html></html>");
+    writeFileSync(`${root}/.output/server/index.mjs`, "export default {}");
+    expect(run(root).status).toBe(0);
+    expect(existsSync(`${root}/dist/client/index.html`)).toBe(true);
+    expect(existsSync(`${root}/dist/server/index.mjs`)).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("is idempotent when the build already emitted the appliance layout", () => {
+    const root = makeRoot("dist");
+    mkdirSync(`${root}/dist/client`, { recursive: true });
+    mkdirSync(`${root}/dist/server`, { recursive: true });
+    writeFileSync(`${root}/dist/client/index.html`, "<html></html>");
+    writeFileSync(`${root}/dist/server/index.mjs`, "export default {}");
+    expect(run(root).status).toBe(0);
+    expect(existsSync(`${root}/dist/client/index.html`)).toBe(true);
+    expect(existsSync(`${root}/dist/server/index.mjs`)).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("fails loudly instead of writing a partial bundle", () => {
+    const root = makeRoot("empty");
+    mkdirSync(`${root}/dist`, { recursive: true });
+    const res = run(root);
+    expect(res.status).not.toBe(0);
+    expect(res.stderr).toMatch(/expected Nitro output was not found/);
+    expect(existsSync(`${root}/dist/client`)).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
