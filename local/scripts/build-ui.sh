@@ -13,7 +13,9 @@
 # duration of the build and always restore the previous state.
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
-SENTINEL="${NOVA_ORIGIN_SENTINEL:-https://nova-appliance.invalid}"
+# The client resolves its API base from its own origin in local mode; this
+# value is only the compile-time default for non-browser paths.
+SENTINEL="${NOVA_ORIGIN_SENTINEL:-https://localhost:8443}"
 ANON="${NOVA_LOCAL_ANON_KEY:-nova-local-anon}"
 
 export VITE_NOVA_RUNTIME_MODE=local
