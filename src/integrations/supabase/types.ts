@@ -13022,6 +13022,76 @@ export type Database = {
           },
         ]
       }
+      restaurant_recipe_ingredient_aliases: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          created_by: string | null
+          evidence: Json
+          id: string
+          ingredient_key: string
+          ingredient_name: string
+          inventory_item_id: string
+          note: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence?: Json
+          id?: string
+          ingredient_key: string
+          ingredient_name: string
+          inventory_item_id: string
+          note?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence?: Json
+          id?: string
+          ingredient_key?: string
+          ingredient_name?: string
+          inventory_item_id?: string
+          note?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_recipe_ingredient_aliases_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_recipe_ingredient_aliases_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_stock_reconciliation_v"
+            referencedColumns: ["inventory_item_id"]
+          },
+          {
+            foreignKeyName: "restaurant_recipe_ingredient_aliases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_recipe_lines: {
         Row: {
           candidate_sku: string | null
@@ -13142,6 +13212,111 @@ export type Database = {
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "restaurant_inventory_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_recipe_mapping_decisions: {
+        Row: {
+          applied_to_all: boolean
+          candidate_sku: string | null
+          confidence: number | null
+          created_at: string
+          decided_by: string | null
+          decision: string
+          evidence: Json
+          id: string
+          ingredient_key: string
+          ingredient_name: string | null
+          inventory_item_id: string | null
+          new_mapping_status: string | null
+          note: string | null
+          previous_inventory_item_id: string | null
+          previous_mapping_status: string | null
+          recipe_code: string | null
+          recipe_id: string | null
+          recipe_line_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          applied_to_all?: boolean
+          candidate_sku?: string | null
+          confidence?: number | null
+          created_at?: string
+          decided_by?: string | null
+          decision: string
+          evidence?: Json
+          id?: string
+          ingredient_key: string
+          ingredient_name?: string | null
+          inventory_item_id?: string | null
+          new_mapping_status?: string | null
+          note?: string | null
+          previous_inventory_item_id?: string | null
+          previous_mapping_status?: string | null
+          recipe_code?: string | null
+          recipe_id?: string | null
+          recipe_line_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          applied_to_all?: boolean
+          candidate_sku?: string | null
+          confidence?: number | null
+          created_at?: string
+          decided_by?: string | null
+          decision?: string
+          evidence?: Json
+          id?: string
+          ingredient_key?: string
+          ingredient_name?: string | null
+          inventory_item_id?: string | null
+          new_mapping_status?: string | null
+          note?: string | null
+          previous_inventory_item_id?: string | null
+          previous_mapping_status?: string | null
+          recipe_code?: string | null
+          recipe_id?: string | null
+          recipe_line_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_recipe_mapping_decisions_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_recipe_mapping_decisions_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_stock_reconciliation_v"
+            referencedColumns: ["inventory_item_id"]
+          },
+          {
+            foreignKeyName: "restaurant_recipe_mapping_decisions_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_recipes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_recipe_mapping_decisions_recipe_line_id_fkey"
+            columns: ["recipe_line_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_recipe_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_recipe_mapping_decisions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
             referencedColumns: ["id"]
           },
         ]
