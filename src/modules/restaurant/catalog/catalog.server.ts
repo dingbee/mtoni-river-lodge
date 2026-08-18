@@ -237,7 +237,13 @@ export async function importMasterCatalog(
           counts.created += 1;
         }
       } else {
-        const conflicts = COMPARED_FIELDS.filter((f) => differs(f, existing[f], (desired as any)[f])).map((f) => ({
+        const conflicts = COMPARED_FIELDS.filter((f) => {
+          const incoming = (desired as any)[f];
+          // The workbook asserts nothing when a value is absent — silence is not
+          // a conflict, it is a data-quality issue already surfaced separately.
+          if (incoming === null || incoming === undefined) return false;
+          return differs(f, existing[f], incoming);
+        }).map((f) => ({
           field: f,
           existing: existing[f] ?? null,
           incoming: (desired as any)[f] ?? null,
