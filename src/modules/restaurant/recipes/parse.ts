@@ -99,12 +99,16 @@ export function normaliseRecipeLine(row: RecipeSourceLine): NormalisedRecipeLine
     issues.push("Maximum quantity is lower than the minimum quantity.");
   }
   if (!sourceUnit) issues.push("No unit supplied in the source recipe.");
-  else if (isProseUnit(sourceUnit)) issues.push(`Unit "${sourceUnit}" is a written instruction, not a measure.`);
+  else if (isProseUnit(sourceUnit))
+    issues.push(`Unit "${sourceUnit}" is a written instruction, not a measure.`);
   else if (!unitCode) issues.push(`Unit "${sourceUnit}" has no equivalent in the unit system.`);
 
   const intent: LineMappingIntent =
-    row.candidateSku && row.mappingStatus?.trim().toUpperCase() !== "MATCH_REQUIRED" ? "candidate" : "match_required";
-  if (intent === "match_required") issues.push("No candidate stock item supplied — manual match required.");
+    row.candidateSku && row.mappingStatus?.trim().toUpperCase() !== "MATCH_REQUIRED"
+      ? "candidate"
+      : "match_required";
+  if (intent === "match_required")
+    issues.push("No candidate stock item supplied — manual match required.");
 
   return {
     recipeCode: row.recipeId.trim(),

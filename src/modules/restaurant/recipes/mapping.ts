@@ -10,7 +10,39 @@
  */
 
 const STOPWORDS = new Set([
-  "the","a","an","of","and","or","with","for","in","on","to","fresh","raw","whole","per","kg","g","l","ml","pcs","pc","piece","pieces","each","ea","pack","packet","bottle","tin","box","bag","jar","carton",
+  "the",
+  "a",
+  "an",
+  "of",
+  "and",
+  "or",
+  "with",
+  "for",
+  "in",
+  "on",
+  "to",
+  "fresh",
+  "raw",
+  "whole",
+  "per",
+  "kg",
+  "g",
+  "l",
+  "ml",
+  "pcs",
+  "pc",
+  "piece",
+  "pieces",
+  "each",
+  "ea",
+  "pack",
+  "packet",
+  "bottle",
+  "tin",
+  "box",
+  "bag",
+  "jar",
+  "carton",
 ]);
 
 /** Stable identity for a piece of legacy ingredient text. */
@@ -71,7 +103,11 @@ export function scoreCandidate(input: ScoreInput): CandidateScore {
   const evidence: string[] = [];
 
   if (input.previouslyRejected) {
-    return { score: 0, confidence: "low", evidence: ["Previously rejected for this ingredient by an administrator."] };
+    return {
+      score: 0,
+      confidence: "low",
+      evidence: ["Previously rejected for this ingredient by an administrator."],
+    };
   }
 
   const ing = tokens(input.ingredientName).map(singular);
@@ -95,7 +131,9 @@ export function scoreCandidate(input: ScoreInput): CandidateScore {
   }
   if (input.previouslyConfirmed) {
     score = Math.max(score, 0.9);
-    evidence.push("An administrator previously confirmed this catalog item for the same ingredient text.");
+    evidence.push(
+      "An administrator previously confirmed this catalog item for the same ingredient text.",
+    );
   }
   if (input.unitCompatible === false) {
     score = Math.min(score, 0.5);
@@ -106,5 +144,9 @@ export function scoreCandidate(input: ScoreInput): CandidateScore {
     evidence.push("Recipe unit is unknown, so unit compatibility cannot be established.");
   }
 
-  return { score: Number(Math.min(score, 1).toFixed(4)), confidence: confidenceFor(score), evidence };
+  return {
+    score: Number(Math.min(score, 1).toFixed(4)),
+    confidence: confidenceFor(score),
+    evidence,
+  };
 }

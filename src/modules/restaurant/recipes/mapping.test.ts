@@ -19,7 +19,12 @@ describe("tokens", () => {
 });
 
 describe("scoreCandidate", () => {
-  const item = { sku: "MTN-FNB-MEA-0001", name: "Beef Fillet", subcategory: "Red Meat", categoryName: "Butchery" };
+  const item = {
+    sku: "MTN-FNB-MEA-0001",
+    name: "Beef Fillet",
+    subcategory: "Red Meat",
+    categoryName: "Butchery",
+  };
 
   it("scores an exact name match as exact", () => {
     const r = scoreCandidate({ ingredientName: "Beef fillet", candidateSku: null, item });
@@ -27,24 +32,43 @@ describe("scoreCandidate", () => {
   });
 
   it("honours the workbook's own candidate SKU", () => {
-    const r = scoreCandidate({ ingredientName: "Fillet steak", candidateSku: "MTN-FNB-MEA-0001", item });
+    const r = scoreCandidate({
+      ingredientName: "Fillet steak",
+      candidateSku: "MTN-FNB-MEA-0001",
+      item,
+    });
     expect(r.score).toBeGreaterThanOrEqual(0.95);
     expect(r.evidence.join(" ")).toContain("Source workbook proposed");
   });
 
   it("never suggests something an administrator rejected", () => {
-    const r = scoreCandidate({ ingredientName: "Beef fillet", candidateSku: null, item, previouslyRejected: true });
+    const r = scoreCandidate({
+      ingredientName: "Beef fillet",
+      candidateSku: null,
+      item,
+      previouslyRejected: true,
+    });
     expect(r.score).toBe(0);
   });
 
   it("caps confidence when the units are incomparable", () => {
-    const r = scoreCandidate({ ingredientName: "Beef fillet", candidateSku: null, item, unitCompatible: false });
+    const r = scoreCandidate({
+      ingredientName: "Beef fillet",
+      candidateSku: null,
+      item,
+      unitCompatible: false,
+    });
     expect(r.score).toBeLessThanOrEqual(0.5);
     expect(r.confidence).not.toBe("exact");
   });
 
   it("promotes a mapping a human already confirmed for the same text", () => {
-    const r = scoreCandidate({ ingredientName: "Nyama ya ng'ombe", candidateSku: null, item, previouslyConfirmed: true });
+    const r = scoreCandidate({
+      ingredientName: "Nyama ya ng'ombe",
+      candidateSku: null,
+      item,
+      previouslyConfirmed: true,
+    });
     expect(r.confidence).toBe("high");
   });
 

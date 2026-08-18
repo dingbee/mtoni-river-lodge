@@ -7,7 +7,9 @@ const tenantOnly = z.object({ tenantId: z.string().uuid() });
 export const importRecipeMasterFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    tenantOnly.extend({ propertyId: z.string().uuid().nullish(), dryRun: z.boolean().optional() }).parse(d),
+    tenantOnly
+      .extend({ propertyId: z.string().uuid().nullish(), dryRun: z.boolean().optional() })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const mod = await import("./recipe-import.server");
@@ -60,7 +62,9 @@ export const listRecipeReviewQueueFn = createServerFn({ method: "POST" })
 export const resolveRecipeReviewRowFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    tenantOnly.extend({ rowId: z.string().uuid(), note: z.string().trim().max(500).optional() }).parse(d),
+    tenantOnly
+      .extend({ rowId: z.string().uuid(), note: z.string().trim().max(500).optional() })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const mod = await import("./recipe-import.server");

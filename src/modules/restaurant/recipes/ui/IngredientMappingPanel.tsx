@@ -46,7 +46,8 @@ function quantityLabel(row: any) {
   const { quantityMin: min, quantityMax: max, sourceUnit } = row;
   const unit = sourceUnit ?? "";
   if (min === null && max === null) return unit || "—";
-  if (min !== null && max !== null && Number(min) !== Number(max)) return `${min}–${max} ${unit}`.trim();
+  if (min !== null && max !== null && Number(min) !== Number(max))
+    return `${min}–${max} ${unit}`.trim();
   return `${min ?? max} ${unit}`.trim();
 }
 
@@ -88,7 +89,12 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
   });
 
   const decide = useAdminMutation({
-    mutationFn: (vars: { lineId: string; decision: string; inventoryItemId?: string | null; applyToMatchingLines?: boolean }) =>
+    mutationFn: (vars: {
+      lineId: string;
+      decision: string;
+      inventoryItemId?: string | null;
+      applyToMatchingLines?: boolean;
+    }) =>
       decideFn({
         data: {
           tenantId: tenantId!,
@@ -118,11 +124,17 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
     setOpenRow(row);
     setNote("");
     setApplyToAll(false);
-    setSelectedCandidate(row.suggestion?.inventoryItemId ?? row.candidates?.[0]?.inventoryItemId ?? null);
+    setSelectedCandidate(
+      row.suggestion?.inventoryItemId ?? row.candidates?.[0]?.inventoryItemId ?? null,
+    );
   };
 
-  const activeRow = React.useMemo(() => rows.find((r) => r.lineId === openRow?.lineId) ?? openRow, [rows, openRow]);
-  const candidate = activeRow?.candidates?.find((c: any) => c.inventoryItemId === selectedCandidate) ?? null;
+  const activeRow = React.useMemo(
+    () => rows.find((r) => r.lineId === openRow?.lineId) ?? openRow,
+    [rows, openRow],
+  );
+  const candidate =
+    activeRow?.candidates?.find((c: any) => c.inventoryItemId === selectedCandidate) ?? null;
 
   return (
     <SectionCard
@@ -143,13 +155,26 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        <Input className="h-10 w-56" placeholder="Search ingredient or SKU" value={search} onChange={(e) => setSearch(e.target.value)} />
-        <select className="h-10 rounded-md border bg-background px-3 text-sm" value={servicePeriod} onChange={(e) => setServicePeriod(e.target.value)}>
+        <Input
+          className="h-10 w-56"
+          placeholder="Search ingredient or SKU"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select
+          className="h-10 rounded-md border bg-background px-3 text-sm"
+          value={servicePeriod}
+          onChange={(e) => setServicePeriod(e.target.value)}
+        >
           <option value="">All service periods</option>
           <option value="LUNCH">Lunch</option>
           <option value="DINNER">Dinner</option>
         </select>
-        <select className="h-10 max-w-[16rem] rounded-md border bg-background px-3 text-sm" value={recipeId} onChange={(e) => setRecipeId(e.target.value)}>
+        <select
+          className="h-10 max-w-[16rem] rounded-md border bg-background px-3 text-sm"
+          value={recipeId}
+          onChange={(e) => setRecipeId(e.target.value)}
+        >
           <option value="">All recipes</option>
           {recipes.map((r) => (
             <option key={r.id} value={r.id}>
@@ -162,7 +187,10 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
       {queue.isLoading ? (
         <p className="py-6 text-sm text-muted-foreground">Loading ingredient lines…</p>
       ) : rows.length === 0 ? (
-        <EmptyState title="Nothing in this queue" description="No ingredient lines match the current filters." />
+        <EmptyState
+          title="Nothing in this queue"
+          description="No ingredient lines match the current filters."
+        />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -185,20 +213,26 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
                 return (
                   <tr key={r.lineId} className="border-b last:border-0 align-top hover:bg-muted/40">
                     <td className="py-2 pr-3">
-                      <span className="font-mono text-xs text-muted-foreground">{r.recipeCode}</span> {r.recipeName}
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {r.recipeCode}
+                      </span>{" "}
+                      {r.recipeName}
                     </td>
                     <td className="py-2 pr-3">{r.servicePeriod ?? "—"}</td>
                     <td className="py-2 pr-3">
                       {r.ingredientName}
                       {r.occurrences > 1 ? (
-                        <span className="ml-1 text-xs text-muted-foreground">· used in {r.occurrences} lines</span>
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          · used in {r.occurrences} lines
+                        </span>
                       ) : null}
                     </td>
                     <td className="py-2 pr-3 whitespace-nowrap">{quantityLabel(r)}</td>
                     <td className="py-2 pr-3">
                       {r.mappedItem ? (
                         <>
-                          <span className="font-mono text-xs">{r.mappedItem.sku}</span> {r.mappedItem.name}
+                          <span className="font-mono text-xs">{r.mappedItem.sku}</span>{" "}
+                          {r.mappedItem.name}
                         </>
                       ) : top ? (
                         <>
@@ -209,12 +243,30 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
                       )}
                     </td>
                     <td className="py-2 pr-3">
-                      {top ? <StatusChip tone={CONFIDENCE_TONE[top.confidence] ?? "neutral"}>{top.confidence}</StatusChip> : "—"}
+                      {top ? (
+                        <StatusChip tone={CONFIDENCE_TONE[top.confidence] ?? "neutral"}>
+                          {top.confidence}
+                        </StatusChip>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="py-2 pr-3">
                       {top ? (
-                        <StatusChip tone={top.unitCompatible === true ? "success" : top.unitCompatible === false ? "danger" : "warning"}>
-                          {top.unitCompatible === true ? "Compatible" : top.unitCompatible === false ? "Incompatible" : "Unknown"}
+                        <StatusChip
+                          tone={
+                            top.unitCompatible === true
+                              ? "success"
+                              : top.unitCompatible === false
+                                ? "danger"
+                                : "warning"
+                          }
+                        >
+                          {top.unitCompatible === true
+                            ? "Compatible"
+                            : top.unitCompatible === false
+                              ? "Incompatible"
+                              : "Unknown"}
                         </StatusChip>
                       ) : (
                         "—"
@@ -222,7 +274,13 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
                     </td>
                     <td className="py-2 pr-3">
                       <StatusChip
-                        tone={r.state === "confirmed" ? "success" : r.state === "review_required" ? "warning" : "neutral"}
+                        tone={
+                          r.state === "confirmed"
+                            ? "success"
+                            : r.state === "review_required"
+                              ? "warning"
+                              : "neutral"
+                        }
                       >
                         {r.state === "review_required" ? "Review" : r.state}
                       </StatusChip>
@@ -274,8 +332,9 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
                 <div className="rounded-lg border border-primary/40 bg-primary/5 p-3">
                   <p className="font-medium">Previously confirmed for this ingredient text</p>
                   <p className="text-muted-foreground">
-                    <span className="font-mono text-xs">{activeRow.suggestion.sku}</span> {activeRow.suggestion.name} — confirmed
-                    for “{activeRow.suggestion.confirmedFor}”. It is offered as a suggestion and still needs your confirmation here.
+                    <span className="font-mono text-xs">{activeRow.suggestion.sku}</span>{" "}
+                    {activeRow.suggestion.name} — confirmed for “{activeRow.suggestion.confirmedFor}
+                    ”. It is offered as a suggestion and still needs your confirmation here.
                   </p>
                 </div>
               ) : null}
@@ -284,8 +343,8 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
                 <p className="mb-2 font-medium">Catalog candidates</p>
                 {(activeRow.candidates ?? []).length === 0 ? (
                   <p className="text-muted-foreground">
-                    No catalog item resembles this ingredient. Leave it unresolved or mark it for review — a stock item is never
-                    created to satisfy a recipe.
+                    No catalog item resembles this ingredient. Leave it unresolved or mark it for
+                    review — a stock item is never created to satisfy a recipe.
                   </p>
                 ) : (
                   <ul className="space-y-2">
@@ -295,24 +354,45 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
                           type="button"
                           onClick={() => setSelectedCandidate(c.inventoryItemId)}
                           className={`w-full rounded-lg border p-3 text-left ${
-                            selectedCandidate === c.inventoryItemId ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                            selectedCandidate === c.inventoryItemId
+                              ? "border-primary bg-primary/5"
+                              : "hover:bg-muted/50"
                           }`}
                         >
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <span>
-                              <span className="font-mono text-xs text-muted-foreground">{c.sku}</span>{" "}
+                              <span className="font-mono text-xs text-muted-foreground">
+                                {c.sku}
+                              </span>{" "}
                               <span className="font-medium">{c.name}</span>
                             </span>
                             <span className="flex gap-1">
-                              <StatusChip tone={CONFIDENCE_TONE[c.confidence] ?? "neutral"}>{c.confidence}</StatusChip>
-                              <StatusChip tone={c.unitCompatible === true ? "success" : c.unitCompatible === false ? "danger" : "warning"}>
-                                {c.unitCompatible === true ? "Units OK" : c.unitCompatible === false ? "Unit clash" : "Unit unknown"}
+                              <StatusChip tone={CONFIDENCE_TONE[c.confidence] ?? "neutral"}>
+                                {c.confidence}
+                              </StatusChip>
+                              <StatusChip
+                                tone={
+                                  c.unitCompatible === true
+                                    ? "success"
+                                    : c.unitCompatible === false
+                                      ? "danger"
+                                      : "warning"
+                                }
+                              >
+                                {c.unitCompatible === true
+                                  ? "Units OK"
+                                  : c.unitCompatible === false
+                                    ? "Unit clash"
+                                    : "Unit unknown"}
                               </StatusChip>
                             </span>
                           </div>
                           <p className="mt-1 text-xs text-muted-foreground">
-                            {[c.domain, c.categoryName, c.subcategory].filter(Boolean).join(" · ") || "Uncategorised"} · stock unit{" "}
-                            {c.stockUnit ?? "—"} · pack {c.packLabel ?? "—"} · {c.dataStatus ?? "—"}
+                            {[c.domain, c.categoryName, c.subcategory]
+                              .filter(Boolean)
+                              .join(" · ") || "Uncategorised"}{" "}
+                            · stock unit {c.stockUnit ?? "—"} · pack {c.packLabel ?? "—"} ·{" "}
+                            {c.dataStatus ?? "—"}
                           </p>
                           <ul className="mt-1 list-inside list-disc text-xs text-muted-foreground">
                             {c.evidence.map((e: string) => (
@@ -335,10 +415,13 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
                 />
                 {activeRow.occurrences > 1 && candidate ? (
                   <label className="flex items-start gap-2 text-sm">
-                    <Checkbox checked={applyToAll} onCheckedChange={(v) => setApplyToAll(Boolean(v))} />
+                    <Checkbox
+                      checked={applyToAll}
+                      onCheckedChange={(v) => setApplyToAll(Boolean(v))}
+                    />
                     <span>
-                      Also apply this confirmation to the other {activeRow.occurrences - 1} unresolved line(s) using the identical
-                      ingredient text and unit.
+                      Also apply this confirmation to the other {activeRow.occurrences - 1}{" "}
+                      unresolved line(s) using the identical ingredient text and unit.
                     </span>
                   </label>
                 ) : null}
@@ -361,7 +444,11 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
                     variant="outline"
                     disabled={!candidate || decide.isPending}
                     onClick={() =>
-                      decide.mutate({ lineId: activeRow.lineId, decision: "rejected", inventoryItemId: selectedCandidate })
+                      decide.mutate({
+                        lineId: activeRow.lineId,
+                        decision: "rejected",
+                        inventoryItemId: selectedCandidate,
+                      })
                     }
                   >
                     Reject candidate
@@ -369,22 +456,27 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
                   <Button
                     variant="outline"
                     disabled={decide.isPending}
-                    onClick={() => decide.mutate({ lineId: activeRow.lineId, decision: "left_unresolved" })}
+                    onClick={() =>
+                      decide.mutate({ lineId: activeRow.lineId, decision: "left_unresolved" })
+                    }
                   >
                     Leave unresolved
                   </Button>
                   <Button
                     variant="outline"
                     disabled={decide.isPending}
-                    onClick={() => decide.mutate({ lineId: activeRow.lineId, decision: "review_required" })}
+                    onClick={() =>
+                      decide.mutate({ lineId: activeRow.lineId, decision: "review_required" })
+                    }
                   >
                     Mark requires review
                   </Button>
                 </div>
                 {candidate && candidate.unitCompatible !== true ? (
                   <p className="text-xs text-muted-foreground">
-                    Confirmation is blocked because the recipe unit (“{activeRow.sourceUnit ?? "not stated"}”) cannot be converted
-                    to this item's stock unit. Resolve the unit first rather than assuming a conversion.
+                    Confirmation is blocked because the recipe unit (“
+                    {activeRow.sourceUnit ?? "not stated"}”) cannot be converted to this item's
+                    stock unit. Resolve the unit first rather than assuming a conversion.
                   </p>
                 ) : null}
               </div>
@@ -398,7 +490,8 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
                     {(history.data ?? []).map((d: any) => (
                       <li key={d.id} className="py-2 text-xs">
                         <span className="font-medium">{d.decision.replace(/_/g, " ")}</span> ·{" "}
-                        {new Date(d.created_at).toLocaleString()} · {d.previous_mapping_status} → {d.new_mapping_status}
+                        {new Date(d.created_at).toLocaleString()} · {d.previous_mapping_status} →{" "}
+                        {d.new_mapping_status}
                         {d.applied_to_all ? " · applied in bulk" : ""}
                         {d.note ? ` · “${d.note}”` : ""}
                       </li>

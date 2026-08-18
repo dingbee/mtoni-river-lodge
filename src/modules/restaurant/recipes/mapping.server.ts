@@ -22,35 +22,49 @@ const LINE_SELECT =
   "id, recipe_id, ingredient_name, quantity, quantity_min, quantity_max, source_unit, unit_id, candidate_sku, inventory_item_id, mapping_status, notes, sort_order, source_file, source_row";
 
 async function loadReference(sb: Sb, tenantId: string) {
-  const [{ data: items }, { data: units }, { data: categories }, { data: aliases }] = await Promise.all([
-    sb
-      .from("restaurant_inventory_items")
-      .select("id, sku, name, domain, subcategory, category_id, unit_id, pack_label, data_status")
-      .eq("tenant_id", tenantId)
-      .order("sku"),
-    sb
-      .from("restaurant_inventory_units")
-      .select("id, code, name, dimension")
-      .or(`tenant_id.is.null,tenant_id.eq.${tenantId}`),
-    sb.from("restaurant_inventory_categories").select("id, name").eq("tenant_id", tenantId),
-    sb
-      .from("restaurant_recipe_ingredient_aliases")
-      .select("id, ingredient_key, ingredient_name, inventory_item_id, status, confidence, note, updated_at")
-      .eq("tenant_id", tenantId),
-  ]);
+  const [{ data: items }, { data: units }, { data: categories }, { data: aliases }] =
+    await Promise.all([
+      sb
+        .from("restaurant_inventory_items")
+        .select("id, sku, name, domain, subcategory, category_id, unit_id, pack_label, data_status")
+        .eq("tenant_id", tenantId)
+        .order("sku"),
+      sb
+        .from("restaurant_inventory_units")
+        .select("id, code, name, dimension")
+        .or(`tenant_id.is.null,tenant_id.eq.${tenantId}`),
+      sb.from("restaurant_inventory_categories").select("id, name").eq("tenant_id", tenantId),
+      sb
+        .from("restaurant_recipe_ingredient_aliases")
+        .select(
+          "id, ingredient_key, ingredient_name, inventory_item_id, status, confidence, note, updated_at",
+        )
+        .eq("tenant_id", tenantId),
+    ]);
 
   const unitById = new Map<string, any>(((units ?? []) as any[]).map((u) => [u.id, u]));
   const categoryById = new Map<string, any>(((categories ?? []) as any[]).map((c) => [c.id, c]));
   const confirmed = new Map<string, any>();
   const rejected = new Set<string>();
-  for (const a of ((aliases ?? []) as any[])) {
+  for (const a of (aliases ?? []) as any[]) {
     if (a.status === "confirmed") confirmed.set(a.ingredient_key, a);
     else rejected.add(`${a.ingredient_key}::${a.inventory_item_id}`);
   }
-  return { items: (items ?? []) as any[], unitById, categoryById, confirmed, rejected, aliases: (aliases ?? []) as any[] };
+  return {
+    items: (items ?? []) as any[],
+    unitById,
+    categoryById,
+    confirmed,
+    rejected,
+    aliases: (aliases ?? []) as any[],
+  };
 }
 
-function unitCompatibility(unitById: Map<string, any>, lineUnitId: string | null, itemUnitId: string | null) {
+function unitCompatibility(
+  unitById: Map<string, any>,
+  lineUnitId: string | null,
+  itemUnitId: string | null,
+) {
   const a = lineUnitId ? unitById.get(lineUnitId) : null;
   const b = itemUnitId ? unitById.get(itemUnitId) : null;
   if (!a || !b) return null;
@@ -105,7 +119,8 @@ export async function listIngredientMappingQueue(sb: Sb, userId: string, input: 
   if (recipeErr) throw new Error(recipeErr.message);
   const recipes = (recipeRows ?? []) as any[];
   const recipeById = new Map<string, any>(recipes.map((r) => [r.id, r]));
-  if (recipes.length === 0) return { rows: [], counts: emptyCounts(), recipes: [], catalogSize: ref.items.length };
+  if (recipes.length === 0)
+    return { rows: [], counts: emptyCounts(), recipes: [], catalogSize: ref.items.length };
 
   const { data: lineRows, error: lineErr } = await sb
     .from("restaurant_recipe_lines")
@@ -119,7 +134,12 @@ export async function listIngredientMappingQueue(sb: Sb, userId: string, input: 
   const itemById = new Map<string, any>(ref.items.map((i) => [i.id, i]));
 
   const rows = ((lineRows ?? []) as any[])
-    .filter((l) => !search || (l.ingredient_name ?? "").toLowerCase().includes(search) || (l.candidate_sku ?? "").toLowerCase().includes(search))
+    .filter(
+      (l) =>
+        !search ||
+        (l.ingredient_name ?? "").toLowerCase().includes(search) ||
+        (l.candidate_sku ?? "").toLowerCase().includes(search),
+    )
     .map((l) => {
       const recipe = recipeById.get(l.recipe_id);
       const key = ingredientKey(l.ingredient_name);
@@ -128,7 +148,9 @@ export async function listIngredientMappingQueue(sb: Sb, userId: string, input: 
       const candidates: MappingCandidate[] = ref.items
         .map((item) => {
           const compat = unitCompatibility(ref.unitById, l.unit_id, item.unit_id);
-          const categoryName = item.category_id ? (ref.categoryById.get(item.category_id)?.name ?? null) : null;
+          const categoryName = item.category_id
+            ? (ref.categoryById.get(item.category_id)?.name ?? null)
+            : null;
           const scored = scoreCandidate({
             ingredientName: l.ingredient_name,
             candidateSku: l.candidate_sku,
@@ -148,7 +170,9 @@ export async function listIngredientMappingQueue(sb: Sb, userId: string, input: 
             packLabel: item.pack_label ?? null,
             dataStatus: item.data_status ?? null,
             unitCompatible: compat,
-            fromWorkbook: Boolean(l.candidate_sku && l.candidate_sku.toUpperCase() === String(item.sku).toUpperCase()),
+            fromWorkbook: Boolean(
+              l.candidate_sku && l.candidate_sku.toUpperCase() === String(item.sku).toUpperCase(),
+            ),
             previouslyConfirmed: alias?.inventory_item_id === item.id,
             ...scored,
           } as MappingCandidate;
@@ -221,12 +245,21 @@ export async function listIngredientMappingQueue(sb: Sb, userId: string, input: 
   const filtered =
     !input.state || input.state === "all"
       ? withSiblings
-      : withSiblings.filter((r) => (input.state === "review_required" ? r.state === "review_required" : r.state === input.state));
+      : withSiblings.filter((r) =>
+          input.state === "review_required"
+            ? r.state === "review_required"
+            : r.state === input.state,
+        );
 
   return {
     rows: filtered.slice(0, input.limit ?? 400),
     counts,
-    recipes: recipes.map((r) => ({ id: r.id, code: r.code, name: r.name, servicePeriod: r.service_period })),
+    recipes: recipes.map((r) => ({
+      id: r.id,
+      code: r.code,
+      name: r.name,
+      servicePeriod: r.service_period,
+    })),
     catalogSize: ref.items.length,
   };
 }
@@ -271,7 +304,10 @@ export async function decideIngredientMapping(sb: Sb, userId: string, input: Dec
 
   const key = ingredientKey(line.ingredient_name);
   const now = new Date().toISOString();
-  const previous = { itemId: line.inventory_item_id ?? null, status: line.mapping_status as string };
+  const previous = {
+    itemId: line.inventory_item_id ?? null,
+    status: line.mapping_status as string,
+  };
 
   let newStatus = line.mapping_status as string;
   let newItemId: string | null = line.inventory_item_id ?? null;
@@ -286,7 +322,10 @@ export async function decideIngredientMapping(sb: Sb, userId: string, input: Dec
       .eq("tenant_id", input.tenantId)
       .eq("id", input.inventoryItemId)
       .single();
-    if (!found) throw new Error("That item is not in this tenant's master catalog. Add it to the catalog first — recipes never create stock items.");
+    if (!found)
+      throw new Error(
+        "That item is not in this tenant's master catalog. Add it to the catalog first — recipes never create stock items.",
+      );
     item = found;
   }
 
@@ -345,11 +384,13 @@ export async function decideIngredientMapping(sb: Sb, userId: string, input: Dec
   if (input.decision === "confirmed" && input.applyToMatchingLines) {
     const { data: siblings } = await sb
       .from("restaurant_recipe_lines")
-      .select("id, recipe_id, ingredient_name, unit_id, mapping_status, inventory_item_id, candidate_sku, source_unit")
+      .select(
+        "id, recipe_id, ingredient_name, unit_id, mapping_status, inventory_item_id, candidate_sku, source_unit",
+      )
       .eq("tenant_id", input.tenantId)
       .neq("id", input.lineId)
       .neq("mapping_status", "resolved");
-    for (const s of ((siblings ?? []) as any[])) {
+    for (const s of (siblings ?? []) as any[]) {
       if (ingredientKey(s.ingredient_name) !== key) continue;
       if (s.unit_id !== line.unit_id) continue; // same unit only; anything else needs its own judgement
       await sb
@@ -370,7 +411,10 @@ export async function decideIngredientMapping(sb: Sb, userId: string, input: Dec
         previous_mapping_status: s.mapping_status,
         new_mapping_status: "resolved",
         candidate_sku: s.candidate_sku ?? null,
-        evidence: { applied_from_line: input.lineId, reason: "Identical ingredient text and unit, confirmed in bulk by an administrator." },
+        evidence: {
+          applied_from_line: input.lineId,
+          reason: "Identical ingredient text and unit, confirmed in bulk by an administrator.",
+        },
         note: input.note ?? null,
         applied_to_all: true,
         decided_by: userId,
@@ -391,14 +435,23 @@ export async function decideIngredientMapping(sb: Sb, userId: string, input: Dec
     previous_mapping_status: previous.status,
     new_mapping_status: newStatus,
     candidate_sku: line.candidate_sku ?? null,
-    evidence: { source_file: line.source_file ?? null, source_row: line.source_row ?? null, source_unit: line.source_unit ?? null },
+    evidence: {
+      source_file: line.source_file ?? null,
+      source_row: line.source_row ?? null,
+      source_unit: line.source_unit ?? null,
+    },
     note: input.note ?? null,
     applied_to_all: alsoApplied.length > 0,
     decided_by: userId,
   });
   if (auditErr) throw new Error(auditErr.message);
 
-  return { lineId: line.id, mappingStatus: newStatus, inventoryItemId: newItemId, alsoApplied: alsoApplied.length };
+  return {
+    lineId: line.id,
+    mappingStatus: newStatus,
+    inventoryItemId: newItemId,
+    alsoApplied: alsoApplied.length,
+  };
 }
 
 /** Full decision history — for one line, one ingredient, or the whole tenant. */

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { normaliseRecipeLine, normaliseRecipe, recipeUnitCode, unitsComparable, type RecipeSourceLine } from "./parse";
+import {
+  normaliseRecipeLine,
+  normaliseRecipe,
+  recipeUnitCode,
+  unitsComparable,
+  type RecipeSourceLine,
+} from "./parse";
 
 const line = (over: Partial<RecipeSourceLine>): RecipeSourceLine => ({
   sourceRow: 2,
