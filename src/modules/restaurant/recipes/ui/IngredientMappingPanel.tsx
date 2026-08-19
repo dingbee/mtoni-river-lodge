@@ -94,6 +94,7 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
       decision: string;
       inventoryItemId?: string | null;
       applyToMatchingLines?: boolean;
+      acknowledgeUnknownUnit?: boolean;
     }) =>
       decideFn({
         data: {
@@ -103,6 +104,7 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
           inventoryItemId: vars.inventoryItemId ?? null,
           note: note.trim() ? note.trim() : null,
           applyToMatchingLines: vars.applyToMatchingLines ?? false,
+          acknowledgeUnknownUnit: vars.acknowledgeUnknownUnit ?? false,
         },
       }),
     successMessage: "Mapping decision recorded.",
@@ -413,7 +415,7 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
                   onChange={(e) => setNote(e.target.value)}
                   rows={2}
                 />
-                {activeRow.occurrences > 1 && candidate ? (
+                {activeRow.occurrences > 1 && candidate && candidate.unitCompatible === true ? (
                   <label className="flex items-start gap-2 text-sm">
                     <Checkbox
                       checked={applyToAll}
@@ -428,17 +430,20 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
 
                 <div className="flex flex-wrap gap-2">
                   <Button
-                    disabled={!candidate || decide.isPending || candidate.unitCompatible !== true}
+                    disabled={!candidate || decide.isPending || candidate.unitCompatible === false}
                     onClick={() =>
                       decide.mutate({
                         lineId: activeRow.lineId,
                         decision: "confirmed",
                         inventoryItemId: selectedCandidate,
                         applyToMatchingLines: applyToAll,
+                        acknowledgeUnknownUnit: candidate?.unitCompatible === null,
                       })
                     }
                   >
-                    Confirm mapping
+                    {candidate?.unitCompatible === null
+                      ? "Confirm mapping (unit unverified)"
+                      : "Confirm mapping"}
                   </Button>
                   <Button
                     variant="outline"
@@ -472,11 +477,20 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
                     Mark requires review
                   </Button>
                 </div>
-                {candidate && candidate.unitCompatible !== true ? (
+                {candidate && candidate.unitCompatible === false ? (
                   <p className="text-xs text-muted-foreground">
-                    Confirmation is blocked because the recipe unit (“
-                    {activeRow.sourceUnit ?? "not stated"}”) cannot be converted to this item's
-                    stock unit. Resolve the unit first rather than assuming a conversion.
+                    Confirmation is blocked: the recipe unit (“
+                    {activeRow.sourceUnit ?? "not stated"}
+                    ”) measures something different from this item's stock unit. Resolve the unit
+                    rather than assuming a conversion.
+                  </p>
+                ) : null}
+                {candidate && candidate.unitCompatible === null ? (
+                  <p className="text-xs text-muted-foreground">
+                    The recipe unit (“{activeRow.sourceUnit ?? "not stated"}”) or this item's stock
+                    unit is missing, so the conversion cannot be verified. You may still record the
+                    mapping — the line stays in review, and the recipe stays uncostable and inactive
+                    until the unit is completed in the master catalog.
                   </p>
                 ) : null}
               </div>
