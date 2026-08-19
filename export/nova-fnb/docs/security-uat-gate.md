@@ -79,11 +79,52 @@ authorization, and a folio or document seam that drops back to a bare
 signed-in check. Revocation is asserted to take effect on the next call — no
 cached or claim-embedded privilege.
 
+## 6. Clean-checkout build
+
+The product was copied to a directory with no Mtoni repository on disk, then
+built from zero (`bun install` -> typecheck -> tests -> production build).
+
+This surfaced one genuine defect that a dirty-tree build had hidden:
+`src/components/ui/carousel.tsx` imported `embla-carousel-react`, which is not
+in this product's `package.json` — it had been resolving from the parent
+repository's `node_modules`. The component was unreferenced, so it was removed
+rather than adding a dependency the product does not use.
+
+## 7. Runtime independence
+
+The source tree contains zero runtime references to the legacy product. The
+only matches are one test fixture (`independence.test.ts`, which exists to
+detect reintroduction) and this document.
+
+The *bundle*, however, is a separate question: Vite inlines
+`import.meta.env.VITE_SUPABASE_URL` at build time, so a build run in a shell
+that still exports another project's backend credentials bakes that origin into
+the artefact while the source stays clean. A build in this repository's sandbox
+did exactly that. Built with a clean environment, the bundle contains no
+hosted backend origin and no foreign product reference at all.
+
+Because "clean source" does not imply "clean artefact", `bun run verify:bundle`
+(`scripts/verify-bundle-origin.ts`) now reads the built output and fails on any
+20-character hosted project origin or foreign product string. It is verified in
+both directions: it passes a clean build and rejects a deliberately poisoned
+one. The appliance keeps its own stricter gate.
+
+The standalone runtime starts from the clean build and serves traffic:
+`/` -> 307 to `/auth`, `/auth` -> 200. There is no raw HTTP API surface
+(`src/routes/api/` does not exist), so server functions are the only server
+entry points, and `requireSupabaseAuth` refuses any call with a missing,
+non-bearer, or invalid token.
+
 ## Verdict
 
+Clean checkout, no legacy repository on disk:
+
+- `bun install`: 875 packages, no undeclared dependency
 - `tsgo --noEmit`: 0 errors
 - `vitest run`: 251 passed / 20 files
 - `bun run build`: success
+- `bun run verify:bundle`: clean
+- runtime start: serving
 
 **PASS** — the standalone product resolves every authorization decision
 through one model.

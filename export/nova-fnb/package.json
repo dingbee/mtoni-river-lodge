@@ -12,7 +12,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "build:local": "bash local/scripts/build-ui.sh",
-    "nova": "./nova"
+    "nova": "./nova",
+    "verify:bundle": "bun run scripts/verify-bundle-origin.ts"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
