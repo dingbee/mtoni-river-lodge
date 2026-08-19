@@ -8150,6 +8150,86 @@ export type Database = {
           },
         ]
       }
+      restaurant_catalog_enrichment_decisions: {
+        Row: {
+          created_at: string
+          decided_by: string | null
+          decision: string
+          evidence: Json
+          id: string
+          ingredient_key: string | null
+          ingredient_name: string | null
+          inventory_item_id: string | null
+          new_value: Json | null
+          note: string | null
+          previous_value: Json | null
+          request_id: string | null
+          sku: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_by?: string | null
+          decision: string
+          evidence?: Json
+          id?: string
+          ingredient_key?: string | null
+          ingredient_name?: string | null
+          inventory_item_id?: string | null
+          new_value?: Json | null
+          note?: string | null
+          previous_value?: Json | null
+          request_id?: string | null
+          sku?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_by?: string | null
+          decision?: string
+          evidence?: Json
+          id?: string
+          ingredient_key?: string | null
+          ingredient_name?: string | null
+          inventory_item_id?: string | null
+          new_value?: Json | null
+          note?: string | null
+          previous_value?: Json | null
+          request_id?: string | null
+          sku?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_catalog_enrichment_decisions_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_catalog_enrichment_decisions_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_stock_reconciliation_v"
+            referencedColumns: ["inventory_item_id"]
+          },
+          {
+            foreignKeyName: "restaurant_catalog_enrichment_decisions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_catalog_item_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_catalog_enrichment_decisions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_catalog_import_batches: {
         Row: {
           conflict_count: number
@@ -8307,6 +8387,100 @@ export type Database = {
           },
           {
             foreignKeyName: "restaurant_catalog_import_rows_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_catalog_item_requests: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_item_id: string | null
+          created_sku: string | null
+          id: string
+          ingredient_key: string
+          ingredient_name: string
+          note: string | null
+          occurrences: number
+          provenance: Json
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          suggested_category: string | null
+          suggested_domain: string | null
+          suggested_name: string | null
+          suggested_purchase_unit_code: string | null
+          suggested_stock_unit_code: string | null
+          suggested_subcategory: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_item_id?: string | null
+          created_sku?: string | null
+          id?: string
+          ingredient_key: string
+          ingredient_name: string
+          note?: string | null
+          occurrences?: number
+          provenance?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_category?: string | null
+          suggested_domain?: string | null
+          suggested_name?: string | null
+          suggested_purchase_unit_code?: string | null
+          suggested_stock_unit_code?: string | null
+          suggested_subcategory?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_item_id?: string | null
+          created_sku?: string | null
+          id?: string
+          ingredient_key?: string
+          ingredient_name?: string
+          note?: string | null
+          occurrences?: number
+          provenance?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_category?: string | null
+          suggested_domain?: string | null
+          suggested_name?: string | null
+          suggested_purchase_unit_code?: string | null
+          suggested_stock_unit_code?: string | null
+          suggested_subcategory?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_catalog_item_requests_created_item_id_fkey"
+            columns: ["created_item_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_catalog_item_requests_created_item_id_fkey"
+            columns: ["created_item_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_stock_reconciliation_v"
+            referencedColumns: ["inventory_item_id"]
+          },
+          {
+            foreignKeyName: "restaurant_catalog_item_requests_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "restaurant_tenants"
