@@ -479,7 +479,8 @@ export function IngredientMappingPanel({ tenantId }: { tenantId: string | undefi
                 </div>
                 {candidate && candidate.unitCompatible === false ? (
                   <p className="text-xs text-muted-foreground">
-                    Confirmation is blocked: the recipe unit (“{activeRow.sourceUnit ?? "not stated"}
+                    Confirmation is blocked: the recipe unit (“
+                    {activeRow.sourceUnit ?? "not stated"}
                     ”) measures something different from this item's stock unit. Resolve the unit
                     rather than assuming a conversion.
                   </p>
