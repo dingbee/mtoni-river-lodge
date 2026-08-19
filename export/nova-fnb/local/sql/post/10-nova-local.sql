@@ -163,6 +163,11 @@ BEGIN
   VALUES (v_tenant_id, v_property_id, v_user_id, 'owner')
   ON CONFLICT (tenant_id, user_id, role) DO NOTHING;
 
+  -- The canonical authorization model is RBAC. Membership above scopes the
+  -- transactional engines; this grant is what actually gives the first
+  -- administrator OWNER permissions. Idempotent: a replay adds nothing.
+  PERFORM public.nova_grant_owner(v_user_id, p_tenant_slug, p_tenant_name);
+
   INSERT INTO nova_local.bootstrap_events(tenant_id, admin_user_id, request_fingerprint, payload)
   VALUES (v_tenant_id, v_user_id, p_fingerprint,
           jsonb_build_object('property_id', v_property_id, 'location_id', v_location_id,

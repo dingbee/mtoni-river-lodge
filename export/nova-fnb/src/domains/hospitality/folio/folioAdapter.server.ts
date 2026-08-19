@@ -30,9 +30,32 @@ export interface FolioPostingResult {
   failureMessage?: string;
 }
 
-async function assertStaff(sb: Sb, userId: string) {
-  const { data, error } = await sb.rpc("is_any_staff", { _user_id: userId });
-  if (error || !data) throw new Error(folioFailureMessage("unauthorised"));
+/**
+ * Reading a guest's stay is POS work, not merely "being signed in". Resolved
+ * through the canonical RBAC model; a caller with no permission is refused
+ * here as well as by RLS.
+ */
+async function assertFolioRead(sb: Sb, userId: string) {
+  const { data, error } = await sb.rpc("nova_has_permission", {
+    _user_id: userId,
+    _permission: "POS:READ",
+    _tenant_id: null,
+    _property_id: null,
+    _outlet_id: null,
+  });
+  if (error || data !== true) throw new Error(folioFailureMessage("unauthorised"));
+}
+
+/** Moving money onto a guest folio requires the write permission. */
+async function assertFolioWrite(sb: Sb, userId: string) {
+  const { data, error } = await sb.rpc("nova_has_permission", {
+    _user_id: userId,
+    _permission: "POS:WRITE",
+    _tenant_id: null,
+    _property_id: null,
+    _outlet_id: null,
+  });
+  if (error || data !== true) throw new Error(folioFailureMessage("unauthorised"));
 }
 
 function toStay(b: any, unitLabel: string | null, roomName: string | null): FolioStay {
@@ -50,7 +73,7 @@ function toStay(b: any, unitLabel: string | null, roomName: string | null): Foli
 
 /** In-house stays a till may charge, resolved by room number, reference or name. */
 export async function findChargeableStays(sb: Sb, userId: string, input: FolioStayLookupInput) {
-  await assertStaff(sb, userId);
+  await assertFolioRead(sb, userId);
   let q = sb
     .from("bookings")
     .select("id, reference, guest_name, check_in, check_out, currency, status, room_id, balance_due")
@@ -95,7 +118,7 @@ export async function findChargeableStays(sb: Sb, userId: string, input: FolioSt
 
 /** Eligibility only — this never moves money and is safe to call on keystroke. */
 export async function validateRoomCharge(sb: Sb, userId: string, input: FolioValidateInput) {
-  await assertStaff(sb, userId);
+  await assertFolioRead(sb, userId);
   const { stays } = await findChargeableStays(sb, userId, { bookingId: input.bookingId, limit: 1 });
   const stay = stays[0] ?? null;
   const verdict = evaluateRoomChargeEligibility(stay, { amount: input.amount, currency: input.currency });
@@ -107,7 +130,7 @@ export async function validateRoomCharge(sb: Sb, userId: string, input: FolioVal
  * function returns the original posting rather than charging twice.
  */
 export async function postRoomCharge(sb: Sb, userId: string, input: FolioPostInput): Promise<FolioPostingResult> {
-  await assertStaff(sb, userId);
+  await assertFolioWrite(sb, userId);
   const src = input.source ?? { sourceSystem: "restaurant_pos" };
   const { data, error } = await sb.rpc("pms_post_folio_charge", {
     _idempotency_key: input.idempotencyKey,
@@ -158,7 +181,7 @@ export async function postRoomCharge(sb: Sb, userId: string, input: FolioPostInp
 
 /** Truth after an interrupted posting: what does the folio actually hold? */
 export async function getFolioPostingStatus(sb: Sb, userId: string, input: FolioPostingStatusInput) {
-  await assertStaff(sb, userId);
+  await assertFolioRead(sb, userId);
   let q = sb
     .from("pms_folio_postings")
     .select(

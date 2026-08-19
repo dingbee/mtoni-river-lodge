@@ -57,6 +57,10 @@ export const recordRestaurantDocumentEventFn = createServerFn({ method: "POST" }
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => recordDocumentEventSchema.parse(d))
   .handler(async ({ data, context }) => {
+    // An audit row is a claim about a tenant. Only a member of that tenant may
+    // make one, and the actor is always the authenticated caller.
+    const guard = await import("../core/access.server");
+    await guard.assertTenantRead(context.supabase, context.userId, data.tenantId);
     const mod = await import("./audit/audit.server");
     await mod.recordDocumentEvent(context.supabase, context.userId, {
       tenantId: data.tenantId,
@@ -76,6 +80,10 @@ export const listRestaurantDocumentEventsFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => listDocumentEventsSchema.parse(d))
   .handler(async ({ data, context }) => {
+    // Reading another tenant's audit trail is a cross-tenant read. Refuse it
+    // here as well as in RLS.
+    const guard = await import("../core/access.server");
+    await guard.assertCapability(context.supabase, context.userId, data.tenantId, "documents.audit.read");
     const mod = await import("./audit/audit.server");
     return mod.listDocumentEvents(context.supabase, data.tenantId, {
       documentType: data.type,
