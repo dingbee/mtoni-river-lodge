@@ -72,10 +72,13 @@ export const RESTAURANT_CAPABILITIES = [
   "requisition.create",
   "requisition.approve",
   "requisition.issue",
+  "documents.audit.read",
 ] as const;
 export type RestaurantCapability = (typeof RESTAURANT_CAPABILITIES)[number];
 
 const CAPABILITY_ROLES: Record<RestaurantCapability, readonly RestaurantRole[]> = {
+  // Who took a document out of the system, when, and in what format.
+  "documents.audit.read": ["owner", "general_manager", "restaurant_manager", "accountant"],
   "tenant.manage": ["owner", "general_manager"],
   "location.manage": ["owner", "general_manager", "restaurant_manager"],
   "menu.manage": ["owner", "general_manager", "restaurant_manager", "chef", "kitchen_manager"],

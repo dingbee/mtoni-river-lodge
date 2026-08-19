@@ -169,7 +169,9 @@ BEGIN
   FOR usr IN SELECT id FROM auth.users LOOP
     INSERT INTO restaurant_members (tenant_id, property_id, user_id, role)
     VALUES (t_id, NULL, usr, 'owner') ON CONFLICT DO NOTHING;
-    INSERT INTO public.user_roles (user_id, role) VALUES (usr, 'owner') ON CONFLICT DO NOTHING;
+    -- Canonical RBAC grant (public.user_roles is deprecated and is not an
+    -- authorization source; see migration 0004).
+    PERFORM public.nova_grant_owner(usr);
   END LOOP;
 END
 $seed$;

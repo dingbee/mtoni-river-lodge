@@ -10,7 +10,16 @@ nova_load_env
 
 # Default: the host product's authoritative migrations. A standalone
 # installation points this at the extracted Restaurant & Bar OS schema.
-MIGRATIONS_DIR="${NOVA_MIGRATIONS_DIR:-$NOVA_ROOT/supabase/migrations}"
+# The standalone product owns its migrations under standalone/db/migrations.
+# supabase/migrations is only present when this tree is embedded in a hosted
+# project, so it is a fallback, never a requirement.
+if [[ -n "${NOVA_MIGRATIONS_DIR:-}" ]]; then
+  MIGRATIONS_DIR="$NOVA_MIGRATIONS_DIR"
+elif [[ -d "$NOVA_ROOT/standalone/db/migrations" ]]; then
+  MIGRATIONS_DIR="$NOVA_ROOT/standalone/db/migrations"
+else
+  MIGRATIONS_DIR="$NOVA_ROOT/supabase/migrations"
+fi
 nova_log "migrations source: $MIGRATIONS_DIR"
 
 # The ledger must exist before the product migrations so re-runs are safe;

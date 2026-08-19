@@ -1,40 +1,40 @@
 /**
  * Intelligence Core — access rules.
- * Reuses the existing NOVA F&B OS role model (`has_any_role`); no new role store.
+ *
+ * There is exactly one role model in this product: the canonical RBAC model in
+ * `@/lib/rbac/permissions`. Intelligence does not keep a second role store, a
+ * second vocabulary, or an email/metadata shortcut — it expresses its needs as
+ * canonical permissions and canonical role codes.
  */
+import type { Role } from "@/lib/rbac/permissions";
+import type { Permission } from "@/lib/rbac/permissions";
 import type { IntelModule } from "./contracts";
 
-/** Anyone who may read intelligence output at all. */
-export const INTEL_READ_ROLES = [
-  "owner",
-  "admin",
-  "manager",
-  "reception",
-  "reservations",
-  "finance",
-  "marketing",
-  "housekeeping",
-] as const;
+/** Reading intelligence output is a reporting act. */
+export const INTEL_READ_PERMISSION: Permission = "REPORTS:READ";
 
-/** Roles allowed to accept/dismiss, approve actions and curate memory. */
-export const INTEL_DECIDE_ROLES = ["owner", "admin", "manager"] as const;
+/** Accepting/dismissing a recommendation is an administrative act. */
+export const INTEL_DECIDE_PERMISSION: Permission = "REPORTS:WRITE";
 
-/** Role → intelligence modules visible to that role. */
-const ROLE_MODULES: Record<string, readonly IntelModule[]> = {
-  owner: ["pms", "booking", "guest", "revenue", "marketing", "restaurant", "operations", "finance", "content", "platform"],
-  admin: ["pms", "booking", "guest", "revenue", "marketing", "restaurant", "operations", "finance", "content", "platform"],
-  manager: ["pms", "booking", "guest", "revenue", "marketing", "restaurant", "operations", "finance", "content"],
-  reception: ["pms", "booking", "guest", "operations"],
-  reservations: ["pms", "booking", "guest", "operations"],
-  finance: ["finance", "revenue", "booking"],
-  marketing: ["marketing", "content", "guest"],
-  housekeeping: ["operations", "pms"],
-  editor: ["content", "marketing"],
+/** Canonical role code → intelligence modules that role may see. */
+const ROLE_MODULES: Record<Role, readonly IntelModule[]> = {
+  OWNER: ["pms", "booking", "guest", "revenue", "marketing", "restaurant", "operations", "finance", "content", "platform"],
+  GENERAL_MANAGER: ["pms", "booking", "guest", "revenue", "marketing", "restaurant", "operations", "finance", "content"],
+  RESTAURANT_MANAGER: ["restaurant", "operations", "guest", "revenue"],
+  BAR_MANAGER: ["restaurant", "operations", "revenue"],
+  CHEF: ["restaurant", "operations"],
+  WAITER: ["restaurant", "guest"],
+  BARTENDER: ["restaurant"],
+  CASHIER: ["restaurant", "revenue"],
+  STOREKEEPER: ["operations"],
+  PROCUREMENT: ["operations", "finance"],
+  FINANCE: ["finance", "revenue", "booking"],
+  AUDITOR: ["pms", "booking", "guest", "revenue", "marketing", "restaurant", "operations", "finance", "content", "platform"],
 };
 
 export function allowedModulesForRoles(roles: readonly string[]): IntelModule[] {
   const set = new Set<IntelModule>();
-  for (const r of roles) for (const m of ROLE_MODULES[r] ?? []) set.add(m);
+  for (const r of roles) for (const m of ROLE_MODULES[r as Role] ?? []) set.add(m);
   return Array.from(set);
 }
 
