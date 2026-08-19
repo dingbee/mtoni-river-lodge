@@ -21,6 +21,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { useRestaurantWorkspace } from "../../ui/useRestaurantWorkspace";
 import { IngredientMappingPanel } from "./IngredientMappingPanel";
+import { GapAnalysisPanel } from "./GapAnalysisPanel";
+import {
+  EnrichmentAuditPanel,
+  MissingCatalogItemsPanel,
+  StockUnitCompletenessPanel,
+} from "./CatalogEnrichmentPanel";
 import {
   importRecipeMasterFn,
   listImportedRecipesFn,
@@ -32,6 +38,8 @@ import {
 const TABS = [
   { id: "recipes", label: "Recipes" },
   { id: "mapping", label: "Ingredient mapping" },
+  { id: "gaps", label: "Gap analysis" },
+  { id: "enrichment", label: "Catalog enrichment" },
   { id: "quality", label: "Data quality" },
   { id: "imports", label: "Imports" },
 ] as const;
@@ -276,6 +284,16 @@ export function RecipeImportWorkbench() {
       )}
 
       {tab === "mapping" && <IngredientMappingPanel tenantId={tenantId} />}
+
+      {tab === "gaps" && <GapAnalysisPanel tenantId={tenantId} />}
+
+      {tab === "enrichment" && (
+        <div className="space-y-4">
+          <MissingCatalogItemsPanel tenantId={tenantId} />
+          <StockUnitCompletenessPanel tenantId={tenantId} />
+          <EnrichmentAuditPanel tenantId={tenantId} />
+        </div>
+      )}
 
       {tab === "quality" && (
         <SectionCard
