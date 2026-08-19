@@ -1,0 +1,10 @@
+node_modules
+dist
+.output
+.nitro
+.vinxi
+.wrangler
+src/routeTree.gen.ts
+standalone/.env
+local/.env
+*.log
