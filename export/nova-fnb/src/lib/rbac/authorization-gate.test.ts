@@ -152,11 +152,6 @@ describe("role assignment and revocation", () => {
       revoke: (u: string, r: string) => rows.delete(`${u}|${r}`),
       sb: {
         rpc: async (_fn: string, a: Record<string, unknown>) => {
-          const ok = [...rows].some(
-            ([] = [], u = String(a["_user_id"])) =>
-              false,
-          );
-          void ok;
           const uid = String(a["_user_id"]);
           const perm = String(a["_permission"]);
           const allowed = [...rows]
