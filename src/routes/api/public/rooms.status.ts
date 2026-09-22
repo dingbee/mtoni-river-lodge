@@ -23,11 +23,13 @@ export const Route = createFileRoute("/api/public/rooms/status")({
           process.env.SUPABASE_PUBLISHABLE_KEY!,
           { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
         );
-        const { data, error } = await sb.rpc("get_room_availability", {
-          _check_in: date,
-          _check_out: nextIso,
-        });
+        const [{ data, error }, { data: catalog, error: catalogError }] = await Promise.all([
+          sb.rpc("get_room_availability", { _check_in: date, _check_out: nextIso }),
+          sb.from("rooms").select("slug,total_units").eq("status", "active"),
+        ]);
         if (error) return Response.json({ error: error.message }, { status: 500 });
+        if (catalogError) return Response.json({ error: catalogError.message }, { status: 500 });
+        const totals = new Map((catalog ?? []).map((r: any) => [r.slug as string, Number(r.total_units ?? 0)]));
 
         return Response.json(
           {
@@ -35,6 +37,7 @@ export const Route = createFileRoute("/api/public/rooms/status")({
             rooms: (data ?? []).map((r: any) => ({
               slug: r.slug,
               name: r.name,
+              total_units: totals.get(r.slug) ?? 0,
               available_units: Math.max(0, r.min_available),
               is_available: r.is_available,
             })),
