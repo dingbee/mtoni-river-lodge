@@ -3,30 +3,18 @@
 // This module contains NO booking, availability, pricing, allocation or
 // payment logic of its own. It is a thin authenticated wrapper around the
 // existing reservation engine:
-//   - `create_booking` RPC          → allocation, pricing, nights, extras,
-//                                     overbooking guard, calendar events,
-//                                     guest linking (bookings_link_guest)
-//   - `checkin_eligibility` RPC     → MOCI eligibility
-//   - `checkin_ensure_for_booking`  → MOCI record/token
-//   - `logActivity`                 → audit trail
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { logActivity } from "@/lib/activity-log.server";
+import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- untyped RPC surfaces, matching existing admin services */
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date");
 
 const STAFF_SOURCES = [
-  "direct",
-  "walk_in",
-  "phone",
-  "email",
-  "whatsapp",
-  "agent",
-  "ota",
-  "corporate",
+  "direct", "walk_in", "phone", "email", "whatsapp", "agent", "ota", "corporate",
 ] as const;
 
 export const RESERVATION_SOURCES = STAFF_SOURCES;
@@ -59,15 +47,11 @@ const createSchema = z.object({
 
 export type CreateStaffReservationInput = z.input<typeof createSchema>;
 
-/**
- * Creates a reservation through the existing booking engine, then applies the
- * staff-only lifecycle fields (status / source / payment state) and ensures a
- * MOCI record when the reservation is eligible. No guest email is sent.
- */
 export const createStaffReservation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => createSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     await assertStaff(context.supabase, context.userId);
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in");
 
@@ -89,7 +73,6 @@ export const createStaffReservation = createServerFn({ method: "POST" })
       _country: data.country || null,
       _special_requests: data.specialRequests || null,
       _extras: [],
-      // disambiguates the overloaded RPC signature (latest overload)
       _hold_id: null,
       _session_id: null,
     });
@@ -98,7 +81,6 @@ export const createStaffReservation = createServerFn({ method: "POST" })
     if (!row?.booking_id) throw new Error("Reservation could not be created");
     const bookingId = row.booking_id as string;
 
-    // Staff lifecycle fields the public RPC does not accept.
     const patch: Record<string, unknown> = {
       source: data.source,
       status: data.status,
@@ -110,20 +92,15 @@ export const createStaffReservation = createServerFn({ method: "POST" })
     const { error: patchError } = await sb.from("bookings").update(patch).eq("id", bookingId);
     if (patchError) throw new Error(patchError.message);
 
-    // MOCI: create the check-in record/token when eligible. Never blocks.
     let checkin: { token: string | null; status: string | null; eligible: boolean } = {
-      token: null,
-      status: null,
-      eligible: false,
+      token: null, status: null, eligible: false,
     };
     try {
       const { data: elig } = await sb.rpc("checkin_eligibility", { _booking_id: bookingId });
       const eligible = Boolean(elig?.eligible);
       checkin.eligible = eligible;
       if (eligible) {
-        const { data: ensured } = await sb.rpc("checkin_ensure_for_booking", {
-          _booking_id: bookingId,
-        });
+        const { data: ensured } = await sb.rpc("checkin_ensure_for_booking", { _booking_id: bookingId });
         const c = Array.isArray(ensured) ? ensured[0] : ensured;
         if (c) checkin = { token: c.token, status: c.status, eligible: true };
       }
@@ -138,65 +115,35 @@ export const createStaffReservation = createServerFn({ method: "POST" })
       entityType: "booking",
       entityId: bookingId,
       entityLabel: row.reference as string,
-      metadata: {
-        channel: "staff_console",
-        source: data.source,
-        room_slug: data.roomSlug,
-        check_in: data.checkIn,
-        check_out: data.checkOut,
-        status: data.status,
-        payment_status: data.paymentStatus,
-        guest_id: data.guestId ?? null,
-        moci_created: Boolean(checkin.token),
-      },
+      metadata: { channel: "staff_console", source: data.source, room_slug: data.roomSlug, check_in: data.checkIn, check_out: data.checkOut, status: data.status, payment_status: data.paymentStatus, guest_id: data.guestId ?? null, moci_created: Boolean(checkin.token) },
       newValue: { reference: row.reference, total: Number(row.total), currency: row.currency },
     });
 
-    return {
-      bookingId,
-      reference: row.reference as string,
-      total: Number(row.total),
-      currency: row.currency as string,
-      checkin,
-    };
+    return { bookingId, reference: row.reference as string, total: Number(row.total), currency: row.currency as string, checkin };
   });
 
-/** Existing MOCI status/link for a reservation, for the detail panel. */
 export const getReservationCheckinAccess = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const { data: elig, error } = await sb.rpc("checkin_eligibility", {
-      _booking_id: data.bookingId,
-    });
+    const { data: elig, error } = await sb.rpc("checkin_eligibility", { _booking_id: data.bookingId });
     if (error) throw new Error(error.message);
     const eligible = Boolean(elig?.eligible);
-    const { data: existing } = await sb
-      .from("guest_checkins")
-      .select("token, status, expires_at, submitted_at")
-      .eq("booking_id", data.bookingId)
-      .maybeSingle();
-    return {
-      eligible,
-      reason: (elig?.message ?? elig?.code ?? null) as string | null,
-      token: existing?.token ?? null,
-      status: existing?.status ?? null,
-      expiresAt: existing?.expires_at ?? null,
-    };
+    const { data: existing } = await sb.from("guest_checkins").select("token, status, expires_at, submitted_at").eq("booking_id", data.bookingId).maybeSingle();
+    return { eligible, reason: (elig?.message ?? elig?.code ?? null) as string | null, token: existing?.token ?? null, status: existing?.status ?? null, expiresAt: existing?.expires_at ?? null };
   });
 
-/** Idempotently ensures the MOCI record via the existing RPC. */
 export const ensureReservationCheckin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const { data: ensured, error } = await sb.rpc("checkin_ensure_for_booking", {
-      _booking_id: data.bookingId,
-    });
+    const { data: ensured, error } = await sb.rpc("checkin_ensure_for_booking", { _booking_id: data.bookingId });
     if (error) throw new Error(error.message);
     const c = Array.isArray(ensured) ? ensured[0] : ensured;
     if (!c) throw new Error("Check-in could not be prepared for this reservation");
