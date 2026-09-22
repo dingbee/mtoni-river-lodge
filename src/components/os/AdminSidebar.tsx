@@ -4,7 +4,6 @@ import { ChevronDown } from "lucide-react";
 import { NAV, type NavItem } from "./nav-config";
 import { canAccessModule } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
-const logo = logoAsset.url;
 
 function isActive(pathname: string, href: string) {
   if (href === "/admin") return pathname === "/admin";
@@ -93,7 +92,7 @@ export function AdminSidebar({
           collapsed ? "justify-center" : "gap-2.5",
         )}
       >
-        <img src={logo} alt="" className="h-8 w-8 shrink-0 object-contain" />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">S</div>
         {!collapsed && (
           <div className="min-w-0">
             <p className="truncate font-display text-[15px] leading-none tracking-tight text-[color:var(--os-ink)]">
