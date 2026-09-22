@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { ConciergeWidget } from "@/components/site/ConciergeWidget";
+import { RoomAvailability } from "@/components/site/RoomAvailability";
 import { RIVERFRONT_DELUXE_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
 
 const ROOM = RIVERFRONT_DELUXE_ROOM;
@@ -31,6 +32,7 @@ function RoomDetailPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Indicative rate</p>
                 <p className="mt-2 text-2xl font-semibold">{RATE}</p>
                 <p className="mt-2 text-sm text-muted-foreground">Demo pricing. Property pricing is configured in StayNas.</p>
+                <RoomAvailability slug="riverfront-deluxe" />
                 <Link to="/book" search={{ room: "riverfront-deluxe" }} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:brightness-110">
                   Check availability <ArrowRight className="h-4 w-4" />
                 </Link>
