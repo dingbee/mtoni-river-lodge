@@ -723,7 +723,7 @@ function SearchStep(props: {
       <button
         onClick={props.onSearch} disabled={props.loading}
         className="group mt-2 inline-flex w-full items-center justify-center gap-3 rounded-full px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-ivory shadow-[0_18px_40px_-18px_rgba(52,103,57,0.7)] transition-all hover:brightness-110 disabled:opacity-60"
-        style={{ background: "linear-gradient(135deg, #346739 0%, #427A43 100%)" }}
+        style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
       >
         {props.loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         {props.loading ? "Checking availability…" : "Check Availability"}
@@ -772,7 +772,7 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
               <button
                 onClick={() => onSelect(r)} disabled={disabled}
                 className="mt-3 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
-                style={{ background: "linear-gradient(135deg, #346739 0%, #427A43 100%)" }}
+                style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
               >
                 {r.is_available ? "Select" : "Unavailable"} →
               </button>
@@ -938,7 +938,7 @@ function GuestStep(props: {
         <button
           onClick={props.onSubmit} disabled={props.submitting}
           className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60"
-          style={{ background: "linear-gradient(135deg, #346739 0%, #427A43 100%)" }}
+          style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
         >
           {props.submitting && <Loader2 className="h-4 w-4 animate-spin" />}
           {props.submitting ? "Redirecting to payment…" : "Pay 50% Deposit & Confirm"}
@@ -958,8 +958,8 @@ function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guest
   const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: confirmation.currency, maximumFractionDigits: 0 }).format(n);
   return (
     <div className="rounded-2xl border border-charcoal/10 bg-ivory p-8 text-center shadow-[0_24px_60px_-30px_rgba(30,45,30,0.35)] sm:p-12">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#427A43]/10">
-        <Check className="h-7 w-7" style={{ color: "#346739" }} />
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#0F3D3A]/10">
+        <Check className="h-7 w-7" style={{ color: "#0F3D3A" }} />
       </div>
       <h2 className="mt-5 font-display text-3xl">Booking received</h2>
       <p className="mt-2 text-sm text-charcoal/70">Thank you, {guestName}. We have sent a confirmation receipt to {guestEmail}.</p>
