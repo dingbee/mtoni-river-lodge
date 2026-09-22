@@ -1,0 +1,27 @@
+name: P1 build verification
+
+on:
+  push:
+    branches:
+      - p1-hos-boundary
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run build

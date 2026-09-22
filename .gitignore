@@ -36,3 +36,8 @@ local/.env
 local/keys/
 local/run/
 local/backups/
+
+# Environment configuration — never commit local secrets
+.env
+.env.*
+!.env.example

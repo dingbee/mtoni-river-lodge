@@ -1,9 +1,4 @@
 import {
-  Receipt,
-  Brain,
-  Scale,
-  ChefHat,
-  PiggyBank,
   LayoutDashboard,
   Calendar,
   CalendarDays,
@@ -29,12 +24,14 @@ import {
   Bot,
   Settings,
   ClipboardCheck,
+  UserCheck,
+  ListChecks,
+  AlertTriangle,
+  Activity,
+  TrendingUp,
+  Wrench,
+  Truck,
 } from "lucide-react";
-import { UserCheck } from "lucide-react";
-import { Wine } from "lucide-react";
-import { ListChecks, AlertTriangle, Activity, TrendingUp } from "lucide-react";
-import { UtensilsCrossed, BookOpen, Boxes, Truck, ShoppingCart, Calculator, Settings2 } from "lucide-react";
-import { CookingPot, ClipboardList, Wrench } from "lucide-react";
 import type { ComponentType } from "react";
 
 export type NavItem = {
@@ -87,43 +84,6 @@ export const NAV: NavEntry[] = [
         { id: "guests.crm", label: "Guest CRM", href: "/admin/guests/crm", icon: Users },
         { id: "guests.reviews", label: "Reviews", href: "/admin/reviews", icon: Star },
         { id: "guests.messages", label: "Messages", href: "/admin/guests/messages", icon: MessageSquare },
-      ],
-    },
-  },
-  {
-    kind: "group",
-    group: {
-      id: "restaurant",
-      label: "Restaurant & Bar",
-      icon: UtensilsCrossed,
-      items: [
-        { id: "restaurant.overview", label: "Overview", href: "/admin/restaurant", icon: UtensilsCrossed },
-        { id: "restaurant.pos", label: "POS", href: "/admin/restaurant/pos", icon: CreditCard },
-        { id: "restaurant.orders", label: "Orders", href: "/admin/restaurant/orders", icon: Receipt },
-        { id: "restaurant.kitchen", label: "Kitchen", href: "/admin/restaurant/kitchen", icon: ChefHat },
-        { id: "restaurant.bar", label: "Bar", href: "/admin/restaurant/bar", icon: Wine },
-        { id: "restaurant.barPos", label: "Bar POS", href: "/admin/restaurant/bar/pos", icon: Wine },
-        { id: "restaurant.menu", label: "Menu Management", href: "/admin/restaurant/menu", icon: BookOpen },
-        { id: "restaurant.pricing", label: "Pricing Centre", href: "/admin/restaurant/pricing", icon: Calculator },
-        { id: "restaurant.catalog", label: "Master Catalog", href: "/admin/restaurant/catalog", icon: BookOpen },
-        { id: "restaurant.recipeMaster", label: "Recipe Master", href: "/admin/restaurant/recipe-master", icon: CookingPot },
-        { id: "restaurant.inventory", label: "Inventory", href: "/admin/restaurant/inventory", icon: Boxes },
-        { id: "restaurant.inventoryControl", label: "Inventory Centre", href: "/admin/restaurant/inventory-control", icon: Boxes },
-        { id: "restaurant.stock", label: "Stock Movements", href: "/admin/restaurant/stock", icon: Boxes },
-        { id: "restaurant.requisitions", label: "Requisitions", href: "/admin/restaurant/requisitions", icon: ClipboardList },
-        { id: "restaurant.products", label: "Products & Recipes", href: "/admin/restaurant/products", icon: CookingPot },
-        { id: "restaurant.procurement", label: "Procurement Centre", href: "/admin/restaurant/procurement", icon: ClipboardCheck },
-        { id: "restaurant.suppliers", label: "Suppliers", href: "/admin/restaurant/suppliers", icon: Truck },
-        { id: "restaurant.purchasing", label: "Purchasing", href: "/admin/restaurant/purchasing", icon: ShoppingCart },
-        { id: "restaurant.costing", label: "Recipe Costing", href: "/admin/restaurant/costing", icon: Calculator },
-        { id: "restaurant.profitability", label: "Menu Profitability", href: "/admin/restaurant/profitability", icon: PiggyBank },
-        { id: "restaurant.reconciliation", label: "Reconciliation", href: "/admin/restaurant/reconciliation", icon: Scale },
-        { id: "restaurant.intelligence", label: "Intelligence", href: "/admin/restaurant/intelligence", icon: Brain },
-        { id: "restaurant.decisions", label: "Decisions", href: "/admin/restaurant/decisions", icon: Scale },
-        { id: "restaurant.documents", label: "Document Centre", href: "/admin/restaurant/documents", icon: FileText },
-        { id: "restaurant.receipts", label: "Receipt Centre", href: "/admin/restaurant/receipts", icon: Receipt },
-        { id: "restaurant.setup", label: "Restaurant Setup", href: "/admin/restaurant/setup", icon: Wrench },
-        { id: "restaurant.settings", label: "Tenant Settings", href: "/admin/restaurant/settings", icon: Settings2 },
       ],
     },
   },
@@ -211,24 +171,24 @@ export const NAV: NavEntry[] = [
     kind: "group",
     group: {
       id: "ai",
-      label: "Mtoni AI",
+      label: "StayNas AI",
       icon: Bot,
       items: [
-        { id: "ai.command",   label: "Command Centre", href: "/admin/ai",           icon: Sparkles },
+        { id: "ai.command", label: "Command Centre", href: "/admin/ai", icon: Sparkles },
         { id: "ai.intelligence", label: "Intelligence Timeline", href: "/admin/intelligence", icon: Activity },
         { id: "ai.intelligence.health", label: "Intelligence Health", href: "/admin/intelligence/health", icon: Activity },
         { id: "ai.executive", label: "Executive Intelligence", href: "/admin/ai/executive", icon: LayoutDashboard },
-        { id: "ai.guests",    label: "Guest Intelligence AI", href: "/admin/ai/guests", icon: Users },
-        { id: "ai.revenue",   label: "Revenue Intelligence AI", href: "/admin/ai/revenue", icon: TrendingUp },
+        { id: "ai.guests", label: "Guest Intelligence AI", href: "/admin/ai/guests", icon: Users },
+        { id: "ai.revenue", label: "Revenue Intelligence AI", href: "/admin/ai/revenue", icon: TrendingUp },
         { id: "ai.marketing", label: "Marketing Intelligence AI", href: "/admin/ai/marketing", icon: Megaphone },
         { id: "ai.governance", label: "Governance", href: "/admin/ai/governance", icon: ShieldCheck },
-        { id: "ai.performance",label: "Performance", href: "/admin/ai/performance", icon: Activity },
-        { id: "ai.audit",     label: "Audit",       href: "/admin/ai/audit", icon: History },
-        { id: "ai.insights",  label: "Insights",       href: "/admin/ai/insights",  icon: BarChart3 },
+        { id: "ai.performance", label: "Performance", href: "/admin/ai/performance", icon: Activity },
+        { id: "ai.audit", label: "Audit", href: "/admin/ai/audit", icon: History },
+        { id: "ai.insights", label: "Insights", href: "/admin/ai/insights", icon: BarChart3 },
         { id: "ai.knowledge", label: "Knowledge Base", href: "/admin/ai/knowledge", icon: FileText },
         { id: "ai.knowledge.health", label: "Knowledge Health", href: "/admin/ai/knowledge/health", icon: Activity },
-        { id: "ai.activity",  label: "AI Activity",    href: "/admin/ai/activity",  icon: History },
-        { id: "ai.settings",  label: "Settings",       href: "/admin/ai/settings",  icon: Settings },
+        { id: "ai.activity", label: "AI Activity", href: "/admin/ai/activity", icon: History },
+        { id: "ai.settings", label: "Settings", href: "/admin/ai/settings", icon: Settings },
       ],
     },
   },
@@ -258,7 +218,6 @@ export const NAV: NavEntry[] = [
   { kind: "item", item: { id: "settings.migrations.respad", label: "ResPad Migration", href: "/admin/settings/migrations/respad", icon: Truck } },
   { kind: "item", item: { id: "settings", label: "Settings", href: "/admin/settings", icon: Settings } },
 ];
-
 
 export function findNavByHref(href: string): { group?: NavGroup; item?: NavItem } {
   for (const entry of NAV) {

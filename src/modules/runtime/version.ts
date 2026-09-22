@@ -1,17 +1,17 @@
 /**
- * NOVA Hospitality — Restaurant & Bar OS
- * Version & migration compatibility contract (PRODUCTIZATION-3, Phase 16).
+ * StayNas — Hospitality Operating System
+ * Version & migration compatibility contract.
  */
 
-export const NOVA_PRODUCT = "NOVA Hospitality — Restaurant & Bar OS";
+export const STAYNAS_PRODUCT = "StayNas — Hospitality Operating System";
 
 /** Application (bundle) version. */
 export const APP_VERSION = "1.2.0";
 
 /**
  * Database schema contract the application requires. The migration ledger
- * (nova_local.schema_migrations) stores the applied schema version; the
- * runtime refuses to serve when the two are incompatible.
+ * stores the applied schema version; the runtime refuses to serve when the
+ * two are incompatible.
  */
 export const REQUIRED_SCHEMA_VERSION = "2026.08.17";
 
@@ -24,7 +24,7 @@ export type CompatibilityVerdict =
 
 export function parsePostgresMajor(serverVersion: string | undefined | null): number | null {
   if (!serverVersion) return null;
-  const match = /^(\d+)/.exec(serverVersion.trim());
+  const match = /^(\\d+)/.exec(serverVersion.trim());
   return match ? Number(match[1]) : null;
 }
 

@@ -1,10 +1,5 @@
 import type { FeatureFlag, FeatureFlagKey, FlagAudience } from "./types";
 
-/**
- * Single source of truth for feature flags. Editable in code today; the
- * shape leaves room for a DB-backed override in a future sprint (add a
- * `resolveFlag()` that merges DB rows over these defaults).
- */
 export const FEATURE_FLAGS: Record<FeatureFlagKey, FeatureFlag> = {
   guest_crm:            { key: "guest_crm",            state: "enabled",  description: "Guest CRM (Sprint 2)",                       since: "2026-07-13" },
   housekeeping:         { key: "housekeeping",         state: "disabled", description: "Housekeeping module" },
@@ -14,7 +9,7 @@ export const FEATURE_FLAGS: Record<FeatureFlagKey, FeatureFlag> = {
   marketing_automation: { key: "marketing_automation", state: "disabled", description: "Automated marketing campaigns" },
   multi_property:       { key: "multi_property",       state: "disabled", description: "Multi-property tenancy" },
   concierge:            { key: "concierge",            state: "disabled", description: "Concierge & itineraries" },
-  maintenance:          { key: "maintenance",          state: "disabled", description: "Maintenance ticketing" },
+  maintenance:          { key: "maintenance",         state: "disabled", description: "Maintenance ticketing" },
   procurement:          { key: "procurement",          state: "disabled", description: "Procurement & suppliers" },
   operations_centre:    { key: "operations_centre",    state: "enabled",  description: "Operations Centre (Sprint 4)", since: "2026-07-13" },
   cms_pages:            { key: "cms_pages",            state: "beta",     description: "CMS pages workflow (Sprint 5)",       since: "2026-07-15" },
@@ -29,13 +24,11 @@ export const FEATURE_FLAGS: Record<FeatureFlagKey, FeatureFlag> = {
   mtoni_ai_command_centre: { key: "mtoni_ai_command_centre", state: "internal", description: "Mtoni AI Command Centre (Sprint 8A)", since: "2026-07-17" },
   mtoni_ai_concierge:      { key: "mtoni_ai_concierge",      state: "enabled",  description: "Public AI Concierge widget (Sprint 9)", since: "2026-07-17" },
   online_checkin:          { key: "online_checkin",          state: "beta",     description: "Online Check-In module (v1.1 foundation)", since: "2026-08-06" },
-  restaurant_os:           { key: "restaurant_os",           state: "beta",     description: "Restaurant & Bar OS commercial module (Phase 1)", since: "2026-08-13" },
 };
 
 const STAFF_ROLES = new Set(["owner","manager","reception","marketing","housekeeping","finance","editor"]);
 const INTERNAL_ROLES = new Set(["owner"]);
 
-/** Pure resolver: does this audience see this flag? */
 export function isFlagVisible(flag: FeatureFlag | undefined, audience: FlagAudience): boolean {
   if (!flag) return false;
   switch (flag.state) {
