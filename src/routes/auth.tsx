@@ -7,8 +7,8 @@ import { adminExists, claimFirstAdmin } from "@/lib/auth-setup.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
-    meta: [{ title: "Staff Sign In — Mtoni River Lodge" }, { name: "robots", content: "noindex,nofollow" }],
-    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/auth" }],
+    meta: [{ title: "Staff Sign In — StayNas" }, { name: "robots", content: "noindex,nofollow" }],
+    links: [{ rel: "canonical", href: "https://staynas.nolmark.co/auth" }],
   }),
   component: AuthPage,
 });
