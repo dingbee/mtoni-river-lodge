@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { z } from "zod";
 
 function daysAgoISO(n: number) { const d = new Date(); d.setUTCDate(d.getUTCDate() - n); return d.toISOString().slice(0, 10); }
@@ -12,7 +11,6 @@ type Row = Record<string, any>;
 export const getAnalyticsHub = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "revenue");
     const s = context.supabase;
     const today = todayISO();
     const start30 = daysAgoISO(30);
@@ -53,7 +51,6 @@ export const getBookingAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => rangeSchema.parse(d ?? {}))
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "revenue");
     const from = daysAgoISO(data.days);
     const { data: bookings } = await context.supabase
       .from("bookings")
@@ -93,7 +90,6 @@ export const getBookingAnalytics = createServerFn({ method: "POST" })
 export const getWebsiteAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "revenue");
     const { data: sessions } = await context.supabase
       .from("ai_concierge_sessions")
       .select("id, created_at, channel")
@@ -110,7 +106,6 @@ export const getRevenueAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => rangeSchema.parse(d ?? {}))
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "revenue");
     const from = daysAgoISO(data.days);
     const { data: rows } = await context.supabase
       .from("bookings")
@@ -142,7 +137,6 @@ export const getRevenueAnalytics = createServerFn({ method: "POST" })
 export const getMarketingAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "revenue");
     const from = daysAgoISO(30);
     const [{ data: campaigns }, { data: journal }, { data: reviews }, { data: seoRecs }] = await Promise.all([
       context.supabase.from("campaigns").select("id, name, status, created_at").gte("created_at", from),
@@ -162,7 +156,6 @@ export const getMarketingAnalytics = createServerFn({ method: "POST" })
 export const getOperationsAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "revenue");
     const from = daysAgoISO(30);
     const [{ data: tasks }, { data: alerts }, { data: recovery }, { data: readiness }] = await Promise.all([
       context.supabase.from("ops_tasks").select("id, status, task_type, created_at, completed_at").gte("created_at", from),
@@ -185,7 +178,6 @@ export const getOperationsAnalytics = createServerFn({ method: "POST" })
 export const getAiAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "revenue");
     const from = daysAgoISO(30);
     const s = context.supabase;
     const [logs, feedback, escalations, concierge, copilot, guestRecs, revRecs, mktRecs] = await Promise.all([
@@ -233,7 +225,6 @@ export const getAiAnalytics = createServerFn({ method: "POST" })
 export const getExecutiveAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "revenue");
     const s = context.supabase;
     const from = daysAgoISO(30);
     const [{ data: risks }, { data: recs }, { data: bookings }, { data: reviews }, { data: alerts }] = await Promise.all([
@@ -266,7 +257,6 @@ export const generateAnalyticsReport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => reportKindSchema.parse(d))
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "revenue");
     const dayMap = { daily: 1, weekly: 7, monthly: 30, quarterly: 90, annual: 365 } as const;
     const days = dayMap[data.kind];
     const start = daysAgoISO(days);
@@ -300,7 +290,6 @@ export const generateAnalyticsReport = createServerFn({ method: "POST" })
 export const listAnalyticsReports = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "revenue");
     const { data } = await context.supabase
       .from("analytics_reports")
       .select("id, kind, period, period_start, period_end, title, summary, status, created_at")
@@ -321,7 +310,6 @@ async function bookingsSum(supabase: any, days: number) {
 export const computeTrends = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "revenue");
     const windows = [7, 30, 90, 365];
     const out: any[] = [];
     for (const w of windows) {
@@ -353,7 +341,6 @@ export const computeTrends = createServerFn({ method: "POST" })
 export const listTrends = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "revenue");
     const { data } = await context.supabase.from("ai_trend_snapshots").select("*").order("captured_at", { ascending: false }).limit(200);
     return data ?? [];
   });
@@ -361,7 +348,6 @@ export const listTrends = createServerFn({ method: "POST" })
 export const generateAnalyticsRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "revenue");
     const { data: trends } = await context.supabase.from("ai_trend_snapshots").select("*").order("captured_at", { ascending: false }).limit(60);
     const created: any[] = [];
     for (const t of (trends ?? []) as Row[]) {
@@ -389,7 +375,6 @@ export const generateAnalyticsRecommendations = createServerFn({ method: "POST" 
 export const listAnalyticsRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "revenue");
     const { data } = await context.supabase.from("ai_analytics_recommendations").select("*").order("created_at", { ascending: false }).limit(50);
     return data ?? [];
   });
@@ -398,7 +383,6 @@ export const setAnalyticsRecommendationStatus = createServerFn({ method: "POST" 
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), status: z.enum(["open", "accepted", "dismissed", "resolved"]) }).parse(d))
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "revenue");
     const { error } = await context.supabase
       .from("ai_analytics_recommendations")
       .update({ status: data.status, reviewed_by: context.userId, reviewed_at: new Date().toISOString() })
