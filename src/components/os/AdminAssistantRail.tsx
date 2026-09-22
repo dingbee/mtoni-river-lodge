@@ -31,7 +31,7 @@ export function AdminAssistantRail() {
           <Sun className="size-3.5" /> {dateStr} · {timeStr}
         </div>
         <h2 className="mt-2 font-display text-2xl leading-tight text-[color:var(--os-ink)]">
-          Mtoni AI
+          StayNas AI
         </h2>
         <p className="mt-1 text-xs text-[color:var(--os-ink-3)]">Your operational co-pilot.</p>
       </div>
