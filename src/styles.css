@@ -51,6 +51,8 @@
   --color-focus: var(--focus);
 
   --color-ivory: var(--ivory);
+  --color-burgundy: #6C151E;
+  --color-forest: #0F3D3A;
   --color-bone: var(--bone);
   --color-clay: var(--clay);
   --color-ember: var(--ember);
@@ -70,15 +72,15 @@
      Token names retained for backward compatibility with existing
      class names (bg-ivory, bg-bone, text-charcoal, bg-charcoal,
      text-ivory, etc.) — only the values are refreshed. */
-  --ivory: #FFFFFF;        /* dominant background + light text on dark */
-  --bone: #F5F5F5;         /* alternate sections, cards, content blocks */
-  --clay: #C0B87A;         /* soft gold accent (sparingly) */
-  --ember: #C0B87A;        /* accent alias */
-  --gold: #C0B87A;         /* accent alias */
-  --river: #6B6B6B;        /* muted secondary text */
-  --forest: #2A5430;       /* deep green hover */
-  --charcoal: #1A1A1A;     /* primary text + black luxe surfaces */
-  --green: #346739;        /* brand primary green */
+  --ivory: #F5DABF;        /* dominant background + light text on dark */
+  --bone: #F9E8D5;         /* alternate sections, cards, content blocks */
+  --clay: #6C151E;         /* soft gold accent (sparingly) */
+  --ember: #6C151E;        /* accent alias */
+  --gold: #6C151E;         /* accent alias */
+  --river: #5C5854;        /* muted secondary text */
+  --forest: #0F3D3A;       /* deep green hover */
+  --charcoal: #171514;     /* primary text + black luxe surfaces */
+  --green: #6C151E;        /* brand primary green */
 
   --background: var(--ivory);
   --foreground: var(--charcoal);
