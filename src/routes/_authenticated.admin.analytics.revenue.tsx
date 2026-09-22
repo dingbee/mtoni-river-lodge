@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { getRevenueAnalytics } from "@/domains/analytics/analytics.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/analytics/revenue")({
-  head: () => ({ meta: [{ title: "Revenue Analytics — Mtoni OS" }] }),
+  head: () => ({ meta: [{ title: "Revenue Analytics — StayNas" }] }),
   component: Page,
 });
 
