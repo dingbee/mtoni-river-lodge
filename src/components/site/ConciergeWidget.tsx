@@ -209,19 +209,19 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Open Mtoni AI Concierge"
+          aria-label="Open StayNas AI Concierge"
           className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-primary-foreground shadow-xl ring-1 ring-[color:var(--gold)]/40 transition-all duration-300 hover:scale-105 hover:brightness-110 sm:bottom-6 sm:right-6"
           style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
         >
           <MessageCircle className="size-5" />
-          <span className="hidden text-sm font-medium sm:inline">Mtoni AI Concierge</span>
+          <span className="hidden text-sm font-medium sm:inline">StayNas AI Concierge</span>
         </button>
       )}
       {open && (
         <div className="fixed inset-0 z-50 flex flex-col overflow-hidden border-border bg-background shadow-2xl sm:inset-auto sm:bottom-6 sm:right-6 sm:h-[min(640px,82vh)] sm:w-[min(400px,92vw)] sm:rounded-2xl sm:border">
           <header className="flex items-center justify-between border-b border-border bg-primary px-4 py-3 text-primary-foreground" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
             <div>
-              <p className="font-serif text-base font-semibold tracking-wide">Mtoni AI Concierge</p>
+              <p className="font-serif text-base font-semibold tracking-wide">StayNas AI Concierge</p>
               <p className="text-[11px] opacity-80">Rooms · Experiences · Plan your stay</p>
             </div>
             <button type="button" onClick={() => setOpen(false)} aria-label="Close concierge" className="rounded p-1 hover:bg-white/10">
