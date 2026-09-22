@@ -66,7 +66,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <PropertyProvider>\n      <div className="staynas-os flex min-h-screen text-foreground">
+    <PropertyProvider>
+      <div className="staynas-os flex min-h-screen text-foreground">
       <div className="hidden lg:block">
         <AdminSidebar collapsed={collapsed} roles={roles} />
       </div>
@@ -103,6 +104,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </PropertyProvider>
   );
 }
