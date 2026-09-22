@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { trackContactClick, trackGAEvent } from "@/lib/analytics";
+import { trackGAEvent } from "@/lib/analytics";
 import {
   trackAvailabilityChecked,
   trackRoomSelected,
@@ -590,25 +590,14 @@ function BookPage() {
             />
           )}
 
-          <div className="mt-12 flex flex-col items-center gap-3 text-center">
-            <p className="text-xs uppercase tracking-[0.28em] text-charcoal/50">Need help planning your stay?</p>
-            <a
-              href={WHATSAPP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackContactClick("whatsapp", "book_page_assistance")}
-              className="inline-flex items-center gap-3 rounded-full border border-charcoal px-6 py-3 text-[0.72rem] uppercase tracking-[0.28em] transition-colors hover:bg-charcoal hover:text-ivory"
-            >
-              Talk to StayNas AI →
-            </a>
-            <p className="max-w-sm text-[0.7rem] text-charcoal/55">
-              Our reservations team is available should you need assistance.
+          <div className="mt-12 border-t border-charcoal/10 pt-8 text-center">
+            <p className="text-xs uppercase tracking-[0.28em] text-charcoal/45">StayNas Hospitality Operating System</p>
+            <p className="mt-3 text-sm text-charcoal/55">
+              Need assistance? Open <span className="font-medium text-charcoal">StayNas AI Concierge</span> for intelligent guest support.
             </p>
-            <p className="mt-4 max-w-sm text-[0.7rem] text-charcoal/50">
+            <p className="mt-5 text-[0.7rem] text-charcoal/45">
               By booking you agree to our{" "}
-              <Link to="/terms" className="underline underline-offset-4 hover:text-charcoal">
-                Terms &amp; Conditions
-              </Link>.
+              <Link to="/terms" className="underline underline-offset-4 hover:text-charcoal">Terms &amp; Conditions</Link>.
             </p>
           </div>
             </div>
