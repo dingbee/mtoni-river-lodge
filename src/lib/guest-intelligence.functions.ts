@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
 async function assertStaff(sb: any, userId: string) {
   const { data, error } = await sb.rpc("is_any_staff", { _user_id: userId });
@@ -16,6 +17,7 @@ export const listGuestPreferences = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: rows, error } = await sb
@@ -39,6 +41,7 @@ export const upsertGuestPreference = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => upsertPrefSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { error } = await sb.from("guest_preferences").upsert(
@@ -60,6 +63,7 @@ export const deleteGuestPreference = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { error } = await sb.from("guest_preferences").delete().eq("id", data.id);
@@ -73,6 +77,7 @@ export const getGuestMetrics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: row, error } = await sb
@@ -95,6 +100,7 @@ export const getGuestExperiences = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: bookings } = await sb
@@ -127,6 +133,7 @@ export const getGuestPayments = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: bookings } = await sb
@@ -150,6 +157,7 @@ export const listGuestDocuments = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: rows, error } = await sb
@@ -166,6 +174,7 @@ export const listGuestDocuments = createServerFn({ method: "POST" })
 export const getDashboardIntelligence = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const today = new Date();
@@ -235,6 +244,7 @@ export const generateGuestSummary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => idSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const [{ data: guest }, { data: metrics }] = await Promise.all([
@@ -284,6 +294,7 @@ export const updateGuestProfileExtras = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => profileExtrasSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { error } = await sb.from("guests").update(data.patch).eq("id", data.id);
@@ -302,6 +313,7 @@ const SMART_TAGS = [
 export const ensureSmartTags = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const rows = SMART_TAGS.map((label) => ({

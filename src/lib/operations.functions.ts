@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
 async function assertStaff(supabase: any, userId: string) {
   const { data, error } = await supabase.rpc("is_any_staff", { _user_id: userId });
@@ -44,6 +45,7 @@ async function logOpsEvent(
 export const getOpsDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const today = new Date().toISOString().slice(0, 10);
@@ -87,6 +89,7 @@ export const getOpsDashboard = createServerFn({ method: "GET" })
 export const getRoomBoard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const [statesRes, roomsRes, bookingsRes] = await Promise.all([
@@ -118,6 +121,7 @@ export const updateRoomState = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => roomStateSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: prev } = await sb.from("room_states").select("state, unit_label").eq("id", data.id).maybeSingle();
@@ -141,6 +145,7 @@ export const getReservationWorkspace = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: booking, error } = await sb
@@ -191,6 +196,7 @@ export const checkInBooking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => checkInSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: booking, error } = await sb
@@ -236,6 +242,7 @@ export const checkOutBooking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => checkOutSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: booking } = await sb.from("bookings")
@@ -288,6 +295,7 @@ export const getOpsCalendar = createServerFn({ method: "POST" })
     to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   }).parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const [roomsRes, bookingsRes, invRes] = await Promise.all([
@@ -315,6 +323,7 @@ export const getOpsCalendar = createServerFn({ method: "POST" })
 export const refreshOpsAlerts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const today = new Date().toISOString().slice(0, 10);
@@ -354,6 +363,7 @@ export const listOpsAlerts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ includeResolved: z.boolean().default(false) }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     let q = sb.from("ops_alerts").select("*, booking:bookings(id, reference, guest_name, guest_id)").order("created_at", { ascending: false }).limit(200);
@@ -367,6 +377,7 @@ export const resolveOpsAlert = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { error } = await sb.from("ops_alerts")
@@ -385,6 +396,7 @@ export const getOpsTimeline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ limit: z.number().int().min(1).max(200).default(80) }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: rows, error } = await sb.from("activity_logs")
