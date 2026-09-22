@@ -46,9 +46,15 @@ export const STAYNAS_MODULE_ENTITLEMENTS: ModuleEntitlement[] = [
   { id: "system", label: "System", description: "Users, roles, system controls and configuration.", roles: ["owner", "manager"] },
 ];
 
-export const ROLE_ENTITLEMENTS: Record<Role, readonly StayNasModuleId[]> = Object.fromEntries(
-  STAYNAS_MODULE_ENTITLEMENTS.map((module) => module.id).map(() => [])
-) as Record<Role, readonly StayNasModuleId[]>;
+export const ROLE_ENTITLEMENTS: Record<Role, StayNasModuleId[]> = {
+  owner: [],
+  manager: [],
+  reception: [],
+  housekeeping: [],
+  finance: [],
+  marketing: [],
+  editor: [],
+};
 
 for (const module of STAYNAS_MODULE_ENTITLEMENTS) {
   for (const role of module.roles) {
