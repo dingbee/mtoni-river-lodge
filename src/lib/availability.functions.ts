@@ -8,6 +8,7 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
+import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
 function publicClient() {
   return createClient<Database>(
@@ -104,6 +105,7 @@ export const setRoomBlock = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "rooms");
     const { data: n, error } = await context.supabase.rpc("set_room_block", {
       _room_id: data.roomId,
       _from: data.from,
@@ -126,6 +128,7 @@ export const listCalendarEvents = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     let q: any = context.supabase.from("calendar_events").select(
       "id, event_type, room_id, booking_id, hold_id, date_from, date_to, actor_id, payload, created_at",
     );
@@ -154,6 +157,7 @@ export const listActiveHolds = createServerFn({ method: "POST" })
     z.object({ from: dateStr.optional(), to: dateStr.optional() }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     const sb: any = context.supabase;
     let q = sb.from("booking_holds")
       .select("id, room_id, check_in, check_out, expires_at, guest_email, status, session_id, created_at")
@@ -173,6 +177,7 @@ export const releaseHoldStaff = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ holdId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     const sb: any = context.supabase;
     const { data: row, error: e1 } = await sb
       .from("booking_holds")
@@ -200,6 +205,7 @@ export const reassignBookingRoom = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     const { data: res, error } = await context.supabase.rpc("reassign_booking_room", {
       _booking_id: data.bookingId,
       _new_room_id: data.newRoomId,
@@ -220,6 +226,7 @@ export const suggestRoomAssignment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     const sb: any = context.supabase;
     const { data: b, error: be } = await sb
       .from("bookings")
