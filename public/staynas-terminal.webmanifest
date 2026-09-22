@@ -1,0 +1,14 @@
+{
+  "id": "/admin?terminal",
+  "name": "StayNas — Hospitality Operating System",
+  "short_name": "StayNas",
+  "description": "Operational terminal for the StayNas Hospitality Operating System.",
+  "start_url": "/admin",
+  "scope": "/admin",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#141c2b",
+  "theme_color": "#141c2b",
+  "categories": ["business", "productivity"]
+}
