@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
 const APPROVER_ROLES = ["owner", "manager", "reception"] as const;
 const SOURCE_TYPES = [
@@ -61,6 +62,7 @@ export const listKnowledgeSources = createServerFn({ method: "GET" })
       .parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertStaff(context.supabase, context.userId);
     let q: any = context.supabase
       .from("ai_knowledge_sources")
@@ -81,6 +83,7 @@ export const getKnowledgeSource = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: any) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertStaff(context.supabase, context.userId);
     const { data: row, error } = await context.supabase
       .from("ai_knowledge_sources")
@@ -108,6 +111,7 @@ export const upsertKnowledgeSource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: any) => upsertSchema.parse(input))
   .handler(async ({ context, data }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertApprover(context.supabase, context.userId);
     const sb: any = context.supabase;
     const patch: any = {
@@ -158,6 +162,7 @@ export const setKnowledgeSourceStatus = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ context, data }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertApprover(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: row, error } = await sb
@@ -184,6 +189,7 @@ export const deleteKnowledgeSource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: any) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertApprover(context.supabase, context.userId);
     const { error } = await context.supabase.from("ai_knowledge_sources").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
@@ -194,6 +200,7 @@ export const deleteKnowledgeSource = createServerFn({ method: "POST" })
 export const syncJournalArticles = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertApprover(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: articles, error } = await sb
@@ -249,6 +256,7 @@ export const syncJournalArticles = createServerFn({ method: "POST" })
 export const syncCmsPages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertApprover(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: pages, error } = await sb
@@ -305,6 +313,7 @@ export const syncCmsPages = createServerFn({ method: "POST" })
 export const syncRoomsAndExperiences = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertApprover(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: rooms } = await sb
@@ -357,6 +366,7 @@ export const testKnowledgeQuery = createServerFn({ method: "POST" })
     z.object({ query: z.string().min(3).max(500), limit: z.number().int().min(1).max(20).default(6) }).parse(input),
   )
   .handler(async ({ context, data }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: hits, error } = await sb.rpc("ai_knowledge_sources_search", {
@@ -388,6 +398,7 @@ export const testKnowledgeQuery = createServerFn({ method: "POST" })
 export const getKnowledgeAnalytics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const since = new Date(Date.now() - 30 * 86400_000).toISOString();

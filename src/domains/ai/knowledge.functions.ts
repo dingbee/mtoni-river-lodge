@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
 // ============= Types =============
 
@@ -102,6 +103,7 @@ async function assertAdmin(supabase: any, userId: string) {
 export const listKbCategories = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<KbCategory[]> => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     const { data, error } = await context.supabase
       .from("knowledge_categories")
       .select("*")
@@ -126,6 +128,7 @@ export const upsertKbCategory = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertAdmin(context.supabase, context.userId);
     const payload: any = {
       name: data.name.trim(),
@@ -161,6 +164,7 @@ export const deleteKbCategory = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertAdmin(context.supabase, context.userId);
     const { error } = await context.supabase.from("knowledge_categories").delete().eq("id", data.id);
     if (error) throw error;
@@ -173,6 +177,7 @@ export const listKbDocuments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input?: { category_id?: string; status?: string; search?: string }) => input ?? {})
   .handler(async ({ data, context }): Promise<KbDocument[]> => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     let q = context.supabase
       .from("knowledge_documents")
       .select("*, knowledge_categories(slug)")
@@ -246,6 +251,7 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertAdmin(context.supabase, context.userId);
     const supabase = context.supabase;
     const now = new Date().toISOString();
@@ -350,6 +356,7 @@ export const deleteKbDocument = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertAdmin(context.supabase, context.userId);
     // best-effort storage cleanup
     const { data: doc } = await context.supabase
@@ -398,6 +405,7 @@ export const searchKnowledge = createServerFn({ method: "POST" })
     return { query: q, limit: Math.min(Math.max(input?.limit ?? 6, 1), 20) };
   })
   .handler(async ({ data, context }): Promise<KbSearchHit[]> => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     const { data: rows, error } = await context.supabase.rpc("knowledge_search", {
       _query: data.query,
       _limit: data.limit,
