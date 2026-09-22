@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";import { ArrowRight, BedDouble, Maximize2, Users } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { ArrowRight, BedDouble, Maximize2, Users } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { ConciergeWidget } from "@/components/site/ConciergeWidget";
@@ -59,6 +60,21 @@ function RoomsIndexPage() {
 
 function RoomCard({ room }: { room: Room }) {
   const meta = ROOM_META[room.slug];
+  const [availability, setAvailability] = useState<{ available_units: number; total_units: number } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/public/rooms/status")
+      .then((res) => res.ok ? res.json() : Promise.reject(new Error("availability unavailable")))
+      .then((payload) => {
+        if (cancelled) return;
+        const item = payload.rooms?.find((r: { slug: string }) => r.slug === room.slug);
+        if (item) setAvailability({ available_units: Number(item.available_units ?? 0), total_units: Number(item.total_units ?? 0) });
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [room.slug]);
+
   return (
     <article className="group overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
@@ -79,8 +95,11 @@ function RoomCard({ room }: { room: Room }) {
           <Meta icon={<BedDouble className="h-4 w-4" />} label={meta.bed} />
           <Meta icon={<Maximize2 className="h-4 w-4" />} label={room.size} />
         </div>
-        <div className="mt-6 flex items-center justify-between gap-4">
-          <span className="text-xs text-muted-foreground">{room.view}</span>
+        <div className="mt-6 flex items-end justify-between gap-4">
+          <div>
+            <span className="text-xs text-muted-foreground">{room.view}</span>
+            <p className="mt-2 text-sm font-medium text-foreground">{availability ? `${availability.available_units} of ${availability.total_units} available` : "Checking availability…"}</p>
+          </div>
           <Link
             to="/book"
             search={{ room: room.slug }}
