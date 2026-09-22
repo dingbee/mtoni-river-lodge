@@ -23,8 +23,7 @@ export type FeatureFlagKey =
   | "website_analytics"
   | "mtoni_ai_command_centre"
   | "mtoni_ai_concierge"
-  | "online_checkin"
-  | "restaurant_os";
+  | "online_checkin";
 
 export type FlagState = "enabled" | "disabled" | "beta" | "internal";
 
@@ -32,11 +31,9 @@ export interface FeatureFlag {
   key: FeatureFlagKey;
   state: FlagState;
   description: string;
-  /** ISO date. Purely informational. */
   since?: string;
 }
 
 export interface FlagAudience {
-  /** Current user's roles. Empty array = unauthenticated. */
   roles: readonly string[];
 }
