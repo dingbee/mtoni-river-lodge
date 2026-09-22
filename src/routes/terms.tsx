@@ -6,20 +6,20 @@ import { SiteFooterMinimal } from "@/components/site/SiteFooterMinimal";
 export const Route = createFileRoute("/terms")({
   head: () => ({
     meta: [
-      { title: "Terms & Conditions — Mtoni River Lodge" },
+      { title: "Terms & Conditions — StayNas" },
       {
         name: "description",
         content:
-          "Booking, payment, and cancellation policies for stays at Mtoni River Lodge, Arusha, Tanzania.",
+          "Booking, payment, and cancellation policies for stays at StayNas, Arusha, Tanzania.",
       },
-      { property: "og:title", content: "Terms & Conditions — Mtoni River Lodge" },
+      { property: "og:title", content: "Terms & Conditions — StayNas" },
       {
         property: "og:description",
         content:
-          "Deposit, balance, and cancellation policies for reservations at Mtoni River Lodge.",
+          "Deposit, balance, and cancellation policies for reservations at StayNas.",
       },
     ],
-    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/terms" }],
+    links: [{ rel: "canonical", href: "https://staynas.nolmark.co/terms" }],
   }),
   component: TermsPage,
 });
@@ -38,7 +38,7 @@ const SECTIONS: Section[] = [
       <>
         <p>
           A reservation is considered confirmed once the required deposit has
-          been received and acknowledged by Mtoni River Lodge.
+          been received and acknowledged by StayNas.
         </p>
         <p>All bookings remain provisional until payment is completed.</p>
       </>
@@ -79,7 +79,7 @@ const SECTIONS: Section[] = [
     body: (
       <p>
         In the unlikely event that the lodge is unable to provide accommodation
-        for a confirmed booking, Mtoni River Lodge will arrange alternative
+        for a confirmed booking, StayNas will arrange alternative
         accommodation of a similar standard at its own expense.
       </p>
     ),
@@ -201,10 +201,10 @@ function TermsPage() {
             <p className="text-sm leading-relaxed text-charcoal/65">
               Questions about these terms? Write to{" "}
               <a
-                href="mailto:bookings@mtoniriverlodge.com"
+                href="mailto:support@staynas.nolmark.co"
                 className="underline underline-offset-4 hover:text-charcoal"
               >
-                bookings@mtoniriverlodge.com
+                support@staynas.nolmark.co
               </a>
               .
             </p>
