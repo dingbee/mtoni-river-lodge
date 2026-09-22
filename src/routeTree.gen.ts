@@ -88,7 +88,6 @@ import { Route as AuthenticatedAdminCalendarRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminFrontDeskRouteImport } from './routes/_authenticated.admin.front-desk'
 import { Route as AuthenticatedAdminIntelligenceRouteImport } from './routes/_authenticated.admin.intelligence'
 import { Route as AuthenticatedAdminOperationsRouteImport } from './routes/_authenticated.admin.operations'
-import { Route as AuthenticatedAdminRestaurantRouteImport } from './routes/_authenticated.admin.restaurant'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as CheckInPassPassTokenRouteImport } from './routes/check-in.pass.$passToken'
@@ -165,32 +164,6 @@ import { Route as AuthenticatedAdminOperationsHousekeepingRouteImport } from './
 import { Route as AuthenticatedAdminOperationsRoomsRouteImport } from './routes/_authenticated.admin.operations.rooms'
 import { Route as AuthenticatedAdminOperationsTasksRouteImport } from './routes/_authenticated.admin.operations.tasks'
 import { Route as AuthenticatedAdminOperationsTimelineRouteImport } from './routes/_authenticated.admin.operations.timeline'
-import { Route as AuthenticatedAdminRestaurantIndexRouteImport } from './routes/_authenticated.admin.restaurant.index'
-import { Route as AuthenticatedAdminRestaurantBarRouteImport } from './routes/_authenticated.admin.restaurant.bar'
-import { Route as AuthenticatedAdminRestaurantCatalogRouteImport } from './routes/_authenticated.admin.restaurant.catalog'
-import { Route as AuthenticatedAdminRestaurantCostingRouteImport } from './routes/_authenticated.admin.restaurant.costing'
-import { Route as AuthenticatedAdminRestaurantDecisionsRouteImport } from './routes/_authenticated.admin.restaurant.decisions'
-import { Route as AuthenticatedAdminRestaurantDocumentsRouteImport } from './routes/_authenticated.admin.restaurant.documents'
-import { Route as AuthenticatedAdminRestaurantIntelligenceRouteImport } from './routes/_authenticated.admin.restaurant.intelligence'
-import { Route as AuthenticatedAdminRestaurantInventoryRouteImport } from './routes/_authenticated.admin.restaurant.inventory'
-import { Route as AuthenticatedAdminRestaurantInventoryControlRouteImport } from './routes/_authenticated.admin.restaurant.inventory-control'
-import { Route as AuthenticatedAdminRestaurantKitchenRouteImport } from './routes/_authenticated.admin.restaurant.kitchen'
-import { Route as AuthenticatedAdminRestaurantMenuRouteImport } from './routes/_authenticated.admin.restaurant.menu'
-import { Route as AuthenticatedAdminRestaurantOrdersRouteImport } from './routes/_authenticated.admin.restaurant.orders'
-import { Route as AuthenticatedAdminRestaurantPosRouteImport } from './routes/_authenticated.admin.restaurant.pos'
-import { Route as AuthenticatedAdminRestaurantPricingRouteImport } from './routes/_authenticated.admin.restaurant.pricing'
-import { Route as AuthenticatedAdminRestaurantProcurementRouteImport } from './routes/_authenticated.admin.restaurant.procurement'
-import { Route as AuthenticatedAdminRestaurantProductsRouteImport } from './routes/_authenticated.admin.restaurant.products'
-import { Route as AuthenticatedAdminRestaurantProfitabilityRouteImport } from './routes/_authenticated.admin.restaurant.profitability'
-import { Route as AuthenticatedAdminRestaurantPurchasingRouteImport } from './routes/_authenticated.admin.restaurant.purchasing'
-import { Route as AuthenticatedAdminRestaurantReceiptsRouteImport } from './routes/_authenticated.admin.restaurant.receipts'
-import { Route as AuthenticatedAdminRestaurantRecipeMasterRouteImport } from './routes/_authenticated.admin.restaurant.recipe-master'
-import { Route as AuthenticatedAdminRestaurantReconciliationRouteImport } from './routes/_authenticated.admin.restaurant.reconciliation'
-import { Route as AuthenticatedAdminRestaurantRequisitionsRouteImport } from './routes/_authenticated.admin.restaurant.requisitions'
-import { Route as AuthenticatedAdminRestaurantSettingsRouteImport } from './routes/_authenticated.admin.restaurant.settings'
-import { Route as AuthenticatedAdminRestaurantSetupRouteImport } from './routes/_authenticated.admin.restaurant.setup'
-import { Route as AuthenticatedAdminRestaurantStockRouteImport } from './routes/_authenticated.admin.restaurant.stock'
-import { Route as AuthenticatedAdminRestaurantSuppliersRouteImport } from './routes/_authenticated.admin.restaurant.suppliers'
 import { Route as AuthenticatedAdminSettingsIndexRouteImport } from './routes/_authenticated.admin.settings.index'
 import { Route as AuthenticatedAdminStaffActivityRouteImport } from './routes/_authenticated.admin.staff.activity'
 import { Route as AuthenticatedAdminStaffRolesRouteImport } from './routes/_authenticated.admin.staff.roles'
@@ -268,8 +241,6 @@ import { Route as AuthenticatedAdminOperationsArrivalsScanRouteImport } from './
 import { Route as AuthenticatedAdminOperationsCheckinIdRouteImport } from './routes/_authenticated.admin.operations.checkin.$id'
 import { Route as AuthenticatedAdminOperationsCheckoutIdRouteImport } from './routes/_authenticated.admin.operations.checkout.$id'
 import { Route as AuthenticatedAdminOperationsReservationsIdRouteImport } from './routes/_authenticated.admin.operations.reservations.$id'
-import { Route as AuthenticatedAdminRestaurantBarIndexRouteImport } from './routes/_authenticated.admin.restaurant.bar.index'
-import { Route as AuthenticatedAdminRestaurantBarPosRouteImport } from './routes/_authenticated.admin.restaurant.bar.pos'
 import { Route as AuthenticatedAdminSettingsMigrationsRespadRouteImport } from './routes/_authenticated.admin.settings.migrations.respad'
 import { Route as AuthenticatedAdminAiKnowledgeTestIndexRouteImport } from './routes/_authenticated.admin.ai.knowledge.test/index'
 import { Route as AuthenticatedAdminContentPagesIdIndexRouteImport } from './routes/_authenticated.admin.content.pages.$id.index'
@@ -690,12 +661,6 @@ const AuthenticatedAdminOperationsRoute =
   AuthenticatedAdminOperationsRouteImport.update({
     id: '/operations',
     path: '/operations',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminRestaurantRoute =
-  AuthenticatedAdminRestaurantRouteImport.update({
-    id: '/restaurant',
-    path: '/restaurant',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminReviewsRoute =
@@ -1151,162 +1116,7 @@ const AuthenticatedAdminOperationsTimelineRoute =
     path: '/timeline',
     getParentRoute: () => AuthenticatedAdminOperationsRoute,
   } as any)
-const AuthenticatedAdminRestaurantIndexRoute =
-  AuthenticatedAdminRestaurantIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantBarRoute =
-  AuthenticatedAdminRestaurantBarRouteImport.update({
-    id: '/bar',
-    path: '/bar',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantCatalogRoute =
-  AuthenticatedAdminRestaurantCatalogRouteImport.update({
-    id: '/catalog',
-    path: '/catalog',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantCostingRoute =
-  AuthenticatedAdminRestaurantCostingRouteImport.update({
-    id: '/costing',
-    path: '/costing',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantDecisionsRoute =
-  AuthenticatedAdminRestaurantDecisionsRouteImport.update({
-    id: '/decisions',
-    path: '/decisions',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantDocumentsRoute =
-  AuthenticatedAdminRestaurantDocumentsRouteImport.update({
-    id: '/documents',
-    path: '/documents',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantIntelligenceRoute =
-  AuthenticatedAdminRestaurantIntelligenceRouteImport.update({
-    id: '/intelligence',
-    path: '/intelligence',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantInventoryRoute =
-  AuthenticatedAdminRestaurantInventoryRouteImport.update({
-    id: '/inventory',
-    path: '/inventory',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantInventoryControlRoute =
-  AuthenticatedAdminRestaurantInventoryControlRouteImport.update({
-    id: '/inventory-control',
-    path: '/inventory-control',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantKitchenRoute =
-  AuthenticatedAdminRestaurantKitchenRouteImport.update({
-    id: '/kitchen',
-    path: '/kitchen',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantMenuRoute =
-  AuthenticatedAdminRestaurantMenuRouteImport.update({
-    id: '/menu',
-    path: '/menu',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantOrdersRoute =
-  AuthenticatedAdminRestaurantOrdersRouteImport.update({
-    id: '/orders',
-    path: '/orders',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantPosRoute =
-  AuthenticatedAdminRestaurantPosRouteImport.update({
-    id: '/pos',
-    path: '/pos',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantPricingRoute =
-  AuthenticatedAdminRestaurantPricingRouteImport.update({
-    id: '/pricing',
-    path: '/pricing',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantProcurementRoute =
-  AuthenticatedAdminRestaurantProcurementRouteImport.update({
-    id: '/procurement',
-    path: '/procurement',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantProductsRoute =
-  AuthenticatedAdminRestaurantProductsRouteImport.update({
-    id: '/products',
-    path: '/products',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantProfitabilityRoute =
-  AuthenticatedAdminRestaurantProfitabilityRouteImport.update({
-    id: '/profitability',
-    path: '/profitability',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantPurchasingRoute =
-  AuthenticatedAdminRestaurantPurchasingRouteImport.update({
-    id: '/purchasing',
-    path: '/purchasing',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantReceiptsRoute =
-  AuthenticatedAdminRestaurantReceiptsRouteImport.update({
-    id: '/receipts',
-    path: '/receipts',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantRecipeMasterRoute =
-  AuthenticatedAdminRestaurantRecipeMasterRouteImport.update({
-    id: '/recipe-master',
-    path: '/recipe-master',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantReconciliationRoute =
-  AuthenticatedAdminRestaurantReconciliationRouteImport.update({
-    id: '/reconciliation',
-    path: '/reconciliation',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantRequisitionsRoute =
-  AuthenticatedAdminRestaurantRequisitionsRouteImport.update({
-    id: '/requisitions',
-    path: '/requisitions',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantSettingsRoute =
-  AuthenticatedAdminRestaurantSettingsRouteImport.update({
-    id: '/settings',
-    path: '/settings',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantSetupRoute =
-  AuthenticatedAdminRestaurantSetupRouteImport.update({
-    id: '/setup',
-    path: '/setup',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantStockRoute =
-  AuthenticatedAdminRestaurantStockRouteImport.update({
-    id: '/stock',
-    path: '/stock',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantSuppliersRoute =
-  AuthenticatedAdminRestaurantSuppliersRouteImport.update({
-    id: '/suppliers',
-    path: '/suppliers',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
+
 const AuthenticatedAdminSettingsIndexRoute =
   AuthenticatedAdminSettingsIndexRouteImport.update({
     id: '/settings/',
@@ -1764,18 +1574,7 @@ const AuthenticatedAdminOperationsReservationsIdRoute =
     path: '/reservations/$id',
     getParentRoute: () => AuthenticatedAdminOperationsRoute,
   } as any)
-const AuthenticatedAdminRestaurantBarIndexRoute =
-  AuthenticatedAdminRestaurantBarIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedAdminRestaurantBarRoute,
-  } as any)
-const AuthenticatedAdminRestaurantBarPosRoute =
-  AuthenticatedAdminRestaurantBarPosRouteImport.update({
-    id: '/pos',
-    path: '/pos',
-    getParentRoute: () => AuthenticatedAdminRestaurantBarRoute,
-  } as any)
+
 const AuthenticatedAdminSettingsMigrationsRespadRoute =
   AuthenticatedAdminSettingsMigrationsRespadRouteImport.update({
     id: '/settings/migrations/respad',
@@ -1879,7 +1678,6 @@ export interface FileRoutesByFullPath {
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/admin/intelligence': typeof AuthenticatedAdminIntelligenceRouteWithChildren
   '/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
-  '/admin/restaurant': typeof AuthenticatedAdminRestaurantRouteWithChildren
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/check-in/pass/$passToken': typeof CheckInPassPassTokenRoute
@@ -1951,31 +1749,6 @@ export interface FileRoutesByFullPath {
   '/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
   '/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
-  '/admin/restaurant/bar': typeof AuthenticatedAdminRestaurantBarRouteWithChildren
-  '/admin/restaurant/catalog': typeof AuthenticatedAdminRestaurantCatalogRoute
-  '/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
-  '/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
-  '/admin/restaurant/documents': typeof AuthenticatedAdminRestaurantDocumentsRoute
-  '/admin/restaurant/intelligence': typeof AuthenticatedAdminRestaurantIntelligenceRoute
-  '/admin/restaurant/inventory': typeof AuthenticatedAdminRestaurantInventoryRoute
-  '/admin/restaurant/inventory-control': typeof AuthenticatedAdminRestaurantInventoryControlRoute
-  '/admin/restaurant/kitchen': typeof AuthenticatedAdminRestaurantKitchenRoute
-  '/admin/restaurant/menu': typeof AuthenticatedAdminRestaurantMenuRoute
-  '/admin/restaurant/orders': typeof AuthenticatedAdminRestaurantOrdersRoute
-  '/admin/restaurant/pos': typeof AuthenticatedAdminRestaurantPosRoute
-  '/admin/restaurant/pricing': typeof AuthenticatedAdminRestaurantPricingRoute
-  '/admin/restaurant/procurement': typeof AuthenticatedAdminRestaurantProcurementRoute
-  '/admin/restaurant/products': typeof AuthenticatedAdminRestaurantProductsRoute
-  '/admin/restaurant/profitability': typeof AuthenticatedAdminRestaurantProfitabilityRoute
-  '/admin/restaurant/purchasing': typeof AuthenticatedAdminRestaurantPurchasingRoute
-  '/admin/restaurant/receipts': typeof AuthenticatedAdminRestaurantReceiptsRoute
-  '/admin/restaurant/recipe-master': typeof AuthenticatedAdminRestaurantRecipeMasterRoute
-  '/admin/restaurant/reconciliation': typeof AuthenticatedAdminRestaurantReconciliationRoute
-  '/admin/restaurant/requisitions': typeof AuthenticatedAdminRestaurantRequisitionsRoute
-  '/admin/restaurant/settings': typeof AuthenticatedAdminRestaurantSettingsRoute
-  '/admin/restaurant/setup': typeof AuthenticatedAdminRestaurantSetupRoute
-  '/admin/restaurant/stock': typeof AuthenticatedAdminRestaurantStockRoute
-  '/admin/restaurant/suppliers': typeof AuthenticatedAdminRestaurantSuppliersRoute
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
@@ -2001,7 +1774,6 @@ export interface FileRoutesByFullPath {
   '/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/intelligence/': typeof AuthenticatedAdminIntelligenceIndexRoute
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
-  '/admin/restaurant/': typeof AuthenticatedAdminRestaurantIndexRoute
   '/admin/settings/': typeof AuthenticatedAdminSettingsIndexRoute
   '/admin/ai/concierge/analytics': typeof AuthenticatedAdminAiConciergeAnalyticsRoute
   '/admin/ai/concierge/channels': typeof AuthenticatedAdminAiConciergeChannelsRoute
@@ -2052,7 +1824,6 @@ export interface FileRoutesByFullPath {
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
-  '/admin/restaurant/bar/pos': typeof AuthenticatedAdminRestaurantBarPosRoute
   '/admin/settings/migrations/respad': typeof AuthenticatedAdminSettingsMigrationsRespadRoute
   '/admin/ai/concierge/': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/admin/ai/executive/': typeof AuthenticatedAdminAiExecutiveIndexRoute
@@ -2062,7 +1833,6 @@ export interface FileRoutesByFullPath {
   '/admin/content/journal/': typeof AuthenticatedAdminContentJournalIndexRoute
   '/admin/content/pages/': typeof AuthenticatedAdminContentPagesIndexRoute
   '/admin/operations/arrivals/': typeof AuthenticatedAdminOperationsArrivalsIndexRoute
-  '/admin/restaurant/bar/': typeof AuthenticatedAdminRestaurantBarIndexRoute
   '/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
   '/admin/ai/knowledge/test/': typeof AuthenticatedAdminAiKnowledgeTestIndexRoute
   '/admin/content/pages/$id/': typeof AuthenticatedAdminContentPagesIdIndexRoute
@@ -2203,30 +1973,6 @@ export interface FileRoutesByTo {
   '/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
   '/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
-  '/admin/restaurant/catalog': typeof AuthenticatedAdminRestaurantCatalogRoute
-  '/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
-  '/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
-  '/admin/restaurant/documents': typeof AuthenticatedAdminRestaurantDocumentsRoute
-  '/admin/restaurant/intelligence': typeof AuthenticatedAdminRestaurantIntelligenceRoute
-  '/admin/restaurant/inventory': typeof AuthenticatedAdminRestaurantInventoryRoute
-  '/admin/restaurant/inventory-control': typeof AuthenticatedAdminRestaurantInventoryControlRoute
-  '/admin/restaurant/kitchen': typeof AuthenticatedAdminRestaurantKitchenRoute
-  '/admin/restaurant/menu': typeof AuthenticatedAdminRestaurantMenuRoute
-  '/admin/restaurant/orders': typeof AuthenticatedAdminRestaurantOrdersRoute
-  '/admin/restaurant/pos': typeof AuthenticatedAdminRestaurantPosRoute
-  '/admin/restaurant/pricing': typeof AuthenticatedAdminRestaurantPricingRoute
-  '/admin/restaurant/procurement': typeof AuthenticatedAdminRestaurantProcurementRoute
-  '/admin/restaurant/products': typeof AuthenticatedAdminRestaurantProductsRoute
-  '/admin/restaurant/profitability': typeof AuthenticatedAdminRestaurantProfitabilityRoute
-  '/admin/restaurant/purchasing': typeof AuthenticatedAdminRestaurantPurchasingRoute
-  '/admin/restaurant/receipts': typeof AuthenticatedAdminRestaurantReceiptsRoute
-  '/admin/restaurant/recipe-master': typeof AuthenticatedAdminRestaurantRecipeMasterRoute
-  '/admin/restaurant/reconciliation': typeof AuthenticatedAdminRestaurantReconciliationRoute
-  '/admin/restaurant/requisitions': typeof AuthenticatedAdminRestaurantRequisitionsRoute
-  '/admin/restaurant/settings': typeof AuthenticatedAdminRestaurantSettingsRoute
-  '/admin/restaurant/setup': typeof AuthenticatedAdminRestaurantSetupRoute
-  '/admin/restaurant/stock': typeof AuthenticatedAdminRestaurantStockRoute
-  '/admin/restaurant/suppliers': typeof AuthenticatedAdminRestaurantSuppliersRoute
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
@@ -2252,7 +1998,6 @@ export interface FileRoutesByTo {
   '/admin/finance': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/intelligence': typeof AuthenticatedAdminIntelligenceIndexRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
-  '/admin/restaurant': typeof AuthenticatedAdminRestaurantIndexRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsIndexRoute
   '/admin/ai/concierge/analytics': typeof AuthenticatedAdminAiConciergeAnalyticsRoute
   '/admin/ai/concierge/channels': typeof AuthenticatedAdminAiConciergeChannelsRoute
@@ -2303,7 +2048,6 @@ export interface FileRoutesByTo {
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
-  '/admin/restaurant/bar/pos': typeof AuthenticatedAdminRestaurantBarPosRoute
   '/admin/settings/migrations/respad': typeof AuthenticatedAdminSettingsMigrationsRespadRoute
   '/admin/ai/concierge': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/admin/ai/executive': typeof AuthenticatedAdminAiExecutiveIndexRoute
@@ -2313,7 +2057,6 @@ export interface FileRoutesByTo {
   '/admin/content/journal': typeof AuthenticatedAdminContentJournalIndexRoute
   '/admin/content/pages': typeof AuthenticatedAdminContentPagesIndexRoute
   '/admin/operations/arrivals': typeof AuthenticatedAdminOperationsArrivalsIndexRoute
-  '/admin/restaurant/bar': typeof AuthenticatedAdminRestaurantBarIndexRoute
   '/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
   '/admin/ai/knowledge/test': typeof AuthenticatedAdminAiKnowledgeTestIndexRoute
   '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdIndexRoute
@@ -2398,7 +2141,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/_authenticated/admin/intelligence': typeof AuthenticatedAdminIntelligenceRouteWithChildren
   '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
-  '/_authenticated/admin/restaurant': typeof AuthenticatedAdminRestaurantRouteWithChildren
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/check-in/pass/$passToken': typeof CheckInPassPassTokenRoute
@@ -2470,31 +2212,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
   '/_authenticated/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/_authenticated/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
-  '/_authenticated/admin/restaurant/bar': typeof AuthenticatedAdminRestaurantBarRouteWithChildren
-  '/_authenticated/admin/restaurant/catalog': typeof AuthenticatedAdminRestaurantCatalogRoute
-  '/_authenticated/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
-  '/_authenticated/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
-  '/_authenticated/admin/restaurant/documents': typeof AuthenticatedAdminRestaurantDocumentsRoute
-  '/_authenticated/admin/restaurant/intelligence': typeof AuthenticatedAdminRestaurantIntelligenceRoute
-  '/_authenticated/admin/restaurant/inventory': typeof AuthenticatedAdminRestaurantInventoryRoute
-  '/_authenticated/admin/restaurant/inventory-control': typeof AuthenticatedAdminRestaurantInventoryControlRoute
-  '/_authenticated/admin/restaurant/kitchen': typeof AuthenticatedAdminRestaurantKitchenRoute
-  '/_authenticated/admin/restaurant/menu': typeof AuthenticatedAdminRestaurantMenuRoute
-  '/_authenticated/admin/restaurant/orders': typeof AuthenticatedAdminRestaurantOrdersRoute
-  '/_authenticated/admin/restaurant/pos': typeof AuthenticatedAdminRestaurantPosRoute
-  '/_authenticated/admin/restaurant/pricing': typeof AuthenticatedAdminRestaurantPricingRoute
-  '/_authenticated/admin/restaurant/procurement': typeof AuthenticatedAdminRestaurantProcurementRoute
-  '/_authenticated/admin/restaurant/products': typeof AuthenticatedAdminRestaurantProductsRoute
-  '/_authenticated/admin/restaurant/profitability': typeof AuthenticatedAdminRestaurantProfitabilityRoute
-  '/_authenticated/admin/restaurant/purchasing': typeof AuthenticatedAdminRestaurantPurchasingRoute
-  '/_authenticated/admin/restaurant/receipts': typeof AuthenticatedAdminRestaurantReceiptsRoute
-  '/_authenticated/admin/restaurant/recipe-master': typeof AuthenticatedAdminRestaurantRecipeMasterRoute
-  '/_authenticated/admin/restaurant/reconciliation': typeof AuthenticatedAdminRestaurantReconciliationRoute
-  '/_authenticated/admin/restaurant/requisitions': typeof AuthenticatedAdminRestaurantRequisitionsRoute
-  '/_authenticated/admin/restaurant/settings': typeof AuthenticatedAdminRestaurantSettingsRoute
-  '/_authenticated/admin/restaurant/setup': typeof AuthenticatedAdminRestaurantSetupRoute
-  '/_authenticated/admin/restaurant/stock': typeof AuthenticatedAdminRestaurantStockRoute
-  '/_authenticated/admin/restaurant/suppliers': typeof AuthenticatedAdminRestaurantSuppliersRoute
   '/_authenticated/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
   '/_authenticated/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/_authenticated/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
@@ -2520,7 +2237,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/_authenticated/admin/intelligence/': typeof AuthenticatedAdminIntelligenceIndexRoute
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
-  '/_authenticated/admin/restaurant/': typeof AuthenticatedAdminRestaurantIndexRoute
   '/_authenticated/admin/settings/': typeof AuthenticatedAdminSettingsIndexRoute
   '/_authenticated/admin/ai/concierge/analytics': typeof AuthenticatedAdminAiConciergeAnalyticsRoute
   '/_authenticated/admin/ai/concierge/channels': typeof AuthenticatedAdminAiConciergeChannelsRoute
@@ -2571,7 +2287,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/_authenticated/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/_authenticated/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
-  '/_authenticated/admin/restaurant/bar/pos': typeof AuthenticatedAdminRestaurantBarPosRoute
   '/_authenticated/admin/settings/migrations/respad': typeof AuthenticatedAdminSettingsMigrationsRespadRoute
   '/_authenticated/admin/ai/concierge/': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/_authenticated/admin/ai/executive/': typeof AuthenticatedAdminAiExecutiveIndexRoute
@@ -2581,7 +2296,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/content/journal/': typeof AuthenticatedAdminContentJournalIndexRoute
   '/_authenticated/admin/content/pages/': typeof AuthenticatedAdminContentPagesIndexRoute
   '/_authenticated/admin/operations/arrivals/': typeof AuthenticatedAdminOperationsArrivalsIndexRoute
-  '/_authenticated/admin/restaurant/bar/': typeof AuthenticatedAdminRestaurantBarIndexRoute
   '/_authenticated/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
   '/_authenticated/admin/ai/knowledge/test/': typeof AuthenticatedAdminAiKnowledgeTestIndexRoute
   '/_authenticated/admin/content/pages/$id/': typeof AuthenticatedAdminContentPagesIdIndexRoute
@@ -4003,7 +3717,6 @@ declare module '@tanstack/react-router' {
       id: '/_authenticated/admin/restaurant'
       path: '/restaurant'
       fullPath: '/admin/restaurant'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/reviews': {
@@ -4542,183 +4255,131 @@ declare module '@tanstack/react-router' {
       id: '/_authenticated/admin/restaurant/'
       path: '/'
       fullPath: '/admin/restaurant/'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/bar': {
       id: '/_authenticated/admin/restaurant/bar'
       path: '/bar'
       fullPath: '/admin/restaurant/bar'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantBarRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/catalog': {
       id: '/_authenticated/admin/restaurant/catalog'
       path: '/catalog'
       fullPath: '/admin/restaurant/catalog'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantCatalogRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/costing': {
       id: '/_authenticated/admin/restaurant/costing'
       path: '/costing'
       fullPath: '/admin/restaurant/costing'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantCostingRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/decisions': {
       id: '/_authenticated/admin/restaurant/decisions'
       path: '/decisions'
       fullPath: '/admin/restaurant/decisions'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantDecisionsRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/documents': {
       id: '/_authenticated/admin/restaurant/documents'
       path: '/documents'
       fullPath: '/admin/restaurant/documents'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantDocumentsRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/intelligence': {
       id: '/_authenticated/admin/restaurant/intelligence'
       path: '/intelligence'
       fullPath: '/admin/restaurant/intelligence'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantIntelligenceRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/inventory': {
       id: '/_authenticated/admin/restaurant/inventory'
       path: '/inventory'
       fullPath: '/admin/restaurant/inventory'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantInventoryRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/inventory-control': {
       id: '/_authenticated/admin/restaurant/inventory-control'
       path: '/inventory-control'
       fullPath: '/admin/restaurant/inventory-control'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantInventoryControlRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/kitchen': {
       id: '/_authenticated/admin/restaurant/kitchen'
       path: '/kitchen'
       fullPath: '/admin/restaurant/kitchen'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantKitchenRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/menu': {
       id: '/_authenticated/admin/restaurant/menu'
       path: '/menu'
       fullPath: '/admin/restaurant/menu'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantMenuRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/orders': {
       id: '/_authenticated/admin/restaurant/orders'
       path: '/orders'
       fullPath: '/admin/restaurant/orders'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantOrdersRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/pos': {
       id: '/_authenticated/admin/restaurant/pos'
       path: '/pos'
       fullPath: '/admin/restaurant/pos'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantPosRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/pricing': {
       id: '/_authenticated/admin/restaurant/pricing'
       path: '/pricing'
       fullPath: '/admin/restaurant/pricing'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantPricingRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/procurement': {
       id: '/_authenticated/admin/restaurant/procurement'
       path: '/procurement'
       fullPath: '/admin/restaurant/procurement'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantProcurementRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/products': {
       id: '/_authenticated/admin/restaurant/products'
       path: '/products'
       fullPath: '/admin/restaurant/products'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantProductsRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/profitability': {
       id: '/_authenticated/admin/restaurant/profitability'
       path: '/profitability'
       fullPath: '/admin/restaurant/profitability'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantProfitabilityRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/purchasing': {
       id: '/_authenticated/admin/restaurant/purchasing'
       path: '/purchasing'
       fullPath: '/admin/restaurant/purchasing'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantPurchasingRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/receipts': {
       id: '/_authenticated/admin/restaurant/receipts'
       path: '/receipts'
       fullPath: '/admin/restaurant/receipts'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantReceiptsRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/recipe-master': {
       id: '/_authenticated/admin/restaurant/recipe-master'
       path: '/recipe-master'
       fullPath: '/admin/restaurant/recipe-master'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantRecipeMasterRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/reconciliation': {
       id: '/_authenticated/admin/restaurant/reconciliation'
       path: '/reconciliation'
       fullPath: '/admin/restaurant/reconciliation'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantReconciliationRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/requisitions': {
       id: '/_authenticated/admin/restaurant/requisitions'
       path: '/requisitions'
       fullPath: '/admin/restaurant/requisitions'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantRequisitionsRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/settings': {
       id: '/_authenticated/admin/restaurant/settings'
       path: '/settings'
       fullPath: '/admin/restaurant/settings'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantSettingsRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/setup': {
       id: '/_authenticated/admin/restaurant/setup'
       path: '/setup'
       fullPath: '/admin/restaurant/setup'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantSetupRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/stock': {
       id: '/_authenticated/admin/restaurant/stock'
       path: '/stock'
       fullPath: '/admin/restaurant/stock'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantStockRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/restaurant/suppliers': {
       id: '/_authenticated/admin/restaurant/suppliers'
       path: '/suppliers'
       fullPath: '/admin/restaurant/suppliers'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantSuppliersRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
     }
     '/_authenticated/admin/settings/': {
       id: '/_authenticated/admin/settings/'
@@ -5263,15 +4924,11 @@ declare module '@tanstack/react-router' {
       id: '/_authenticated/admin/restaurant/bar/'
       path: '/'
       fullPath: '/admin/restaurant/bar/'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantBarIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantBarRoute
     }
     '/_authenticated/admin/restaurant/bar/pos': {
       id: '/_authenticated/admin/restaurant/bar/pos'
       path: '/pos'
       fullPath: '/admin/restaurant/bar/pos'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantBarPosRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantBarRoute
     }
     '/_authenticated/admin/settings/migrations/respad': {
       id: '/_authenticated/admin/settings/migrations/respad'
@@ -5752,113 +5409,6 @@ const AuthenticatedAdminOperationsRouteWithChildren =
     AuthenticatedAdminOperationsRouteChildren,
   )
 
-interface AuthenticatedAdminRestaurantBarRouteChildren {
-  AuthenticatedAdminRestaurantBarPosRoute: typeof AuthenticatedAdminRestaurantBarPosRoute
-  AuthenticatedAdminRestaurantBarIndexRoute: typeof AuthenticatedAdminRestaurantBarIndexRoute
-}
-
-const AuthenticatedAdminRestaurantBarRouteChildren: AuthenticatedAdminRestaurantBarRouteChildren =
-  {
-    AuthenticatedAdminRestaurantBarPosRoute:
-      AuthenticatedAdminRestaurantBarPosRoute,
-    AuthenticatedAdminRestaurantBarIndexRoute:
-      AuthenticatedAdminRestaurantBarIndexRoute,
-  }
-
-const AuthenticatedAdminRestaurantBarRouteWithChildren =
-  AuthenticatedAdminRestaurantBarRoute._addFileChildren(
-    AuthenticatedAdminRestaurantBarRouteChildren,
-  )
-
-interface AuthenticatedAdminRestaurantRouteChildren {
-  AuthenticatedAdminRestaurantBarRoute: typeof AuthenticatedAdminRestaurantBarRouteWithChildren
-  AuthenticatedAdminRestaurantCatalogRoute: typeof AuthenticatedAdminRestaurantCatalogRoute
-  AuthenticatedAdminRestaurantCostingRoute: typeof AuthenticatedAdminRestaurantCostingRoute
-  AuthenticatedAdminRestaurantDecisionsRoute: typeof AuthenticatedAdminRestaurantDecisionsRoute
-  AuthenticatedAdminRestaurantDocumentsRoute: typeof AuthenticatedAdminRestaurantDocumentsRoute
-  AuthenticatedAdminRestaurantIntelligenceRoute: typeof AuthenticatedAdminRestaurantIntelligenceRoute
-  AuthenticatedAdminRestaurantInventoryRoute: typeof AuthenticatedAdminRestaurantInventoryRoute
-  AuthenticatedAdminRestaurantInventoryControlRoute: typeof AuthenticatedAdminRestaurantInventoryControlRoute
-  AuthenticatedAdminRestaurantKitchenRoute: typeof AuthenticatedAdminRestaurantKitchenRoute
-  AuthenticatedAdminRestaurantMenuRoute: typeof AuthenticatedAdminRestaurantMenuRoute
-  AuthenticatedAdminRestaurantOrdersRoute: typeof AuthenticatedAdminRestaurantOrdersRoute
-  AuthenticatedAdminRestaurantPosRoute: typeof AuthenticatedAdminRestaurantPosRoute
-  AuthenticatedAdminRestaurantPricingRoute: typeof AuthenticatedAdminRestaurantPricingRoute
-  AuthenticatedAdminRestaurantProcurementRoute: typeof AuthenticatedAdminRestaurantProcurementRoute
-  AuthenticatedAdminRestaurantProductsRoute: typeof AuthenticatedAdminRestaurantProductsRoute
-  AuthenticatedAdminRestaurantProfitabilityRoute: typeof AuthenticatedAdminRestaurantProfitabilityRoute
-  AuthenticatedAdminRestaurantPurchasingRoute: typeof AuthenticatedAdminRestaurantPurchasingRoute
-  AuthenticatedAdminRestaurantReceiptsRoute: typeof AuthenticatedAdminRestaurantReceiptsRoute
-  AuthenticatedAdminRestaurantRecipeMasterRoute: typeof AuthenticatedAdminRestaurantRecipeMasterRoute
-  AuthenticatedAdminRestaurantReconciliationRoute: typeof AuthenticatedAdminRestaurantReconciliationRoute
-  AuthenticatedAdminRestaurantRequisitionsRoute: typeof AuthenticatedAdminRestaurantRequisitionsRoute
-  AuthenticatedAdminRestaurantSettingsRoute: typeof AuthenticatedAdminRestaurantSettingsRoute
-  AuthenticatedAdminRestaurantSetupRoute: typeof AuthenticatedAdminRestaurantSetupRoute
-  AuthenticatedAdminRestaurantStockRoute: typeof AuthenticatedAdminRestaurantStockRoute
-  AuthenticatedAdminRestaurantSuppliersRoute: typeof AuthenticatedAdminRestaurantSuppliersRoute
-  AuthenticatedAdminRestaurantIndexRoute: typeof AuthenticatedAdminRestaurantIndexRoute
-}
-
-const AuthenticatedAdminRestaurantRouteChildren: AuthenticatedAdminRestaurantRouteChildren =
-  {
-    AuthenticatedAdminRestaurantBarRoute:
-      AuthenticatedAdminRestaurantBarRouteWithChildren,
-    AuthenticatedAdminRestaurantCatalogRoute:
-      AuthenticatedAdminRestaurantCatalogRoute,
-    AuthenticatedAdminRestaurantCostingRoute:
-      AuthenticatedAdminRestaurantCostingRoute,
-    AuthenticatedAdminRestaurantDecisionsRoute:
-      AuthenticatedAdminRestaurantDecisionsRoute,
-    AuthenticatedAdminRestaurantDocumentsRoute:
-      AuthenticatedAdminRestaurantDocumentsRoute,
-    AuthenticatedAdminRestaurantIntelligenceRoute:
-      AuthenticatedAdminRestaurantIntelligenceRoute,
-    AuthenticatedAdminRestaurantInventoryRoute:
-      AuthenticatedAdminRestaurantInventoryRoute,
-    AuthenticatedAdminRestaurantInventoryControlRoute:
-      AuthenticatedAdminRestaurantInventoryControlRoute,
-    AuthenticatedAdminRestaurantKitchenRoute:
-      AuthenticatedAdminRestaurantKitchenRoute,
-    AuthenticatedAdminRestaurantMenuRoute:
-      AuthenticatedAdminRestaurantMenuRoute,
-    AuthenticatedAdminRestaurantOrdersRoute:
-      AuthenticatedAdminRestaurantOrdersRoute,
-    AuthenticatedAdminRestaurantPosRoute: AuthenticatedAdminRestaurantPosRoute,
-    AuthenticatedAdminRestaurantPricingRoute:
-      AuthenticatedAdminRestaurantPricingRoute,
-    AuthenticatedAdminRestaurantProcurementRoute:
-      AuthenticatedAdminRestaurantProcurementRoute,
-    AuthenticatedAdminRestaurantProductsRoute:
-      AuthenticatedAdminRestaurantProductsRoute,
-    AuthenticatedAdminRestaurantProfitabilityRoute:
-      AuthenticatedAdminRestaurantProfitabilityRoute,
-    AuthenticatedAdminRestaurantPurchasingRoute:
-      AuthenticatedAdminRestaurantPurchasingRoute,
-    AuthenticatedAdminRestaurantReceiptsRoute:
-      AuthenticatedAdminRestaurantReceiptsRoute,
-    AuthenticatedAdminRestaurantRecipeMasterRoute:
-      AuthenticatedAdminRestaurantRecipeMasterRoute,
-    AuthenticatedAdminRestaurantReconciliationRoute:
-      AuthenticatedAdminRestaurantReconciliationRoute,
-    AuthenticatedAdminRestaurantRequisitionsRoute:
-      AuthenticatedAdminRestaurantRequisitionsRoute,
-    AuthenticatedAdminRestaurantSettingsRoute:
-      AuthenticatedAdminRestaurantSettingsRoute,
-    AuthenticatedAdminRestaurantSetupRoute:
-      AuthenticatedAdminRestaurantSetupRoute,
-    AuthenticatedAdminRestaurantStockRoute:
-      AuthenticatedAdminRestaurantStockRoute,
-    AuthenticatedAdminRestaurantSuppliersRoute:
-      AuthenticatedAdminRestaurantSuppliersRoute,
-    AuthenticatedAdminRestaurantIndexRoute:
-      AuthenticatedAdminRestaurantIndexRoute,
-  }
-
-const AuthenticatedAdminRestaurantRouteWithChildren =
-  AuthenticatedAdminRestaurantRoute._addFileChildren(
-    AuthenticatedAdminRestaurantRouteChildren,
-  )
-
 interface AuthenticatedAdminGuestsCrmRouteChildren {
   AuthenticatedAdminGuestsCrmIdRoute: typeof AuthenticatedAdminGuestsCrmIdRoute
   AuthenticatedAdminGuestsCrmDuplicatesRoute: typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
@@ -5885,7 +5435,6 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminFrontDeskRoute: typeof AuthenticatedAdminFrontDeskRoute
   AuthenticatedAdminIntelligenceRoute: typeof AuthenticatedAdminIntelligenceRouteWithChildren
   AuthenticatedAdminOperationsRoute: typeof AuthenticatedAdminOperationsRouteWithChildren
-  AuthenticatedAdminRestaurantRoute: typeof AuthenticatedAdminRestaurantRouteWithChildren
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminContentBrandRoute: typeof AuthenticatedAdminContentBrandRoute
@@ -5938,8 +5487,6 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
     AuthenticatedAdminIntelligenceRouteWithChildren,
   AuthenticatedAdminOperationsRoute:
     AuthenticatedAdminOperationsRouteWithChildren,
-  AuthenticatedAdminRestaurantRoute:
-    AuthenticatedAdminRestaurantRouteWithChildren,
   AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminContentBrandRoute: AuthenticatedAdminContentBrandRoute,
