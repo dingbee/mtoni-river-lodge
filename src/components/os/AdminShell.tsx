@@ -7,6 +7,7 @@ import { useCurrentUserRoles } from "@/lib/permissions";
 import { useRealtimeNotifications } from "@/lib/notifications";
 import { installIntelligenceBridge } from "@/modules/intelligence/activation/bridge";
 import { applyOsTheme, useOsTheme } from "@/lib/os-theme";
+import { PropertyProvider } from "@/modules/property/PropertyContext";
 
 const COLLAPSED_KEY = "staynas-os.sidebar.collapsed";
 const RAIL_KEY = "staynas-os.rail.open";
@@ -65,7 +66,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="mtoni-os flex min-h-screen text-foreground">
+    <PropertyProvider>
+      <div className="staynas-os flex min-h-screen text-foreground">
       <div className="hidden lg:block">
         <AdminSidebar collapsed={collapsed} roles={roles} />
       </div>
@@ -102,6 +104,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </PropertyProvider>
   );
 }

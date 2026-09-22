@@ -19,6 +19,7 @@ import { findNavByHref } from "./nav-config";
 import { useUnreadCount } from "@/lib/notifications";
 import { useOsTheme, type ThemePreference } from "@/lib/os-theme";
 import { cn } from "@/lib/utils";
+import { PropertySwitcher } from "./PropertySwitcher";
 
 export function AdminTopbar({
   onToggleSidebar,
@@ -85,6 +86,10 @@ export function AdminTopbar({
           </div>
         </div>
         <p className="flex-1 truncate font-display text-sm text-foreground lg:hidden">{title}</p>
+
+        <div className="hidden xl:block">
+          <PropertySwitcher />
+        </div>
 
         <button
           type="button"
