@@ -4,7 +4,6 @@ import { ChevronDown } from "lucide-react";
 import { NAV, type NavItem } from "./nav-config";
 import { canAccessModule } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
-import logoAsset from "@/assets/mtoni-river-lodge-logo.png.asset.json";
 const logo = logoAsset.url;
 
 function isActive(pathname: string, href: string) {
@@ -98,7 +97,7 @@ export function AdminSidebar({
         {!collapsed && (
           <div className="min-w-0">
             <p className="truncate font-display text-[15px] leading-none tracking-tight text-[color:var(--os-ink)]">
-              Mtoni OS
+              StayNas
             </p>
             <p className="mt-1 truncate text-[0.58rem] uppercase tracking-[0.24em] text-[color:var(--os-ink-3)]">
               Command Centre
@@ -171,7 +170,7 @@ export function AdminSidebar({
 
       {!collapsed && (
         <div className="border-t border-border p-3 text-[0.6rem] uppercase tracking-[0.2em] text-muted-foreground">
-          Mtoni River Lodge
+          StayNas
         </div>
       )}
     </aside>
