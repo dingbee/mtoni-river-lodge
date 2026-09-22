@@ -125,8 +125,8 @@ function BookingReturn() {
           <div className="mt-6 rounded-2xl border border-charcoal/10 bg-ivory p-6">
             {(status.paymentStatus === "deposit_paid" || status.paymentStatus === "paid") ? (
               <div className="text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#427A43]/10">
-                  <Check className="h-7 w-7" style={{ color: "#346739" }} />
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#0F3D3A]/10">
+                  <Check className="h-7 w-7" style={{ color: "#0F3D3A" }} />
                 </div>
                 <h2 className="mt-4 font-display text-2xl">Payment received</h2>
                 <p className="mt-2 text-sm text-charcoal/70">Your booking is confirmed. We have emailed your receipt to {email}.</p>
