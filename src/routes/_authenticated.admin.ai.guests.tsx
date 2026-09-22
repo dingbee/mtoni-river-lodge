@@ -9,7 +9,7 @@ import { LayoutDashboard, Sparkles, Users } from "lucide-react";
 import { listUpcomingArrivals } from "@/domains/ai/guest-intelligence.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/guests")({
-  head: () => ({ meta: [{ title: "Guest Intelligence AI — Mtoni AI" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "Guest Intelligence AI — StayNas AI" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: GuestAiLayout,
 });
 
