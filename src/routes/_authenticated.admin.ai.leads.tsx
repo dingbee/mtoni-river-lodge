@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { listConciergeLeads, updateConciergeLead } from "@/domains/ai/concierge/concierge.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/leads")({
-  head: () => ({ meta: [{ title: "Concierge Leads — Mtoni AI" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "Concierge Leads — StayNas AI" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: LeadsPage,
 });
 
