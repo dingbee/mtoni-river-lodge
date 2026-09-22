@@ -85,7 +85,11 @@ export function AdminTopbar({
             <Breadcrumbs />
           </div>
         </div>
-        <p className="flex-1 truncate font-display text-sm text-foreground lg:hidden">{title}</p>\n\n        <div className="hidden xl:block">\n          <PropertySwitcher />\n        </div>
+        <p className="flex-1 truncate font-display text-sm text-foreground lg:hidden">{title}</p>
+
+        <div className="hidden xl:block">
+          <PropertySwitcher />
+        </div>
 
         <button
           type="button"
