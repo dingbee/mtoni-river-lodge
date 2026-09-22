@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -53,6 +54,7 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => filtersSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const from = data.from ?? daysAgo(30);
     const to = data.to ?? todayISO();
 
@@ -174,6 +176,7 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
 export const getRevenueHealth = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const from = daysAgo(30);
     const to = daysAgo(-30); // next 30 days
     const [{ data: past }, { data: future }, { data: rooms }] = await Promise.all([
@@ -251,6 +254,7 @@ export const listPayments = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     let q = context.supabase
       .from("bookings")
       .select(
@@ -272,6 +276,7 @@ export const getPaymentTimeline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const [{ data: booking }, { data: events }] = await Promise.all([
       context.supabase
         .from("bookings")
@@ -303,6 +308,7 @@ export const recordManualPayment = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     // Guardrail: only finance-capable roles.
     const { data: allowed } = await context.supabase.rpc("has_any_role", {
       _user_id: context.userId,
@@ -374,6 +380,7 @@ export const listInvoices = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     let q = context.supabase
       .from("bookings")
       .select(
@@ -393,6 +400,7 @@ export const finalizeInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const { data: b } = await context.supabase
       .from("bookings")
       .select("id, reference, invoice_number")
@@ -434,6 +442,7 @@ export const getRevenueAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => filtersSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const from = data.from ?? firstOfYear();
     const to = data.to ?? todayISO();
     const { data: rows } = await context.supabase
@@ -499,6 +508,7 @@ export const getReconciliation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => filtersSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const from = data.from ?? daysAgo(30);
     const to = data.to ?? todayISO();
     const [{ data: bookings }, { data: events }] = await Promise.all([
@@ -581,6 +591,7 @@ const pricingRuleSchema = z.object({
 export const listPricingRules = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const { data, error } = await context.supabase
       .from("pricing_rules")
       .select("*")
@@ -594,6 +605,7 @@ export const savePricingRule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => pricingRuleSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const { id, ...rest } = data;
     if (id) {
       const { data: row, error } = await context.supabase
@@ -618,6 +630,7 @@ export const deletePricingRule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const { error } = await context.supabase.from("pricing_rules").delete().eq("id", data.id);
     if (error) throw error;
     return { ok: true };
@@ -630,6 +643,7 @@ export const deletePricingRule = createServerFn({ method: "POST" })
 export const getRevenueForecast = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const horizon = 90;
     const to = daysAgo(-horizon);
     const [{ data: future }, { data: rooms }, { data: past }] = await Promise.all([
@@ -695,6 +709,7 @@ export const getRevenueForecast = createServerFn({ method: "GET" })
 export const listFinancialAlerts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const { data, error } = await context.supabase
       .from("financial_alerts")
       .select("*")
@@ -707,6 +722,7 @@ export const listFinancialAlerts = createServerFn({ method: "GET" })
 export const scanFinancialAlerts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const { data: allowed } = await context.supabase.rpc("has_any_role", {
       _user_id: context.userId,
       _roles: ["owner", "manager", "finance"] as never,
@@ -816,6 +832,7 @@ export const resolveFinancialAlert = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const { error } = await context.supabase
       .from("financial_alerts")
       .update({
@@ -844,6 +861,7 @@ export const getFinancialReport = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const from = data.from ?? daysAgo(30);
     const to = data.to ?? todayISO();
     const { data: rows } = await context.supabase
