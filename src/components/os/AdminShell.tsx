@@ -7,10 +7,9 @@ import { useCurrentUserRoles } from "@/lib/permissions";
 import { useRealtimeNotifications } from "@/lib/notifications";
 import { installIntelligenceBridge } from "@/modules/intelligence/activation/bridge";
 import { applyOsTheme, useOsTheme } from "@/lib/os-theme";
-import { applyTerminalManifest } from "@/modules/runtime/local/terminal-manifest";
 
-const COLLAPSED_KEY = "mtoni-os.sidebar.collapsed";
-const RAIL_KEY = "mtoni-os.rail.open";
+const COLLAPSED_KEY = "staynas.sidebar.collapsed";
+const RAIL_KEY = "staynas.rail.open";
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -21,42 +20,29 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   useRealtimeNotifications();
   const { resolved } = useOsTheme();
 
-  // Apply the resolved OS theme at the document root while the shell is
-  // mounted; removed on unmount so the public website is never themed.
   useEffect(() => {
     applyOsTheme(resolved);
     return () => applyOsTheme(null);
   }, [resolved]);
 
-  // Forward platform events into the Intelligence Core (best-effort).
   useEffect(() => installIntelligenceBridge(), []);
 
-  // While the OS shell is mounted, "Add to home screen" installs the NOVA
-  // terminal (scope /admin) rather than the public website.
-  useEffect(() => applyTerminalManifest(), []);
-
-  // Read persisted collapse state on mount (browser storage — avoid hydration mismatch)
   useEffect(() => {
     try {
       const v = localStorage.getItem(COLLAPSED_KEY);
       if (v === "1") setCollapsed(true);
       const r = localStorage.getItem(RAIL_KEY);
       if (r === "0") setRailOpen(false);
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }, []);
 
   useEffect(() => {
     try {
       localStorage.setItem(COLLAPSED_KEY, collapsed ? "1" : "0");
       localStorage.setItem(RAIL_KEY, railOpen ? "1" : "0");
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }, [collapsed, railOpen]);
 
-  // ⌘K / Ctrl+K opens command palette
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -69,17 +55,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="mtoni-os flex min-h-screen text-foreground">
-      <div className="hidden lg:block">
-        <AdminSidebar collapsed={collapsed} roles={roles} />
-      </div>
-
+    <div className="staynas-os flex min-h-screen text-foreground">
+      <div className="hidden lg:block"><AdminSidebar collapsed={collapsed} roles={roles} /></div>
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-72 p-0">
           <AdminSidebar collapsed={false} roles={roles} onNavigate={() => setMobileOpen(false)} />
         </SheetContent>
       </Sheet>
-
       <div className="flex min-w-0 flex-1 flex-col">
         <AdminTopbar
           onToggleSidebar={() => setCollapsed((v) => !v)}
@@ -90,17 +72,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           railOpen={railOpen}
         />
         <div className="flex min-w-0 flex-1">
-          <main
-            id="admin-main"
-            className="min-w-0 flex-1 px-4 py-6 pb-[env(safe-area-inset-bottom)] lg:px-8 lg:py-8"
-          >
-            {children}
-          </main>
+          <main id="admin-main" className="min-w-0 flex-1 px-4 py-6 pb-[env(safe-area-inset-bottom)] lg:px-8 lg:py-8">{children}</main>
           {railOpen && (
-            <aside
-              aria-label="Assistant"
-              className="hidden xl:block w-[340px] shrink-0 border-l border-[color:var(--os-hairline)] bg-[color:var(--os-surface)] backdrop-blur-sm"
-            >
+            <aside aria-label="Assistant" className="hidden xl:block w-[340px] shrink-0 border-l border-[color:var(--os-hairline)] bg-[color:var(--os-surface)] backdrop-blur-sm">
               <AdminAssistantRail />
             </aside>
           )}
