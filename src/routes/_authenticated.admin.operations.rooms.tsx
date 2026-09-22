@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/os/PageHeader";
 import { RoomStatusBoard } from "@/components/os/operations/RoomStatusBoard";
 
 export const Route = createFileRoute("/_authenticated/admin/operations/rooms")({
-  head: () => ({ meta: [{ title: "Room Board — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "Room Board — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: RoomBoardPage,
 });
 
