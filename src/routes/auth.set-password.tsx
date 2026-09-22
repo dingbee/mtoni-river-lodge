@@ -11,7 +11,7 @@ export const Route = createFileRoute("/auth/set-password")({
   }),
   head: () => ({
     meta: [
-      { title: "Set your password — Mtoni River Lodge" },
+      { title: "Set your password — StayNas" },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
@@ -52,7 +52,7 @@ function SetPasswordPage() {
     const { error } = await supabase.auth.updateUser({ password });
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Password set. Welcome to Mtoni OS.");
+    toast.success("Password set. Welcome to StayNas.");
     navigate({ to: "/admin" });
   };
 
@@ -60,7 +60,7 @@ function SetPasswordPage() {
   const subheading =
     type === "recovery"
       ? "Choose a new password to continue."
-      : "Finish activating your Mtoni OS staff account.";
+      : "Finish activating your StayNas staff account.";
 
   return (
     <div className="min-h-screen bg-ivory text-charcoal flex items-center justify-center px-4">
