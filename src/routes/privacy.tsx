@@ -6,22 +6,22 @@ import { SiteFooterMinimal } from "@/components/site/SiteFooterMinimal";
 export const Route = createFileRoute("/privacy")({
   head: () => ({
     meta: [
-      { title: "Privacy Policy — Mtoni River Lodge" },
+      { title: "Privacy Policy — StayNas" },
       {
         name: "description",
         content:
-          "Mtoni River Lodge privacy policy. Learn how we collect, use, and protect your personal information when you visit our website or make a reservation.",
+          "StayNas privacy policy. Learn how we collect, use, and protect your personal information when you visit our website or make a reservation.",
       },
-      { property: "og:title", content: "Privacy Policy — Mtoni River Lodge" },
+      { property: "og:title", content: "Privacy Policy — StayNas" },
       {
         property: "og:description",
         content:
-          "How Mtoni River Lodge collects, uses, and safeguards guest personal information.",
+          "How StayNas collects, uses, and safeguards guest personal information.",
       },
-      { property: "og:url", content: "https://mtoniriverlodge.com/privacy" },
+      { property: "og:url", content: "https://staynas.nolmark.co/privacy" },
     ],
     links: [
-      { rel: "canonical", href: "https://mtoniriverlodge.com/privacy" },
+      { rel: "canonical", href: "https://staynas.nolmark.co/privacy" },
     ],
     scripts: [
       {
@@ -29,14 +29,14 @@ export const Route = createFileRoute("/privacy")({
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebPage",
-          name: "Privacy Policy — Mtoni River Lodge",
+          name: "Privacy Policy — StayNas",
           description:
-            "Mtoni River Lodge privacy policy. Learn how we collect, use, and protect your personal information.",
-          url: "https://mtoniriverlodge.com/privacy",
+            "StayNas privacy policy. Learn how we collect, use, and protect your personal information.",
+          url: "https://staynas.nolmark.co/privacy",
           isPartOf: {
             "@type": "WebSite",
-            name: "Mtoni River Lodge",
-            url: "https://mtoniriverlodge.com",
+            name: "StayNas",
+            url: "https://staynas.nolmark.co",
           },
         }),
       },
@@ -57,7 +57,7 @@ const SECTIONS: Section[] = [
     title: "Introduction",
     body: (
       <p>
-        Mtoni River Lodge respects your privacy and is committed to protecting
+        StayNas respects your privacy and is committed to protecting
         your personal information. This Privacy Policy explains how we collect,
         use, store, and safeguard the data you share with us when visiting our
         website, making an inquiry, or booking a stay.
@@ -142,7 +142,7 @@ const SECTIONS: Section[] = [
     title: "Data Security",
     body: (
       <p>
-        Mtoni River Lodge implements reasonable technical and organisational
+        StayNas implements reasonable technical and organisational
         measures to protect personal information from unauthorised access,
         misuse, alteration, or disclosure. Access to guest data is limited to
         authorised personnel who require it to perform their duties.
@@ -155,7 +155,7 @@ const SECTIONS: Section[] = [
     body: (
       <p>
         Guests may request access to, correction of, or deletion of their personal
-        information by contacting Mtoni River Lodge directly. We will respond to
+        information by contacting StayNas directly. We will respond to
         all reasonable requests in accordance with applicable data protection
         laws.
       </p>
@@ -174,13 +174,13 @@ const SECTIONS: Section[] = [
           <li>
             Email:{" "}
             <a
-              href="mailto:bookings@mtoniriverlodge.com"
+              href="mailto:support@staynas.nolmark.co"
               className="underline underline-offset-4 hover:text-charcoal"
             >
-              bookings@mtoniriverlodge.com
+              support@staynas.nolmark.co
             </a>
           </li>
-          <li>Phone: +255 752 441 443</li>
+          <li>Phone: StayNas support</li>
         </ul>
       </>
     ),
@@ -244,10 +244,10 @@ function PrivacyPage() {
             <p className="text-sm leading-relaxed text-charcoal/65">
               Questions about this policy? Write to{" "}
               <a
-                href="mailto:bookings@mtoniriverlodge.com"
+                href="mailto:support@staynas.nolmark.co"
                 className="underline underline-offset-4 hover:text-charcoal"
               >
-                bookings@mtoniriverlodge.com
+                support@staynas.nolmark.co
               </a>
               .
             </p>
