@@ -20,6 +20,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   marketing: "Marketing",
   housekeeping: "Housekeeping",
   finance: "Finance",
+  revenue: "Revenue",
   editor: "Editor",
 };
 
@@ -74,12 +75,30 @@ export function useCurrentUserRoles() {
 }
 
 const STAYNAS_MODULE_ALIASES: Record<string, StayNasModuleId> = {
-  overview: "overview", reservations: "reservations", rooms: "rooms", "front-desk": "front-desk",
-  operations: "operations", housekeeping: "housekeeping", guests: "guests", finance: "finance", revenue: "revenue",
-  automation: "automation", knowledge: "knowledge", "ai.concierge": "ai.concierge", "ai.guests": "ai.guests",
-  "ai.operations": "ai.operations", "ai.revenue": "ai.revenue", "ai.executive": "ai.executive", system: "system",
-  "system.health": "system", "system.information": "system", "system.users": "system", "system.roles": "system",
-  "system.activity": "system", "system.settings": "system",
+  overview: "overview",
+  reservations: "reservations",
+  rooms: "rooms",
+  "front-desk": "front-desk",
+  operations: "operations",
+  housekeeping: "housekeeping",
+  guests: "guests",
+  finance: "finance",
+  revenue: "revenue",
+  automation: "automation",
+  knowledge: "knowledge",
+  "ai.concierge": "ai.concierge",
+  "ai.guests": "ai.guests",
+  "ai.operations": "ai.operations",
+  "ai.revenue": "ai.revenue",
+  "ai.executive": "ai.executive",
+  system: "system",
+  "system.health": "system",
+  "system.information": "system",
+  "system.users": "system",
+  "system.roles": "system",
+  "system.entitlements": "system",
+  "system.activity": "system",
+  "system.settings": "system",
 };
 
 export function canAccessModule(moduleId: string, roles: readonly string[]): boolean {
