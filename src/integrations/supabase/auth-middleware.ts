@@ -4,24 +4,29 @@ import { getRequest } from '@tanstack/react-start/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from './types'
 
-
-
 export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server(
   async ({ next }) => {
-    
-    const SUPABASE_URL = process.env.SUPABASE_URL;
-    const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
+    // Vercel deployments may expose the public Supabase configuration under
+    // VITE_* while the server-only aliases are not configured. The publishable
+    // key is safe for authenticated RLS-backed requests; service-role access
+    // remains isolated in client.server.ts.
+    const SUPABASE_URL =
+      process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+    const SUPABASE_PUBLISHABLE_KEY =
+      process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
     if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
       const missing = [
-        ...(!SUPABASE_URL ? ['SUPABASE_URL'] : []),
-        ...(!SUPABASE_PUBLISHABLE_KEY ? ['SUPABASE_PUBLISHABLE_KEY'] : []),
+        ...(!SUPABASE_URL ? ['SUPABASE_URL or VITE_SUPABASE_URL'] : []),
+        ...(!SUPABASE_PUBLISHABLE_KEY
+          ? ['SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_PUBLISHABLE_KEY']
+          : []),
       ];
-      const message = `Missing Supabase environment variable(s): ${missing.join(', ')}. Connect Supabase in Lovable Cloud.`;
+      const message = `Missing Supabase environment variable(s): ${missing.join(', ')}.`;
       console.error(`[Supabase] ${message}`);
       throw new Error(message);
     }
-    
+
     const request = getRequest();
 
     if (!request?.headers) {
@@ -44,8 +49,8 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
     }
 
     const supabase = createClient<Database>(
-      SUPABASE_URL!,
-      SUPABASE_PUBLISHABLE_KEY!,
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY,
       {
         global: {
           headers: {
@@ -57,7 +62,7 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
           persistSession: false,
           autoRefreshToken: false,
         },
-      }
+      },
     );
 
     const { data, error } = await supabase.auth.getClaims(token);
