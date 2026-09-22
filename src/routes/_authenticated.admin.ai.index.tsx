@@ -58,7 +58,7 @@ function CommandCentre() {
     <div className="space-y-4">
       <PageHeader
         title="Mtoni AI Command Centre"
-        description="Ask questions about reservations, guests, finance, operations and marketing. Answers are grounded in your live Mtoni OS data and respect your role."
+        description="Ask questions about reservations, guests, finance, operations and marketing. Answers are grounded in your live StayNas data and respect your role."
       />
 
       <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
