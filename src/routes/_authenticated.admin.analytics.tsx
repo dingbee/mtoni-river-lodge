@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
 import { LayoutDashboard, Calendar, Globe, TrendingUp, Megaphone, ClipboardCheck, Bot, Crown, FileText, LineChart, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/analytics")({
-  head: () => ({ meta: [{ title: "Analytics & Intelligence Hub — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "Analytics & Intelligence Hub — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: AnalyticsLayout,
 });
 
