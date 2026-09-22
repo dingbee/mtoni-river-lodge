@@ -88,7 +88,7 @@ function AuthCallback() {
             <a
               href="/auth"
               className="mt-6 inline-flex items-center justify-center rounded-full px-5 py-3 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory"
-              style={{ background: "linear-gradient(135deg, #346739 0%, #427A43 100%)" }}
+              style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
             >
               Go to sign in
             </a>
