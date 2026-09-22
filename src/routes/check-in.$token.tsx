@@ -4,15 +4,15 @@ import { GuestCheckInPage } from "@/domains/hospitality/online-checkin";
 export const Route = createFileRoute("/check-in/$token")({
   head: () => ({
     meta: [
-      { title: "Online Check-In — Mtoni River Lodge" },
+      { title: "Online Check-In — StayNas" },
       {
         name: "description",
-        content: "Complete your details before arrival at Mtoni River Lodge.",
+        content: "Complete your details before arrival at StayNas.",
       },
-      { property: "og:title", content: "Online Check-In — Mtoni River Lodge" },
+      { property: "og:title", content: "Online Check-In — StayNas" },
       {
         property: "og:description",
-        content: "Complete your details before arrival at Mtoni River Lodge.",
+        content: "Complete your details before arrival at StayNas.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
