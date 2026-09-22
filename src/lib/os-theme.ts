@@ -1,7 +1,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 
 /**
- * Mtoni OS adaptive theme manager.
+ * StayNas adaptive theme manager.
  *
  * Centralised, dependency-free. The resolved theme is applied as
  * `data-os-theme="light|dark"` on <html>, and ONLY while the OS shell is
@@ -10,7 +10,7 @@ import { useCallback, useSyncExternalStore } from "react";
 export type ThemePreference = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
 
-export const THEME_STORAGE_KEY = "mtoni-os.theme";
+export const THEME_STORAGE_KEY = "staynas-os.theme";
 
 let preference: ThemePreference = "system";
 let hydrated = false;
