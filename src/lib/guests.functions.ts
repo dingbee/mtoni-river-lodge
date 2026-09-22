@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { logActivity } from "@/lib/activity-log.server";
 
 // Any-staff gate; RLS enforces the same, but we fail fast with a friendly message.
@@ -33,6 +34,7 @@ export const listGuests = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => listSchema.parse(d ?? {}))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     let query = sb
@@ -88,6 +90,7 @@ export const getGuestSummary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const [
@@ -174,6 +177,7 @@ export const getGuestTimeline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const [{ data: bookings }, { data: pay }, { data: emails }, { data: wa }, { data: comms }, { data: notes }] =
@@ -251,6 +255,7 @@ export const updateGuest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => updateGuestSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const patch: any = { ...data.patch };
@@ -275,6 +280,7 @@ export const createGuestNote = createServerFn({ method: "POST" })
     z.object({ guestId: z.string().uuid(), body: z.string().trim().min(1).max(4000) }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: row, error } = await sb
@@ -292,6 +298,7 @@ export const updateGuestNote = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid(), body: z.string().trim().min(1).max(4000) }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: existing, error: eErr } = await sb
@@ -314,6 +321,7 @@ export const deleteGuestNote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { error } = await sb
@@ -329,6 +337,7 @@ export const deleteGuestNote = createServerFn({ method: "POST" })
 export const listGuestTags = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data, error } = await sb.from("guest_tags").select("*").order("label");
@@ -347,6 +356,7 @@ export const createGuestTag = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const slug = data.label
@@ -369,6 +379,7 @@ export const assignGuestTag = createServerFn({ method: "POST" })
     z.object({ guestId: z.string().uuid(), tagId: z.string().uuid() }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { error } = await sb
@@ -384,6 +395,7 @@ export const unassignGuestTag = createServerFn({ method: "POST" })
     z.object({ guestId: z.string().uuid(), tagId: z.string().uuid() }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { error } = await sb
@@ -413,6 +425,7 @@ export const logCommunication = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: row, error } = await sb
@@ -438,6 +451,7 @@ export const logCommunication = createServerFn({ method: "POST" })
 export const findDuplicateGuests = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data, error } = await sb.rpc("find_duplicate_guests");
@@ -450,6 +464,7 @@ export const findDuplicateGuests = createServerFn({ method: "GET" })
 export const getCrmDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const today = new Date().toISOString().slice(0, 10);
