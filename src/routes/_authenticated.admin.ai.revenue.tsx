@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
 import { LayoutDashboard, TrendingUp, DollarSign, Sparkles, AlertTriangle, Activity } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/revenue")({
-  head: () => ({ meta: [{ title: "Revenue Intelligence AI — Mtoni AI" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "Revenue Intelligence AI — StayNas AI" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: RevenueAiLayout,
 });
 
