@@ -17,7 +17,7 @@ export const Route = createRootRoute({
     { title:"StayNas — Hospitality Operating System" }, { name:"description", content:"StayNas is a hospitality operating system for reservations, operations, guest experience and intelligent hospitality." },
     { name:"author", content:"StayNas" }, { property:"og:title", content:"StayNas — Hospitality Operating System" },
     { property:"og:description", content:"Connected hospitality operations and intelligent guest experiences." }, { property:"og:type", content:"website" },
-    { property:"og:site_name", content:"StayNas" }, { name:"theme-color", content:"#346739" }
+    { property:"og:site_name", content:"StayNas" }, { name:"theme-color", content:"#0F3D3A" }
   ], links:[
     { rel:"stylesheet", href:appCss }, { rel:"icon", href:"/favicon.ico", sizes:"any" }, { rel:"manifest", href:"/site.webmanifest" },
     { rel:"preconnect", href:"https://fonts.googleapis.com" }, { rel:"preconnect", href:"https://fonts.gstatic.com", crossOrigin:"anonymous" },
