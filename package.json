@@ -10,7 +10,6 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "build:local": "bash local/scripts/build-ui.sh",
     "build:hosted": "NODE_OPTIONS=--max-old-space-size=8192 vite build"
   },
   "dependencies": {
