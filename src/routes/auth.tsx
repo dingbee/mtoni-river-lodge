@@ -78,7 +78,7 @@ function AuthPage() {
     <div className="min-h-screen bg-ivory text-charcoal flex items-center justify-center px-4">
       <form onSubmit={submit} className="w-full max-w-sm rounded-2xl border border-charcoal/10 bg-ivory p-8 shadow-[0_24px_60px_-30px_rgba(30,45,30,0.35)]">
         <p className="inline-flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-charcoal/60">
-          <Leaf className="h-3 w-3" style={{ color: "#427A43" }} /> Staff Portal
+          <Leaf className="h-3 w-3" style={{ color: "#0F3D3A" }} /> Staff Portal
         </p>
         <h1 className="mt-3 font-display text-2xl">Sign in</h1>
         <p className="mt-1 text-xs text-charcoal/60">{mode === "signup" ? "Create the first staff account." : "Reservations & admin access only."}</p>
@@ -92,7 +92,7 @@ function AuthPage() {
             <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal" />
           </div>
         </div>
-        <button disabled={loading} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60" style={{ background: "linear-gradient(135deg, #346739 0%, #427A43 100%)" }}>
+        <button disabled={loading} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60" style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}>
           {loading && <Loader2 className="h-4 w-4 animate-spin" />} {mode === "signup" ? "Create account" : "Sign in"}
         </button>
         {!checkingSetup && signupAllowed && (
