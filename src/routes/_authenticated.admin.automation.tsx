@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
 import { Workflow, ListChecks, Bell, Clock, ShieldCheck, LayoutDashboard } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/automation")({
-  head: () => ({ meta: [{ title: "Automation — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "Automation — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: AutomationLayout,
 });
 
