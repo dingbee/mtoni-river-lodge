@@ -154,15 +154,15 @@ function FamilyRoomPage() {
 export const Route = createFileRoute("/rooms/family-room")({
   head: () => ({
     meta: [
-      { title: `${FAMILY_ROOM.name} — Mtoni River Lodge` },
+      { title: `${FAMILY_ROOM.name} — StayNas` },
       { name: "description", content: FAMILY_ROOM.shortDesc },
-      { property: "og:title", content: `${FAMILY_ROOM.name} — Mtoni River Lodge` },
+      { property: "og:title", content: `${FAMILY_ROOM.name} — StayNas` },
       { property: "og:description", content: FAMILY_ROOM.shortDesc },
       { property: "og:image", content: FAMILY_ROOM.img },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: FAMILY_ROOM.img },
     ],
-    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/rooms/family-room" }],
+    links: [{ rel: "canonical", href: "https://staynas.nolmark.co/rooms/family-room" }],
     scripts: [
       {
         type: "application/ld+json",
