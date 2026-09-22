@@ -76,7 +76,7 @@ function StayNasSystemPage() {
         <>
           <SectionCard title="Product" description="Single authoritative version, shared by installer, diagnostics and support.">
             <div className="grid gap-3 md:grid-cols-2">
-              <Row label="Product" value={data?.product ?? NOVA_PRODUCT} />
+              <Row label="Product" value={data?.product ?? STAYNAS_PRODUCT} />
               <Row label="Application version" value={data?.appVersion ?? APP_VERSION} />
               <Row label="Required schema" value={REQUIRED_SCHEMA_VERSION} />
               <Row label="Installed schema" value={data?.schemaVersion ?? "—"} />
