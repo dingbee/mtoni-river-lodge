@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { listActivityLogs, type ActivityLogEntry } from "@/lib/activity.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/staff/activity")({
-  head: () => ({ meta: [{ title: "Activity Log — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "Activity Log — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: ActivityLogPage,
 });
 
@@ -28,7 +28,7 @@ function ActivityLogPage() {
     <div className="space-y-6">
       <PageHeader
         title="Activity Log"
-        description="Immutable audit trail of admin actions across Mtoni OS."
+        description="Immutable audit trail of admin actions across StayNas."
       />
       <div className="max-w-md">
         <Input
