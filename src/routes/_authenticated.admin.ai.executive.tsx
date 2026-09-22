@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
 import { LayoutDashboard, Sunrise, ListChecks, BarChart3, History, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/executive")({
-  head: () => ({ meta: [{ title: "Executive Intelligence — Mtoni AI" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "Executive Intelligence — StayNas AI" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: ExecutiveAiLayout,
 });
 
