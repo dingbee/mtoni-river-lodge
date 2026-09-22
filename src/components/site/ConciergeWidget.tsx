@@ -78,7 +78,7 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
     () => ({
       role: "assistant",
       content:
-        "Karibu — welcome to Mtoni River Lodge. I'm your AI Concierge. I can help you discover rooms, explore experiences, check availability, and plan your stay in Arusha.",
+        "Karibu — welcome to StayNas demo property. I'm your AI Concierge. I can help you discover rooms, explore experiences, check availability, and plan your stay in Arusha.",
     }),
     [],
   );
@@ -199,7 +199,7 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
         "Explore experiences",
         "Check availability",
         "Ask a question",
-        "Contact Mtoni team",
+        "Contact StayNas team",
       ]
     : [];
 
@@ -242,7 +242,7 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
                 {m.content}
                 {m.citations && m.citations.length > 0 && (
                   <div className="mt-2 border-t border-border/60 pt-2 text-[11px] opacity-80">
-                    <p className="font-medium">Source: Mtoni Lodge Information</p>
+                    <p className="font-medium">Source: StayNas property information</p>
                     <ul className="mt-1 space-y-0.5 opacity-80">
                       {m.citations.map((c, j) => (
                         <li key={j}>· {c.document_title}</li>
@@ -426,7 +426,7 @@ function AvailabilityList({ rooms }: { rooms: ConciergeAvailabilityRoom[] }) {
 function BookingPlanCard({ plan }: { plan: ConciergeBookingPlan }) {
   return (
     <div className="mt-2 rounded-lg border border-[color:var(--gold)]/50 bg-[color:var(--ivory)]/70 p-3 text-[11px] shadow-sm">
-      <p className="font-serif text-sm font-semibold text-primary">Your Mtoni stay plan</p>
+      <p className="font-serif text-sm font-semibold text-primary">Your StayNas stay plan</p>
       <p className="mt-0.5 flex items-center gap-1 opacity-80">
         <Calendar className="size-3" /> {plan.check_in} → {plan.check_out} · {plan.nights}n
       </p>
