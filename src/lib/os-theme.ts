@@ -1,7 +1,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 
 /**
- * Mtoni OS adaptive theme manager.
+ * StayNas adaptive theme manager.
  *
  * Centralised, dependency-free. The resolved theme is applied as
  * `data-os-theme="light|dark"` on <html>, and ONLY while the OS shell is
