@@ -74,6 +74,7 @@ export const NAV: NavEntry[] = [
         { id: "system.information", label: "System Information", href: "/admin/system/nova", icon: Wrench },
         { id: "system.users", label: "Users", href: "/admin/staff/users", icon: UserCog },
         { id: "system.roles", label: "Roles", href: "/admin/staff/roles", icon: ShieldCheck },
+        { id: "system.entitlements", label: "Module Entitlements", href: "/admin/staff/entitlements", icon: ShieldCheck },
         { id: "system.activity", label: "Activity Log", href: "/admin/staff/activity", icon: History },
         { id: "system.settings", label: "Settings", href: "/admin/settings", icon: Settings },
       ],
