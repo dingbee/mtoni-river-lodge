@@ -1,6 +1,6 @@
 /**
- * NOVA Hospitality — Restaurant & Bar OS
- * Runtime configuration (PRODUCTIZATION-3, Phase 8).
+ * StayNas — Hospitality Operating System
+ * Runtime configuration for hosted and local deployments.
  *
  * There is exactly ONE application and ONE set of business logic. The only
  * thing that differs between a hosted deployment and a local appliance is the
@@ -24,7 +24,7 @@ export interface RuntimeTarget {
 
 export type RuntimeEnv = Record<string, string | undefined>;
 
-export const RUNTIME_MODE_ENV_KEYS = ["NOVA_RUNTIME_MODE", "VITE_NOVA_RUNTIME_MODE"] as const;
+export const RUNTIME_MODE_ENV_KEYS = ["STAYNAS_RUNTIME_MODE", "VITE_STAYNAS_RUNTIME_MODE", "NOVA_RUNTIME_MODE", "VITE_NOVA_RUNTIME_MODE"] as const;
 
 export function resolveRuntimeMode(env: RuntimeEnv): RuntimeMode {
   for (const key of RUNTIME_MODE_ENV_KEYS) {
@@ -42,7 +42,7 @@ export function resolveRuntimeTarget(env: RuntimeEnv): RuntimeTarget {
   const publishableKey =
     env["VITE_SUPABASE_PUBLISHABLE_KEY"] ??
     env["SUPABASE_PUBLISHABLE_KEY"] ??
-    (mode === "local" ? "nova-local-anon" : "");
+    (mode === "local" ? "staynas-local-anon" : "");
 
   return {
     mode,
