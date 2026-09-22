@@ -6,17 +6,17 @@ import { SectionCard } from "@/components/os/SectionCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/os/LoadingState";
-import { APP_VERSION, NOVA_PRODUCT, REQUIRED_SCHEMA_VERSION } from "@/modules/runtime/version";
+import { APP_VERSION, STAYNAS_PRODUCT, REQUIRED_SCHEMA_VERSION } from "@/modules/runtime/version";
 import type { SystemInformation } from "@/modules/runtime/local/diagnostics";
 
 export const Route = createFileRoute("/_authenticated/admin/system/nova")({
   head: () => ({
     meta: [
-      { title: "System Information — NOVA Hospitality" },
+      { title: "System Information — StayNas" },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
-  component: NovaSystemPage,
+  component: StayNasSystemPage,
 });
 
 /**
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_authenticated/admin/system/nova")({
  */
 function useSystemInformation() {
   return useQuery({
-    queryKey: ["nova-system-information"],
+    queryKey: ["staynas-system-information"],
     queryFn: async (): Promise<(SystemInformation & { product: string }) | null> => {
       try {
         const res = await fetch("/nova/v1/system", { headers: { accept: "application/json" } });
@@ -53,7 +53,7 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function NovaSystemPage() {
+function StayNasSystemPage() {
   const info = useSystemInformation();
   const data = info.data;
   const runtime = data ? "Local appliance" : "Hosted (cloud runtime)";
