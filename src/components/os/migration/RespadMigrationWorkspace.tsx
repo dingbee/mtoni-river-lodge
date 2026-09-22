@@ -219,7 +219,7 @@ function BatchWorkspace({ batchId, batch }: { batchId: string; batch?: AnyRow })
 
       <TabsContent value="mapping" className="space-y-4">
         <SectionCard
-          title="Mtoni OS mapping preview (read-only)"
+          title="StayNas mapping preview (read-only)"
           description={`Target: ${MTONI_TARGET_TABLE}`}
         >
           <SimpleTable
