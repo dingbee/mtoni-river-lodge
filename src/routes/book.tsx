@@ -186,11 +186,17 @@ function BookPage() {
       .then((payload) => {
         if (cancelled) return;
         const item = payload.rooms?.find((r: { slug: string }) => r.slug === slug);
-        if (item) setRoomInventory({ available_units: Number(item.available_units ?? 0), total_units: Number(item.total_units ?? 0) });
+        const dateRangeResult = results.find((r) => r.slug === slug);
+        if (item) {
+          setRoomInventory({
+            available_units: dateRangeResult ? Number(dateRangeResult.min_available ?? 0) : Number(item.available_units ?? 0),
+            total_units: Number(item.total_units ?? 0),
+          });
+        }
       })
       .catch(() => undefined);
     return () => { cancelled = true; };
-  }, [incomingRoom, selectedRoom?.slug]);
+  }, [incomingRoom, selectedRoom?.slug, results]);
 
   // Mirror critical state in refs so the validation guard can read the
   // freshest values immediately after a navigate(), even if React hasn't
