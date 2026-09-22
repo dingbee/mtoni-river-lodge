@@ -1,13 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, HardDrive, Info, RefreshCw, ShieldAlert } from "lucide-react";
+import { Activity, Info, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/os/LoadingState";
 import { APP_VERSION, STAYNAS_PRODUCT, REQUIRED_SCHEMA_VERSION } from "@/modules/runtime/version";
-import type { SystemInformation } from "@/modules/runtime/local/diagnostics";
 
 export const Route = createFileRoute("/_authenticated/admin/system/nova")({
   head: () => ({
@@ -56,7 +55,7 @@ function Row({ label, value }: { label: string; value: string }) {
 function StayNasSystemPage() {
   const info = useSystemInformation();
   const data = info.data;
-  const runtime = data ? "Local appliance" : "Hosted (cloud runtime)";
+  const runtime = "Hosted (cloud runtime)";
 
   return (
     <div className="space-y-6">
