@@ -12,7 +12,7 @@ import { askAi, getMyAiScope } from "@/domains/ai/ai.functions";
 import type { AiResponse } from "@/domains/ai/ai.types";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/")({
-  head: () => ({ meta: [{ title: "Command Centre — Mtoni AI" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "Command Centre — StayNas AI" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: CommandCentre,
 });
 
@@ -57,7 +57,7 @@ function CommandCentre() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Mtoni AI Command Centre"
+        title="StayNas AI Command Centre"
         description="Ask questions about reservations, guests, finance, operations and marketing. Answers are grounded in your live StayNas data and respect your role."
       />
 
@@ -67,7 +67,7 @@ function CommandCentre() {
             {turns.length === 0 ? (
               <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
                 <Sparkles className="mx-auto mb-2 size-6 text-primary" />
-                Ask Mtoni AI anything about the property. Every answer cites the domain and tool it used.
+                Ask StayNas AI anything about the property. Every answer cites the domain and tool it used.
               </div>
             ) : (
               turns.map((t, i) => <TurnBubble key={i} turn={t} />)
@@ -155,7 +155,7 @@ function TurnBubble({ turn }: { turn: Turn }) {
     <div className="flex flex-col gap-2">
       <div className="rounded-lg border bg-card p-3 text-sm">
         <div className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Sparkles className="size-3.5" /> Mtoni AI
+          <Sparkles className="size-3.5" /> StayNas AI
         </div>
         <div className="whitespace-pre-wrap">{turn.content}</div>
         {r?.recommendation && (
