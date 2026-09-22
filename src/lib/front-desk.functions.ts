@@ -1,12 +1,14 @@
 import { createServerFn } from '@tanstack/react-start'
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware'
 import { z } from 'zod'
+import { requireStayNasModuleAccess } from '@/lib/staynas-authorization.server'
 
 // All front-desk reads/writes are staff-only — RLS enforces is_staff().
 
 export const listFrontDeskBookings = createServerFn({ method: 'GET' })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, 'front-desk')
     const sb = context.supabase
     const { data, error } = await sb
       .from('bookings')
@@ -31,6 +33,7 @@ export const getGuestThread = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, 'front-desk')
     const sb = context.supabase
     const [{ data: thread }, { data: emails }, { data: wa }, { data: tasks }] = await Promise.all([
       sb.from('guest_threads').select('*').eq('booking_id', data.bookingId).maybeSingle(),
@@ -50,6 +53,7 @@ export const updateBookingStatus = createServerFn({ method: 'POST' })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, 'front-desk')
     const { error } = await context.supabase
       .from('bookings').update({ status: data.status }).eq('id', data.bookingId)
     if (error) throw new Error(error.message)
@@ -58,10 +62,9 @@ export const updateBookingStatus = createServerFn({ method: 'POST' })
 
 export const saveStaffNote = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z.object({ bookingId: z.string().uuid(), notes: z.string().max(4000) }).parse(d),
-  )
+  .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid(), notes: z.string().max(4000) }).parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, 'front-desk')
     const { error } = await context.supabase
       .from('guest_threads')
       .update({ notes: data.notes, last_updated: new Date().toISOString() })
@@ -74,6 +77,7 @@ export const completeTask = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ taskId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, 'front-desk')
     const { error } = await context.supabase
       .from('ops_tasks')
       .update({ status: 'completed', completed_at: new Date().toISOString() })
@@ -85,6 +89,7 @@ export const completeTask = createServerFn({ method: 'POST' })
 export const listOpenTasks = createServerFn({ method: 'GET' })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, 'front-desk')
     const { data, error } = await context.supabase
       .from('ops_tasks')
       .select('id, booking_id, task_type, title, description, priority, status, due_at, created_at')
