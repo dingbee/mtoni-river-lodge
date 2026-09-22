@@ -641,7 +641,7 @@ function SelectedRoomCard({ roomSlug, inventory }: { roomSlug?: string; inventor
   const progress = inventory && inventory.total_units > 0 ? Math.max(0, Math.min(100, (inventory.available_units / inventory.total_units) * 100)) : 0;
   return (
     <div className="overflow-hidden rounded-[24px] border border-charcoal/10 bg-bone shadow-deep">
-      <div className="grid grid-cols-[minmax(0,1fr)_190px]">
+      <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_190px]">
         <div className="p-7">
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-burgundy">Selected room</p>
           <h2 className="mt-3 font-display text-3xl leading-tight">{room.name}</h2>
@@ -661,7 +661,7 @@ function SelectedRoomCard({ roomSlug, inventory }: { roomSlug?: string; inventor
             </div>
           </div>
         </div>
-        <img src={room.img} alt={room.name} className="h-full min-h-[300px] w-full object-cover" />
+        <img src={room.img} alt={room.name} className="h-48 w-full object-cover sm:h-full sm:min-h-[300px]" />
       </div>
     </div>
   );
