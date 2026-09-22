@@ -171,7 +171,7 @@ export const NAV: NavEntry[] = [
     kind: "group",
     group: {
       id: "ai",
-      label: "Mtoni AI",
+      label: "StayNas AI",
       icon: Bot,
       items: [
         { id: "ai.command", label: "Command Centre", href: "/admin/ai", icon: Sparkles },
