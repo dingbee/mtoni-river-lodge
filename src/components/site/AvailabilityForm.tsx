@@ -338,14 +338,14 @@ export function AvailabilityForm({
         type="submit"
         disabled={submitting}
         className="group mt-2 inline-flex w-full items-center justify-center gap-3 rounded-full px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-ivory shadow-[0_18px_40px_-18px_rgba(52,103,57,0.7)] transition-all hover:brightness-110 disabled:opacity-60"
-        style={{ background: "linear-gradient(135deg, #346739 0%, #427A43 100%)" }}
+        style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
       >
         <span>{submitting ? "Opening WhatsApp…" : "Send Booking Inquiry via WhatsApp"}</span>
         <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
       </button>
 
       <div className="flex items-center justify-center gap-2 pt-1 text-center text-[0.7rem] text-charcoal/60">
-        <Leaf className="h-3 w-3" style={{ color: "#C0B87A" }} />
+        <Leaf className="h-3 w-3" style={{ color: "#6C151E" }} />
         <span>Our reservations team will confirm availability and rates shortly.</span>
       </div>
     </form>
