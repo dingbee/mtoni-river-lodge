@@ -69,7 +69,7 @@ export function MobileStickyCTA() {
         to="/book"
         onClick={() => trackCheckAvailabilityClick("mobile_sticky_cta")}
         className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-[0.68rem] font-semibold uppercase tracking-[0.24em] shadow-[0_12px_32px_-8px_rgba(0,0,0,0.5)] transition-transform active:scale-[0.98] hover:brightness-105"
-        style={{ backgroundColor: "#1E2D1E", color: "#F5F1E6" }}
+        style={{ backgroundColor: "#171514", color: "#F5F1E6" }}
       >
         Check Availability →
       </Link>
