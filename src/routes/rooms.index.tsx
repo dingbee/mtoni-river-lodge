@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
-import { ArrowRight, BedDouble, Maximize2, Users } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";import { ArrowRight, BedDouble, Maximize2, Users } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { ConciergeWidget } from "@/components/site/ConciergeWidget";
@@ -94,6 +94,6 @@ function RoomCard({ room }: { room: Room }) {
   );
 }
 
-function Meta({ icon, label }: { icon: React.ReactNode; label: string }) {
+function Meta({ icon, label }: { icon: ReactNode; label: string }) {
   return <div className="min-w-0"><div className="flex items-center gap-1.5 text-primary">{icon}</div><p className="mt-1 truncate text-xs text-muted-foreground">{label}</p></div>;
 }
