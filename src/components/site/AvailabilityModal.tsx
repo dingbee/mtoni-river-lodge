@@ -243,7 +243,7 @@ export function AvailabilityModal({
           className="rounded-t-2xl px-6 py-7 sm:px-8"
           style={{
             background:
-              "linear-gradient(135deg, #346739 0%, #427A43 60%, #C0B87A 140%)",
+              "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 60%, #6C151E 140%)",
           }}
         >
           <DialogHeader className="space-y-2 text-left">
@@ -403,7 +403,7 @@ export function AvailabilityModal({
             className="group mt-2 inline-flex w-full items-center justify-center gap-3 rounded-full px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-ivory shadow-[0_18px_40px_-18px_rgba(52,103,57,0.7)] transition-all hover:brightness-110 disabled:opacity-60"
             style={{
               background:
-                "linear-gradient(135deg, #346739 0%, #427A43 100%)",
+                "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)",
             }}
           >
             <span>{submitting ? "Opening WhatsApp…" : "Send Availability Request"}</span>
@@ -411,7 +411,7 @@ export function AvailabilityModal({
           </button>
 
           <div className="flex items-center justify-center gap-2 pt-1 text-center text-[0.7rem] text-charcoal/60">
-            <Leaf className="h-3 w-3" style={{ color: "#C0B87A" }} />
+            <Leaf className="h-3 w-3" style={{ color: "#6C151E" }} />
             <span>Responses typically within 15 minutes during business hours.</span>
           </div>
         </form>
