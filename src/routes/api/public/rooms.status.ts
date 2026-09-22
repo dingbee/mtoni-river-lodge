@@ -19,8 +19,8 @@ export const Route = createFileRoute("/api/public/rooms/status")({
         const nextIso = next.toISOString().slice(0, 10);
 
         const sb = createClient<Database>(
-          process.env.SUPABASE_URL!,
-          process.env.SUPABASE_PUBLISHABLE_KEY!,
+          process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL!,
+          process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
           { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
         );
         const [{ data, error }, { data: catalog, error: catalogError }] = await Promise.all([
