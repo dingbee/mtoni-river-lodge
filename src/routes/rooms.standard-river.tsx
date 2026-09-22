@@ -156,15 +156,15 @@ function StandardRiverPage() {
 export const Route = createFileRoute("/rooms/standard-river")({
   head: () => ({
     meta: [
-      { title: `${STANDARD_RIVER_ROOM.name} — Mtoni River Lodge` },
+      { title: `${STANDARD_RIVER_ROOM.name} — StayNas` },
       { name: "description", content: STANDARD_RIVER_ROOM.shortDesc },
-      { property: "og:title", content: `${STANDARD_RIVER_ROOM.name} — Mtoni River Lodge` },
+      { property: "og:title", content: `${STANDARD_RIVER_ROOM.name} — StayNas` },
       { property: "og:description", content: STANDARD_RIVER_ROOM.shortDesc },
       { property: "og:image", content: STANDARD_RIVER_ROOM.img },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: STANDARD_RIVER_ROOM.img },
     ],
-    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/rooms/standard-river" }],
+    links: [{ rel: "canonical", href: "https://staynas.nolmark.co/rooms/standard-river" }],
     scripts: [
       {
         type: "application/ld+json",
