@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/audit")({
-  head: () => ({ meta: [{ title: "AI Audit — Mtoni AI" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "AI Audit — StayNas AI" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: AuditPage,
 });
 
