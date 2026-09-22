@@ -157,15 +157,15 @@ function RiverfrontDeluxePage() {
 export const Route = createFileRoute("/rooms/riverfront-deluxe")({
   head: () => ({
     meta: [
-      { title: `${RIVERFRONT_DELUXE_ROOM.name} — Mtoni River Lodge` },
+      { title: `${RIVERFRONT_DELUXE_ROOM.name} — StayNas` },
       { name: "description", content: RIVERFRONT_DELUXE_ROOM.shortDesc },
-      { property: "og:title", content: `${RIVERFRONT_DELUXE_ROOM.name} — Mtoni River Lodge` },
+      { property: "og:title", content: `${RIVERFRONT_DELUXE_ROOM.name} — StayNas` },
       { property: "og:description", content: RIVERFRONT_DELUXE_ROOM.shortDesc },
       { property: "og:image", content: RIVERFRONT_DELUXE_ROOM.img },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: RIVERFRONT_DELUXE_ROOM.img },
     ],
-    links: [{ rel: "canonical", href: "https://mtoniriverlodge.com/rooms/riverfront-deluxe" }],
+    links: [{ rel: "canonical", href: "https://staynas.nolmark.co/rooms/riverfront-deluxe" }],
     scripts: [
       {
         type: "application/ld+json",
