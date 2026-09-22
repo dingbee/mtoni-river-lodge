@@ -30,6 +30,7 @@ import { initiatePayment } from "@/lib/payments.functions";
 import { newBookingSessionId } from "@/lib/booking-session";
 import { createBookingHold, releaseBookingHold } from "@/lib/availability.functions";
 import { calculateBookingTotal, calculateNightlyRate, buildPriceBreakdown, getRoomPricing } from "@/lib/pricing";
+import { ROOMS } from "@/lib/rooms";
 
 export const Route = createFileRoute("/book")({
   validateSearch: (
@@ -174,6 +175,22 @@ function BookPage() {
   const [guest, setGuest] = useState(p.guest ?? { name: "", email: "", phone: "", country: "", requests: "", purpose: "" });
   const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string } | null>(null);
   const [hold, setHold] = useState<{ id: string; expiresAt: string; roomSlug: string } | null>(null);
+  const [roomInventory, setRoomInventory] = useState<{ available_units: number; total_units: number } | null>(null);
+
+  useEffect(() => {
+    const slug = selectedRoom?.slug ?? incomingRoom;
+    if (!slug) { setRoomInventory(null); return; }
+    let cancelled = false;
+    fetch("/api/public/rooms/status")
+      .then((res) => res.ok ? res.json() : Promise.reject(new Error("availability unavailable")))
+      .then((payload) => {
+        if (cancelled) return;
+        const item = payload.rooms?.find((r: { slug: string }) => r.slug === slug);
+        if (item) setRoomInventory({ available_units: Number(item.available_units ?? 0), total_units: Number(item.total_units ?? 0) });
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [incomingRoom, selectedRoom?.slug]);
 
   // Mirror critical state in refs so the validation guard can read the
   // freshest values immediately after a navigate(), even if React hasn't
@@ -448,9 +465,7 @@ function BookPage() {
               <p className="mt-5 max-w-2xl text-base leading-7 text-charcoal/65 sm:text-lg">Select your dates and guests to check real-time availability.</p>
               <Stepper step={step} />
             </div>
-            <div className="hidden overflow-hidden rounded-[24px] bg-forest shadow-deep lg:block">
-              <img src="/staynas-room-deluxe.svg" alt="StayNas demo room" className="aspect-[4/5] w-full object-cover opacity-95" />
-            </div>
+            <SelectedRoomCard roomSlug={selectedRoom?.slug ?? incomingRoom} inventory={roomInventory} />
           </div>
         </section>
         <section className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8 lg:px-10 lg:py-14">
@@ -616,6 +631,38 @@ function BookPage() {
         </section>
       </main>
       <SiteFooterMinimal />
+    </div>
+  );
+}
+
+function SelectedRoomCard({ roomSlug, inventory }: { roomSlug?: string; inventory: { available_units: number; total_units: number } | null }) {
+  const room = ROOMS.find((item) => item.slug === roomSlug) ?? ROOMS[0];
+  const availability = inventory ? inventory.available_units + " of " + inventory.total_units + " available" : "Live availability after dates are checked";
+  const progress = inventory && inventory.total_units > 0 ? Math.max(0, Math.min(100, (inventory.available_units / inventory.total_units) * 100)) : 0;
+  return (
+    <div className="overflow-hidden rounded-[24px] border border-charcoal/10 bg-bone shadow-deep">
+      <div className="grid grid-cols-[minmax(0,1fr)_190px]">
+        <div className="p-7">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-burgundy">Selected room</p>
+          <h2 className="mt-3 font-display text-3xl leading-tight">{room.name}</h2>
+          <div className="mt-5 grid gap-3 text-sm text-charcoal/65">
+            <span>{room.details[0]?.value}</span>
+            <span>{room.details[1]?.value}</span>
+            <span>{room.view}</span>
+            <span>{room.size}</span>
+          </div>
+          <div className="mt-6 border-t border-charcoal/10 pt-5">
+            <div className="flex items-end justify-between gap-3">
+              <p className="font-display text-xl">{availability}</p>
+              {inventory && <span className="text-[0.65rem] font-medium uppercase tracking-[0.16em] text-forest">Live</span>}
+            </div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-charcoal/10">
+              <div className="h-full rounded-full bg-forest transition-all duration-500" style={{ width: inventory ? progress + "%" : "0%" }} />
+            </div>
+          </div>
+        </div>
+        <img src={room.img} alt={room.name} className="h-full min-h-[300px] w-full object-cover" />
+      </div>
     </div>
   );
 }
