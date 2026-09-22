@@ -46,17 +46,17 @@ export const Route = createFileRoute("/book")({
   },
   head: () => ({
     meta: [
-      { title: "Book Your Stay — Mtoni River Lodge" },
+      { title: "Book Your Stay — StayNas demo property" },
       {
         name: "description",
         content:
-          "Check live availability and reserve your stay at Mtoni River Lodge on the banks of the Nduruma River, Arusha.",
+          "Check live availability and reserve your stay at StayNas demo property on the banks of the property, Arusha.",
       },
-      { property: "og:title", content: "Book Your Stay — Mtoni River Lodge" },
+      { property: "og:title", content: "Book Your Stay — StayNas demo property" },
       {
         property: "og:description",
         content:
-          "Reserve your room at Mtoni River Lodge — an intimate riverfront retreat in Arusha, Tanzania.",
+          "Reserve your room at StayNas demo property — an intimate riverfront retreat in Arusha, Tanzania.",
       },
     ],
   }),
@@ -449,7 +449,7 @@ function BookPage() {
           <div className="mb-10 text-center">
             <p className="inline-flex items-center justify-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-charcoal/60">
               <Leaf className="h-3 w-3" style={{ color: "#427A43" }} />
-              Mtoni River Lodge · Reservations
+              StayNas demo property · Reservations
             </p>
             <h1 className="mt-5 font-display text-3xl leading-tight lg:text-5xl">Reserve Your Stay</h1>
             <Stepper step={step} />
@@ -597,7 +597,7 @@ function BookPage() {
               onClick={() => trackContactClick("whatsapp", "book_page_assistance")}
               className="inline-flex items-center gap-3 rounded-full border border-charcoal px-6 py-3 text-[0.72rem] uppercase tracking-[0.28em] transition-colors hover:bg-charcoal hover:text-ivory"
             >
-              Talk To Our Team · +255 752 441 443 →
+              Talk to StayNas AI →
             </a>
             <p className="max-w-sm text-[0.7rem] text-charcoal/55">
               Our reservations team is available should you need assistance.
