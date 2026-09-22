@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
 /**
  * Executive Intelligence AI (Sprint 8F)
@@ -35,6 +36,7 @@ async function logActivity(supabase: any, userId: string | null, tool: string, q
 export const getExecutiveOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
     const s = context.supabase;
     const [
       { data: rooms },
@@ -164,6 +166,7 @@ export const getExecutiveOverview = createServerFn({ method: "GET" })
 export const generateExecutiveBriefing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
     const s = context.supabase;
     const [
       { data: arrivals },
@@ -285,6 +288,7 @@ function buildSummaryText(sections: any, ranked: any[]): string {
 export const getLatestBriefing = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
     const { data } = await context.supabase
       .from("ai_executive_briefings")
       .select("*")
@@ -308,6 +312,7 @@ type DecisionRow = {
 export const getExecutiveDecisions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
     const s = context.supabase;
     const [
       { data: guest },
@@ -370,6 +375,7 @@ export const decideExecutiveItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string; module: string; action: "accept" | "dismiss" | "assign" | "convert"; note?: string | null }) => d)
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
     const s = context.supabase;
     const table = {
       "guest": "ai_guest_recommendations",
@@ -414,6 +420,7 @@ export const getExecutiveKpis = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { period: "week" | "month" | "quarter" | "year" }) => d)
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
     const s = context.supabase;
     const { data: snaps } = await s
       .from("ai_executive_kpi_snapshots")
@@ -467,6 +474,7 @@ export const captureKpiSnapshot = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { period: "week" | "month" | "quarter" | "year" }) => d)
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
     const s = context.supabase;
     const now = new Date();
     const start = new Date(now);
@@ -512,6 +520,7 @@ export const captureKpiSnapshot = createServerFn({ method: "POST" })
 export const detectStrategicRisks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
     const s = context.supabase;
     const [
       { data: past30 }, { data: prev30 }, { data: forward30 }, { data: rooms },
@@ -616,6 +625,7 @@ export const detectStrategicRisks = createServerFn({ method: "POST" })
 export const listStrategicRisks = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
     const { data } = await context.supabase
       .from("ai_strategic_risks")
       .select("*")
@@ -628,6 +638,7 @@ export const updateRiskStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string; status: "open" | "acknowledged" | "mitigated" | "dismissed" }) => d)
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
     const patch: any = { status: data.status };
     if (data.status === "mitigated" || data.status === "dismissed") {
       patch.resolved_at = new Date().toISOString();
@@ -646,6 +657,7 @@ export const updateRiskStatus = createServerFn({ method: "POST" })
 export const getExecutiveTimeline = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
     const { data } = await context.supabase
       .from("ai_activity_logs")
       .select("id, user_id, question, tool_called, response, domains_accessed, model, status, created_at")
@@ -661,6 +673,7 @@ export const getExecutiveTimeline = createServerFn({ method: "GET" })
 export const getAiValueSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
     const s = context.supabase;
     const [{ data: guest }, { data: pricing }, { data: revOps }, { data: marketing }, { data: activity }] = await Promise.all([
       s.from("ai_guest_recommendations").select("status, impact_score").gte("created_at", daysAgo(90)),
