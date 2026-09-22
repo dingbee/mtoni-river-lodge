@@ -52,7 +52,6 @@
 
   --color-ivory: var(--ivory);
   --color-burgundy: #6C151E;
-  --color-forest: #0F3D3A;
   --color-bone: var(--bone);
   --color-clay: var(--clay);
   --color-ember: var(--ember);
@@ -272,7 +271,7 @@
   .shadow-token-xl { box-shadow: var(--shadow-xl); }
 
   /* ============================================================
-     MTONI OS — COMMAND CENTER SURFACE TOKENS
+     StayNas OS — COMMAND CENTER SURFACE TOKENS
      Layered on top of the base semantic palette. Applied only
      inside the admin shell (.mtoni-os) so the public site is
      unaffected.
