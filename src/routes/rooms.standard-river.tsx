@@ -1,188 +1,101 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowLeft, ArrowRight, BedDouble, Maximize2, Users } from "lucide-react";
+import type { ReactNode } from "react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
-import { Reveal } from "@/components/site/Reveal";
-import { PageHero } from "@/components/site/PageHero";
-import { RoomRate } from "@/components/site/RoomRate";
-import { RoomReviews } from "@/components/site/reviews/RoomReviews";
-import { TrustBar } from "@/components/site/reviews/TrustBar";
-import { LightboxGallery } from "@/components/site/Lightbox";
-import { RESERVATIONS_NOTE, buildRoomInquiryUrl } from "@/lib/contact";
-import { trackCheckAvailabilityClick, trackContactClick } from "@/lib/analytics";
-import { StartBookingLink } from "@/lib/booking-session";
+import { ConciergeWidget } from "@/components/site/ConciergeWidget";
 import { STANDARD_RIVER_ROOM, ROOMS, getRoomPath } from "@/lib/rooms";
-import { buildRoomJsonLd } from "@/lib/room-schema";
-import { buildBreadcrumbJsonLd } from "@/lib/seo-schema";
-import { getBasePriceLabel, getBasePriceUsd } from "@/lib/pricing";
-import interiorImg from "@/assets/standard-river-interior.jpg";
-import { TrekkerBlock } from "@/components/site/TrekkerBlock";
 
-function StandardRiverPage() {
-  const room = STANDARD_RIVER_ROOM;
-  const others = ROOMS.filter((item) => item.slug !== room.slug);
-  const gallery = [room.gallery[0], interiorImg, room.gallery[2]];
+const ROOM = STANDARD_RIVER_ROOM;
+const RATE = "US$180 / night";
+const CATEGORY = "Essential";
 
+function RoomDetailPage() {
+  const others = ROOMS.filter((item) => item.slug !== ROOM.slug);
   return (
-    <div className="bg-ivory text-charcoal">
-      <SiteHeader overlay />
-
-      <PageHero
-        image={room.img}
-        imageAlt={room.name}
-        title={room.name}
-        subtitle={room.heroLine}
-        back={{ to: "/rooms", label: "Back to Rooms" }}
-        cta={{ label: "Check Availability", bookingRoomSlug: "standard-river" }}
-      />
-
-      <TrustBar variant="subtle" compact />
-
-      <RoomRate
-        eyebrow="Riverfront Standard"
-        tagline="Balanced & quiet"
-        price={getBasePriceLabel("standard-river")}
-        note="River-view sanctuary · Breakfast & personal hosting included"
-        roomSlug="standard-river"
-      />
-
-      <section className="px-6 pb-24 lg:px-12 lg:pb-32">
-        <div className="mx-auto grid max-w-[1200px] gap-16 lg:grid-cols-12">
-          <div className="lg:col-span-4">
-            <h2 className="font-display text-4xl leading-tight lg:text-5xl">Grounded in simplicity. Guided by nature.</h2>
-          </div>
-          <div className="space-y-6 lg:col-span-7 lg:col-start-6">
-            {room.description.map((paragraph, index) => (
-              <p key={index} className="text-lg leading-relaxed text-charcoal/80">
-                {paragraph}
-              </p>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="px-6 pb-24 lg:px-12 lg:pb-32">
-        <div className="mx-auto max-w-[1200px]">
-          <p className="eyebrow">Room Gallery</p>
-          <LightboxGallery
-            images={gallery.map((src, i) => ({
-              src,
-              alt: `${room.name} — image ${i + 1}`,
-            }))}
-          />
-        </div>
-      </section>
-
-      <section className="border-y border-border bg-bone/40 px-6 py-20 lg:px-12">
-        <div className="mx-auto max-w-[1200px]">
-          <p className="eyebrow">Room Details</p>
-          <div className="mt-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-            {room.details.map((detail) => (
-              <div key={detail.label}>
-                <p className="text-[0.65rem] uppercase tracking-[0.28em] text-charcoal/55">{detail.label}</p>
-                <p className="mt-3 font-display text-2xl leading-tight">{detail.value}</p>
+    <div className="min-h-screen bg-background text-foreground">
+      <SiteHeader />
+      <main>
+        <section className="border-b bg-muted/30 px-6 py-10 lg:px-10 lg:py-14">
+          <div className="mx-auto max-w-7xl">
+            <Link to="/rooms" className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="h-4 w-4" /> Back to rooms
+            </Link>
+            <div className="mt-8 grid gap-10 lg:grid-cols-[1.25fr_.75fr] lg:items-end">
+              <div>
+                <span className="inline-flex rounded-full border bg-background px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em]">{CATEGORY}</span>
+                <h1 className="mt-5 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">{ROOM.name}</h1>
+                <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">{ROOM.heroLine}</p>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <TrekkerBlock variant="standard" />
-
-      <section className="px-6 py-24 lg:px-12 lg:py-32">
-        <div className="mx-auto max-w-[900px] text-center">
-          <Reveal>
-            <p className="eyebrow">Reserve</p>
-            <h2 className="mt-6 font-display text-4xl leading-tight lg:text-6xl">{room.ctaLine}</h2>
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              <StartBookingLink
-                roomSlug="standard-river"
-                onClick={() => trackCheckAvailabilityClick("standard_river_room")}
-                className="group inline-flex items-center gap-3 border border-charcoal bg-charcoal px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-transparent hover:text-charcoal"
-              >
-                <span>Check Availability</span>
-                <span className="transition-transform group-hover:translate-x-1">→</span>
-              </StartBookingLink>
-              <a
-                href={buildRoomInquiryUrl(STANDARD_RIVER_ROOM.name)}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => trackContactClick("whatsapp", "standard_river_room")}
-                className="inline-flex items-center gap-3 border border-charcoal px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] transition-colors hover:bg-charcoal hover:text-ivory"
-              >
-                <span>Ask About This Room</span>
-                <span>→</span>
-              </a>
+              <div className="rounded-2xl border bg-card p-6 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Indicative rate</p>
+                <p className="mt-2 text-2xl font-semibold">{RATE}</p>
+                <p className="mt-2 text-sm text-muted-foreground">Demo pricing. Property pricing is configured in StayNas.</p>
+                <Link to="/book" search={{ room: "standard-river" }} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:brightness-110">
+                  Check availability <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
             </div>
-            <p className="mx-auto mt-6 max-w-md text-xs leading-relaxed text-charcoal/60">
-              {RESERVATIONS_NOTE}
-            </p>
-          </Reveal>
-        </div>
-      </section>
-
-      <section className="border-t border-border px-6 py-20 lg:px-12">
-        <div className="mx-auto max-w-[1200px]">
-          <p className="eyebrow">Discover more</p>
-          <h3 className="mt-4 font-display text-3xl lg:text-4xl">Other rooms</h3>
-          <div className="mt-10 grid gap-10 md:grid-cols-2">
+          </div>
+        </section>
+        <section className="mx-auto max-w-7xl px-6 py-12 lg:px-10 lg:py-16">
+          <div className="grid gap-10 lg:grid-cols-[1.2fr_.8fr]">
+            <div className="overflow-hidden rounded-2xl border bg-muted shadow-sm"><img src={ROOM.img} alt={ROOM.name} className="aspect-[4/3] h-full w-full object-cover" /></div>
+            <div className="flex flex-col justify-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">About the room</p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-tight">Comfort configured around the guest.</h2>
+              <div className="mt-6 space-y-4 text-sm leading-7 text-muted-foreground">
+                {ROOM.description.map((p) => <p key={p}>{p}</p>)}
+              </div>
+              <div className="mt-8 grid grid-cols-2 gap-3">
+                <Meta icon={<Users className="h-4 w-4" />} label={ROOM.details[0].value} />
+                <Meta icon={<BedDouble className="h-4 w-4" />} label={ROOM.details[1].value} />
+                <Meta icon={<Maximize2 className="h-4 w-4" />} label={ROOM.size} />
+                <Meta icon={<span className="text-sm">◉</span>} label={ROOM.view} />
+              </div>
+            </div>
+          </div>
+        </section>
+        <section className="border-y bg-muted/20 px-6 py-12 lg:px-10 lg:py-16">
+          <div className="mx-auto max-w-7xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">StayNas guest journey</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight">Choose dates. Confirm availability. Continue your stay.</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">This demo room is connected to the StayNas reservation flow so a property can configure live inventory, pricing, and guest rules behind the experience.</p>
+            <Link to="/book" search={{ room: "standard-river" }} className="mt-7 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground">
+              Continue with {ROOM.name} <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </section>
+        <section className="mx-auto max-w-7xl px-6 py-12 lg:px-10 lg:py-16">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Explore another room</p>
+          <div className="mt-6 grid gap-6 md:grid-cols-2">
             {others.map((item) => (
-              <Link key={item.slug} to={getRoomPath(item.slug)} className="group block">
-                <div className="aspect-[4/3] overflow-hidden">
-                  <img
-                    src={item.img}
-                    alt={item.name}
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                    loading="lazy"
-                  />
-                </div>
-                <h4 className="mt-5 font-display text-2xl">{item.name}</h4>
-                <p className="mt-2 text-sm text-charcoal/70">{item.shortDesc}</p>
-                <span className="mt-4 inline-block border-b border-charcoal pb-1 text-[0.7rem] uppercase tracking-[0.28em]">
-                  Explore Room →
-                </span>
+              <Link key={item.slug} to={getRoomPath(item.slug)} className="group overflow-hidden rounded-2xl border bg-card shadow-sm">
+                <img src={item.img} alt={item.name} className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+                <div className="p-5"><h3 className="text-xl font-semibold">{item.name}</h3><p className="mt-1 text-sm text-muted-foreground">{item.shortDesc}</p></div>
               </Link>
             ))}
           </div>
-        </div>
-      </section>
-
-      <RoomReviews roomName={room.name} />
-
+        </section>
+      </main>
       <SiteFooter />
+      <ConciergeWidget />
     </div>
   );
+}
+
+function Meta({ icon, label }: { icon: ReactNode; label: string }) {
+  return <div className="rounded-xl border bg-card p-4"><div className="text-primary">{icon}</div><p className="mt-2 text-xs leading-5 text-muted-foreground">{label}</p></div>;
 }
 
 export const Route = createFileRoute("/rooms/standard-river")({
   head: () => ({
     meta: [
-      { title: `${STANDARD_RIVER_ROOM.name} — StayNas` },
-      { name: "description", content: STANDARD_RIVER_ROOM.shortDesc },
-      { property: "og:title", content: `${STANDARD_RIVER_ROOM.name} — StayNas` },
-      { property: "og:description", content: STANDARD_RIVER_ROOM.shortDesc },
-      { property: "og:image", content: STANDARD_RIVER_ROOM.img },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: STANDARD_RIVER_ROOM.img },
-    ],
-    links: [{ rel: "canonical", href: "https://staynas.nolmark.co/rooms/standard-river" }],
-    scripts: [
-      {
-        type: "application/ld+json",
-        children: JSON.stringify(
-          buildRoomJsonLd({
-            room: STANDARD_RIVER_ROOM,
-            routePath: "/rooms/standard-river",
-            priceUSD: getBasePriceUsd("standard-river"),
-            occupancy: 2,
-          }),
-        ),
-      },
-      buildBreadcrumbJsonLd([
-        { name: "Home", path: "/" },
-        { name: "Accommodation", path: "/rooms" },
-        { name: STANDARD_RIVER_ROOM.name, path: "/rooms/standard-river" },
-      ]),
+      { title: `${ROOM.name} — StayNas` },
+      { name: "description", content: ROOM.shortDesc },
+      { property: "og:title", content: `${ROOM.name} — StayNas` },
+      { property: "og:description", content: ROOM.shortDesc },
     ],
   }),
-  component: StandardRiverPage,
+  component: RoomDetailPage,
 });
