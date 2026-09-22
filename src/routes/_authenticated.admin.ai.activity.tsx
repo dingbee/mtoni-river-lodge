@@ -10,7 +10,7 @@ import { History } from "lucide-react";
 import { listAiActivity } from "@/domains/ai/ai.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/activity")({
-  head: () => ({ meta: [{ title: "AI Activity — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "AI Activity — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: AiActivity,
 });
 
@@ -20,7 +20,7 @@ function AiActivity() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="AI Activity" description="Immutable log of every Mtoni AI request. Scoped by role — you see your own activity; managers see all." />
+      <PageHeader title="AI Activity" description="Immutable log of every StayNas AI request. Scoped by role — you see your own activity; managers see all." />
       <SectionCard>
         {isLoading ? (
           <LoadingState />
