@@ -14,7 +14,7 @@ import {
 import { Send, Trash2, Sparkles, MessageSquare, BookOpen, ThumbsUp, ThumbsDown, AlertTriangle, Copy, ChevronDown, ChevronUp, Plus } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/copilot")({
-  head: () => ({ meta: [{ title: "Staff Copilot — Mtoni AI" }] }),
+  head: () => ({ meta: [{ title: "Staff Copilot — StayNas AI" }] }),
   component: CopilotPage,
 });
 
@@ -92,7 +92,7 @@ function CopilotPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Mtoni AI Staff Copilot"
+        title="StayNas AI Staff Copilot"
         description="Ask questions across guests, operations, revenue, marketing, and the knowledge base. AI recommends — staff decide."
         actions={
           <Button size="sm" variant="outline" onClick={() => { setActiveId(null); setInput(""); }}>
