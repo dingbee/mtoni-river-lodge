@@ -1,16 +1,16 @@
 import { useCallback, useSyncExternalStore } from "react";
 
 /**
- * Mtoni OS adaptive theme manager.
+ * StayNas adaptive theme manager.
  *
  * Centralised, dependency-free. The resolved theme is applied as
  * `data-os-theme="light|dark"` on <html>, and ONLY while the OS shell is
- * mounted — the public website never receives the attribute.
+ * mounted.
  */
 export type ThemePreference = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
 
-export const THEME_STORAGE_KEY = "mtoni-os.theme";
+export const THEME_STORAGE_KEY = "staynas.theme";
 
 let preference: ThemePreference = "system";
 let hydrated = false;
@@ -26,9 +26,7 @@ function readStored(): ThemePreference {
   return "system";
 }
 
-function emit() {
-  listeners.forEach((l) => l());
-}
+function emit() { listeners.forEach((l) => l()); }
 
 function systemPrefersDark(): boolean {
   if (typeof window === "undefined" || !window.matchMedia) return false;
@@ -51,11 +49,7 @@ export function getThemePreference(): ThemePreference {
 export function setThemePreference(next: ThemePreference) {
   preference = next;
   hydrated = true;
-  try {
-    localStorage.setItem(THEME_STORAGE_KEY, next);
-  } catch {
-    /* ignore */
-  }
+  try { localStorage.setItem(THEME_STORAGE_KEY, next); } catch { /* ignore */ }
   emit();
 }
 
@@ -67,10 +61,7 @@ function subscribe(listener: () => void) {
     mql.addEventListener("change", listener);
   }
   const onStorage = (e: StorageEvent) => {
-    if (e.key === THEME_STORAGE_KEY) {
-      preference = readStored();
-      listener();
-    }
+    if (e.key === THEME_STORAGE_KEY) { preference = readStored(); listener(); }
   };
   if (typeof window !== "undefined") window.addEventListener("storage", onStorage);
   return () => {
@@ -80,7 +71,6 @@ function subscribe(listener: () => void) {
   };
 }
 
-/** Applies (or clears) the OS theme attribute on the document root. */
 export function applyOsTheme(theme: ResolvedTheme | null) {
   if (typeof document === "undefined") return;
   const el = document.documentElement;
@@ -88,21 +78,9 @@ export function applyOsTheme(theme: ResolvedTheme | null) {
   else el.removeAttribute("data-os-theme");
 }
 
-/**
- * Reads the current preference + resolved theme. `setTheme` persists.
- * SSR-safe: server snapshot is always "system"/"light".
- */
 export function useOsTheme() {
-  const preferenceValue = useSyncExternalStore(
-    subscribe,
-    () => getThemePreference(),
-    () => "system" as ThemePreference,
-  );
-  const resolved = useSyncExternalStore(
-    subscribe,
-    () => resolveTheme(getThemePreference()),
-    () => "light" as ResolvedTheme,
-  );
+  const preferenceValue = useSyncExternalStore(subscribe, () => getThemePreference(), () => "system" as ThemePreference);
+  const resolved = useSyncExternalStore(subscribe, () => resolveTheme(getThemePreference()), () => "light" as ResolvedTheme);
   const setTheme = useCallback((next: ThemePreference) => setThemePreference(next), []);
   return { preference: preferenceValue, resolved, setTheme };
 }
