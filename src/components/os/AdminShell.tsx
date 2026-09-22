@@ -9,8 +9,8 @@ import { installIntelligenceBridge } from "@/modules/intelligence/activation/bri
 import { applyOsTheme, useOsTheme } from "@/lib/os-theme";
 import { applyTerminalManifest } from "@/modules/runtime/local/terminal-manifest";
 
-const COLLAPSED_KEY = "mtoni-os.sidebar.collapsed";
-const RAIL_KEY = "mtoni-os.rail.open";
+const COLLAPSED_KEY = "staynas-os.sidebar.collapsed";
+const RAIL_KEY = "staynas-os.rail.open";
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -31,7 +31,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   // Forward platform events into the Intelligence Core (best-effort).
   useEffect(() => installIntelligenceBridge(), []);
 
-  // While the OS shell is mounted, "Add to home screen" installs the NOVA
+  // While the OS shell is mounted, "Add to home screen" installs the StayNas
   // terminal (scope /admin) rather than the public website.
   useEffect(() => applyTerminalManifest(), []);
 
