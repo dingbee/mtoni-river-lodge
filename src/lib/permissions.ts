@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getCurrentUserRoles } from "@/lib/user-roles.functions";
+import { hasStayNasEntitlement, type StayNasModuleId } from "@/lib/staynas-entitlements";
 
 // Superset of DB app_role. Kept in sync with public.app_role.
 export type Role =
@@ -72,7 +73,18 @@ export function useCurrentUserRoles() {
   });
 }
 
+const STAYNAS_MODULE_ALIASES: Record<string, StayNasModuleId> = {
+  overview: "overview", reservations: "reservations", rooms: "rooms", "front-desk": "front-desk",
+  operations: "operations", housekeeping: "housekeeping", guests: "guests", finance: "finance", revenue: "revenue",
+  automation: "automation", knowledge: "knowledge", "ai.concierge": "ai.concierge", "ai.guests": "ai.guests",
+  "ai.operations": "ai.operations", "ai.revenue": "ai.revenue", "ai.executive": "ai.executive", system: "system",
+  "system.health": "system", "system.information": "system", "system.users": "system", "system.roles": "system",
+  "system.activity": "system", "system.settings": "system",
+};
+
 export function canAccessModule(moduleId: string, roles: readonly string[]): boolean {
+  const stayNasModule = STAYNAS_MODULE_ALIASES[moduleId];
+  if (stayNasModule) return hasStayNasEntitlement(stayNasModule, roles);
   const allowed = MODULE_ROLES[moduleId];
   if (allowed === null || allowed === undefined) return true;
   return roles.some((r) => (allowed as string[]).includes(r));

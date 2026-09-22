@@ -71,6 +71,14 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return toast.error(error.message);
+    // Recover the first-owner bootstrap for an existing account that predates setup.
+    // The server function only grants owner when no owner exists yet.
+    try {
+      const bootstrap = await claimFirstAdmin();
+      if (bootstrap.granted) toast.success("Owner access enabled for the first StayNas account.");
+    } catch (e) {
+      console.error("claimFirstAdmin recovery failed", e);
+    }
     navigate({ to: "/admin/bookings" });
   };
 

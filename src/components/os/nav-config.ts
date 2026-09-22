@@ -74,6 +74,7 @@ export const NAV: NavEntry[] = [
         { id: "system.information", label: "System Information", href: "/admin/system/nova", icon: Wrench },
         { id: "system.users", label: "Users", href: "/admin/staff/users", icon: UserCog },
         { id: "system.roles", label: "Roles", href: "/admin/staff/roles", icon: ShieldCheck },
+        { id: "system.entitlements", label: "Module Entitlements", href: "/admin/staff/entitlements", icon: ShieldCheck },
         { id: "system.activity", label: "Activity Log", href: "/admin/staff/activity", icon: History },
         { id: "system.settings", label: "Settings", href: "/admin/settings", icon: Settings },
       ],
@@ -83,7 +84,9 @@ export const NAV: NavEntry[] = [
 
 export function findNavByHref(href: string): { group?: NavGroup; item?: NavItem } {
   for (const entry of NAV) {
-    if (entry.kind === "item" && entry.item.href === href) return { item: entry.item };
+    if (entry.kind === "item" && (href === entry.item.href || href.startsWith(entry.item.href + "/"))) {
+      return { item: entry.item };
+    }
     if (entry.kind === "group") {
       const item = entry.group.items.find((i) => href === i.href || href.startsWith(i.href + "/"));
       if (item) return { group: entry.group, item };
