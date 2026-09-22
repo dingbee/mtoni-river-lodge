@@ -65,7 +65,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="mtoni-os flex min-h-screen text-foreground">
+    <div className="staynas-os flex min-h-screen text-foreground">
       <div className="hidden lg:block">
         <AdminSidebar collapsed={collapsed} roles={roles} />
       </div>
