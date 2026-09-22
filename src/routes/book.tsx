@@ -3,12 +3,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Leaf, Loader2, Check } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooterMinimal } from "@/components/site/SiteFooterMinimal";
 import { BreadcrumbsBar } from "@/components/site/Breadcrumbs";
-import { BookingTrustBlock } from "@/components/site/reviews/BookingTrustBlock";
-import { TrustBar } from "@/components/site/reviews/TrustBar";
 import {
   Select,
   SelectContent,
@@ -16,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { WHATSAPP_URL } from "@/lib/contact";
 import { trackContactClick, trackGAEvent } from "@/lib/analytics";
 import {
   trackAvailabilityChecked,
@@ -46,17 +43,17 @@ export const Route = createFileRoute("/book")({
   },
   head: () => ({
     meta: [
-      { title: "Book Your Stay — StayNas demo property" },
+      { title: "Reserve Your Stay — StayNas" },
       {
         name: "description",
         content:
-          "Check live availability and reserve your stay at StayNas demo property on the banks of the property, Arusha.",
+          "Check availability and reserve a room through the StayNas Hospitality Operating System.",
       },
-      { property: "og:title", content: "Book Your Stay — StayNas demo property" },
+      { property: "og:title", content: "Reserve Your Stay — StayNas" },
       {
         property: "og:description",
         content:
-          "Reserve your room at StayNas demo property — an intimate riverfront retreat in Arusha, Tanzania.",
+          "Reserve your room through the StayNas Hospitality Operating System.",
       },
     ],
   }),
@@ -439,21 +436,26 @@ function BookPage() {
   const grandTotal = roomTotal + extrasTotal;
 
   return (
-    <div className="bg-ivory text-charcoal">
+    <div className="min-h-screen bg-ivory text-charcoal">
       <SiteHeader />
-      <BreadcrumbsBar />
-      <TrustBar variant="subtle" compact />
-      <BookingTrustBlock />
-      <main className="pt-10 lg:pt-14">
-        <section className="mx-auto w-full max-w-[960px] px-4 pb-24 lg:px-12">
-          <div className="mb-10 text-center">
-            <p className="inline-flex items-center justify-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-charcoal/60">
-              <Leaf className="h-3 w-3" style={{ color: "#427A43" }} />
-              StayNas demo property · Reservations
-            </p>
-            <h1 className="mt-5 font-display text-3xl leading-tight lg:text-5xl">Reserve Your Stay</h1>
-            <Stepper step={step} />
+      <main>
+        <section className="border-b border-charcoal/10 bg-ivory px-5 py-10 sm:px-8 lg:px-10 lg:py-16">
+          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
+            <div>
+              <BreadcrumbsBar />
+              <p className="mt-8 text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-charcoal/55">StayNas · Reservations</p>
+              <h1 className="mt-4 font-display text-5xl leading-[0.98] tracking-tight sm:text-6xl lg:text-7xl">Reserve Your Stay</h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-charcoal/65 sm:text-lg">Select your dates and guests to check real-time availability.</p>
+              <Stepper step={step} />
+            </div>
+            <div className="hidden overflow-hidden rounded-[24px] bg-forest shadow-deep lg:block">
+              <img src="/staynas-room-deluxe.svg" alt="StayNas demo room" className="aspect-[4/5] w-full object-cover opacity-95" />
+            </div>
           </div>
+        </section>
+        <section className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8 lg:px-10 lg:py-14">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+            <div>
 
           {step === "search" && (
             <SearchStep
@@ -608,6 +610,19 @@ function BookPage() {
                 Terms &amp; Conditions
               </Link>.
             </p>
+          </div>
+            </div>
+            <aside className="hidden lg:block">
+              <div className="sticky top-28 rounded-[24px] border border-charcoal/10 bg-bone p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-burgundy">A smoother journey</p>
+                <h2 className="mt-3 font-display text-3xl leading-tight">Plan with confidence.</h2>
+                <div className="mt-6 space-y-5 text-sm text-charcoal/70">
+                  <p><strong className="block text-charcoal">Flexible cancellation</strong>Plans change. Cancellation rules are shown before confirmation.</p>
+                  <p><strong className="block text-charcoal">Best available rate</strong>Property pricing is configured directly in StayNas.</p>
+                  <p><strong className="block text-charcoal">StayNas AI</strong>Intelligent assistance throughout the guest journey.</p>
+                </div>
+              </div>
+            </aside>
           </div>
         </section>
       </main>
