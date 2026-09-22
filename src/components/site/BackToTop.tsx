@@ -36,7 +36,7 @@ export function BackToTop({ conciergeOpen = false }: BackToTopProps) {
       className={`fixed left-5 z-[998] flex h-12 w-12 items-center justify-center rounded-full shadow-[0_8px_24px_-6px_rgba(0,0,0,0.35)] transition-all duration-300 ease-out hover:scale-110 active:scale-95 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] lg:bottom-8 lg:left-8 ${
         show ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-3 pointer-events-none"
       }`}
-      style={{ backgroundColor: "#C0B87A", color: "#1E2D1E" }}
+      style={{ backgroundColor: "#6C151E", color: "#171514" }}
     >
       <ArrowUp className="h-5 w-5" strokeWidth={1.75} />
     </button>
