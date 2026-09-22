@@ -32,7 +32,7 @@ import { GuestStatusChip } from "@/components/os/crm/GuestStatusChip";
 import heroAsset from "@/assets/pool-aerial-slow-living.jpg.asset.json";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
-  head: () => ({ meta: [{ title: "Command Centre — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "Command Centre — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: CommandCentrePage,
 });
 

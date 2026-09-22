@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { getMyAiScope } from "@/domains/ai/ai.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/settings")({
-  head: () => ({ meta: [{ title: "AI Settings — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "AI Settings — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: AiSettings,
 });
 
@@ -17,7 +17,7 @@ function AiSettings() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Mtoni AI Settings" description="Configuration and scope for the AI Command Centre." />
+      <PageHeader title="StayNas AI Settings" description="Configuration and scope for the AI Command Centre." />
       <SectionCard title="Model">
         <div className="text-sm">Chat model: <Badge variant="secondary">google/gemini-2.5-flash</Badge></div>
         <div className="mt-2 text-xs text-muted-foreground">

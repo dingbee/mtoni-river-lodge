@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
 import { LayoutDashboard, Bed, CalendarDays, ClipboardCheck, ListChecks, AlertTriangle, Activity, Calendar, UserCheck, QrCode } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/operations")({
-  head: () => ({ meta: [{ title: "Operations Centre — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "Operations Centre — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: OperationsLayout,
 });
 

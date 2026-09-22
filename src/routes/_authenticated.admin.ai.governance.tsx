@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/governance")({
-  head: () => ({ meta: [{ title: "AI Governance — Mtoni AI" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "AI Governance — StayNas AI" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: GovernancePage,
 });
 

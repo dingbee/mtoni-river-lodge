@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ComingSoon } from "@/components/os/ComingSoon";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/insights")({
-  head: () => ({ meta: [{ title: "AI Insights — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "AI Insights — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: () => (
     <ComingSoon
       title="AI Insights"

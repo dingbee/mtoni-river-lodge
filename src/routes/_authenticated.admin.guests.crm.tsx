@@ -12,7 +12,7 @@ import { Users, AlertCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/guests/crm")({
   head: () => ({
-    meta: [{ title: "Guest CRM — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }],
+    meta: [{ title: "Guest CRM — StayNas" }, { name: "robots", content: "noindex,nofollow" }],
   }),
   component: CrmLayout,
 });

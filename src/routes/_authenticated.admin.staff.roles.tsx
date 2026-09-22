@@ -79,7 +79,7 @@ function CopyableUuid({ value }: { value: string }) {
 }
 
 export const Route = createFileRoute("/_authenticated/admin/staff/roles")({
-  head: () => ({ meta: [{ title: "Roles — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "Roles — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: StaffRolesPage,
 });
 

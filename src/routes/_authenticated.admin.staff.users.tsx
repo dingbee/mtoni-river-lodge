@@ -107,7 +107,7 @@ function CopyableUuid({ value }: { value: string }) {
 }
 
 export const Route = createFileRoute("/_authenticated/admin/staff/users")({
-  head: () => ({ meta: [{ title: "Users — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "Users — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: StaffUsersPage,
 });
 
@@ -192,7 +192,7 @@ function StaffUsersPage() {
     <div className="space-y-6">
       <PageHeader
         title="Users"
-        description="Everyone with access to Mtoni OS. Invite new staff, manage roles, and control account status."
+        description="Everyone with access to StayNas. Invite new staff, manage roles, and control account status."
         actions={
           canManage ? (
             <Button onClick={() => setInviteOpen(true)}>

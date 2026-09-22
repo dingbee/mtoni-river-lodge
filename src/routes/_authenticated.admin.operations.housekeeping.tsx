@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/os/PageHeader";
 import { RoomStateChip } from "@/components/os/operations/RoomStateChip";
 
 export const Route = createFileRoute("/_authenticated/admin/operations/housekeeping")({
-  head: () => ({ meta: [{ title: "Housekeeping — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "Housekeeping — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: HousekeepingPage,
 });
 

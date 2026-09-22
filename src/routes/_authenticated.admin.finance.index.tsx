@@ -22,7 +22,7 @@ import { getRevenueDashboard, getRevenueHealth } from "@/domains/finance/finance
 export const Route = createFileRoute("/_authenticated/admin/finance/")({
   head: () => ({
     meta: [
-      { title: "Revenue Dashboard — Mtoni OS" },
+      { title: "Revenue Dashboard — StayNas" },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),

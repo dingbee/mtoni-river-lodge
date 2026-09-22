@@ -3,7 +3,7 @@ import { LayoutDashboard, Users, ClipboardCheck, Wrench, ListChecks, BookOpen, A
 
 export const Route = createFileRoute("/_authenticated/admin/ai/operations")({
   head: () => ({
-    meta: [{ title: "Operations AI — Mtoni AI" }, { name: "robots", content: "noindex,nofollow" }],
+    meta: [{ title: "Operations AI — StayNas AI" }, { name: "robots", content: "noindex,nofollow" }],
   }),
   component: OperationsAiLayout,
 });
