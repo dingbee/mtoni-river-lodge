@@ -2380,7 +2380,6 @@ export interface FileRouteTypes {
     | '/admin/front-desk'
     | '/admin/intelligence'
     | '/admin/operations'
-    | '/admin/restaurant'
     | '/admin/reviews'
     | '/api/public/health'
     | '/check-in/pass/$passToken'
@@ -2452,31 +2451,6 @@ export interface FileRouteTypes {
     | '/admin/operations/rooms'
     | '/admin/operations/tasks'
     | '/admin/operations/timeline'
-    | '/admin/restaurant/bar'
-    | '/admin/restaurant/catalog'
-    | '/admin/restaurant/costing'
-    | '/admin/restaurant/decisions'
-    | '/admin/restaurant/documents'
-    | '/admin/restaurant/intelligence'
-    | '/admin/restaurant/inventory'
-    | '/admin/restaurant/inventory-control'
-    | '/admin/restaurant/kitchen'
-    | '/admin/restaurant/menu'
-    | '/admin/restaurant/orders'
-    | '/admin/restaurant/pos'
-    | '/admin/restaurant/pricing'
-    | '/admin/restaurant/procurement'
-    | '/admin/restaurant/products'
-    | '/admin/restaurant/profitability'
-    | '/admin/restaurant/purchasing'
-    | '/admin/restaurant/receipts'
-    | '/admin/restaurant/recipe-master'
-    | '/admin/restaurant/reconciliation'
-    | '/admin/restaurant/requisitions'
-    | '/admin/restaurant/settings'
-    | '/admin/restaurant/setup'
-    | '/admin/restaurant/stock'
-    | '/admin/restaurant/suppliers'
     | '/admin/staff/activity'
     | '/admin/staff/roles'
     | '/admin/staff/users'
@@ -2502,7 +2476,6 @@ export interface FileRouteTypes {
     | '/admin/finance/'
     | '/admin/intelligence/'
     | '/admin/operations/'
-    | '/admin/restaurant/'
     | '/admin/settings/'
     | '/admin/ai/concierge/analytics'
     | '/admin/ai/concierge/channels'
@@ -2553,7 +2526,6 @@ export interface FileRouteTypes {
     | '/admin/operations/checkin/$id'
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
-    | '/admin/restaurant/bar/pos'
     | '/admin/settings/migrations/respad'
     | '/admin/ai/concierge/'
     | '/admin/ai/executive/'
@@ -2563,7 +2535,6 @@ export interface FileRouteTypes {
     | '/admin/content/journal/'
     | '/admin/content/pages/'
     | '/admin/operations/arrivals/'
-    | '/admin/restaurant/bar/'
     | '/admin/content/pages/$id/preview'
     | '/admin/ai/knowledge/test/'
     | '/admin/content/pages/$id/'
@@ -2704,30 +2675,6 @@ export interface FileRouteTypes {
     | '/admin/operations/rooms'
     | '/admin/operations/tasks'
     | '/admin/operations/timeline'
-    | '/admin/restaurant/catalog'
-    | '/admin/restaurant/costing'
-    | '/admin/restaurant/decisions'
-    | '/admin/restaurant/documents'
-    | '/admin/restaurant/intelligence'
-    | '/admin/restaurant/inventory'
-    | '/admin/restaurant/inventory-control'
-    | '/admin/restaurant/kitchen'
-    | '/admin/restaurant/menu'
-    | '/admin/restaurant/orders'
-    | '/admin/restaurant/pos'
-    | '/admin/restaurant/pricing'
-    | '/admin/restaurant/procurement'
-    | '/admin/restaurant/products'
-    | '/admin/restaurant/profitability'
-    | '/admin/restaurant/purchasing'
-    | '/admin/restaurant/receipts'
-    | '/admin/restaurant/recipe-master'
-    | '/admin/restaurant/reconciliation'
-    | '/admin/restaurant/requisitions'
-    | '/admin/restaurant/settings'
-    | '/admin/restaurant/setup'
-    | '/admin/restaurant/stock'
-    | '/admin/restaurant/suppliers'
     | '/admin/staff/activity'
     | '/admin/staff/roles'
     | '/admin/staff/users'
@@ -2753,7 +2700,6 @@ export interface FileRouteTypes {
     | '/admin/finance'
     | '/admin/intelligence'
     | '/admin/operations'
-    | '/admin/restaurant'
     | '/admin/settings'
     | '/admin/ai/concierge/analytics'
     | '/admin/ai/concierge/channels'
@@ -2804,7 +2750,6 @@ export interface FileRouteTypes {
     | '/admin/operations/checkin/$id'
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
-    | '/admin/restaurant/bar/pos'
     | '/admin/settings/migrations/respad'
     | '/admin/ai/concierge'
     | '/admin/ai/executive'
@@ -2814,7 +2759,6 @@ export interface FileRouteTypes {
     | '/admin/content/journal'
     | '/admin/content/pages'
     | '/admin/operations/arrivals'
-    | '/admin/restaurant/bar'
     | '/admin/content/pages/$id/preview'
     | '/admin/ai/knowledge/test'
     | '/admin/content/pages/$id'
@@ -2898,7 +2842,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/front-desk'
     | '/_authenticated/admin/intelligence'
     | '/_authenticated/admin/operations'
-    | '/_authenticated/admin/restaurant'
     | '/_authenticated/admin/reviews'
     | '/api/public/health'
     | '/check-in/pass/$passToken'
@@ -2970,31 +2913,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations/rooms'
     | '/_authenticated/admin/operations/tasks'
     | '/_authenticated/admin/operations/timeline'
-    | '/_authenticated/admin/restaurant/bar'
-    | '/_authenticated/admin/restaurant/catalog'
-    | '/_authenticated/admin/restaurant/costing'
-    | '/_authenticated/admin/restaurant/decisions'
-    | '/_authenticated/admin/restaurant/documents'
-    | '/_authenticated/admin/restaurant/intelligence'
-    | '/_authenticated/admin/restaurant/inventory'
-    | '/_authenticated/admin/restaurant/inventory-control'
-    | '/_authenticated/admin/restaurant/kitchen'
-    | '/_authenticated/admin/restaurant/menu'
-    | '/_authenticated/admin/restaurant/orders'
-    | '/_authenticated/admin/restaurant/pos'
-    | '/_authenticated/admin/restaurant/pricing'
-    | '/_authenticated/admin/restaurant/procurement'
-    | '/_authenticated/admin/restaurant/products'
-    | '/_authenticated/admin/restaurant/profitability'
-    | '/_authenticated/admin/restaurant/purchasing'
-    | '/_authenticated/admin/restaurant/receipts'
-    | '/_authenticated/admin/restaurant/recipe-master'
-    | '/_authenticated/admin/restaurant/reconciliation'
-    | '/_authenticated/admin/restaurant/requisitions'
-    | '/_authenticated/admin/restaurant/settings'
-    | '/_authenticated/admin/restaurant/setup'
-    | '/_authenticated/admin/restaurant/stock'
-    | '/_authenticated/admin/restaurant/suppliers'
     | '/_authenticated/admin/staff/activity'
     | '/_authenticated/admin/staff/roles'
     | '/_authenticated/admin/staff/users'
@@ -3020,7 +2938,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/finance/'
     | '/_authenticated/admin/intelligence/'
     | '/_authenticated/admin/operations/'
-    | '/_authenticated/admin/restaurant/'
     | '/_authenticated/admin/settings/'
     | '/_authenticated/admin/ai/concierge/analytics'
     | '/_authenticated/admin/ai/concierge/channels'
@@ -3071,7 +2988,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations/checkin/$id'
     | '/_authenticated/admin/operations/checkout/$id'
     | '/_authenticated/admin/operations/reservations/$id'
-    | '/_authenticated/admin/restaurant/bar/pos'
     | '/_authenticated/admin/settings/migrations/respad'
     | '/_authenticated/admin/ai/concierge/'
     | '/_authenticated/admin/ai/executive/'
@@ -3081,7 +2997,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/content/journal/'
     | '/_authenticated/admin/content/pages/'
     | '/_authenticated/admin/operations/arrivals/'
-    | '/_authenticated/admin/restaurant/bar/'
     | '/_authenticated/admin/content/pages/$id/preview'
     | '/_authenticated/admin/ai/knowledge/test/'
     | '/_authenticated/admin/content/pages/$id/'
@@ -3713,12 +3628,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminOperationsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/restaurant': {
-      id: '/_authenticated/admin/restaurant'
-      path: '/restaurant'
-      fullPath: '/admin/restaurant'
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
     '/_authenticated/admin/reviews': {
       id: '/_authenticated/admin/reviews'
       path: '/reviews'
@@ -4250,136 +4159,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/operations/timeline'
       preLoaderRoute: typeof AuthenticatedAdminOperationsTimelineRouteImport
       parentRoute: typeof AuthenticatedAdminOperationsRoute
-    }
-    '/_authenticated/admin/restaurant/': {
-      id: '/_authenticated/admin/restaurant/'
-      path: '/'
-      fullPath: '/admin/restaurant/'
-    }
-    '/_authenticated/admin/restaurant/bar': {
-      id: '/_authenticated/admin/restaurant/bar'
-      path: '/bar'
-      fullPath: '/admin/restaurant/bar'
-    }
-    '/_authenticated/admin/restaurant/catalog': {
-      id: '/_authenticated/admin/restaurant/catalog'
-      path: '/catalog'
-      fullPath: '/admin/restaurant/catalog'
-    }
-    '/_authenticated/admin/restaurant/costing': {
-      id: '/_authenticated/admin/restaurant/costing'
-      path: '/costing'
-      fullPath: '/admin/restaurant/costing'
-    }
-    '/_authenticated/admin/restaurant/decisions': {
-      id: '/_authenticated/admin/restaurant/decisions'
-      path: '/decisions'
-      fullPath: '/admin/restaurant/decisions'
-    }
-    '/_authenticated/admin/restaurant/documents': {
-      id: '/_authenticated/admin/restaurant/documents'
-      path: '/documents'
-      fullPath: '/admin/restaurant/documents'
-    }
-    '/_authenticated/admin/restaurant/intelligence': {
-      id: '/_authenticated/admin/restaurant/intelligence'
-      path: '/intelligence'
-      fullPath: '/admin/restaurant/intelligence'
-    }
-    '/_authenticated/admin/restaurant/inventory': {
-      id: '/_authenticated/admin/restaurant/inventory'
-      path: '/inventory'
-      fullPath: '/admin/restaurant/inventory'
-    }
-    '/_authenticated/admin/restaurant/inventory-control': {
-      id: '/_authenticated/admin/restaurant/inventory-control'
-      path: '/inventory-control'
-      fullPath: '/admin/restaurant/inventory-control'
-    }
-    '/_authenticated/admin/restaurant/kitchen': {
-      id: '/_authenticated/admin/restaurant/kitchen'
-      path: '/kitchen'
-      fullPath: '/admin/restaurant/kitchen'
-    }
-    '/_authenticated/admin/restaurant/menu': {
-      id: '/_authenticated/admin/restaurant/menu'
-      path: '/menu'
-      fullPath: '/admin/restaurant/menu'
-    }
-    '/_authenticated/admin/restaurant/orders': {
-      id: '/_authenticated/admin/restaurant/orders'
-      path: '/orders'
-      fullPath: '/admin/restaurant/orders'
-    }
-    '/_authenticated/admin/restaurant/pos': {
-      id: '/_authenticated/admin/restaurant/pos'
-      path: '/pos'
-      fullPath: '/admin/restaurant/pos'
-    }
-    '/_authenticated/admin/restaurant/pricing': {
-      id: '/_authenticated/admin/restaurant/pricing'
-      path: '/pricing'
-      fullPath: '/admin/restaurant/pricing'
-    }
-    '/_authenticated/admin/restaurant/procurement': {
-      id: '/_authenticated/admin/restaurant/procurement'
-      path: '/procurement'
-      fullPath: '/admin/restaurant/procurement'
-    }
-    '/_authenticated/admin/restaurant/products': {
-      id: '/_authenticated/admin/restaurant/products'
-      path: '/products'
-      fullPath: '/admin/restaurant/products'
-    }
-    '/_authenticated/admin/restaurant/profitability': {
-      id: '/_authenticated/admin/restaurant/profitability'
-      path: '/profitability'
-      fullPath: '/admin/restaurant/profitability'
-    }
-    '/_authenticated/admin/restaurant/purchasing': {
-      id: '/_authenticated/admin/restaurant/purchasing'
-      path: '/purchasing'
-      fullPath: '/admin/restaurant/purchasing'
-    }
-    '/_authenticated/admin/restaurant/receipts': {
-      id: '/_authenticated/admin/restaurant/receipts'
-      path: '/receipts'
-      fullPath: '/admin/restaurant/receipts'
-    }
-    '/_authenticated/admin/restaurant/recipe-master': {
-      id: '/_authenticated/admin/restaurant/recipe-master'
-      path: '/recipe-master'
-      fullPath: '/admin/restaurant/recipe-master'
-    }
-    '/_authenticated/admin/restaurant/reconciliation': {
-      id: '/_authenticated/admin/restaurant/reconciliation'
-      path: '/reconciliation'
-      fullPath: '/admin/restaurant/reconciliation'
-    }
-    '/_authenticated/admin/restaurant/requisitions': {
-      id: '/_authenticated/admin/restaurant/requisitions'
-      path: '/requisitions'
-      fullPath: '/admin/restaurant/requisitions'
-    }
-    '/_authenticated/admin/restaurant/settings': {
-      id: '/_authenticated/admin/restaurant/settings'
-      path: '/settings'
-      fullPath: '/admin/restaurant/settings'
-    }
-    '/_authenticated/admin/restaurant/setup': {
-      id: '/_authenticated/admin/restaurant/setup'
-      path: '/setup'
-      fullPath: '/admin/restaurant/setup'
-    }
-    '/_authenticated/admin/restaurant/stock': {
-      id: '/_authenticated/admin/restaurant/stock'
-      path: '/stock'
-      fullPath: '/admin/restaurant/stock'
-    }
-    '/_authenticated/admin/restaurant/suppliers': {
-      id: '/_authenticated/admin/restaurant/suppliers'
-      path: '/suppliers'
-      fullPath: '/admin/restaurant/suppliers'
     }
     '/_authenticated/admin/settings/': {
       id: '/_authenticated/admin/settings/'
@@ -4919,16 +4698,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/operations/reservations/$id'
       preLoaderRoute: typeof AuthenticatedAdminOperationsReservationsIdRouteImport
       parentRoute: typeof AuthenticatedAdminOperationsRoute
-    }
-    '/_authenticated/admin/restaurant/bar/': {
-      id: '/_authenticated/admin/restaurant/bar/'
-      path: '/'
-      fullPath: '/admin/restaurant/bar/'
-    }
-    '/_authenticated/admin/restaurant/bar/pos': {
-      id: '/_authenticated/admin/restaurant/bar/pos'
-      path: '/pos'
-      fullPath: '/admin/restaurant/bar/pos'
     }
     '/_authenticated/admin/settings/migrations/respad': {
       id: '/_authenticated/admin/settings/migrations/respad'
