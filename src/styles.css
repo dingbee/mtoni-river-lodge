@@ -57,7 +57,7 @@
   --color-clay: var(--clay);
   --color-ember: var(--ember);
   --color-river: var(--river);
-  --color-forest: var(--forest);
+  
   --color-charcoal: var(--charcoal);
   --color-gold: var(--gold);
 
@@ -68,19 +68,19 @@
 :root {
   --radius: 4px;
 
-  /* Mtoni modern-luxury palette — exact HEX system
+  /* StayNas official brand palette — exact HEX system
      Token names retained for backward compatibility with existing
      class names (bg-ivory, bg-bone, text-charcoal, bg-charcoal,
      text-ivory, etc.) — only the values are refreshed. */
   --ivory: #F5DABF;        /* dominant background + light text on dark */
   --bone: #F9E8D5;         /* alternate sections, cards, content blocks */
-  --clay: #6C151E;         /* soft gold accent (sparingly) */
+  --clay: #6C151E;         /* StayNas burgundy accent */
   --ember: #6C151E;        /* accent alias */
   --gold: #6C151E;         /* accent alias */
   --river: #5C5854;        /* muted secondary text */
   --forest: #0F3D3A;       /* deep green hover */
   --charcoal: #171514;     /* primary text + black luxe surfaces */
-  --green: #6C151E;        /* brand primary green */
+  --green: #0F3D3A;        /* StayNas primary deep green */
 
   --background: var(--ivory);
   --foreground: var(--charcoal);
@@ -286,9 +286,9 @@
     --os-ink: #0F1210;             /* primary ink */
     --os-ink-2: #4A4E4B;           /* secondary ink */
     --os-ink-3: #6B6F6C;           /* muted ink */
-    --os-green: #346739;
+    --os-green: #0F3D3A;
     --os-green-soft: rgba(52,103,57,0.08);
-    --os-gold: #C0B87A;
+    --os-gold: #6C151E;
     --os-gold-soft: rgba(192,184,122,0.14);
     --os-info: #3D6FA8;
     --os-info-soft: rgba(61,111,168,0.10);
@@ -612,7 +612,7 @@
 
   --os-green: #5EA56D;
   --os-green-soft: rgba(94,165,109,0.14);
-  --os-gold: #C0B87A;
+  --os-gold: #6C151E;
   --os-gold-soft: rgba(192,184,122,0.14);
   --os-info: #7AA7D6;
   --os-info-soft: rgba(122,167,214,0.12);
