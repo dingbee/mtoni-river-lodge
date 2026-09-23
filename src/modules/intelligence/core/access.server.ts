@@ -8,8 +8,15 @@ import { INTEL_DECIDE_ROLES, INTEL_READ_ROLES } from "./permissions";
 type Sb = any;
 
 export async function rolesFor(supabase: Sb, userId: string): Promise<string[]> {
-  const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-  return (data ?? []).map((r: any) => String(r.role));
+  // userId remains part of the authorization contract; the RPC derives roles
+  // from the authenticated caller, avoiding a direct user_roles SELECT that
+  // is intentionally blocked by RLS.
+  void userId;
+
+  const { data, error } = await supabase.rpc("current_user_roles");
+  if (error) throw new Error(error.message);
+
+  return (data ?? []).map((role: any) => String(role));
 }
 
 export async function assertIntelRead(supabase: Sb, userId: string) {

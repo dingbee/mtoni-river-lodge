@@ -6,14 +6,16 @@ export async function requireStayNasModuleAccess(
   userId: string,
   moduleId: StayNasModuleId,
 ): Promise<void> {
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
+  // userId remains part of the authorization contract; the RPC derives the
+  // roles from the authenticated caller rather than relying on a direct
+  // user_roles SELECT, which is intentionally blocked by RLS.
+  void userId;
+
+  const { data, error } = await supabase.rpc("current_user_roles");
 
   if (error) throw new Error(error.message);
 
-  const roles = (data ?? []).map((row) => String(row.role));
+  const roles = (data ?? []).map((role) => String(role));
   if (!hasStayNasEntitlement(moduleId, roles)) {
     throw new Error("Forbidden");
   }
