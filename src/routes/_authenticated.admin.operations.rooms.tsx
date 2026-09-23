@@ -1,12 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getRoomBoard } from "@/lib/operations.functions";
 import { PageHeader } from "@/components/os/PageHeader";
 import { RoomStatusBoard } from "@/components/os/operations/RoomStatusBoard";
+import { Button } from "@/components/ui/button";
+import { Settings2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/operations/rooms")({
-  head: () => ({ meta: [{ title: "Room Board — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "Room Board — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: RoomBoardPage,
 });
 
@@ -16,7 +18,7 @@ function RoomBoardPage() {
   const d: any = q.data ?? { states: [] };
   return (
     <div className="space-y-4">
-      <PageHeader title="Room Status Board" description="Live state for every physical room unit." />
+      <PageHeader title="Room Status Board" description="Live state for every physical room unit." actions={<Link to="/admin/operations/rooms/configure"><Button><Settings2 className="mr-2 h-4 w-4" />Configure rooms</Button></Link>} />
       {q.isLoading ? <p className="text-sm text-muted-foreground">Loading…</p> : (
         <RoomStatusBoard states={d.states} />
       )}
