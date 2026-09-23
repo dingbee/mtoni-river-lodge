@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ArrowLeft, Save, BedDouble, Layers3 } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -42,9 +43,9 @@ const specsToLines = (value: Record<string, string> | null | undefined) => Objec
 
 function RoomConfigurationPage() {
   const qc = useQueryClient();
-  const listFn = useMemo(() => listRoomConfiguration, []);
-  const categoryFn = useMemo(() => saveRoomCategory, []);
-  const roomFn = useMemo(() => saveRoomType, []);
+  const listFn = useServerFn(listRoomConfiguration);
+  const categoryFn = useServerFn(saveRoomCategory);
+  const roomFn = useServerFn(saveRoomType);
   const q = useQuery({ queryKey: ["room-configuration"], queryFn: () => listFn() });
   const [category, setCategory] = useState<Category>(blankCategory());
   const [categoryFeatures, setCategoryFeatures] = useState("");
