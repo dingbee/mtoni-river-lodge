@@ -113,3 +113,42 @@ export function getModuleAccessState(
   return canAccessModule(moduleId, roles) ? "allowed" : "denied";
 }
 
+
+const STAYNAS_MODULE_ALIASES: Record<string, StayNasModuleId> = {
+  overview: "overview",
+  reservations: "reservations",
+  rooms: "rooms",
+  "rooms.configure": "rooms.configure",
+  "front-desk": "front-desk",
+  operations: "operations",
+  housekeeping: "housekeeping",
+  guests: "guests",
+  finance: "finance",
+  revenue: "revenue",
+  automation: "automation",
+  knowledge: "knowledge",
+  "ai.concierge": "ai.concierge",
+  "ai.guests": "ai.guests",
+  "ai.operations": "ai.operations",
+  "ai.revenue": "ai.revenue",
+  "ai.executive": "ai.executive",
+  system: "system",
+  "system.health": "system",
+  "system.information": "system",
+  "system.users": "system",
+  "system.roles": "system",
+  "system.entitlements": "system",
+  "system.activity": "system",
+  "system.settings": "system",
+};
+
+export function canAccessModule(moduleId: string, roles: readonly string[]): boolean {
+  const stayNasModule = STAYNAS_MODULE_ALIASES[moduleId];
+  if (stayNasModule) return hasStayNasEntitlement(stayNasModule, roles);
+
+  const allowed = MODULE_ROLES[moduleId];
+  if (allowed === null || allowed === undefined) return true;
+
+  const normalizedRoles = normalizeStayNasRoles(roles);
+  return normalizedRoles.some((role) => allowed.includes(role));
+}
