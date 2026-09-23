@@ -8,7 +8,7 @@ export const Route = createFileRoute("/api/public/rooms/catalog")({
       GET: async ({ request }) => {
         const url = new URL(request.url);
         const slug = url.searchParams.get("slug");
-        const sb = createClient<Database>(
+        const sb: any = createClient<Database>(
           process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL!,
           process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
           { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
