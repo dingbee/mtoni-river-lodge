@@ -11,74 +11,25 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as AboutUsRouteImport } from './routes/about-us'
-import { Route as AccommodationsRouteImport } from './routes/accommodations'
-import { Route as AmenitiesActivitiesRouteImport } from './routes/amenities-activities'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as BookingFormRouteImport } from './routes/booking-form'
-import { Route as BoutiqueLodgeNearKilimanjaroAirportRouteImport } from './routes/boutique-lodge-near-kilimanjaro-airport'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as DiningRouteImport } from './routes/dining'
-import { Route as DiningLeisureRouteImport } from './routes/dining-leisure'
-import { Route as ExperiencesRouteImport } from './routes/experiences'
-import { Route as GalleryRouteImport } from './routes/gallery'
-import { Route as HelloWorldRouteImport } from './routes/hello-world'
-import { Route as JournalRouteImport } from './routes/journal'
-import { Route as LodgeRouteImport } from './routes/lodge'
-import { Route as MountKilimanjaroAccommodationArushaRouteImport } from './routes/mount-kilimanjaro-accommodation-arusha'
-import { Route as PlanRouteImport } from './routes/plan'
-import { Route as PlanningYourTanzaniaSafariWhereToStayInArushaRouteImport } from './routes/planning-your-tanzania-safari-where-to-stay-in-arusha'
-import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as RoomsRouteImport } from './routes/rooms'
-import { Route as SitemapAccommodationDotxmlRouteImport } from './routes/sitemap-accommodation[.]xml'
-import { Route as SitemapCmsDotxmlRouteImport } from './routes/sitemap-cms[.]xml'
-import { Route as SitemapImagesDotxmlRouteImport } from './routes/sitemap-images[.]xml'
-import { Route as SitemapJournalDotxmlRouteImport } from './routes/sitemap-journal[.]xml'
-import { Route as SitemapPagesDotxmlRouteImport } from './routes/sitemap-pages[.]xml'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as StayRouteImport } from './routes/stay'
-import { Route as SuitesRouteImport } from './routes/suites'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
-import { Route as VoteRouteImport } from './routes/vote'
-import { Route as WlhaVotingRouteImport } from './routes/wlha-voting'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthSetPasswordRouteImport } from './routes/auth.set-password'
-import { Route as AuthorSplatRouteImport } from './routes/author.$'
 import { Route as BookingReturnRouteImport } from './routes/booking.return'
-import { Route as CategorySplatRouteImport } from './routes/category.$'
 import { Route as CheckInTokenRouteImport } from './routes/check-in.$token'
 import { Route as CheckInExpiredRouteImport } from './routes/check-in.expired'
 import { Route as CheckInSuccessRouteImport } from './routes/check-in.success'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
-import { Route as FeedSplatRouteImport } from './routes/feed.$'
-import { Route as JournalIndexRouteImport } from './routes/journal.index'
-import { Route as JournalSlugRouteImport } from './routes/journal.$slug'
-import { Route as JournalAMorningWithTheBeekeepersOfGombaRouteImport } from './routes/journal.a-morning-with-the-beekeepers-of-gomba'
-import { Route as JournalBuildingWithTheCommunityRouteImport } from './routes/journal.building-with-the-community'
-import { Route as JournalDiscoverMtoniRiverLodgeArushaRouteImport } from './routes/journal.discover-mtoni-river-lodge-arusha'
-import { Route as JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRouteImport } from './routes/journal.discovering-arusha-through-nature-and-authentic-hospitality'
-import { Route as JournalLifeAlongTheNdurumaRiverRouteImport } from './routes/journal.life-along-the-nduruma-river'
-import { Route as JournalPerfectArushaStayForSafariTravelers2026RouteImport } from './routes/journal.perfect-arusha-stay-for-safari-travelers-2026'
-import { Route as JournalReadingTheSkyOverMountMeruRouteImport } from './routes/journal.reading-the-sky-over-mount-meru'
-import { Route as JournalTheArchitectureOfDisappearingRouteImport } from './routes/journal.the-architecture-of-disappearing'
-import { Route as JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport } from './routes/journal.what-the-river-has-taught-us-about-time'
-import { Route as JournalWhereToStayBeforeClimbingMountKilimanjaroRouteImport } from './routes/journal.where-to-stay-before-climbing-mount-kilimanjaro'
-import { Route as PSlugRouteImport } from './routes/p.$slug'
-import { Route as ReceiptTokenRouteImport } from './routes/receipt.$token'
 import { Route as RoomsIndexRouteImport } from './routes/rooms.index'
 import { Route as RoomsFamilyRoomRouteImport } from './routes/rooms.family-room'
 import { Route as RoomsRiverfrontDeluxeRouteImport } from './routes/rooms.riverfront-deluxe'
 import { Route as RoomsStandardRiverRouteImport } from './routes/rooms.standard-river'
-import { Route as TagSplatRouteImport } from './routes/tag.$'
-import { Route as WpAdminSplatRouteImport } from './routes/wp-admin.$'
-import { Route as WpContentSplatRouteImport } from './routes/wp-content.$'
-import { Route as WpIncludesSplatRouteImport } from './routes/wp-includes.$'
-import { Route as WpJsonSplatRouteImport } from './routes/wp-json.$'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
 import { Route as AuthenticatedAdminAiRouteImport } from './routes/_authenticated.admin.ai'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated.admin.analytics'
@@ -88,7 +39,6 @@ import { Route as AuthenticatedAdminCalendarRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminFrontDeskRouteImport } from './routes/_authenticated.admin.front-desk'
 import { Route as AuthenticatedAdminIntelligenceRouteImport } from './routes/_authenticated.admin.intelligence'
 import { Route as AuthenticatedAdminOperationsRouteImport } from './routes/_authenticated.admin.operations'
-import { Route as AuthenticatedAdminRestaurantRouteImport } from './routes/_authenticated.admin.restaurant'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated.admin.reviews'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as CheckInPassPassTokenRouteImport } from './routes/check-in.pass.$passToken'
@@ -165,34 +115,9 @@ import { Route as AuthenticatedAdminOperationsHousekeepingRouteImport } from './
 import { Route as AuthenticatedAdminOperationsRoomsRouteImport } from './routes/_authenticated.admin.operations.rooms'
 import { Route as AuthenticatedAdminOperationsTasksRouteImport } from './routes/_authenticated.admin.operations.tasks'
 import { Route as AuthenticatedAdminOperationsTimelineRouteImport } from './routes/_authenticated.admin.operations.timeline'
-import { Route as AuthenticatedAdminRestaurantIndexRouteImport } from './routes/_authenticated.admin.restaurant.index'
-import { Route as AuthenticatedAdminRestaurantBarRouteImport } from './routes/_authenticated.admin.restaurant.bar'
-import { Route as AuthenticatedAdminRestaurantCatalogRouteImport } from './routes/_authenticated.admin.restaurant.catalog'
-import { Route as AuthenticatedAdminRestaurantCostingRouteImport } from './routes/_authenticated.admin.restaurant.costing'
-import { Route as AuthenticatedAdminRestaurantDecisionsRouteImport } from './routes/_authenticated.admin.restaurant.decisions'
-import { Route as AuthenticatedAdminRestaurantDocumentsRouteImport } from './routes/_authenticated.admin.restaurant.documents'
-import { Route as AuthenticatedAdminRestaurantIntelligenceRouteImport } from './routes/_authenticated.admin.restaurant.intelligence'
-import { Route as AuthenticatedAdminRestaurantInventoryRouteImport } from './routes/_authenticated.admin.restaurant.inventory'
-import { Route as AuthenticatedAdminRestaurantInventoryControlRouteImport } from './routes/_authenticated.admin.restaurant.inventory-control'
-import { Route as AuthenticatedAdminRestaurantKitchenRouteImport } from './routes/_authenticated.admin.restaurant.kitchen'
-import { Route as AuthenticatedAdminRestaurantMenuRouteImport } from './routes/_authenticated.admin.restaurant.menu'
-import { Route as AuthenticatedAdminRestaurantOrdersRouteImport } from './routes/_authenticated.admin.restaurant.orders'
-import { Route as AuthenticatedAdminRestaurantPosRouteImport } from './routes/_authenticated.admin.restaurant.pos'
-import { Route as AuthenticatedAdminRestaurantPricingRouteImport } from './routes/_authenticated.admin.restaurant.pricing'
-import { Route as AuthenticatedAdminRestaurantProcurementRouteImport } from './routes/_authenticated.admin.restaurant.procurement'
-import { Route as AuthenticatedAdminRestaurantProductsRouteImport } from './routes/_authenticated.admin.restaurant.products'
-import { Route as AuthenticatedAdminRestaurantProfitabilityRouteImport } from './routes/_authenticated.admin.restaurant.profitability'
-import { Route as AuthenticatedAdminRestaurantPurchasingRouteImport } from './routes/_authenticated.admin.restaurant.purchasing'
-import { Route as AuthenticatedAdminRestaurantReceiptsRouteImport } from './routes/_authenticated.admin.restaurant.receipts'
-import { Route as AuthenticatedAdminRestaurantRecipeMasterRouteImport } from './routes/_authenticated.admin.restaurant.recipe-master'
-import { Route as AuthenticatedAdminRestaurantReconciliationRouteImport } from './routes/_authenticated.admin.restaurant.reconciliation'
-import { Route as AuthenticatedAdminRestaurantRequisitionsRouteImport } from './routes/_authenticated.admin.restaurant.requisitions'
-import { Route as AuthenticatedAdminRestaurantSettingsRouteImport } from './routes/_authenticated.admin.restaurant.settings'
-import { Route as AuthenticatedAdminRestaurantSetupRouteImport } from './routes/_authenticated.admin.restaurant.setup'
-import { Route as AuthenticatedAdminRestaurantStockRouteImport } from './routes/_authenticated.admin.restaurant.stock'
-import { Route as AuthenticatedAdminRestaurantSuppliersRouteImport } from './routes/_authenticated.admin.restaurant.suppliers'
 import { Route as AuthenticatedAdminSettingsIndexRouteImport } from './routes/_authenticated.admin.settings.index'
 import { Route as AuthenticatedAdminStaffActivityRouteImport } from './routes/_authenticated.admin.staff.activity'
+import { Route as AuthenticatedAdminStaffEntitlementsRouteImport } from './routes/_authenticated.admin.staff.entitlements'
 import { Route as AuthenticatedAdminStaffRolesRouteImport } from './routes/_authenticated.admin.staff.roles'
 import { Route as AuthenticatedAdminStaffUsersRouteImport } from './routes/_authenticated.admin.staff.users'
 import { Route as AuthenticatedAdminSystemHealthRouteImport } from './routes/_authenticated.admin.system.health'
@@ -268,8 +193,6 @@ import { Route as AuthenticatedAdminOperationsArrivalsScanRouteImport } from './
 import { Route as AuthenticatedAdminOperationsCheckinIdRouteImport } from './routes/_authenticated.admin.operations.checkin.$id'
 import { Route as AuthenticatedAdminOperationsCheckoutIdRouteImport } from './routes/_authenticated.admin.operations.checkout.$id'
 import { Route as AuthenticatedAdminOperationsReservationsIdRouteImport } from './routes/_authenticated.admin.operations.reservations.$id'
-import { Route as AuthenticatedAdminRestaurantBarIndexRouteImport } from './routes/_authenticated.admin.restaurant.bar.index'
-import { Route as AuthenticatedAdminRestaurantBarPosRouteImport } from './routes/_authenticated.admin.restaurant.bar.pos'
 import { Route as AuthenticatedAdminSettingsMigrationsRespadRouteImport } from './routes/_authenticated.admin.settings.migrations.respad'
 import { Route as AuthenticatedAdminAiKnowledgeTestIndexRouteImport } from './routes/_authenticated.admin.ai.knowledge.test/index'
 import { Route as AuthenticatedAdminContentPagesIdIndexRouteImport } from './routes/_authenticated.admin.content.pages.$id.index'
@@ -282,21 +205,6 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AboutUsRoute = AboutUsRouteImport.update({
-  id: '/about-us',
-  path: '/about-us',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccommodationsRoute = AccommodationsRouteImport.update({
-  id: '/accommodations',
-  path: '/accommodations',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AmenitiesActivitiesRoute = AmenitiesActivitiesRouteImport.update({
-  id: '/amenities-activities',
-  path: '/amenities-activities',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -314,128 +222,14 @@ const BookingFormRoute = BookingFormRouteImport.update({
   path: '/booking-form',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BoutiqueLodgeNearKilimanjaroAirportRoute =
-  BoutiqueLodgeNearKilimanjaroAirportRouteImport.update({
-    id: '/boutique-lodge-near-kilimanjaro-airport',
-    path: '/boutique-lodge-near-kilimanjaro-airport',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DiningRoute = DiningRouteImport.update({
-  id: '/dining',
-  path: '/dining',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DiningLeisureRoute = DiningLeisureRouteImport.update({
-  id: '/dining-leisure',
-  path: '/dining-leisure',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExperiencesRoute = ExperiencesRouteImport.update({
-  id: '/experiences',
-  path: '/experiences',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GalleryRoute = GalleryRouteImport.update({
-  id: '/gallery',
-  path: '/gallery',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HelloWorldRoute = HelloWorldRouteImport.update({
-  id: '/hello-world',
-  path: '/hello-world',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JournalRoute = JournalRouteImport.update({
-  id: '/journal',
-  path: '/journal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LodgeRoute = LodgeRouteImport.update({
-  id: '/lodge',
-  path: '/lodge',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MountKilimanjaroAccommodationArushaRoute =
-  MountKilimanjaroAccommodationArushaRouteImport.update({
-    id: '/mount-kilimanjaro-accommodation-arusha',
-    path: '/mount-kilimanjaro-accommodation-arusha',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const PlanRoute = PlanRouteImport.update({
-  id: '/plan',
-  path: '/plan',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlanningYourTanzaniaSafariWhereToStayInArushaRoute =
-  PlanningYourTanzaniaSafariWhereToStayInArushaRouteImport.update({
-    id: '/planning-your-tanzania-safari-where-to-stay-in-arusha',
-    path: '/planning-your-tanzania-safari-where-to-stay-in-arusha',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReviewsRoute = ReviewsRouteImport.update({
-  id: '/reviews',
-  path: '/reviews',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const RoomsRoute = RoomsRouteImport.update({
   id: '/rooms',
   path: '/rooms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapAccommodationDotxmlRoute =
-  SitemapAccommodationDotxmlRouteImport.update({
-    id: '/sitemap-accommodation.xml',
-    path: '/sitemap-accommodation.xml',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const SitemapCmsDotxmlRoute = SitemapCmsDotxmlRouteImport.update({
-  id: '/sitemap-cms.xml',
-  path: '/sitemap-cms.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapImagesDotxmlRoute = SitemapImagesDotxmlRouteImport.update({
-  id: '/sitemap-images.xml',
-  path: '/sitemap-images.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapJournalDotxmlRoute = SitemapJournalDotxmlRouteImport.update({
-  id: '/sitemap-journal.xml',
-  path: '/sitemap-journal.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapPagesDotxmlRoute = SitemapPagesDotxmlRouteImport.update({
-  id: '/sitemap-pages.xml',
-  path: '/sitemap-pages.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StayRoute = StayRouteImport.update({
-  id: '/stay',
-  path: '/stay',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SuitesRoute = SuitesRouteImport.update({
-  id: '/suites',
-  path: '/suites',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermsRoute = TermsRouteImport.update({
@@ -446,16 +240,6 @@ const TermsRoute = TermsRouteImport.update({
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
   path: '/unsubscribe',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const VoteRoute = VoteRouteImport.update({
-  id: '/vote',
-  path: '/vote',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WlhaVotingRoute = WlhaVotingRouteImport.update({
-  id: '/wlha-voting',
-  path: '/wlha-voting',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
@@ -473,19 +257,9 @@ const AuthSetPasswordRoute = AuthSetPasswordRouteImport.update({
   path: '/set-password',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthorSplatRoute = AuthorSplatRouteImport.update({
-  id: '/author/$',
-  path: '/author/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const BookingReturnRoute = BookingReturnRouteImport.update({
   id: '/booking/return',
   path: '/booking/return',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CategorySplatRoute = CategorySplatRouteImport.update({
-  id: '/category/$',
-  path: '/category/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckInTokenRoute = CheckInTokenRouteImport.update({
@@ -508,93 +282,6 @@ const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   path: '/email/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FeedSplatRoute = FeedSplatRouteImport.update({
-  id: '/feed/$',
-  path: '/feed/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JournalIndexRoute = JournalIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => JournalRoute,
-} as any)
-const JournalSlugRoute = JournalSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => JournalRoute,
-} as any)
-const JournalAMorningWithTheBeekeepersOfGombaRoute =
-  JournalAMorningWithTheBeekeepersOfGombaRouteImport.update({
-    id: '/a-morning-with-the-beekeepers-of-gomba',
-    path: '/a-morning-with-the-beekeepers-of-gomba',
-    getParentRoute: () => JournalRoute,
-  } as any)
-const JournalBuildingWithTheCommunityRoute =
-  JournalBuildingWithTheCommunityRouteImport.update({
-    id: '/building-with-the-community',
-    path: '/building-with-the-community',
-    getParentRoute: () => JournalRoute,
-  } as any)
-const JournalDiscoverMtoniRiverLodgeArushaRoute =
-  JournalDiscoverMtoniRiverLodgeArushaRouteImport.update({
-    id: '/discover-mtoni-river-lodge-arusha',
-    path: '/discover-mtoni-river-lodge-arusha',
-    getParentRoute: () => JournalRoute,
-  } as any)
-const JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute =
-  JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRouteImport.update(
-    {
-      id: '/discovering-arusha-through-nature-and-authentic-hospitality',
-      path: '/discovering-arusha-through-nature-and-authentic-hospitality',
-      getParentRoute: () => JournalRoute,
-    } as any,
-  )
-const JournalLifeAlongTheNdurumaRiverRoute =
-  JournalLifeAlongTheNdurumaRiverRouteImport.update({
-    id: '/life-along-the-nduruma-river',
-    path: '/life-along-the-nduruma-river',
-    getParentRoute: () => JournalRoute,
-  } as any)
-const JournalPerfectArushaStayForSafariTravelers2026Route =
-  JournalPerfectArushaStayForSafariTravelers2026RouteImport.update({
-    id: '/perfect-arusha-stay-for-safari-travelers-2026',
-    path: '/perfect-arusha-stay-for-safari-travelers-2026',
-    getParentRoute: () => JournalRoute,
-  } as any)
-const JournalReadingTheSkyOverMountMeruRoute =
-  JournalReadingTheSkyOverMountMeruRouteImport.update({
-    id: '/reading-the-sky-over-mount-meru',
-    path: '/reading-the-sky-over-mount-meru',
-    getParentRoute: () => JournalRoute,
-  } as any)
-const JournalTheArchitectureOfDisappearingRoute =
-  JournalTheArchitectureOfDisappearingRouteImport.update({
-    id: '/the-architecture-of-disappearing',
-    path: '/the-architecture-of-disappearing',
-    getParentRoute: () => JournalRoute,
-  } as any)
-const JournalWhatTheRiverHasTaughtUsAboutTimeRoute =
-  JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport.update({
-    id: '/what-the-river-has-taught-us-about-time',
-    path: '/what-the-river-has-taught-us-about-time',
-    getParentRoute: () => JournalRoute,
-  } as any)
-const JournalWhereToStayBeforeClimbingMountKilimanjaroRoute =
-  JournalWhereToStayBeforeClimbingMountKilimanjaroRouteImport.update({
-    id: '/where-to-stay-before-climbing-mount-kilimanjaro',
-    path: '/where-to-stay-before-climbing-mount-kilimanjaro',
-    getParentRoute: () => JournalRoute,
-  } as any)
-const PSlugRoute = PSlugRouteImport.update({
-  id: '/p/$slug',
-  path: '/p/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReceiptTokenRoute = ReceiptTokenRouteImport.update({
-  id: '/receipt/$token',
-  path: '/receipt/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const RoomsIndexRoute = RoomsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -614,31 +301,6 @@ const RoomsStandardRiverRoute = RoomsStandardRiverRouteImport.update({
   id: '/standard-river',
   path: '/standard-river',
   getParentRoute: () => RoomsRoute,
-} as any)
-const TagSplatRoute = TagSplatRouteImport.update({
-  id: '/tag/$',
-  path: '/tag/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WpAdminSplatRoute = WpAdminSplatRouteImport.update({
-  id: '/wp-admin/$',
-  path: '/wp-admin/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WpContentSplatRoute = WpContentSplatRouteImport.update({
-  id: '/wp-content/$',
-  path: '/wp-content/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WpIncludesSplatRoute = WpIncludesSplatRouteImport.update({
-  id: '/wp-includes/$',
-  path: '/wp-includes/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WpJsonSplatRoute = WpJsonSplatRouteImport.update({
-  id: '/wp-json/$',
-  path: '/wp-json/$',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
@@ -690,12 +352,6 @@ const AuthenticatedAdminOperationsRoute =
   AuthenticatedAdminOperationsRouteImport.update({
     id: '/operations',
     path: '/operations',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminRestaurantRoute =
-  AuthenticatedAdminRestaurantRouteImport.update({
-    id: '/restaurant',
-    path: '/restaurant',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminReviewsRoute =
@@ -1151,162 +807,6 @@ const AuthenticatedAdminOperationsTimelineRoute =
     path: '/timeline',
     getParentRoute: () => AuthenticatedAdminOperationsRoute,
   } as any)
-const AuthenticatedAdminRestaurantIndexRoute =
-  AuthenticatedAdminRestaurantIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantBarRoute =
-  AuthenticatedAdminRestaurantBarRouteImport.update({
-    id: '/bar',
-    path: '/bar',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantCatalogRoute =
-  AuthenticatedAdminRestaurantCatalogRouteImport.update({
-    id: '/catalog',
-    path: '/catalog',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantCostingRoute =
-  AuthenticatedAdminRestaurantCostingRouteImport.update({
-    id: '/costing',
-    path: '/costing',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantDecisionsRoute =
-  AuthenticatedAdminRestaurantDecisionsRouteImport.update({
-    id: '/decisions',
-    path: '/decisions',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantDocumentsRoute =
-  AuthenticatedAdminRestaurantDocumentsRouteImport.update({
-    id: '/documents',
-    path: '/documents',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantIntelligenceRoute =
-  AuthenticatedAdminRestaurantIntelligenceRouteImport.update({
-    id: '/intelligence',
-    path: '/intelligence',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantInventoryRoute =
-  AuthenticatedAdminRestaurantInventoryRouteImport.update({
-    id: '/inventory',
-    path: '/inventory',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantInventoryControlRoute =
-  AuthenticatedAdminRestaurantInventoryControlRouteImport.update({
-    id: '/inventory-control',
-    path: '/inventory-control',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantKitchenRoute =
-  AuthenticatedAdminRestaurantKitchenRouteImport.update({
-    id: '/kitchen',
-    path: '/kitchen',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantMenuRoute =
-  AuthenticatedAdminRestaurantMenuRouteImport.update({
-    id: '/menu',
-    path: '/menu',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantOrdersRoute =
-  AuthenticatedAdminRestaurantOrdersRouteImport.update({
-    id: '/orders',
-    path: '/orders',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantPosRoute =
-  AuthenticatedAdminRestaurantPosRouteImport.update({
-    id: '/pos',
-    path: '/pos',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantPricingRoute =
-  AuthenticatedAdminRestaurantPricingRouteImport.update({
-    id: '/pricing',
-    path: '/pricing',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantProcurementRoute =
-  AuthenticatedAdminRestaurantProcurementRouteImport.update({
-    id: '/procurement',
-    path: '/procurement',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantProductsRoute =
-  AuthenticatedAdminRestaurantProductsRouteImport.update({
-    id: '/products',
-    path: '/products',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantProfitabilityRoute =
-  AuthenticatedAdminRestaurantProfitabilityRouteImport.update({
-    id: '/profitability',
-    path: '/profitability',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantPurchasingRoute =
-  AuthenticatedAdminRestaurantPurchasingRouteImport.update({
-    id: '/purchasing',
-    path: '/purchasing',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantReceiptsRoute =
-  AuthenticatedAdminRestaurantReceiptsRouteImport.update({
-    id: '/receipts',
-    path: '/receipts',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantRecipeMasterRoute =
-  AuthenticatedAdminRestaurantRecipeMasterRouteImport.update({
-    id: '/recipe-master',
-    path: '/recipe-master',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantReconciliationRoute =
-  AuthenticatedAdminRestaurantReconciliationRouteImport.update({
-    id: '/reconciliation',
-    path: '/reconciliation',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantRequisitionsRoute =
-  AuthenticatedAdminRestaurantRequisitionsRouteImport.update({
-    id: '/requisitions',
-    path: '/requisitions',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantSettingsRoute =
-  AuthenticatedAdminRestaurantSettingsRouteImport.update({
-    id: '/settings',
-    path: '/settings',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantSetupRoute =
-  AuthenticatedAdminRestaurantSetupRouteImport.update({
-    id: '/setup',
-    path: '/setup',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantStockRoute =
-  AuthenticatedAdminRestaurantStockRouteImport.update({
-    id: '/stock',
-    path: '/stock',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
-const AuthenticatedAdminRestaurantSuppliersRoute =
-  AuthenticatedAdminRestaurantSuppliersRouteImport.update({
-    id: '/suppliers',
-    path: '/suppliers',
-    getParentRoute: () => AuthenticatedAdminRestaurantRoute,
-  } as any)
 const AuthenticatedAdminSettingsIndexRoute =
   AuthenticatedAdminSettingsIndexRouteImport.update({
     id: '/settings/',
@@ -1317,6 +817,12 @@ const AuthenticatedAdminStaffActivityRoute =
   AuthenticatedAdminStaffActivityRouteImport.update({
     id: '/staff/activity',
     path: '/staff/activity',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminStaffEntitlementsRoute =
+  AuthenticatedAdminStaffEntitlementsRouteImport.update({
+    id: '/staff/entitlements',
+    path: '/staff/entitlements',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminStaffRolesRoute =
@@ -1764,18 +1270,6 @@ const AuthenticatedAdminOperationsReservationsIdRoute =
     path: '/reservations/$id',
     getParentRoute: () => AuthenticatedAdminOperationsRoute,
   } as any)
-const AuthenticatedAdminRestaurantBarIndexRoute =
-  AuthenticatedAdminRestaurantBarIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedAdminRestaurantBarRoute,
-  } as any)
-const AuthenticatedAdminRestaurantBarPosRoute =
-  AuthenticatedAdminRestaurantBarPosRouteImport.update({
-    id: '/pos',
-    path: '/pos',
-    getParentRoute: () => AuthenticatedAdminRestaurantBarRoute,
-  } as any)
 const AuthenticatedAdminSettingsMigrationsRespadRoute =
   AuthenticatedAdminSettingsMigrationsRespadRouteImport.update({
     id: '/settings/migrations/respad',
@@ -1803,73 +1297,24 @@ const AuthenticatedAdminContentPagesIdPreviewRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/about-us': typeof AboutUsRoute
-  '/accommodations': typeof AccommodationsRoute
-  '/amenities-activities': typeof AmenitiesActivitiesRoute
   '/auth': typeof AuthRouteWithChildren
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
-  '/boutique-lodge-near-kilimanjaro-airport': typeof BoutiqueLodgeNearKilimanjaroAirportRoute
-  '/contact': typeof ContactRoute
-  '/dining': typeof DiningRoute
-  '/dining-leisure': typeof DiningLeisureRoute
-  '/experiences': typeof ExperiencesRoute
-  '/gallery': typeof GalleryRoute
-  '/hello-world': typeof HelloWorldRoute
-  '/journal': typeof JournalRouteWithChildren
-  '/lodge': typeof LodgeRoute
-  '/mount-kilimanjaro-accommodation-arusha': typeof MountKilimanjaroAccommodationArushaRoute
-  '/plan': typeof PlanRoute
-  '/planning-your-tanzania-safari-where-to-stay-in-arusha': typeof PlanningYourTanzaniaSafariWhereToStayInArushaRoute
-  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
-  '/reviews': typeof ReviewsRoute
   '/rooms': typeof RoomsRouteWithChildren
-  '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
-  '/sitemap-cms.xml': typeof SitemapCmsDotxmlRoute
-  '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
-  '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
-  '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/stay': typeof StayRoute
-  '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
-  '/vote': typeof VoteRoute
-  '/wlha-voting': typeof WlhaVotingRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
-  '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
-  '/category/$': typeof CategorySplatRoute
   '/check-in/$token': typeof CheckInTokenRoute
   '/check-in/expired': typeof CheckInExpiredRoute
   '/check-in/success': typeof CheckInSuccessRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/feed/$': typeof FeedSplatRoute
-  '/journal/$slug': typeof JournalSlugRoute
-  '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
-  '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
-  '/journal/discover-mtoni-river-lodge-arusha': typeof JournalDiscoverMtoniRiverLodgeArushaRoute
-  '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
-  '/journal/life-along-the-nduruma-river': typeof JournalLifeAlongTheNdurumaRiverRoute
-  '/journal/perfect-arusha-stay-for-safari-travelers-2026': typeof JournalPerfectArushaStayForSafariTravelers2026Route
-  '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
-  '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
-  '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
-  '/journal/where-to-stay-before-climbing-mount-kilimanjaro': typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRoute
-  '/p/$slug': typeof PSlugRoute
-  '/receipt/$token': typeof ReceiptTokenRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
-  '/tag/$': typeof TagSplatRoute
-  '/wp-admin/$': typeof WpAdminSplatRoute
-  '/wp-content/$': typeof WpContentSplatRoute
-  '/wp-includes/$': typeof WpIncludesSplatRoute
-  '/wp-json/$': typeof WpJsonSplatRoute
-  '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
   '/admin/ai': typeof AuthenticatedAdminAiRouteWithChildren
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRouteWithChildren
@@ -1879,7 +1324,6 @@ export interface FileRoutesByFullPath {
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/admin/intelligence': typeof AuthenticatedAdminIntelligenceRouteWithChildren
   '/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
-  '/admin/restaurant': typeof AuthenticatedAdminRestaurantRouteWithChildren
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/check-in/pass/$passToken': typeof CheckInPassPassTokenRoute
@@ -1951,32 +1395,8 @@ export interface FileRoutesByFullPath {
   '/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
   '/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
-  '/admin/restaurant/bar': typeof AuthenticatedAdminRestaurantBarRouteWithChildren
-  '/admin/restaurant/catalog': typeof AuthenticatedAdminRestaurantCatalogRoute
-  '/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
-  '/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
-  '/admin/restaurant/documents': typeof AuthenticatedAdminRestaurantDocumentsRoute
-  '/admin/restaurant/intelligence': typeof AuthenticatedAdminRestaurantIntelligenceRoute
-  '/admin/restaurant/inventory': typeof AuthenticatedAdminRestaurantInventoryRoute
-  '/admin/restaurant/inventory-control': typeof AuthenticatedAdminRestaurantInventoryControlRoute
-  '/admin/restaurant/kitchen': typeof AuthenticatedAdminRestaurantKitchenRoute
-  '/admin/restaurant/menu': typeof AuthenticatedAdminRestaurantMenuRoute
-  '/admin/restaurant/orders': typeof AuthenticatedAdminRestaurantOrdersRoute
-  '/admin/restaurant/pos': typeof AuthenticatedAdminRestaurantPosRoute
-  '/admin/restaurant/pricing': typeof AuthenticatedAdminRestaurantPricingRoute
-  '/admin/restaurant/procurement': typeof AuthenticatedAdminRestaurantProcurementRoute
-  '/admin/restaurant/products': typeof AuthenticatedAdminRestaurantProductsRoute
-  '/admin/restaurant/profitability': typeof AuthenticatedAdminRestaurantProfitabilityRoute
-  '/admin/restaurant/purchasing': typeof AuthenticatedAdminRestaurantPurchasingRoute
-  '/admin/restaurant/receipts': typeof AuthenticatedAdminRestaurantReceiptsRoute
-  '/admin/restaurant/recipe-master': typeof AuthenticatedAdminRestaurantRecipeMasterRoute
-  '/admin/restaurant/reconciliation': typeof AuthenticatedAdminRestaurantReconciliationRoute
-  '/admin/restaurant/requisitions': typeof AuthenticatedAdminRestaurantRequisitionsRoute
-  '/admin/restaurant/settings': typeof AuthenticatedAdminRestaurantSettingsRoute
-  '/admin/restaurant/setup': typeof AuthenticatedAdminRestaurantSetupRoute
-  '/admin/restaurant/stock': typeof AuthenticatedAdminRestaurantStockRoute
-  '/admin/restaurant/suppliers': typeof AuthenticatedAdminRestaurantSuppliersRoute
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
+  '/admin/staff/entitlements': typeof AuthenticatedAdminStaffEntitlementsRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
   '/admin/system/health': typeof AuthenticatedAdminSystemHealthRoute
@@ -2001,7 +1421,6 @@ export interface FileRoutesByFullPath {
   '/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/intelligence/': typeof AuthenticatedAdminIntelligenceIndexRoute
   '/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
-  '/admin/restaurant/': typeof AuthenticatedAdminRestaurantIndexRoute
   '/admin/settings/': typeof AuthenticatedAdminSettingsIndexRoute
   '/admin/ai/concierge/analytics': typeof AuthenticatedAdminAiConciergeAnalyticsRoute
   '/admin/ai/concierge/channels': typeof AuthenticatedAdminAiConciergeChannelsRoute
@@ -2052,7 +1471,6 @@ export interface FileRoutesByFullPath {
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
-  '/admin/restaurant/bar/pos': typeof AuthenticatedAdminRestaurantBarPosRoute
   '/admin/settings/migrations/respad': typeof AuthenticatedAdminSettingsMigrationsRespadRoute
   '/admin/ai/concierge/': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/admin/ai/executive/': typeof AuthenticatedAdminAiExecutiveIndexRoute
@@ -2062,77 +1480,28 @@ export interface FileRoutesByFullPath {
   '/admin/content/journal/': typeof AuthenticatedAdminContentJournalIndexRoute
   '/admin/content/pages/': typeof AuthenticatedAdminContentPagesIndexRoute
   '/admin/operations/arrivals/': typeof AuthenticatedAdminOperationsArrivalsIndexRoute
-  '/admin/restaurant/bar/': typeof AuthenticatedAdminRestaurantBarIndexRoute
   '/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
   '/admin/ai/knowledge/test/': typeof AuthenticatedAdminAiKnowledgeTestIndexRoute
   '/admin/content/pages/$id/': typeof AuthenticatedAdminContentPagesIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/about-us': typeof AboutUsRoute
-  '/accommodations': typeof AccommodationsRoute
-  '/amenities-activities': typeof AmenitiesActivitiesRoute
   '/auth': typeof AuthRouteWithChildren
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
-  '/boutique-lodge-near-kilimanjaro-airport': typeof BoutiqueLodgeNearKilimanjaroAirportRoute
-  '/contact': typeof ContactRoute
-  '/dining': typeof DiningRoute
-  '/dining-leisure': typeof DiningLeisureRoute
-  '/experiences': typeof ExperiencesRoute
-  '/gallery': typeof GalleryRoute
-  '/hello-world': typeof HelloWorldRoute
-  '/lodge': typeof LodgeRoute
-  '/mount-kilimanjaro-accommodation-arusha': typeof MountKilimanjaroAccommodationArushaRoute
-  '/plan': typeof PlanRoute
-  '/planning-your-tanzania-safari-where-to-stay-in-arusha': typeof PlanningYourTanzaniaSafariWhereToStayInArushaRoute
-  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
-  '/reviews': typeof ReviewsRoute
-  '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
-  '/sitemap-cms.xml': typeof SitemapCmsDotxmlRoute
-  '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
-  '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
-  '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/stay': typeof StayRoute
-  '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
-  '/vote': typeof VoteRoute
-  '/wlha-voting': typeof WlhaVotingRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
-  '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
-  '/category/$': typeof CategorySplatRoute
   '/check-in/$token': typeof CheckInTokenRoute
   '/check-in/expired': typeof CheckInExpiredRoute
   '/check-in/success': typeof CheckInSuccessRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/feed/$': typeof FeedSplatRoute
-  '/journal/$slug': typeof JournalSlugRoute
-  '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
-  '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
-  '/journal/discover-mtoni-river-lodge-arusha': typeof JournalDiscoverMtoniRiverLodgeArushaRoute
-  '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
-  '/journal/life-along-the-nduruma-river': typeof JournalLifeAlongTheNdurumaRiverRoute
-  '/journal/perfect-arusha-stay-for-safari-travelers-2026': typeof JournalPerfectArushaStayForSafariTravelers2026Route
-  '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
-  '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
-  '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
-  '/journal/where-to-stay-before-climbing-mount-kilimanjaro': typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRoute
-  '/p/$slug': typeof PSlugRoute
-  '/receipt/$token': typeof ReceiptTokenRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
-  '/tag/$': typeof TagSplatRoute
-  '/wp-admin/$': typeof WpAdminSplatRoute
-  '/wp-content/$': typeof WpContentSplatRoute
-  '/wp-includes/$': typeof WpIncludesSplatRoute
-  '/wp-json/$': typeof WpJsonSplatRoute
-  '/journal': typeof JournalIndexRoute
   '/rooms': typeof RoomsIndexRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
@@ -2203,31 +1572,8 @@ export interface FileRoutesByTo {
   '/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
   '/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
-  '/admin/restaurant/catalog': typeof AuthenticatedAdminRestaurantCatalogRoute
-  '/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
-  '/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
-  '/admin/restaurant/documents': typeof AuthenticatedAdminRestaurantDocumentsRoute
-  '/admin/restaurant/intelligence': typeof AuthenticatedAdminRestaurantIntelligenceRoute
-  '/admin/restaurant/inventory': typeof AuthenticatedAdminRestaurantInventoryRoute
-  '/admin/restaurant/inventory-control': typeof AuthenticatedAdminRestaurantInventoryControlRoute
-  '/admin/restaurant/kitchen': typeof AuthenticatedAdminRestaurantKitchenRoute
-  '/admin/restaurant/menu': typeof AuthenticatedAdminRestaurantMenuRoute
-  '/admin/restaurant/orders': typeof AuthenticatedAdminRestaurantOrdersRoute
-  '/admin/restaurant/pos': typeof AuthenticatedAdminRestaurantPosRoute
-  '/admin/restaurant/pricing': typeof AuthenticatedAdminRestaurantPricingRoute
-  '/admin/restaurant/procurement': typeof AuthenticatedAdminRestaurantProcurementRoute
-  '/admin/restaurant/products': typeof AuthenticatedAdminRestaurantProductsRoute
-  '/admin/restaurant/profitability': typeof AuthenticatedAdminRestaurantProfitabilityRoute
-  '/admin/restaurant/purchasing': typeof AuthenticatedAdminRestaurantPurchasingRoute
-  '/admin/restaurant/receipts': typeof AuthenticatedAdminRestaurantReceiptsRoute
-  '/admin/restaurant/recipe-master': typeof AuthenticatedAdminRestaurantRecipeMasterRoute
-  '/admin/restaurant/reconciliation': typeof AuthenticatedAdminRestaurantReconciliationRoute
-  '/admin/restaurant/requisitions': typeof AuthenticatedAdminRestaurantRequisitionsRoute
-  '/admin/restaurant/settings': typeof AuthenticatedAdminRestaurantSettingsRoute
-  '/admin/restaurant/setup': typeof AuthenticatedAdminRestaurantSetupRoute
-  '/admin/restaurant/stock': typeof AuthenticatedAdminRestaurantStockRoute
-  '/admin/restaurant/suppliers': typeof AuthenticatedAdminRestaurantSuppliersRoute
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
+  '/admin/staff/entitlements': typeof AuthenticatedAdminStaffEntitlementsRoute
   '/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
   '/admin/system/health': typeof AuthenticatedAdminSystemHealthRoute
@@ -2252,7 +1598,6 @@ export interface FileRoutesByTo {
   '/admin/finance': typeof AuthenticatedAdminFinanceIndexRoute
   '/admin/intelligence': typeof AuthenticatedAdminIntelligenceIndexRoute
   '/admin/operations': typeof AuthenticatedAdminOperationsIndexRoute
-  '/admin/restaurant': typeof AuthenticatedAdminRestaurantIndexRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsIndexRoute
   '/admin/ai/concierge/analytics': typeof AuthenticatedAdminAiConciergeAnalyticsRoute
   '/admin/ai/concierge/channels': typeof AuthenticatedAdminAiConciergeChannelsRoute
@@ -2303,7 +1648,6 @@ export interface FileRoutesByTo {
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
-  '/admin/restaurant/bar/pos': typeof AuthenticatedAdminRestaurantBarPosRoute
   '/admin/settings/migrations/respad': typeof AuthenticatedAdminSettingsMigrationsRespadRoute
   '/admin/ai/concierge': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/admin/ai/executive': typeof AuthenticatedAdminAiExecutiveIndexRoute
@@ -2313,7 +1657,6 @@ export interface FileRoutesByTo {
   '/admin/content/journal': typeof AuthenticatedAdminContentJournalIndexRoute
   '/admin/content/pages': typeof AuthenticatedAdminContentPagesIndexRoute
   '/admin/operations/arrivals': typeof AuthenticatedAdminOperationsArrivalsIndexRoute
-  '/admin/restaurant/bar': typeof AuthenticatedAdminRestaurantBarIndexRoute
   '/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
   '/admin/ai/knowledge/test': typeof AuthenticatedAdminAiKnowledgeTestIndexRoute
   '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdIndexRoute
@@ -2322,73 +1665,24 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
-  '/about-us': typeof AboutUsRoute
-  '/accommodations': typeof AccommodationsRoute
-  '/amenities-activities': typeof AmenitiesActivitiesRoute
   '/auth': typeof AuthRouteWithChildren
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
-  '/boutique-lodge-near-kilimanjaro-airport': typeof BoutiqueLodgeNearKilimanjaroAirportRoute
-  '/contact': typeof ContactRoute
-  '/dining': typeof DiningRoute
-  '/dining-leisure': typeof DiningLeisureRoute
-  '/experiences': typeof ExperiencesRoute
-  '/gallery': typeof GalleryRoute
-  '/hello-world': typeof HelloWorldRoute
-  '/journal': typeof JournalRouteWithChildren
-  '/lodge': typeof LodgeRoute
-  '/mount-kilimanjaro-accommodation-arusha': typeof MountKilimanjaroAccommodationArushaRoute
-  '/plan': typeof PlanRoute
-  '/planning-your-tanzania-safari-where-to-stay-in-arusha': typeof PlanningYourTanzaniaSafariWhereToStayInArushaRoute
-  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
-  '/reviews': typeof ReviewsRoute
   '/rooms': typeof RoomsRouteWithChildren
-  '/sitemap-accommodation.xml': typeof SitemapAccommodationDotxmlRoute
-  '/sitemap-cms.xml': typeof SitemapCmsDotxmlRoute
-  '/sitemap-images.xml': typeof SitemapImagesDotxmlRoute
-  '/sitemap-journal.xml': typeof SitemapJournalDotxmlRoute
-  '/sitemap-pages.xml': typeof SitemapPagesDotxmlRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/stay': typeof StayRoute
-  '/suites': typeof SuitesRoute
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
-  '/vote': typeof VoteRoute
-  '/wlha-voting': typeof WlhaVotingRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/set-password': typeof AuthSetPasswordRoute
-  '/author/$': typeof AuthorSplatRoute
   '/booking/return': typeof BookingReturnRoute
-  '/category/$': typeof CategorySplatRoute
   '/check-in/$token': typeof CheckInTokenRoute
   '/check-in/expired': typeof CheckInExpiredRoute
   '/check-in/success': typeof CheckInSuccessRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/feed/$': typeof FeedSplatRoute
-  '/journal/$slug': typeof JournalSlugRoute
-  '/journal/a-morning-with-the-beekeepers-of-gomba': typeof JournalAMorningWithTheBeekeepersOfGombaRoute
-  '/journal/building-with-the-community': typeof JournalBuildingWithTheCommunityRoute
-  '/journal/discover-mtoni-river-lodge-arusha': typeof JournalDiscoverMtoniRiverLodgeArushaRoute
-  '/journal/discovering-arusha-through-nature-and-authentic-hospitality': typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
-  '/journal/life-along-the-nduruma-river': typeof JournalLifeAlongTheNdurumaRiverRoute
-  '/journal/perfect-arusha-stay-for-safari-travelers-2026': typeof JournalPerfectArushaStayForSafariTravelers2026Route
-  '/journal/reading-the-sky-over-mount-meru': typeof JournalReadingTheSkyOverMountMeruRoute
-  '/journal/the-architecture-of-disappearing': typeof JournalTheArchitectureOfDisappearingRoute
-  '/journal/what-the-river-has-taught-us-about-time': typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
-  '/journal/where-to-stay-before-climbing-mount-kilimanjaro': typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRoute
-  '/p/$slug': typeof PSlugRoute
-  '/receipt/$token': typeof ReceiptTokenRoute
   '/rooms/family-room': typeof RoomsFamilyRoomRoute
   '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
   '/rooms/standard-river': typeof RoomsStandardRiverRoute
-  '/tag/$': typeof TagSplatRoute
-  '/wp-admin/$': typeof WpAdminSplatRoute
-  '/wp-content/$': typeof WpContentSplatRoute
-  '/wp-includes/$': typeof WpIncludesSplatRoute
-  '/wp-json/$': typeof WpJsonSplatRoute
-  '/journal/': typeof JournalIndexRoute
   '/rooms/': typeof RoomsIndexRoute
   '/_authenticated/admin/ai': typeof AuthenticatedAdminAiRouteWithChildren
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRouteWithChildren
@@ -2398,7 +1692,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/_authenticated/admin/intelligence': typeof AuthenticatedAdminIntelligenceRouteWithChildren
   '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
-  '/_authenticated/admin/restaurant': typeof AuthenticatedAdminRestaurantRouteWithChildren
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/check-in/pass/$passToken': typeof CheckInPassPassTokenRoute
@@ -2470,32 +1763,8 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
   '/_authenticated/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/_authenticated/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
-  '/_authenticated/admin/restaurant/bar': typeof AuthenticatedAdminRestaurantBarRouteWithChildren
-  '/_authenticated/admin/restaurant/catalog': typeof AuthenticatedAdminRestaurantCatalogRoute
-  '/_authenticated/admin/restaurant/costing': typeof AuthenticatedAdminRestaurantCostingRoute
-  '/_authenticated/admin/restaurant/decisions': typeof AuthenticatedAdminRestaurantDecisionsRoute
-  '/_authenticated/admin/restaurant/documents': typeof AuthenticatedAdminRestaurantDocumentsRoute
-  '/_authenticated/admin/restaurant/intelligence': typeof AuthenticatedAdminRestaurantIntelligenceRoute
-  '/_authenticated/admin/restaurant/inventory': typeof AuthenticatedAdminRestaurantInventoryRoute
-  '/_authenticated/admin/restaurant/inventory-control': typeof AuthenticatedAdminRestaurantInventoryControlRoute
-  '/_authenticated/admin/restaurant/kitchen': typeof AuthenticatedAdminRestaurantKitchenRoute
-  '/_authenticated/admin/restaurant/menu': typeof AuthenticatedAdminRestaurantMenuRoute
-  '/_authenticated/admin/restaurant/orders': typeof AuthenticatedAdminRestaurantOrdersRoute
-  '/_authenticated/admin/restaurant/pos': typeof AuthenticatedAdminRestaurantPosRoute
-  '/_authenticated/admin/restaurant/pricing': typeof AuthenticatedAdminRestaurantPricingRoute
-  '/_authenticated/admin/restaurant/procurement': typeof AuthenticatedAdminRestaurantProcurementRoute
-  '/_authenticated/admin/restaurant/products': typeof AuthenticatedAdminRestaurantProductsRoute
-  '/_authenticated/admin/restaurant/profitability': typeof AuthenticatedAdminRestaurantProfitabilityRoute
-  '/_authenticated/admin/restaurant/purchasing': typeof AuthenticatedAdminRestaurantPurchasingRoute
-  '/_authenticated/admin/restaurant/receipts': typeof AuthenticatedAdminRestaurantReceiptsRoute
-  '/_authenticated/admin/restaurant/recipe-master': typeof AuthenticatedAdminRestaurantRecipeMasterRoute
-  '/_authenticated/admin/restaurant/reconciliation': typeof AuthenticatedAdminRestaurantReconciliationRoute
-  '/_authenticated/admin/restaurant/requisitions': typeof AuthenticatedAdminRestaurantRequisitionsRoute
-  '/_authenticated/admin/restaurant/settings': typeof AuthenticatedAdminRestaurantSettingsRoute
-  '/_authenticated/admin/restaurant/setup': typeof AuthenticatedAdminRestaurantSetupRoute
-  '/_authenticated/admin/restaurant/stock': typeof AuthenticatedAdminRestaurantStockRoute
-  '/_authenticated/admin/restaurant/suppliers': typeof AuthenticatedAdminRestaurantSuppliersRoute
   '/_authenticated/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
+  '/_authenticated/admin/staff/entitlements': typeof AuthenticatedAdminStaffEntitlementsRoute
   '/_authenticated/admin/staff/roles': typeof AuthenticatedAdminStaffRolesRoute
   '/_authenticated/admin/staff/users': typeof AuthenticatedAdminStaffUsersRoute
   '/_authenticated/admin/system/health': typeof AuthenticatedAdminSystemHealthRoute
@@ -2520,7 +1789,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/finance/': typeof AuthenticatedAdminFinanceIndexRoute
   '/_authenticated/admin/intelligence/': typeof AuthenticatedAdminIntelligenceIndexRoute
   '/_authenticated/admin/operations/': typeof AuthenticatedAdminOperationsIndexRoute
-  '/_authenticated/admin/restaurant/': typeof AuthenticatedAdminRestaurantIndexRoute
   '/_authenticated/admin/settings/': typeof AuthenticatedAdminSettingsIndexRoute
   '/_authenticated/admin/ai/concierge/analytics': typeof AuthenticatedAdminAiConciergeAnalyticsRoute
   '/_authenticated/admin/ai/concierge/channels': typeof AuthenticatedAdminAiConciergeChannelsRoute
@@ -2571,7 +1839,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/_authenticated/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/_authenticated/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
-  '/_authenticated/admin/restaurant/bar/pos': typeof AuthenticatedAdminRestaurantBarPosRoute
   '/_authenticated/admin/settings/migrations/respad': typeof AuthenticatedAdminSettingsMigrationsRespadRoute
   '/_authenticated/admin/ai/concierge/': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/_authenticated/admin/ai/executive/': typeof AuthenticatedAdminAiExecutiveIndexRoute
@@ -2581,7 +1848,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/content/journal/': typeof AuthenticatedAdminContentJournalIndexRoute
   '/_authenticated/admin/content/pages/': typeof AuthenticatedAdminContentPagesIndexRoute
   '/_authenticated/admin/operations/arrivals/': typeof AuthenticatedAdminOperationsArrivalsIndexRoute
-  '/_authenticated/admin/restaurant/bar/': typeof AuthenticatedAdminRestaurantBarIndexRoute
   '/_authenticated/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
   '/_authenticated/admin/ai/knowledge/test/': typeof AuthenticatedAdminAiKnowledgeTestIndexRoute
   '/_authenticated/admin/content/pages/$id/': typeof AuthenticatedAdminContentPagesIdIndexRoute
@@ -2590,73 +1856,24 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/about-us'
-    | '/accommodations'
-    | '/amenities-activities'
     | '/auth'
     | '/book'
     | '/booking-form'
-    | '/boutique-lodge-near-kilimanjaro-airport'
-    | '/contact'
-    | '/dining'
-    | '/dining-leisure'
-    | '/experiences'
-    | '/gallery'
-    | '/hello-world'
-    | '/journal'
-    | '/lodge'
-    | '/mount-kilimanjaro-accommodation-arusha'
-    | '/plan'
-    | '/planning-your-tanzania-safari-where-to-stay-in-arusha'
-    | '/pricing'
     | '/privacy'
-    | '/reviews'
     | '/rooms'
-    | '/sitemap-accommodation.xml'
-    | '/sitemap-cms.xml'
-    | '/sitemap-images.xml'
-    | '/sitemap-journal.xml'
-    | '/sitemap-pages.xml'
-    | '/sitemap.xml'
-    | '/stay'
-    | '/suites'
     | '/terms'
     | '/unsubscribe'
-    | '/vote'
-    | '/wlha-voting'
     | '/admin'
     | '/auth/callback'
     | '/auth/set-password'
-    | '/author/$'
     | '/booking/return'
-    | '/category/$'
     | '/check-in/$token'
     | '/check-in/expired'
     | '/check-in/success'
     | '/email/unsubscribe'
-    | '/feed/$'
-    | '/journal/$slug'
-    | '/journal/a-morning-with-the-beekeepers-of-gomba'
-    | '/journal/building-with-the-community'
-    | '/journal/discover-mtoni-river-lodge-arusha'
-    | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
-    | '/journal/life-along-the-nduruma-river'
-    | '/journal/perfect-arusha-stay-for-safari-travelers-2026'
-    | '/journal/reading-the-sky-over-mount-meru'
-    | '/journal/the-architecture-of-disappearing'
-    | '/journal/what-the-river-has-taught-us-about-time'
-    | '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
-    | '/p/$slug'
-    | '/receipt/$token'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
-    | '/tag/$'
-    | '/wp-admin/$'
-    | '/wp-content/$'
-    | '/wp-includes/$'
-    | '/wp-json/$'
-    | '/journal/'
     | '/rooms/'
     | '/admin/ai'
     | '/admin/analytics'
@@ -2666,7 +1883,6 @@ export interface FileRouteTypes {
     | '/admin/front-desk'
     | '/admin/intelligence'
     | '/admin/operations'
-    | '/admin/restaurant'
     | '/admin/reviews'
     | '/api/public/health'
     | '/check-in/pass/$passToken'
@@ -2738,32 +1954,8 @@ export interface FileRouteTypes {
     | '/admin/operations/rooms'
     | '/admin/operations/tasks'
     | '/admin/operations/timeline'
-    | '/admin/restaurant/bar'
-    | '/admin/restaurant/catalog'
-    | '/admin/restaurant/costing'
-    | '/admin/restaurant/decisions'
-    | '/admin/restaurant/documents'
-    | '/admin/restaurant/intelligence'
-    | '/admin/restaurant/inventory'
-    | '/admin/restaurant/inventory-control'
-    | '/admin/restaurant/kitchen'
-    | '/admin/restaurant/menu'
-    | '/admin/restaurant/orders'
-    | '/admin/restaurant/pos'
-    | '/admin/restaurant/pricing'
-    | '/admin/restaurant/procurement'
-    | '/admin/restaurant/products'
-    | '/admin/restaurant/profitability'
-    | '/admin/restaurant/purchasing'
-    | '/admin/restaurant/receipts'
-    | '/admin/restaurant/recipe-master'
-    | '/admin/restaurant/reconciliation'
-    | '/admin/restaurant/requisitions'
-    | '/admin/restaurant/settings'
-    | '/admin/restaurant/setup'
-    | '/admin/restaurant/stock'
-    | '/admin/restaurant/suppliers'
     | '/admin/staff/activity'
+    | '/admin/staff/entitlements'
     | '/admin/staff/roles'
     | '/admin/staff/users'
     | '/admin/system/health'
@@ -2788,7 +1980,6 @@ export interface FileRouteTypes {
     | '/admin/finance/'
     | '/admin/intelligence/'
     | '/admin/operations/'
-    | '/admin/restaurant/'
     | '/admin/settings/'
     | '/admin/ai/concierge/analytics'
     | '/admin/ai/concierge/channels'
@@ -2839,7 +2030,6 @@ export interface FileRouteTypes {
     | '/admin/operations/checkin/$id'
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
-    | '/admin/restaurant/bar/pos'
     | '/admin/settings/migrations/respad'
     | '/admin/ai/concierge/'
     | '/admin/ai/executive/'
@@ -2849,77 +2039,28 @@ export interface FileRouteTypes {
     | '/admin/content/journal/'
     | '/admin/content/pages/'
     | '/admin/operations/arrivals/'
-    | '/admin/restaurant/bar/'
     | '/admin/content/pages/$id/preview'
     | '/admin/ai/knowledge/test/'
     | '/admin/content/pages/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/about-us'
-    | '/accommodations'
-    | '/amenities-activities'
     | '/auth'
     | '/book'
     | '/booking-form'
-    | '/boutique-lodge-near-kilimanjaro-airport'
-    | '/contact'
-    | '/dining'
-    | '/dining-leisure'
-    | '/experiences'
-    | '/gallery'
-    | '/hello-world'
-    | '/lodge'
-    | '/mount-kilimanjaro-accommodation-arusha'
-    | '/plan'
-    | '/planning-your-tanzania-safari-where-to-stay-in-arusha'
-    | '/pricing'
     | '/privacy'
-    | '/reviews'
-    | '/sitemap-accommodation.xml'
-    | '/sitemap-cms.xml'
-    | '/sitemap-images.xml'
-    | '/sitemap-journal.xml'
-    | '/sitemap-pages.xml'
-    | '/sitemap.xml'
-    | '/stay'
-    | '/suites'
     | '/terms'
     | '/unsubscribe'
-    | '/vote'
-    | '/wlha-voting'
     | '/auth/callback'
     | '/auth/set-password'
-    | '/author/$'
     | '/booking/return'
-    | '/category/$'
     | '/check-in/$token'
     | '/check-in/expired'
     | '/check-in/success'
     | '/email/unsubscribe'
-    | '/feed/$'
-    | '/journal/$slug'
-    | '/journal/a-morning-with-the-beekeepers-of-gomba'
-    | '/journal/building-with-the-community'
-    | '/journal/discover-mtoni-river-lodge-arusha'
-    | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
-    | '/journal/life-along-the-nduruma-river'
-    | '/journal/perfect-arusha-stay-for-safari-travelers-2026'
-    | '/journal/reading-the-sky-over-mount-meru'
-    | '/journal/the-architecture-of-disappearing'
-    | '/journal/what-the-river-has-taught-us-about-time'
-    | '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
-    | '/p/$slug'
-    | '/receipt/$token'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
-    | '/tag/$'
-    | '/wp-admin/$'
-    | '/wp-content/$'
-    | '/wp-includes/$'
-    | '/wp-json/$'
-    | '/journal'
     | '/rooms'
     | '/admin/bookings'
     | '/admin/calendar'
@@ -2990,31 +2131,8 @@ export interface FileRouteTypes {
     | '/admin/operations/rooms'
     | '/admin/operations/tasks'
     | '/admin/operations/timeline'
-    | '/admin/restaurant/catalog'
-    | '/admin/restaurant/costing'
-    | '/admin/restaurant/decisions'
-    | '/admin/restaurant/documents'
-    | '/admin/restaurant/intelligence'
-    | '/admin/restaurant/inventory'
-    | '/admin/restaurant/inventory-control'
-    | '/admin/restaurant/kitchen'
-    | '/admin/restaurant/menu'
-    | '/admin/restaurant/orders'
-    | '/admin/restaurant/pos'
-    | '/admin/restaurant/pricing'
-    | '/admin/restaurant/procurement'
-    | '/admin/restaurant/products'
-    | '/admin/restaurant/profitability'
-    | '/admin/restaurant/purchasing'
-    | '/admin/restaurant/receipts'
-    | '/admin/restaurant/recipe-master'
-    | '/admin/restaurant/reconciliation'
-    | '/admin/restaurant/requisitions'
-    | '/admin/restaurant/settings'
-    | '/admin/restaurant/setup'
-    | '/admin/restaurant/stock'
-    | '/admin/restaurant/suppliers'
     | '/admin/staff/activity'
+    | '/admin/staff/entitlements'
     | '/admin/staff/roles'
     | '/admin/staff/users'
     | '/admin/system/health'
@@ -3039,7 +2157,6 @@ export interface FileRouteTypes {
     | '/admin/finance'
     | '/admin/intelligence'
     | '/admin/operations'
-    | '/admin/restaurant'
     | '/admin/settings'
     | '/admin/ai/concierge/analytics'
     | '/admin/ai/concierge/channels'
@@ -3090,7 +2207,6 @@ export interface FileRouteTypes {
     | '/admin/operations/checkin/$id'
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
-    | '/admin/restaurant/bar/pos'
     | '/admin/settings/migrations/respad'
     | '/admin/ai/concierge'
     | '/admin/ai/executive'
@@ -3100,7 +2216,6 @@ export interface FileRouteTypes {
     | '/admin/content/journal'
     | '/admin/content/pages'
     | '/admin/operations/arrivals'
-    | '/admin/restaurant/bar'
     | '/admin/content/pages/$id/preview'
     | '/admin/ai/knowledge/test'
     | '/admin/content/pages/$id'
@@ -3108,73 +2223,24 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
-    | '/about-us'
-    | '/accommodations'
-    | '/amenities-activities'
     | '/auth'
     | '/book'
     | '/booking-form'
-    | '/boutique-lodge-near-kilimanjaro-airport'
-    | '/contact'
-    | '/dining'
-    | '/dining-leisure'
-    | '/experiences'
-    | '/gallery'
-    | '/hello-world'
-    | '/journal'
-    | '/lodge'
-    | '/mount-kilimanjaro-accommodation-arusha'
-    | '/plan'
-    | '/planning-your-tanzania-safari-where-to-stay-in-arusha'
-    | '/pricing'
     | '/privacy'
-    | '/reviews'
     | '/rooms'
-    | '/sitemap-accommodation.xml'
-    | '/sitemap-cms.xml'
-    | '/sitemap-images.xml'
-    | '/sitemap-journal.xml'
-    | '/sitemap-pages.xml'
-    | '/sitemap.xml'
-    | '/stay'
-    | '/suites'
     | '/terms'
     | '/unsubscribe'
-    | '/vote'
-    | '/wlha-voting'
     | '/_authenticated/admin'
     | '/auth/callback'
     | '/auth/set-password'
-    | '/author/$'
     | '/booking/return'
-    | '/category/$'
     | '/check-in/$token'
     | '/check-in/expired'
     | '/check-in/success'
     | '/email/unsubscribe'
-    | '/feed/$'
-    | '/journal/$slug'
-    | '/journal/a-morning-with-the-beekeepers-of-gomba'
-    | '/journal/building-with-the-community'
-    | '/journal/discover-mtoni-river-lodge-arusha'
-    | '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
-    | '/journal/life-along-the-nduruma-river'
-    | '/journal/perfect-arusha-stay-for-safari-travelers-2026'
-    | '/journal/reading-the-sky-over-mount-meru'
-    | '/journal/the-architecture-of-disappearing'
-    | '/journal/what-the-river-has-taught-us-about-time'
-    | '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
-    | '/p/$slug'
-    | '/receipt/$token'
     | '/rooms/family-room'
     | '/rooms/riverfront-deluxe'
     | '/rooms/standard-river'
-    | '/tag/$'
-    | '/wp-admin/$'
-    | '/wp-content/$'
-    | '/wp-includes/$'
-    | '/wp-json/$'
-    | '/journal/'
     | '/rooms/'
     | '/_authenticated/admin/ai'
     | '/_authenticated/admin/analytics'
@@ -3184,7 +2250,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/front-desk'
     | '/_authenticated/admin/intelligence'
     | '/_authenticated/admin/operations'
-    | '/_authenticated/admin/restaurant'
     | '/_authenticated/admin/reviews'
     | '/api/public/health'
     | '/check-in/pass/$passToken'
@@ -3256,32 +2321,8 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations/rooms'
     | '/_authenticated/admin/operations/tasks'
     | '/_authenticated/admin/operations/timeline'
-    | '/_authenticated/admin/restaurant/bar'
-    | '/_authenticated/admin/restaurant/catalog'
-    | '/_authenticated/admin/restaurant/costing'
-    | '/_authenticated/admin/restaurant/decisions'
-    | '/_authenticated/admin/restaurant/documents'
-    | '/_authenticated/admin/restaurant/intelligence'
-    | '/_authenticated/admin/restaurant/inventory'
-    | '/_authenticated/admin/restaurant/inventory-control'
-    | '/_authenticated/admin/restaurant/kitchen'
-    | '/_authenticated/admin/restaurant/menu'
-    | '/_authenticated/admin/restaurant/orders'
-    | '/_authenticated/admin/restaurant/pos'
-    | '/_authenticated/admin/restaurant/pricing'
-    | '/_authenticated/admin/restaurant/procurement'
-    | '/_authenticated/admin/restaurant/products'
-    | '/_authenticated/admin/restaurant/profitability'
-    | '/_authenticated/admin/restaurant/purchasing'
-    | '/_authenticated/admin/restaurant/receipts'
-    | '/_authenticated/admin/restaurant/recipe-master'
-    | '/_authenticated/admin/restaurant/reconciliation'
-    | '/_authenticated/admin/restaurant/requisitions'
-    | '/_authenticated/admin/restaurant/settings'
-    | '/_authenticated/admin/restaurant/setup'
-    | '/_authenticated/admin/restaurant/stock'
-    | '/_authenticated/admin/restaurant/suppliers'
     | '/_authenticated/admin/staff/activity'
+    | '/_authenticated/admin/staff/entitlements'
     | '/_authenticated/admin/staff/roles'
     | '/_authenticated/admin/staff/users'
     | '/_authenticated/admin/system/health'
@@ -3306,7 +2347,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/finance/'
     | '/_authenticated/admin/intelligence/'
     | '/_authenticated/admin/operations/'
-    | '/_authenticated/admin/restaurant/'
     | '/_authenticated/admin/settings/'
     | '/_authenticated/admin/ai/concierge/analytics'
     | '/_authenticated/admin/ai/concierge/channels'
@@ -3357,7 +2397,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations/checkin/$id'
     | '/_authenticated/admin/operations/checkout/$id'
     | '/_authenticated/admin/operations/reservations/$id'
-    | '/_authenticated/admin/restaurant/bar/pos'
     | '/_authenticated/admin/settings/migrations/respad'
     | '/_authenticated/admin/ai/concierge/'
     | '/_authenticated/admin/ai/executive/'
@@ -3367,7 +2406,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/content/journal/'
     | '/_authenticated/admin/content/pages/'
     | '/_authenticated/admin/operations/arrivals/'
-    | '/_authenticated/admin/restaurant/bar/'
     | '/_authenticated/admin/content/pages/$id/preview'
     | '/_authenticated/admin/ai/knowledge/test/'
     | '/_authenticated/admin/content/pages/$id/'
@@ -3376,55 +2414,18 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
-  AboutUsRoute: typeof AboutUsRoute
-  AccommodationsRoute: typeof AccommodationsRoute
-  AmenitiesActivitiesRoute: typeof AmenitiesActivitiesRoute
   AuthRoute: typeof AuthRouteWithChildren
   BookRoute: typeof BookRoute
   BookingFormRoute: typeof BookingFormRoute
-  BoutiqueLodgeNearKilimanjaroAirportRoute: typeof BoutiqueLodgeNearKilimanjaroAirportRoute
-  ContactRoute: typeof ContactRoute
-  DiningRoute: typeof DiningRoute
-  DiningLeisureRoute: typeof DiningLeisureRoute
-  ExperiencesRoute: typeof ExperiencesRoute
-  GalleryRoute: typeof GalleryRoute
-  HelloWorldRoute: typeof HelloWorldRoute
-  JournalRoute: typeof JournalRouteWithChildren
-  LodgeRoute: typeof LodgeRoute
-  MountKilimanjaroAccommodationArushaRoute: typeof MountKilimanjaroAccommodationArushaRoute
-  PlanRoute: typeof PlanRoute
-  PlanningYourTanzaniaSafariWhereToStayInArushaRoute: typeof PlanningYourTanzaniaSafariWhereToStayInArushaRoute
-  PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
-  ReviewsRoute: typeof ReviewsRoute
   RoomsRoute: typeof RoomsRouteWithChildren
-  SitemapAccommodationDotxmlRoute: typeof SitemapAccommodationDotxmlRoute
-  SitemapCmsDotxmlRoute: typeof SitemapCmsDotxmlRoute
-  SitemapImagesDotxmlRoute: typeof SitemapImagesDotxmlRoute
-  SitemapJournalDotxmlRoute: typeof SitemapJournalDotxmlRoute
-  SitemapPagesDotxmlRoute: typeof SitemapPagesDotxmlRoute
-  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  StayRoute: typeof StayRoute
-  SuitesRoute: typeof SuitesRoute
   TermsRoute: typeof TermsRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
-  VoteRoute: typeof VoteRoute
-  WlhaVotingRoute: typeof WlhaVotingRoute
-  AuthorSplatRoute: typeof AuthorSplatRoute
   BookingReturnRoute: typeof BookingReturnRoute
-  CategorySplatRoute: typeof CategorySplatRoute
   CheckInTokenRoute: typeof CheckInTokenRoute
   CheckInExpiredRoute: typeof CheckInExpiredRoute
   CheckInSuccessRoute: typeof CheckInSuccessRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
-  FeedSplatRoute: typeof FeedSplatRoute
-  PSlugRoute: typeof PSlugRoute
-  ReceiptTokenRoute: typeof ReceiptTokenRoute
-  TagSplatRoute: typeof TagSplatRoute
-  WpAdminSplatRoute: typeof WpAdminSplatRoute
-  WpContentSplatRoute: typeof WpContentSplatRoute
-  WpIncludesSplatRoute: typeof WpIncludesSplatRoute
-  WpJsonSplatRoute: typeof WpJsonSplatRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   CheckInPassPassTokenRoute: typeof CheckInPassPassTokenRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
@@ -3460,27 +2461,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/about-us': {
-      id: '/about-us'
-      path: '/about-us'
-      fullPath: '/about-us'
-      preLoaderRoute: typeof AboutUsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/accommodations': {
-      id: '/accommodations'
-      path: '/accommodations'
-      fullPath: '/accommodations'
-      preLoaderRoute: typeof AccommodationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/amenities-activities': {
-      id: '/amenities-activities'
-      path: '/amenities-activities'
-      fullPath: '/amenities-activities'
-      preLoaderRoute: typeof AmenitiesActivitiesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -3502,97 +2482,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BookingFormRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/boutique-lodge-near-kilimanjaro-airport': {
-      id: '/boutique-lodge-near-kilimanjaro-airport'
-      path: '/boutique-lodge-near-kilimanjaro-airport'
-      fullPath: '/boutique-lodge-near-kilimanjaro-airport'
-      preLoaderRoute: typeof BoutiqueLodgeNearKilimanjaroAirportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dining': {
-      id: '/dining'
-      path: '/dining'
-      fullPath: '/dining'
-      preLoaderRoute: typeof DiningRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dining-leisure': {
-      id: '/dining-leisure'
-      path: '/dining-leisure'
-      fullPath: '/dining-leisure'
-      preLoaderRoute: typeof DiningLeisureRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/experiences': {
-      id: '/experiences'
-      path: '/experiences'
-      fullPath: '/experiences'
-      preLoaderRoute: typeof ExperiencesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/gallery': {
-      id: '/gallery'
-      path: '/gallery'
-      fullPath: '/gallery'
-      preLoaderRoute: typeof GalleryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/hello-world': {
-      id: '/hello-world'
-      path: '/hello-world'
-      fullPath: '/hello-world'
-      preLoaderRoute: typeof HelloWorldRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/journal': {
-      id: '/journal'
-      path: '/journal'
-      fullPath: '/journal'
-      preLoaderRoute: typeof JournalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lodge': {
-      id: '/lodge'
-      path: '/lodge'
-      fullPath: '/lodge'
-      preLoaderRoute: typeof LodgeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mount-kilimanjaro-accommodation-arusha': {
-      id: '/mount-kilimanjaro-accommodation-arusha'
-      path: '/mount-kilimanjaro-accommodation-arusha'
-      fullPath: '/mount-kilimanjaro-accommodation-arusha'
-      preLoaderRoute: typeof MountKilimanjaroAccommodationArushaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/plan': {
-      id: '/plan'
-      path: '/plan'
-      fullPath: '/plan'
-      preLoaderRoute: typeof PlanRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/planning-your-tanzania-safari-where-to-stay-in-arusha': {
-      id: '/planning-your-tanzania-safari-where-to-stay-in-arusha'
-      path: '/planning-your-tanzania-safari-where-to-stay-in-arusha'
-      fullPath: '/planning-your-tanzania-safari-where-to-stay-in-arusha'
-      preLoaderRoute: typeof PlanningYourTanzaniaSafariWhereToStayInArushaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
@@ -3600,74 +2489,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reviews': {
-      id: '/reviews'
-      path: '/reviews'
-      fullPath: '/reviews'
-      preLoaderRoute: typeof ReviewsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/rooms': {
       id: '/rooms'
       path: '/rooms'
       fullPath: '/rooms'
       preLoaderRoute: typeof RoomsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap-accommodation.xml': {
-      id: '/sitemap-accommodation.xml'
-      path: '/sitemap-accommodation.xml'
-      fullPath: '/sitemap-accommodation.xml'
-      preLoaderRoute: typeof SitemapAccommodationDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap-cms.xml': {
-      id: '/sitemap-cms.xml'
-      path: '/sitemap-cms.xml'
-      fullPath: '/sitemap-cms.xml'
-      preLoaderRoute: typeof SitemapCmsDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap-images.xml': {
-      id: '/sitemap-images.xml'
-      path: '/sitemap-images.xml'
-      fullPath: '/sitemap-images.xml'
-      preLoaderRoute: typeof SitemapImagesDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap-journal.xml': {
-      id: '/sitemap-journal.xml'
-      path: '/sitemap-journal.xml'
-      fullPath: '/sitemap-journal.xml'
-      preLoaderRoute: typeof SitemapJournalDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap-pages.xml': {
-      id: '/sitemap-pages.xml'
-      path: '/sitemap-pages.xml'
-      fullPath: '/sitemap-pages.xml'
-      preLoaderRoute: typeof SitemapPagesDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/stay': {
-      id: '/stay'
-      path: '/stay'
-      fullPath: '/stay'
-      preLoaderRoute: typeof StayRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/suites': {
-      id: '/suites'
-      path: '/suites'
-      fullPath: '/suites'
-      preLoaderRoute: typeof SuitesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms': {
@@ -3682,20 +2508,6 @@ declare module '@tanstack/react-router' {
       path: '/unsubscribe'
       fullPath: '/unsubscribe'
       preLoaderRoute: typeof UnsubscribeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/vote': {
-      id: '/vote'
-      path: '/vote'
-      fullPath: '/vote'
-      preLoaderRoute: typeof VoteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/wlha-voting': {
-      id: '/wlha-voting'
-      path: '/wlha-voting'
-      fullPath: '/wlha-voting'
-      preLoaderRoute: typeof WlhaVotingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
@@ -3719,25 +2531,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthSetPasswordRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/author/$': {
-      id: '/author/$'
-      path: '/author/$'
-      fullPath: '/author/$'
-      preLoaderRoute: typeof AuthorSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/booking/return': {
       id: '/booking/return'
       path: '/booking/return'
       fullPath: '/booking/return'
       preLoaderRoute: typeof BookingReturnRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/category/$': {
-      id: '/category/$'
-      path: '/category/$'
-      fullPath: '/category/$'
-      preLoaderRoute: typeof CategorySplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/check-in/$token': {
@@ -3768,111 +2566,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/feed/$': {
-      id: '/feed/$'
-      path: '/feed/$'
-      fullPath: '/feed/$'
-      preLoaderRoute: typeof FeedSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/journal/': {
-      id: '/journal/'
-      path: '/'
-      fullPath: '/journal/'
-      preLoaderRoute: typeof JournalIndexRouteImport
-      parentRoute: typeof JournalRoute
-    }
-    '/journal/$slug': {
-      id: '/journal/$slug'
-      path: '/$slug'
-      fullPath: '/journal/$slug'
-      preLoaderRoute: typeof JournalSlugRouteImport
-      parentRoute: typeof JournalRoute
-    }
-    '/journal/a-morning-with-the-beekeepers-of-gomba': {
-      id: '/journal/a-morning-with-the-beekeepers-of-gomba'
-      path: '/a-morning-with-the-beekeepers-of-gomba'
-      fullPath: '/journal/a-morning-with-the-beekeepers-of-gomba'
-      preLoaderRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRouteImport
-      parentRoute: typeof JournalRoute
-    }
-    '/journal/building-with-the-community': {
-      id: '/journal/building-with-the-community'
-      path: '/building-with-the-community'
-      fullPath: '/journal/building-with-the-community'
-      preLoaderRoute: typeof JournalBuildingWithTheCommunityRouteImport
-      parentRoute: typeof JournalRoute
-    }
-    '/journal/discover-mtoni-river-lodge-arusha': {
-      id: '/journal/discover-mtoni-river-lodge-arusha'
-      path: '/discover-mtoni-river-lodge-arusha'
-      fullPath: '/journal/discover-mtoni-river-lodge-arusha'
-      preLoaderRoute: typeof JournalDiscoverMtoniRiverLodgeArushaRouteImport
-      parentRoute: typeof JournalRoute
-    }
-    '/journal/discovering-arusha-through-nature-and-authentic-hospitality': {
-      id: '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
-      path: '/discovering-arusha-through-nature-and-authentic-hospitality'
-      fullPath: '/journal/discovering-arusha-through-nature-and-authentic-hospitality'
-      preLoaderRoute: typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRouteImport
-      parentRoute: typeof JournalRoute
-    }
-    '/journal/life-along-the-nduruma-river': {
-      id: '/journal/life-along-the-nduruma-river'
-      path: '/life-along-the-nduruma-river'
-      fullPath: '/journal/life-along-the-nduruma-river'
-      preLoaderRoute: typeof JournalLifeAlongTheNdurumaRiverRouteImport
-      parentRoute: typeof JournalRoute
-    }
-    '/journal/perfect-arusha-stay-for-safari-travelers-2026': {
-      id: '/journal/perfect-arusha-stay-for-safari-travelers-2026'
-      path: '/perfect-arusha-stay-for-safari-travelers-2026'
-      fullPath: '/journal/perfect-arusha-stay-for-safari-travelers-2026'
-      preLoaderRoute: typeof JournalPerfectArushaStayForSafariTravelers2026RouteImport
-      parentRoute: typeof JournalRoute
-    }
-    '/journal/reading-the-sky-over-mount-meru': {
-      id: '/journal/reading-the-sky-over-mount-meru'
-      path: '/reading-the-sky-over-mount-meru'
-      fullPath: '/journal/reading-the-sky-over-mount-meru'
-      preLoaderRoute: typeof JournalReadingTheSkyOverMountMeruRouteImport
-      parentRoute: typeof JournalRoute
-    }
-    '/journal/the-architecture-of-disappearing': {
-      id: '/journal/the-architecture-of-disappearing'
-      path: '/the-architecture-of-disappearing'
-      fullPath: '/journal/the-architecture-of-disappearing'
-      preLoaderRoute: typeof JournalTheArchitectureOfDisappearingRouteImport
-      parentRoute: typeof JournalRoute
-    }
-    '/journal/what-the-river-has-taught-us-about-time': {
-      id: '/journal/what-the-river-has-taught-us-about-time'
-      path: '/what-the-river-has-taught-us-about-time'
-      fullPath: '/journal/what-the-river-has-taught-us-about-time'
-      preLoaderRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRouteImport
-      parentRoute: typeof JournalRoute
-    }
-    '/journal/where-to-stay-before-climbing-mount-kilimanjaro': {
-      id: '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
-      path: '/where-to-stay-before-climbing-mount-kilimanjaro'
-      fullPath: '/journal/where-to-stay-before-climbing-mount-kilimanjaro'
-      preLoaderRoute: typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRouteImport
-      parentRoute: typeof JournalRoute
-    }
-    '/p/$slug': {
-      id: '/p/$slug'
-      path: '/p/$slug'
-      fullPath: '/p/$slug'
-      preLoaderRoute: typeof PSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/receipt/$token': {
-      id: '/receipt/$token'
-      path: '/receipt/$token'
-      fullPath: '/receipt/$token'
-      preLoaderRoute: typeof ReceiptTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/rooms/': {
       id: '/rooms/'
       path: '/'
@@ -3900,41 +2593,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/rooms/standard-river'
       preLoaderRoute: typeof RoomsStandardRiverRouteImport
       parentRoute: typeof RoomsRoute
-    }
-    '/tag/$': {
-      id: '/tag/$'
-      path: '/tag/$'
-      fullPath: '/tag/$'
-      preLoaderRoute: typeof TagSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/wp-admin/$': {
-      id: '/wp-admin/$'
-      path: '/wp-admin/$'
-      fullPath: '/wp-admin/$'
-      preLoaderRoute: typeof WpAdminSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/wp-content/$': {
-      id: '/wp-content/$'
-      path: '/wp-content/$'
-      fullPath: '/wp-content/$'
-      preLoaderRoute: typeof WpContentSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/wp-includes/$': {
-      id: '/wp-includes/$'
-      path: '/wp-includes/$'
-      fullPath: '/wp-includes/$'
-      preLoaderRoute: typeof WpIncludesSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/wp-json/$': {
-      id: '/wp-json/$'
-      path: '/wp-json/$'
-      fullPath: '/wp-json/$'
-      preLoaderRoute: typeof WpJsonSplatRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
@@ -3997,13 +2655,6 @@ declare module '@tanstack/react-router' {
       path: '/operations'
       fullPath: '/admin/operations'
       preLoaderRoute: typeof AuthenticatedAdminOperationsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/restaurant': {
-      id: '/_authenticated/admin/restaurant'
-      path: '/restaurant'
-      fullPath: '/admin/restaurant'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/reviews': {
@@ -4538,188 +3189,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminOperationsTimelineRouteImport
       parentRoute: typeof AuthenticatedAdminOperationsRoute
     }
-    '/_authenticated/admin/restaurant/': {
-      id: '/_authenticated/admin/restaurant/'
-      path: '/'
-      fullPath: '/admin/restaurant/'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/bar': {
-      id: '/_authenticated/admin/restaurant/bar'
-      path: '/bar'
-      fullPath: '/admin/restaurant/bar'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantBarRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/catalog': {
-      id: '/_authenticated/admin/restaurant/catalog'
-      path: '/catalog'
-      fullPath: '/admin/restaurant/catalog'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantCatalogRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/costing': {
-      id: '/_authenticated/admin/restaurant/costing'
-      path: '/costing'
-      fullPath: '/admin/restaurant/costing'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantCostingRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/decisions': {
-      id: '/_authenticated/admin/restaurant/decisions'
-      path: '/decisions'
-      fullPath: '/admin/restaurant/decisions'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantDecisionsRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/documents': {
-      id: '/_authenticated/admin/restaurant/documents'
-      path: '/documents'
-      fullPath: '/admin/restaurant/documents'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantDocumentsRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/intelligence': {
-      id: '/_authenticated/admin/restaurant/intelligence'
-      path: '/intelligence'
-      fullPath: '/admin/restaurant/intelligence'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantIntelligenceRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/inventory': {
-      id: '/_authenticated/admin/restaurant/inventory'
-      path: '/inventory'
-      fullPath: '/admin/restaurant/inventory'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantInventoryRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/inventory-control': {
-      id: '/_authenticated/admin/restaurant/inventory-control'
-      path: '/inventory-control'
-      fullPath: '/admin/restaurant/inventory-control'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantInventoryControlRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/kitchen': {
-      id: '/_authenticated/admin/restaurant/kitchen'
-      path: '/kitchen'
-      fullPath: '/admin/restaurant/kitchen'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantKitchenRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/menu': {
-      id: '/_authenticated/admin/restaurant/menu'
-      path: '/menu'
-      fullPath: '/admin/restaurant/menu'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantMenuRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/orders': {
-      id: '/_authenticated/admin/restaurant/orders'
-      path: '/orders'
-      fullPath: '/admin/restaurant/orders'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantOrdersRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/pos': {
-      id: '/_authenticated/admin/restaurant/pos'
-      path: '/pos'
-      fullPath: '/admin/restaurant/pos'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantPosRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/pricing': {
-      id: '/_authenticated/admin/restaurant/pricing'
-      path: '/pricing'
-      fullPath: '/admin/restaurant/pricing'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantPricingRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/procurement': {
-      id: '/_authenticated/admin/restaurant/procurement'
-      path: '/procurement'
-      fullPath: '/admin/restaurant/procurement'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantProcurementRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/products': {
-      id: '/_authenticated/admin/restaurant/products'
-      path: '/products'
-      fullPath: '/admin/restaurant/products'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantProductsRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/profitability': {
-      id: '/_authenticated/admin/restaurant/profitability'
-      path: '/profitability'
-      fullPath: '/admin/restaurant/profitability'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantProfitabilityRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/purchasing': {
-      id: '/_authenticated/admin/restaurant/purchasing'
-      path: '/purchasing'
-      fullPath: '/admin/restaurant/purchasing'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantPurchasingRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/receipts': {
-      id: '/_authenticated/admin/restaurant/receipts'
-      path: '/receipts'
-      fullPath: '/admin/restaurant/receipts'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantReceiptsRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/recipe-master': {
-      id: '/_authenticated/admin/restaurant/recipe-master'
-      path: '/recipe-master'
-      fullPath: '/admin/restaurant/recipe-master'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantRecipeMasterRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/reconciliation': {
-      id: '/_authenticated/admin/restaurant/reconciliation'
-      path: '/reconciliation'
-      fullPath: '/admin/restaurant/reconciliation'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantReconciliationRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/requisitions': {
-      id: '/_authenticated/admin/restaurant/requisitions'
-      path: '/requisitions'
-      fullPath: '/admin/restaurant/requisitions'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantRequisitionsRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/settings': {
-      id: '/_authenticated/admin/restaurant/settings'
-      path: '/settings'
-      fullPath: '/admin/restaurant/settings'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantSettingsRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/setup': {
-      id: '/_authenticated/admin/restaurant/setup'
-      path: '/setup'
-      fullPath: '/admin/restaurant/setup'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantSetupRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/stock': {
-      id: '/_authenticated/admin/restaurant/stock'
-      path: '/stock'
-      fullPath: '/admin/restaurant/stock'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantStockRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
-    '/_authenticated/admin/restaurant/suppliers': {
-      id: '/_authenticated/admin/restaurant/suppliers'
-      path: '/suppliers'
-      fullPath: '/admin/restaurant/suppliers'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantSuppliersRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantRoute
-    }
     '/_authenticated/admin/settings/': {
       id: '/_authenticated/admin/settings/'
       path: '/settings'
@@ -4732,6 +3201,13 @@ declare module '@tanstack/react-router' {
       path: '/staff/activity'
       fullPath: '/admin/staff/activity'
       preLoaderRoute: typeof AuthenticatedAdminStaffActivityRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/staff/entitlements': {
+      id: '/_authenticated/admin/staff/entitlements'
+      path: '/staff/entitlements'
+      fullPath: '/admin/staff/entitlements'
+      preLoaderRoute: typeof AuthenticatedAdminStaffEntitlementsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/staff/roles': {
@@ -5259,20 +3735,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminOperationsReservationsIdRouteImport
       parentRoute: typeof AuthenticatedAdminOperationsRoute
     }
-    '/_authenticated/admin/restaurant/bar/': {
-      id: '/_authenticated/admin/restaurant/bar/'
-      path: '/'
-      fullPath: '/admin/restaurant/bar/'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantBarIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantBarRoute
-    }
-    '/_authenticated/admin/restaurant/bar/pos': {
-      id: '/_authenticated/admin/restaurant/bar/pos'
-      path: '/pos'
-      fullPath: '/admin/restaurant/bar/pos'
-      preLoaderRoute: typeof AuthenticatedAdminRestaurantBarPosRouteImport
-      parentRoute: typeof AuthenticatedAdminRestaurantBarRoute
-    }
     '/_authenticated/admin/settings/migrations/respad': {
       id: '/_authenticated/admin/settings/migrations/respad'
       path: '/settings/migrations/respad'
@@ -5752,113 +4214,6 @@ const AuthenticatedAdminOperationsRouteWithChildren =
     AuthenticatedAdminOperationsRouteChildren,
   )
 
-interface AuthenticatedAdminRestaurantBarRouteChildren {
-  AuthenticatedAdminRestaurantBarPosRoute: typeof AuthenticatedAdminRestaurantBarPosRoute
-  AuthenticatedAdminRestaurantBarIndexRoute: typeof AuthenticatedAdminRestaurantBarIndexRoute
-}
-
-const AuthenticatedAdminRestaurantBarRouteChildren: AuthenticatedAdminRestaurantBarRouteChildren =
-  {
-    AuthenticatedAdminRestaurantBarPosRoute:
-      AuthenticatedAdminRestaurantBarPosRoute,
-    AuthenticatedAdminRestaurantBarIndexRoute:
-      AuthenticatedAdminRestaurantBarIndexRoute,
-  }
-
-const AuthenticatedAdminRestaurantBarRouteWithChildren =
-  AuthenticatedAdminRestaurantBarRoute._addFileChildren(
-    AuthenticatedAdminRestaurantBarRouteChildren,
-  )
-
-interface AuthenticatedAdminRestaurantRouteChildren {
-  AuthenticatedAdminRestaurantBarRoute: typeof AuthenticatedAdminRestaurantBarRouteWithChildren
-  AuthenticatedAdminRestaurantCatalogRoute: typeof AuthenticatedAdminRestaurantCatalogRoute
-  AuthenticatedAdminRestaurantCostingRoute: typeof AuthenticatedAdminRestaurantCostingRoute
-  AuthenticatedAdminRestaurantDecisionsRoute: typeof AuthenticatedAdminRestaurantDecisionsRoute
-  AuthenticatedAdminRestaurantDocumentsRoute: typeof AuthenticatedAdminRestaurantDocumentsRoute
-  AuthenticatedAdminRestaurantIntelligenceRoute: typeof AuthenticatedAdminRestaurantIntelligenceRoute
-  AuthenticatedAdminRestaurantInventoryRoute: typeof AuthenticatedAdminRestaurantInventoryRoute
-  AuthenticatedAdminRestaurantInventoryControlRoute: typeof AuthenticatedAdminRestaurantInventoryControlRoute
-  AuthenticatedAdminRestaurantKitchenRoute: typeof AuthenticatedAdminRestaurantKitchenRoute
-  AuthenticatedAdminRestaurantMenuRoute: typeof AuthenticatedAdminRestaurantMenuRoute
-  AuthenticatedAdminRestaurantOrdersRoute: typeof AuthenticatedAdminRestaurantOrdersRoute
-  AuthenticatedAdminRestaurantPosRoute: typeof AuthenticatedAdminRestaurantPosRoute
-  AuthenticatedAdminRestaurantPricingRoute: typeof AuthenticatedAdminRestaurantPricingRoute
-  AuthenticatedAdminRestaurantProcurementRoute: typeof AuthenticatedAdminRestaurantProcurementRoute
-  AuthenticatedAdminRestaurantProductsRoute: typeof AuthenticatedAdminRestaurantProductsRoute
-  AuthenticatedAdminRestaurantProfitabilityRoute: typeof AuthenticatedAdminRestaurantProfitabilityRoute
-  AuthenticatedAdminRestaurantPurchasingRoute: typeof AuthenticatedAdminRestaurantPurchasingRoute
-  AuthenticatedAdminRestaurantReceiptsRoute: typeof AuthenticatedAdminRestaurantReceiptsRoute
-  AuthenticatedAdminRestaurantRecipeMasterRoute: typeof AuthenticatedAdminRestaurantRecipeMasterRoute
-  AuthenticatedAdminRestaurantReconciliationRoute: typeof AuthenticatedAdminRestaurantReconciliationRoute
-  AuthenticatedAdminRestaurantRequisitionsRoute: typeof AuthenticatedAdminRestaurantRequisitionsRoute
-  AuthenticatedAdminRestaurantSettingsRoute: typeof AuthenticatedAdminRestaurantSettingsRoute
-  AuthenticatedAdminRestaurantSetupRoute: typeof AuthenticatedAdminRestaurantSetupRoute
-  AuthenticatedAdminRestaurantStockRoute: typeof AuthenticatedAdminRestaurantStockRoute
-  AuthenticatedAdminRestaurantSuppliersRoute: typeof AuthenticatedAdminRestaurantSuppliersRoute
-  AuthenticatedAdminRestaurantIndexRoute: typeof AuthenticatedAdminRestaurantIndexRoute
-}
-
-const AuthenticatedAdminRestaurantRouteChildren: AuthenticatedAdminRestaurantRouteChildren =
-  {
-    AuthenticatedAdminRestaurantBarRoute:
-      AuthenticatedAdminRestaurantBarRouteWithChildren,
-    AuthenticatedAdminRestaurantCatalogRoute:
-      AuthenticatedAdminRestaurantCatalogRoute,
-    AuthenticatedAdminRestaurantCostingRoute:
-      AuthenticatedAdminRestaurantCostingRoute,
-    AuthenticatedAdminRestaurantDecisionsRoute:
-      AuthenticatedAdminRestaurantDecisionsRoute,
-    AuthenticatedAdminRestaurantDocumentsRoute:
-      AuthenticatedAdminRestaurantDocumentsRoute,
-    AuthenticatedAdminRestaurantIntelligenceRoute:
-      AuthenticatedAdminRestaurantIntelligenceRoute,
-    AuthenticatedAdminRestaurantInventoryRoute:
-      AuthenticatedAdminRestaurantInventoryRoute,
-    AuthenticatedAdminRestaurantInventoryControlRoute:
-      AuthenticatedAdminRestaurantInventoryControlRoute,
-    AuthenticatedAdminRestaurantKitchenRoute:
-      AuthenticatedAdminRestaurantKitchenRoute,
-    AuthenticatedAdminRestaurantMenuRoute:
-      AuthenticatedAdminRestaurantMenuRoute,
-    AuthenticatedAdminRestaurantOrdersRoute:
-      AuthenticatedAdminRestaurantOrdersRoute,
-    AuthenticatedAdminRestaurantPosRoute: AuthenticatedAdminRestaurantPosRoute,
-    AuthenticatedAdminRestaurantPricingRoute:
-      AuthenticatedAdminRestaurantPricingRoute,
-    AuthenticatedAdminRestaurantProcurementRoute:
-      AuthenticatedAdminRestaurantProcurementRoute,
-    AuthenticatedAdminRestaurantProductsRoute:
-      AuthenticatedAdminRestaurantProductsRoute,
-    AuthenticatedAdminRestaurantProfitabilityRoute:
-      AuthenticatedAdminRestaurantProfitabilityRoute,
-    AuthenticatedAdminRestaurantPurchasingRoute:
-      AuthenticatedAdminRestaurantPurchasingRoute,
-    AuthenticatedAdminRestaurantReceiptsRoute:
-      AuthenticatedAdminRestaurantReceiptsRoute,
-    AuthenticatedAdminRestaurantRecipeMasterRoute:
-      AuthenticatedAdminRestaurantRecipeMasterRoute,
-    AuthenticatedAdminRestaurantReconciliationRoute:
-      AuthenticatedAdminRestaurantReconciliationRoute,
-    AuthenticatedAdminRestaurantRequisitionsRoute:
-      AuthenticatedAdminRestaurantRequisitionsRoute,
-    AuthenticatedAdminRestaurantSettingsRoute:
-      AuthenticatedAdminRestaurantSettingsRoute,
-    AuthenticatedAdminRestaurantSetupRoute:
-      AuthenticatedAdminRestaurantSetupRoute,
-    AuthenticatedAdminRestaurantStockRoute:
-      AuthenticatedAdminRestaurantStockRoute,
-    AuthenticatedAdminRestaurantSuppliersRoute:
-      AuthenticatedAdminRestaurantSuppliersRoute,
-    AuthenticatedAdminRestaurantIndexRoute:
-      AuthenticatedAdminRestaurantIndexRoute,
-  }
-
-const AuthenticatedAdminRestaurantRouteWithChildren =
-  AuthenticatedAdminRestaurantRoute._addFileChildren(
-    AuthenticatedAdminRestaurantRouteChildren,
-  )
-
 interface AuthenticatedAdminGuestsCrmRouteChildren {
   AuthenticatedAdminGuestsCrmIdRoute: typeof AuthenticatedAdminGuestsCrmIdRoute
   AuthenticatedAdminGuestsCrmDuplicatesRoute: typeof AuthenticatedAdminGuestsCrmDuplicatesRoute
@@ -5885,7 +4240,6 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminFrontDeskRoute: typeof AuthenticatedAdminFrontDeskRoute
   AuthenticatedAdminIntelligenceRoute: typeof AuthenticatedAdminIntelligenceRouteWithChildren
   AuthenticatedAdminOperationsRoute: typeof AuthenticatedAdminOperationsRouteWithChildren
-  AuthenticatedAdminRestaurantRoute: typeof AuthenticatedAdminRestaurantRouteWithChildren
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminContentBrandRoute: typeof AuthenticatedAdminContentBrandRoute
@@ -5911,6 +4265,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminMarketingReviewsRoute: typeof AuthenticatedAdminMarketingReviewsRoute
   AuthenticatedAdminMarketingSeoRoute: typeof AuthenticatedAdminMarketingSeoRoute
   AuthenticatedAdminStaffActivityRoute: typeof AuthenticatedAdminStaffActivityRoute
+  AuthenticatedAdminStaffEntitlementsRoute: typeof AuthenticatedAdminStaffEntitlementsRoute
   AuthenticatedAdminStaffRolesRoute: typeof AuthenticatedAdminStaffRolesRoute
   AuthenticatedAdminStaffUsersRoute: typeof AuthenticatedAdminStaffUsersRoute
   AuthenticatedAdminSystemHealthRoute: typeof AuthenticatedAdminSystemHealthRoute
@@ -5938,8 +4293,6 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
     AuthenticatedAdminIntelligenceRouteWithChildren,
   AuthenticatedAdminOperationsRoute:
     AuthenticatedAdminOperationsRouteWithChildren,
-  AuthenticatedAdminRestaurantRoute:
-    AuthenticatedAdminRestaurantRouteWithChildren,
   AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminContentBrandRoute: AuthenticatedAdminContentBrandRoute,
@@ -5978,6 +4331,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
     AuthenticatedAdminMarketingReviewsRoute,
   AuthenticatedAdminMarketingSeoRoute: AuthenticatedAdminMarketingSeoRoute,
   AuthenticatedAdminStaffActivityRoute: AuthenticatedAdminStaffActivityRoute,
+  AuthenticatedAdminStaffEntitlementsRoute:
+    AuthenticatedAdminStaffEntitlementsRoute,
   AuthenticatedAdminStaffRolesRoute: AuthenticatedAdminStaffRolesRoute,
   AuthenticatedAdminStaffUsersRoute: AuthenticatedAdminStaffUsersRoute,
   AuthenticatedAdminSystemHealthRoute: AuthenticatedAdminSystemHealthRoute,
@@ -6025,47 +4380,6 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
-interface JournalRouteChildren {
-  JournalSlugRoute: typeof JournalSlugRoute
-  JournalAMorningWithTheBeekeepersOfGombaRoute: typeof JournalAMorningWithTheBeekeepersOfGombaRoute
-  JournalBuildingWithTheCommunityRoute: typeof JournalBuildingWithTheCommunityRoute
-  JournalDiscoverMtoniRiverLodgeArushaRoute: typeof JournalDiscoverMtoniRiverLodgeArushaRoute
-  JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute: typeof JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute
-  JournalLifeAlongTheNdurumaRiverRoute: typeof JournalLifeAlongTheNdurumaRiverRoute
-  JournalPerfectArushaStayForSafariTravelers2026Route: typeof JournalPerfectArushaStayForSafariTravelers2026Route
-  JournalReadingTheSkyOverMountMeruRoute: typeof JournalReadingTheSkyOverMountMeruRoute
-  JournalTheArchitectureOfDisappearingRoute: typeof JournalTheArchitectureOfDisappearingRoute
-  JournalWhatTheRiverHasTaughtUsAboutTimeRoute: typeof JournalWhatTheRiverHasTaughtUsAboutTimeRoute
-  JournalWhereToStayBeforeClimbingMountKilimanjaroRoute: typeof JournalWhereToStayBeforeClimbingMountKilimanjaroRoute
-  JournalIndexRoute: typeof JournalIndexRoute
-}
-
-const JournalRouteChildren: JournalRouteChildren = {
-  JournalSlugRoute: JournalSlugRoute,
-  JournalAMorningWithTheBeekeepersOfGombaRoute:
-    JournalAMorningWithTheBeekeepersOfGombaRoute,
-  JournalBuildingWithTheCommunityRoute: JournalBuildingWithTheCommunityRoute,
-  JournalDiscoverMtoniRiverLodgeArushaRoute:
-    JournalDiscoverMtoniRiverLodgeArushaRoute,
-  JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute:
-    JournalDiscoveringArushaThroughNatureAndAuthenticHospitalityRoute,
-  JournalLifeAlongTheNdurumaRiverRoute: JournalLifeAlongTheNdurumaRiverRoute,
-  JournalPerfectArushaStayForSafariTravelers2026Route:
-    JournalPerfectArushaStayForSafariTravelers2026Route,
-  JournalReadingTheSkyOverMountMeruRoute:
-    JournalReadingTheSkyOverMountMeruRoute,
-  JournalTheArchitectureOfDisappearingRoute:
-    JournalTheArchitectureOfDisappearingRoute,
-  JournalWhatTheRiverHasTaughtUsAboutTimeRoute:
-    JournalWhatTheRiverHasTaughtUsAboutTimeRoute,
-  JournalWhereToStayBeforeClimbingMountKilimanjaroRoute:
-    JournalWhereToStayBeforeClimbingMountKilimanjaroRoute,
-  JournalIndexRoute: JournalIndexRoute,
-}
-
-const JournalRouteWithChildren =
-  JournalRoute._addFileChildren(JournalRouteChildren)
-
 interface RoomsRouteChildren {
   RoomsFamilyRoomRoute: typeof RoomsFamilyRoomRoute
   RoomsRiverfrontDeluxeRoute: typeof RoomsRiverfrontDeluxeRoute
@@ -6085,58 +4399,18 @@ const RoomsRouteWithChildren = RoomsRoute._addFileChildren(RoomsRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
-  AboutUsRoute: AboutUsRoute,
-  AccommodationsRoute: AccommodationsRoute,
-  AmenitiesActivitiesRoute: AmenitiesActivitiesRoute,
   AuthRoute: AuthRouteWithChildren,
   BookRoute: BookRoute,
   BookingFormRoute: BookingFormRoute,
-  BoutiqueLodgeNearKilimanjaroAirportRoute:
-    BoutiqueLodgeNearKilimanjaroAirportRoute,
-  ContactRoute: ContactRoute,
-  DiningRoute: DiningRoute,
-  DiningLeisureRoute: DiningLeisureRoute,
-  ExperiencesRoute: ExperiencesRoute,
-  GalleryRoute: GalleryRoute,
-  HelloWorldRoute: HelloWorldRoute,
-  JournalRoute: JournalRouteWithChildren,
-  LodgeRoute: LodgeRoute,
-  MountKilimanjaroAccommodationArushaRoute:
-    MountKilimanjaroAccommodationArushaRoute,
-  PlanRoute: PlanRoute,
-  PlanningYourTanzaniaSafariWhereToStayInArushaRoute:
-    PlanningYourTanzaniaSafariWhereToStayInArushaRoute,
-  PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
-  ReviewsRoute: ReviewsRoute,
   RoomsRoute: RoomsRouteWithChildren,
-  SitemapAccommodationDotxmlRoute: SitemapAccommodationDotxmlRoute,
-  SitemapCmsDotxmlRoute: SitemapCmsDotxmlRoute,
-  SitemapImagesDotxmlRoute: SitemapImagesDotxmlRoute,
-  SitemapJournalDotxmlRoute: SitemapJournalDotxmlRoute,
-  SitemapPagesDotxmlRoute: SitemapPagesDotxmlRoute,
-  SitemapDotxmlRoute: SitemapDotxmlRoute,
-  StayRoute: StayRoute,
-  SuitesRoute: SuitesRoute,
   TermsRoute: TermsRoute,
   UnsubscribeRoute: UnsubscribeRoute,
-  VoteRoute: VoteRoute,
-  WlhaVotingRoute: WlhaVotingRoute,
-  AuthorSplatRoute: AuthorSplatRoute,
   BookingReturnRoute: BookingReturnRoute,
-  CategorySplatRoute: CategorySplatRoute,
   CheckInTokenRoute: CheckInTokenRoute,
   CheckInExpiredRoute: CheckInExpiredRoute,
   CheckInSuccessRoute: CheckInSuccessRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
-  FeedSplatRoute: FeedSplatRoute,
-  PSlugRoute: PSlugRoute,
-  ReceiptTokenRoute: ReceiptTokenRoute,
-  TagSplatRoute: TagSplatRoute,
-  WpAdminSplatRoute: WpAdminSplatRoute,
-  WpContentSplatRoute: WpContentSplatRoute,
-  WpIncludesSplatRoute: WpIncludesSplatRoute,
-  WpJsonSplatRoute: WpJsonSplatRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
   CheckInPassPassTokenRoute: CheckInPassPassTokenRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
