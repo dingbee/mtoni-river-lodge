@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { ArrowLeft, ArrowRight, BedDouble, Maximize2, Users } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -27,4 +28,4 @@ function RoomDetailPage() {
     <section className="border-y bg-muted/20 px-6 py-12 lg:px-10 lg:py-16"><div className="mx-auto max-w-7xl"><div className="grid gap-10 md:grid-cols-2"><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Features</p>{room.category?.features?.length?<ul className="mt-4 grid gap-2 sm:grid-cols-2">{room.category.features.map(f=><li key={f} className="rounded-lg border bg-card p-3 text-sm">{f}</li>)}</ul>:<p className="mt-3 text-sm text-muted-foreground">No features configured yet.</p>}</div><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Specifications</p>{Object.keys(room.category?.specifications??{}).length?<dl className="mt-4 divide-y rounded-lg border bg-card">{Object.entries(room.category?.specifications??{}).map(([k,v])=><div key={k} className="flex justify-between gap-4 p-3 text-sm"><dt className="text-muted-foreground">{k}</dt><dd className="text-right font-medium">{v}</dd></div>)}</dl>:<p className="mt-3 text-sm text-muted-foreground">No specifications configured yet.</p>}</div></div></div></section>
   </main><SiteFooter/><ConciergeWidget/></div>;
 }
-function Meta({icon,label}:{icon:React.ReactNode;label:string}) { return <div className="rounded-xl border bg-card p-4"><div className="text-primary">{icon}</div><p className="mt-2 text-xs leading-5 text-muted-foreground">{label}</p></div>; }
+function Meta({icon,label}:{icon:ReactNode;label:string}) { return <div className="rounded-xl border bg-card p-4"><div className="text-primary">{icon}</div><p className="mt-2 text-xs leading-5 text-muted-foreground">{label}</p></div>; }
