@@ -4,12 +4,12 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminTopbar } from "./AdminTopbar";
 import { AdminAssistantRail } from "./AdminAssistantRail";
-import { useCurrentUserRoles, canAccessModule } from "@/lib/permissions";
+import { useCurrentUserRoles, getModuleAccessState } from "@/lib/permissions";
 import { useRealtimeNotifications } from "@/lib/notifications";
 import { installIntelligenceBridge } from "@/modules/intelligence/activation/bridge";
 import { applyOsTheme, useOsTheme } from "@/lib/os-theme";
 import { PropertyProvider } from "@/modules/property/PropertyContext";
-import { findNavByHref } from "./nav-config";
+import { requiredModuleForPath } from "./nav-config";
 import { LockKeyhole } from "lucide-react";
 
 const COLLAPSED_KEY = "staynas-os.sidebar.collapsed";
@@ -20,13 +20,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [railOpen, setRailOpen] = useState(true);
-  const { data: roles = [], isLoading: rolesLoading } = useCurrentUserRoles();
+  const rolesQuery = useCurrentUserRoles();
+  const roles = rolesQuery.data ?? [];
   const { pathname } = useLocation();
   const { resolved } = useOsTheme();
-  const nav = findNavByHref(pathname);
-  const requiredModule = nav.item?.id;
-  const hasModuleAccess =
-    !requiredModule || rolesLoading || canAccessModule(requiredModule, roles);
+  const requiredModule = requiredModuleForPath(pathname);
+  const accessState = getModuleAccessState(requiredModule, roles, {
+    isLoading: rolesQuery.isLoading,
+    isError: rolesQuery.isError,
+  });
 
   useRealtimeNotifications();
 
@@ -95,7 +97,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               id="admin-main"
               className="min-w-0 flex-1 px-4 py-6 pb-[env(safe-area-inset-bottom)] lg:px-8 lg:py-8"
             >
-              {hasModuleAccess ? children : <ModuleAccessDenied />}
+              {accessState === "allowed" ? children : accessState === "checking" ? <ModuleAccessChecking /> : accessState === "error" ? <ModuleAccessError onRetry={() => void rolesQuery.refetch()} /> : <ModuleAccessDenied />}
             </main>
             {railOpen && (
               <aside
@@ -109,6 +111,33 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     </PropertyProvider>
+  );
+}
+
+function ModuleAccessChecking() {
+  return (
+    <div className="mx-auto flex min-h-[50vh] max-w-xl items-center justify-center">
+      <div className="w-full rounded-2xl border border-[color:var(--os-hairline)] bg-[color:var(--os-surface)] p-8 text-center shadow-sm">
+        <LockKeyhole className="mx-auto mb-4 size-6 text-muted-foreground" />
+        <h1 className="text-lg font-semibold">Checking access</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Verifying your StayNas staff access…</p>
+      </div>
+    </div>
+  );
+}
+
+function ModuleAccessError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="mx-auto flex min-h-[50vh] max-w-xl items-center justify-center">
+      <div className="w-full rounded-2xl border border-[color:var(--os-hairline)] bg-[color:var(--os-surface)] p-8 text-center shadow-sm">
+        <LockKeyhole className="mx-auto mb-4 size-6 text-muted-foreground" />
+        <h1 className="text-lg font-semibold">Couldn’t verify access</h1>
+        <p className="mt-2 text-sm text-muted-foreground">StayNas could not verify your staff role. Try again.</p>
+        <button type="button" onClick={onRetry} className="mt-4 rounded-md border px-4 py-2 text-sm font-medium">
+          Retry
+        </button>
+      </div>
+    </div>
   );
 }
 
