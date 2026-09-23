@@ -29,8 +29,7 @@ import {
 import { initiatePayment } from "@/lib/payments.functions";
 import { newBookingSessionId } from "@/lib/booking-session";
 import { createBookingHold, releaseBookingHold } from "@/lib/availability.functions";
-import { calculateBookingTotal, calculateNightlyRate, buildPriceBreakdown, getRoomPricing } from "@/lib/pricing";
-import { ROOMS } from "@/lib/rooms";
+import { buildPriceBreakdownFromConfig, type PriceBreakdown } from "@/lib/pricing";
 
 export const Route = createFileRoute("/book")({
   validateSearch: (
@@ -443,14 +442,14 @@ function BookPage() {
   const priceBreakdown = useMemo(() => {
     if (!selectedRoom || nights < 1) return null;
     try {
-      return buildPriceBreakdown(
-        selectedRoom.slug,
-        { adults, childrenBelow6, children7Plus },
-        nights,
-      );
-    } catch {
-      return null;
-    }
+      return buildPriceBreakdownFromConfig({
+        basePrice: Number(selectedRoom.base_price),
+        includedGuests: Number(selectedRoom.included_guests),
+        maxGuests: Number(selectedRoom.max_occupancy),
+        extraGuestFee: Number(selectedRoom.extra_guest_fee),
+        currency: selectedRoom.currency,
+      }, { adults, childrenBelow6, children7Plus }, nights);
+    } catch { return null; }
   }, [selectedRoom, adults, childrenBelow6, children7Plus, nights]);
 
   const roomTotal = priceBreakdown?.grandTotal
@@ -799,13 +798,13 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
       <button onClick={onBack} className="text-xs uppercase tracking-[0.22em] text-charcoal/60 hover:text-charcoal">← Change dates</button>
       {results.map((r) => {
         let fits = true;
-        try { fits = totalOccupants <= getRoomPricing(r.slug).maxGuests; } catch { fits = r.fits_guests; }
+        const fits = totalOccupants <= Number(r.max_occupancy);
         const disabled = !r.is_available || !fits;
         // Centralized pricing: per-guest, per-night.
         let displayTotal = Number(r.nightly_total) || 0;
         let nightlyRate = Number(r.base_price) || 0;
         try {
-          const bd = buildPriceBreakdown(r.slug, { adults, childrenBelow6, children7Plus }, Math.max(1, nights));
+          const bd = buildPriceBreakdownFromConfig({ basePrice: Number(r.base_price), includedGuests: Number(r.included_guests), maxGuests: Number(r.max_occupancy), extraGuestFee: Number(r.extra_guest_fee), currency: r.currency }, { adults, childrenBelow6, children7Plus }, Math.max(1, nights));
           nightlyRate = bd.nightlyRate;
           displayTotal = bd.grandTotal;
         } catch {
@@ -840,7 +839,7 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
 function GuestStep(props: {
   room: AvailabilityRoom; nights: number;
   totalOccupants: number; paidOccupants: number; childrenBelow6: number;
-  breakdown: import("@/lib/pricing").PriceBreakdown | null;
+  breakdown: PriceBreakdown | null;
   extras: Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>;
   selectedExtras: SelectedExtra[]; setSelectedExtras: (v: SelectedExtra[]) => void;
   roomTotal: number; extrasTotal: number; grandTotal: number;
