@@ -62,11 +62,20 @@ for (const module of STAYNAS_MODULE_ENTITLEMENTS) {
   }
 }
 
+// Legacy auth compatibility: the original StayNas database enum used
+// `admin` before the reusable StayNas role model introduced `owner`.
+// Existing authenticated accounts must continue to resolve to the equivalent
+// owner-level module access until their role is explicitly migrated.
+const LEGACY_ROLE_ALIASES: Record<string, Role> = {
+  admin: "owner",
+};
+
 export function hasStayNasEntitlement(
   moduleId: StayNasModuleId,
   roles: readonly string[],
 ): boolean {
-  return roles.some((role) =>
-    ROLE_ENTITLEMENTS[role as Role]?.includes(moduleId),
-  );
+  return roles.some((role) => {
+    const normalized = LEGACY_ROLE_ALIASES[role] ?? role;
+    return ROLE_ENTITLEMENTS[normalized as Role]?.includes(moduleId);
+  });
 }
