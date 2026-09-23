@@ -28,11 +28,12 @@ export const listRoomConfiguration = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireRoomAdmin(context.supabase, context.userId);
+    const sb: any = context.supabase;
     const [categoriesRes, roomsRes] = await Promise.all([
-      context.supabase.from("room_categories")
+      sb.from("room_categories")
         .select("id,slug,name,description,features,specifications,sort_order,status")
         .order("sort_order").order("name"),
-      context.supabase.from("rooms")
+      sb.from("rooms")
         .select("id,slug,name,category_id,short_description,capacity_adults,capacity_children,max_occupancy,total_units,base_price,currency,status,sort_order,included_guests,extra_guest_fee,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label")
         .order("sort_order").order("name"),
     ]);
@@ -51,9 +52,10 @@ export const saveRoomCategory = createServerFn({ method: "POST" })
       features: data.features, specifications: data.specifications,
       sort_order: data.sortOrder, status: data.status,
     };
+    const sb: any = context.supabase;
     const q = data.id
-      ? context.supabase.from("room_categories").update(payload).eq("id", data.id).select("id").single()
-      : context.supabase.from("room_categories").insert(payload).select("id").single();
+      ? sb.from("room_categories").update(payload).eq("id", data.id).select("id").single()
+      : sb.from("room_categories").insert(payload).select("id").single();
     const { data: row, error } = await q;
     if (error) throw new Error(error.message);
     return row;
@@ -89,7 +91,8 @@ export const saveRoomType = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => roomSchema.parse(d))
   .handler(async ({ data, context }) => {
     await requireRoomAdmin(context.supabase, context.userId);
-    const { data: id, error } = await context.supabase.rpc("save_room_type_configuration", {
+    const sb: any = context.supabase;
+    const { data: id, error } = await sb.rpc("save_room_type_configuration", {
       _id: data.id ?? null, _slug: data.slug, _name: data.name,
       _category_id: data.categoryId ?? null, _short_description: data.shortDescription || null,
       _capacity_adults: data.capacityAdults, _capacity_children: data.capacityChildren,
