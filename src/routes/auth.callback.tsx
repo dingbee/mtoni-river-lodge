@@ -31,31 +31,49 @@ function AuthCallback() {
           if (error) throw error;
         }
 
+        // Recovery/invite links can arrive with a token_hash in the query string.
+        // Exchange it for a session before routing to the password form.
+        const tokenHash = url.searchParams.get("token_hash");
+        const queryType = url.searchParams.get("type");
+        const tokenTypes = ["invite", "recovery", "signup"] as const;
+        const tokenType = tokenTypes.includes(
+          queryType as (typeof tokenTypes)[number],
+        )
+          ? (queryType as (typeof tokenTypes)[number])
+          : null;
+
+        if (tokenHash && tokenType) {
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: tokenType,
+          });
+          if (error) throw error;
+        }
+
         // Implicit flow (hash contains access_token / type)
         const hash = window.location.hash.startsWith("#")
           ? window.location.hash.slice(1)
           : "";
         const hp = new URLSearchParams(hash);
-        const access_token = hp.get("access_token");
-        const refresh_token = hp.get("refresh_token");
+        const accessToken = hp.get("access_token");
+        const refreshToken = hp.get("refresh_token");
         const hashType = hp.get("type");
-        const queryType = url.searchParams.get("type");
         const type = hashType || queryType;
 
-        if (access_token && refresh_token) {
+        if (accessToken && refreshToken) {
           const { error } = await supabase.auth.setSession({
-            access_token,
-            refresh_token,
+            access_token: accessToken,
+            refresh_token: refreshToken,
           });
           if (error) throw error;
         }
 
-        // Clean the URL of tokens before routing further
-        window.history.replaceState({}, "", "/auth/callback");
-
         const hashError =
           hp.get("error_description") || hp.get("error") || null;
         if (hashError) throw new Error(decodeURIComponent(hashError));
+
+        // Clean the URL of tokens before routing further.
+        window.history.replaceState({}, "", "/auth/callback");
 
         const { data: sessionData } = await supabase.auth.getSession();
         if (!sessionData.session) {
