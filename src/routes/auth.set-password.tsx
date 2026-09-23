@@ -49,18 +49,22 @@ function SetPasswordPage() {
     if (password.length < 8) return toast.error("Password must be at least 8 characters.");
     if (password !== confirm) return toast.error("Passwords do not match.");
     setSaving(true);
-    const { error } = await supabase.auth.updateUser({ password });
+    const { error } = await supabase.auth.updateUser({
+      password,
+      data: { staynas_password_initialized: true },
+    });
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Password set. Welcome to StayNas.");
     navigate({ to: "/admin" });
   };
 
-  const heading = type === "recovery" ? "Reset your password" : "Set your password";
+  const heading =
+    type === "recovery" ? "Reset your password" : "Set your password";
   const subheading =
     type === "recovery"
       ? "Choose a new password to continue."
-      : "Finish activating your StayNas staff account.";
+      : "Set your StayNas password before entering the staff portal.";
 
   return (
     <div className="min-h-screen bg-ivory text-charcoal flex items-center justify-center px-4">
