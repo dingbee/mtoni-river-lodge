@@ -92,6 +92,13 @@ export const saveRoomType = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireRoomAdmin(context.supabase, context.userId);
     const sb: any = context.supabase;
+    let oldQuantity = 0;
+    if (data.id) {
+      const { data: existing, error: existingError } = await sb.from("rooms").select("total_units").eq("id", data.id).single();
+      if (existingError) throw new Error(existingError.message);
+      oldQuantity = Number(existing.total_units ?? 0);
+    }
+
     const { data: id, error } = await sb.rpc("save_room_type_configuration", {
       _id: data.id ?? null, _slug: data.slug, _name: data.name,
       _category_id: data.categoryId ?? null, _short_description: data.shortDescription || null,
@@ -106,5 +113,54 @@ export const saveRoomType = createServerFn({ method: "POST" })
       _bathroom_label: data.bathroomLabel || null,
     } as never);
     if (error) throw new Error(error.message);
+
+    const removeCount = Math.max(0, oldQuantity - data.quantity);
+    if (data.id && removeCount > 0) {
+      const { data: candidates, error: candidateError } = await sb
+        .from("room_states")
+        .select("id")
+        .eq("room_id", data.id)
+        .is("booking_id", null)
+        .in("state", ["vacant_clean", "vacant_dirty"])
+        .order("unit_label", { ascending: false })
+        .limit(removeCount);
+      if (candidateError) throw new Error(candidateError.message);
+      if ((candidates ?? []).length < removeCount) {
+        await sb.rpc("save_room_type_configuration", {
+          _id: data.id, _slug: data.slug, _name: data.name,
+          _category_id: data.categoryId ?? null, _short_description: data.shortDescription || null,
+          _capacity_adults: data.capacityAdults, _capacity_children: data.capacityChildren,
+          _max_occupancy: data.maxOccupancy, _total_units: oldQuantity,
+          _base_price: data.basePrice, _currency: data.currency,
+          _included_guests: data.includedGuests, _extra_guest_fee: data.extraGuestFee,
+          _status: data.status, _sort_order: data.sortOrder,
+          _hero_line: data.heroLine || null, _image_url: data.imageUrl || null,
+          _gallery_urls: data.galleryUrls, _size_label: data.sizeLabel || null,
+          _view_label: data.viewLabel || null, _bed_label: data.bedLabel || null,
+          _bathroom_label: data.bathroomLabel || null,
+        } as never);
+        throw new Error("Room quantity could not be reduced safely because protected physical units changed during the update.");
+      }
+      const ids = (candidates ?? []).map((row: any) => row.id);
+      const { data: deleted, error: deleteError } = await sb.from("room_states").delete().in("id", ids).select("id");
+      if (deleteError) {
+        await sb.rpc("save_room_type_configuration", {
+          _id: data.id, _slug: data.slug, _name: data.name,
+          _category_id: data.categoryId ?? null, _short_description: data.shortDescription || null,
+          _capacity_adults: data.capacityAdults, _capacity_children: data.capacityChildren,
+          _max_occupancy: data.maxOccupancy, _total_units: oldQuantity,
+          _base_price: data.basePrice, _currency: data.currency,
+          _included_guests: data.includedGuests, _extra_guest_fee: data.extraGuestFee,
+          _status: data.status, _sort_order: data.sortOrder,
+          _hero_line: data.heroLine || null, _image_url: data.imageUrl || null,
+          _gallery_urls: data.galleryUrls, _size_label: data.sizeLabel || null,
+          _view_label: data.viewLabel || null, _bed_label: data.bedLabel || null,
+          _bathroom_label: data.bathroomLabel || null,
+        } as never);
+        throw new Error(deleteError.message);
+      }
+      if ((deleted ?? []).length < removeCount) throw new Error("Room quantity update was not fully applied.");
+    }
+
     return { id };
   });
