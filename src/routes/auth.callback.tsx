@@ -7,7 +7,7 @@ export const Route = createFileRoute("/auth/callback")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Signing you in — Mtoni River Lodge" },
+      { title: "Signing you in — StayNas" },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
