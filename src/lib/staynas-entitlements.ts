@@ -4,6 +4,7 @@ export type StayNasModuleId =
   | "overview"
   | "reservations"
   | "rooms"
+  | "rooms.configure"
   | "front-desk"
   | "operations"
   | "housekeeping"
@@ -30,6 +31,7 @@ export const STAYNAS_MODULE_ENTITLEMENTS: ModuleEntitlement[] = [
   { id: "overview", label: "Overview", description: "Executive command centre and operational summary.", roles: ["owner", "manager", "reception", "housekeeping", "finance", "marketing", "editor"] },
   { id: "reservations", label: "Reservations", description: "Reservations, availability and booking lifecycle.", roles: ["owner", "manager", "reception"] },
   { id: "rooms", label: "Rooms", description: "Room inventory, status and allocation.", roles: ["owner", "manager", "reception", "housekeeping"] },
+  { id: "rooms.configure", label: "Room Configuration", description: "Room types, inventory quantities, pricing and guest-facing room content.", roles: ["owner", "manager"] },
   { id: "front-desk", label: "Front Desk", description: "Arrival, departure and guest-facing operations.", roles: ["owner", "manager", "reception"] },
   { id: "operations", label: "Operations", description: "Daily operational board, tasks and alerts.", roles: ["owner", "manager", "reception", "housekeeping"] },
   { id: "housekeeping", label: "Housekeeping", description: "Room cleaning, inspections and housekeeping workflow.", roles: ["owner", "manager", "housekeeping"] },
@@ -70,12 +72,21 @@ const LEGACY_ROLE_ALIASES: Record<string, Role> = {
   admin: "owner",
 };
 
+export function normalizeStayNasRoles(roles: readonly string[]): Role[] {
+  return Array.from(
+    new Set(
+      roles
+        .map((role) => LEGACY_ROLE_ALIASES[role] ?? role)
+        .filter((role): role is Role => role in ROLE_ENTITLEMENTS),
+    ),
+  );
+}
+
 export function hasStayNasEntitlement(
   moduleId: StayNasModuleId,
   roles: readonly string[],
 ): boolean {
-  return roles.some((role) => {
-    const normalized = LEGACY_ROLE_ALIASES[role] ?? role;
-    return ROLE_ENTITLEMENTS[normalized as Role]?.includes(moduleId);
-  });
+  return normalizeStayNasRoles(roles).some((role) =>
+    ROLE_ENTITLEMENTS[role]?.includes(moduleId),
+  );
 }
