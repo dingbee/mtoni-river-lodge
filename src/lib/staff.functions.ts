@@ -22,11 +22,10 @@ export type AppRole = (typeof APP_ROLES)[number];
 
 /** Absolute URL that Supabase should redirect to from invite / recovery emails. */
 function inviteRedirectUrl(): string {
-  const site =
-    process.env.SITE_URL ||
-    process.env.PUBLIC_SITE_URL ||
-    "https://mtoniriverlodge.com";
-  return `${site.replace(/\/$/, "")}/auth/callback`;
+  // StayNas is the canonical staff application. Do not inherit the retired
+  // Mtoni River Lodge website URL from legacy environment configuration.
+  const site = "https://staynas.nolmark.co";
+  return `${site}/auth/callback`;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

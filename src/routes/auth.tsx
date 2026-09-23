@@ -17,6 +17,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -37,7 +38,31 @@ function AuthPage() {
       return;
     }
 
+    const { data: roles, error: roleError } = await supabase.rpc("current_user_roles");
+    if (roleError || !roles?.length) {
+      await supabase.auth.signOut();
+      toast.error("Your account does not have StayNas staff access.");
+      return;
+    }
+
     navigate({ to: "/admin/bookings" });
+  };
+
+  const resetPassword = async () => {
+    if (!email.trim()) {
+      toast.error("Enter your staff email first.");
+      return;
+    }
+    setResetting(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: "https://staynas.nolmark.co/auth/callback",
+    });
+    setResetting(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("If that staff account exists, a password-reset email has been sent.");
   };
 
   return (
@@ -84,12 +109,22 @@ function AuthPage() {
         </div>
 
         <button
-          disabled={loading}
+          type="submit"
+          disabled={loading || resetting}
           className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60"
           style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
           Sign in
+        </button>
+
+        <button
+          type="button"
+          onClick={resetPassword}
+          disabled={loading || resetting}
+          className="mt-3 block w-full text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal disabled:opacity-60"
+        >
+          {resetting ? "Sending reset link…" : "Forgot password?"}
         </button>
 
         <Link

@@ -11,7 +11,7 @@ export const Route = createFileRoute("/auth/set-password")({
   }),
   head: () => ({
     meta: [
-      { title: "Set your password — Mtoni River Lodge" },
+      { title: "Set your password — StayNas" },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
