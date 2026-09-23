@@ -131,3 +131,10 @@ $$;
 
 REVOKE ALL ON FUNCTION public.save_room_type_configuration(uuid,text,text,uuid,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.save_room_type_configuration(uuid,text,text,uuid,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text) TO authenticated;
+
+
+-- The legacy migrations contain property-specific room seeds. StayNas must ship
+-- without a tenant/property catalog; UAT creates its own room data through the
+-- configuration UI. Clearing rooms cascades only to records that depend on room
+-- inventory and preserves authentication and platform role configuration.
+TRUNCATE TABLE public.rooms RESTART IDENTITY CASCADE;
