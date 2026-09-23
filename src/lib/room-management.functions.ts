@@ -4,13 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
 async function requireRoomAdmin(supabase: any, userId: string) {
-  await requireStayNasModuleAccess(supabase, userId, "operations");
-  const { data, error } = await supabase.rpc("current_user_roles");
-  if (error) throw new Error(error.message);
-  const roles = Array.isArray(data) ? data : [];
-  if (!roles.some((r: string) => ["owner", "manager", "admin"].includes(r))) {
-    throw new Error("Room configuration requires owner or manager access.");
-  }
+  await requireStayNasModuleAccess(supabase, userId, "rooms.configure");
 }
 
 const categorySchema = z.object({

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { hasStayNasEntitlement, type StayNasModuleId } from "@/lib/staynas-entitlements";
+import { hasStayNasEntitlement, normalizeStayNasRoles, type StayNasModuleId } from "@/lib/staynas-entitlements";
+import { useEffect, useState } from "react";
 
 // Superset of DB app_role. Kept in sync with public.app_role.
 export type Role =
@@ -64,21 +65,60 @@ export const MODULE_ROLES: Record<string, Role[] | null> = {
 };
 
 export function useCurrentUserRoles() {
+  const [userId, setUserId] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!mounted) return;
+      setUserId(data.user?.id ?? null);
+      setAuthReady(true);
+    });
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      setUserId(session?.user?.id ?? null);
+      setAuthReady(true);
+    });
+
+    return () => {
+      mounted = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
+
   return useQuery({
-    queryKey: ["current-user-roles"],
+    queryKey: ["current-user-roles", userId],
+    enabled: authReady && Boolean(userId),
     queryFn: async () => {
       const { data, error } = await supabase.rpc("current_user_roles");
       if (error) throw new Error(error.message);
-      return (data ?? []) as string[];
+      return normalizeStayNasRoles((data ?? []) as string[]);
     },
     staleTime: 5 * 60 * 1000,
   });
 }
 
+export type ModuleAccessState = "allowed" | "denied" | "checking" | "error";
+
+export function getModuleAccessState(
+  moduleId: string | undefined,
+  roles: readonly string[],
+  options: { isLoading: boolean; isError: boolean },
+): ModuleAccessState {
+  if (!moduleId) return "allowed";
+  if (options.isLoading) return "checking";
+  if (options.isError) return "error";
+  return canAccessModule(moduleId, roles) ? "allowed" : "denied";
+}
+
+
 const STAYNAS_MODULE_ALIASES: Record<string, StayNasModuleId> = {
   overview: "overview",
   reservations: "reservations",
   rooms: "rooms",
+  "rooms.configure": "rooms.configure",
   "front-desk": "front-desk",
   operations: "operations",
   housekeeping: "housekeeping",
@@ -105,7 +145,10 @@ const STAYNAS_MODULE_ALIASES: Record<string, StayNasModuleId> = {
 export function canAccessModule(moduleId: string, roles: readonly string[]): boolean {
   const stayNasModule = STAYNAS_MODULE_ALIASES[moduleId];
   if (stayNasModule) return hasStayNasEntitlement(stayNasModule, roles);
+
   const allowed = MODULE_ROLES[moduleId];
   if (allowed === null || allowed === undefined) return true;
-  return roles.some((r) => (allowed as string[]).includes(r));
+
+  const normalizedRoles = normalizeStayNasRoles(roles);
+  return normalizedRoles.some((role) => allowed.includes(role));
 }

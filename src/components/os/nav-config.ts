@@ -83,14 +83,34 @@ export const NAV: NavEntry[] = [
 ];
 
 export function findNavByHref(href: string): { group?: NavGroup; item?: NavItem } {
+  let best: { group?: NavGroup; item?: NavItem } = {};
+  let bestLength = -1;
+
   for (const entry of NAV) {
-    if (entry.kind === "item" && (href === entry.item.href || href.startsWith(entry.item.href + "/"))) {
-      return { item: entry.item };
+    if (entry.kind === "item") {
+      const matches = href === entry.item.href || href.startsWith(entry.item.href + "/");
+      if (matches && entry.item.href.length > bestLength) {
+        best = { item: entry.item };
+        bestLength = entry.item.href.length;
+      }
+      continue;
     }
-    if (entry.kind === "group") {
-      const item = entry.group.items.find((i) => href === i.href || href.startsWith(i.href + "/"));
-      if (item) return { group: entry.group, item };
+
+    for (const item of entry.group.items) {
+      const matches = href === item.href || href.startsWith(item.href + "/");
+      if (matches && item.href.length > bestLength) {
+        best = { group: entry.group, item };
+        bestLength = item.href.length;
+      }
     }
   }
-  return {};
+
+  return best;
+}
+
+export function requiredModuleForPath(href: string): string | undefined {
+  if (href === "/admin/operations/rooms/configure" || href.startsWith("/admin/operations/rooms/configure/")) {
+    return "rooms.configure";
+  }
+  return findNavByHref(href).item?.id;
 }
