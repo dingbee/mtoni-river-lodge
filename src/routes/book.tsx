@@ -797,7 +797,6 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
     <div className="space-y-4">
       <button onClick={onBack} className="text-xs uppercase tracking-[0.22em] text-charcoal/60 hover:text-charcoal">← Change dates</button>
       {results.map((r) => {
-        let fits = true;
         const fits = totalOccupants <= Number(r.max_occupancy);
         const disabled = !r.is_available || !fits;
         // Centralized pricing: per-guest, per-night.
