@@ -45,6 +45,23 @@ function AuthPage() {
       return;
     }
 
+    // Staff accounts must establish a new password before entering the admin.
+    // Existing accounts without this marker are intentionally gated once.
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      await supabase.auth.signOut();
+      toast.error("Unable to verify your staff account.");
+      return;
+    }
+
+    if (userData.user.user_metadata?.staynas_password_initialized !== true) {
+      navigate({
+        to: "/auth/set-password",
+        search: { type: "first-login" } as never,
+      });
+      return;
+    }
+
     navigate({ to: "/admin/bookings" });
   };
 
