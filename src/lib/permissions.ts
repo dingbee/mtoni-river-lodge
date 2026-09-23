@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { getCurrentUserRoles } from "@/lib/user-roles.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { hasStayNasEntitlement, type StayNasModuleId } from "@/lib/staynas-entitlements";
 
 // Superset of DB app_role. Kept in sync with public.app_role.
@@ -65,10 +64,13 @@ export const MODULE_ROLES: Record<string, Role[] | null> = {
 };
 
 export function useCurrentUserRoles() {
-  const fn = useServerFn(getCurrentUserRoles);
   return useQuery({
     queryKey: ["current-user-roles"],
-    queryFn: () => fn({}),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("current_user_roles");
+      if (error) throw new Error(error.message);
+      return (data ?? []) as string[];
+    },
     staleTime: 5 * 60 * 1000,
   });
 }
