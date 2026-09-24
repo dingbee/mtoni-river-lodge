@@ -269,6 +269,7 @@ export const checkOutBooking = createServerFn({ method: "POST" })
 
     await sb.from("ops_tasks").insert({
       booking_id: data.bookingId,
+      room_state_id: linkedState?.id ?? null,
       task_type: "housekeeping",
       category: "housekeeping",
       title: `Clean ${linkedState?.unit_label ?? "room"} after ${booking.guest_name}`,
