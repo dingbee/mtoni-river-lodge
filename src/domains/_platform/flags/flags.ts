@@ -2,7 +2,7 @@ import type { FeatureFlag, FeatureFlagKey, FlagAudience } from "./types";
 
 export const FEATURE_FLAGS: Record<FeatureFlagKey, FeatureFlag> = {
   guest_crm:            { key: "guest_crm",            state: "enabled",  description: "Guest CRM (Sprint 2)",                       since: "2026-07-13" },
-  housekeeping:         { key: "housekeeping",         state: "disabled", description: "Housekeeping module" },
+  housekeeping:         { key: "housekeeping",         state: "enabled",  description: "Housekeeping module — governed by StayNas entitlements" },
   finance:              { key: "finance",              state: "disabled", description: "Finance / invoicing / reports" },
   ai_assistant:         { key: "ai_assistant",         state: "internal", description: "In-app AI assistant" },
   loyalty:              { key: "loyalty",              state: "disabled", description: "Loyalty tiers & rewards" },
