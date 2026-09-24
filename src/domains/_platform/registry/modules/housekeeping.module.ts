@@ -6,10 +6,10 @@ export const housekeepingModule = defineModule({
   name: "Housekeeping",
   description: "Room turnover, cleaning schedules",
   icon: ClipboardCheck,
-  route: "/admin/front-desk",
+  route: "/admin/operations/housekeeping",
   parentId: "operations",
   order: 40,
   requiredRoles: ["owner","manager","reception","housekeeping"],
   featureFlag: "housekeeping",
-  status: "active", // Sprint 1 kept it active via /admin/front-desk; flag hides only the future dedicated module
+  status: "active",
 });
