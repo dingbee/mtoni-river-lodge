@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
-import { LayoutDashboard, Bed, CalendarDays, ClipboardCheck, ListChecks, AlertTriangle, Activity, Calendar, UserCheck, QrCode } from "lucide-react";
+import { LayoutDashboard, Bed, ClipboardCheck, ListChecks, AlertTriangle, Activity, UserCheck } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/operations")({
   head: () => ({ meta: [{ title: "Operations Centre — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -10,13 +10,10 @@ const TABS = [
   { to: "/admin/operations", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/operations/rooms", label: "Room Board", icon: Bed },
   { to: "/admin/operations/arrivals", label: "Arrivals", icon: UserCheck, exact: true },
-  { to: "/admin/operations/arrivals/scan", label: "Scan Pass", icon: QrCode },
-  { to: "/admin/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/admin/operations/housekeeping", label: "Housekeeping", icon: ClipboardCheck },
   { to: "/admin/operations/tasks", label: "Tasks", icon: ListChecks },
   { to: "/admin/operations/alerts", label: "Alerts", icon: AlertTriangle },
-  { to: "/admin/operations/timeline", label: "Timeline", icon: Activity },
-  { to: "/admin/bookings", label: "Reservations", icon: Calendar },
+  { to: "/admin/operations/timeline", label: "Activity", icon: Activity },
 ] as const;
 
 function OperationsLayout() {
