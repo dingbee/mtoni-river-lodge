@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, Clock3, Play, UserRound, WandSparkles } from "lucide-react";
+import { CheckCircle2, CheckSquare2, Clock3, Play, UserRound, WandSparkles, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { useCurrentUserRoles } from "@/lib/permissions";
 import {
@@ -13,6 +13,10 @@ import {
   listHousekeepingWork,
   startHousekeepingTask,
 } from "@/lib/housekeeping-execution.functions";
+import {
+  listHousekeepingInspectionQueue,
+  submitHousekeepingInspection,
+} from "@/lib/housekeeping-inspection.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/operations/housekeeping")({
   head: () => ({ meta: [{ title: "Housekeeping — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -39,6 +43,34 @@ type WorkRow = {
   description: string | null;
 };
 
+type InspectionRow = {
+  inspection_id: string;
+  room_state_id: string;
+  cleaning_task_id: string;
+  attempt_no: number;
+  status: "pending" | "passed" | "failed";
+  unit_label: string;
+  room_name: string;
+  room_id: string;
+  booking_id: string | null;
+  booking_reference: string | null;
+  guest_name: string | null;
+  completed_at: string | null;
+  checklist: Array<{ key: string; label: string; passed?: boolean }>;
+  notes: string | null;
+};
+
+const CHECKLIST = [
+  ["bedroom", "Bedroom clean and reset"],
+  ["bathroom", "Bathroom clean and stocked"],
+  ["linen", "Linen and towels complete"],
+  ["amenities", "Amenities replenished"],
+  ["floor", "Floor and surfaces clean"],
+  ["fixtures", "Fixtures and equipment checked"],
+  ["waste", "Waste removed"],
+  ["overall", "Overall room presentation ready"],
+] as const;
+
 function priorityLabel(priority: number) {
   return priority === 1 ? "Rush" : priority === 2 ? "Normal" : "Low";
 }
@@ -46,11 +78,17 @@ function priorityLabel(priority: number) {
 function HousekeepingPage() {
   const qc = useQueryClient();
   const { data: roles = [] } = useCurrentUserRoles();
-  const isSupervisor = roles.some((r) => ["owner", "manager"].includes(r));
+  const isSupervisor = roles.some((r) => ["owner", "manager", "admin"].includes(r));
 
+  const [view, setView] = useState<"work" | "inspection">("work");
   const [mineOnly, setMineOnly] = useState(true);
   const [noteTask, setNoteTask] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  const [inspectionId, setInspectionId] = useState<string | null>(null);
+  const [inspectionChecks, setInspectionChecks] = useState<Record<string, boolean>>(
+    Object.fromEntries(CHECKLIST.map(([key]) => [key, true])),
+  );
+  const [inspectionNotes, setInspectionNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const listFn = useServerFn(listHousekeepingWork);
@@ -59,6 +97,8 @@ function HousekeepingPage() {
   const completeFn = useServerFn(completeHousekeepingTask);
   const assignFn = useServerFn(assignHousekeepingTask);
   const staffFn = useServerFn(listHousekeepingStaff);
+  const inspectionListFn = useServerFn(listHousekeepingInspectionQueue);
+  const submitInspectionFn = useServerFn(submitHousekeepingInspection);
 
   const work = useQuery({
     queryKey: ["housekeeping-work", mineOnly],
@@ -73,9 +113,24 @@ function HousekeepingPage() {
     staleTime: 60_000,
   });
 
-  const rows = useMemo(() => (work.data ?? []) as WorkRow[], [work.data]);
+  const inspections = useQuery({
+    queryKey: ["housekeeping-inspection-queue"],
+    queryFn: () => inspectionListFn(),
+    enabled: isSupervisor,
+    refetchInterval: 20_000,
+  });
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ["housekeeping-work"] });
+  const rows = useMemo(() => (work.data ?? []) as WorkRow[], [work.data]);
+  const inspectionRows = useMemo(() => (inspections.data ?? []) as InspectionRow[], [inspections.data]);
+  const selectedInspection = inspectionRows.find((row) => row.inspection_id === inspectionId);
+  const allPassed = CHECKLIST.every(([key]) => inspectionChecks[key]);
+
+  const refresh = async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["housekeeping-work"] }),
+      qc.invalidateQueries({ queryKey: ["housekeeping-inspection-queue"] }),
+    ]);
+  };
 
   async function run(action: () => Promise<unknown>) {
     setError(null);
@@ -87,126 +142,276 @@ function HousekeepingPage() {
     }
   }
 
+  function openInspection(row: InspectionRow) {
+    setInspectionId(row.inspection_id);
+    setInspectionChecks(Object.fromEntries(CHECKLIST.map(([key]) => [
+      key,
+      row.checklist.find((item) => item.key === key)?.passed ?? true,
+    ])));
+    setInspectionNotes(row.notes ?? "");
+    setError(null);
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
         title="Housekeeping"
-        description="Mobile-first room work queue. Claim, clean, and hand rooms to inspection."
+        description="Execute cleaning, inspect completed rooms, and control room readiness."
       />
 
       <div className="flex flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="text-sm font-semibold">Staff execution</div>
-          <div className="text-xs text-muted-foreground">Cleaning stays task-driven; completion moves the room to inspection.</div>
+          <div className="text-sm font-semibold">Housekeeping operations</div>
+          <div className="text-xs text-muted-foreground">
+            Cleaning completion creates an inspection. Only a passed inspection makes a room ready.
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
-            className={`rounded-lg border px-3 py-2 text-sm ${mineOnly ? "bg-primary text-primary-foreground" : "bg-background"}`}
-            onClick={() => setMineOnly(true)}
+            className={`rounded-lg border px-3 py-2 text-sm ${view === "work" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+            onClick={() => setView("work")}
           >
-            My Work
+            Work
           </button>
           {isSupervisor && (
             <button
-              className={`rounded-lg border px-3 py-2 text-sm ${!mineOnly ? "bg-primary text-primary-foreground" : "bg-background"}`}
-              onClick={() => setMineOnly(false)}
+              className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${view === "inspection" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+              onClick={() => setView("inspection")}
             >
-              All Work
+              <CheckSquare2 className="h-4 w-4" />
+              Inspection {inspectionRows.length > 0 ? `(${inspectionRows.length})` : ""}
             </button>
           )}
         </div>
       </div>
 
-      {error && <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</div>}
+      {view === "work" && (
+        <>
+          <div className="flex gap-2">
+            <button
+              className={`rounded-lg border px-3 py-2 text-sm ${mineOnly ? "bg-primary text-primary-foreground" : "bg-background"}`}
+              onClick={() => setMineOnly(true)}
+            >
+              My Work
+            </button>
+            {isSupervisor && (
+              <button
+                className={`rounded-lg border px-3 py-2 text-sm ${!mineOnly ? "bg-primary text-primary-foreground" : "bg-background"}`}
+                onClick={() => setMineOnly(false)}
+              >
+                All Work
+              </button>
+            )}
+          </div>
 
-      {work.isLoading ? (
-        <div className="rounded-xl border p-6 text-sm text-muted-foreground">Loading housekeeping work…</div>
-      ) : rows.length === 0 ? (
-        <div className="rounded-xl border p-8 text-center">
-          <CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-          <div className="font-medium">No active housekeeping work</div>
-          <div className="mt-1 text-sm text-muted-foreground">Checked-out rooms will appear here when cleaning work is generated.</div>
-        </div>
-      ) : (
-        <div className="grid gap-3 lg:grid-cols-2">
-          {rows.map((task) => (
-            <article key={task.id} className="rounded-xl border bg-card p-4 shadow-sm">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-lg font-semibold">{task.unit_label}</div>
-                  <div className="text-sm text-muted-foreground">{task.room_name}</div>
-                  {task.guest_name && <div className="mt-1 text-sm">{task.guest_name}</div>}
-                </div>
-                <div className="text-right">
-                  <span className={`rounded-full border px-2 py-1 text-[11px] font-medium ${task.priority === 1 ? "border-rose-500/30 bg-rose-500/10 text-rose-700" : "border-muted bg-muted/30"}`}>
-                    {priorityLabel(task.priority)}
-                  </span>
-                  <div className="mt-2 text-xs capitalize text-muted-foreground">{task.status.replace("_", " ")}</div>
-                </div>
-              </div>
+          {error && <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</div>}
 
-              <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                <div className="rounded-lg border p-2"><Clock3 className="mr-1 inline h-3.5 w-3.5" />{task.due_at ? new Date(task.due_at).toLocaleString() : "No due time"}</div>
-                <div className="rounded-lg border p-2"><UserRound className="mr-1 inline h-3.5 w-3.5" />{task.assignee_id ? "Assigned" : "Unassigned"}</div>
-              </div>
-
-              {isSupervisor && !mineOnly && (
-                <div className="mt-3 flex gap-2">
-                  <select
-                    className="min-w-0 flex-1 rounded-lg border bg-background px-3 py-2 text-sm"
-                    value={task.assignee_id ?? ""}
-                    onChange={(e) => {
-                      if (e.target.value) run(() => assignFn({ data: { taskId: task.id, assigneeId: e.target.value } }));
-                    }}
-                  >
-                    <option value="">Assign housekeeper…</option>
-                    {(staff.data ?? []).map((person: any) => (
-                      <option key={person.user_id} value={person.user_id}>{person.email}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                {!task.assignee_id && (
-                  <button className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground" onClick={() => run(() => claimFn({ data: { taskId: task.id } }))}>
-                    <UserRound className="h-4 w-4" /> Claim
-                  </button>
-                )}
-                {task.status === "pending" && task.assignee_id && (
-                  <button className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground" onClick={() => run(() => startFn({ data: { taskId: task.id } }))}>
-                    <Play className="h-4 w-4" /> Start cleaning
-                  </button>
-                )}
-                {task.status === "in_progress" && (
-                  <button className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground" onClick={() => setNoteTask(task.id)}>
-                    <CheckCircle2 className="h-4 w-4" /> Complete cleaning
-                  </button>
-                )}
-              </div>
-
-              {noteTask === task.id && (
-                <div className="mt-3 rounded-lg border bg-muted/20 p-3">
-                  <label className="text-xs font-medium">Cleaning note (optional)</label>
-                  <textarea value={note} onChange={(e) => setNote(e.target.value)} className="mt-2 min-h-20 w-full rounded-lg border bg-background p-2 text-sm" placeholder="Record anything the inspector should know…" />
-                  <div className="mt-2 flex gap-2">
-                    <button className="flex-1 rounded-lg border px-3 py-2 text-sm" onClick={() => { setNoteTask(null); setNote(""); }}>Cancel</button>
-                    <button className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground" onClick={() => run(async () => {
-                      await completeFn({ data: { taskId: task.id, note: note || undefined, idempotencyKey: crypto.randomUUID() } });
-                      setNoteTask(null);
-                      setNote("");
-                    })}>Send to inspection</button>
+          {work.isLoading ? (
+            <div className="rounded-xl border p-6 text-sm text-muted-foreground">Loading housekeeping work…</div>
+          ) : rows.length === 0 ? (
+            <div className="rounded-xl border p-8 text-center">
+              <CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+              <div className="font-medium">No active housekeeping work</div>
+              <div className="mt-1 text-sm text-muted-foreground">Checked-out rooms will appear here when cleaning work is generated.</div>
+            </div>
+          ) : (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {rows.map((task) => (
+                <article key={task.id} className="rounded-xl border bg-card p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-lg font-semibold">{task.unit_label}</div>
+                      <div className="text-sm text-muted-foreground">{task.room_name}</div>
+                      {task.guest_name && <div className="mt-1 text-sm">{task.guest_name}</div>}
+                    </div>
+                    <div className="text-right">
+                      <span className="rounded-full border px-2 py-1 text-[11px] font-medium">
+                        {priorityLabel(task.priority)}
+                      </span>
+                      <div className="mt-2 text-xs capitalize text-muted-foreground">{task.status.replace("_", " ")}</div>
+                    </div>
                   </div>
-                </div>
-              )}
-            </article>
-          ))}
+
+                  <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                    <div className="rounded-lg border p-2"><Clock3 className="mr-1 inline h-3.5 w-3.5" />{task.due_at ? new Date(task.due_at).toLocaleString() : "No due time"}</div>
+                    <div className="rounded-lg border p-2"><UserRound className="mr-1 inline h-3.5 w-3.5" />{task.assignee_id ? "Assigned" : "Unassigned"}</div>
+                  </div>
+
+                  {isSupervisor && !mineOnly && (
+                    <div className="mt-3 flex gap-2">
+                      <select
+                        className="min-w-0 flex-1 rounded-lg border bg-background px-3 py-2 text-sm"
+                        value={task.assignee_id ?? ""}
+                        onChange={(e) => {
+                          if (e.target.value) run(() => assignFn({ data: { taskId: task.id, assigneeId: e.target.value } }));
+                        }}
+                      >
+                        <option value="">Assign housekeeper…</option>
+                        {(staff.data ?? []).map((person: any) => (
+                          <option key={person.user_id} value={person.user_id}>{person.email}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {!task.assignee_id && (
+                      <button className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground" onClick={() => run(() => claimFn({ data: { taskId: task.id } }))}>
+                        <UserRound className="h-4 w-4" /> Claim
+                      </button>
+                    )}
+                    {task.status === "pending" && task.assignee_id && (
+                      <button className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground" onClick={() => run(() => startFn({ data: { taskId: task.id } }))}>
+                        <Play className="h-4 w-4" /> Start cleaning
+                      </button>
+                    )}
+                    {task.status === "in_progress" && (
+                      <button className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground" onClick={() => setNoteTask(task.id)}>
+                        <CheckCircle2 className="h-4 w-4" /> Complete cleaning
+                      </button>
+                    )}
+                  </div>
+
+                  {noteTask === task.id && (
+                    <div className="mt-3 rounded-lg border bg-muted/20 p-3">
+                      <label className="text-xs font-medium">Cleaning note (optional)</label>
+                      <textarea value={note} onChange={(e) => setNote(e.target.value)} className="mt-2 min-h-20 w-full rounded-lg border bg-background p-2 text-sm" placeholder="Record anything the inspector should know…" />
+                      <div className="mt-2 flex gap-2">
+                        <button className="flex-1 rounded-lg border px-3 py-2 text-sm" onClick={() => { setNoteTask(null); setNote(""); }}>Cancel</button>
+                        <button className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground" onClick={() => run(async () => {
+                          await completeFn({ data: { taskId: task.id, note: note || undefined, idempotencyKey: crypto.randomUUID() } });
+                          setNoteTask(null);
+                          setNote("");
+                        })}>Send to inspection</button>
+                      </div>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {view === "inspection" && isSupervisor && (
+        <>
+          {error && <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</div>}
+          {inspections.isLoading ? (
+            <div className="rounded-xl border p-6 text-sm text-muted-foreground">Loading inspection queue…</div>
+          ) : inspectionRows.length === 0 ? (
+            <div className="rounded-xl border p-8 text-center">
+              <CheckSquare2 className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+              <div className="font-medium">No rooms awaiting inspection</div>
+              <div className="mt-1 text-sm text-muted-foreground">Completed cleaning work will appear here for supervisor sign-off.</div>
+            </div>
+          ) : (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {inspectionRows.map((row) => (
+                <article key={row.inspection_id} className="rounded-xl border bg-card p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-lg font-semibold">{row.unit_label}</div>
+                      <div className="text-sm text-muted-foreground">{row.room_name}</div>
+                      {row.guest_name && <div className="mt-1 text-sm">{row.guest_name}</div>}
+                    </div>
+                    <span className="rounded-full border px-2 py-1 text-[11px] font-medium">Awaiting inspection</span>
+                  </div>
+                  <div className="mt-3 text-xs text-muted-foreground">
+                    Cleaning completed {row.completed_at ? new Date(row.completed_at).toLocaleString() : "recently"} · Attempt {row.attempt_no}
+                  </div>
+                  <button
+                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground"
+                    onClick={() => openInspection(row)}
+                  >
+                    <CheckSquare2 className="h-4 w-4" /> Inspect room
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {selectedInspection && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
+          <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border bg-card p-5 shadow-xl sm:max-w-xl sm:rounded-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-xl font-semibold">Inspect {selectedInspection.unit_label}</div>
+                <div className="text-sm text-muted-foreground">{selectedInspection.room_name} · {selectedInspection.guest_name ?? "No current guest"}</div>
+              </div>
+              <button className="rounded-lg border p-2" onClick={() => setInspectionId(null)} aria-label="Close inspection"><XCircle className="h-5 w-5" /></button>
+            </div>
+
+            <div className="mt-5 space-y-2">
+              {CHECKLIST.map(([key, label]) => (
+                <label key={key} className="flex cursor-pointer items-center gap-3 rounded-lg border p-3">
+                  <input
+                    type="checkbox"
+                    checked={inspectionChecks[key]}
+                    onChange={(e) => setInspectionChecks((current) => ({ ...current, [key]: e.target.checked }))}
+                    className="h-5 w-5"
+                  />
+                  <span className="text-sm">{label}</span>
+                </label>
+              ))}
+            </div>
+
+            <textarea
+              value={inspectionNotes}
+              onChange={(e) => setInspectionNotes(e.target.value)}
+              className="mt-4 min-h-24 w-full rounded-lg border bg-background p-3 text-sm"
+              placeholder="Inspection notes, defects, or re-clean instructions…"
+            />
+
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <button
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-destructive/30 px-4 py-3 text-sm font-medium text-destructive"
+                onClick={() => run(async () => {
+                  await submitInspectionFn({
+                    data: {
+                      inspectionId: selectedInspection.inspection_id,
+                      passed: false,
+                      checklist: CHECKLIST.map(([key]) => ({ key, passed: inspectionChecks[key] })),
+                      notes: inspectionNotes || undefined,
+                      idempotencyKey: crypto.randomUUID(),
+                    },
+                  });
+                  setInspectionId(null);
+                  setInspectionNotes("");
+                })}
+              >
+                <XCircle className="h-4 w-4" /> Fail & re-clean
+              </button>
+              <button
+                disabled={!allPassed}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => run(async () => {
+                  await submitInspectionFn({
+                    data: {
+                      inspectionId: selectedInspection.inspection_id,
+                      passed: true,
+                      checklist: CHECKLIST.map(([key]) => ({ key, passed: inspectionChecks[key] })),
+                      notes: inspectionNotes || undefined,
+                      idempotencyKey: crypto.randomUUID(),
+                    },
+                  });
+                  setInspectionId(null);
+                  setInspectionNotes("");
+                })}
+              >
+                <CheckCircle2 className="h-4 w-4" /> Pass & mark ready
+              </button>
+            </div>
+
+            {!allPassed && <div className="mt-2 text-xs text-muted-foreground">All checklist items must pass before the room can be marked ready.</div>}
+          </div>
         </div>
       )}
 
       <div className="rounded-xl border border-dashed p-4 text-xs text-muted-foreground">
         <WandSparkles className="mr-1 inline h-3.5 w-3.5" />
-        Housekeeping execution is governed by StayNas permissions and the room-readiness state machine. Supervisors control assignment; attendants control their own cleaning lifecycle.
+        Readiness is controlled: dirty → cleaning task → inspection → passed = ready, or failed → re-clean → inspection.
       </div>
     </div>
   );
