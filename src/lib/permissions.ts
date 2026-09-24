@@ -70,6 +70,19 @@ export function useCurrentUserRoles() {
 
   useEffect(() => {
     let mounted = true;
+
+    // Local development mode intentionally presents the full owner role set
+    // so UI and route work can continue while interactive Supabase auth is
+    // repaired. This branch is gated by Vite's DEV flag and is never active
+    // in production builds.
+    if (import.meta.env.DEV) {
+      setUserId("development-owner");
+      setAuthReady(true);
+      return () => {
+        mounted = false;
+      };
+    }
+
     supabase.auth.getUser().then(({ data }) => {
       if (!mounted) return;
       setUserId(data.user?.id ?? null);
@@ -92,6 +105,8 @@ export function useCurrentUserRoles() {
     queryKey: ["current-user-roles", userId],
     enabled: authReady && Boolean(userId),
     queryFn: async () => {
+      if (import.meta.env.DEV) return normalizeStayNasRoles(["owner"]);
+
       const { data, error } = await supabase.rpc("current_user_roles");
       if (error) throw new Error(error.message);
       return normalizeStayNasRoles((data ?? []) as string[]);
