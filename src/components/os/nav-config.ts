@@ -60,7 +60,7 @@ export const NAV: NavEntry[] = [
       icon: ClipboardCheck,
       items: [
         { id: "front-desk", label: "Today", href: "/admin/front-desk", icon: ClipboardCheck },
-        { id: "front-desk", label: "Scan Arrival Pass", href: "/admin/operations/arrivals/scan", icon: QrCode },
+        { id: "front-desk.scan-pass", label: "Scan Arrival Pass", href: "/admin/operations/arrivals/scan", icon: QrCode },
       ],
     },
   },
