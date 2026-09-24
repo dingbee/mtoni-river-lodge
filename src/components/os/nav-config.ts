@@ -3,6 +3,7 @@ import {
   Bed,
   Bot,
   Calendar,
+  CalendarDays,
   CheckCircle2,
   ClipboardCheck,
   CreditCard,
@@ -15,6 +16,7 @@ import {
   UserCog,
   Users,
   Wrench,
+  QrCode,
 } from "lucide-react";
 import type { ComponentType } from "react";
 
@@ -38,11 +40,46 @@ export type NavEntry =
 
 export const NAV: NavEntry[] = [
   { kind: "item", item: { id: "overview", label: "Overview", href: "/admin", icon: LayoutDashboard } },
-  { kind: "item", item: { id: "reservations", label: "Reservations", href: "/admin/bookings", icon: Calendar } },
-  { kind: "item", item: { id: "rooms", label: "Rooms", href: "/admin/operations/rooms", icon: Bed } },
-  { kind: "item", item: { id: "front-desk", label: "Front Desk", href: "/admin/front-desk", icon: ClipboardCheck } },
-  { kind: "item", item: { id: "operations", label: "Operations", href: "/admin/operations", icon: Activity } },
-  { kind: "item", item: { id: "housekeeping", label: "Housekeeping", href: "/admin/operations/housekeeping", icon: CheckCircle2 } },
+  {
+    kind: "group",
+    group: {
+      id: "reservations",
+      label: "Reservations",
+      icon: Calendar,
+      items: [
+        { id: "reservations", label: "All Reservations", href: "/admin/bookings", icon: Calendar },
+        { id: "reservations.calendar", label: "Calendar", href: "/admin/calendar", icon: CalendarDays },
+      ],
+    },
+  },
+  {
+    kind: "group",
+    group: {
+      id: "front-desk",
+      label: "Front Desk",
+      icon: ClipboardCheck,
+      items: [
+        { id: "front-desk", label: "Today", href: "/admin/front-desk", icon: ClipboardCheck },
+        { id: "front-desk.scan-pass", label: "Scan Arrival Pass", href: "/admin/operations/arrivals/scan", icon: QrCode },
+      ],
+    },
+  },
+  {
+    kind: "group",
+    group: {
+      id: "operations",
+      label: "Operations",
+      icon: Activity,
+      items: [
+        { id: "operations", label: "Operations Centre", href: "/admin/operations", icon: Activity },
+        { id: "operations.rooms", label: "Room Board", href: "/admin/operations/rooms", icon: Bed },
+        { id: "operations.housekeeping", label: "Housekeeping", href: "/admin/operations/housekeeping", icon: CheckCircle2 },
+        { id: "operations.tasks", label: "Tasks", href: "/admin/operations/tasks", icon: CheckCircle2 },
+        { id: "operations.alerts", label: "Alerts", href: "/admin/operations/alerts", icon: Activity },
+        { id: "operations.timeline", label: "Activity", href: "/admin/operations/timeline", icon: History },
+      ],
+    },
+  },
   { kind: "item", item: { id: "guests", label: "Guests", href: "/admin/guests/crm", icon: Users } },
   { kind: "item", item: { id: "finance", label: "Finance", href: "/admin/finance", icon: CreditCard } },
   { kind: "item", item: { id: "revenue", label: "Revenue", href: "/admin/analytics/revenue", icon: TrendingUp } },

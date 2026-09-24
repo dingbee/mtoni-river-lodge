@@ -4,7 +4,7 @@ import { StaffArrivalScanPage } from "@/domains/hospitality/online-checkin";
 export const Route = createFileRoute("/_authenticated/admin/operations/arrivals/scan")({
   head: () => ({
     meta: [
-      { title: "Scan arrival pass — Mtoni OS" },
+      { title: "Scan arrival pass — StayNas" },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
