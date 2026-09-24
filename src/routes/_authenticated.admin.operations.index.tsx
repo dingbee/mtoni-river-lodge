@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/operations/")({
-  head: () => ({ meta: [{ title: "Operations Dashboard — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "Operations Dashboard — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: OpsDashboard,
 });
 
