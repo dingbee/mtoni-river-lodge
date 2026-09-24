@@ -16,7 +16,6 @@ import { contentHomepageModule, contentRoomsModule, contentExperiencesModule, co
 import { marketingSeoModule, marketingCampaignsModule, marketingAnalyticsModule } from "./modules/marketing.module";
 import { financePaymentsModule, financeInvoicesModule, financeReportsModule } from "./modules/finance.module";
 import { staffUsersModule, staffRolesModule, staffActivityModule } from "./modules/staff.module";
-import { housekeepingModule } from "./modules/housekeeping.module";
 import { onlineCheckInArrivalsModule } from "./modules/online-checkin.module";
 import { automationModule, aiAssistantModule } from "./modules/automation.module";
 import { settingsModule, dashboardModule } from "./modules/system.module";
@@ -43,7 +42,6 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
   opsDashboardModule, opsRoomBoardModule, opsCalendarModule, opsHousekeepingModule,
   opsTasksModule, opsAlertsModule, opsTimelineModule,
   onlineCheckInArrivalsModule,
-  housekeepingModule,
   guestsCrmModule, guestsReviewsModule, guestsMessagesModule,
   contentPagesModule,
   contentHomepageModule, contentRoomsModule, contentExperiencesModule,
