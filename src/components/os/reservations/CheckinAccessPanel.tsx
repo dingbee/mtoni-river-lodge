@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Copy, Loader2 } from "lucide-react";
+import { Copy, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   getReservationCheckinAccess,
@@ -61,6 +61,23 @@ export function CheckinAccessPanel({ bookingId }: { bookingId: string }) {
               <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy
             </Button>
           </div>
+          {access.data?.arrivalPassToken && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-[color:var(--os-success)]/30 bg-[color:var(--os-success-soft)] p-3">
+              <div>
+                <p className="font-medium">QR Arrival Pass ready</p>
+                <p className="text-xs text-muted-foreground">Approved online check-in. Front Desk scans this pass on arrival.</p>
+              </div>
+              <Button size="sm" asChild>
+                <a
+                  href={`/check-in/pass/${access.data.arrivalPassToken}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> View pass
+                </a>
+              </Button>
+            </div>
+          )}
         </div>
       ) : access.data?.eligible ? (
         <div className="mt-2 flex flex-wrap items-center gap-2">
