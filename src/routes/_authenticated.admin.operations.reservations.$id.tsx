@@ -9,7 +9,7 @@ import { RoomStateChip } from "@/components/os/operations/RoomStateChip";
 import { User, DollarSign, ListChecks } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/operations/reservations/$id")({
-  head: () => ({ meta: [{ title: "Reservation Workspace — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "Reservation Workspace — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: ReservationWorkspace,
 });
 
