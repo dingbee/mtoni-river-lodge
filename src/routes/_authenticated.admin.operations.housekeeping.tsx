@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Clock3, Play, UserRound, WandSparkles } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
-import { RoomStateChip } from "@/components/os/operations/RoomStateChip";
 import { useCurrentUserRoles } from "@/lib/permissions";
 import {
   assignHousekeepingTask,
@@ -47,7 +46,6 @@ function priorityLabel(priority: number) {
 function HousekeepingPage() {
   const qc = useQueryClient();
   const { data: roles = [] } = useCurrentUserRoles();
-  const currentUserId = undefined;
   const isSupervisor = roles.some((r) => ["owner", "manager"].includes(r));
 
   const [mineOnly, setMineOnly] = useState(true);
@@ -143,7 +141,7 @@ function HousekeepingPage() {
                   <span className={`rounded-full border px-2 py-1 text-[11px] font-medium ${task.priority === 1 ? "border-rose-500/30 bg-rose-500/10 text-rose-700" : "border-muted bg-muted/30"}`}>
                     {priorityLabel(task.priority)}
                   </span>
-                  <div className="mt-2"><RoomStateChip state={task.status === "in_progress" ? "vacant_dirty" : "vacant_dirty"} /></div>
+                  <div className="mt-2 text-xs capitalize text-muted-foreground">{task.status.replace("_", " ")}</div>
                 </div>
               </div>
 
