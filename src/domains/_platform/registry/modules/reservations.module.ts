@@ -2,7 +2,7 @@ import { Calendar, CalendarDays, Bed } from "lucide-react";
 import { defineModule } from "../registry";
 
 export const reservationsModule = defineModule({
-  id: "operations.reservations",
+  id: "reservations",
   name: "Reservations",
   description: "Bookings, guests, and stays",
   icon: Calendar,
@@ -13,7 +13,7 @@ export const reservationsModule = defineModule({
 });
 
 export const reservationsCalendarModule = defineModule({
-  id: "operations.calendar",
+  id: "reservations.calendar",
   name: "Calendar",
   description: "Availability and arrivals calendar",
   icon: CalendarDays,
