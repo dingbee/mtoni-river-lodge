@@ -207,6 +207,7 @@ BEGIN
   IF _task.status <> 'completed' THEN RAISE EXCEPTION 'Cleaning task is not complete'; END IF;
 
   FOREACH _key IN ARRAY _required LOOP
+    _item := NULL;
     SELECT x INTO _item
     FROM jsonb_array_elements(_checklist) x
     WHERE x->>'key' = _key;
