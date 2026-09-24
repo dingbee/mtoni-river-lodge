@@ -10,7 +10,7 @@ export function defineModule<T extends ModuleDefinition>(def: T): T {
 // Static registry array. Adding a module: create the file under
 // `./modules/<name>.module.ts` and append to this array. This stays
 // tree-shakeable and gives strong types.
-import { reservationsModule, reservationsCalendarModule, reservationsRoomsModule } from "./modules/reservations.module";
+import { reservationsModule, reservationsCalendarModule } from "./modules/reservations.module";
 import { guestsCrmModule, guestsReviewsModule, guestsMessagesModule } from "./modules/guests.module";
 import { contentHomepageModule, contentRoomsModule, contentExperiencesModule, contentJournalModule, contentGalleryModule, contentMediaModule } from "./modules/content.module";
 import { marketingSeoModule, marketingCampaignsModule, marketingAnalyticsModule } from "./modules/marketing.module";
@@ -23,7 +23,6 @@ import { loyaltyModule, conciergeModule, maintenanceModule, procurementModule, m
 import {
   opsDashboardModule,
   opsRoomBoardModule,
-  opsCalendarModule,
   opsHousekeepingModule,
   opsTasksModule,
   opsAlertsModule,
@@ -38,8 +37,8 @@ import {
 
 export const MODULE_REGISTRY: ModuleDefinition[] = [
   dashboardModule,
-  reservationsModule, reservationsCalendarModule, reservationsRoomsModule,
-  opsDashboardModule, opsRoomBoardModule, opsCalendarModule, opsHousekeepingModule,
+  reservationsModule, reservationsCalendarModule,
+  opsDashboardModule, opsRoomBoardModule, opsHousekeepingModule,
   opsTasksModule, opsAlertsModule, opsTimelineModule,
   onlineCheckInArrivalsModule,
   guestsCrmModule, guestsReviewsModule, guestsMessagesModule,
