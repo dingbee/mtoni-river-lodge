@@ -124,6 +124,10 @@ export const updateRoomState = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const housekeepingStates = new Set(["vacant_dirty", "inspection", "vacant_clean", "maintenance", "out_of_service"]);
+    if (housekeepingStates.has(data.state)) {
+      throw new Error("Housekeeping room-readiness states must be changed through the governed Housekeeping workflow.");
+    }
     const { data: prev } = await sb.from("room_states").select("state, unit_label").eq("id", data.id).maybeSingle();
     const { error } = await sb.from("room_states")
       .update({ state: data.state, state_note: data.note ?? null, updated_by: context.userId })
