@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, CheckSquare2, Clock3, Play, UserRound, WandSparkles, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CheckSquare2, Clock3, Play, UserRound, WandSparkles, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { useCurrentUserRoles } from "@/lib/permissions";
 import {
@@ -17,6 +17,11 @@ import {
   listHousekeepingInspectionQueue,
   submitHousekeepingInspection,
 } from "@/lib/housekeeping-inspection.functions";
+import {
+  listHousekeepingExceptions,
+  reportHousekeepingException,
+  resolveHousekeepingException,
+} from "@/lib/housekeeping-exceptions.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/operations/housekeeping")({
   head: () => ({ meta: [{ title: "Housekeeping — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -80,7 +85,12 @@ function HousekeepingPage() {
   const { data: roles = [] } = useCurrentUserRoles();
   const isSupervisor = roles.some((r) => ["owner", "manager", "admin"].includes(r));
 
-  const [view, setView] = useState<"work" | "inspection">("work");
+  const [view, setView] = useState<"work" | "inspection" | "exceptions">("work");
+  const [exceptionRoom, setExceptionRoom] = useState<WorkRow | null>(null);
+  const [exceptionType, setExceptionType] = useState<"dnd"|"discrepancy"|"damage"|"maintenance"|"lost_found"|"linen_amenity">("maintenance");
+  const [exceptionTitle, setExceptionTitle] = useState("");
+  const [exceptionNotes, setExceptionNotes] = useState("");
+  const [exceptionSeverity, setExceptionSeverity] = useState(2);
   const [mineOnly, setMineOnly] = useState(true);
   const [noteTask, setNoteTask] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -99,6 +109,9 @@ function HousekeepingPage() {
   const staffFn = useServerFn(listHousekeepingStaff);
   const inspectionListFn = useServerFn(listHousekeepingInspectionQueue);
   const submitInspectionFn = useServerFn(submitHousekeepingInspection);
+  const exceptionsListFn = useServerFn(listHousekeepingExceptions);
+  const reportExceptionFn = useServerFn(reportHousekeepingException);
+  const resolveExceptionFn = useServerFn(resolveHousekeepingException);
 
   const work = useQuery({
     queryKey: ["housekeeping-work", mineOnly],
@@ -113,6 +126,12 @@ function HousekeepingPage() {
     staleTime: 60_000,
   });
 
+  const exceptions = useQuery({
+    queryKey: ["housekeeping-exceptions"],
+    queryFn: () => exceptionsListFn({ data: { openOnly: true } }),
+    refetchInterval: 20_000,
+  });
+
   const inspections = useQuery({
     queryKey: ["housekeeping-inspection-queue"],
     queryFn: () => inspectionListFn(),
@@ -122,6 +141,7 @@ function HousekeepingPage() {
 
   const rows = useMemo(() => (work.data ?? []) as WorkRow[], [work.data]);
   const inspectionRows = useMemo(() => (inspections.data ?? []) as InspectionRow[], [inspections.data]);
+  const exceptionRows = useMemo(() => (exceptions.data ?? []) as Array<any>, [exceptions.data]);
   const selectedInspection = inspectionRows.find((row) => row.inspection_id === inspectionId);
   const allPassed = CHECKLIST.every(([key]) => inspectionChecks[key]);
 
@@ -129,6 +149,7 @@ function HousekeepingPage() {
     await Promise.all([
       qc.invalidateQueries({ queryKey: ["housekeeping-work"] }),
       qc.invalidateQueries({ queryKey: ["housekeeping-inspection-queue"] }),
+      qc.invalidateQueries({ queryKey: ["housekeeping-exceptions"] }),
     ]);
   };
 
@@ -265,7 +286,7 @@ function HousekeepingPage() {
                         <Play className="h-4 w-4" /> Start cleaning
                       </button>
                     )}
-                    {task.status === "in_progress" && (
+                    <button className="rounded-lg border px-3 py-2 text-sm" onClick={() => { setExceptionRoom(task); setExceptionTitle(""); setExceptionNotes(""); setError(null); }}>Report issue</button>\n                    {task.status === "in_progress" && (
                       <button className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground" onClick={() => setNoteTask(task.id)}>
                         <CheckCircle2 className="h-4 w-4" /> Complete cleaning
                       </button>
@@ -409,7 +430,41 @@ function HousekeepingPage() {
         </div>
       )}
 
-      <div className="rounded-xl border border-dashed p-4 text-xs text-muted-foreground">
+
+      {view === "exceptions" && (
+        <div className="space-y-3">
+          {error && <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</div>}
+          {exceptionRows.length === 0 ? (
+            <div className="rounded-xl border p-8 text-center"><CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-muted-foreground" /><div className="font-medium">No open housekeeping exceptions</div><div className="mt-1 text-sm text-muted-foreground">DND, discrepancies, damage, maintenance, lost & found, and linen/amenity issues will appear here.</div></div>
+          ) : (
+            <div className="grid gap-3 lg:grid-cols-2">{exceptionRows.map((row) => (
+              <article key={row.id} className="rounded-xl border bg-card p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3"><div><div className="text-lg font-semibold">{row.unit_label}</div><div className="text-sm text-muted-foreground">{row.room_name}</div></div><span className="rounded-full border px-2 py-1 text-[11px] font-medium capitalize">{row.exception_type.replace("_"," ")}</span></div>
+                <div className="mt-3 font-medium">{row.title}</div>
+                {row.notes && <div className="mt-1 text-sm text-muted-foreground">{row.notes}</div>}
+                <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground"><span>Severity {row.severity}</span><span>{new Date(row.created_at).toLocaleString()}</span></div>
+                <button className="mt-3 w-full rounded-lg border px-3 py-2 text-sm" onClick={() => run(() => resolveExceptionFn({ data: { exceptionId: row.id, resolution: "Resolved from Housekeeping." } }))}>Mark resolved</button>
+              </article>
+            ))}</div>
+          )}
+        </div>
+      )}
+
+      {exceptionRoom && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
+          <div className="w-full rounded-t-2xl border bg-card p-5 shadow-xl sm:max-w-xl sm:rounded-2xl">
+            <div className="flex items-start justify-between"><div><div className="text-xl font-semibold">Report issue — {exceptionRoom.unit_label}</div><div className="text-sm text-muted-foreground">{exceptionRoom.room_name}</div></div><button className="rounded-lg border p-2" onClick={() => setExceptionRoom(null)}><XCircle className="h-5 w-5" /></button></div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <select className="rounded-lg border bg-background p-3 text-sm" value={exceptionType} onChange={(e) => setExceptionType(e.target.value as typeof exceptionType)}><option value="maintenance">Maintenance</option><option value="dnd">Do Not Disturb</option><option value="discrepancy">Room discrepancy</option><option value="damage">Damage</option><option value="lost_found">Lost & found</option><option value="linen_amenity">Linen / amenity</option></select>
+              <select className="rounded-lg border bg-background p-3 text-sm" value={exceptionSeverity} onChange={(e) => setExceptionSeverity(Number(e.target.value))}><option value="1">Rush</option><option value="2">Normal</option><option value="3">Low</option></select>
+            </div>
+            <input value={exceptionTitle} onChange={(e) => setExceptionTitle(e.target.value)} className="mt-3 w-full rounded-lg border bg-background p-3 text-sm" placeholder="Issue title" />
+            <textarea value={exceptionNotes} onChange={(e) => setExceptionNotes(e.target.value)} className="mt-3 min-h-28 w-full rounded-lg border bg-background p-3 text-sm" placeholder="Details, location, missing item, damage description, or re-clean instructions…" />
+            <button disabled={exceptionTitle.trim().length < 2} className="mt-3 w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground disabled:opacity-50" onClick={() => run(async () => { await reportExceptionFn({ data: { roomStateId: exceptionRoom.room_state_id, taskId: exceptionRoom.id, exceptionType, title: exceptionTitle, notes: exceptionNotes || undefined, severity: exceptionSeverity, evidence: [] } }); setExceptionRoom(null); })}>Report exception</button>
+          </div>
+        </div>
+      )}
+\n      <div className="rounded-xl border border-dashed p-4 text-xs text-muted-foreground">
         <WandSparkles className="mr-1 inline h-3.5 w-3.5" />
         Readiness is controlled: dirty → cleaning task → inspection → passed = ready, or failed → re-clean → inspection.
       </div>
