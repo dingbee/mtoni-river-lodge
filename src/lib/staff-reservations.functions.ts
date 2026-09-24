@@ -133,7 +133,21 @@ export const getReservationCheckinAccess = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const eligible = Boolean(elig?.eligible);
     const { data: existing } = await sb.from("guest_checkins").select("token, status, expires_at, submitted_at").eq("booking_id", data.bookingId).maybeSingle();
-    return { eligible, reason: (elig?.message ?? elig?.code ?? null) as string | null, token: existing?.token ?? null, status: existing?.status ?? null, expiresAt: existing?.expires_at ?? null };
+    const { data: arrivalPass } = await sb
+      .from("arrival_passes")
+      .select("token, status, expires_at")
+      .eq("booking_id", data.bookingId)
+      .eq("status", "active")
+      .maybeSingle();
+    return {
+      eligible,
+      reason: (elig?.message ?? elig?.code ?? null) as string | null,
+      token: existing?.token ?? null,
+      status: existing?.status ?? null,
+      expiresAt: existing?.expires_at ?? null,
+      arrivalPassToken: arrivalPass?.token ?? null,
+      arrivalPassExpiresAt: arrivalPass?.expires_at ?? null,
+    };
   });
 
 export const ensureReservationCheckin = createServerFn({ method: "POST" })
