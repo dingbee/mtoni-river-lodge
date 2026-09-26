@@ -10,8 +10,8 @@ import type {
   ConciergeBookingPlan,
 } from "@/domains/ai/concierge/concierge.types";
 
-const STORAGE_KEY = "mtoni.concierge.session";
-const FEEDBACK_KEY = "mtoni.concierge.feedback";
+const STORAGE_KEY = "staynas.concierge.session";
+const FEEDBACK_KEY = "staynas.concierge.feedback";
 
 function postBeacon(url: string, body: unknown) {
   try {
@@ -78,7 +78,7 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
     () => ({
       role: "assistant",
       content:
-        "Karibu — welcome to StayNas demo property. I'm your AI Concierge. I can help you discover rooms, explore experiences, check availability, and plan your stay in Arusha.",
+        "Karibu — welcome to the StayNas demo property. I'm your AI Concierge. I can help you discover rooms, explore experiences, check availability, and plan your stay in Arusha.",
     }),
     [],
   );
