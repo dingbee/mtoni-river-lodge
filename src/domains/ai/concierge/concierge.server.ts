@@ -9,7 +9,8 @@ import type {
 } from "./concierge.types";
 import { WHATSAPP_URL } from "@/lib/contact";
 import { classifyIntent } from "./concierge.intent";
-import { combinedRecommendations, type ConciergeRoomCatalogItem } from "./concierge.recommendations";
+import { combinedRecommendations } from "./concierge.recommendations";
+import type { ConciergeRoomCatalogItem } from "./concierge.types";
 import { searchAvailability, buildBookingPlan } from "./concierge.tools";
 import { loadConciergeMemoryContext, suggestMemoriesFromMessage } from "./memory.context";
 import { AI_GATEWAY_DEFAULT_MODEL, AI_GATEWAY_URL, parseAiJson } from "@/lib/ai-gateway.server";
