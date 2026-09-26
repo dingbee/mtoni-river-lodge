@@ -214,7 +214,7 @@ function HousekeepingPage() {
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm">
           <span className="font-medium">Offline mode.</span> The current worklist may be stale. Inspection drafts are saved on this device; reconnect before sending any action.
         </div>
-      )
+      )}
 
       <div className="flex flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
