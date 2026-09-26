@@ -40,7 +40,7 @@ export function clearHousekeepingInspectionDraft(inspectionId: string): void {
 }
 
 export function isHousekeepingOnline(): boolean {
-  return typeof navigator === "undefined" ? true : navigator.onLine;
+  return typeof navigator === "undefined" ? true : navigator.onLine !== false;
 }
 
 export function actionIdempotencyKey(action: string, taskId: string): string {
