@@ -16136,6 +16136,45 @@ export type Database = {
         }
         Relationships: []
       }
+      room_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          features: string[]
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+          specifications: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          features?: string[]
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+          specifications?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          features?: string[]
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+          specifications?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       room_inventory: {
         Row: {
           available_units: number
@@ -16235,59 +16274,91 @@ export type Database = {
       rooms: {
         Row: {
           base_price: number
+          bathroom_label: string | null
+          bed_label: string | null
           capacity_adults: number
           capacity_children: number
+          category_id: string | null
           created_at: string
           currency: string
           extra_guest_fee: number
+          gallery_urls: string[]
+          hero_line: string | null
           id: string
+          image_url: string | null
           included_guests: number
           max_occupancy: number
           name: string
           short_description: string | null
+          size_label: string | null
           slug: string
           sort_order: number
           status: string
           total_units: number
           updated_at: string
+          view_label: string | null
         }
         Insert: {
           base_price: number
+          bathroom_label?: string | null
+          bed_label?: string | null
           capacity_adults?: number
           capacity_children?: number
+          category_id?: string | null
           created_at?: string
           currency?: string
           extra_guest_fee?: number
+          gallery_urls?: string[]
+          hero_line?: string | null
           id?: string
+          image_url?: string | null
           included_guests?: number
           max_occupancy?: number
           name: string
           short_description?: string | null
+          size_label?: string | null
           slug: string
           sort_order?: number
           status?: string
           total_units?: number
           updated_at?: string
+          view_label?: string | null
         }
         Update: {
           base_price?: number
+          bathroom_label?: string | null
+          bed_label?: string | null
           capacity_adults?: number
           capacity_children?: number
+          category_id?: string | null
           created_at?: string
           currency?: string
           extra_guest_fee?: number
+          gallery_urls?: string[]
+          hero_line?: string | null
           id?: string
+          image_url?: string | null
           included_guests?: number
           max_occupancy?: number
           name?: string
           short_description?: string | null
+          size_label?: string | null
           slug?: string
           sort_order?: number
           status?: string
           total_units?: number
           updated_at?: string
+          view_label?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "rooms_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "room_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scheduled_jobs: {
         Row: {
@@ -17293,6 +17364,33 @@ export type Database = {
       }
       restaurant_next_document_number: {
         Args: { _doc_type: string; _prefix: string; _tenant: string }
+        Returns: string
+      }
+      save_room_type_configuration: {
+        Args: {
+          _base_price: number
+          _bathroom_label?: string
+          _bed_label?: string
+          _capacity_adults: number
+          _capacity_children: number
+          _category_id: string
+          _currency: string
+          _extra_guest_fee: number
+          _gallery_urls?: string[]
+          _hero_line?: string
+          _id: string
+          _image_url?: string
+          _included_guests: number
+          _max_occupancy: number
+          _name: string
+          _short_description: string
+          _size_label?: string
+          _slug: string
+          _sort_order: number
+          _status: string
+          _total_units: number
+          _view_label?: string
+        }
         Returns: string
       }
       set_room_block: {
