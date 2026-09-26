@@ -1,15 +1,4 @@
-import type { ConciergeIntentSignal, ConciergeRecommendation, ConciergeRoomRecommendation, ConciergeExperienceRecommendation } from "./concierge.types";
-
-export type ConciergeRoomCatalogItem = {
-  slug: string;
-  name: string;
-  short_description?: string | null;
-  capacity_adults: number;
-  capacity_children: number;
-  max_occupancy: number;
-  base_price: number;
-  currency: string;
-};
+import type { ConciergeIntentSignal, ConciergeRecommendation, ConciergeRoomRecommendation, ConciergeExperienceRecommendation, ConciergeRoomCatalogItem } from "./concierge.types";
 
 export function recommendRooms(intent: ConciergeIntentSignal, catalog: ConciergeRoomCatalogItem[]): ConciergeRoomRecommendation[] {
   const adults = intent.detected.adults ?? 2;
