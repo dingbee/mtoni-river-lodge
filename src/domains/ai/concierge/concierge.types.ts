@@ -27,6 +27,17 @@ export interface ConciergeIntentSignal {
   };
 }
 
+export interface ConciergeRoomCatalogItem {
+  slug: string;
+  name: string;
+  short_description?: string | null;
+  capacity_adults: number;
+  capacity_children: number;
+  max_occupancy: number;
+  base_price: number;
+  currency: string;
+}
+
 export interface ConciergeRoomRecommendation {
   type: "room";
   slug: string;
