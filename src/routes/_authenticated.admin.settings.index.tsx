@@ -17,6 +17,7 @@ import { SectionCard } from "@/components/os/SectionCard";
 import { AppearanceControl } from "@/components/os/AppearanceControl";
 import { Badge } from "@/components/ui/badge";
 import { getBrandContext } from "@/domains/content/brand/brand.functions";
+import { usePropertyContext } from "@/modules/property/PropertyContext";
 
 export const Route = createFileRoute("/_authenticated/admin/settings/")({
   head: () => ({
@@ -38,6 +39,7 @@ type LinkTile = {
 
 function SettingsHub() {
   const brandFn = useServerFn(getBrandContext);
+  const { organisation, property: propertyContext } = usePropertyContext();
   const brand = useQuery({ queryKey: ["settings.brand-summary"], queryFn: () => brandFn() });
 
   const contentTiles: LinkTile[] = [
@@ -127,8 +129,8 @@ function SettingsHub() {
 
       <SectionCard title="Property">
         <div className="grid gap-3 sm:grid-cols-2">
-          <PropertyFact label="Owner" value="Nolmark CDMA" hint="Current StayNas property owner for this project" />
-          <PropertyFact label="Property" value="Nolmark CDMA Demo Property" hint="Property code: NOLMARK" />
+          <PropertyFact label="Owner" value={organisation.name} hint="Current StayNas property owner for this project" />
+          <PropertyFact label="Property" value={propertyContext.name} hint={`Property code: ${propertyContext.code}`} />
           <PropertyFact
             label="Brand tokens"
             value={brand.data ? String(Object.values(brand.data).reduce((n, arr) => n + (arr?.length ?? 0), 0)) : "—"}
@@ -136,7 +138,7 @@ function SettingsHub() {
           />
           <PropertyFact
             label="Currency"
-            value="USD"
+            value={propertyContext.currency}
             hint="Base pricing currency for the booking engine"
           />
         </div>
