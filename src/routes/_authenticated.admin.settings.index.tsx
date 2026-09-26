@@ -17,11 +17,12 @@ import { SectionCard } from "@/components/os/SectionCard";
 import { AppearanceControl } from "@/components/os/AppearanceControl";
 import { Badge } from "@/components/ui/badge";
 import { getBrandContext } from "@/domains/content/brand/brand.functions";
+import { usePropertyContext } from "@/modules/property/PropertyContext";
 
 export const Route = createFileRoute("/_authenticated/admin/settings/")({
   head: () => ({
     meta: [
-      { title: "Settings — Mtoni OS" },
+      { title: "Settings — StayNas" },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
@@ -38,6 +39,7 @@ type LinkTile = {
 
 function SettingsHub() {
   const brandFn = useServerFn(getBrandContext);
+  const { organisation, property } = usePropertyContext();
   const brand = useQuery({ queryKey: ["settings.brand-summary"], queryFn: () => brandFn() });
 
   const property: LinkTile[] = [
@@ -119,8 +121,7 @@ function SettingsHub() {
       <SectionCard title="Appearance">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-[color:var(--os-ink-3)]">
-            Choose Light, Dark, or follow your device setting. Applies to Mtoni OS only —
-            the public website keeps its own identity.
+            Choose Light, Dark, or follow your device setting. Applies to the StayNas admin experience; the public guest website keeps its own identity.
           </p>
           <AppearanceControl />
         </div>
@@ -128,21 +129,17 @@ function SettingsHub() {
 
       <SectionCard title="Property">
         <div className="grid gap-3 sm:grid-cols-2">
-          <PropertyFact label="Rooms" value="24" hint="21 Riverfront Standard · 2 Deluxe · 1 Family" />
-          <PropertyFact
-            label="Currency"
-            value="USD"
-            hint="Base pricing currency for the booking engine"
-          />
+          <PropertyFact label="Owner" value={organisation.name} hint="Current StayNas property owner for this project" />
+          <PropertyFact label="Property" value={property.name} hint={`Property code: ${property.code}`} />
           <PropertyFact
             label="Brand tokens"
             value={brand.data ? String(Object.values(brand.data).reduce((n, arr) => n + (arr?.length ?? 0), 0)) : "—"}
             hint="Voice, tone and guest-promise tokens"
           />
           <PropertyFact
-            label="Contact email"
-            value="bookings@mtoniriverlodge.com"
-            hint="Reservations inbox"
+            label="Currency"
+            value={property.currency}
+            hint="Base pricing currency for the booking engine"
           />
         </div>
       </SectionCard>
