@@ -154,7 +154,7 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
           {
             type: "whatsapp",
             label: "Chat on WhatsApp",
-            url: "https://wa.me/255752441443",
+            url: "https://wa.me/255745900440",
           },
         ],
       });
