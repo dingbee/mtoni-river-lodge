@@ -199,3 +199,11 @@ REVOKE ALL ON FUNCTION public.save_room_type_configuration(
 GRANT EXECUTE ON FUNCTION public.save_room_type_configuration(
   uuid,uuid,text,text,uuid,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text
 ) TO authenticated, service_role;
+
+
+-- Preserve global public slug compatibility while property remains the security boundary.
+-- Reservation URLs currently address a room by slug; global slug uniqueness prevents
+-- ambiguous booking resolution until property-qualified booking routes land.
+CREATE UNIQUE INDEX IF NOT EXISTS rooms_slug_global_uidx ON public.rooms(slug);
+CREATE UNIQUE INDEX IF NOT EXISTS room_categories_slug_global_uidx ON public.room_categories(slug);
+CREATE UNIQUE INDEX IF NOT EXISTS extras_slug_global_uidx ON public.extras(slug);
