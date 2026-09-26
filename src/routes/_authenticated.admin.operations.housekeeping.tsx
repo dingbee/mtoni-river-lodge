@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, CheckCircle2, CheckSquare2, Clock3, Play, UserRound, WandSparkles, XCircle } from "lucide-react";
+import { AlertTriangle, Bell, CheckCircle2, CheckSquare2, Clock3, Play, UserRound, WandSparkles, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { useCurrentUserRoles } from "@/lib/permissions";
 import { useHousekeepingRealtime } from "@/lib/housekeeping-realtime";
-import { getHousekeepingDashboard, listHousekeepingIntelligence } from "@/lib/housekeeping-intelligence.functions";
+import { getHousekeepingDashboard, listHousekeepingIntelligence, listHousekeepingNotifications, markHousekeepingNotificationRead } from "@/lib/housekeeping-intelligence.functions";
 import {
   assignHousekeepingTask,
   claimHousekeepingTask,
@@ -87,7 +87,7 @@ function HousekeepingPage() {
   const { data: roles = [] } = useCurrentUserRoles();
   const isSupervisor = roles.some((r) => ["owner", "manager", "admin"].includes(r));
 
-  const [view, setView] = useState<"work" | "inspection" | "exceptions">("work");
+  const [view, setView] = useState<"work" | "inspection" | "exceptions" | "notifications">("work");
   const [exceptionRoom, setExceptionRoom] = useState<WorkRow | null>(null);
   const [exceptionType, setExceptionType] = useState<"dnd"|"discrepancy"|"damage"|"maintenance"|"lost_found"|"linen_amenity" | "">("");
   const [exceptionTitle, setExceptionTitle] = useState("");
@@ -113,6 +113,8 @@ function HousekeepingPage() {
   const inspectionListFn = useServerFn(listHousekeepingInspectionQueue);
   const dashboardFn = useServerFn(getHousekeepingDashboard);
   const intelligenceFn = useServerFn(listHousekeepingIntelligence);
+  const notificationsFn = useServerFn(listHousekeepingNotifications);
+  const markNotificationReadFn = useServerFn(markHousekeepingNotificationRead);
   const submitInspectionFn = useServerFn(submitHousekeepingInspection);
   const exceptionsListFn = useServerFn(listHousekeepingExceptions);
   const reportExceptionFn = useServerFn(reportHousekeepingException);
@@ -120,6 +122,7 @@ function HousekeepingPage() {
 
   const dashboard = useQuery({ queryKey: ["housekeeping-dashboard"], queryFn: () => dashboardFn(), refetchInterval: 60_000 });
   const intelligence = useQuery({ queryKey: ["housekeeping-intelligence"], queryFn: () => intelligenceFn(), refetchInterval: 60_000 });
+  const notifications = useQuery({ queryKey: ["housekeeping-notifications"], queryFn: () => notificationsFn({ data: { limit: 50 } }), refetchInterval: 20_000 });
 
   const work = useQuery({
     queryKey: ["housekeeping-work", mineOnly],
@@ -158,6 +161,7 @@ function HousekeepingPage() {
       qc.invalidateQueries({ queryKey: ["housekeeping-work"] }),
       qc.invalidateQueries({ queryKey: ["housekeeping-inspection-queue"] }),
       qc.invalidateQueries({ queryKey: ["housekeeping-exceptions"] }),
+      qc.invalidateQueries({ queryKey: ["housekeeping-notifications"] }),
     ]);
   };
 
@@ -211,15 +215,34 @@ function HousekeepingPage() {
               Inspection {inspectionRows.length > 0 ? `(${inspectionRows.length})` : ""}
             </button>
           )}
+          <button
+            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${view === "exceptions" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+            onClick={() => setView("exceptions")}
+          >
+            <AlertTriangle className="h-4 w-4" />
+            Exceptions {exceptionRows.length > 0 ? `(${exceptionRows.length})` : ""}
+          </button>
+          <button
+            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${view === "notifications" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+            onClick={() => setView("notifications")}
+          >
+            <Bell className="h-4 w-4" />
+            Notifications {((notifications.data ?? []) as any[]).filter((n) => !n.read_at).length > 0 ? `(${((notifications.data ?? []) as any[]).filter((n) => !n.read_at).length})` : ""}
+          </button>
         </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
           ["Active", dashboard.data?.active_tasks ?? 0],
+          ["Unassigned", dashboard.data?.unassigned_tasks ?? 0],
           ["In progress", dashboard.data?.in_progress_tasks ?? 0],
-          ["Inspection", dashboard.data?.inspection_pending ?? 0],
           ["Overdue", dashboard.data?.overdue_tasks ?? 0],
+          ["Inspection", dashboard.data?.inspection_pending ?? 0],
+          ["Open exceptions", dashboard.data?.exceptions_open ?? 0],
+          ["Rooms ready", dashboard.data?.rooms_ready ?? 0],
+          ["Failed today", dashboard.data?.failed_inspections_today ?? 0],
+          ["Avg cleaning", `${dashboard.data?.avg_cleaning_minutes ?? 0} min`],
         ].map(([label,value]) => (
           <div key={String(label)} className="rounded-xl border bg-card p-4">
             <div className="text-xs text-muted-foreground">{label}</div>
@@ -465,6 +488,42 @@ function HousekeepingPage() {
         </div>
       )}
 
+
+      {view === "notifications" && (
+        <section className="space-y-3">
+          {notifications.isLoading ? (
+            <div className="rounded-xl border p-6 text-sm text-muted-foreground">Loading notifications…</div>
+          ) : (notifications.data ?? []).length === 0 ? (
+            <div className="rounded-xl border p-8 text-center">
+              <Bell className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+              <div className="font-medium">No housekeeping notifications</div>
+              <div className="mt-1 text-sm text-muted-foreground">Operational events for your role will appear here.</div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {(notifications.data ?? []).map((item: any) => (
+                <article key={item.id} className={`rounded-xl border bg-card p-4 ${item.read_at ? "opacity-70" : ""}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-medium">{item.title}</div>
+                      {item.body && <div className="mt-1 text-sm text-muted-foreground">{item.body}</div>}
+                    </div>
+                    {!item.read_at && (
+                      <button
+                        className="shrink-0 rounded-lg border px-3 py-2 text-xs"
+                        onClick={() => run(async () => { await markNotificationReadFn({ data: { id: item.id } }); })}
+                      >
+                        Mark read
+                      </button>
+                    )}
+                  </div>
+                  <div className="mt-2 text-[11px] text-muted-foreground">{new Date(item.created_at).toLocaleString()}</div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {view === "exceptions" && (
         <div className="space-y-3">
