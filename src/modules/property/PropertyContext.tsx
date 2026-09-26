@@ -25,8 +25,8 @@ export type StayNasOrganisation = {
 const FALLBACK_PROPERTY: StayNasProperty = {
   id: "property-nolmark-demo",
   organisationId: "org-nolmark-cdma",
-  name: "StayNas Demo Property",
-  code: "DEMO",
+  name: "Nolmark CDMA",
+  code: "NOLMARK",
   timezone: "Africa/Dar_es_Salaam",
   currency: "USD",
   status: "active",
@@ -62,7 +62,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
   const [activePropertyId, setActivePropertyId] = useState(FALLBACK_PROPERTY.id);
   const [organisation, setOrganisation] = useState<StayNasOrganisation>({
     id: FALLBACK_PROPERTY.organisationId,
-    name: "StayNas",
+    name: "Nolmark CDMA",
     properties: [FALLBACK_PROPERTY],
   });
 

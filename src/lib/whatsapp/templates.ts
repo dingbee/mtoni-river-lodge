@@ -18,7 +18,7 @@ export interface BookingSnapshot {
 function header(b: BookingSnapshot) {
   const flag =
     b.guest_type === 'vip' ? '⭐ VIP' : b.guest_type === 'climber' ? '🏔 CLIMBER' : ''
-  return `🏨 MTONI RIVER LODGE OPS ALERT${flag ? ` — ${flag}` : ''}`
+  return `🏨 STAYNAS OPS ALERT${flag ? ` — ${flag}` : ''}`
 }
 
 function lines(b: BookingSnapshot, action: string, extra?: string[]) {
@@ -57,7 +57,7 @@ export function vipPriorityMsg(b: BookingSnapshot) {
 
 export function morningDigest(items: BookingSnapshot[]) {
   if (items.length === 0) {
-    return '🏨 MTONI RIVER LODGE — Morning digest\n\nNo arrivals today.'
+    return '🏨 STAYNAS — Morning digest\n\nNo arrivals today.'
   }
   const vipCount = items.filter((b) => b.guest_type !== 'standard').length
   const rows = items
@@ -68,7 +68,7 @@ export function morningDigest(items: BookingSnapshot[]) {
         }`,
     )
     .join('\n')
-  return `🏨 MTONI RIVER LODGE — Morning digest\n\nArrivals today: ${items.length}${
+  return `🏨 STAYNAS — Morning digest\n\nArrivals today: ${items.length}${
     vipCount ? `  (${vipCount} priority)` : ''
   }\n\n${rows}`
 }

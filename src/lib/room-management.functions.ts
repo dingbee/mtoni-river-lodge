@@ -7,8 +7,8 @@ async function requireRoomAdmin(supabase: any, userId: string) {
   await requireStayNasModuleAccess(supabase, userId, "rooms.configure");
 }
 
-async function activePropertyId(supabase: any) {
-  const { data, error } = await supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+async function activePropertyId(supabase: any, userId: string) {
+  const { data, error } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
   if (error || !data) throw new Error(error?.message ?? "No active property selected");
   return data as string;
 }
@@ -28,7 +28,7 @@ export const listRoomConfiguration = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireRoomAdmin(context.supabase, context.userId);
-    const propertyId = await activePropertyId(context.supabase);
+    const propertyId = await activePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
 
     const [categoriesRes, roomsRes] = await Promise.all([
@@ -52,7 +52,7 @@ export const saveRoomCategory = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => categorySchema.parse(d))
   .handler(async ({ data, context }) => {
     await requireRoomAdmin(context.supabase, context.userId);
-    const propertyId = await activePropertyId(context.supabase);
+    const propertyId = await activePropertyId(context.supabase, context.userId);
     const payload = {
       property_id: propertyId,
       slug: data.slug,
@@ -102,7 +102,7 @@ export const saveRoomType = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => roomSchema.parse(d))
   .handler(async ({ data, context }) => {
     await requireRoomAdmin(context.supabase, context.userId);
-    const propertyId = await activePropertyId(context.supabase);
+    const propertyId = await activePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
 
     const { data: existing, error: existingError } = data.id

@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ROOMS } from "@/lib/rooms";
 import type {
   ChannelRow,
   CommunicationDraftRow,
@@ -106,44 +105,43 @@ function draftTemplate(type: CommunicationDraftType, ctx: {
   check_in?: string | null;
 }): { subject: string; body: string; reasoning: string } {
   const name = ctx.guest_name?.split(/\s+/)[0] ?? "there";
-  const room = ROOMS.find((r) => r.slug === ctx.room_slug);
-  const roomName = room?.name ?? "your room";
+  const roomName = ctx.room_slug ? "room " + ctx.room_slug : "your room";
   switch (type) {
     case "welcome":
       return {
-        subject: `Karibu to Mtoni River Lodge, ${name}`,
-        body: `Hi ${name},\n\nA warm karibu from all of us at Mtoni River Lodge. We're delighted you'll be staying with us in ${roomName}${ctx.check_in ? ` from ${ctx.check_in}` : ""}. If there's anything we can prepare in advance — dietary needs, airport transfer, or a special occasion — just reply to this message.\n\nWith warm regards,\nThe Mtoni team`,
+        subject: `Karibu to StayNas, ${name}`,
+        body: `Hi ${name},\n\nA warm karibu from all of us at the property River Lodge. We're delighted you'll be staying with us in ${roomName}${ctx.check_in ? ` from ${ctx.check_in}` : ""}. If there's anything we can prepare in advance — dietary needs, airport transfer, or a special occasion — just reply to this message.\n\nWith warm regards,\nThe StayNas team`,
         reasoning: "Warm, personal welcome referencing the guest's booked room.",
       };
     case "pre_arrival":
       return {
-        subject: `Getting ready for your Mtoni stay`,
-        body: `Hi ${name},\n\nYour stay is almost here. A few notes to help you settle in easily:\n• Check-in from 14:00; late arrivals welcome — please share your flight details if we can help with the transfer.\n• Dinner is served à la carte at the riverside restaurant; do let us know of any dietary needs.\n• Guided experiences (river walk, canoe, bonfire dining) can be reserved in advance.\n\nSafari njema,\nThe Mtoni team`,
+        subject: `Getting ready for your StayNas stay`,
+        body: `Hi ${name},\n\nYour stay is almost here. A few notes to help you settle in easily:\n• Check-in from 14:00; late arrivals welcome — please share your flight details if we can help with the transfer.\n• Dinner is served à la carte at the riverside restaurant; do let us know of any dietary needs.\n• Guided experiences (river walk, canoe, bonfire dining) can be reserved in advance.\n\nSafari njema,\nThe StayNas team`,
         reasoning: "Standard pre-arrival brief covering check-in, dining and experiences.",
       };
     case "activity_intro":
       return {
-        subject: `Ideas for your days at Mtoni`,
-        body: `Hi ${name},\n\nBased on what you've mentioned, you may enjoy a guided river walk in the golden hour and a candlelit dinner by the water. If you'd like to add a Lake Duluti canoe morning or an early Arusha coffee farm tour, we can pre-arrange transport.\n\nJust let us know and we'll take care of it.\n\nThe Mtoni team`,
+        subject: `Ideas for your days at the property`,
+        body: `Hi ${name},\n\nBased on what you've mentioned, you may enjoy a guided river walk in the golden hour and a candlelit dinner by the water. If you'd like to add a Lake Duluti canoe morning or an early Arusha coffee farm tour, we can pre-arrange transport.\n\nJust let us know and we'll take care of it.\n\nThe StayNas team`,
         reasoning: "Suggests signature experiences aligned to typical guest interests.",
       };
     case "transfer_info":
       return {
-        subject: `Airport transfer for your Mtoni stay`,
-        body: `Hi ${name},\n\nWe can arrange a private transfer from Kilimanjaro International (JRO) or Arusha Airport (ARK). Share your flight number and arrival time and we'll confirm the driver and rate directly.\n\nThe Mtoni team`,
+        subject: `Airport transfer for your StayNas stay`,
+        body: `Hi ${name},\n\nWe can arrange a private transfer from Kilimanjaro International (JRO) or Arusha Airport (ARK). Share your flight number and arrival time and we'll confirm the driver and rate directly.\n\nThe StayNas team`,
         reasoning: "Standard transfer prompt asking for flight details.",
       };
     case "follow_up":
       return {
         subject: `Thank you for staying with us`,
-        body: `Hi ${name},\n\nAsante sana for choosing Mtoni River Lodge. It was a pleasure hosting you. If you enjoyed your stay, a short review would mean the world to our small team — and we'd love to welcome you back on your next journey to Tanzania.\n\nWith warm regards,\nThe Mtoni team`,
+        body: `Hi ${name},\n\nAsante sana for choosing Mtoni River Lodge. It was a pleasure hosting you. If you enjoyed your stay, a short review would mean the world to our small team — and we'd love to welcome you back on your next journey to Tanzania.\n\nWith warm regards,\nThe StayNas team`,
         reasoning: "Post-stay thank-you with a soft review nudge.",
       };
     case "custom":
     default:
       return {
-        subject: `A note from Mtoni River Lodge`,
-        body: `Hi ${name},\n\n[Draft body — please edit]\n\nThe Mtoni team`,
+        subject: `A note from StayNas`,
+        body: `Hi ${name},\n\n[Draft body — please edit]\n\nThe StayNas team`,
         reasoning: "Blank template for staff-authored messages.",
       };
   }
