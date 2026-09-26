@@ -7,6 +7,12 @@ async function requireRoomAdmin(supabase: any, userId: string) {
   await requireStayNasModuleAccess(supabase, userId, "rooms.configure");
 }
 
+async function activePropertyId(supabase: any) {
+  const { data, error } = await supabase.rpc("staynas_active_property_id", { _uid: null });
+  if (error || !data) throw new Error(error?.message ?? "No active property selected");
+  return data as string;
+}
+
 const categorySchema = z.object({
   id: z.string().uuid().optional(),
   slug: z.string().trim().min(1).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
@@ -22,18 +28,23 @@ export const listRoomConfiguration = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireRoomAdmin(context.supabase, context.userId);
+    const propertyId = await activePropertyId(context.supabase);
     const sb: any = context.supabase;
+
     const [categoriesRes, roomsRes] = await Promise.all([
       sb.from("room_categories")
         .select("id,slug,name,description,features,specifications,sort_order,status")
+        .eq("property_id", propertyId)
         .order("sort_order").order("name"),
       sb.from("rooms")
         .select("id,slug,name,category_id,short_description,capacity_adults,capacity_children,max_occupancy,total_units,base_price,currency,status,sort_order,included_guests,extra_guest_fee,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label")
+        .eq("property_id", propertyId)
         .order("sort_order").order("name"),
     ]);
+
     if (categoriesRes.error) throw new Error(categoriesRes.error.message);
     if (roomsRes.error) throw new Error(roomsRes.error.message);
-    return { categories: categoriesRes.data ?? [], rooms: roomsRes.data ?? [] };
+    return { propertyId, categories: categoriesRes.data ?? [], rooms: roomsRes.data ?? [] };
   });
 
 export const saveRoomCategory = createServerFn({ method: "POST" })
@@ -41,14 +52,20 @@ export const saveRoomCategory = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => categorySchema.parse(d))
   .handler(async ({ data, context }) => {
     await requireRoomAdmin(context.supabase, context.userId);
+    const propertyId = await activePropertyId(context.supabase);
     const payload = {
-      slug: data.slug, name: data.name, description: data.description || null,
-      features: data.features, specifications: data.specifications,
-      sort_order: data.sortOrder, status: data.status,
+      property_id: propertyId,
+      slug: data.slug,
+      name: data.name,
+      description: data.description || null,
+      features: data.features,
+      specifications: data.specifications,
+      sort_order: data.sortOrder,
+      status: data.status,
     };
     const sb: any = context.supabase;
     const q = data.id
-      ? sb.from("room_categories").update(payload).eq("id", data.id).select("id").single()
+      ? sb.from("room_categories").update(payload).eq("id", data.id).eq("property_id", propertyId).select("id").single()
       : sb.from("room_categories").insert(payload).select("id").single();
     const { data: row, error } = await q;
     if (error) throw new Error(error.message);
@@ -85,76 +102,41 @@ export const saveRoomType = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => roomSchema.parse(d))
   .handler(async ({ data, context }) => {
     await requireRoomAdmin(context.supabase, context.userId);
+    const propertyId = await activePropertyId(context.supabase);
     const sb: any = context.supabase;
-    let oldQuantity = 0;
-    if (data.id) {
-      const { data: existing, error: existingError } = await sb.from("rooms").select("total_units").eq("id", data.id).single();
-      if (existingError) throw new Error(existingError.message);
-      oldQuantity = Number(existing.total_units ?? 0);
-    }
+
+    const { data: existing, error: existingError } = data.id
+      ? await sb.from("rooms").select("total_units").eq("id", data.id).eq("property_id", propertyId).single()
+      : { data: null, error: null };
+
+    if (existingError) throw new Error(existingError.message);
 
     const { data: id, error } = await sb.rpc("save_room_type_configuration", {
-      _id: data.id ?? null, _slug: data.slug, _name: data.name,
-      _category_id: data.categoryId ?? null, _short_description: data.shortDescription || null,
-      _capacity_adults: data.capacityAdults, _capacity_children: data.capacityChildren,
-      _max_occupancy: data.maxOccupancy, _total_units: data.quantity,
-      _base_price: data.basePrice, _currency: data.currency,
-      _included_guests: data.includedGuests, _extra_guest_fee: data.extraGuestFee,
-      _status: data.status, _sort_order: data.sortOrder,
-      _hero_line: data.heroLine || null, _image_url: data.imageUrl || null,
-      _gallery_urls: data.galleryUrls, _size_label: data.sizeLabel || null,
-      _view_label: data.viewLabel || null, _bed_label: data.bedLabel || null,
+      _property_id: propertyId,
+      _id: data.id ?? null,
+      _slug: data.slug,
+      _name: data.name,
+      _category_id: data.categoryId ?? null,
+      _short_description: data.shortDescription || null,
+      _capacity_adults: data.capacityAdults,
+      _capacity_children: data.capacityChildren,
+      _max_occupancy: data.maxOccupancy,
+      _total_units: data.quantity,
+      _base_price: data.basePrice,
+      _currency: data.currency,
+      _included_guests: data.includedGuests,
+      _extra_guest_fee: data.extraGuestFee,
+      _status: data.status,
+      _sort_order: data.sortOrder,
+      _hero_line: data.heroLine || null,
+      _image_url: data.imageUrl || null,
+      _gallery_urls: data.galleryUrls,
+      _size_label: data.sizeLabel || null,
+      _view_label: data.viewLabel || null,
+      _bed_label: data.bedLabel || null,
       _bathroom_label: data.bathroomLabel || null,
     } as never);
+
     if (error) throw new Error(error.message);
-
-    const removeCount = Math.max(0, oldQuantity - data.quantity);
-    if (data.id && removeCount > 0) {
-      const { data: candidates, error: candidateError } = await sb
-        .from("room_states")
-        .select("id")
-        .eq("room_id", data.id)
-        .is("booking_id", null)
-        .in("state", ["vacant_clean", "vacant_dirty"])
-        .order("unit_label", { ascending: false })
-        .limit(removeCount);
-      if (candidateError) throw new Error(candidateError.message);
-      if ((candidates ?? []).length < removeCount) {
-        await sb.rpc("save_room_type_configuration", {
-          _id: data.id, _slug: data.slug, _name: data.name,
-          _category_id: data.categoryId ?? null, _short_description: data.shortDescription || null,
-          _capacity_adults: data.capacityAdults, _capacity_children: data.capacityChildren,
-          _max_occupancy: data.maxOccupancy, _total_units: oldQuantity,
-          _base_price: data.basePrice, _currency: data.currency,
-          _included_guests: data.includedGuests, _extra_guest_fee: data.extraGuestFee,
-          _status: data.status, _sort_order: data.sortOrder,
-          _hero_line: data.heroLine || null, _image_url: data.imageUrl || null,
-          _gallery_urls: data.galleryUrls, _size_label: data.sizeLabel || null,
-          _view_label: data.viewLabel || null, _bed_label: data.bedLabel || null,
-          _bathroom_label: data.bathroomLabel || null,
-        } as never);
-        throw new Error("Room quantity could not be reduced safely because protected physical units changed during the update.");
-      }
-      const ids = (candidates ?? []).map((row: any) => row.id);
-      const { data: deleted, error: deleteError } = await sb.from("room_states").delete().in("id", ids).select("id");
-      if (deleteError) {
-        await sb.rpc("save_room_type_configuration", {
-          _id: data.id, _slug: data.slug, _name: data.name,
-          _category_id: data.categoryId ?? null, _short_description: data.shortDescription || null,
-          _capacity_adults: data.capacityAdults, _capacity_children: data.capacityChildren,
-          _max_occupancy: data.maxOccupancy, _total_units: oldQuantity,
-          _base_price: data.basePrice, _currency: data.currency,
-          _included_guests: data.includedGuests, _extra_guest_fee: data.extraGuestFee,
-          _status: data.status, _sort_order: data.sortOrder,
-          _hero_line: data.heroLine || null, _image_url: data.imageUrl || null,
-          _gallery_urls: data.galleryUrls, _size_label: data.sizeLabel || null,
-          _view_label: data.viewLabel || null, _bed_label: data.bedLabel || null,
-          _bathroom_label: data.bathroomLabel || null,
-        } as never);
-        throw new Error(deleteError.message);
-      }
-      if ((deleted ?? []).length < removeCount) throw new Error("Room quantity update was not fully applied.");
-    }
-
     return { id };
   });
