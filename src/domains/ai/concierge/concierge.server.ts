@@ -20,6 +20,14 @@ const MAX_MESSAGE_LEN = 1000;
 const HISTORY_LIMIT = 10;
 const LOW_CONFIDENCE = 0.5;
 
+const LODGE_FACTS = `
+StayNas is an Intelligent Hospitality Operating System operated by Nolmark CDMA during product development.
+- Nolmark CDMA is the current StayNas property owner and operating context.
+- Property configuration, rooms, rates, availability, guest policies, and contact details are supplied by the active property configuration.
+- Do not invent property-specific facts when the active property has not configured them.
+- Guests can continue to booking through the StayNas booking flow at /book.
+`;
+
 function newToken() {
   return `cnc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -113,253 +121,125 @@ export async function handleConciergeChat(
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const roomCatalog = await loadRoomCatalog(supabaseAdmin);
 
-  // 1. Session
   let sessionId: string | null = null;
   let sessionToken = safeString(input.session_token, 80);
   let existingGuestId: string | null = null;
   let existingGuestEmail: string | null = null;
   if (sessionToken) {
-    const { data } = await supabaseAdmin
-      .from("ai_concierge_sessions")
-      .select("id, guest_id, guest_email")
-      .eq("session_token", sessionToken)
-      .maybeSingle();
+    const { data } = await supabaseAdmin.from("ai_concierge_sessions").select("id, guest_id, guest_email").eq("session_token", sessionToken).maybeSingle();
     sessionId = data?.id ?? null;
     existingGuestId = (data as any)?.guest_id ?? null;
     existingGuestEmail = (data as any)?.guest_email ?? null;
   }
   if (!sessionId) {
     sessionToken = newToken();
-    const { data, error } = await supabaseAdmin
-      .from("ai_concierge_sessions")
-      .insert({
-        session_token: sessionToken,
-        locale,
-        user_agent: safeString(meta.userAgent, 400),
-        referer: safeString(meta.referer, 400),
-        page_context: page ? { page } : {},
-      })
-      .select("id")
-      .single();
+    const { data, error } = await supabaseAdmin.from("ai_concierge_sessions").insert({
+      session_token: sessionToken, locale, user_agent: safeString(meta.userAgent, 400),
+      referer: safeString(meta.referer, 400), page_context: page ? { page } : {},
+    }).select("id").single();
     if (error) throw new Error(`Concierge session error: ${error.message}`);
     sessionId = data.id;
   }
 
-  // 2. History
-  const { data: historyRows } = await supabaseAdmin
-    .from("ai_concierge_messages")
-    .select("role, content")
-    .eq("session_id", sessionId)
-    .order("created_at", { ascending: true })
-    .limit(HISTORY_LIMIT);
-  const history = (historyRows ?? []).map((r): ConciergeMessage => ({
-    role: r.role as ConciergeMessage["role"],
-    content: r.content,
-  }));
+  const { data: historyRows } = await supabaseAdmin.from("ai_concierge_messages").select("role, content").eq("session_id", sessionId).order("created_at", { ascending: true }).limit(HISTORY_LIMIT);
+  const history = (historyRows ?? []).map((r): ConciergeMessage => ({ role: r.role as ConciergeMessage["role"], content: r.content }));
 
-  // 3. Persist user message
-  await supabaseAdmin.from("ai_concierge_messages").insert({
-    session_id: sessionId,
-    role: "user",
-    content: message,
-  });
+  await supabaseAdmin.from("ai_concierge_messages").insert({ session_id: sessionId, role: "user", content: message });
 
-  // 4. Knowledge retrieval — guest-visible published docs only
   let knowledgeCtx = "";
   let citations: ConciergeCitation[] = [];
   try {
-    const { data: hits } = await supabaseAdmin.rpc("knowledge_search", {
-      _query: message,
-      _limit: 4,
-    });
+    const { data: hits } = await supabaseAdmin.rpc("knowledge_search", { _query: message, _limit: 4 });
     const rows = (hits ?? []) as Array<any>;
     if (rows.length > 0) {
       const docIds = Array.from(new Set(rows.map((r) => r.document_id)));
-      const { data: docs } = await supabaseAdmin
-        .from("knowledge_documents")
-        .select("id, is_guest_visible, status")
-        .in("id", docIds);
-      const guestOk = new Set(
-        (docs ?? [])
-          .filter((d) => d.is_guest_visible && d.status === "published")
-          .map((d) => d.id),
-      );
+      const { data: docs } = await supabaseAdmin.from("knowledge_documents").select("id, is_guest_visible, status").in("id", docIds);
+      const guestOk = new Set((docs ?? []).filter((d) => d.is_guest_visible && d.status === "published").map((d) => d.id));
       const filtered = rows.filter((r) => guestOk.has(r.document_id));
       if (filtered.length > 0) {
-        knowledgeCtx = filtered
-          .map(
-            (r, i) =>
-              `[${i + 1}] ${r.document_title} (id: ${r.document_id}, chunk ${r.chunk_index})\n${r.content}`,
-          )
-          .join("\n---\n");
-        citations = filtered.map((r) => ({
-          document_id: r.document_id,
-          document_title: r.document_title,
-          document_slug: r.document_slug,
-          category_slug: r.category_slug ?? null,
-          chunk_index: r.chunk_index,
-          excerpt: (r.content ?? "").slice(0, 240),
-        }));
+        knowledgeCtx = filtered.map((r, i) => `[${i + 1}] ${r.document_title} (id: ${r.document_id}, chunk ${r.chunk_index})\n${r.content}`).join("\n---\n");
+        citations = filtered.map((r) => ({ document_id: r.document_id, document_title: r.document_title, document_slug: r.document_slug, category_slug: r.category_slug ?? null, chunk_index: r.chunk_index, excerpt: (r.content ?? "").slice(0, 240) }));
       }
     }
-  } catch {
-    // Knowledge lookup is best-effort.
-  }
+  } catch {}
 
-  // 4b. Intent classification (heuristic, deterministic)
   const historyText = history.map((h) => h.content);
   const intent = classifyIntent(message, historyText);
+  const recommendations: ConciergeRecommendation[] = intent.level !== "low" ? combinedRecommendations(intent, roomCatalog) : [];
 
-  // 4c. Recommendations from intent
-  const recommendations: ConciergeRecommendation[] =
-    intent.level !== "low" ? combinedRecommendations(intent, roomCatalog) : [];
-
-  // 4d. Availability tool — only when guest supplied a real date range
   let availability: ConciergeAvailabilityRoom[] = [];
   let plan: ConciergeBookingPlan | null = null;
   if (intent.detected.check_in && intent.detected.check_out) {
     try {
-      availability = await searchAvailability({
-        check_in: intent.detected.check_in,
-        check_out: intent.detected.check_out,
-      });
-      plan = buildBookingPlan(
-        intent,
-        availability,
-        recommendations.find((r) => r.type === "room")?.slug,
-      );
-    } catch {
-      // best-effort
-    }
+      availability = await searchAvailability({ check_in: intent.detected.check_in, check_out: intent.detected.check_out });
+      plan = buildBookingPlan(intent, availability, recommendations.find((r) => r.type === "room")?.slug);
+    } catch {}
   }
 
-  // 5. Call model
-  const intentCtx = `level=${intent.level} confidence=${intent.confidence.toFixed(2)}; ` +
-    `dates=${intent.detected.check_in ?? "?"} → ${intent.detected.check_out ?? "?"}; ` +
-    `party=${intent.detected.adults ?? "?"} adults / ${intent.detected.children ?? 0} children; ` +
-    `interests=${(intent.detected.interests ?? []).join(",") || "none"}`;
-  const recsCtx = recommendations
-    .map((r) => `- [${r.type}] ${r.name} (slug: ${r.slug}, conf ${r.confidence.toFixed(2)}): ${r.reasoning.join(" ")}`)
-    .join("\n");
-  const availabilityCtx = availability
-    .map((a) => `- ${a.name} (slug: ${a.slug}) — ${a.is_available ? `available (${a.min_available} left)` : "not available"} for ${a.nights} night(s), total US$${a.nightly_total_usd}`)
-    .join("\n") + (plan?.booking_url ? `\nbooking_url: ${plan.booking_url}` : "");
-  // 4e. Memory context — approved memories for this guest / session
-  const memoryCtx = await loadConciergeMemoryContext({
-    sessionId: sessionId!,
-    guestId: existingGuestId,
-    guestEmail: existingGuestEmail,
-  });
-  const memoryPromptSection = memoryCtx.contextText
-    ? [
-        "== Guest memory (approved) ==",
-        memoryCtx.isReturningVisitor
-          ? "This is a returning visitor. Greet them warmly and reference memories naturally, without revealing private history."
-          : "Use these approved preferences to personalise your reply.",
-        memoryCtx.contextText,
-      ].join("\n")
-    : "";
-  const system =
-    buildSystemPrompt(page, buildRoomsContext(roomCatalog), knowledgeCtx, intentCtx, recsCtx, availabilityCtx) +
-    (memoryPromptSection ? "\n\n" + memoryPromptSection : "");
+  const intentCtx = `level=${intent.level} confidence=${intent.confidence.toFixed(2)}; dates=${intent.detected.check_in ?? "?"} → ${intent.detected.check_out ?? "?"}; party=${intent.detected.adults ?? "?"} adults / ${intent.detected.children ?? 0} children; interests=${(intent.detected.interests ?? []).join(",") || "none"}`;
+  const recsCtx = recommendations.map((r) => `- [${r.type}] ${r.name} (slug: ${r.slug}, conf ${r.confidence.toFixed(2)}): ${r.reasoning.join(" ")}`).join("\n");
+  const availabilityCtx = availability.map((a) => `- ${a.name} (slug: ${a.slug}) — ${a.is_available ? `available (${a.min_available} left)` : "not available"} for ${a.nights} night(s), total US$${a.nightly_total_usd}`).join("\n") + (plan?.booking_url ? `\nbooking_url: ${plan.booking_url}` : "");
+
+  const memoryCtx = await loadConciergeMemoryContext({ sessionId: sessionId!, guestId: existingGuestId, guestEmail: existingGuestEmail });
+  const memoryPromptSection = memoryCtx.contextText ? [
+    "== Guest memory (approved) ==",
+    memoryCtx.isReturningVisitor ? "This is a returning visitor. Greet them warmly and reference memories naturally, without revealing private history." : "Use these approved preferences to personalise your reply.",
+    memoryCtx.contextText,
+  ].join("\n") : "";
+  const system = buildSystemPrompt(page, buildRoomsContext(roomCatalog), knowledgeCtx, intentCtx, recsCtx, availabilityCtx) + (memoryPromptSection ? "\n\n" + memoryPromptSection : "");
   const { raw, latency } = await callModel(system, history, message);
   const parsed = tryJson<{ answer?: string; confidence?: number; escalate?: boolean; citations?: any[] }>(raw) ?? {};
   const answer = (parsed.answer ?? "I'm sorry, I couldn't put together an answer just now. Please reach us on WhatsApp and we'll help right away.").trim();
   const confidence = typeof parsed.confidence === "number" ? Math.max(0, Math.min(1, parsed.confidence)) : 0.6;
   const shouldEscalate = Boolean(parsed.escalate) || confidence < LOW_CONFIDENCE;
 
-  // 6. Persist assistant message
-  const { data: assistantRow } = await supabaseAdmin
-    .from("ai_concierge_messages")
-    .insert({
-      session_id: sessionId,
-      role: "assistant",
-      content: answer,
-      citations: citations as any,
-      confidence,
-      escalated: shouldEscalate,
-      model: MODEL,
-      latency_ms: latency,
-    })
-    .select("id, created_at")
-    .single();
+  const { data: assistantRow } = await supabaseAdmin.from("ai_concierge_messages").insert({
+    session_id: sessionId, role: "assistant", content: answer, citations: citations as any,
+    confidence, escalated: shouldEscalate, model: MODEL, latency_ms: latency,
+  }).select("id, created_at").single();
 
-  // 6b. Persist intent + recommendations (best-effort)
   const assistantMessageId = assistantRow?.id ?? null;
   try {
     await supabaseAdmin.from("ai_concierge_intents").insert({
-      session_id: sessionId,
-      message_id: assistantMessageId,
-      intent_level: intent.level,
-      confidence: intent.confidence,
-      keywords: intent.keywords,
-      detected_context: intent.detected as any,
+      session_id: sessionId, message_id: assistantMessageId, intent_level: intent.level,
+      confidence: intent.confidence, keywords: intent.keywords, detected_context: intent.detected as any,
     });
     if (recommendations.length > 0) {
-      await supabaseAdmin.from("ai_concierge_recommendations").insert(
-        recommendations.map((r) => ({
-          session_id: sessionId,
-          message_id: assistantMessageId,
-          recommendation_type: r.type,
-          item_slug: r.slug,
-          item_name: r.name,
-          reasoning: r.reasoning.join(" "),
-          confidence: r.confidence,
-          evidence: (r.type === "room" ? { from_price_usd: r.from_price_usd } : {}) as any,
-        })),
-      );
+      await supabaseAdmin.from("ai_concierge_recommendations").insert(recommendations.map((r) => ({
+        session_id: sessionId, message_id: assistantMessageId, recommendation_type: r.type,
+        item_slug: r.slug, item_name: r.name, reasoning: r.reasoning.join(" "),
+        confidence: r.confidence, evidence: (r.type === "room" ? { from_price_usd: r.from_price_usd } : {}) as any,
+      })));
     }
-  } catch {
-    // best-effort
-  }
+  } catch {}
 
-  // 7. Update session counters
-  await supabaseAdmin
-    .from("ai_concierge_sessions")
-    .update({
-      message_count: history.length + 2,
-      last_active_at: new Date().toISOString(),
-      escalated: shouldEscalate,
-      escalation_channel: shouldEscalate ? "whatsapp" : null,
-      guest_id: memoryCtx.guestId ?? existingGuestId ?? null,
-    })
-    .eq("id", sessionId);
+  await supabaseAdmin.from("ai_concierge_sessions").update({
+    message_count: history.length + 2, last_active_at: new Date().toISOString(),
+    escalated: shouldEscalate, escalation_channel: shouldEscalate ? "whatsapp" : null,
+    guest_id: memoryCtx.guestId ?? existingGuestId ?? null,
+  }).eq("id", sessionId);
 
-  // 7b. Suggest new memories (pending) and log personalization event
   try {
     await suggestMemoriesFromMessage({
-      sessionId: sessionId!,
-      guestId: memoryCtx.guestId,
-      message,
+      sessionId: sessionId!, guestId: memoryCtx.guestId, message,
       interests: intent.detected.interests ?? [],
       party: { adults: intent.detected.adults, children: intent.detected.children },
     });
     if (memoryCtx.memoryIds.length > 0) {
       await supabaseAdmin.from("ai_personalization_events").insert({
-        session_id: sessionId,
-        guest_id: memoryCtx.guestId,
-        event_type: "memory_applied",
-        memory_ids: memoryCtx.memoryIds,
-        detail: { message_id: assistantMessageId },
+        session_id: sessionId, guest_id: memoryCtx.guestId, event_type: "memory_applied",
+        memory_ids: memoryCtx.memoryIds, detail: { message_id: assistantMessageId },
       });
     }
-  } catch {
-    // best-effort
-  }
+  } catch {}
 
   const reply: ConciergeReply = {
     session_token: sessionToken!,
     message: {
-      id: assistantRow?.id,
-      role: "assistant",
-      content: answer,
-      citations,
-      confidence,
-      escalated: shouldEscalate,
-      intent: intent.level,
+      id: assistantRow?.id, role: "assistant", content: answer, citations, confidence,
+      escalated: shouldEscalate, intent: intent.level,
       recommendations: recommendations.length > 0 ? recommendations : undefined,
-      availability: availability.length > 0 ? availability : undefined,
-      plan: plan ?? undefined,
+      availability: availability.length > 0 ? availability : undefined, plan: plan ?? undefined,
       created_at: assistantRow?.created_at,
     },
   };
@@ -368,11 +248,7 @@ export async function handleConciergeChat(
       reason: "For live availability or a personal itinerary, our reservations team can help you directly.",
       channels: [
         { type: "whatsapp", label: "Chat on WhatsApp", url: WHATSAPP_URL },
-        {
-          type: "email",
-          label: "Email reservations",
-          url: "mailto:support@staynas.nolmark.co?subject=Concierge%20follow-up",
-        },
+        { type: "email", label: "Email reservations", url: "mailto:support@staynas.nolmark.co?subject=Concierge%20follow-up" },
       ],
     };
   }
@@ -381,28 +257,15 @@ export async function handleConciergeChat(
 
 export async function loadConciergeSession(token: string): Promise<{ token: string; messages: ConciergeMessage[] } | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: session } = await supabaseAdmin
-    .from("ai_concierge_sessions")
-    .select("id, session_token")
-    .eq("session_token", token)
-    .maybeSingle();
+  const { data: session } = await supabaseAdmin.from("ai_concierge_sessions").select("id, session_token").eq("session_token", token).maybeSingle();
   if (!session) return null;
-  const { data: rows } = await supabaseAdmin
-    .from("ai_concierge_messages")
-    .select("id, role, content, citations, confidence, escalated, created_at")
-    .eq("session_id", session.id)
-    .order("created_at", { ascending: true })
-    .limit(50);
+  const { data: rows } = await supabaseAdmin.from("ai_concierge_messages").select("id, role, content, citations, confidence, escalated, created_at").eq("session_id", session.id).order("created_at", { ascending: true }).limit(50);
   return {
     token: session.session_token,
     messages: (rows ?? []).map((r) => ({
-      id: r.id,
-      role: r.role as ConciergeMessage["role"],
-      content: r.content,
-      citations: (r.citations as any) ?? [],
-      confidence: r.confidence ?? undefined,
-      escalated: r.escalated ?? false,
-      created_at: r.created_at,
+      id: r.id, role: r.role as ConciergeMessage["role"], content: r.content,
+      citations: (r.citations as any) ?? [], confidence: r.confidence ?? undefined,
+      escalated: r.escalated ?? false, created_at: r.created_at,
     })),
   };
 }
