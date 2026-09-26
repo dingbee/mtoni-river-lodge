@@ -138,3 +138,16 @@ DROP TRIGGER IF EXISTS staynas_user_property_context_updated_at ON public.stayna
 CREATE TRIGGER staynas_user_property_context_updated_at
 BEFORE UPDATE ON public.staynas_user_property_context
 FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+-- Reservation child rows inherit the property boundary from their booking.
+DROP POLICY IF EXISTS "Staff read booking extras" ON public.booking_extras;
+CREATE POLICY "Staff read own property booking extras"
+  ON public.booking_extras FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.bookings b
+      WHERE b.id = booking_id
+        AND public.staynas_user_has_property_access(auth.uid(), b.property_id)
+    )
+  );
