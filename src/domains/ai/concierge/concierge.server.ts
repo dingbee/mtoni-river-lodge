@@ -38,13 +38,12 @@ function buildRoomsContext() {
 }
 
 const LODGE_FACTS = `
-Mtoni River Lodge is an intimate riverfront eco-lodge on the banks of the Nduruma River in Arusha, Tanzania.
-- 24 riverside rooms, restaurant, swimming pool, guided experiences.
-- Address: Gomba Estate, Arusha, Tanzania.
-- Contact: bookings@mtoniriverlodge.com · +255 752 441 443 · WhatsApp available.
-- Booking: guests reserve online at /book on mtoniriverlodge.com.
-- Amenities: free WiFi, airport transfers on request, riverfront setting, curated experiences (river walks, canoe, bonfire dining).
-`;
+StayNas is a hospitality operating system demo property operated by Nolmark CDMA during product development.
+- Property configuration, rooms, rates, availability, guest policies, and contact details are supplied by the active property configuration.
+- Current demo owner: Nolmark CDMA.
+- Booking: guests reserve online through the StayNas booking flow at /book.
+- Do not invent property-specific facts when the active property has not configured them.
+`
 
 function buildSystemPrompt(
   pageContext: string | null,
@@ -65,7 +64,7 @@ function buildSystemPrompt(
     "- For booking, always link the guest to /book on the website (or the booking_url provided in the Plan section, which pre-fills their dates).",
     "- Return STRICT JSON: {\"answer\": string, \"confidence\": number between 0 and 1, \"escalate\": boolean, \"citations\": [{document_id, document_title, chunk_index}]}. Set escalate=true when the guest asks about live availability, complex custom itineraries, complaints, medical/safety issues, or anything outside the provided knowledge.",
     "",
-    "== Lodge facts ==",
+    "== Active property facts ==",
     LODGE_FACTS.trim(),
     "",
     "== Rooms ==",
