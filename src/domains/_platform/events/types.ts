@@ -19,6 +19,7 @@ export type PlatformEventType =
   | "task.created"
   | "task.assigned"
   | "task.completed"
+  | "task.updated"
   | "ops.alert_raised"
   | "ops.alert_resolved"
   | "content.page.published"

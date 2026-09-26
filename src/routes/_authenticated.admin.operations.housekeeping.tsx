@@ -5,6 +5,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, CheckCircle2, CheckSquare2, Clock3, Play, UserRound, WandSparkles, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { useCurrentUserRoles } from "@/lib/permissions";
+import { useHousekeepingRealtime } from "@/lib/housekeeping-realtime";
+import { getHousekeepingDashboard, listHousekeepingIntelligence } from "@/lib/housekeeping-intelligence.functions";
 import {
   assignHousekeepingTask,
   claimHousekeepingTask,
@@ -87,7 +89,7 @@ function HousekeepingPage() {
 
   const [view, setView] = useState<"work" | "inspection" | "exceptions">("work");
   const [exceptionRoom, setExceptionRoom] = useState<WorkRow | null>(null);
-  const [exceptionType, setExceptionType] = useState<"dnd"|"discrepancy"|"damage"|"maintenance"|"lost_found"|"linen_amenity">("maintenance");
+  const [exceptionType, setExceptionType] = useState<"dnd"|"discrepancy"|"damage"|"maintenance"|"lost_found"|"linen_amenity" | "">("");
   const [exceptionTitle, setExceptionTitle] = useState("");
   const [exceptionNotes, setExceptionNotes] = useState("");
   const [exceptionSeverity, setExceptionSeverity] = useState(2);
@@ -96,10 +98,11 @@ function HousekeepingPage() {
   const [note, setNote] = useState("");
   const [inspectionId, setInspectionId] = useState<string | null>(null);
   const [inspectionChecks, setInspectionChecks] = useState<Record<string, boolean>>(
-    Object.fromEntries(CHECKLIST.map(([key]) => [key, true])),
+    Object.fromEntries(CHECKLIST.map(([key]) => [key, false])),
   );
   const [inspectionNotes, setInspectionNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
+  useHousekeepingRealtime(true);
 
   const listFn = useServerFn(listHousekeepingWork);
   const claimFn = useServerFn(claimHousekeepingTask);
@@ -108,10 +111,15 @@ function HousekeepingPage() {
   const assignFn = useServerFn(assignHousekeepingTask);
   const staffFn = useServerFn(listHousekeepingStaff);
   const inspectionListFn = useServerFn(listHousekeepingInspectionQueue);
+  const dashboardFn = useServerFn(getHousekeepingDashboard);
+  const intelligenceFn = useServerFn(listHousekeepingIntelligence);
   const submitInspectionFn = useServerFn(submitHousekeepingInspection);
   const exceptionsListFn = useServerFn(listHousekeepingExceptions);
   const reportExceptionFn = useServerFn(reportHousekeepingException);
   const resolveExceptionFn = useServerFn(resolveHousekeepingException);
+
+  const dashboard = useQuery({ queryKey: ["housekeeping-dashboard"], queryFn: () => dashboardFn(), refetchInterval: 60_000 });
+  const intelligence = useQuery({ queryKey: ["housekeeping-intelligence"], queryFn: () => intelligenceFn(), refetchInterval: 60_000 });
 
   const work = useQuery({
     queryKey: ["housekeeping-work", mineOnly],
@@ -167,7 +175,7 @@ function HousekeepingPage() {
     setInspectionId(row.inspection_id);
     setInspectionChecks(Object.fromEntries(CHECKLIST.map(([key]) => [
       key,
-      row.checklist.find((item) => item.key === key)?.passed ?? true,
+      row.checklist.find((item) => item.key === key)?.passed ?? false,
     ])));
     setInspectionNotes(row.notes ?? "");
     setError(null);
@@ -205,6 +213,33 @@ function HousekeepingPage() {
           )}
         </div>
       </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          ["Active", dashboard.data?.active_tasks ?? 0],
+          ["In progress", dashboard.data?.in_progress_tasks ?? 0],
+          ["Inspection", dashboard.data?.inspection_pending ?? 0],
+          ["Overdue", dashboard.data?.overdue_tasks ?? 0],
+        ].map(([label,value]) => (
+          <div key={String(label)} className="rounded-xl border bg-card p-4">
+            <div className="text-xs text-muted-foreground">{label}</div>
+            <div className="mt-1 text-2xl font-semibold">{value}</div>
+          </div>
+        ))}
+      </div>
+      {(intelligence.data ?? []).length > 0 && (
+        <section className="rounded-xl border bg-card p-4">
+          <div className="mb-2 flex items-center gap-2"><WandSparkles className="h-4 w-4" /><div className="text-sm font-semibold">StayNas AI housekeeping signals</div></div>
+          <div className="grid gap-2 lg:grid-cols-2">
+            {(intelligence.data ?? []).slice(0,4).map((s:any) => (
+              <div key={s.title} className="rounded-lg border p-3">
+                <div className="flex justify-between gap-2"><span className="text-sm font-medium">{s.title}</span><span className="rounded-full border px-2 py-0.5 text-[10px] uppercase">{s.priority}</span></div>
+                <p className="mt-1 text-xs text-muted-foreground">{s.reasoning}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {view === "work" && (
         <>
@@ -455,7 +490,8 @@ function HousekeepingPage() {
           <div className="w-full rounded-t-2xl border bg-card p-5 shadow-xl sm:max-w-xl sm:rounded-2xl">
             <div className="flex items-start justify-between"><div><div className="text-xl font-semibold">Report issue — {exceptionRoom.unit_label}</div><div className="text-sm text-muted-foreground">{exceptionRoom.room_name}</div></div><button className="rounded-lg border p-2" onClick={() => setExceptionRoom(null)}><XCircle className="h-5 w-5" /></button></div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <select className="rounded-lg border bg-background p-3 text-sm" value={exceptionType} onChange={(e) => setExceptionType(e.target.value as typeof exceptionType)}><option value="maintenance">Maintenance</option><option value="dnd">Do Not Disturb</option><option value="discrepancy">Room discrepancy</option><option value="damage">Damage</option><option value="lost_found">Lost & found</option><option value="linen_amenity">Linen / amenity</option></select>
+              <select className="rounded-lg border bg-background p-3 text-sm" value={exceptionType} onChange={(e) => setExceptionType(e.target.value as typeof exceptionType)}><option value="">Choose issue type…</option>
+                    <option value="maintenance">Maintenance</option><option value="dnd">Do Not Disturb</option><option value="discrepancy">Room discrepancy</option><option value="damage">Damage</option><option value="lost_found">Lost & found</option><option value="linen_amenity">Linen / amenity</option></select>
               <select className="rounded-lg border bg-background p-3 text-sm" value={exceptionSeverity} onChange={(e) => setExceptionSeverity(Number(e.target.value))}><option value="1">Rush</option><option value="2">Normal</option><option value="3">Low</option></select>
             </div>
             <input value={exceptionTitle} onChange={(e) => setExceptionTitle(e.target.value)} className="mt-3 w-full rounded-lg border bg-background p-3 text-sm" placeholder="Issue title" />
