@@ -489,7 +489,6 @@ function HousekeepingPage() {
                     },
                   });
                   clearHousekeepingInspectionDraft(selectedInspection.inspection_id);
-                  clearHousekeepingInspectionDraft(selectedInspection.inspection_id);
                   setInspectionId(null);
                   setInspectionNotes("");
                 })}
