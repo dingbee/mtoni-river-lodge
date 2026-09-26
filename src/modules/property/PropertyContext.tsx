@@ -17,14 +17,14 @@ export type StayNasOrganisation = {
 };
 
 const DEMO_ORGANISATION: StayNasOrganisation = {
-  id: "org-staynas-demo",
-  name: "StayNas Demo Organisation",
+  id: "org-nolmark-cdma",
+  name: "Nolmark CDMA",
   properties: [
     {
-      id: "property-mtoni",
-      organisationId: "org-staynas-demo",
-      name: "Mtoni River Lodge",
-      code: "MTONI",
+      id: "property-nolmark-demo",
+      organisationId: "org-nolmark-cdma",
+      name: "Nolmark CDMA Demo Property",
+      code: "NOLMARK",
       timezone: "Africa/Dar_es_Salaam",
       currency: "USD",
       status: "active",
