@@ -39,10 +39,10 @@ type LinkTile = {
 
 function SettingsHub() {
   const brandFn = useServerFn(getBrandContext);
-  const { organisation, property } = usePropertyContext();
+  const { organisation, property: propertyContext } = usePropertyContext();
   const brand = useQuery({ queryKey: ["settings.brand-summary"], queryFn: () => brandFn() });
 
-  const property: LinkTile[] = [
+  const contentTiles: LinkTile[] = [
     {
       to: "/admin/content/brand",
       title: "Brand & Identity",
@@ -59,7 +59,7 @@ function SettingsHub() {
   const aiAndMessaging: LinkTile[] = [
     {
       to: "/admin/ai/settings",
-      title: "Mtoni AI",
+      title: "StayNas AI",
       description: "Model, tools and role scope for the AI Command Centre.",
       Icon: Sparkles,
     },
@@ -130,7 +130,7 @@ function SettingsHub() {
       <SectionCard title="Property">
         <div className="grid gap-3 sm:grid-cols-2">
           <PropertyFact label="Owner" value={organisation.name} hint="Current StayNas property owner for this project" />
-          <PropertyFact label="Property" value={property.name} hint={`Property code: ${property.code}`} />
+          <PropertyFact label="Property" value={propertyContext.name} hint={`Property code: ${propertyContext.code}`} />
           <PropertyFact
             label="Brand tokens"
             value={brand.data ? String(Object.values(brand.data).reduce((n, arr) => n + (arr?.length ?? 0), 0)) : "—"}
@@ -138,13 +138,13 @@ function SettingsHub() {
           />
           <PropertyFact
             label="Currency"
-            value={property.currency}
+            value={propertyContext.currency}
             hint="Base pricing currency for the booking engine"
           />
         </div>
       </SectionCard>
 
-      <TileGrid title="Content" tiles={property} />
+      <TileGrid title="Content" tiles={contentTiles} />
       <TileGrid title="AI & Messaging" tiles={aiAndMessaging} />
       <TileGrid title="Access" tiles={access} />
       <TileGrid title="Integrations & System" tiles={integrations} />
