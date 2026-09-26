@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
 const taskId = z.string().uuid();
+const idempotencyKey = z.string().min(8).max(200);
 
 export const listHousekeepingWork = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -23,11 +24,12 @@ export const listHousekeepingWork = createServerFn({ method: "POST" })
 
 export const claimHousekeepingTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ taskId }).parse(d))
+  .inputValidator((d: unknown) => z.object({ taskId, idempotencyKey }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
     const { data: row, error } = await context.supabase.rpc("housekeeping_claim_task", {
       _task_id: data.taskId,
+      _idempotency_key: data.idempotencyKey,
     });
     if (error) throw new Error(error.message);
     return row;
@@ -35,11 +37,12 @@ export const claimHousekeepingTask = createServerFn({ method: "POST" })
 
 export const startHousekeepingTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ taskId }).parse(d))
+  .inputValidator((d: unknown) => z.object({ taskId, idempotencyKey }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
     const { data: row, error } = await context.supabase.rpc("housekeeping_start_task", {
       _task_id: data.taskId,
+      _idempotency_key: data.idempotencyKey,
     });
     if (error) throw new Error(error.message);
     return row;
@@ -50,7 +53,7 @@ export const completeHousekeepingTask = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({
     taskId,
     note: z.string().max(500).optional(),
-    idempotencyKey: z.string().min(8).max(200),
+    idempotencyKey,
   }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");

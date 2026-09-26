@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, Bell, CheckCircle2, CheckSquare2, Clock3, Play, UserRound, WandSparkles, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { useCurrentUserRoles } from "@/lib/permissions";
 import { useHousekeepingRealtime } from "@/lib/housekeeping-realtime";
+import { actionIdempotencyKey, clearHousekeepingInspectionDraft, isHousekeepingOnline, loadHousekeepingInspectionDraft, saveHousekeepingInspectionDraft } from "@/lib/housekeeping-offline";
 import { getHousekeepingDashboard, listHousekeepingIntelligence, listHousekeepingNotifications, markHousekeepingNotificationRead } from "@/lib/housekeeping-intelligence.functions";
 import {
   assignHousekeepingTask,
@@ -102,7 +103,19 @@ function HousekeepingPage() {
   );
   const [inspectionNotes, setInspectionNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [online, setOnline] = useState(true);
   useHousekeepingRealtime(true);
+
+  useEffect(() => {
+    const sync = () => setOnline(isHousekeepingOnline());
+    sync();
+    window.addEventListener("online", sync);
+    window.addEventListener("offline", sync);
+    return () => {
+      window.removeEventListener("online", sync);
+      window.removeEventListener("offline", sync);
+    };
+  }, []);
 
   const listFn = useServerFn(listHousekeepingWork);
   const claimFn = useServerFn(claimHousekeepingTask);
@@ -167,6 +180,10 @@ function HousekeepingPage() {
 
   async function run(action: () => Promise<unknown>) {
     setError(null);
+    if (!isHousekeepingOnline()) {
+      setError("You are offline. Reconnect before submitting housekeeping actions. Your inspection draft is saved locally.");
+      return;
+    }
     try {
       await action();
       await refresh();
@@ -176,12 +193,13 @@ function HousekeepingPage() {
   }
 
   function openInspection(row: InspectionRow) {
+    const draft = loadHousekeepingInspectionDraft(row.inspection_id);
     setInspectionId(row.inspection_id);
-    setInspectionChecks(Object.fromEntries(CHECKLIST.map(([key]) => [
+    setInspectionChecks(draft?.checks ?? Object.fromEntries(CHECKLIST.map(([key]) => [
       key,
       row.checklist.find((item) => item.key === key)?.passed ?? false,
     ])));
-    setInspectionNotes(row.notes ?? "");
+    setInspectionNotes(draft?.notes ?? row.notes ?? "");
     setError(null);
   }
 
@@ -191,6 +209,12 @@ function HousekeepingPage() {
         title="Housekeeping"
         description="Execute cleaning, inspect completed rooms, and control room readiness."
       />
+
+      {!online && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm">
+          <span className="font-medium">Offline mode.</span> The current worklist may be stale. Inspection drafts are saved on this device; reconnect before sending any action.
+        </div>
+      )}
 
       <div className="flex flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -335,12 +359,12 @@ function HousekeepingPage() {
 
                   <div className="mt-4 flex flex-wrap gap-2">
                     {!task.assignee_id && (
-                      <button className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground" onClick={() => run(() => claimFn({ data: { taskId: task.id } }))}>
+                      <button className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground" onClick={() => run(() => claimFn({ data: { taskId: task.id, idempotencyKey: actionIdempotencyKey("claim", task.id) } }))}>
                         <UserRound className="h-4 w-4" /> Claim
                       </button>
                     )}
                     {task.status === "pending" && task.assignee_id && (
-                      <button className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground" onClick={() => run(() => startFn({ data: { taskId: task.id } }))}>
+                      <button className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground" onClick={() => run(() => startFn({ data: { taskId: task.id, idempotencyKey: actionIdempotencyKey("start", task.id) } }))}>
                         <Play className="h-4 w-4" /> Start cleaning
                       </button>
                     )}
@@ -428,7 +452,11 @@ function HousekeepingPage() {
                   <input
                     type="checkbox"
                     checked={inspectionChecks[key]}
-                    onChange={(e) => setInspectionChecks((current) => ({ ...current, [key]: e.target.checked }))}
+                    onChange={(e) => {
+                      const next = { ...inspectionChecks, [key]: e.target.checked };
+                      setInspectionChecks(next);
+                      if (inspectionId) saveHousekeepingInspectionDraft({ inspectionId, checks: next, notes: inspectionNotes, savedAt: Date.now() });
+                    }}
                     className="h-5 w-5"
                   />
                   <span className="text-sm">{label}</span>
@@ -438,7 +466,11 @@ function HousekeepingPage() {
 
             <textarea
               value={inspectionNotes}
-              onChange={(e) => setInspectionNotes(e.target.value)}
+              onChange={(e) => {
+                const next = e.target.value;
+                setInspectionNotes(next);
+                if (inspectionId) saveHousekeepingInspectionDraft({ inspectionId, checks: inspectionChecks, notes: next, savedAt: Date.now() });
+              }}
               className="mt-4 min-h-24 w-full rounded-lg border bg-background p-3 text-sm"
               placeholder="Inspection notes, defects, or re-clean instructions…"
             />
@@ -456,6 +488,7 @@ function HousekeepingPage() {
                       idempotencyKey: crypto.randomUUID(),
                     },
                   });
+                  clearHousekeepingInspectionDraft(selectedInspection.inspection_id);
                   setInspectionId(null);
                   setInspectionNotes("");
                 })}
