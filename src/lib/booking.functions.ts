@@ -158,7 +158,7 @@ export const createBooking = createServerFn({ method: "POST" })
           recipientEmail: full.guest_email,
           idempotencyKey: `booking-received-${row.booking_id}`,
           bookingId: row.booking_id as string,
-                    templateData: {
+          templateData: {
             reference: full.reference,
             guestName: full.guest_name,
             roomName: room?.name,

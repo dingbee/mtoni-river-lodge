@@ -7,11 +7,9 @@ import type {
   ConciergeAvailabilityRoom,
   ConciergeBookingPlan,
 } from "./concierge.types";
-import { ROOMS } from "@/lib/rooms";
-import { getBasePriceUsd } from "@/lib/pricing";
 import { WHATSAPP_URL } from "@/lib/contact";
 import { classifyIntent } from "./concierge.intent";
-import { combinedRecommendations } from "./concierge.recommendations";
+import { combinedRecommendations, type ConciergeRoomCatalogItem } from "./concierge.recommendations";
 import { searchAvailability, buildBookingPlan } from "./concierge.tools";
 import { loadConciergeMemoryContext, suggestMemoriesFromMessage } from "./memory.context";
 import { AI_GATEWAY_DEFAULT_MODEL, AI_GATEWAY_URL, parseAiJson } from "@/lib/ai-gateway.server";
@@ -30,20 +28,15 @@ function safeString(v: unknown, max = 500) {
   return typeof v === "string" ? v.slice(0, max) : null;
 }
 
-function buildRoomsContext() {
-  return ROOMS.map((r) => {
-    const price = getBasePriceUsd(r.slug);
-    return `- ${r.name} (slug: ${r.slug}) — from US$${price}/night. ${r.shortDesc} Size: ${r.size}. View: ${r.view}.`;
-  }).join("\n");
+async function loadRoomCatalog(supabaseAdmin: any): Promise<ConciergeRoomCatalogItem[]> {
+  const { data, error } = await supabaseAdmin.from("rooms").select("slug,name,short_description,capacity_adults,capacity_children,max_occupancy,base_price,currency").eq("status","active").order("sort_order",{ascending:true}).order("name",{ascending:true});
+  if (error) throw new Error(error.message);
+  return (data ?? []) as ConciergeRoomCatalogItem[];
 }
 
-const LODGE_FACTS = `
-StayNas is a hospitality operating system demo property operated by Nolmark CDMA during product development.
-- Property configuration, rooms, rates, availability, guest policies, and contact details are supplied by the active property configuration.
-- Current demo owner: Nolmark CDMA.
-- Booking: guests reserve online through the StayNas booking flow at /book.
-- Do not invent property-specific facts when the active property has not configured them.
-`
+function buildRoomsContext(rooms: ConciergeRoomCatalogItem[]) {
+  return rooms.map((r) => "- " + r.name + " (slug: " + r.slug + ") — from " + r.currency + " " + Number(r.base_price).toLocaleString() + "/night. " + (r.short_description ?? "")).join("\n");
+}
 
 function buildSystemPrompt(
   pageContext: string | null,
@@ -118,6 +111,7 @@ export async function handleConciergeChat(
   const page = safeString(input.page, 200);
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const roomCatalog = await loadRoomCatalog(supabaseAdmin);
 
   // 1. Session
   let sessionId: string | null = null;
@@ -218,7 +212,7 @@ export async function handleConciergeChat(
 
   // 4c. Recommendations from intent
   const recommendations: ConciergeRecommendation[] =
-    intent.level !== "low" ? combinedRecommendations(intent) : [];
+    intent.level !== "low" ? combinedRecommendations(intent, roomCatalog) : [];
 
   // 4d. Availability tool — only when guest supplied a real date range
   let availability: ConciergeAvailabilityRoom[] = [];
@@ -266,7 +260,7 @@ export async function handleConciergeChat(
       ].join("\n")
     : "";
   const system =
-    buildSystemPrompt(page, buildRoomsContext(), knowledgeCtx, intentCtx, recsCtx, availabilityCtx) +
+    buildSystemPrompt(page, buildRoomsContext(roomCatalog), knowledgeCtx, intentCtx, recsCtx, availabilityCtx) +
     (memoryPromptSection ? "\n\n" + memoryPromptSection : "");
   const { raw, latency } = await callModel(system, history, message);
   const parsed = tryJson<{ answer?: string; confidence?: number; escalate?: boolean; citations?: any[] }>(raw) ?? {};

@@ -110,7 +110,7 @@ function draftTemplate(type: CommunicationDraftType, ctx: {
     case "welcome":
       return {
         subject: `Karibu to StayNas, ${name}`,
-        body: `Hi ${name},\n\nA warm karibu from all of us at the property River Lodge. We're delighted you'll be staying with us in ${roomName}${ctx.check_in ? ` from ${ctx.check_in}` : ""}. If there's anything we can prepare in advance — dietary needs, airport transfer, or a special occasion — just reply to this message.\n\nWith warm regards,\nThe StayNas team`,
+        body: `Hi ${name},\n\nA warm karibu from the property team. We're delighted you'll be staying with us in ${roomName}${ctx.check_in ? ` from ${ctx.check_in}` : ""}. If there's anything we can prepare in advance — dietary needs, airport transfer, or a special occasion — just reply to this message.\n\nWith warm regards,\nThe StayNas team`,
         reasoning: "Warm, personal welcome referencing the guest's booked room.",
       };
     case "pre_arrival":
@@ -134,7 +134,7 @@ function draftTemplate(type: CommunicationDraftType, ctx: {
     case "follow_up":
       return {
         subject: `Thank you for staying with us`,
-        body: `Hi ${name},\n\nAsante sana for choosing Mtoni River Lodge. It was a pleasure hosting you. If you enjoyed your stay, a short review would mean the world to our small team — and we'd love to welcome you back on your next journey to Tanzania.\n\nWith warm regards,\nThe StayNas team`,
+        body: `Hi ${name},\n\nAsante sana for choosing the property. It was a pleasure hosting you. If you enjoyed your stay, a short review would mean the world to our small team — and we'd love to welcome you back on your next journey to Tanzania.\n\nWith warm regards,\nThe StayNas team`,
         reasoning: "Post-stay thank-you with a soft review nudge.",
       };
     case "custom":
