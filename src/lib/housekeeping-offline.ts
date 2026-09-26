@@ -12,7 +12,7 @@ function key(inspectionId: string) {
 }
 
 export function loadHousekeepingInspectionDraft(inspectionId: string): HousekeepingInspectionDraft | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === "undefined" return null;
   try {
     const raw = localStorage.getItem(key(inspectionId));
     return raw ? (JSON.parse(raw) as HousekeepingInspectionDraft) : null;
