@@ -8,7 +8,7 @@ async function requireRoomAdmin(supabase: any, userId: string) {
 }
 
 async function activePropertyId(supabase: any) {
-  const { data, error } = await supabase.rpc("staynas_active_property_id", {});
+  const { data, error } = await supabase.rpc("staynas_active_property_id", { _uid: context.userId });
   if (error || !data) throw new Error(error?.message ?? "No active property selected");
   return data as string;
 }
