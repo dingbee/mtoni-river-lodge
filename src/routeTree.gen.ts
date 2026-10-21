@@ -27,9 +27,7 @@ import { Route as CheckInExpiredRouteImport } from './routes/check-in.expired'
 import { Route as CheckInSuccessRouteImport } from './routes/check-in.success'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as RoomsIndexRouteImport } from './routes/rooms.index'
-import { Route as RoomsFamilyRoomRouteImport } from './routes/rooms.family-room'
-import { Route as RoomsRiverfrontDeluxeRouteImport } from './routes/rooms.riverfront-deluxe'
-import { Route as RoomsStandardRiverRouteImport } from './routes/rooms.standard-river'
+import { Route as RoomsSlugRouteImport } from './routes/rooms.$slug'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
 import { Route as AuthenticatedAdminAiRouteImport } from './routes/_authenticated.admin.ai'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated.admin.analytics'
@@ -112,7 +110,6 @@ import { Route as AuthenticatedAdminOperationsIndexRouteImport } from './routes/
 import { Route as AuthenticatedAdminOperationsAlertsRouteImport } from './routes/_authenticated.admin.operations.alerts'
 import { Route as AuthenticatedAdminOperationsCalendarRouteImport } from './routes/_authenticated.admin.operations.calendar'
 import { Route as AuthenticatedAdminOperationsHousekeepingRouteImport } from './routes/_authenticated.admin.operations.housekeeping'
-import { Route as AuthenticatedAdminOperationsRoomsRouteImport } from './routes/_authenticated.admin.operations.rooms'
 import { Route as AuthenticatedAdminOperationsTasksRouteImport } from './routes/_authenticated.admin.operations.tasks'
 import { Route as AuthenticatedAdminOperationsTimelineRouteImport } from './routes/_authenticated.admin.operations.timeline'
 import { Route as AuthenticatedAdminSettingsIndexRouteImport } from './routes/_authenticated.admin.settings.index'
@@ -132,6 +129,7 @@ import { Route as ApiPublicHooksScheduledJobsRouteImport } from './routes/api/pu
 import { Route as ApiPublicOpsDrainRouteImport } from './routes/api/public/ops/drain'
 import { Route as ApiPublicOpsMorningDigestRouteImport } from './routes/api/public/ops/morning-digest'
 import { Route as ApiPublicPesapalIpnRouteImport } from './routes/api/public/pesapal.ipn'
+import { Route as ApiPublicRoomsCatalogRouteImport } from './routes/api/public/rooms.catalog'
 import { Route as ApiPublicRoomsStatusRouteImport } from './routes/api/public/rooms.status'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
@@ -195,6 +193,8 @@ import { Route as AuthenticatedAdminOperationsArrivalsScanRouteImport } from './
 import { Route as AuthenticatedAdminOperationsCheckinIdRouteImport } from './routes/_authenticated.admin.operations.checkin.$id'
 import { Route as AuthenticatedAdminOperationsCheckoutIdRouteImport } from './routes/_authenticated.admin.operations.checkout.$id'
 import { Route as AuthenticatedAdminOperationsReservationsIdRouteImport } from './routes/_authenticated.admin.operations.reservations.$id'
+import { Route as AuthenticatedAdminOperationsRoomsIndexRouteImport } from './routes/_authenticated.admin.operations.rooms.index'
+import { Route as AuthenticatedAdminOperationsRoomsConfigureRouteImport } from './routes/_authenticated.admin.operations.rooms.configure'
 import { Route as AuthenticatedAdminSettingsMigrationsRespadRouteImport } from './routes/_authenticated.admin.settings.migrations.respad'
 import { Route as AuthenticatedAdminAiKnowledgeTestIndexRouteImport } from './routes/_authenticated.admin.ai.knowledge.test/index'
 import { Route as AuthenticatedAdminContentPagesIdIndexRouteImport } from './routes/_authenticated.admin.content.pages.$id.index'
@@ -289,19 +289,9 @@ const RoomsIndexRoute = RoomsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => RoomsRoute,
 } as any)
-const RoomsFamilyRoomRoute = RoomsFamilyRoomRouteImport.update({
-  id: '/family-room',
-  path: '/family-room',
-  getParentRoute: () => RoomsRoute,
-} as any)
-const RoomsRiverfrontDeluxeRoute = RoomsRiverfrontDeluxeRouteImport.update({
-  id: '/riverfront-deluxe',
-  path: '/riverfront-deluxe',
-  getParentRoute: () => RoomsRoute,
-} as any)
-const RoomsStandardRiverRoute = RoomsStandardRiverRouteImport.update({
-  id: '/standard-river',
-  path: '/standard-river',
+const RoomsSlugRoute = RoomsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
   getParentRoute: () => RoomsRoute,
 } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
@@ -791,12 +781,6 @@ const AuthenticatedAdminOperationsHousekeepingRoute =
     path: '/housekeeping',
     getParentRoute: () => AuthenticatedAdminOperationsRoute,
   } as any)
-const AuthenticatedAdminOperationsRoomsRoute =
-  AuthenticatedAdminOperationsRoomsRouteImport.update({
-    id: '/rooms',
-    path: '/rooms',
-    getParentRoute: () => AuthenticatedAdminOperationsRoute,
-  } as any)
 const AuthenticatedAdminOperationsTasksRoute =
   AuthenticatedAdminOperationsTasksRouteImport.update({
     id: '/tasks',
@@ -905,6 +889,11 @@ const ApiPublicOpsMorningDigestRoute =
 const ApiPublicPesapalIpnRoute = ApiPublicPesapalIpnRouteImport.update({
   id: '/api/public/pesapal/ipn',
   path: '/api/public/pesapal/ipn',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicRoomsCatalogRoute = ApiPublicRoomsCatalogRouteImport.update({
+  id: '/api/public/rooms/catalog',
+  path: '/api/public/rooms/catalog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicRoomsStatusRoute = ApiPublicRoomsStatusRouteImport.update({
@@ -1282,6 +1271,18 @@ const AuthenticatedAdminOperationsReservationsIdRoute =
     path: '/reservations/$id',
     getParentRoute: () => AuthenticatedAdminOperationsRoute,
   } as any)
+const AuthenticatedAdminOperationsRoomsIndexRoute =
+  AuthenticatedAdminOperationsRoomsIndexRouteImport.update({
+    id: '/rooms/',
+    path: '/rooms/',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
+const AuthenticatedAdminOperationsRoomsConfigureRoute =
+  AuthenticatedAdminOperationsRoomsConfigureRouteImport.update({
+    id: '/rooms/configure',
+    path: '/rooms/configure',
+    getParentRoute: () => AuthenticatedAdminOperationsRoute,
+  } as any)
 const AuthenticatedAdminSettingsMigrationsRespadRoute =
   AuthenticatedAdminSettingsMigrationsRespadRouteImport.update({
     id: '/settings/migrations/respad',
@@ -1324,9 +1325,7 @@ export interface FileRoutesByFullPath {
   '/check-in/expired': typeof CheckInExpiredRoute
   '/check-in/success': typeof CheckInSuccessRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/rooms/family-room': typeof RoomsFamilyRoomRoute
-  '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
-  '/rooms/standard-river': typeof RoomsStandardRiverRoute
+  '/rooms/$slug': typeof RoomsSlugRoute
   '/rooms/': typeof RoomsIndexRoute
   '/admin/ai': typeof AuthenticatedAdminAiRouteWithChildren
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRouteWithChildren
@@ -1404,7 +1403,6 @@ export interface FileRoutesByFullPath {
   '/admin/operations/alerts': typeof AuthenticatedAdminOperationsAlertsRoute
   '/admin/operations/calendar': typeof AuthenticatedAdminOperationsCalendarRoute
   '/admin/operations/housekeeping': typeof AuthenticatedAdminOperationsHousekeepingRoute
-  '/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
   '/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
@@ -1423,6 +1421,7 @@ export interface FileRoutesByFullPath {
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
+  '/api/public/rooms/catalog': typeof ApiPublicRoomsCatalogRoute
   '/api/public/rooms/status': typeof ApiPublicRoomsStatusRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -1485,6 +1484,7 @@ export interface FileRoutesByFullPath {
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
+  '/admin/operations/rooms/configure': typeof AuthenticatedAdminOperationsRoomsConfigureRoute
   '/admin/settings/migrations/respad': typeof AuthenticatedAdminSettingsMigrationsRespadRoute
   '/admin/ai/concierge/': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/admin/ai/executive/': typeof AuthenticatedAdminAiExecutiveIndexRoute
@@ -1494,6 +1494,7 @@ export interface FileRoutesByFullPath {
   '/admin/content/journal/': typeof AuthenticatedAdminContentJournalIndexRoute
   '/admin/content/pages/': typeof AuthenticatedAdminContentPagesIndexRoute
   '/admin/operations/arrivals/': typeof AuthenticatedAdminOperationsArrivalsIndexRoute
+  '/admin/operations/rooms/': typeof AuthenticatedAdminOperationsRoomsIndexRoute
   '/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
   '/admin/ai/knowledge/test/': typeof AuthenticatedAdminAiKnowledgeTestIndexRoute
   '/admin/content/pages/$id/': typeof AuthenticatedAdminContentPagesIdIndexRoute
@@ -1513,9 +1514,7 @@ export interface FileRoutesByTo {
   '/check-in/expired': typeof CheckInExpiredRoute
   '/check-in/success': typeof CheckInSuccessRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/rooms/family-room': typeof RoomsFamilyRoomRoute
-  '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
-  '/rooms/standard-river': typeof RoomsStandardRiverRoute
+  '/rooms/$slug': typeof RoomsSlugRoute
   '/rooms': typeof RoomsIndexRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
@@ -1583,7 +1582,6 @@ export interface FileRoutesByTo {
   '/admin/operations/alerts': typeof AuthenticatedAdminOperationsAlertsRoute
   '/admin/operations/calendar': typeof AuthenticatedAdminOperationsCalendarRoute
   '/admin/operations/housekeeping': typeof AuthenticatedAdminOperationsHousekeepingRoute
-  '/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
   '/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
   '/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
@@ -1602,6 +1600,7 @@ export interface FileRoutesByTo {
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
+  '/api/public/rooms/catalog': typeof ApiPublicRoomsCatalogRoute
   '/api/public/rooms/status': typeof ApiPublicRoomsStatusRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -1664,6 +1663,7 @@ export interface FileRoutesByTo {
   '/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
+  '/admin/operations/rooms/configure': typeof AuthenticatedAdminOperationsRoomsConfigureRoute
   '/admin/settings/migrations/respad': typeof AuthenticatedAdminSettingsMigrationsRespadRoute
   '/admin/ai/concierge': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/admin/ai/executive': typeof AuthenticatedAdminAiExecutiveIndexRoute
@@ -1673,6 +1673,7 @@ export interface FileRoutesByTo {
   '/admin/content/journal': typeof AuthenticatedAdminContentJournalIndexRoute
   '/admin/content/pages': typeof AuthenticatedAdminContentPagesIndexRoute
   '/admin/operations/arrivals': typeof AuthenticatedAdminOperationsArrivalsIndexRoute
+  '/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsIndexRoute
   '/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
   '/admin/ai/knowledge/test': typeof AuthenticatedAdminAiKnowledgeTestIndexRoute
   '/admin/content/pages/$id': typeof AuthenticatedAdminContentPagesIdIndexRoute
@@ -1696,9 +1697,7 @@ export interface FileRoutesById {
   '/check-in/expired': typeof CheckInExpiredRoute
   '/check-in/success': typeof CheckInSuccessRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
-  '/rooms/family-room': typeof RoomsFamilyRoomRoute
-  '/rooms/riverfront-deluxe': typeof RoomsRiverfrontDeluxeRoute
-  '/rooms/standard-river': typeof RoomsStandardRiverRoute
+  '/rooms/$slug': typeof RoomsSlugRoute
   '/rooms/': typeof RoomsIndexRoute
   '/_authenticated/admin/ai': typeof AuthenticatedAdminAiRouteWithChildren
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRouteWithChildren
@@ -1776,7 +1775,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations/alerts': typeof AuthenticatedAdminOperationsAlertsRoute
   '/_authenticated/admin/operations/calendar': typeof AuthenticatedAdminOperationsCalendarRoute
   '/_authenticated/admin/operations/housekeeping': typeof AuthenticatedAdminOperationsHousekeepingRoute
-  '/_authenticated/admin/operations/rooms': typeof AuthenticatedAdminOperationsRoomsRoute
   '/_authenticated/admin/operations/tasks': typeof AuthenticatedAdminOperationsTasksRoute
   '/_authenticated/admin/operations/timeline': typeof AuthenticatedAdminOperationsTimelineRoute
   '/_authenticated/admin/staff/activity': typeof AuthenticatedAdminStaffActivityRoute
@@ -1795,6 +1793,7 @@ export interface FileRoutesById {
   '/api/public/ops/drain': typeof ApiPublicOpsDrainRoute
   '/api/public/ops/morning-digest': typeof ApiPublicOpsMorningDigestRoute
   '/api/public/pesapal/ipn': typeof ApiPublicPesapalIpnRoute
+  '/api/public/rooms/catalog': typeof ApiPublicRoomsCatalogRoute
   '/api/public/rooms/status': typeof ApiPublicRoomsStatusRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -1857,6 +1856,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations/checkin/$id': typeof AuthenticatedAdminOperationsCheckinIdRoute
   '/_authenticated/admin/operations/checkout/$id': typeof AuthenticatedAdminOperationsCheckoutIdRoute
   '/_authenticated/admin/operations/reservations/$id': typeof AuthenticatedAdminOperationsReservationsIdRoute
+  '/_authenticated/admin/operations/rooms/configure': typeof AuthenticatedAdminOperationsRoomsConfigureRoute
   '/_authenticated/admin/settings/migrations/respad': typeof AuthenticatedAdminSettingsMigrationsRespadRoute
   '/_authenticated/admin/ai/concierge/': typeof AuthenticatedAdminAiConciergeIndexRoute
   '/_authenticated/admin/ai/executive/': typeof AuthenticatedAdminAiExecutiveIndexRoute
@@ -1866,6 +1866,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/content/journal/': typeof AuthenticatedAdminContentJournalIndexRoute
   '/_authenticated/admin/content/pages/': typeof AuthenticatedAdminContentPagesIndexRoute
   '/_authenticated/admin/operations/arrivals/': typeof AuthenticatedAdminOperationsArrivalsIndexRoute
+  '/_authenticated/admin/operations/rooms/': typeof AuthenticatedAdminOperationsRoomsIndexRoute
   '/_authenticated/admin/content/pages/$id/preview': typeof AuthenticatedAdminContentPagesIdPreviewRoute
   '/_authenticated/admin/ai/knowledge/test/': typeof AuthenticatedAdminAiKnowledgeTestIndexRoute
   '/_authenticated/admin/content/pages/$id/': typeof AuthenticatedAdminContentPagesIdIndexRoute
@@ -1889,9 +1890,7 @@ export interface FileRouteTypes {
     | '/check-in/expired'
     | '/check-in/success'
     | '/email/unsubscribe'
-    | '/rooms/family-room'
-    | '/rooms/riverfront-deluxe'
-    | '/rooms/standard-river'
+    | '/rooms/$slug'
     | '/rooms/'
     | '/admin/ai'
     | '/admin/analytics'
@@ -1969,7 +1968,6 @@ export interface FileRouteTypes {
     | '/admin/operations/alerts'
     | '/admin/operations/calendar'
     | '/admin/operations/housekeeping'
-    | '/admin/operations/rooms'
     | '/admin/operations/tasks'
     | '/admin/operations/timeline'
     | '/admin/staff/activity'
@@ -1988,6 +1986,7 @@ export interface FileRouteTypes {
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
+    | '/api/public/rooms/catalog'
     | '/api/public/rooms/status'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -2050,6 +2049,7 @@ export interface FileRouteTypes {
     | '/admin/operations/checkin/$id'
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
+    | '/admin/operations/rooms/configure'
     | '/admin/settings/migrations/respad'
     | '/admin/ai/concierge/'
     | '/admin/ai/executive/'
@@ -2059,6 +2059,7 @@ export interface FileRouteTypes {
     | '/admin/content/journal/'
     | '/admin/content/pages/'
     | '/admin/operations/arrivals/'
+    | '/admin/operations/rooms/'
     | '/admin/content/pages/$id/preview'
     | '/admin/ai/knowledge/test/'
     | '/admin/content/pages/$id/'
@@ -2078,9 +2079,7 @@ export interface FileRouteTypes {
     | '/check-in/expired'
     | '/check-in/success'
     | '/email/unsubscribe'
-    | '/rooms/family-room'
-    | '/rooms/riverfront-deluxe'
-    | '/rooms/standard-river'
+    | '/rooms/$slug'
     | '/rooms'
     | '/admin/bookings'
     | '/admin/calendar'
@@ -2148,7 +2147,6 @@ export interface FileRouteTypes {
     | '/admin/operations/alerts'
     | '/admin/operations/calendar'
     | '/admin/operations/housekeeping'
-    | '/admin/operations/rooms'
     | '/admin/operations/tasks'
     | '/admin/operations/timeline'
     | '/admin/staff/activity'
@@ -2167,6 +2165,7 @@ export interface FileRouteTypes {
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
+    | '/api/public/rooms/catalog'
     | '/api/public/rooms/status'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -2229,6 +2228,7 @@ export interface FileRouteTypes {
     | '/admin/operations/checkin/$id'
     | '/admin/operations/checkout/$id'
     | '/admin/operations/reservations/$id'
+    | '/admin/operations/rooms/configure'
     | '/admin/settings/migrations/respad'
     | '/admin/ai/concierge'
     | '/admin/ai/executive'
@@ -2238,6 +2238,7 @@ export interface FileRouteTypes {
     | '/admin/content/journal'
     | '/admin/content/pages'
     | '/admin/operations/arrivals'
+    | '/admin/operations/rooms'
     | '/admin/content/pages/$id/preview'
     | '/admin/ai/knowledge/test'
     | '/admin/content/pages/$id'
@@ -2260,9 +2261,7 @@ export interface FileRouteTypes {
     | '/check-in/expired'
     | '/check-in/success'
     | '/email/unsubscribe'
-    | '/rooms/family-room'
-    | '/rooms/riverfront-deluxe'
-    | '/rooms/standard-river'
+    | '/rooms/$slug'
     | '/rooms/'
     | '/_authenticated/admin/ai'
     | '/_authenticated/admin/analytics'
@@ -2340,7 +2339,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations/alerts'
     | '/_authenticated/admin/operations/calendar'
     | '/_authenticated/admin/operations/housekeeping'
-    | '/_authenticated/admin/operations/rooms'
     | '/_authenticated/admin/operations/tasks'
     | '/_authenticated/admin/operations/timeline'
     | '/_authenticated/admin/staff/activity'
@@ -2359,6 +2357,7 @@ export interface FileRouteTypes {
     | '/api/public/ops/drain'
     | '/api/public/ops/morning-digest'
     | '/api/public/pesapal/ipn'
+    | '/api/public/rooms/catalog'
     | '/api/public/rooms/status'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -2421,6 +2420,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations/checkin/$id'
     | '/_authenticated/admin/operations/checkout/$id'
     | '/_authenticated/admin/operations/reservations/$id'
+    | '/_authenticated/admin/operations/rooms/configure'
     | '/_authenticated/admin/settings/migrations/respad'
     | '/_authenticated/admin/ai/concierge/'
     | '/_authenticated/admin/ai/executive/'
@@ -2430,6 +2430,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/content/journal/'
     | '/_authenticated/admin/content/pages/'
     | '/_authenticated/admin/operations/arrivals/'
+    | '/_authenticated/admin/operations/rooms/'
     | '/_authenticated/admin/content/pages/$id/preview'
     | '/_authenticated/admin/ai/knowledge/test/'
     | '/_authenticated/admin/content/pages/$id/'
@@ -2463,6 +2464,7 @@ export interface RootRouteChildren {
   ApiPublicOpsDrainRoute: typeof ApiPublicOpsDrainRoute
   ApiPublicOpsMorningDigestRoute: typeof ApiPublicOpsMorningDigestRoute
   ApiPublicPesapalIpnRoute: typeof ApiPublicPesapalIpnRoute
+  ApiPublicRoomsCatalogRoute: typeof ApiPublicRoomsCatalogRoute
   ApiPublicRoomsStatusRoute: typeof ApiPublicRoomsStatusRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -2599,25 +2601,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RoomsIndexRouteImport
       parentRoute: typeof RoomsRoute
     }
-    '/rooms/family-room': {
-      id: '/rooms/family-room'
-      path: '/family-room'
-      fullPath: '/rooms/family-room'
-      preLoaderRoute: typeof RoomsFamilyRoomRouteImport
-      parentRoute: typeof RoomsRoute
-    }
-    '/rooms/riverfront-deluxe': {
-      id: '/rooms/riverfront-deluxe'
-      path: '/riverfront-deluxe'
-      fullPath: '/rooms/riverfront-deluxe'
-      preLoaderRoute: typeof RoomsRiverfrontDeluxeRouteImport
-      parentRoute: typeof RoomsRoute
-    }
-    '/rooms/standard-river': {
-      id: '/rooms/standard-river'
-      path: '/standard-river'
-      fullPath: '/rooms/standard-river'
-      preLoaderRoute: typeof RoomsStandardRiverRouteImport
+    '/rooms/$slug': {
+      id: '/rooms/$slug'
+      path: '/$slug'
+      fullPath: '/rooms/$slug'
+      preLoaderRoute: typeof RoomsSlugRouteImport
       parentRoute: typeof RoomsRoute
     }
     '/_authenticated/admin/': {
@@ -3194,13 +3182,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminOperationsHousekeepingRouteImport
       parentRoute: typeof AuthenticatedAdminOperationsRoute
     }
-    '/_authenticated/admin/operations/rooms': {
-      id: '/_authenticated/admin/operations/rooms'
-      path: '/rooms'
-      fullPath: '/admin/operations/rooms'
-      preLoaderRoute: typeof AuthenticatedAdminOperationsRoomsRouteImport
-      parentRoute: typeof AuthenticatedAdminOperationsRoute
-    }
     '/_authenticated/admin/operations/tasks': {
       id: '/_authenticated/admin/operations/tasks'
       path: '/tasks'
@@ -3332,6 +3313,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/pesapal/ipn'
       fullPath: '/api/public/pesapal/ipn'
       preLoaderRoute: typeof ApiPublicPesapalIpnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/rooms/catalog': {
+      id: '/api/public/rooms/catalog'
+      path: '/api/public/rooms/catalog'
+      fullPath: '/api/public/rooms/catalog'
+      preLoaderRoute: typeof ApiPublicRoomsCatalogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/rooms/status': {
@@ -3775,6 +3763,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminOperationsReservationsIdRouteImport
       parentRoute: typeof AuthenticatedAdminOperationsRoute
     }
+    '/_authenticated/admin/operations/rooms/': {
+      id: '/_authenticated/admin/operations/rooms/'
+      path: '/rooms'
+      fullPath: '/admin/operations/rooms/'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsRoomsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
+    '/_authenticated/admin/operations/rooms/configure': {
+      id: '/_authenticated/admin/operations/rooms/configure'
+      path: '/rooms/configure'
+      fullPath: '/admin/operations/rooms/configure'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsRoomsConfigureRouteImport
+      parentRoute: typeof AuthenticatedAdminOperationsRoute
+    }
     '/_authenticated/admin/settings/migrations/respad': {
       id: '/_authenticated/admin/settings/migrations/respad'
       path: '/settings/migrations/respad'
@@ -4207,7 +4209,6 @@ interface AuthenticatedAdminOperationsRouteChildren {
   AuthenticatedAdminOperationsAlertsRoute: typeof AuthenticatedAdminOperationsAlertsRoute
   AuthenticatedAdminOperationsCalendarRoute: typeof AuthenticatedAdminOperationsCalendarRoute
   AuthenticatedAdminOperationsHousekeepingRoute: typeof AuthenticatedAdminOperationsHousekeepingRoute
-  AuthenticatedAdminOperationsRoomsRoute: typeof AuthenticatedAdminOperationsRoomsRoute
   AuthenticatedAdminOperationsTasksRoute: typeof AuthenticatedAdminOperationsTasksRoute
   AuthenticatedAdminOperationsTimelineRoute: typeof AuthenticatedAdminOperationsTimelineRoute
   AuthenticatedAdminOperationsIndexRoute: typeof AuthenticatedAdminOperationsIndexRoute
@@ -4216,7 +4217,9 @@ interface AuthenticatedAdminOperationsRouteChildren {
   AuthenticatedAdminOperationsCheckinIdRoute: typeof AuthenticatedAdminOperationsCheckinIdRoute
   AuthenticatedAdminOperationsCheckoutIdRoute: typeof AuthenticatedAdminOperationsCheckoutIdRoute
   AuthenticatedAdminOperationsReservationsIdRoute: typeof AuthenticatedAdminOperationsReservationsIdRoute
+  AuthenticatedAdminOperationsRoomsConfigureRoute: typeof AuthenticatedAdminOperationsRoomsConfigureRoute
   AuthenticatedAdminOperationsArrivalsIndexRoute: typeof AuthenticatedAdminOperationsArrivalsIndexRoute
+  AuthenticatedAdminOperationsRoomsIndexRoute: typeof AuthenticatedAdminOperationsRoomsIndexRoute
 }
 
 const AuthenticatedAdminOperationsRouteChildren: AuthenticatedAdminOperationsRouteChildren =
@@ -4227,8 +4230,6 @@ const AuthenticatedAdminOperationsRouteChildren: AuthenticatedAdminOperationsRou
       AuthenticatedAdminOperationsCalendarRoute,
     AuthenticatedAdminOperationsHousekeepingRoute:
       AuthenticatedAdminOperationsHousekeepingRoute,
-    AuthenticatedAdminOperationsRoomsRoute:
-      AuthenticatedAdminOperationsRoomsRoute,
     AuthenticatedAdminOperationsTasksRoute:
       AuthenticatedAdminOperationsTasksRoute,
     AuthenticatedAdminOperationsTimelineRoute:
@@ -4245,8 +4246,12 @@ const AuthenticatedAdminOperationsRouteChildren: AuthenticatedAdminOperationsRou
       AuthenticatedAdminOperationsCheckoutIdRoute,
     AuthenticatedAdminOperationsReservationsIdRoute:
       AuthenticatedAdminOperationsReservationsIdRoute,
+    AuthenticatedAdminOperationsRoomsConfigureRoute:
+      AuthenticatedAdminOperationsRoomsConfigureRoute,
     AuthenticatedAdminOperationsArrivalsIndexRoute:
       AuthenticatedAdminOperationsArrivalsIndexRoute,
+    AuthenticatedAdminOperationsRoomsIndexRoute:
+      AuthenticatedAdminOperationsRoomsIndexRoute,
   }
 
 const AuthenticatedAdminOperationsRouteWithChildren =
@@ -4421,16 +4426,12 @@ const AuthRouteChildren: AuthRouteChildren = {
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface RoomsRouteChildren {
-  RoomsFamilyRoomRoute: typeof RoomsFamilyRoomRoute
-  RoomsRiverfrontDeluxeRoute: typeof RoomsRiverfrontDeluxeRoute
-  RoomsStandardRiverRoute: typeof RoomsStandardRiverRoute
+  RoomsSlugRoute: typeof RoomsSlugRoute
   RoomsIndexRoute: typeof RoomsIndexRoute
 }
 
 const RoomsRouteChildren: RoomsRouteChildren = {
-  RoomsFamilyRoomRoute: RoomsFamilyRoomRoute,
-  RoomsRiverfrontDeluxeRoute: RoomsRiverfrontDeluxeRoute,
-  RoomsStandardRiverRoute: RoomsStandardRiverRoute,
+  RoomsSlugRoute: RoomsSlugRoute,
   RoomsIndexRoute: RoomsIndexRoute,
 }
 
@@ -4464,6 +4465,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicOpsDrainRoute: ApiPublicOpsDrainRoute,
   ApiPublicOpsMorningDigestRoute: ApiPublicOpsMorningDigestRoute,
   ApiPublicPesapalIpnRoute: ApiPublicPesapalIpnRoute,
+  ApiPublicRoomsCatalogRoute: ApiPublicRoomsCatalogRoute,
   ApiPublicRoomsStatusRoute: ApiPublicRoomsStatusRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,

@@ -1,8 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { hasStayNasEntitlement, type StayNasModuleId } from "@/lib/staynas-entitlements";
 
 export async function requireStayNasModuleAccess(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   userId: string,
   moduleId: StayNasModuleId,
 ): Promise<void> {

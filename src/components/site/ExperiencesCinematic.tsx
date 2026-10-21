@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { motion, useReducedMotion } from "framer-motion";
@@ -76,8 +75,8 @@ export function ExperiencesCinematic() {
                 aria-roledescription="slide"
                 aria-label={`${i + 1} of ${SLIDES.length}: ${s.title}`}
               >
-                <Link
-                  to="/experiences"
+                <a
+                  href="/experiences"
                   className="group relative block h-[78svh] min-h-[560px] w-full overflow-hidden md:h-[86svh]"
                 >
                   <img
@@ -140,7 +139,7 @@ export function ExperiencesCinematic() {
                       )}
                     </div>
                   </div>
-                </Link>
+                </a>
               </div>
             );
           })}

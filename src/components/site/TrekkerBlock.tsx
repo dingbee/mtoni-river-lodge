@@ -1,5 +1,4 @@
 import { Reveal } from "@/components/site/Reveal";
-import { Link } from "@tanstack/react-router";
 
 type Variant = "standard" | "deluxe" | "family";
 
@@ -71,12 +70,12 @@ export function TrekkerBlock({ variant }: { variant: Variant }) {
               </li>
             ))}
           </ul>
-          <Link
-            to="/mount-kilimanjaro-accommodation-arusha"
+          <a
+            href="/mount-kilimanjaro-accommodation-arusha"
             className="mt-8 inline-flex items-center gap-2 border-b border-charcoal pb-1 text-[0.7rem] uppercase tracking-[0.28em]"
           >
             Read more about climber stays →
-          </Link>
+          </a>
         </Reveal>
       </div>
     </section>

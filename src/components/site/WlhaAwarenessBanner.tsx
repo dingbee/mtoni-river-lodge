@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Check, Copy, Facebook, Instagram, MessageCircle, Share2, Twitter } from "lucide-react";
 import { Reveal } from "@/components/site/Reveal";
@@ -244,19 +243,19 @@ function WlhaBannerInner() {
                 <span className="transition-transform group-hover:translate-x-1">→</span>
               </a>
             )}
-            <Link
-              to={c.secondaryCta.to}
+            <a
+              href={c.secondaryCta.to}
               className="group inline-flex w-full items-center justify-center gap-3 border border-ivory/70 px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-ivory transition-colors hover:bg-ivory hover:text-charcoal sm:w-auto"
             >
               <span>{c.secondaryCta.label}</span>
               <span className="transition-transform group-hover:translate-x-1">→</span>
-            </Link>
-            <Link
-              to={c.tertiaryCta.to}
+            </a>
+            <a
+              href={c.tertiaryCta.to}
               className="inline-flex items-center justify-center border-b border-ivory/60 pb-1 text-[0.72rem] uppercase tracking-[0.28em] text-ivory/85 transition-colors hover:text-ivory"
             >
               {c.tertiaryCta.label} →
-            </Link>
+            </a>
           </div>
         </Reveal>
 

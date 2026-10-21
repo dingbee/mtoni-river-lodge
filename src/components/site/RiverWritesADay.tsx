@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { Leaf, Mountain, Flame } from "lucide-react";
 
@@ -100,13 +99,13 @@ export function RiverWritesADay({ img, img800, img1600, alt }: Props) {
           </p>
 
           <div className="mt-9">
-            <Link
-              to="/lodge"
+            <a
+              href="/lodge"
               className="group inline-flex items-center gap-3 border-b border-ivory/70 pb-1 text-[0.72rem] uppercase tracking-[0.32em] text-ivory transition-colors hover:border-ivory"
             >
               Discover Our Story
               <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
-            </Link>
+            </a>
           </div>
 
           <ul className="mt-10 flex flex-wrap gap-x-8 gap-y-4 border-t border-ivory/20 pt-6">

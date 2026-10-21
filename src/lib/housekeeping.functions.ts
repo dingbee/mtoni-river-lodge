@@ -1,3 +1,4 @@
+import { housekeepingClient } from "@/lib/housekeeping-rpc";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -26,7 +27,7 @@ export const transitionHousekeepingRoomState = createServerFn({ method: "POST" }
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
 
-    const { data: result, error } = await context.supabase.rpc(
+    const { data: result, error } = await housekeepingClient(context.supabase).rpc(
       "housekeeping_transition_room_state",
       {
         _room_state_id: data.roomStateId,

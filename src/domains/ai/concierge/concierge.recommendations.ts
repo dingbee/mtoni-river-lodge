@@ -1,3 +1,5 @@
+export const EXPERIENCES: { slug: string; name: string; tags: string[] }[] = [];
+
 import type { ConciergeIntentSignal, ConciergeRecommendation, ConciergeRoomRecommendation, ConciergeExperienceRecommendation, ConciergeRoomCatalogItem } from "./concierge.types";
 
 export function recommendRooms(intent: ConciergeIntentSignal, catalog: ConciergeRoomCatalogItem[]): ConciergeRoomRecommendation[] {

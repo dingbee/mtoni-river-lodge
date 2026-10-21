@@ -28,6 +28,8 @@ export type AvailabilityRoom = {
   capacity_adults: number;
   capacity_children: number;
   max_occupancy: number;
+  included_guests: number;
+  extra_guest_fee: number;
   nights: number;
   nightly_total: number;
   min_available: number;
