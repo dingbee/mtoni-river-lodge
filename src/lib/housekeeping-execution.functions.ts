@@ -1,3 +1,4 @@
+import { housekeepingClient } from "@/lib/housekeeping-rpc";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -14,7 +15,7 @@ export const listHousekeepingWork = createServerFn({ method: "POST" })
   }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
-    const { data: rows, error } = await context.supabase.rpc("housekeeping_list_work", {
+    const { data: rows, error } = await housekeepingClient(context.supabase).rpc("housekeeping_list_work", {
       _mine_only: data.mineOnly,
       _include_completed: data.includeCompleted,
     });
@@ -27,7 +28,7 @@ export const claimHousekeepingTask = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ taskId, idempotencyKey }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
-    const { data: row, error } = await context.supabase.rpc("housekeeping_claim_task", {
+    const { data: row, error } = await housekeepingClient(context.supabase).rpc("housekeeping_claim_task", {
       _task_id: data.taskId,
       _idempotency_key: data.idempotencyKey,
     });
@@ -40,7 +41,7 @@ export const startHousekeepingTask = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ taskId, idempotencyKey }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
-    const { data: row, error } = await context.supabase.rpc("housekeeping_start_task", {
+    const { data: row, error } = await housekeepingClient(context.supabase).rpc("housekeeping_start_task", {
       _task_id: data.taskId,
       _idempotency_key: data.idempotencyKey,
     });
@@ -57,7 +58,7 @@ export const completeHousekeepingTask = createServerFn({ method: "POST" })
   }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
-    const { data: row, error } = await context.supabase.rpc("housekeeping_complete_task", {
+    const { data: row, error } = await housekeepingClient(context.supabase).rpc("housekeeping_complete_task", {
       _task_id: data.taskId,
       _note: data.note ?? null,
       _idempotency_key: data.idempotencyKey,
@@ -70,7 +71,7 @@ export const listHousekeepingStaff = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
-    const { data, error } = await context.supabase.rpc("housekeeping_list_staff");
+    const { data, error } = await housekeepingClient(context.supabase).rpc("housekeeping_list_staff");
     if (error) throw new Error(error.message);
     return data ?? [];
   });
@@ -83,7 +84,7 @@ export const assignHousekeepingTask = createServerFn({ method: "POST" })
   }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
-    const { data: row, error } = await context.supabase.rpc("housekeeping_assign_task", {
+    const { data: row, error } = await housekeepingClient(context.supabase).rpc("housekeeping_assign_task", {
       _task_id: data.taskId,
       _assignee_id: data.assigneeId,
     });

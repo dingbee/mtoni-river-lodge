@@ -1,3 +1,4 @@
+import { housekeepingClient } from "@/lib/housekeeping-rpc";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -17,7 +18,7 @@ export const reportHousekeepingException = createServerFn({ method: "POST" })
   }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
-    const { data: row, error } = await context.supabase.rpc("housekeeping_report_exception", {
+    const { data: row, error } = await housekeepingClient(context.supabase).rpc("housekeeping_report_exception", {
       _room_state_id: data.roomStateId,
       _task_id: data.taskId ?? null,
       _exception_type: data.exceptionType,
@@ -35,7 +36,7 @@ export const listHousekeepingExceptions = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ roomStateId: roomStateId.optional(), openOnly: z.boolean().default(true) }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
-    const { data: rows, error } = await context.supabase.rpc("housekeeping_list_exceptions", {
+    const { data: rows, error } = await housekeepingClient(context.supabase).rpc("housekeeping_list_exceptions", {
       _room_state_id: data.roomStateId ?? null, _open_only: data.openOnly,
     });
     if (error) throw new Error(error.message);
@@ -47,7 +48,7 @@ export const resolveHousekeepingException = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ exceptionId: z.string().uuid(), resolution: z.string().max(2000).optional() }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
-    const { data: row, error } = await context.supabase.rpc("housekeeping_resolve_exception", {
+    const { data: row, error } = await housekeepingClient(context.supabase).rpc("housekeeping_resolve_exception", {
       _exception_id: data.exceptionId, _resolution: data.resolution ?? null,
     });
     if (error) throw new Error(error.message);

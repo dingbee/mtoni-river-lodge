@@ -1,3 +1,4 @@
+import { housekeepingClient } from "@/lib/housekeeping-rpc";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -9,7 +10,7 @@ export const listHousekeepingInspectionQueue = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
-    const { data, error } = await context.supabase.rpc("housekeeping_list_inspection_queue");
+    const { data, error } = await housekeepingClient(context.supabase).rpc("housekeeping_list_inspection_queue");
     if (error) throw new Error(error.message);
     return data ?? [];
   });
@@ -28,7 +29,7 @@ export const submitHousekeepingInspection = createServerFn({ method: "POST" })
   }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
-    const { data: row, error } = await context.supabase.rpc("housekeeping_submit_inspection", {
+    const { data: row, error } = await housekeepingClient(context.supabase).rpc("housekeeping_submit_inspection", {
       _inspection_id: data.inspectionId,
       _checklist: data.checklist,
       _passed: data.passed,
