@@ -1,4 +1,5 @@
 import { housekeepingClient } from "@/lib/housekeeping-rpc";
+import type { Json } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -25,7 +26,7 @@ export const reportHousekeepingException = createServerFn({ method: "POST" })
       _title: data.title,
       _notes: data.notes ?? null,
       _severity: data.severity,
-      _evidence: data.evidence,
+      _evidence: data.evidence as Json,
     });
     if (error) throw new Error(error.message);
     return row;

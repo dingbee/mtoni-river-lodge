@@ -16,7 +16,7 @@ export function buildRoomJsonLd(opts: {
 }) {
   const { room, routePath, priceUSD, occupancy } = opts;
   const url = absoluteUrl(routePath);
-  const image = absoluteUrl(room.img);
+  const image = room.img ? absoluteUrl(room.img) : undefined;
 
   return {
     "@context": "https://schema.org",
@@ -25,7 +25,7 @@ export function buildRoomJsonLd(opts: {
     name: room.name,
     description: room.shortDesc,
     url,
-    image,
+    ...(image ? { image } : {}),
     brand: { "@type": "Brand", name: "Mtoni River Lodge" },
     containedInPlace: {
       "@type": "LodgingBusiness",

@@ -10,6 +10,7 @@ export const Route = createFileRoute("/rooms/")({ component: RoomsIndexPage });
 
 type PublicRoom = {
   slug: string; name: string; short_description: string | null; base_price: number; currency: string; total_units: number;
+  max_occupancy: number;
   size_label: string | null; view_label: string | null; bed_label: string | null; image_url: string | null;
   category: { name: string; features: string[]; specifications: Record<string,string> } | null;
 };
