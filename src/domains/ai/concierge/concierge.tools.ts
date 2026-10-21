@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { ConciergeAvailabilityRoom, ConciergeIntentSignal, ConciergeBookingPlan } from "./concierge.types";
-import { EXPERIENCES } from "./concierge.recommendations";
+import { recommendExperiences } from "./concierge.recommendations";
 
 function getPublicClient() {
   return createClient<Database>(
@@ -15,7 +15,7 @@ export async function searchAvailability(input: {
   check_in: string;
   check_out: string;
 }): Promise<ConciergeAvailabilityRoom[]> {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.check_in) || !/^\d{4}-\d{2}-\d{2}$/.test(input.check_out)) return [];
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(input.check_in) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(input.check_out)) return [];
   if (input.check_out <= input.check_in) return [];
   const sb = getPublicClient();
   const { data, error } = await sb.rpc("get_room_availability", {
@@ -60,9 +60,7 @@ export function buildBookingPlan(
     ? availability.find((r) => r.slug === preferredRoomSlug && r.is_available)
     : availability.find((r) => r.is_available);
 
-  const interests = intent.detected.interests ?? [];
-  const experiences = EXPERIENCES
-    .filter((e) => e.tags.some((t) => interests.includes(t)))
+  const experiences = recommendExperiences(intent)
     .slice(0, 3)
     .map((e) => ({ slug: e.slug, name: e.name }));
 
