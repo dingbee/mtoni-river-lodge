@@ -15,7 +15,7 @@ export async function searchAvailability(input: {
   check_in: string;
   check_out: string;
 }): Promise<ConciergeAvailabilityRoom[]> {
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(input.check_in) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(input.check_out)) return [];
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.check_in) || !/^\d{4}-\d{2}-\d{2}$/.test(input.check_out)) return [];
   if (input.check_out <= input.check_in) return [];
   const sb = getPublicClient();
   const { data, error } = await sb.rpc("get_room_availability", {
