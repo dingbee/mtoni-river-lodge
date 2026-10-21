@@ -17,14 +17,13 @@ export interface CmsBlockRow {
  */
 export function CmsBody({
   blocks,
-  overlayHeader = false,
 }: {
   blocks: CmsBlockRow[];
   overlayHeader?: boolean;
 }) {
   return (
     <div className="bg-ivory text-charcoal">
-      <SiteHeader overlay={overlayHeader} />
+      <SiteHeader />
       <main>
         {blocks.map((b) => (
           <div key={b.id}>

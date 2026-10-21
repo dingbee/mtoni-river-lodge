@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { Reveal } from "@/components/site/Reveal";
-import { Link } from "@tanstack/react-router";
 import { ReviewCard } from "./ReviewCard";
 import { Stars } from "./Stars";
 import { useApprovedReviews, useReviewAggregates, getAggregate } from "./useReviewData";
@@ -146,12 +145,12 @@ export function GuestExperiencesSection() {
                   <p className="eyebrow text-charcoal/60">{group.eyebrow}</p>
                   <p className="mt-2 font-display text-xl text-charcoal/85 lg:text-2xl">{group.copy}</p>
                 </div>
-                <Link
-                  to="/reviews"
+                <a
+                  href="/reviews"
                   className="text-[0.7rem] uppercase tracking-[0.28em] underline-offset-8 hover:underline"
                 >
                   All {CATEGORY_LABELS[group.key].toLowerCase()} reviews →
-                </Link>
+                </a>
               </div>
               <CategoryCarousel items={items} />
             </Reveal>
@@ -180,12 +179,12 @@ export function GuestExperiencesSection() {
                 </AccordionTrigger>
                 <AccordionContent className="pb-5">
                   <CategoryCarousel items={items} />
-                  <Link
-                    to="/reviews"
+                  <a
+                    href="/reviews"
                     className="mt-4 inline-block text-[0.65rem] uppercase tracking-[0.26em] underline-offset-8 hover:underline"
                   >
                     All {CATEGORY_LABELS[group.key].toLowerCase()} reviews →
-                  </Link>
+                  </a>
                 </AccordionContent>
               </AccordionItem>
             ))}
@@ -194,13 +193,13 @@ export function GuestExperiencesSection() {
 
         <Reveal delay={200}>
           <div className="mt-12 flex flex-col items-center gap-4 lg:mt-16">
-            <Link
-              to="/reviews"
+            <a
+              href="/reviews"
               className="group inline-flex items-center gap-3 rounded-full bg-[#2f4a3a] px-8 py-4 text-[0.72rem] uppercase tracking-[0.28em] text-ivory shadow-[0_20px_40px_-20px_rgba(47,74,58,0.6)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#243a2d]"
             >
               Read All Guest Reviews
               <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
-            </Link>
+            </a>
           </div>
         </Reveal>
       </div>

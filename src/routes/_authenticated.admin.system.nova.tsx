@@ -37,7 +37,7 @@ function StayNasSystemPage() {
     <div className="space-y-6">
       <PageHeader title="System Information" description="StayNas product version, schema contract and runtime status."
         actions={<Button variant="outline" size="sm" className="min-h-11" onClick={() => info.refetch()}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button>} />
-      {info.isLoading ? <LoadingState label="Reading system information…" /> : (
+      {!data ? <LoadingState label="Reading system information…" /> : (
         <>
           <SectionCard title="Product" description="Authoritative StayNas application identity and compatibility contract.">
             <div className="grid gap-3 md:grid-cols-2">
