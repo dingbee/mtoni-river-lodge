@@ -82,7 +82,7 @@ function MwasitiCard() {
       <style>{scoped}</style>
       <div className="mx-auto max-w-md md:max-w-lg">
         <div className="relative h-72 overflow-hidden md:h-80">
-          <img src={heroRiver} srcSet={`${heroRiver} 800w, ${heroRiverLg} 1600w`} sizes="(min-width:768px) 512px, 100vw" alt="The river flowing through the forest at Mtoni River Lodge" className="h-full w-full object-cover" />
+          <img src={heroRiver} srcSet={`${heroRiver} 800w, ${heroRiverLg} 1600w`} sizes="(min-width:768px) 512px, 100vw" alt="Mtoni River Lodge lit up at night" className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-b from-[color:var(--mw-forest-deep)]/30 via-transparent to-[color:var(--mw-forest-deep)]" />
           <img src={logo} alt="Mtoni River Lodge" className="mw-rise absolute left-1/2 top-8 h-16 w-auto -translate-x-1/2 brightness-0 invert drop-shadow" />
         </div>
