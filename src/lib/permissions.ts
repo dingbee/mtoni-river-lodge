@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { hasStayNasEntitlement, normalizeStayNasRoles, type StayNasModuleId } from "@/lib/staynas-entitlements";
+import { staynasRpc } from "@/lib/staynas-rpc";
 import { useEffect, useState } from "react";
 
 // Superset of DB app_role. Kept in sync with public.app_role.
@@ -95,7 +96,7 @@ export function useCurrentUserRoles() {
       const [{ data: globalRoles, error: globalRoleError }, { data: propertyRole, error: propertyRoleError }] =
         await Promise.all([
           supabase.rpc("current_user_roles"),
-          supabase.rpc("staynas_current_property_role"),
+          staynasRpc(supabase).rpc("staynas_current_property_role"),
         ]);
 
       if (globalRoleError) throw new Error(globalRoleError.message);
