@@ -335,3 +335,9 @@ $function$;
 REVOKE EXECUTE ON FUNCTION public.current_user_roles() FROM anon;
 REVOKE EXECUTE ON FUNCTION public.set_room_block(uuid,date,date,boolean,text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.set_room_block(uuid,date,date,boolean,text) TO authenticated, service_role;
+
+
+-- Retire direct API access to the legacy non-property-scoped room RPC overload.
+REVOKE EXECUTE ON FUNCTION public.save_room_type_configuration(
+  uuid,text,text,uuid,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text
+) FROM PUBLIC, anon, authenticated;
