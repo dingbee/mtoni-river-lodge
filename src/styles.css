@@ -1145,6 +1145,7 @@
 .mtoni-os :is(button, [role="button"]) { border-radius: 8px; }
 .mtoni-os table { font-size: 13px; }
 .mtoni-os th { font-size: 11px; letter-spacing: 0.055em; font-weight: 600; }
+.mtoni-os .font-display.text-\[2\.4rem\] { font-size: clamp(1.5rem, 1.3rem + 0.5vw, 1.875rem); line-height: 1.25; font-weight: 600; }
 .mtoni-os .os-chip {
   padding: 3px 9px;
   font-size: 11px;
