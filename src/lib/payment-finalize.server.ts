@@ -75,7 +75,7 @@ export async function verifyAndFinalizePayment(opts: {
   const paid = Number(status.amount ?? 0);
   const amountsMatch = Math.round(expected * 100) === Math.round(paid * 100);
   const currencyMatches =
-    !status.currency || status.currency.toUpperCase() === (booking.currency || "USD").toUpperCase();
+    Boolean(booking.currency) && Boolean(status.currency) && status.currency.toUpperCase() === booking.currency.toUpperCase();
 
   if (!amountsMatch || !currencyMatches) {
     const nowIso = new Date().toISOString();
