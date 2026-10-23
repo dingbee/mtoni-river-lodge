@@ -281,3 +281,57 @@ REVOKE ALL ON FUNCTION public.save_room_type_configuration(
 GRANT EXECUTE ON FUNCTION public.save_room_type_configuration(
   uuid,uuid,text,text,uuid,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text
 ) TO authenticated, service_role;
+
+
+-- Harden legacy room-block RPC: authorize against the room's property membership, not global roles.
+CREATE OR REPLACE FUNCTION public.set_room_block(
+  _room_id uuid, _from date, _to date, _blocked boolean, _reason text DEFAULT NULL
+)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $function$
+DECLARE
+  _d date;
+  _n integer := 0;
+  _room public.rooms%ROWTYPE;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Forbidden'; END IF;
+  IF _to <= _from THEN RAISE EXCEPTION 'to must be after from'; END IF;
+
+  SELECT * INTO _room FROM public.rooms WHERE id = _room_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Room not found'; END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.staynas_property_members m
+    WHERE m.property_id = _room.property_id
+      AND m.user_id = auth.uid()
+      AND m.status = 'active'
+      AND m.role::text IN ('owner','manager','admin')
+  ) THEN
+    RAISE EXCEPTION 'Room block requires manager access to the selected property';
+  END IF;
+
+  _d := _from;
+  WHILE _d < _to LOOP
+    INSERT INTO public.room_inventory (room_id, date, available_units, is_blocked)
+    VALUES (_room_id, _d, _room.total_units, _blocked)
+    ON CONFLICT (room_id, date) DO UPDATE
+      SET is_blocked = EXCLUDED.is_blocked, updated_at = now();
+    _n := _n + 1;
+    _d := _d + INTERVAL '1 day';
+  END LOOP;
+
+  PERFORM public.log_calendar_event(
+    CASE WHEN _blocked THEN 'room.blocked' ELSE 'room.unblocked' END,
+    _room_id, NULL, NULL, _from, _to,
+    jsonb_build_object('reason', COALESCE(_reason,''))
+  );
+  RETURN _n;
+END
+$function$;
+
+REVOKE EXECUTE ON FUNCTION public.current_user_roles() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.set_room_block(uuid,date,date,boolean,text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.set_room_block(uuid,date,date,boolean,text) TO authenticated, service_role;
