@@ -55,7 +55,7 @@ BEGIN
   IF _base_price < 0 OR _extra_guest_fee < 0 THEN RAISE EXCEPTION 'Pricing cannot be negative'; END IF;
   IF _capacity_adults < 1 OR _max_occupancy < _capacity_adults THEN RAISE EXCEPTION 'Invalid occupancy configuration'; END IF;
   IF _included_guests < 1 OR _included_guests > _max_occupancy THEN RAISE EXCEPTION 'Invalid included guest count'; END IF;
-  IF _currency IS NOT NULL AND _currency !~ '^[A-Z]{3}
+  IF _currency IS NOT NULL AND _currency !~ '^[A-Z]{3}$' THEN RAISE EXCEPTION 'Currency must be a 3-letter ISO code when provided'; END IF;
 
   IF _category_id IS NOT NULL AND NOT EXISTS (
     SELECT 1
