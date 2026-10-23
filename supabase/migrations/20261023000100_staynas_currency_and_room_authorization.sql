@@ -341,3 +341,289 @@ GRANT EXECUTE ON FUNCTION public.set_room_block(uuid,date,date,boolean,text) TO 
 REVOKE EXECUTE ON FUNCTION public.save_room_type_configuration(
   uuid,text,text,uuid,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text
 ) FROM PUBLIC, anon, authenticated;
+ THEN RAISE EXCEPTION 'Currency must be a 3-letter ISO code when provided'; END IF;
+
+  IF _category_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1
+    FROM public.room_categories
+    WHERE id = _category_id
+      AND property_id = _property_id
+      AND status = 'active'
+  ) THEN
+    RAISE EXCEPTION 'Room category not found in the selected property';
+  END IF;
+
+  IF _id IS NULL THEN
+    IF EXISTS (
+      SELECT 1 FROM public.rooms WHERE property_id = _property_id AND slug = _slug
+    ) THEN
+      RAISE EXCEPTION 'Room slug already exists in this property';
+    END IF;
+
+    INSERT INTO public.rooms (
+      property_id, slug, name, category_id, short_description,
+      capacity_adults, capacity_children, max_occupancy, total_units,
+      base_price, currency, status, sort_order, included_guests, extra_guest_fee,
+      hero_line, image_url, gallery_urls, size_label, view_label, bed_label, bathroom_label
+    )
+    VALUES (
+      _property_id, _slug, btrim(_name), _category_id, NULLIF(btrim(_short_description),''),
+      _capacity_adults, _capacity_children, _max_occupancy, _total_units,
+      _base_price, _currency, COALESCE(NULLIF(_status,''),'active'), COALESCE(_sort_order,0),
+      _included_guests, _extra_guest_fee,
+      NULLIF(btrim(_hero_line),''), NULLIF(btrim(_image_url),''), COALESCE(_gallery_urls,'{}'),
+      NULLIF(btrim(_size_label),''), NULLIF(btrim(_view_label),''), NULLIF(btrim(_bed_label),''),
+      NULLIF(btrim(_bathroom_label),'')
+    )
+    RETURNING id INTO _room_id;
+  ELSE
+    SELECT total_units INTO _old_units
+    FROM public.rooms
+    WHERE id = _id AND property_id = _property_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN RAISE EXCEPTION 'Room not found in selected property'; END IF;
+
+    IF EXISTS (
+      SELECT 1 FROM public.rooms
+      WHERE property_id = _property_id AND slug = _slug AND id <> _id
+    ) THEN
+      RAISE EXCEPTION 'Room slug already exists in this property';
+    END IF;
+
+    UPDATE public.rooms SET
+      slug = _slug,
+      name = btrim(_name),
+      category_id = _category_id,
+      short_description = NULLIF(btrim(_short_description),''),
+      capacity_adults = _capacity_adults,
+      capacity_children = _capacity_children,
+      max_occupancy = _max_occupancy,
+      total_units = _total_units,
+      base_price = _base_price,
+      currency = _currency,
+      status = COALESCE(NULLIF(_status,''),'active'),
+      sort_order = COALESCE(_sort_order,0),
+      included_guests = _included_guests,
+      extra_guest_fee = _extra_guest_fee,
+      hero_line = NULLIF(btrim(_hero_line),''),
+      image_url = NULLIF(btrim(_image_url),''),
+      gallery_urls = COALESCE(_gallery_urls,'{}'),
+      size_label = NULLIF(btrim(_size_label),''),
+      view_label = NULLIF(btrim(_view_label),''),
+      bed_label = NULLIF(btrim(_bed_label),''),
+      bathroom_label = NULLIF(btrim(_bathroom_label),'')
+    WHERE id = _id AND property_id = _property_id
+    RETURNING id INTO _room_id;
+  END IF;
+
+  IF _total_units > _old_units THEN
+    INSERT INTO public.room_states(property_id, room_id, unit_label)
+    SELECT _property_id, _room_id, _slug || '-' || lpad(gs::text,2,'0')
+    FROM generate_series(GREATEST(_old_units,0)+1,_total_units) gs;
+  ELSIF _total_units < _old_units THEN
+    _remove_count := _old_units - _total_units;
+
+    SELECT count(*) INTO _available
+    FROM public.room_states
+    WHERE property_id = _property_id
+      AND room_id = _room_id
+      AND booking_id IS NULL
+      AND state IN ('vacant_clean','vacant_dirty');
+
+    IF _available < _remove_count THEN
+      RAISE EXCEPTION 'Cannot reduce quantity: protected physical room units are still in use';
+    END IF;
+
+    DELETE FROM public.room_states
+    WHERE id IN (
+      SELECT id
+      FROM public.room_states
+      WHERE property_id = _property_id
+        AND room_id = _room_id
+        AND booking_id IS NULL
+        AND state IN ('vacant_clean','vacant_dirty')
+      ORDER BY unit_label DESC
+      LIMIT _remove_count
+    );
+  END IF;
+
+  RETURN _room_id;
+END;
+$$; THEN RAISE EXCEPTION 'Currency must be a 3-letter ISO code when provided'; END IF;
+
+  IF _category_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1
+    FROM public.room_categories
+    WHERE id = _category_id
+      AND property_id = _property_id
+      AND status = 'active'
+  ) THEN
+    RAISE EXCEPTION 'Room category not found in the selected property';
+  END IF;
+
+  IF _id IS NULL THEN
+    IF EXISTS (
+      SELECT 1 FROM public.rooms WHERE property_id = _property_id AND slug = _slug
+    ) THEN
+      RAISE EXCEPTION 'Room slug already exists in this property';
+    END IF;
+
+    INSERT INTO public.rooms (
+      property_id, slug, name, category_id, short_description,
+      capacity_adults, capacity_children, max_occupancy, total_units,
+      base_price, currency, status, sort_order, included_guests, extra_guest_fee,
+      hero_line, image_url, gallery_urls, size_label, view_label, bed_label, bathroom_label
+    )
+    VALUES (
+      _property_id, _slug, btrim(_name), _category_id, NULLIF(btrim(_short_description),''),
+      _capacity_adults, _capacity_children, _max_occupancy, _total_units,
+      _base_price, _currency, COALESCE(NULLIF(_status,''),'active'), COALESCE(_sort_order,0),
+      _included_guests, _extra_guest_fee,
+      NULLIF(btrim(_hero_line),''), NULLIF(btrim(_image_url),''), COALESCE(_gallery_urls,'{}'),
+      NULLIF(btrim(_size_label),''), NULLIF(btrim(_view_label),''), NULLIF(btrim(_bed_label),''),
+      NULLIF(btrim(_bathroom_label),'')
+    )
+    RETURNING id INTO _room_id;
+  ELSE
+    SELECT total_units INTO _old_units
+    FROM public.rooms
+    WHERE id = _id AND property_id = _property_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN RAISE EXCEPTION 'Room not found in selected property'; END IF;
+
+    IF EXISTS (
+      SELECT 1 FROM public.rooms
+      WHERE property_id = _property_id AND slug = _slug AND id <> _id
+    ) THEN
+      RAISE EXCEPTION 'Room slug already exists in this property';
+    END IF;
+
+    UPDATE public.rooms SET
+      slug = _slug,
+      name = btrim(_name),
+      category_id = _category_id,
+      short_description = NULLIF(btrim(_short_description),''),
+      capacity_adults = _capacity_adults,
+      capacity_children = _capacity_children,
+      max_occupancy = _max_occupancy,
+      total_units = _total_units,
+      base_price = _base_price,
+      currency = _currency,
+      status = COALESCE(NULLIF(_status,''),'active'),
+      sort_order = COALESCE(_sort_order,0),
+      included_guests = _included_guests,
+      extra_guest_fee = _extra_guest_fee,
+      hero_line = NULLIF(btrim(_hero_line),''),
+      image_url = NULLIF(btrim(_image_url),''),
+      gallery_urls = COALESCE(_gallery_urls,'{}'),
+      size_label = NULLIF(btrim(_size_label),''),
+      view_label = NULLIF(btrim(_view_label),''),
+      bed_label = NULLIF(btrim(_bed_label),''),
+      bathroom_label = NULLIF(btrim(_bathroom_label),'')
+    WHERE id = _id AND property_id = _property_id
+    RETURNING id INTO _room_id;
+  END IF;
+
+  IF _total_units > _old_units THEN
+    INSERT INTO public.room_states(property_id, room_id, unit_label)
+    SELECT _property_id, _room_id, _slug || '-' || lpad(gs::text,2,'0')
+    FROM generate_series(GREATEST(_old_units,0)+1,_total_units) gs;
+  ELSIF _total_units < _old_units THEN
+    _remove_count := _old_units - _total_units;
+
+    SELECT count(*) INTO _available
+    FROM public.room_states
+    WHERE property_id = _property_id
+      AND room_id = _room_id
+      AND booking_id IS NULL
+      AND state IN ('vacant_clean','vacant_dirty');
+
+    IF _available < _remove_count THEN
+      RAISE EXCEPTION 'Cannot reduce quantity: protected physical room units are still in use';
+    END IF;
+
+    DELETE FROM public.room_states
+    WHERE id IN (
+      SELECT id
+      FROM public.room_states
+      WHERE property_id = _property_id
+        AND room_id = _room_id
+        AND booking_id IS NULL
+        AND state IN ('vacant_clean','vacant_dirty')
+      ORDER BY unit_label DESC
+      LIMIT _remove_count
+    );
+  END IF;
+
+  RETURN _room_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.save_room_type_configuration(
+  uuid,uuid,text,text,uuid,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text
+) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.save_room_type_configuration(
+  uuid,uuid,text,text,uuid,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text
+) TO authenticated, service_role;
+
+
+-- Harden legacy room-block RPC: authorize against the room's property membership, not global roles.
+CREATE OR REPLACE FUNCTION public.set_room_block(
+  _room_id uuid, _from date, _to date, _blocked boolean, _reason text DEFAULT NULL
+)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $function$
+DECLARE
+  _d date;
+  _n integer := 0;
+  _room public.rooms%ROWTYPE;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Forbidden'; END IF;
+  IF _to <= _from THEN RAISE EXCEPTION 'to must be after from'; END IF;
+
+  SELECT * INTO _room FROM public.rooms WHERE id = _room_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Room not found'; END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.staynas_property_members m
+    WHERE m.property_id = _room.property_id
+      AND m.user_id = auth.uid()
+      AND m.status = 'active'
+      AND m.role::text IN ('owner','manager','admin')
+  ) THEN
+    RAISE EXCEPTION 'Room block requires manager access to the selected property';
+  END IF;
+
+  _d := _from;
+  WHILE _d < _to LOOP
+    INSERT INTO public.room_inventory (room_id, date, available_units, is_blocked)
+    VALUES (_room_id, _d, _room.total_units, _blocked)
+    ON CONFLICT (room_id, date) DO UPDATE
+      SET is_blocked = EXCLUDED.is_blocked, updated_at = now();
+    _n := _n + 1;
+    _d := _d + INTERVAL '1 day';
+  END LOOP;
+
+  PERFORM public.log_calendar_event(
+    CASE WHEN _blocked THEN 'room.blocked' ELSE 'room.unblocked' END,
+    _room_id, NULL, NULL, _from, _to,
+    jsonb_build_object('reason', COALESCE(_reason,''))
+  );
+  RETURN _n;
+END
+$function$;
+
+REVOKE EXECUTE ON FUNCTION public.current_user_roles() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.set_room_block(uuid,date,date,boolean,text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.set_room_block(uuid,date,date,boolean,text) TO authenticated, service_role;
+
+
+-- Retire direct API access to the legacy non-property-scoped room RPC overload.
+REVOKE EXECUTE ON FUNCTION public.save_room_type_configuration(
+  uuid,text,text,uuid,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text
+) FROM PUBLIC, anon, authenticated;
