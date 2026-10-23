@@ -72,12 +72,14 @@ function AuthPage() {
         return;
       }
 
-      // Force a full document navigation so a client-router transition cannot silently stall.
-      const destination =
-        userData.user.user_metadata?.staynas_password_initialized === true
-          ? "/admin/bookings"
-          : "/auth/set-password?type=first-login";
-      window.location.assign(destination);
+      // Keep first-login password setup in the current SPA session. A full document
+      // reload can lose the freshly established auth session before the setup route reads it.
+      if (userData.user.user_metadata?.staynas_password_initialized !== true) {
+        await navigate({ to: "/auth/set-password", search: { type: "first-login" } });
+      } else {
+        // Use a full navigation for the protected admin shell, which rehydrates its context.
+        window.location.assign("/admin/bookings");
+      }
     } catch (error) {
       console.error("[StayNas auth] Sign-in flow failed", error);
       toast.error("Sign-in completed, but StayNas could not open the next screen. Please retry.");
