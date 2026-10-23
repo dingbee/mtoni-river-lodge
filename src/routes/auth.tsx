@@ -21,65 +21,69 @@ function AuthPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading || resetting) return;
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    setLoading(false);
-
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-
-    // Accept either a legacy global staff role or an active property-scoped
-    // membership. The property RPC only returns properties this user can access.
-    const [{ data: roles, error: roleError }, { data: properties, error: propertyError }] =
-      await Promise.all([
-        supabase.rpc("current_user_roles"),
-        supabase.rpc("staynas_list_properties"),
-      ]);
-
-    const hasLegacyStaffRole = !roleError && Boolean(roles?.length);
-    const accessibleProperties = !propertyError && Array.isArray(properties) ? properties : [];
-
-    if (!hasLegacyStaffRole && accessibleProperties.length === 0) {
-      await supabase.auth.signOut();
-      toast.error("Your account does not have StayNas staff access.");
-      return;
-    }
-
-    // Establish property context for membership-based users so downstream
-    // property-scoped screens resolve the correct tenant.
-    if (!hasLegacyStaffRole && accessibleProperties.length === 1) {
-      const { error: contextError } = await supabase.rpc("staynas_set_active_property", {
-        _property_id: accessibleProperties[0].id,
-      });
-      if (contextError) {
-        await supabase.auth.signOut();
-        toast.error("Your property access could not be initialized. Contact your administrator.");
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) {
+        toast.error(signInError.message);
         return;
       }
-    }
 
-    // Staff accounts must establish a new password before entering the admin.
-    // Existing accounts without this marker are intentionally gated once.
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError || !userData.user) {
-      await supabase.auth.signOut();
-      toast.error("Unable to verify your staff account.");
-      return;
-    }
+      // Accept either a legacy global staff role or an active property-scoped membership.
+      const [{ data: roles, error: roleError }, { data: properties, error: propertyError }] =
+        await Promise.all([
+          supabase.rpc("current_user_roles"),
+          supabase.rpc("staynas_list_properties"),
+        ]);
 
-    if (userData.user.user_metadata?.staynas_password_initialized !== true) {
-      navigate({
-        to: "/auth/set-password",
-        search: { type: "first-login" } as never,
-      });
-      return;
-    }
+      const hasLegacyStaffRole = !roleError && Boolean(roles?.length);
+      const accessibleProperties = !propertyError && Array.isArray(properties) ? properties : [];
 
-    navigate({ to: "/admin/bookings" });
+      if (!hasLegacyStaffRole && accessibleProperties.length === 0) {
+        await supabase.auth.signOut();
+        toast.error(
+          roleError
+            ? "Could not verify staff roles. Please try again."
+            : propertyError
+              ? "Could not load your property access. Please try again."
+              : "Your account does not have StayNas staff access.",
+        );
+        return;
+      }
+
+      if (!hasLegacyStaffRole && accessibleProperties.length === 1) {
+        const { error: contextError } = await supabase.rpc("staynas_set_active_property", {
+          _property_id: accessibleProperties[0].id,
+        });
+        if (contextError) {
+          console.error("[StayNas auth] Active property setup failed", contextError);
+          await supabase.auth.signOut();
+          toast.error("Your property access could not be initialized. Contact your administrator.");
+          return;
+        }
+      }
+
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        await supabase.auth.signOut();
+        toast.error("Unable to verify your staff account. Please sign in again.");
+        return;
+      }
+
+      // Force a full document navigation so a client-router transition cannot silently stall.
+      const destination =
+        userData.user.user_metadata?.staynas_password_initialized === true
+          ? "/admin/bookings"
+          : "/auth/set-password?type=first-login";
+      window.location.assign(destination);
+    } catch (error) {
+      console.error("[StayNas auth] Sign-in flow failed", error);
+      toast.error("Sign-in completed, but StayNas could not open the next screen. Please retry.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const resetPassword = async () => {
