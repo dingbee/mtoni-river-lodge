@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as BookingFormRouteImport } from './routes/booking-form'
+import { Route as MwasitiRouteImport } from './routes/mwasiti'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RoomsRouteImport } from './routes/rooms'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -222,6 +223,11 @@ const BookRoute = BookRouteImport.update({
 const BookingFormRoute = BookingFormRouteImport.update({
   id: '/booking-form',
   path: '/booking-form',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MwasitiRoute = MwasitiRouteImport.update({
+  id: '/mwasiti',
+  path: '/mwasiti',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -1313,6 +1319,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
+  '/mwasiti': typeof MwasitiRoute
   '/privacy': typeof PrivacyRoute
   '/rooms': typeof RoomsRouteWithChildren
   '/terms': typeof TermsRoute
@@ -1504,6 +1511,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
+  '/mwasiti': typeof MwasitiRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
@@ -1685,6 +1693,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/book': typeof BookRoute
   '/booking-form': typeof BookingFormRoute
+  '/mwasiti': typeof MwasitiRoute
   '/privacy': typeof PrivacyRoute
   '/rooms': typeof RoomsRouteWithChildren
   '/terms': typeof TermsRoute
@@ -1878,6 +1887,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/book'
     | '/booking-form'
+    | '/mwasiti'
     | '/privacy'
     | '/rooms'
     | '/terms'
@@ -2069,6 +2079,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/book'
     | '/booking-form'
+    | '/mwasiti'
     | '/privacy'
     | '/terms'
     | '/unsubscribe'
@@ -2249,6 +2260,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/book'
     | '/booking-form'
+    | '/mwasiti'
     | '/privacy'
     | '/rooms'
     | '/terms'
@@ -2442,6 +2454,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   BookRoute: typeof BookRoute
   BookingFormRoute: typeof BookingFormRoute
+  MwasitiRoute: typeof MwasitiRoute
   PrivacyRoute: typeof PrivacyRoute
   RoomsRoute: typeof RoomsRouteWithChildren
   TermsRoute: typeof TermsRoute
@@ -2508,6 +2521,13 @@ declare module '@tanstack/react-router' {
       path: '/booking-form'
       fullPath: '/booking-form'
       preLoaderRoute: typeof BookingFormRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mwasiti': {
+      id: '/mwasiti'
+      path: '/mwasiti'
+      fullPath: '/mwasiti'
+      preLoaderRoute: typeof MwasitiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -4443,6 +4463,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   BookRoute: BookRoute,
   BookingFormRoute: BookingFormRoute,
+  MwasitiRoute: MwasitiRoute,
   PrivacyRoute: PrivacyRoute,
   RoomsRoute: RoomsRouteWithChildren,
   TermsRoute: TermsRoute,
