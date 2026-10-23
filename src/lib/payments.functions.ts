@@ -38,6 +38,10 @@ export const initiatePayment = createServerFn({ method: "POST" })
       throw new Error("Booking is already paid");
     }
 
+    if (!booking.currency || !/^[A-Z]{3}$/.test(booking.currency)) {
+      throw new Error("Payment cannot be initiated: the property booking currency has not been configured.");
+    }
+
     const baseUrl = deriveBaseUrl();
     console.info("[pesapal] initiatePayment", {
       reference: data.reference,
@@ -57,7 +61,7 @@ export const initiatePayment = createServerFn({ method: "POST" })
     const order = await submitPesapalOrder({
       merchantReference: merchantRef,
       amount: deposit,
-      currency: booking.currency || "USD",
+      currency: booking.currency,
       description: `Mtoni River Lodge deposit – ${booking.reference}`,
       callbackUrl,
       notificationId,
