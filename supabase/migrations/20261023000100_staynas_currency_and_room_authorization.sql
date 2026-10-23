@@ -627,3 +627,73 @@ GRANT EXECUTE ON FUNCTION public.set_room_block(uuid,date,date,boolean,text) TO 
 REVOKE EXECUTE ON FUNCTION public.save_room_type_configuration(
   uuid,text,text,uuid,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text
 ) FROM PUBLIC, anon, authenticated;
+
+
+-- Align direct RLS writes with property-scoped membership, matching server-side authorization.
+DROP POLICY IF EXISTS "Room admins manage own property categories" ON public.room_categories;
+CREATE POLICY "Room admins manage own property categories"
+  ON public.room_categories FOR ALL TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.staynas_property_members m
+      WHERE m.property_id = room_categories.property_id
+        AND m.user_id = auth.uid()
+        AND m.status = 'active'
+        AND m.role::text IN ('owner','manager','admin')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.staynas_property_members m
+      WHERE m.property_id = room_categories.property_id
+        AND m.user_id = auth.uid()
+        AND m.status = 'active'
+        AND m.role::text IN ('owner','manager','admin')
+    )
+  );
+
+DROP POLICY IF EXISTS "Staff manage own property rooms" ON public.rooms;
+CREATE POLICY "Staff manage own property rooms"
+  ON public.rooms FOR ALL TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.staynas_property_members m
+      WHERE m.property_id = rooms.property_id
+        AND m.user_id = auth.uid()
+        AND m.status = 'active'
+        AND m.role::text IN ('owner','manager','admin')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.staynas_property_members m
+      WHERE m.property_id = rooms.property_id
+        AND m.user_id = auth.uid()
+        AND m.status = 'active'
+        AND m.role::text IN ('owner','manager','admin')
+    )
+  );
+
+DROP POLICY IF EXISTS "Managers manage own properties" ON public.staynas_properties;
+CREATE POLICY "Managers manage own properties"
+  ON public.staynas_properties FOR UPDATE TO authenticated
+  USING (
+    public.staynas_user_has_property_access(auth.uid(), id)
+    AND EXISTS (
+      SELECT 1 FROM public.staynas_property_members m
+      WHERE m.property_id = staynas_properties.id
+        AND m.user_id = auth.uid()
+        AND m.status = 'active'
+        AND m.role::text IN ('owner','manager','admin')
+    )
+  )
+  WITH CHECK (
+    public.staynas_user_has_property_access(auth.uid(), id)
+    AND EXISTS (
+      SELECT 1 FROM public.staynas_property_members m
+      WHERE m.property_id = staynas_properties.id
+        AND m.user_id = auth.uid()
+        AND m.status = 'active'
+        AND m.role::text IN ('owner','manager','admin')
+    )
+  );
