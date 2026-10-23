@@ -1055,3 +1055,117 @@
 /* ---------- Colour-scheme hint (native controls, scrollbars) ---------- */
 [data-os-theme="dark"] { color-scheme: dark; }
 [data-os-theme="light"] { color-scheme: light; }
+
+
+/* ============================================================
+   STAYNAS REFINED OPERATIONS — UI FOUNDATION (v1)
+   Scoped to the authenticated operations shell. Public booking
+   and marketing pages retain their existing visual system.
+   ============================================================ */
+.mtoni-os {
+  --os-canvas: #F7F7F3;
+  --os-surface: #FFFFFF;
+  --os-surface-2: #F1F2ED;
+  --os-hairline: rgba(32, 44, 41, 0.09);
+  --os-hairline-strong: rgba(32, 44, 41, 0.15);
+  --os-ink: #202C29;
+  --os-ink-2: #4F5B55;
+  --os-ink-3: #707A73;
+  --os-green: #263D33;
+  --os-green-soft: rgba(38, 61, 51, 0.09);
+  --os-gold: #B47A45;
+  --os-gold-soft: rgba(180, 122, 69, 0.13);
+  --os-info: #426B83;
+  --os-info-soft: rgba(66, 107, 131, 0.10);
+  --os-warn: #9A6A2F;
+  --os-warn-soft: rgba(154, 106, 47, 0.12);
+  --os-danger: #A84842;
+  --os-danger-soft: rgba(168, 72, 66, 0.10);
+  --os-success: #397451;
+  --os-success-soft: rgba(57, 116, 81, 0.10);
+  --os-shadow-card: 0 1px 2px rgba(32, 44, 41, 0.035), 0 8px 24px -18px rgba(32, 44, 41, 0.18);
+  --os-shadow-float: 0 16px 40px -20px rgba(32, 44, 41, 0.22);
+
+  --background: var(--os-canvas);
+  --foreground: var(--os-ink);
+  --card: var(--os-surface);
+  --card-foreground: var(--os-ink);
+  --popover: var(--os-surface);
+  --popover-foreground: var(--os-ink);
+  --primary: var(--os-green);
+  --primary-foreground: #FFFFFF;
+  --secondary: var(--os-surface-2);
+  --secondary-foreground: var(--os-ink);
+  --muted: var(--os-surface-2);
+  --muted-foreground: var(--os-ink-3);
+  --accent: var(--os-gold-soft);
+  --accent-foreground: var(--os-ink);
+  --border: var(--os-hairline);
+  --input: var(--os-hairline-strong);
+  --ring: var(--os-green);
+
+  background: var(--os-canvas);
+  color: var(--os-ink);
+  font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  font-feature-settings: "ss01", "cv11", "tnum";
+  -webkit-font-smoothing: antialiased;
+}
+
+.mtoni-os :is(h1, h2, h3, h4, .font-display) {
+  font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  font-weight: 600;
+  overflow-wrap: normal;
+  hyphens: manual;
+}
+.mtoni-os h1, .mtoni-os .text-4xl { font-size: clamp(1.5rem, 1.25rem + 0.7vw, 1.875rem); line-height: 1.25; }
+.mtoni-os h2, .mtoni-os .text-3xl { font-size: clamp(1.25rem, 1.1rem + 0.45vw, 1.5rem); line-height: 1.3; }
+.mtoni-os h3, .mtoni-os .text-2xl { font-size: 1.125rem; line-height: 1.35; }
+.mtoni-os .text-5xl, .mtoni-os .text-6xl, .mtoni-os .text-7xl,
+.mtoni-os .text-8xl, .mtoni-os .text-9xl { font-size: 1.5rem; line-height: 1.3; }
+.mtoni-os p { line-height: 1.55; }
+.mtoni-os .os-card, .mtoni-os .os-card-flat,
+.mtoni-os [data-slot="card"], .mtoni-os .bg-card {
+  border-radius: 12px;
+  border-color: var(--os-hairline);
+  box-shadow: var(--os-shadow-card);
+}
+.mtoni-os .os-card-flat { box-shadow: none; }
+.mtoni-os :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), textarea, select, [role="combobox"]) {
+  min-height: 40px;
+  border-radius: 8px;
+  border-color: var(--os-hairline-strong);
+  background: #FFFFFF;
+  color: var(--os-ink);
+}
+.mtoni-os textarea { min-height: 96px; }
+.mtoni-os :is(button, [role="button"]) { border-radius: 8px; }
+.mtoni-os table { font-size: 13px; }
+.mtoni-os th { font-size: 11px; letter-spacing: 0.055em; font-weight: 600; }
+.mtoni-os .os-chip {
+  padding: 3px 9px;
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  border-color: var(--os-hairline-strong);
+}
+.mtoni-os :is(.text-muted-foreground, [class*="text-[color:var(--os-ink-3)]"]) { color: var(--os-ink-3); }
+.mtoni-os :is(a, button, input, textarea, select) { transition-duration: 160ms; }
+.mtoni-os :is(input, textarea, select, button):focus-visible {
+  outline-color: var(--os-green);
+  outline-offset: 2px;
+}
+.mtoni-os main#admin-main { min-width: 0; }
+@media (max-width: 767px) {
+  .mtoni-os main#admin-main { padding: 16px 14px max(20px, env(safe-area-inset-bottom)); }
+  .mtoni-os .os-hero-bleed { padding: 20px 18px; border-radius: 12px; gap: 16px; }
+  .mtoni-os .os-hero-bleed h1 { font-size: 1.5rem; line-height: 1.25; }
+  .mtoni-os .os-card, .mtoni-os .os-card-flat, .mtoni-os [data-slot="card"] { min-width: 0; }
+  .mtoni-os :is(h1, h2, h3, h4) { overflow-wrap: anywhere; }
+  .mtoni-os table { min-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mtoni-os *, .mtoni-os *::before, .mtoni-os *::after { scroll-behavior: auto !important; }
+}
