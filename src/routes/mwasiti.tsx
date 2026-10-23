@@ -136,10 +136,10 @@ function MwasitiCard() {
       {/* Hero */}
       <header className="relative h-[78vh] min-h-[520px] max-h-[760px] overflow-hidden">
         <img src={heroRiverLg} srcSet={`${heroRiver} 800w, ${heroRiverLg} 1600w`} sizes="100vw" alt="Mtoni River Lodge glowing beside the river at night" className="h-full w-full object-cover" fetchPriority="high" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[color:var(--mw-forest-deep)]/60 via-[color:var(--mw-forest-deep)]/20 to-[color:var(--mw-forest-deep)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[color:var(--mw-forest-deep)]/60 via-[color:var(--mw-forest-deep)]/30 via-50% to-[color:var(--mw-forest-deep)] to-85%" />
         <img src={logo} alt="Mtoni River Lodge" className="mw-rise absolute left-1/2 top-8 h-14 w-auto -translate-x-1/2 brightness-0 invert md:h-16" />
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-2xl px-6 pb-10 text-center">
-          <p className={`mw-rise font-serif ${label} tracking-[0.4em]`}>Hidden in Nature</p>
+          <p className="mw-rise font-serif text-xs uppercase tracking-[0.4em] text-[color:var(--mw-gold)] [text-shadow:0_1px_8px_rgba(0,0,0,.8)]">Hidden in Nature</p>
           <div className="mx-auto my-5 h-px w-16 bg-[color:var(--mw-gold)]/60" />
           <h1 className="mw-rise mw-d1 font-display text-4xl font-light tracking-wide md:text-6xl">{CARD.name}</h1>
           <p className="mw-rise mw-d1 mt-2 font-serif text-lg italic text-[color:var(--mw-ivory)]/85 md:text-xl">{CARD.title}</p>
@@ -152,7 +152,7 @@ function MwasitiCard() {
         <section aria-label="Contact Mwasiti" className="mw-rise mw-d2 -mt-2">
           <a href={CARD.whatsappUrl} target="_blank" rel="noopener noreferrer" className={`flex min-h-14 items-center justify-center gap-3 rounded-sm bg-[color:var(--mw-gold)] px-5 py-4 font-medium text-[color:var(--mw-forest-deep)] shadow-lg transition hover:brightness-105 ${focus}`}>
             <MessageCircle className="h-5 w-5" aria-hidden />
-            <span>Chat on WhatsApp <span className="font-normal opacity-80">· {CARD.phoneDisplay}</span></span>
+            <span className="flex flex-col text-left leading-tight sm:flex-row sm:gap-2"><span>Chat on WhatsApp</span><span className="font-normal opacity-80">{CARD.phoneDisplay}</span></span>
           </a>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <a href={`tel:${CARD.phoneE164}`} className={ghost}><Phone className="h-4 w-4 text-[color:var(--mw-gold)]" aria-hidden /> Call</a>
