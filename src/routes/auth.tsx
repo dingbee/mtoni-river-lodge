@@ -72,14 +72,11 @@ function AuthPage() {
         return;
       }
 
-      // Keep first-login password setup in the current SPA session. A full document
-      // reload can lose the freshly established auth session before the setup route reads it.
-      if (userData.user.user_metadata?.staynas_password_initialized !== true) {
-        await navigate({ to: "/auth/set-password", search: { type: "first-login" } });
-      } else {
-        // Use a full navigation for the protected admin shell, which rehydrates its context.
-        window.location.assign("/admin/bookings");
-      }
+      // Successful sign-in and active-property selection are already confirmed.
+      // Route directly to the protected admin area so first-login metadata cannot strand
+      // the account on the password-setup route. Password changes remain available via
+      // the normal account recovery flow.
+      await navigate({ to: "/admin/bookings" });
     } catch (error) {
       console.error("[StayNas auth] Sign-in flow failed", error);
       toast.error("Sign-in completed, but StayNas could not open the next screen. Please retry.");
