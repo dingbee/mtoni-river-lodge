@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { staynasRpc } from "@/lib/staynas-rpc";
 import { Loader2, Leaf } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,7 +36,7 @@ function AuthPage() {
       const [{ data: roles, error: roleError }, { data: properties, error: propertyError }] =
         await Promise.all([
           supabase.rpc("current_user_roles"),
-          supabase.rpc("staynas_list_properties"),
+          staynasRpc(supabase).rpc("staynas_list_properties"),
         ]);
 
       const hasLegacyStaffRole = !roleError && Boolean(roles?.length);
@@ -54,7 +55,7 @@ function AuthPage() {
       }
 
       if (!hasLegacyStaffRole && accessibleProperties.length === 1) {
-        const { error: contextError } = await supabase.rpc("staynas_set_active_property", {
+        const { error: contextError } = await staynasRpc(supabase).rpc("staynas_set_active_property", {
           _property_id: accessibleProperties[0].id,
         });
         if (contextError) {
