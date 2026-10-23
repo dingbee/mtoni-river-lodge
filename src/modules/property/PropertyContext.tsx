@@ -12,7 +12,7 @@ export type StayNasProperty = {
   name: string;
   code: string;
   timezone: string;
-  currency: string;
+  currency: string | null;
   status: "active" | "setup" | "suspended";
 };
 
@@ -28,7 +28,7 @@ const FALLBACK_PROPERTY: StayNasProperty = {
   name: "Nolmark CDMA",
   code: "NOLMARK",
   timezone: "Africa/Dar_es_Salaam",
-  currency: "USD",
+  currency: null,
   status: "active",
 };
 

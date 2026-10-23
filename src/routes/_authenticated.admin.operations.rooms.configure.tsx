@@ -23,7 +23,7 @@ type Category = {
 type Room = {
   id?: string; slug: string; name: string; category_id: string | null; short_description: string | null;
   capacity_adults: number; capacity_children: number; max_occupancy: number; total_units: number;
-  base_price: number; currency: string; status: "active" | "inactive"; sort_order: number;
+  base_price: number; currency: string | null; status: "active" | "inactive"; sort_order: number;
   included_guests: number; extra_guest_fee: number; hero_line: string | null; image_url: string | null;
   gallery_urls: string[]; size_label: string | null; view_label: string | null; bed_label: string | null; bathroom_label: string | null;
 };
@@ -31,7 +31,7 @@ type Room = {
 const blankCategory = (): Category => ({ slug: "", name: "", description: "", features: [], specifications: {}, sort_order: 0, status: "active" });
 const blankRoom = (): Room => ({
   slug: "", name: "", category_id: null, short_description: "", capacity_adults: 2, capacity_children: 0,
-  max_occupancy: 2, total_units: 1, base_price: 0, currency: "USD", status: "active", sort_order: 0,
+  max_occupancy: 2, total_units: 1, base_price: 0, currency: null, status: "active", sort_order: 0,
   included_guests: 2, extra_guest_fee: 0, hero_line: "", image_url: "", gallery_urls: [],
   size_label: "", view_label: "", bed_label: "", bathroom_label: "",
 });
@@ -74,7 +74,7 @@ function RoomConfigurationPage() {
       id: room.id, slug: room.slug, name: room.name, categoryId: room.category_id,
       shortDescription: room.short_description ?? "", capacityAdults: room.capacity_adults,
       capacityChildren: room.capacity_children, maxOccupancy: room.max_occupancy, quantity: room.total_units,
-      basePrice: Number(room.base_price), currency: room.currency.toUpperCase(),
+      basePrice: Number(room.base_price), currency: room.currency?.trim() ? room.currency.toUpperCase() : null,
       includedGuests: room.included_guests, extraGuestFee: Number(room.extra_guest_fee),
       status: room.status, sortOrder: room.sort_order, heroLine: room.hero_line ?? "",
       imageUrl: room.image_url ?? "", galleryUrls: gallery.split("\n").map(v => v.trim()).filter(Boolean),
@@ -137,7 +137,7 @@ function RoomConfigurationPage() {
           </div>
           <div className="mt-5 space-y-3">
             {rooms.map(r => <button key={r.id} type="button" onClick={() => editRoom(r)} className="w-full rounded-lg border p-3 text-left hover:bg-muted">
-              <div className="flex justify-between gap-3"><span className="font-medium">{r.name}</span><span className="text-xs text-muted-foreground">{r.currency} {Number(r.base_price).toLocaleString()} · {r.total_units} units</span></div>
+              <div className="flex justify-between gap-3"><span className="font-medium">{r.name}</span><span className="text-xs text-muted-foreground">{r.currency ? `${r.currency} ` : ""}{Number(r.base_price).toLocaleString()} · {r.total_units} units</span></div>
               <p className="mt-1 text-xs text-muted-foreground">{categories.find(c => c.id === r.category_id)?.name ?? "Uncategorised"} · {r.status}</p>
             </button>)}
             {rooms.length === 0 && <p className="text-sm text-muted-foreground">No room types yet.</p>}
@@ -154,7 +154,7 @@ function RoomConfigurationPage() {
             <div className="grid gap-3 sm:grid-cols-3">
               <Input type="number" min="1" placeholder="Quantity" value={room.total_units} onChange={e => setRoom({...room,total_units:Number(e.target.value)})} />
               <Input type="number" min="0" placeholder="Base price" value={room.base_price} onChange={e => setRoom({...room,base_price:Number(e.target.value)})} />
-              <Input placeholder="Currency" maxLength={3} value={room.currency} onChange={e => setRoom({...room,currency:e.target.value.toUpperCase()})} />
+              <Input placeholder="Currency (optional, e.g. TZS)" maxLength={3} value={room.currency ?? ""} onChange={e => setRoom({...room,currency:e.target.value.trim() ? e.target.value.toUpperCase() : null})} />
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <Input type="number" min="1" placeholder="Adults" value={room.capacity_adults} onChange={e => setRoom({...room,capacity_adults:Number(e.target.value)})} />

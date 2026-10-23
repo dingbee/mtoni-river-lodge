@@ -12,7 +12,7 @@ export type StayNasPropertyRecord = {
   code: string;
   slug: string;
   timezone: string;
-  currency: string;
+  currency: string | null;
   status: "active" | "setup" | "suspended";
   is_active: boolean;
 };
