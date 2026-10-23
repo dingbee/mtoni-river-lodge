@@ -35,7 +35,7 @@ export const Route = createFileRoute("/mwasiti")({
   head: () => ({
     meta: [
       { title: "Mwasiti Mushi — Asia Market Representative | Mtoni River Lodge" },
-      { name: "description", content: "Digital business card of Mwasiti Mushi, Asia Market Representative at Mtoni River Lodge, Arusha. Call, email or save the contact." },
+      { name: "description", content: "Digital business card of Mwasiti Mushi, Asia Market Representative at Mtoni River Lodge. Call, email or save the contact." },
       { property: "og:title", content: "Mwasiti Mushi — Mtoni River Lodge" },
       { property: "og:description", content: "Asia Market Representative, Mtoni River Lodge — Hidden in Nature." },
       { property: "og:type", content: "profile" },
@@ -84,7 +84,7 @@ function MwasitiCard() {
         <div className="relative h-72 overflow-hidden md:h-80">
           <img src={heroRiver} srcSet={`${heroRiver} 800w, ${heroRiverLg} 1600w`} sizes="(min-width:768px) 512px, 100vw" alt="The river flowing through the forest at Mtoni River Lodge" className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-b from-[color:var(--mw-forest-deep)]/30 via-transparent to-[color:var(--mw-forest-deep)]" />
-          <img src={logo} alt="Mtoni River Lodge" className="mw-rise absolute left-1/2 top-8 h-16 w-auto -translate-x-1/2 drop-shadow" />
+          <img src={logo} alt="Mtoni River Lodge" className="mw-rise absolute left-1/2 top-8 h-16 w-auto -translate-x-1/2 brightness-0 invert drop-shadow" />
         </div>
 
         <section className="relative -mt-10 px-6 pb-12 text-center">
@@ -92,7 +92,7 @@ function MwasitiCard() {
           <div className="mx-auto my-5 h-px w-16 bg-[color:var(--mw-gold)]/60" />
           <h1 className="mw-rise mw-d1 font-display text-4xl font-light tracking-wide md:text-5xl">{CARD.name}</h1>
           <p className="mw-rise mw-d1 mt-2 font-serif text-lg italic text-[color:var(--mw-ivory)]/80">{CARD.title}</p>
-          <p className="mt-1 text-xs uppercase tracking-[0.25em] text-[color:var(--mw-ivory)]/55">{CARD.org} · Arusha, Tanzania</p>
+          <p className="mt-1 text-xs uppercase tracking-[0.25em] text-[color:var(--mw-ivory)]/55">{CARD.org}</p>
 
           <nav aria-label="Contact Mwasiti" className="mw-rise mw-d2 mt-10 flex flex-col gap-3 text-left">
             <a href={`tel:${CARD.phoneE164}`} className={action}>
