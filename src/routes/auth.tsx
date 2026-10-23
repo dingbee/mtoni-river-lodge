@@ -38,11 +38,34 @@ function AuthPage() {
       return;
     }
 
-    const { data: roles, error: roleError } = await supabase.rpc("current_user_roles");
-    if (roleError || !roles?.length) {
+    // Accept either a legacy global staff role or an active property-scoped
+    // membership. The property RPC only returns properties this user can access.
+    const [{ data: roles, error: roleError }, { data: properties, error: propertyError }] =
+      await Promise.all([
+        supabase.rpc("current_user_roles"),
+        supabase.rpc("staynas_list_properties"),
+      ]);
+
+    const hasLegacyStaffRole = !roleError && Boolean(roles?.length);
+    const accessibleProperties = !propertyError && Array.isArray(properties) ? properties : [];
+
+    if (!hasLegacyStaffRole && accessibleProperties.length === 0) {
       await supabase.auth.signOut();
       toast.error("Your account does not have StayNas staff access.");
       return;
+    }
+
+    // Establish property context for membership-based users so downstream
+    // property-scoped screens resolve the correct tenant.
+    if (!hasLegacyStaffRole && accessibleProperties.length === 1) {
+      const { error: contextError } = await supabase.rpc("staynas_set_active_property", {
+        _property_id: accessibleProperties[0].id,
+      });
+      if (contextError) {
+        await supabase.auth.signOut();
+        toast.error("Your property access could not be initialized. Contact your administrator.");
+        return;
+      }
     }
 
     // Staff accounts must establish a new password before entering the admin.
