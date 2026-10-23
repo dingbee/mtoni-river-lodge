@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Leaf } from "lucide-react";
 import { toast } from "sonner";
@@ -18,12 +18,6 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/admin/bookings" });
-    });
-  }, [navigate]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
