@@ -1170,3 +1170,39 @@
 @media (prefers-reduced-motion: reduce) {
   .mtoni-os *, .mtoni-os *::before, .mtoni-os *::after { scroll-behavior: auto !important; }
 }
+
+
+/* Dark appearance uses the same forest/bronze identity, with surfaces
+   and text tuned for low-glare operational work. */
+[data-os-theme="dark"] .mtoni-os {
+  --os-canvas: #171D1A;
+  --os-surface: #1E2622;
+  --os-surface-2: #26302B;
+  --os-hairline: rgba(239, 242, 235, 0.08);
+  --os-hairline-strong: rgba(239, 242, 235, 0.14);
+  --os-ink: #F1F3EE;
+  --os-ink-2: #C1C9C2;
+  --os-ink-3: #98A39B;
+  --os-green: #86A992;
+  --os-green-soft: rgba(134, 169, 146, 0.15);
+  --os-gold: #D2A16D;
+  --os-gold-soft: rgba(210, 161, 109, 0.15);
+  --os-shadow-card: 0 1px 0 rgba(255,255,255,0.025) inset, 0 8px 24px -18px rgba(0,0,0,0.55);
+  --background: var(--os-canvas);
+  --foreground: var(--os-ink);
+  --card: var(--os-surface-2);
+  --card-foreground: var(--os-ink);
+  --popover: #26302B;
+  --popover-foreground: var(--os-ink);
+  --primary: var(--os-green);
+  --primary-foreground: #17221B;
+  --secondary: var(--os-surface-2);
+  --secondary-foreground: var(--os-ink);
+  --muted: rgba(255,255,255,0.04);
+  --muted-foreground: var(--os-ink-3);
+  --accent: rgba(210, 161, 109, 0.12);
+  --accent-foreground: var(--os-ink);
+  --border: var(--os-hairline);
+  --input: var(--os-hairline-strong);
+  --ring: var(--os-green);
+}
