@@ -24,13 +24,12 @@ function PropertyPaymentIntegrationsPage() {
   const [consumerSecret, setConsumerSecret] = useState("");
   const [ipnId, setIpnId] = useState("");
   const [currency, setCurrency] = useState("TZS");
-  const [enabled, setEnabled] = useState(false);
   const integrations = useQuery({ queryKey: ["property-payment-integrations"], queryFn: () => listFn() });
   const save = useMutation({
-    mutationFn: () => saveFn({ data: { provider: "pesapal", environment, displayName, consumerKey, consumerSecret, ipnId, supportedCurrencies: currency.split(",").map(x => x.trim().toUpperCase()).filter(Boolean), enabled } }),
+    mutationFn: () => saveFn({ data: { provider: "pesapal", environment, displayName, consumerKey, consumerSecret, ipnId, supportedCurrencies: currency.split(",").map(x => x.trim().toUpperCase()).filter(Boolean), enabled: false } }),
     onSuccess: () => {
       setConsumerKey(""); setConsumerSecret(""); setIpnId("");
-      toast.success("Integration saved. Provider verification is still required before production use.");
+      toast.success("Credentials saved securely. Integration remains disabled until verification is completed.");
       qc.invalidateQueries({ queryKey: ["property-payment-integrations"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -45,7 +44,7 @@ function PropertyPaymentIntegrationsPage() {
         </div>)}
       </div>}
     </SectionCard>
-    <SectionCard title="Configure Pesapal" description="Use credentials issued to this property. Saving credentials does not run a live transaction or certify the provider.">
+    <SectionCard title="Configure Pesapal" description="Use credentials issued to this property. Saving credentials does not run a live transaction or certify the provider. The integration remains disabled until verification is implemented and passed.">
       <form className="grid gap-4 md:grid-cols-2" onSubmit={e => { e.preventDefault(); save.mutate(); }}>
         <label className="grid gap-1 text-sm">Display name<input className="rounded-md border bg-background px-3 py-2" value={displayName} onChange={e => setDisplayName(e.target.value)} required maxLength={80} /></label>
         <label className="grid gap-1 text-sm">Environment<select className="rounded-md border bg-background px-3 py-2" value={environment} onChange={e => setEnvironment(e.target.value as "sandbox" | "live")}><option value="sandbox">Sandbox</option><option value="live">Live</option></select></label>
@@ -53,8 +52,7 @@ function PropertyPaymentIntegrationsPage() {
         <label className="grid gap-1 text-sm">Consumer secret<input className="rounded-md border bg-background px-3 py-2" type="password" value={consumerSecret} onChange={e => setConsumerSecret(e.target.value)} autoComplete="new-password" required /></label>
         <label className="grid gap-1 text-sm">IPN ID (if assigned)<input className="rounded-md border bg-background px-3 py-2" value={ipnId} onChange={e => setIpnId(e.target.value)} autoComplete="off" /></label>
         <label className="grid gap-1 text-sm">Supported currencies (comma-separated)<input className="rounded-md border bg-background px-3 py-2" value={currency} onChange={e => setCurrency(e.target.value)} required placeholder="TZS, USD" /></label>
-        <label className="flex items-center gap-2 text-sm md:col-span-2"><input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} /> Enable after provider details have been verified</label>
-        <div className="md:col-span-2"><Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving securely…" : "Save integration"}</Button></div>
+          <div className="md:col-span-2"><Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving securely…" : "Save integration"}</Button></div>
       </form>
     </SectionCard>
   </div>;
