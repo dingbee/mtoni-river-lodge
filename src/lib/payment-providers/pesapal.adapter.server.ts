@@ -4,8 +4,8 @@ import type {
   PaymentIntentResult,
   ProviderTransactionStatus,
   TenantPaymentContext,
-} from "./payment-provider.contract";
-import { assertPaymentAmount } from "./payment-provider.contract";
+} from "../payment-provider.contract";
+import { assertPaymentAmount } from "../payment-provider.contract";
 
 const API = {
   sandbox: "https://cybqa.pesapal.com/pesapalv3",
