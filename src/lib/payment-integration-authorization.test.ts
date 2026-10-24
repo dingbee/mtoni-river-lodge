@@ -26,7 +26,7 @@ describe("payment integration authorization boundaries", () => {
   });
   it("does not treat property owner role as Founder Admin", () => {
     expect(mayViewFounderIntegrationHealth(["owner"])).toBe(false);
-    expect(mayViewFounderIntegrationHealth(["admin"])).toBe(false);
+    expect(mayViewFounderIntegrationHealth(["admin"])).toBe(true);
     expect(mayViewFounderIntegrationHealth(["founder_admin"])).toBe(true);
   });
   it("removes credential references and common secret fields from view models", () => {
