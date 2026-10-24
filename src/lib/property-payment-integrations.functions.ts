@@ -49,6 +49,9 @@ export const savePropertyPaymentIntegration = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => integrationSchema.parse(d))
   .handler(async ({ data, context }) => {
     const propertyId = await requirePropertyAdmin(context.supabase, context.userId);
+    const { data: existing, error: lookupError } = await context.supabase.from("staynas_property_integrations")
+      .select("id").eq("property_id", propertyId).eq("purpose", "payments").eq("provider", data.provider).eq("environment", data.environment).maybeSingle();
+    if (lookupError) throw new Error("Unable to inspect existing property integration");
     // The authenticated tenant context is checked before any service-role Vault access.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const secretName = `staynas-payment-${propertyId}-${data.provider}-${crypto.randomUUID()}`;
@@ -62,9 +65,6 @@ export const savePropertyPaymentIntegration = createServerFn({ method: "POST" })
     });
     if (secretError || !createdSecret) throw new Error("Secure credential storage is unavailable; integration was not saved");
     const secretReference = `vault://${createdSecret}`;
-    const { data: existing, error: lookupError } = await context.supabase.from("staynas_property_integrations")
-      .select("id").eq("property_id", propertyId).eq("purpose", "payments").eq("provider", data.provider).eq("environment", data.environment).maybeSingle();
-    if (lookupError) throw new Error("Unable to inspect existing property integration");
     const payload = {
       property_id: propertyId, provider: data.provider, purpose: "payments", environment: data.environment,
       display_name: data.displayName, credential_reference: secretReference,
