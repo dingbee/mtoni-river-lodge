@@ -1238,3 +1238,25 @@
     scroll-behavior: auto !important;
   }
 }
+
+
+/* Contrast correction confirmed from the mobile Knowledge Base preview.
+   Radix Select triggers expose role=combobox; force the OS surface tokens
+   in dark mode so global component/background utilities cannot paint them white. */
+[data-os-theme="dark"] .mtoni-os [role="combobox"] {
+  background-color: var(--os-surface-2) !important;
+  color: var(--os-ink) !important;
+  border-color: var(--os-hairline-strong) !important;
+  color-scheme: dark;
+}
+[data-os-theme="dark"] .mtoni-os [role="combobox"] [data-placeholder],
+[data-os-theme="dark"] .mtoni-os [role="combobox"][data-placeholder] {
+  color: var(--os-ink-2) !important;
+  opacity: 1;
+}
+[data-os-theme="dark"] .mtoni-os [role="listbox"],
+[data-os-theme="dark"] .mtoni-os [data-radix-popper-content-wrapper] [role="listbox"] {
+  background-color: var(--os-surface) !important;
+  color: var(--os-ink) !important;
+  border-color: var(--os-hairline-strong) !important;
+}
