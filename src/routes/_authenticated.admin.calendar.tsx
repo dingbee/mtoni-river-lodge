@@ -44,28 +44,36 @@ export const Route = createFileRoute("/_authenticated/admin/calendar")({
   component: UnifiedCalendarPage,
 });
 
-type View = "week" | "month";
+type View = "day" | "week" | "month";
 type Cell = { date: string; booking?: { id: string; guest_name: string; reference: string }; blocked?: boolean; units?: number; hold?: boolean };
 
-function iso(d: Date) { return d.toISOString().slice(0, 10); }
+function iso(d: Date) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 function shift(d: Date, view: View, dir: number) {
   const n = new Date(d);
-  if (view === "week") n.setDate(n.getDate() + dir * 7);
-  else n.setMonth(n.getMonth() + dir);
+  if (view === "day") n.setDate(n.getDate() + dir);
+  else if (view === "week") n.setDate(n.getDate() + dir * 7);
+  else { n.setDate(1); n.setMonth(n.getMonth() + dir); }
   return n;
 }
 function rangeFor(view: View, anchor: Date) {
   const start = new Date(anchor);
   const end = new Date(anchor);
-  if (view === "week") {
+  if (view === "day") {
+    end.setDate(start.getDate() + 1);
+  } else if (view === "week") {
     const dow = start.getDay();
     start.setDate(start.getDate() - dow);
     end.setTime(start.getTime());
     end.setDate(end.getDate() + 7);
   } else {
     start.setDate(1);
-    end.setMonth(start.getMonth() + 1);
-    end.setDate(1);
+    end.setTime(start.getTime());
+    end.setMonth(end.getMonth() + 1);
   }
   return { from: iso(start), to: iso(end) };
 }
@@ -142,6 +150,7 @@ function UnifiedCalendarPage() {
   const [blockOpen, setBlockOpen] = useState(false);
   const [blockCtx, setBlockCtx] = useState<{ roomId: string; roomName: string; from: string; to: string }>();
   const [blockReason, setBlockReason] = useState("");
+  const [blockNotes, setBlockNotes] = useState("");
 
   const doBlock = useMutation({
     mutationFn: (v: { roomId: string; from: string; to: string; blocked: boolean; reason?: string }) =>
@@ -151,6 +160,7 @@ function UnifiedCalendarPage() {
       qc.invalidateQueries({ queryKey: ["calendar"] });
       setBlockOpen(false);
       setBlockReason("");
+      setBlockNotes("");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -204,13 +214,14 @@ function UnifiedCalendarPage() {
     return (d.bookings as any[]).filter((b) => {
       if (filters.arrivalsToday && b.check_in !== today) return false;
       if (filters.departuresToday && b.check_out !== today) return false;
+      if (filters.holds && !activeHolds.some((h) => h.room_id === b.room_id && h.check_in < b.check_out && h.check_out > b.check_in)) return false;
       if (filters.vip) {
         const gt = (b.guest_type || "").toString();
         if (gt !== "vip" && gt !== "climber") return false;
       }
       return true;
     });
-  }, [d.bookings, filters, today]);
+  }, [d.bookings, filters, today, activeHolds]);
 
   const visibleRooms = useMemo(() => {
     const rooms = (d.rooms as any[]);
@@ -261,7 +272,8 @@ function UnifiedCalendarPage() {
             { k: "arrivalsToday" as const, label: "Arrivals today" },
             { k: "departuresToday" as const, label: "Departures today" },
             { k: "vip" as const, label: "VIP / climbers" },
-            { k: "holds" as const, label: "Show holds only" },
+            { k: "blocked" as const, label: "Blocked rooms" },
+            { k: "holds" as const, label: "Bookings with holds" },
           ].map((f) => (
             <label key={f.k} className="flex items-center gap-2 text-sm">
               <Checkbox
@@ -304,7 +316,7 @@ function UnifiedCalendarPage() {
       >
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-md border p-0.5 text-xs">
-            {(["week", "month"] as View[]).map((v) => (
+            {(["day", "week", "month"] as View[]).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
@@ -319,15 +331,18 @@ function UnifiedCalendarPage() {
           <Button size="sm" variant="outline" onClick={() => setAnchor(shift(anchor, view, -1))}>◀</Button>
           <Button size="sm" variant="outline" onClick={() => setAnchor(new Date())}>Today</Button>
           <Button size="sm" variant="outline" onClick={() => setAnchor(shift(anchor, view, 1))}>▶</Button>
-          <span className="text-sm text-muted-foreground">
-            {range.from} → {range.to}
-          </span>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="calendar-date" className="sr-only">Jump to date</Label>
+            <Input id="calendar-date" aria-label="Jump to date" type="date" className="w-[145px] sm:w-[165px]" value={iso(anchor)} onChange={(e) => { if (e.target.value) setAnchor(new Date(`${e.target.value}T12:00:00`)); }} />
+          </div>
+          <span className="text-sm text-muted-foreground">{range.from} → {range.to}</span>
         </div>
 
         {ops.isLoading ? (
           <LoadingState label="Loading calendar…" />
         ) : (
           <div className="overflow-x-auto rounded-lg border">
+            <p className="border-b bg-muted/20 px-3 py-2 text-xs text-muted-foreground md:hidden">Swipe dates sideways to compare rooms. Tap the room-move action on a booking to find an available room.</p>
             <table className="min-w-full text-xs">
               <thead>
                 <tr className="bg-muted/40">
@@ -376,6 +391,7 @@ function UnifiedCalendarPage() {
                       );
                       const inv = (d.inventory as any[]).find((i) => i.room_id === r.id && i.date === day);
                       const blocked = inv?.is_blocked;
+                      if (filters.blocked && !blocked) return <td key={day} className="border-r px-1 py-1 text-center text-muted-foreground">—</td>;
                       const held = activeHoldsByRoomDate[`${r.id}:${day}`]?.size ?? 0;
                       if (filters.holds && !held) {
                         return <td key={day} className="border-r px-1 py-1 text-center opacity-30">·</td>;
@@ -554,7 +570,7 @@ function UnifiedCalendarPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Textarea placeholder="Notes (optional)" rows={2} onChange={() => { /* notes go into reason payload */ }} />
+            <Textarea placeholder="Notes (optional)" rows={2} value={blockNotes} onChange={(e) => setBlockNotes(e.target.value)} />
           </div>
           <DialogFooter className="gap-2">
             <Button
@@ -575,7 +591,7 @@ function UnifiedCalendarPage() {
                   from: blockCtx.from,
                   to: blockCtx.to,
                   blocked: true,
-                  reason: blockReason || undefined,
+                  reason: [blockReason, blockNotes.trim()].filter(Boolean).join(": ").slice(0, 200) || undefined,
                 })
               }
               disabled={doBlock.isPending}
