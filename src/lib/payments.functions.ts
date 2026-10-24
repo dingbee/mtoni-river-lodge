@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getRequestHeader } from "@tanstack/react-start/server";
+import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
+import { assertSameProperty } from "@/lib/booking-property";
 
 function deriveBaseUrl(): string {
   const envUrl = process.env.PUBLIC_BASE_URL;
@@ -24,13 +26,16 @@ export const initiatePayment = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { ensureIpn, submitPesapalOrder } = await import("./pesapal.server");
 
-    const { data: booking, error } = await supabaseAdmin
+    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const { data: booking, error } = await (supabaseAdmin as any)
       .from("bookings")
-      .select("id, reference, guest_name, guest_email, guest_phone, country, deposit_amount, total, currency, payment_status, pesapal_order_tracking_id")
+      .select("id, reference, guest_name, guest_email, guest_phone, country, deposit_amount, total, currency, payment_status, pesapal_order_tracking_id, property_id")
       .eq("reference", data.reference)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!booking) throw new Error("Booking not found");
+    // Never initiate payment for a booking outside the configured property.
+    assertSameProperty(booking.property_id, propertyId, "Booking");
     if (booking.guest_email.toLowerCase() !== data.email.toLowerCase()) {
       throw new Error("Email does not match booking");
     }
@@ -102,13 +107,16 @@ export const getPaymentStatusByReference = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: booking, error } = await supabaseAdmin
+    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const { data: booking, error } = await (supabaseAdmin as any)
       .from("bookings")
-      .select("id, reference, guest_email, payment_status, status, deposit_amount, balance_amount, total, currency, pesapal_order_tracking_id, payment_method")
+      .select("id, reference, guest_email, payment_status, status, deposit_amount, balance_amount, total, currency, pesapal_order_tracking_id, payment_method, property_id")
       .eq("reference", data.reference)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!booking) throw new Error("Booking not found");
+    // Never report payment state for a booking outside the configured property.
+    assertSameProperty(booking.property_id, propertyId, "Booking");
     if (booking.guest_email.toLowerCase() !== data.email.toLowerCase()) {
       throw new Error("Email does not match booking");
     }
