@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export const listFounderIntegrationHealth = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -11,6 +10,7 @@ export const listFounderIntegrationHealth = createServerFn({ method: "GET" })
     if (!(roles ?? []).map(String).some((r: string) => ["founder_admin", "super_admin"].includes(r))) {
       throw new Error("Forbidden: Founder Admin access required");
     }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await (supabaseAdmin as any).from("staynas_property_integrations")
       .select("id,property_id,provider,purpose,enabled,environment,display_name,verification_status,last_verified_at,last_verification_error,updated_at")
       .eq("purpose", "payments").order("updated_at", { ascending: false }).limit(200);
