@@ -82,7 +82,7 @@ export const pesapalAdapter: PaymentProviderAdapter = {
     if (context.propertyId !== context.publicConfig.property_id && context.publicConfig.property_id) {
       throw new Error("Pesapal integration property mismatch");
     }
-    const notificationId = String(context.publicConfig.ipn_id ?? "").trim();
+    const notificationId = String(context.credentials.ipn_id ?? context.publicConfig.ipn_id ?? "").trim();
     if (!notificationId) throw new Error("Pesapal IPN must be configured for this tenant in Founder Admin before accepting payments");
 
     const billing: Record<string, string> = { email_address: input.guest.email };
