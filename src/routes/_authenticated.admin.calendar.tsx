@@ -419,8 +419,9 @@ function UnifiedCalendarPage() {
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); setSuggestForBooking(b.id); }}
-                                className="opacity-0 group-hover:opacity-100 text-primary"
-                                title="Suggest a better room"
+                                className="ml-1 inline-flex min-h-8 min-w-8 items-center justify-center rounded-md border border-primary/20 bg-background text-primary hover:bg-primary/10"
+                                title="Find an available room"
+                                aria-label={`Find an available room for ${b.guest_name}`}
                               >
                                 <Sparkles className="h-3 w-3" />
                               </button>
