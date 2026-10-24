@@ -19,8 +19,8 @@ const TABS = [
 function MarketingAiLayout() {
   return (
     <div className="space-y-4">
-      <nav aria-label="Marketing Intelligence navigation" className="os-context-nav rounded-xl border border-[color:var(--os-hairline)] bg-[color:var(--os-surface)] p-2 sm:p-3">
-        <div className="os-context-nav__items os-context-nav__items--compact">
+      <nav aria-label="Marketing Intelligence navigation" className="os-context-nav">
+        <div className="os-context-nav__items">
           {TABS.map((t) => (
             <Link
               key={t.to}
