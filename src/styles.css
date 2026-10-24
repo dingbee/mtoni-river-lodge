@@ -1260,3 +1260,41 @@
   color: var(--os-ink) !important;
   border-color: var(--os-hairline-strong) !important;
 }
+
+
+/* StayNas dark-mode select contrast — include Radix trigger and portal
+   surfaces explicitly because their utility classes can otherwise retain
+   a light background even while the surrounding shell is dark. */
+[data-os-theme="dark"] .mtoni-os :is(
+  [data-slot="select-trigger"],
+  [data-slot="select-content"],
+  [data-radix-select-trigger],
+  [role="combobox"]
+) {
+  background-color: var(--os-surface-2) !important;
+  color: var(--os-ink) !important;
+  border-color: var(--os-hairline-strong) !important;
+  color-scheme: dark;
+}
+[data-os-theme="dark"] .mtoni-os :is(
+  [data-slot="select-trigger"],
+  [data-radix-select-trigger],
+  [role="combobox"]
+) [data-placeholder],
+[data-os-theme="dark"] .mtoni-os :is(
+  [data-slot="select-trigger"],
+  [data-radix-select-trigger],
+  [role="combobox"]
+) [data-slot="select-value"] {
+  color: var(--os-ink-2) !important;
+  opacity: 1 !important;
+}
+[data-os-theme="dark"] .mtoni-os [data-radix-popper-content-wrapper] [role="option"],
+[data-os-theme="dark"] .mtoni-os [data-slot="select-item"] {
+  color: var(--os-ink) !important;
+}
+[data-os-theme="dark"] .mtoni-os [data-radix-popper-content-wrapper] [role="option"][data-highlighted],
+[data-os-theme="dark"] .mtoni-os [data-slot="select-item"][data-highlighted] {
+  background-color: var(--os-green-soft) !important;
+  color: var(--os-ink) !important;
+}
