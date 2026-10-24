@@ -1138,9 +1138,11 @@
   min-height: 40px;
   border-radius: 8px;
   border-color: var(--os-hairline-strong);
-  background: #FFFFFF;
+  background: var(--os-surface);
   color: var(--os-ink);
 }
+.mtoni-os :is(input, textarea, select)::placeholder { color: var(--os-ink-3); opacity: 1; }
+.mtoni-os :is(input, textarea, select):disabled { opacity: 0.62; cursor: not-allowed; }
 .mtoni-os textarea { min-height: 96px; }
 .mtoni-os :is(button, [role="button"]) { border-radius: 8px; }
 .mtoni-os table { font-size: 13px; }
