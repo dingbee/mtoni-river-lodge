@@ -25,6 +25,21 @@ export async function resolvePaymentSecretReference(
     const ipn_id = process.env.PESAPAL_IPN_ID?.trim();
     return { consumer_key, consumer_secret, ...(ipn_id ? { ipn_id } : {}) };
   }
+  if (reference.startsWith("vault://")) {
+    const secretId = reference.slice("vault://".length);
+    if (!/^[0-9a-f-]{36}$/i.test(secretId)) throw new Error("Invalid Vault credential reference");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await (supabaseAdmin as any).schema("vault").from("decrypted_secrets")
+      .select("decrypted_secret").eq("id", secretId).maybeSingle();
+    if (error || !data?.decrypted_secret) throw new Error("Vault credential could not be resolved");
+    let parsed: Record<string, unknown>;
+    try { parsed = JSON.parse(String(data.decrypted_secret)); } catch { throw new Error("Vault credential payload is invalid"); }
+    const consumer_key = typeof parsed.consumer_key === "string" ? parsed.consumer_key : "";
+    const consumer_secret = typeof parsed.consumer_secret === "string" ? parsed.consumer_secret : "";
+    const ipn_id = typeof parsed.ipn_id === "string" ? parsed.ipn_id : "";
+    if (!consumer_key || !consumer_secret) throw new Error("Vault credential payload is incomplete");
+    return { consumer_key, consumer_secret, ...(ipn_id ? { ipn_id } : {}) };
+  }
   throw new Error("Unknown credential reference; configure a supported server-side secret store");
 }
 
