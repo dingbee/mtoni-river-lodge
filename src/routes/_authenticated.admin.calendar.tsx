@@ -346,7 +346,7 @@ function UnifiedCalendarPage() {
             <table className="min-w-full text-xs">
               <thead>
                 <tr className="bg-muted/40">
-                  <th className="sticky left-0 z-10 border-r bg-muted/40 px-2 py-1 text-left">Room</th>
+                  <th className="sticky left-0 z-20 w-28 min-w-28 border-r bg-muted/40 px-2 py-2 text-left sm:w-36 sm:min-w-36">Room</th>
                   {days.map((day) => (
                     <th key={day} className="border-r px-2 py-1 text-center whitespace-nowrap">
                       {day.slice(5)}
@@ -374,7 +374,7 @@ function UnifiedCalendarPage() {
                       setDragBookingId(null);
                     }}
                   >
-                    <td className="sticky left-0 z-10 border-r bg-card px-2 py-1 font-medium">
+                    <td className="sticky left-0 z-10 w-28 min-w-28 border-r bg-card px-2 py-2 font-medium sm:w-36 sm:min-w-36">
                       <button
                         className="text-left hover:underline"
                         onClick={() => {
@@ -399,7 +399,7 @@ function UnifiedCalendarPage() {
                       return (
                         <td
                           key={day}
-                          className={`border-r px-1 py-1 text-center ${
+                          className={`w-[68px] min-w-[68px] border-r px-1 py-1 text-center sm:w-[78px] sm:min-w-[78px] ${
                             blocked ? "bg-rose-500/15" : b ? "bg-blue-500/15" : held ? "bg-amber-500/15" : ""
                           }`}
                           title={
