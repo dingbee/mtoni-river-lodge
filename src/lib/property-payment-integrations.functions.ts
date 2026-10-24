@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
 const integrationSchema = z.object({
   provider: z.enum(["pesapal"]),
@@ -15,7 +14,6 @@ const integrationSchema = z.object({
 });
 
 async function requirePropertyAdmin(supabase: any, userId: string) {
-  await requireStayNasModuleAccess(supabase, userId, "system");
   const { data, error } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
   if (error || !data) throw new Error("No authorized property selected");
   const { data: member, error: memberError } = await supabase
@@ -35,13 +33,15 @@ export const listPropertyPaymentIntegrations = createServerFn({ method: "GET" })
       .select("id,property_id,provider,purpose,enabled,environment,credential_reference,public_config,display_name,supported_methods,supported_currencies,verification_status,last_verified_at,last_verification_error,updated_at")
       .eq("property_id", propertyId).eq("purpose", "payments").order("updated_at", { ascending: false });
     if (error) throw new Error("Unable to load property payment integrations");
-    return (data ?? []).map((row: any) => ({
-      ...row,
-      credentials_configured: Boolean(row.credential_reference),
-      credential_reference: undefined,
-      public_config: row.public_config ?? {},
-      last_verification_error: row.last_verification_error ? "A verification error was recorded; inspect server-side diagnostics." : null,
-    }));
+    return (data ?? []).map((row: any) => {
+      const { credential_reference, last_verification_error, ...safe } = row;
+      return {
+        ...safe,
+        credentials_configured: Boolean(credential_reference),
+        public_config: safe.public_config ?? {},
+        last_verification_error: last_verification_error ? "A verification error was recorded; inspect server-side diagnostics." : null,
+      };
+    });
   });
 
 export const savePropertyPaymentIntegration = createServerFn({ method: "POST" })
@@ -69,7 +69,7 @@ export const savePropertyPaymentIntegration = createServerFn({ method: "POST" })
       property_id: propertyId, provider: data.provider, purpose: "payments", environment: data.environment,
       display_name: data.displayName, credential_reference: secretReference,
       public_config: {}, supported_methods: ["card"], supported_currencies: data.supportedCurrencies,
-      enabled: data.enabled, verification_status: "pending", created_by: context.userId, updated_by: context.userId,
+      enabled: false, verification_status: "pending", created_by: context.userId, updated_by: context.userId,
       updated_at: new Date().toISOString(),
     };
     const q = existing?.id
@@ -77,5 +77,5 @@ export const savePropertyPaymentIntegration = createServerFn({ method: "POST" })
       : context.supabase.from("staynas_property_integrations").insert(payload).select("id").single();
     const { data: saved, error } = await q;
     if (error || !saved) throw new Error("Secure credentials were stored, but integration metadata could not be saved. Contact support to reconcile the orphaned secret.");
-    return { id: saved.id, credentialsConfigured: true, verificationStatus: "pending" as const };
+    return { id: saved.id, credentialsConfigured: true, enabled: false, verificationStatus: "pending" as const };
   });
