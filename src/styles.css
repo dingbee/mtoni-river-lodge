@@ -1365,3 +1365,87 @@
     font-size: 12px;
   }
 }
+
+
+/* Global contextual navigation cards — shared by StayNas AI and nested
+   intelligence workspaces. Mobile stays compact and horizontally navigable;
+   larger screens use a tidy card grid instead of floating wrapped labels. */
+.mtoni-os .os-context-nav {
+  min-width: 0;
+  box-shadow: var(--os-shadow-card);
+}
+.mtoni-os .os-context-nav__items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+.mtoni-os .os-context-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--os-hairline);
+  border-radius: 10px;
+  background: var(--os-surface-2);
+  color: var(--os-ink-2);
+  font-size: 13px;
+  line-height: 1.3;
+  text-decoration: none;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+.mtoni-os .os-context-nav__item span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mtoni-os .os-context-nav__item:hover {
+  border-color: var(--os-hairline-strong);
+  background: var(--os-green-soft);
+  color: var(--os-ink);
+}
+.mtoni-os .os-context-nav__item[data-context-active="true"] {
+  border-color: transparent;
+  background: var(--os-green);
+  color: var(--os-surface);
+  font-weight: 600;
+}
+[data-os-theme="dark"] .mtoni-os .os-context-nav__item[data-context-active="true"] {
+  color: #17221B;
+}
+.mtoni-os .os-context-nav__item:focus-visible {
+  outline: 2px solid var(--os-green);
+  outline-offset: 2px;
+}
+@media (max-width: 767px) {
+  .mtoni-os .os-context-nav__items {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 1px 1px 5px;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mtoni-os .os-context-nav__item {
+    flex: 0 0 auto;
+    max-width: 82vw;
+    min-height: 42px;
+    white-space: nowrap;
+    scroll-snap-align: start;
+  }
+  .mtoni-os .os-context-nav__item span {
+    overflow-wrap: normal;
+  }
+  .mtoni-os .os-context-nav__items--compact .os-context-nav__item {
+    padding: 9px 11px;
+  }
+}
+@media (min-width: 768px) {
+  .mtoni-os .os-context-nav__items--compact {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+}
