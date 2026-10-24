@@ -1,31 +1,64 @@
 import { createFileRoute } from "@tanstack/react-router";
-
-// Pesapal IPN: called as GET with query params OrderTrackingId, OrderMerchantReference, OrderNotificationType
-// We respond with the same fields + status=200 per Pesapal v3 contract.
+import { validatePaymentCallbackIdentity } from "@/lib/payment-integrity";
 
 async function handleNotification(orderTrackingId: string, merchantReference: string, notificationType: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  if (!orderTrackingId || !merchantReference) throw new Error("Missing provider transaction identifiers");
 
-  console.info("[pesapal] IPN received", { orderTrackingId, merchantReference, notificationType });
-
-  const { data: booking } = await supabaseAdmin
+  const bookingColumns = "id, reference, property_id, payment_status, payment_provider, payment_integration_id, provider_transaction_id, provider_merchant_reference, pesapal_order_tracking_id, pesapal_merchant_reference";
+  const genericLookup = await (supabaseAdmin as any)
     .from("bookings")
-    .select("id, payment_status")
-    .eq("pesapal_order_tracking_id", orderTrackingId)
+    .select(bookingColumns)
+    .eq("provider_transaction_id", orderTrackingId)
     .maybeSingle();
+  if (genericLookup.error) throw new Error(`Could not resolve payment notification: ${genericLookup.error.message}`);
+  let booking = genericLookup.data;
+  if (!booking) {
+    const legacyLookup = await (supabaseAdmin as any)
+      .from("bookings")
+      .select(bookingColumns)
+      .eq("pesapal_order_tracking_id", orderTrackingId)
+      .maybeSingle();
+    if (legacyLookup.error) throw new Error(`Could not resolve legacy payment notification: ${legacyLookup.error.message}`);
+    booking = legacyLookup.data;
+  }
 
-  // Always log the raw notification, even if booking missing.
-  await supabaseAdmin.from("payment_events").insert({
+  const expectedTransaction = booking?.provider_transaction_id ?? booking?.pesapal_order_tracking_id;
+  const expectedMerchant = booking?.provider_merchant_reference ?? booking?.pesapal_merchant_reference;
+  const identityCheck = booking ? validatePaymentCallbackIdentity({
+    bookingPropertyId: booking.property_id,
+    bookingIntegrationId: booking.payment_integration_id,
+    bookingProvider: booking.payment_provider ?? "pesapal",
+    callbackProvider: "pesapal",
+    storedTransactionId: expectedTransaction,
+    receivedTransactionId: orderTrackingId,
+    storedMerchantReference: expectedMerchant,
+    receivedMerchantReference: merchantReference,
+  }) : { ok: false as const, reason: "missing_property" as const };
+  const matches = identityCheck.ok;
+
+  await (supabaseAdmin as any).from("payment_events").insert({
     booking_id: booking?.id ?? null,
+    property_id: booking?.property_id ?? null,
+    integration_id: booking?.payment_integration_id ?? null,
     provider: "pesapal",
-    event_type: `ipn:${notificationType || "unknown"}`,
+    event_type: `ipn:${notificationType || "unknown"}${booking && !matches ? ":security_identifier_mismatch" : ""}`,
     order_tracking_id: orderTrackingId,
+    provider_transaction_id: orderTrackingId,
     merchant_reference: merchantReference,
     raw: { orderTrackingId, merchantReference, notificationType },
   });
 
   if (!booking) {
-    console.warn("[pesapal] IPN: no booking matches orderTrackingId", { orderTrackingId });
+    console.warn("[pesapal] IPN ignored: no matching booking", { orderTrackingId });
+    return;
+  }
+  if (!matches) {
+    console.error("[pesapal] IPN rejected: transaction, merchant reference, provider or integration mismatch", {
+      bookingId: booking.id,
+      propertyId: booking.property_id,
+      integrationId: booking.payment_integration_id,
+    });
     return;
   }
 
@@ -34,11 +67,12 @@ async function handleNotification(orderTrackingId: string, merchantReference: st
     bookingId: booking.id,
     orderTrackingId,
     source: "ipn",
+    expectedPropertyId: booking.property_id,
   });
   console.info("[pesapal] IPN finalize outcome", {
     bookingId: booking.id,
+    propertyId: booking.property_id,
     outcome: result.outcome,
-    paymentMethod: result.paymentMethod,
   });
 }
 

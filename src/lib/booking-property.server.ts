@@ -1,23 +1,30 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { bookingRpc } from "./booking-rpc";
 import { BookingPropertyError } from "./booking-property";
 
 /**
- * Resolves the single configured booking property via the
- * staynas_booking_property_id() RPC (SECURITY DEFINER, granted to
- * anon/authenticated/service_role). Throws when the property is missing,
- * inactive, or the resolver fails — booking paths must never proceed
- * without an explicit property context.
+ * Resolves tenant context from the incoming hostname using the verified
+ * staynas_property_domains registry. Hostnames not explicitly verified for
+ * an active property fail closed; never fall back to a hard-coded property.
  */
 export async function getConfiguredBookingPropertyId(
   sb: SupabaseClient<any>,
 ): Promise<string> {
-  const { data, error } = await bookingRpc(sb).rpc("staynas_booking_property_id");
+  const rawHost = getRequestHeader("x-forwarded-host") ?? getRequestHeader("host") ?? "";
+  const hostname = rawHost.split(",")[0].trim().toLowerCase().replace(/:\d+$/, "");
+  if (!hostname) {
+    throw new BookingPropertyError("Property hostname is missing");
+  }
+
+  const { data, error } = await bookingRpc(sb).rpc("staynas_booking_property_id", {
+    _hostname: hostname,
+  });
   if (error) {
     throw new BookingPropertyError(`Booking property resolution failed: ${error.message}`);
   }
   if (!data) {
-    throw new BookingPropertyError("Booking property is not configured");
+    throw new BookingPropertyError("No active property is configured for this hostname");
   }
   return data;
 }
