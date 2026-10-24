@@ -1208,3 +1208,33 @@
   --input: var(--os-hairline-strong);
   --ring: var(--os-green);
 }
+
+
+/* Final module-audit hardening: keep controls legible in both themes,
+   prevent wide operational views from forcing the whole mobile shell
+   wider than the viewport, and respect reduced-motion preferences. */
+[data-os-theme="dark"] .mtoni-os :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), textarea, select, [role="combobox"]) {
+  background: var(--os-surface-2);
+  color: var(--os-ink);
+  border-color: var(--os-hairline-strong);
+}
+[data-os-theme="dark"] .mtoni-os :is(input, textarea, select)::placeholder {
+  color: var(--os-ink-3);
+  opacity: 1;
+}
+.mtoni-os :is([data-slot="table-container"], .table-container, .table-scroll) {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+.mtoni-os :is([data-slot="table-container"], .table-container, .table-scroll) table {
+  min-width: max-content;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mtoni-os *, .mtoni-os *::before, .mtoni-os *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
