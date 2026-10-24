@@ -8,6 +8,13 @@ import { AI_GATEWAY_DEFAULT_MODEL, callAiGateway, parseAiJson } from "@/lib/ai-g
 
 const MODEL = AI_GATEWAY_DEFAULT_MODEL;
 
+async function assertFounderAccount(supabase: any) {
+  const { data, error } = await supabase.auth.getUser();
+  if (error || data.user?.email?.trim().toLowerCase() !== "nolmarkcdma@gmail.com") {
+    throw new Error("Forbidden: NOLMARK CDMA founder access required.");
+  }
+}
+
 async function chat(system: string, user: string): Promise<string> {
   const { content } = await callAiGateway({ system, user, jsonMode: true });
   return content;
@@ -158,6 +165,7 @@ export const listAiActivity = createServerFn({ method: "GET" })
 export const getMyAiScope = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAccount(context.supabase);
     const roles = await getRoles(context.supabase);
     return { roles, tools: allowedToolsForRoles(roles) };
   });
