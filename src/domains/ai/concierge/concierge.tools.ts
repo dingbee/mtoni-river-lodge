@@ -43,17 +43,6 @@ export async function searchAvailability(input: {
     return [];
   }
 }
-  return (data as any[]).map((r) => ({
-    slug: r.slug,
-    name: r.name,
-    base_price_usd: Number(r.base_price),
-    max_occupancy: r.max_occupancy,
-    is_available: r.is_available,
-    min_available: r.min_available,
-    nightly_total_usd: Number(r.nightly_total),
-    nights: r.nights,
-  }));
-}
 
 function buildBookingUrl(intent: ConciergeIntentSignal, roomSlug?: string): string {
   const params = new URLSearchParams();
