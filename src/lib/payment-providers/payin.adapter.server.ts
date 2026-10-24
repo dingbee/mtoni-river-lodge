@@ -62,8 +62,8 @@ export const payinAdapter: PaymentProviderAdapter = {
     if (input.currency !== "TZS" || context.currency !== "TZS") throw new Error("PayIn Tanzania mobile-money payments must use TZS");
     if (!Number.isInteger(input.amount)) throw new Error("PayIn TZS collection amount must be a whole shilling");
     if (input.amount < 100 || input.amount > 10_000_000) throw new Error("PayIn collection amount must be between TZS 100 and TZS 10,000,000");
-    const phone = String(input.guest.phone ?? "").replace(/[+\\s()-]/g, "");
-    if (!/^255\\d{9}$/.test(phone)) throw new Error("Guest phone must be a Tanzanian number in 255XXXXXXXXX format");
+    const phone = String(input.guest.phone ?? "").replace(/[+\s()-]/g, "");
+    if (!/^255\d{9}$/.test(phone)) throw new Error("Guest phone must be a Tanzanian number in 255XXXXXXXXX format");
     const idempotencyKey = input.merchantReference.trim();
     if (!idempotencyKey || idempotencyKey.length > 255) throw new Error("A stable merchant reference of at most 255 characters is required for idempotency");
     const body: Record<string, unknown> = {
