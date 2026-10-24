@@ -47,6 +47,11 @@ export const Route = createFileRoute("/_authenticated/admin/calendar")({
 type View = "day" | "week" | "month";
 type Cell = { date: string; booking?: { id: string; guest_name: string; reference: string }; blocked?: boolean; units?: number; hold?: boolean };
 
+function formatEaDate(value: string | Date) {
+  const d = typeof value === "string" ? new Date(`${value.slice(0, 10)}T12:00:00`) : value;
+  if (Number.isNaN(d.getTime())) return String(value);
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+}
 function iso(d: Date) {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -335,7 +340,7 @@ function UnifiedCalendarPage() {
             <Label htmlFor="calendar-date" className="sr-only">Jump to date</Label>
             <Input id="calendar-date" aria-label="Jump to date" type="date" className="w-[145px] sm:w-[165px]" value={iso(anchor)} onChange={(e) => { if (e.target.value) setAnchor(new Date(`${e.target.value}T12:00:00`)); }} />
           </div>
-          <span className="text-sm text-muted-foreground">{range.from} → {range.to}</span>
+          <span className="w-full text-sm text-muted-foreground sm:w-auto">{formatEaDate(range.from)} – {formatEaDate(range.to)}</span>
         </div>
 
         {ops.isLoading ? (
