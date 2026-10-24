@@ -60,11 +60,22 @@ export function SiteHeader() {
             <Link to="/book" onClick={() => { setOpen(false); trackBookingClick({ buttonText: "Book now", location: "nav_mobile" }); }} className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-forest px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-ivory">
               Book now <ArrowRight className="h-4 w-4" />
             </Link>
-            <div className="mt-auto pt-12">
+            <div className="mt-auto space-y-4 pt-12">
               <div className="rounded-[24px] border border-charcoal/10 bg-bone p-6">
                 <div className="flex items-center gap-2 text-sm font-medium"><Sparkles className="h-4 w-4 text-burgundy" /> StayNas AI</div>
                 <p className="mt-2 max-w-sm text-sm leading-6 text-charcoal/60">Smarter hospitality. Brighter guest journeys.</p>
               </div>
+              <Link
+                to="/admin"
+                onClick={() => setOpen(false)}
+                className="flex items-center justify-between rounded-2xl border border-charcoal/15 bg-ivory px-5 py-4 text-sm font-medium transition-colors hover:border-forest/40 hover:bg-bone"
+              >
+                <span>
+                  <span className="block">Staff & administration</span>
+                  <span className="mt-1 block text-xs font-normal text-charcoal/60">Sign in to StayNas</span>
+                </span>
+                <ArrowRight className="h-4 w-4 shrink-0" />
+              </Link>
             </div>
           </nav>
         </div>
