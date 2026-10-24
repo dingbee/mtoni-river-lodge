@@ -10,15 +10,23 @@ async function handleNotification(orderTrackingId: string, merchantReference: st
 
   const { data: booking } = await supabaseAdmin
     .from("bookings")
-    .select("id, payment_status")
+    .select("id, reference, property_id, payment_status, pesapal_merchant_reference")
     .eq("pesapal_order_tracking_id", orderTrackingId)
     .maybeSingle();
 
-  // Always log the raw notification, even if booking missing.
+  // Validate both identifiers before any payment finalization. Tracking IDs
+  // are provider identifiers; the merchant reference must also match the
+  // order recorded for this booking. Never finalize on tracking ID alone.
+  const merchantReferenceMatches =
+    Boolean(booking) &&
+    Boolean(merchantReference) &&
+    booking.pesapal_merchant_reference === merchantReference;
+
+  // Always log the raw notification, even if booking missing or mismatched.
   await supabaseAdmin.from("payment_events").insert({
     booking_id: booking?.id ?? null,
     provider: "pesapal",
-    event_type: `ipn:${notificationType || "unknown"}`,
+    event_type: `ipn:${notificationType || "unknown"}${booking && !merchantReferenceMatches ? ":merchant_reference_mismatch" : ""}`,
     order_tracking_id: orderTrackingId,
     merchant_reference: merchantReference,
     raw: { orderTrackingId, merchantReference, notificationType },
@@ -26,6 +34,15 @@ async function handleNotification(orderTrackingId: string, merchantReference: st
 
   if (!booking) {
     console.warn("[pesapal] IPN: no booking matches orderTrackingId", { orderTrackingId });
+    return;
+  }
+
+  if (!merchantReferenceMatches) {
+    console.error("[pesapal] IPN rejected: merchant reference does not match stored order", {
+      bookingId: booking.id,
+      propertyId: booking.property_id,
+      orderTrackingId,
+    });
     return;
   }
 
