@@ -9,6 +9,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { bookingRpc } from "@/lib/booking-rpc";
+import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 
 function publicClient() {
   return createClient<Database>(
@@ -36,11 +38,13 @@ export const createBookingHold = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in");
     const sb = publicClient();
-    const { data: rows, error } = await sb.rpc("create_booking_hold", {
+    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { data: rows, error } = await bookingRpc(sb).rpc("create_booking_hold", {
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
       _check_out: data.checkOut,
       _session_id: data.sessionId,
+      _property_id: propertyId,
       ...(data.guestEmail ? { _guest_email: data.guestEmail } : {}),
       _ttl_seconds: data.ttlSeconds ?? 900,
     });
@@ -60,9 +64,11 @@ export const releaseBookingHold = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const sb = publicClient();
-    const { data: ok, error } = await sb.rpc("release_booking_hold", {
+    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { data: ok, error } = await bookingRpc(sb).rpc("release_booking_hold", {
       _hold_id: data.holdId,
       _session_id: data.sessionId,
+      _property_id: propertyId,
     });
     if (error) throw new Error(error.message);
     return { released: Boolean(ok) };
@@ -74,9 +80,11 @@ export const getBookingHold = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const sb = publicClient();
-    const { data: rows, error } = await sb.rpc("get_booking_hold_for_session", {
+    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { data: rows, error } = await bookingRpc(sb).rpc("get_booking_hold_for_session", {
       _hold_id: data.holdId,
       _session_id: data.sessionId,
+      _property_id: propertyId,
     });
     if (error) throw new Error(error.message);
     const row = Array.isArray(rows) ? rows[0] : rows;
