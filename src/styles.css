@@ -51,7 +51,7 @@
   --color-focus: var(--focus);
 
   --color-ivory: var(--ivory);
-  --color-burgundy: #6C151E;
+  --color-burgundy: #B47A45;
   --color-bone: var(--bone);
   --color-clay: var(--clay);
   --color-ember: var(--ember);
@@ -71,21 +71,21 @@
      Token names retained for backward compatibility with existing
      class names (bg-ivory, bg-bone, text-charcoal, bg-charcoal,
      text-ivory, etc.) — only the values are refreshed. */
-  --ivory: #F5DABF;        /* dominant background + light text on dark */
-  --bone: #F9E8D5;         /* alternate sections, cards, content blocks */
-  --clay: #6C151E;         /* StayNas burgundy accent */
-  --ember: #6C151E;        /* accent alias */
-  --gold: #6C151E;         /* accent alias */
-  --river: #5C5854;        /* muted secondary text */
-  --forest: #0F3D3A;       /* deep green hover */
-  --charcoal: #171514;     /* primary text + black luxe surfaces */
-  --green: #0F3D3A;        /* StayNas primary deep green */
+  --ivory: #F7F7F3;        /* dominant background + light text on dark */
+  --bone: #EEEFE8;         /* alternate sections, cards, content blocks */
+  --clay: #B47A45;         /* StayNas burgundy accent */
+  --ember: #B47A45;        /* accent alias */
+  --gold: #B47A45;         /* accent alias */
+  --river: #68716B;        /* muted secondary text */
+  --forest: #202C29;       /* deep green hover */
+  --charcoal: #202522;     /* primary text + black luxe surfaces */
+  --green: #202C29;        /* StayNas primary deep green */
 
   --background: var(--ivory);
   --foreground: var(--charcoal);
-  --card: #FFFFFF;
+  --card: #FDFDF9;
   --card-foreground: var(--charcoal);
-  --popover: #FFFFFF;
+  --popover: #FDFDF9;
   --popover-foreground: var(--charcoal);
   --primary: var(--green);
   --primary-foreground: #FFFFFF;
@@ -1448,4 +1448,48 @@
   .mtoni-os .os-context-nav__items--compact {
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   }
+}
+
+
+/* Unified StayNas visual system — applies to public pages, portal-mounted
+   dialogs/forms, floating concierge launcher and the authenticated OS. */
+:root {
+  --color-burgundy: #B47A45;
+  --primary: #202C29;
+  --primary-foreground: #F7F7F3;
+  --accent: #B47A45;
+  --accent-foreground: #202C29;
+  --ring: #B47A45;
+}
+.dark {
+  --primary: #B47A45;
+  --primary-foreground: #202C29;
+  --accent: rgba(180, 122, 69, 0.18);
+  --accent-foreground: #F7F7F3;
+  --ring: #B47A45;
+}
+/* Radix portals are mounted outside page wrappers; use semantic global
+   tokens so dialogs, sheets, popovers and menus share the brand palette. */
+[data-radix-dialog-content],
+[data-radix-alert-dialog-content],
+[data-radix-popover-content],
+[data-radix-dropdown-menu-content],
+[data-radix-select-content],
+[data-radix-popper-content-wrapper] [role="listbox"] {
+  border-color: var(--border);
+  color: var(--popover-foreground);
+}
+[data-radix-dialog-content],
+[data-radix-alert-dialog-content] {
+  background: var(--background);
+}
+[data-radix-popover-content],
+[data-radix-dropdown-menu-content],
+[data-radix-select-content],
+[data-radix-popper-content-wrapper] [role="listbox"] {
+  background: var(--popover);
+}
+[data-radix-dialog-overlay],
+[data-radix-alert-dialog-overlay] {
+  background: rgb(20 28 24 / 68%);
 }
