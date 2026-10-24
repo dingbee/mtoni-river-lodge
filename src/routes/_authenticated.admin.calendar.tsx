@@ -341,15 +341,15 @@ function UnifiedCalendarPage() {
         {ops.isLoading ? (
           <LoadingState label="Loading calendar…" />
         ) : (
-          <div className="overflow-x-auto rounded-lg border">
-            <p className="border-b bg-muted/20 px-3 py-2 text-xs text-muted-foreground md:hidden">Swipe dates sideways to compare rooms. Tap the room-move action on a booking to find an available room.</p>
-            <table className="min-w-full text-xs">
+          <p className="mb-2 rounded-md bg-muted/20 px-3 py-2 text-xs leading-relaxed text-muted-foreground md:hidden">Swipe the timeline horizontally to compare dates. Use the room name to manage blocks; open a booking to view details or choose a new room.</p>
+          <div className="max-w-full overflow-x-auto rounded-lg border">
+            <table className="w-max min-w-full table-fixed text-xs">
               <thead>
                 <tr className="bg-muted/40">
                   <th className="sticky left-0 z-20 w-28 min-w-28 border-r bg-muted/40 px-2 py-2 text-left sm:w-36 sm:min-w-36">Room</th>
                   {days.map((day) => (
-                    <th key={day} className="border-r px-2 py-1 text-center whitespace-nowrap">
-                      {day.slice(5)}
+                    <th key={day} className="w-[68px] min-w-[68px] border-r px-1 py-2 text-center whitespace-nowrap sm:w-[78px] sm:min-w-[78px]">
+                      {formatEaDate(day).slice(0, 5)}
                     </th>
                   ))}
                 </tr>
@@ -516,8 +516,8 @@ function UnifiedCalendarPage() {
                   </div>
                   {(e.date_from || e.date_to) && (
                     <div className="mt-1 text-xs">
-                      {e.date_from ?? ""}
-                      {e.date_to ? ` → ${e.date_to}` : ""}
+                      {e.date_from ? formatEaDate(e.date_from) : ""}
+                      {e.date_to ? ` – ${formatEaDate(e.date_to)}` : ""}
                     </div>
                   )}
                 </div>
