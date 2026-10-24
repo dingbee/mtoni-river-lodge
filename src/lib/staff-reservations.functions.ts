@@ -8,6 +8,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { logActivity } from "@/lib/activity-log.server";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { bookingRpc } from "@/lib/booking-rpc";
+import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- untyped RPC surfaces, matching existing admin services */
 
@@ -59,7 +61,10 @@ export const createStaffReservation = createServerFn({ method: "POST" })
     const below6 = data.childrenBelow6 ?? 0;
     const plus7 = data.children7Plus ?? 0;
 
-    const { data: result, error } = await sb.rpc("create_booking", {
+    // Staff reservations are created against the same configured booking
+    // property as the public engine; the RPC enforces it.
+    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { data: result, error } = await bookingRpc(sb).rpc("create_booking", {
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
       _check_out: data.checkOut,
@@ -72,6 +77,7 @@ export const createStaffReservation = createServerFn({ method: "POST" })
       _guest_phone: data.guestPhone || null,
       _country: data.country || null,
       _special_requests: data.specialRequests || null,
+      _property_id: propertyId,
       _extras: [],
       _hold_id: null,
       _session_id: null,
