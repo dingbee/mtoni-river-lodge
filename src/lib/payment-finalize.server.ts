@@ -30,7 +30,7 @@ export async function verifyAndFinalizePayment(opts: {
 }): Promise<{ outcome: FinalizeOutcome; paymentMethod: string | null }> {
   const { data: booking } = await supabaseAdmin
     .from("bookings")
-    .select("id, reference, payment_status, status, deposit_amount, currency, invoice_number")
+    .select("id, reference, payment_status, status, deposit_amount, currency, invoice_number, pesapal_merchant_reference")
     .eq("id", opts.bookingId)
     .maybeSingle();
   if (!booking) return { outcome: "pending", paymentMethod: null };
@@ -43,6 +43,35 @@ export async function verifyAndFinalizePayment(opts: {
   }
 
   const status = await getPesapalTransactionStatus(opts.orderTrackingId);
+
+  // Provider status must refer to the merchant order stored on this booking.
+  // A valid tracking ID alone is insufficient to authorize a financial state change.
+  if (
+    !booking.pesapal_merchant_reference ||
+    !status.merchant_reference ||
+    status.merchant_reference !== booking.pesapal_merchant_reference
+  ) {
+    await supabaseAdmin.from("payment_events").insert({
+      booking_id: booking.id,
+      provider: "pesapal",
+      event_type: "security:merchant_reference_mismatch",
+      order_tracking_id: opts.orderTrackingId,
+      merchant_reference: status.merchant_reference ?? null,
+      amount: status.amount ?? null,
+      currency: status.currency ?? null,
+      raw: JSON.parse(JSON.stringify({
+        expectedMerchantReference: booking.pesapal_merchant_reference,
+        receivedMerchantReference: status.merchant_reference ?? null,
+      })),
+    });
+    console.error("[pesapal] merchant reference mismatch; refusing finalization", {
+      bookingId: booking.id,
+      reference: booking.reference,
+      orderTrackingId: opts.orderTrackingId,
+    });
+    return { outcome: "mismatch", paymentMethod: null };
+  }
+
   const outcome = classifyStatus(status.status_code);
   const paymentMethod = status.payment_method ?? null;
 
