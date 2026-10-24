@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { resolveBookingPaymentContext } from "./payment-context.server";
 import { getPaymentProvider } from "./payment-providers.server";
+import { validatePaymentCallbackIdentity } from "./payment-integrity";
 
 export type FinalizeOutcome =
   | "pending"
@@ -42,13 +43,24 @@ export async function verifyAndFinalizePayment(opts: {
   const integrationId = booking.payment_integration_id as string | null;
   const storedTransactionId = booking.provider_transaction_id ?? booking.pesapal_order_tracking_id;
   const expectedMerchantReference = booking.provider_merchant_reference ?? booking.pesapal_merchant_reference;
-  if (!provider || !integrationId || !storedTransactionId || storedTransactionId !== opts.orderTrackingId) {
+  const identityCheck = validatePaymentCallbackIdentity({
+    bookingPropertyId: booking.property_id,
+    callbackPropertyId: opts.expectedPropertyId,
+    bookingIntegrationId: integrationId,
+    bookingProvider: provider,
+    callbackProvider: provider,
+    storedTransactionId,
+    receivedTransactionId: opts.orderTrackingId,
+    storedMerchantReference: expectedMerchantReference,
+    receivedMerchantReference: expectedMerchantReference,
+  });
+  if (!identityCheck.ok) {
     await (supabaseAdmin as any).from("payment_events").insert({
       booking_id: booking.id,
       property_id: booking.property_id,
       integration_id: integrationId,
       provider: provider || "unknown",
-      event_type: "security:payment_context_mismatch",
+      event_type: `security:payment_context_mismatch:${identityCheck.reason}`,
       provider_transaction_id: opts.orderTrackingId,
       raw: { expectedTransactionId: storedTransactionId, receivedTransactionId: opts.orderTrackingId },
     });
