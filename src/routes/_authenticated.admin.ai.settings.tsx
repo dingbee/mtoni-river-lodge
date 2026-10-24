@@ -5,6 +5,8 @@ import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { Badge } from "@/components/ui/badge";
 import { getMyAiScope } from "@/domains/ai/ai.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/settings")({
   head: () => ({ meta: [{ title: "AI Settings — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -12,8 +14,23 @@ export const Route = createFileRoute("/_authenticated/admin/ai/settings")({
 });
 
 function AiSettings() {
+  const [founderAllowed, setFounderAllowed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (!active) return;
+      setFounderAllowed(!error && data.user?.email?.trim().toLowerCase() === "nolmarkcdma@gmail.com");
+    });
+    return () => { active = false; };
+  }, []);
+
   const scopeFn = useServerFn(getMyAiScope);
   const scope = useQuery({ queryKey: ["ai.scope"], queryFn: () => scopeFn() });
+
+  if (founderAllowed !== true) {
+    return <div className="p-6 text-sm text-muted-foreground">{founderAllowed === null ? "Verifying founder access…" : "Access restricted to NOLMARK CDMA founder administration."}</div>;
+  }
 
   return (
     <div className="space-y-4">
