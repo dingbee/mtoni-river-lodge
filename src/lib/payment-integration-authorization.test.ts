@@ -5,7 +5,7 @@ export function mayManagePropertyIntegration(member: Member | null, userId: stri
   return Boolean(member && member.userId === userId && member.propertyId === propertyId && member.active && ["owner", "manager", "admin"].includes(member.role));
 }
 export function mayViewFounderIntegrationHealth(roles: string[]) {
-  return roles.some((role) => ["founder_admin", "super_admin"].includes(role));
+  return roles.some((role) => ["admin"].includes(role));
 }
 export function redactIntegration(row: Record<string, unknown>) {
   const { credential_reference: _reference, consumer_key: _key, consumer_secret: _secret, api_key: _apiKey, ...safe } = row;
