@@ -65,7 +65,7 @@ export interface CreateBookingArgs {
 }
 
 export interface BookingPropertyRpc {
-  rpc(fn: "staynas_booking_property_id"): Result<string>;
+  rpc(fn: "staynas_booking_property_id", args: { _hostname: string }): Result<string>;
   rpc(
     fn: "get_room_availability",
     args: { _check_in: string; _check_out: string; _property_id: string },
