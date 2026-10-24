@@ -22,7 +22,8 @@ export async function resolvePaymentSecretReference(
     if (!consumer_key || !consumer_secret) {
       throw new Error("Mtoni Pesapal credentials are not available in the server secret environment");
     }
-    return { consumer_key, consumer_secret };
+    const ipn_id = process.env.PESAPAL_IPN_ID?.trim();
+    return { consumer_key, consumer_secret, ...(ipn_id ? { ipn_id } : {}) };
   }
   throw new Error("Unknown credential reference; configure a supported server-side secret store");
 }
