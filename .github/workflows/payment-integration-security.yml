@@ -24,6 +24,6 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - name: Tenant payment and authorization tests
-        run: bunx vitest run src/lib/tenant-payment-integration.test.ts src/lib/payment-integrity.test.ts src/lib/payment-integration-authorization.test.ts
+        run: bunx vitest run src/lib/tenant-payment-integration.test.ts src/lib/payment-integrity.test.ts src/lib/payment-integration-authorization.test.ts src/lib/payin-adapter.test.ts
       - name: Production build
         run: bun run build
