@@ -7,7 +7,7 @@ export const listFounderIntegrationHealth = createServerFn({ method: "GET" })
     const { data: roles, error: roleError } = await context.supabase.rpc("current_user_roles");
     if (roleError) throw new Error("Unable to verify Founder Admin access");
     // Do not map property-owner aliases to Founder Admin. This is an explicit global role.
-    if (!(roles ?? []).map(String).some((r: string) => ["admin"].includes(r))) {
+    if (!(roles ?? []).map(String).some((r: string) => ["admin", "founder_admin", "super_admin"].includes(r))) {
       throw new Error("Forbidden: Founder Admin access required");
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
