@@ -203,10 +203,11 @@ export const getBookingByReference = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     // Service-role read since bookings are staff-only via RLS; verify email match.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row, error } = await supabaseAdmin
+    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const { data: row, error } = await (supabaseAdmin as any)
       .from("bookings")
       .select(
-        "id, reference, check_in, check_out, nights, adults, children, guest_name, guest_email, total, currency, status, payment_status, room_id",
+        "id, reference, check_in, check_out, nights, adults, children, guest_name, guest_email, total, currency, status, payment_status, room_id, property_id",
       )
       .eq("reference", data.reference)
       .maybeSingle();
@@ -214,6 +215,8 @@ export const getBookingByReference = createServerFn({ method: "POST" })
     if (!row || row.guest_email.toLowerCase() !== data.email.toLowerCase()) {
       throw new Error("Booking not found");
     }
+    // Never surface a booking outside the configured booking property.
+    assertSameProperty(row.property_id, propertyId, "Booking");
     const { data: room } = await supabaseAdmin
       .from("rooms")
       .select("name, slug")
