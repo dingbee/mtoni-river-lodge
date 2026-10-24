@@ -5,12 +5,23 @@ async function handleNotification(orderTrackingId: string, merchantReference: st
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   if (!orderTrackingId || !merchantReference) throw new Error("Missing provider transaction identifiers");
 
-  const { data: booking, error } = await (supabaseAdmin as any)
+  const bookingColumns = "id, reference, property_id, payment_status, payment_provider, payment_integration_id, provider_transaction_id, provider_merchant_reference, pesapal_order_tracking_id, pesapal_merchant_reference";
+  const genericLookup = await (supabaseAdmin as any)
     .from("bookings")
-    .select("id, reference, property_id, payment_status, payment_provider, payment_integration_id, provider_transaction_id, provider_merchant_reference, pesapal_order_tracking_id, pesapal_merchant_reference")
-    .or(`provider_transaction_id.eq.${orderTrackingId},pesapal_order_tracking_id.eq.${orderTrackingId}`)
+    .select(bookingColumns)
+    .eq("provider_transaction_id", orderTrackingId)
     .maybeSingle();
-  if (error) throw new Error(`Could not resolve payment notification: ${error.message}`);
+  if (genericLookup.error) throw new Error(`Could not resolve payment notification: ${genericLookup.error.message}`);
+  let booking = genericLookup.data;
+  if (!booking) {
+    const legacyLookup = await (supabaseAdmin as any)
+      .from("bookings")
+      .select(bookingColumns)
+      .eq("pesapal_order_tracking_id", orderTrackingId)
+      .maybeSingle();
+    if (legacyLookup.error) throw new Error(`Could not resolve legacy payment notification: ${legacyLookup.error.message}`);
+    booking = legacyLookup.data;
+  }
 
   const expectedTransaction = booking?.provider_transaction_id ?? booking?.pesapal_order_tracking_id;
   const expectedMerchant = booking?.provider_merchant_reference ?? booking?.pesapal_merchant_reference;
