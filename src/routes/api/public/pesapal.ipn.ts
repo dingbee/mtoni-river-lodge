@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { validatePaymentCallbackIdentity } from "@/lib/payment-integrity";
 
 async function handleNotification(orderTrackingId: string, merchantReference: string, notificationType: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -13,12 +14,17 @@ async function handleNotification(orderTrackingId: string, merchantReference: st
 
   const expectedTransaction = booking?.provider_transaction_id ?? booking?.pesapal_order_tracking_id;
   const expectedMerchant = booking?.provider_merchant_reference ?? booking?.pesapal_merchant_reference;
-  const matches = Boolean(booking) &&
-    expectedTransaction === orderTrackingId &&
-    Boolean(expectedMerchant) &&
-    expectedMerchant === merchantReference &&
-    String(booking.payment_provider ?? "pesapal").toLowerCase() === "pesapal" &&
-    Boolean(booking.payment_integration_id);
+  const identityCheck = booking ? validatePaymentCallbackIdentity({
+    bookingPropertyId: booking.property_id,
+    bookingIntegrationId: booking.payment_integration_id,
+    bookingProvider: booking.payment_provider ?? "pesapal",
+    callbackProvider: "pesapal",
+    storedTransactionId: expectedTransaction,
+    receivedTransactionId: orderTrackingId,
+    storedMerchantReference: expectedMerchant,
+    receivedMerchantReference: merchantReference,
+  }) : { ok: false as const, reason: "missing_property" as const };
+  const matches = identityCheck.ok;
 
   await (supabaseAdmin as any).from("payment_events").insert({
     booking_id: booking?.id ?? null,
