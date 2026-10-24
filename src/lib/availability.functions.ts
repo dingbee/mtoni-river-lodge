@@ -193,9 +193,11 @@ export const releaseHoldStaff = createServerFn({ method: "POST" })
       .eq("id", data.holdId)
       .maybeSingle();
     if (e1 || !row) throw new Error(e1?.message ?? "Hold not found");
-    const { error } = await sb.rpc("release_booking_hold", {
+    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { error } = await bookingRpc(sb).rpc("release_booking_hold", {
       _hold_id: data.holdId,
       _session_id: row.session_id,
+      _property_id: propertyId,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -243,9 +245,11 @@ export const suggestRoomAssignment = createServerFn({ method: "POST" })
       .maybeSingle();
     if (be || !b) throw new Error(be?.message ?? "Booking not found");
 
-    const { data: avail, error: ae } = await sb.rpc("get_room_availability", {
+    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { data: avail, error: ae } = await bookingRpc(sb).rpc("get_room_availability", {
       _check_in: b.check_in,
       _check_out: b.check_out,
+      _property_id: propertyId,
     });
     if (ae) throw new Error(ae.message);
 
