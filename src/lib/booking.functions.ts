@@ -78,7 +78,7 @@ export const listExtras = createServerFn({ method: "GET" }).handler(async () => 
     .order("sort_order");
   if (error) throw new Error(error.message);
   const TRANSFER_SLUGS = new Set(["airport-transfer"]);
-  return (data ?? []).map((e) => ({
+  return ((data ?? []) as any[]).map((e) => ({
     ...e,
     price: Number(e.price),
     category: TRANSFER_SLUGS.has(e.slug) ? ("transfers" as const) : ("experiences" as const),
@@ -139,6 +139,7 @@ export const createBooking = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
+    if (!row) throw new Error("Booking could not be created");
     // Persist optional purpose-of-visit on the booking row (RPC doesn't accept it).
     const purpose = (data.visitPurpose || "").trim();
     if (purpose) {
