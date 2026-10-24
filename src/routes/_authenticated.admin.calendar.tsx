@@ -341,6 +341,7 @@ function UnifiedCalendarPage() {
         {ops.isLoading ? (
           <LoadingState label="Loading calendar…" />
         ) : (
+          <>
           <p className="mb-2 rounded-md bg-muted/20 px-3 py-2 text-xs leading-relaxed text-muted-foreground md:hidden">Swipe the timeline horizontally to compare dates. Use the room name to manage blocks; open a booking to view details or choose a new room.</p>
           <div className="max-w-full overflow-x-auto rounded-lg border">
             <table className="w-max min-w-full table-fixed text-xs">
@@ -457,6 +458,7 @@ function UnifiedCalendarPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </SectionCard>
 
