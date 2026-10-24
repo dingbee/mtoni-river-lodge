@@ -2,6 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
+import { bookingRpc } from "@/lib/booking-rpc";
+import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
+import { assertSameProperty } from "@/lib/booking-property";
 
 function getPublicClient() {
   return createClient<Database>(
@@ -43,9 +46,11 @@ export const checkAvailability = createServerFn({ method: "POST" })
       throw new Error("Check-out must be after check-in");
     }
     const sb = getPublicClient();
-    const { data: rows, error } = await sb.rpc("get_room_availability", {
+    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { data: rows, error } = await bookingRpc(sb).rpc("get_room_availability", {
       _check_in: data.checkIn,
       _check_out: data.checkOut,
+      _property_id: propertyId,
     });
     if (error) throw new Error(error.message);
     const guests = data.guests ?? 1;
@@ -62,14 +67,18 @@ export const checkAvailability = createServerFn({ method: "POST" })
 
 export const listExtras = createServerFn({ method: "GET" }).handler(async () => {
   const sb = getPublicClient();
-  const { data, error } = await sb
+  const propertyId = await getConfiguredBookingPropertyId(sb);
+  // Generated types predate the property hardening; query through an
+  // untyped alias so the property filter compiles against stale types.
+  const { data, error } = await (sb as any)
     .from("extras")
     .select("id, slug, name, description, price, unit, currency, sort_order")
     .eq("active", true)
+    .eq("property_id", propertyId)
     .order("sort_order");
   if (error) throw new Error(error.message);
   const TRANSFER_SLUGS = new Set(["airport-transfer"]);
-  return (data ?? []).map((e) => ({
+  return ((data ?? []) as any[]).map((e) => ({
     ...e,
     price: Number(e.price),
     category: TRANSFER_SLUGS.has(e.slug) ? ("transfers" as const) : ("experiences" as const),
@@ -106,10 +115,11 @@ export const createBooking = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createBookingSchema.parse(d))
   .handler(async ({ data }) => {
     const sb = getPublicClient();
+    const propertyId = await getConfiguredBookingPropertyId(sb);
     const below6 = data.childrenBelow6 ?? 0;
     const plus7 = data.children7Plus ?? Math.max(0, (data.children ?? 0) - below6);
     const totalChildren = below6 + plus7;
-    const { data: result, error } = await sb.rpc("create_booking", {
+    const { data: result, error } = await bookingRpc(sb).rpc("create_booking", {
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
       _check_out: data.checkOut,
@@ -119,18 +129,17 @@ export const createBooking = createServerFn({ method: "POST" })
       _children_7_plus: plus7,
       _guest_name: data.guestName,
       _guest_email: data.guestEmail,
-      // Generated types mark these as non-nullable strings, but the SQL RPC
-      // accepts null and stores it. Preserve historical null semantics via a
-      // single documented narrowing rather than per-field `as unknown as`.
-      _guest_phone: (data.guestPhone || null) as string,
-      _country: (data.country || null) as string,
-      _special_requests: (data.specialRequests || null) as string,
+      _guest_phone: data.guestPhone || null,
+      _country: data.country || null,
+      _special_requests: data.specialRequests || null,
+      _property_id: propertyId,
       _extras: data.extras,
       ...(data.holdId ? { _hold_id: data.holdId } : {}),
       ...(data.sessionId ? { _session_id: data.sessionId } : {}),
     });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
+    if (!row) throw new Error("Booking could not be created");
     // Persist optional purpose-of-visit on the booking row (RPC doesn't accept it).
     const purpose = (data.visitPurpose || "").trim();
     if (purpose) {
@@ -195,10 +204,11 @@ export const getBookingByReference = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     // Service-role read since bookings are staff-only via RLS; verify email match.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row, error } = await supabaseAdmin
+    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const { data: row, error } = await (supabaseAdmin as any)
       .from("bookings")
       .select(
-        "id, reference, check_in, check_out, nights, adults, children, guest_name, guest_email, total, currency, status, payment_status, room_id",
+        "id, reference, check_in, check_out, nights, adults, children, guest_name, guest_email, total, currency, status, payment_status, room_id, property_id",
       )
       .eq("reference", data.reference)
       .maybeSingle();
@@ -206,6 +216,8 @@ export const getBookingByReference = createServerFn({ method: "POST" })
     if (!row || row.guest_email.toLowerCase() !== data.email.toLowerCase()) {
       throw new Error("Booking not found");
     }
+    // Never surface a booking outside the configured booking property.
+    assertSameProperty(row.property_id, propertyId, "Booking");
     const { data: room } = await supabaseAdmin
       .from("rooms")
       .select("name, slug")

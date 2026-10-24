@@ -2,6 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { ConciergeAvailabilityRoom, ConciergeIntentSignal, ConciergeBookingPlan } from "./concierge.types";
 import { EXPERIENCES } from "./concierge.recommendations";
+import { bookingRpc } from "@/lib/booking-rpc";
+import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 
 function getPublicClient() {
   return createClient<Database>(
@@ -18,21 +20,28 @@ export async function searchAvailability(input: {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.check_in) || !/^\d{4}-\d{2}-\d{2}$/.test(input.check_out)) return [];
   if (input.check_out <= input.check_in) return [];
   const sb = getPublicClient();
-  const { data, error } = await sb.rpc("get_room_availability", {
-    _check_in: input.check_in,
-    _check_out: input.check_out,
-  });
-  if (error || !data) return [];
-  return (data as any[]).map((r) => ({
-    slug: r.slug,
-    name: r.name,
-    base_price_usd: Number(r.base_price),
-    max_occupancy: r.max_occupancy,
-    is_available: r.is_available,
-    min_available: r.min_available,
-    nightly_total_usd: Number(r.nightly_total),
-    nights: r.nights,
-  }));
+  try {
+    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { data, error } = await bookingRpc(sb).rpc("get_room_availability", {
+      _check_in: input.check_in,
+      _check_out: input.check_out,
+      _property_id: propertyId,
+    });
+    if (error || !data) return [];
+    return (data as any[]).map((r) => ({
+      slug: r.slug,
+      name: r.name,
+      base_price_usd: Number(r.base_price),
+      max_occupancy: r.max_occupancy,
+      is_available: r.is_available,
+      min_available: r.min_available,
+      nightly_total_usd: Number(r.nightly_total),
+      nights: r.nights,
+    }));
+  } catch {
+    // Concierge must never leak property-resolution errors to the guest.
+    return [];
+  }
 }
 
 function buildBookingUrl(intent: ConciergeIntentSignal, roomSlug?: string): string {

@@ -4,6 +4,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { bookingRpc } from "@/lib/booking-rpc";
+import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 
 export const Route = createFileRoute("/api/public/availability/search")({
   server: {
@@ -24,9 +26,11 @@ export const Route = createFileRoute("/api/public/availability/search")({
           process.env.SUPABASE_PUBLISHABLE_KEY!,
           { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
         );
-        const { data, error } = await sb.rpc("get_room_availability", {
+        const propertyId = await getConfiguredBookingPropertyId(sb);
+        const { data, error } = await bookingRpc(sb).rpc("get_room_availability", {
           _check_in: checkIn,
           _check_out: checkOut,
+          _property_id: propertyId,
         });
         if (error) return Response.json({ error: error.message }, { status: 500 });
         const rooms = (data ?? [])

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 
 export const Route = createFileRoute("/api/public/rooms/catalog")({
   server: {
@@ -13,9 +14,11 @@ export const Route = createFileRoute("/api/public/rooms/catalog")({
           process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
           { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
         );
+        // Only ever expose the configured booking property's rooms.
+        const propertyId = await getConfiguredBookingPropertyId(sb);
         let query = sb.from("rooms")
           .select("id,slug,name,short_description,capacity_adults,capacity_children,max_occupancy,total_units,base_price,currency,included_guests,extra_guest_fee,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,category:room_categories(id,slug,name,description,features,specifications)")
-          .eq("status","active").order("sort_order").order("name");
+          .eq("status","active").eq("property_id", propertyId).order("sort_order").order("name");
         if (slug) query = query.eq("slug", slug);
         const { data, error } = await query;
         if (error) return Response.json({ error: error.message }, { status: 500 });
