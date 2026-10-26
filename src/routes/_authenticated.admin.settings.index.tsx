@@ -116,6 +116,12 @@ function SettingsHub() {
       Icon: Activity,
     },
     {
+      to: "/admin/system/domains",
+      title: "Domain Control Centre",
+      description: "Founder-only tenant domain registration and DNS verification.",
+      Icon: ShieldCheck,
+    },
+    {
       to: "/admin/marketing/campaigns",
       title: "Email Campaigns",
       description: "Templates, sends and audiences.",
