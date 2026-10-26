@@ -6,7 +6,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const registerSchema = z.object({
   propertyId: z.string().uuid(),
   hostname: z.string().trim().toLowerCase().min(3).max(253)
-    .regex(/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$/),
+    .regex(/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/),
   primary: z.boolean().default(false),
 });
 
@@ -25,7 +25,7 @@ async function requireFounder(context: any) {
 }
 
 function normalizeHostname(value: string) {
-  return value.trim().toLowerCase().replace(/\\.$/, "");
+  return value.trim().toLowerCase().replace(/\.$/, "");
 }
 
 async function audit(admin: any, args: {
