@@ -11,10 +11,16 @@ const registerSchema = z.object({
 });
 
 async function requireFounder(context: any) {
+  // Global admin-like roles alone are insufficient: tenant administrators must
+  // never inherit access to the cross-tenant domain registry.
+  const email = String(context.claims?.email ?? "").trim().toLowerCase();
+  if (email !== "nolmarkcdma@gmail.com") {
+    throw new Error("Forbidden: Nolmark Founder Admin access required");
+  }
   const { data: roles, error } = await context.supabase.rpc("current_user_roles");
   if (error || !(roles ?? []).map(String).some((role: string) =>
     ["admin", "founder_admin", "super_admin"].includes(role))) {
-    throw new Error("Forbidden: Founder Admin access required");
+    throw new Error("Forbidden: Founder Admin role required");
   }
 }
 
