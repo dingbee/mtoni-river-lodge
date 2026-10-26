@@ -119,6 +119,9 @@ export const verifyFounderDomain = createServerFn({ method: "POST" })
       .select("id,property_id,hostname,verification_token,verification_status")
       .eq("id", data.domainId).maybeSingle();
     if (lookupError || !domain) throw new Error("Domain registration not found");
+    if (domain.verification_status === "revoked") {
+      throw new Error("This domain has been revoked. Register it again to issue a new DNS challenge before verification.");
+    }
     if (!domain.verification_token) throw new Error("Register or reset the domain to generate a DNS challenge");
     const hostname = normalizeHostname(domain.hostname);
     const challengeName = `_staynas-verify.${hostname}`;
