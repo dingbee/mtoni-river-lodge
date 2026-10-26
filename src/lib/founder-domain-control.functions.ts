@@ -165,3 +165,15 @@ export const revokeFounderDomain = createServerFn({ method: "POST" })
       hostname: domain.hostname, action: "revoked", actorUserId: context.userId });
     return { success: true };
   });
+
+
+export const listFounderPropertiesForDomains = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await requireFounder(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await (supabaseAdmin as any).from("staynas_properties")
+      .select("id,name,slug,status").order("name", { ascending: true }).limit(500);
+    if (error) throw new Error("Unable to load properties for domain management");
+    return data ?? [];
+  });
