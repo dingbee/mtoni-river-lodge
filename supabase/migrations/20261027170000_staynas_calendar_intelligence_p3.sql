@@ -301,7 +301,7 @@ BEGIN
         (s.frequency = 'daily' AND mod((d::date - s.starts_on), s.interval_count) = 0)
         OR
         (s.frequency = 'weekly'
-          AND mod(floor(((d::date - (s.starts_on - extract(dow FROM s.starts_on)::integer))::numeric) / 7)::integer, s.interval_count) = 0
+          AND mod(floor(((d::date - (s.starts_on - ((extract(dow FROM s.starts_on)::integer + 6) % 7)))::numeric) / 7)::integer, s.interval_count) = 0
           AND extract(dow FROM d)::smallint = ANY(s.days_of_week))
       )
   )
