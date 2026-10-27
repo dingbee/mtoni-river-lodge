@@ -28,6 +28,19 @@ describe("calendar recurrence", () => {
     ]);
   });
 
+
+  it("anchors multi-week intervals to Monday calendar weeks for midweek start dates", () => {
+    const result = expandRecurringSchedule({
+      ...base,
+      startsOn: "2026-10-28",
+      intervalCount: 2,
+      daysOfWeek: [1, 5],
+    }, "2026-10-28", "2026-11-16");
+    expect(result.map((item) => item.occurrenceDate)).toEqual([
+      "2026-10-30", "2026-11-09", "2026-11-13",
+    ]);
+  });
+
   it("applies cancellation and override exceptions without mutating the rule", () => {
     const result = expandRecurringSchedule(base, "2026-10-26", "2026-11-02", [
       { occurrenceDate: "2026-10-28", type: "cancelled" },
