@@ -382,8 +382,9 @@ export const listCalendarStaff = createServerFn({ method: "POST" })
     });
     if (accessError) throw new Error(accessError.message);
     if (!hasAccess) throw new Error("Property access denied");
-    const { data: canManage, error: roleError } = await sb.rpc("has_any_role", {
-      _user_id: context.userId,
+    const { data: canManage, error: roleError } = await sb.rpc("staynas_calendar_has_property_role", {
+      _uid: context.userId,
+      _property_id: data.propertyId,
       _roles: ["owner", "manager", "admin"],
     });
     if (roleError) throw new Error(roleError.message);
@@ -410,8 +411,9 @@ export const createCalendarStaffSchedule = createServerFn({ method: "POST" })
       throw new Error("Schedule end must be after its start");
     }
     const sb: any = context.supabase;
-    const { data: canManage, error: roleError } = await sb.rpc("has_any_role", {
-      _user_id: context.userId,
+    const { data: canManage, error: roleError } = await sb.rpc("staynas_calendar_has_property_role", {
+      _uid: context.userId,
+      _property_id: data.propertyId,
       _roles: ["owner", "manager", "admin"],
     });
     if (roleError) throw new Error(roleError.message);
@@ -466,7 +468,7 @@ export const createRecurringCalendarSchedule = createServerFn({ method: "POST" }
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const [{ data: canManage, error: roleError }, { data: hasAccess, error: accessError }] = await Promise.all([
-      sb.rpc("has_any_role", { _user_id: context.userId, _roles: ["owner", "manager", "admin"] }),
+      sb.rpc("staynas_calendar_has_property_role", { _uid: context.userId, _property_id: data.propertyId, _roles: ["owner", "manager", "admin"] }),
       sb.rpc("staynas_user_has_property_access", { _uid: context.userId, _property_id: data.propertyId }),
     ]);
     if (roleError) throw new Error(roleError.message);
@@ -552,7 +554,7 @@ export const saveRecurringCalendarException = createServerFn({ method: "POST" })
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const [{ data: canManage, error: roleError }, { data: hasAccess, error: accessError }] = await Promise.all([
-      sb.rpc("has_any_role", { _user_id: context.userId, _roles: ["owner", "manager", "admin"] }),
+      sb.rpc("staynas_calendar_has_property_role", { _uid: context.userId, _property_id: data.propertyId, _roles: ["owner", "manager", "admin"] }),
       sb.rpc("staynas_user_has_property_access", { _uid: context.userId, _property_id: data.propertyId }),
     ]);
     if (roleError) throw new Error(roleError.message);
@@ -607,7 +609,7 @@ export const saveCalendarRule = createServerFn({ method: "POST" })
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const [{ data: canManage, error: roleError }, { data: hasAccess, error: accessError }] = await Promise.all([
-      sb.rpc("has_any_role", { _user_id: context.userId, _roles: ["owner", "manager", "admin"] }),
+      sb.rpc("staynas_calendar_has_property_role", { _uid: context.userId, _property_id: data.propertyId, _roles: ["owner", "manager", "admin"] }),
       sb.rpc("staynas_user_has_property_access", { _uid: context.userId, _property_id: data.propertyId }),
     ]);
     if (roleError) throw new Error(roleError.message);
@@ -768,7 +770,7 @@ export const recommendCalendarStaffAssignment = createServerFn({ method: "POST" 
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const [{ data: canManage, error: roleError }, { data: hasAccess, error: accessError }] = await Promise.all([
-      sb.rpc("has_any_role", { _user_id: context.userId, _roles: ["owner", "manager", "admin"] }),
+      sb.rpc("staynas_calendar_has_property_role", { _uid: context.userId, _property_id: data.propertyId, _roles: ["owner", "manager", "admin"] }),
       sb.rpc("staynas_user_has_property_access", { _uid: context.userId, _property_id: data.propertyId }),
     ]);
     if (roleError) throw new Error(roleError.message);
