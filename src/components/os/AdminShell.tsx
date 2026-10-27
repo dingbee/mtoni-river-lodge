@@ -72,13 +72,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <PropertyProvider>
-      <div className="staynas-os flex min-h-screen text-foreground">
+      <div className="staynas-os mtoni-os flex min-h-screen text-foreground">
         <div className="hidden lg:block">
           <AdminSidebar collapsed={collapsed} roles={roles} />
         </div>
 
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent side="left" className="w-72 p-0">
+          <SheetContent side="left" className="staynas-mobile-sheet mtoni-os w-72 p-0 border-r border-[color:var(--os-hairline)] bg-[color:var(--os-canvas)] text-[color:var(--os-ink)]">
             <AdminSidebar collapsed={false} roles={roles} onNavigate={() => setMobileOpen(false)} />
           </SheetContent>
         </Sheet>
