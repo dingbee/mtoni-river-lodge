@@ -129,33 +129,42 @@ export const listCalendarEvents = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
     z.object({
-      from: dateStr.optional(),
-      to: dateStr.optional(),
+      propertyId: z.string().uuid(),
+      from: dateStr,
+      to: dateStr,
       types: z.array(z.string()).max(20).optional(),
       limit: z.number().int().min(1).max(200).optional(),
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
-    let q: any = context.supabase.from("calendar_events").select(
-      "id, event_type, room_id, booking_id, hold_id, date_from, date_to, actor_id, payload, created_at",
-    );
-    if (data.from) q = q.gte("created_at", `${data.from}T00:00:00Z`);
-    if (data.to) q = q.lte("created_at", `${data.to}T23:59:59Z`);
-    if (data.types?.length) q = q.in("event_type", data.types);
-    const { data: rows, error } = await q.order("created_at", { ascending: false }).limit(data.limit ?? 100);
+    if (data.to <= data.from) throw new Error("Calendar end date must be after start date");
+    const sb: any = context.supabase;
+    const { data: hasAccess, error: accessError } = await sb.rpc("staynas_user_has_property_access", {
+      _uid: context.userId,
+      _property_id: data.propertyId,
+    });
+    if (accessError) throw new Error(accessError.message);
+    if (!hasAccess) throw new Error("Property access denied");
+
+    const { data: rows, error } = await sb.rpc("staynas_calendar_audit_events", {
+      _property_id: data.propertyId,
+      _from: data.from,
+      _to: data.to,
+      _limit: data.limit ?? 100,
+    });
     if (error) throw new Error(error.message);
-    // Payload is jsonb; serialize as string for RPC transport safety.
-    return ((rows ?? []) as Array<Record<string, unknown>>).map((r) => ({
-      id: r.id as string,
-      event_type: r.event_type as string,
-      room_id: (r.room_id as string | null) ?? null,
-      booking_id: (r.booking_id as string | null) ?? null,
-      hold_id: (r.hold_id as string | null) ?? null,
-      date_from: (r.date_from as string | null) ?? null,
-      date_to: (r.date_to as string | null) ?? null,
-      payload_json: JSON.stringify(r.payload ?? {}),
-      created_at: r.created_at as string,
+    const filtered = (rows ?? []).filter((row: any) => !data.types?.length || data.types.includes(row.event_type));
+    return filtered.map((row: any) => ({
+      id: row.id as string,
+      event_type: row.event_type as string,
+      room_id: (row.room_id as string | null) ?? null,
+      booking_id: (row.booking_id as string | null) ?? null,
+      hold_id: (row.hold_id as string | null) ?? null,
+      date_from: (row.date_from as string | null) ?? null,
+      date_to: (row.date_to as string | null) ?? null,
+      payload_json: JSON.stringify(row.payload ?? {}),
+      created_at: row.created_at as string,
     }));
   });
 
