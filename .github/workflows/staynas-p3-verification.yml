@@ -1,0 +1,43 @@
+name: StayNas Phase 3 verification
+
+on:
+  push:
+    branches:
+      - feat/staynas-calendar-intelligence-p3
+  pull_request:
+    branches:
+      - main
+      - feat/staynas-calendar-intelligence-p3
+
+permissions:
+  contents: read
+
+jobs:
+  p3-tests-and-build:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Run all unit tests
+        run: bunx vitest run
+      - name: Check Supabase migration version uniqueness
+        shell: bash
+        run: |
+          versions=$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' | sed -E 's/^([0-9]+)_.*/\1/' | sort)
+          duplicates=$(printf '%s\n' "$versions" | uniq -d)
+          if [ -n "$duplicates" ]; then
+            echo "Duplicate migration version(s): $duplicates"
+            exit 1
+          fi
+      - name: Verify production build
+        run: bun run build
