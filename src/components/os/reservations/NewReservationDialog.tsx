@@ -30,10 +30,10 @@ type GuestRow = {
 };
 
 const STEPS: { id: Step; label: string }[] = [
-  { id: 1, label: "Guest" },
-  { id: 2, label: "Stay" },
-  { id: 3, label: "Room" },
-  { id: 4, label: "Confirm" },
+  { id: 1, label: "Stay" },
+  { id: 2, label: "Room" },
+  { id: 3, label: "Guest" },
+  { id: 4, label: "Review" },
 ];
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -134,7 +134,7 @@ export function NewReservationDialog({
   const availability = useQuery({
     queryKey: ["reservation-availability", checkIn, checkOut, totalGuests],
     queryFn: () => availabilityFn({ data: { checkIn, checkOut, guests: totalGuests } }),
-    enabled: open && step >= 3 && checkOut > checkIn,
+    enabled: open && step >= 2 && checkOut > checkIn,
   });
 
   const rooms = useMemo(
@@ -290,107 +290,6 @@ export function NewReservationDialog({
             </ol>
 
             {step === 1 && (
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="guest-search">Search existing guest</Label>
-                  <div className="relative mt-1">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="guest-search"
-                      className="pl-9"
-                      placeholder="Name, email or phone"
-                      value={guestQuery}
-                      onChange={(e) => setGuestQuery(e.target.value)}
-                    />
-                  </div>
-                  {guestSearch.isFetching && (
-                    <p className="mt-2 text-xs text-muted-foreground">Searching…</p>
-                  )}
-                  {guestSearch.data && guestSearch.data.rows.length > 0 && (
-                    <ul className="mt-2 divide-y divide-border rounded-md border border-border">
-                      {guestSearch.data.rows.map((g: GuestRow) => (
-                        <li key={g.id}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setGuestId(g.id);
-                              setGuestName(g.full_name ?? "");
-                              setGuestEmail(g.email ?? "");
-                              setGuestPhone(g.phone_e164 ?? "");
-                              setCountry(g.country ?? "");
-                            }}
-                            className={cn(
-                              "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-muted/40",
-                              guestId === g.id && "bg-muted/50",
-                            )}
-                          >
-                            <span className="min-w-0">
-                              <span className="block truncate">{g.full_name}</span>
-                              <span className="block truncate text-xs text-muted-foreground">
-                                {g.email ?? "—"}
-                              </span>
-                            </span>
-                            {guestId === g.id && <Check className="h-4 w-4 shrink-0" />}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {guestSearch.data &&
-                    guestQuery.trim().length >= 2 &&
-                    guestSearch.data.rows.length === 0 && (
-                      <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                        <UserPlus className="h-3.5 w-3.5" /> No match — fill the details below to
-                        create a new guest.
-                      </p>
-                    )}
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <Label htmlFor="g-name">Full name</Label>
-                    <Input
-                      id="g-name"
-                      value={guestName}
-                      onChange={(e) => {
-                        setGuestName(e.target.value);
-                        setGuestId(undefined);
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="g-email">Email</Label>
-                    <Input
-                      id="g-email"
-                      type="email"
-                      value={guestEmail}
-                      onChange={(e) => {
-                        setGuestEmail(e.target.value);
-                        setGuestId(undefined);
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="g-phone">Phone</Label>
-                    <Input
-                      id="g-phone"
-                      value={guestPhone}
-                      onChange={(e) => setGuestPhone(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="g-country">Country</Label>
-                    <Input
-                      id="g-country"
-                      value={country}
-                      onChange={(e) => setCountry(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {step === 2 && (
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="s-in">Check-in</Label>
@@ -462,7 +361,7 @@ export function NewReservationDialog({
               </div>
             )}
 
-            {step === 3 && (
+            {step === 2 && (
               <div className="space-y-4">
                 {availability.isFetching ? (
                   <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -589,6 +488,107 @@ export function NewReservationDialog({
               </div>
             )}
 
+            {step === 3 && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="guest-search">Search existing guest</Label>
+                  <div className="relative mt-1">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="guest-search"
+                      className="pl-9"
+                      placeholder="Name, email or phone"
+                      value={guestQuery}
+                      onChange={(e) => setGuestQuery(e.target.value)}
+                    />
+                  </div>
+                  {guestSearch.isFetching && (
+                    <p className="mt-2 text-xs text-muted-foreground">Searching…</p>
+                  )}
+                  {guestSearch.data && guestSearch.data.rows.length > 0 && (
+                    <ul className="mt-2 divide-y divide-border rounded-md border border-border">
+                      {guestSearch.data.rows.map((g: GuestRow) => (
+                        <li key={g.id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setGuestId(g.id);
+                              setGuestName(g.full_name ?? "");
+                              setGuestEmail(g.email ?? "");
+                              setGuestPhone(g.phone_e164 ?? "");
+                              setCountry(g.country ?? "");
+                            }}
+                            className={cn(
+                              "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-muted/40",
+                              guestId === g.id && "bg-muted/50",
+                            )}
+                          >
+                            <span className="min-w-0">
+                              <span className="block truncate">{g.full_name}</span>
+                              <span className="block truncate text-xs text-muted-foreground">
+                                {g.email ?? "—"}
+                              </span>
+                            </span>
+                            {guestId === g.id && <Check className="h-4 w-4 shrink-0" />}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {guestSearch.data &&
+                    guestQuery.trim().length >= 2 &&
+                    guestSearch.data.rows.length === 0 && (
+                      <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                        <UserPlus className="h-3.5 w-3.5" /> No match — fill the details below to
+                        create a new guest.
+                      </p>
+                    )}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="g-name">Full name</Label>
+                    <Input
+                      id="g-name"
+                      value={guestName}
+                      onChange={(e) => {
+                        setGuestName(e.target.value);
+                        setGuestId(undefined);
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="g-email">Email</Label>
+                    <Input
+                      id="g-email"
+                      type="email"
+                      value={guestEmail}
+                      onChange={(e) => {
+                        setGuestEmail(e.target.value);
+                        setGuestId(undefined);
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="g-phone">Phone</Label>
+                    <Input
+                      id="g-phone"
+                      value={guestPhone}
+                      onChange={(e) => setGuestPhone(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="g-country">Country</Label>
+                    <Input
+                      id="g-country"
+                      value={country}
+                      onChange={(e) => setCountry(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {step === 4 && (
               <dl className="grid gap-2 rounded-lg border border-border bg-muted/30 p-4 text-sm sm:grid-cols-2">
                 <div>
@@ -666,9 +666,9 @@ export function NewReservationDialog({
                 <Button
                   onClick={() => setStep((step + 1) as Step)}
                   disabled={
-                    (step === 1 && !guestValid) ||
-                    (step === 2 && !stayValid) ||
-                    (step === 3 && !roomSlug)
+                    (step === 1 && !stayValid) ||
+                    (step === 2 && !roomSlug) ||
+                    (step === 3 && !guestValid)
                   }
                 >
                   Continue
