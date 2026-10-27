@@ -21,7 +21,7 @@ export const Route = createRootRoute({
   ], links:[
     { rel:"stylesheet", href:appCss }, { rel:"icon", href:"/favicon.ico", sizes:"any" }, { rel:"manifest", href:"/site.webmanifest" },
     { rel:"preconnect", href:"https://fonts.googleapis.com" }, { rel:"preconnect", href:"https://fonts.gstatic.com", crossOrigin:"anonymous" },
-    { rel:"stylesheet", href:"https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" }
+    { rel:"stylesheet", href:"https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" }
   ], scripts:[{type:"text/javascript",children:"(function(){try{if(location.pathname.indexOf('/admin')!==0)return;var p=localStorage.getItem('staynas-os.theme')||'system';var d=p==='dark'||(p==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-os-theme',d?'dark':'light');}catch(e){}})();"}] }),
   shellComponent: RootShell, component: RootComponent, notFoundComponent: NotFoundComponent,
 });
