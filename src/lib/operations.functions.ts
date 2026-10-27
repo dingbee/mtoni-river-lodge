@@ -590,6 +590,76 @@ export const saveRecurringCalendarException = createServerFn({ method: "POST" })
     return row;
   });
 
+export const saveCalendarRule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    propertyId: z.string().uuid(),
+    ruleKey: z.enum([
+      "booking_lead_time", "blackout_windows", "staff_conflict_policy",
+      "maintenance_buffer_minutes", "housekeeping_turnaround_minutes", "notification_preferences",
+    ]),
+    config: z.record(z.string(), z.unknown()),
+    enabled: z.boolean().default(true),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
+    await assertStaff(context.supabase, context.userId);
+    const sb: any = context.supabase;
+    const [{ data: canManage, error: roleError }, { data: hasAccess, error: accessError }] = await Promise.all([
+      sb.rpc("has_any_role", { _user_id: context.userId, _roles: ["owner", "manager", "admin"] }),
+      sb.rpc("staynas_user_has_property_access", { _uid: context.userId, _property_id: data.propertyId }),
+    ]);
+    if (roleError) throw new Error(roleError.message);
+    if (accessError) throw new Error(accessError.message);
+    if (!canManage) throw new Error("Only property managers can configure calendar rules");
+    if (!hasAccess) throw new Error("Property access denied");
+
+    const config = data.config as Record<string, unknown>;
+    const isIntegerInRange = (key: string, min: number, max: number) =>
+      Number.isInteger(config[key]) && Number(config[key]) >= min && Number(config[key]) <= max;
+    if (data.ruleKey === "booking_lead_time" && !isIntegerInRange("minutes", 0, 525600)) {
+      throw new Error("Booking lead time requires minutes between 0 and 525600");
+    }
+    if (data.ruleKey === "maintenance_buffer_minutes" && !isIntegerInRange("minutes", 0, 10080)) {
+      throw new Error("Maintenance buffer requires minutes between 0 and 10080");
+    }
+    if (data.ruleKey === "housekeeping_turnaround_minutes" && !isIntegerInRange("minutes", 0, 1440)) {
+      throw new Error("Housekeeping turnaround requires minutes between 0 and 1440");
+    }
+    if (data.ruleKey === "staff_conflict_policy" && !["warn", "prevent"].includes(String(config.policy))) {
+      throw new Error("Staff conflict policy must be warn or prevent");
+    }
+    if (data.ruleKey === "blackout_windows" && (!Array.isArray(config.windows) || config.windows.length > 100)) {
+      throw new Error("Blackout windows must be an array containing at most 100 entries");
+    }
+    if (data.ruleKey === "notification_preferences" &&
+      (typeof config.email !== "boolean" || typeof config.inApp !== "boolean")) {
+      throw new Error("Notification preferences require email and inApp boolean values");
+    }
+
+    const { data: row, error } = await sb.from("staynas_calendar_rules").upsert({
+      property_id: data.propertyId,
+      rule_key: data.ruleKey,
+      config: data.config,
+      enabled: data.enabled,
+      created_by: context.userId,
+      updated_by: context.userId,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "property_id,rule_key" })
+      .select("id,property_id,rule_key,config,enabled,created_at,updated_at").single();
+    if (error) throw new Error(error.message);
+    await logOpsEvent(sb, context.userId, context.claims, {
+      type: "calendar_rule_saved",
+      module: "operations",
+      entityType: "calendar_rule",
+      entityId: row.id,
+      entityLabel: data.ruleKey,
+      meta: { property_id: data.propertyId, rule_key: data.ruleKey, enabled: data.enabled },
+      severity: "audit",
+    });
+    return row;
+  });
+
 // -------------------------------------------------------------- Alerts
 
 export const refreshOpsAlerts = createServerFn({ method: "POST" })
