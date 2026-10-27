@@ -1652,3 +1652,112 @@ body > #root button[aria-label="Open StayNas AI Concierge"]:hover {
 .mtoni-os :is(.os-chip,[class*="os-context-nav"]) {
   border-color: #D1D5DB;
 }
+
+
+/* Enterprise-neutral hardening: preserve the user-selected dark appearance.
+   The light token normalization above must not override the dark theme tokens. */
+html[data-os-theme="dark"] .mtoni-os {
+  --os-canvas: #111827;
+  --os-surface: #1F2937;
+  --os-surface-2: #273449;
+  --os-hairline: #374151;
+  --os-hairline-strong: #4B5563;
+  --os-ink: #F9FAFB;
+  --os-ink-2: #E5E7EB;
+  --os-ink-3: #9CA3AF;
+  --os-green: #F9FAFB;
+  --os-green-soft: #374151;
+  --os-gold: #D1D5DB;
+  --os-gold-soft: #374151;
+  --os-shadow-card: 0 1px 2px rgba(0,0,0,0.18);
+  --os-shadow-float: 0 4px 12px rgba(0,0,0,0.24);
+  --background: #111827;
+  --foreground: #F9FAFB;
+  --card: #1F2937;
+  --card-foreground: #F9FAFB;
+  --popover: #1F2937;
+  --popover-foreground: #F9FAFB;
+  --primary: #F9FAFB;
+  --primary-foreground: #111827;
+  --secondary: #273449;
+  --secondary-foreground: #E5E7EB;
+  --muted: #273449;
+  --muted-foreground: #9CA3AF;
+  --accent: #374151;
+  --accent-foreground: #F9FAFB;
+  --border: #374151;
+  --input: #4B5563;
+  --ring: #D1D5DB;
+  --surface: #1F2937;
+  --surface-elevated: #273449;
+  --surface-muted: #273449;
+  --border-subtle: #374151;
+  --input-foreground: #F9FAFB;
+  --focus: #D1D5DB;
+  background-color: #111827;
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] .mtoni-os :is(.os-card,.os-card-flat,[data-slot="card"],.bg-card) {
+  background-color: #1F2937;
+  border-color: #374151;
+  color: #F9FAFB;
+  box-shadow: none;
+}
+html[data-os-theme="dark"] .mtoni-os :is(input,textarea,select,[role="combobox"]) {
+  background-color: #1F2937;
+  border-color: #4B5563;
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] .mtoni-os :is(button.bg-primary,[class~="bg-primary"]) {
+  background-color: #F9FAFB;
+  color: #111827;
+}
+html[data-os-theme="dark"] .mtoni-os :is(button.bg-primary,[class~="bg-primary"]):hover {
+  background-color: #E5E7EB;
+}
+html[data-os-theme="dark"] .mtoni-os :is(table,thead,tbody,tr,th,td) {
+  border-color: #374151;
+}
+html[data-os-theme="dark"] .mtoni-os :is(.os-chip,[class*="os-context-nav"]) {
+  background-color: #273449;
+  border-color: #4B5563;
+  color: #E5E7EB;
+}
+html[data-os-theme="dark"] .mtoni-os .text-muted-foreground {
+  color: #9CA3AF;
+}
+html[data-os-theme="dark"] .mtoni-os :is(a,button):focus-visible {
+  outline-color: #D1D5DB;
+}
+
+/* Shared operational content guardrails across module routes. */
+.mtoni-os :is(table) {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+}
+.mtoni-os :is(th,td) {
+  overflow-wrap: anywhere;
+}
+.mtoni-os :is(input,textarea,select,[role="combobox"]) {
+  min-width: 0;
+  max-width: 100%;
+}
+.mtoni-os :is(img,video,canvas,svg) {
+  max-width: 100%;
+}
+.mtoni-os :is(.overflow-x-auto,[data-scroll-container]) {
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+@media (max-width: 767px) {
+  .mtoni-os {
+    overflow-wrap: anywhere;
+  }
+  .mtoni-os :is(.os-card,.os-card-flat,[data-slot="card"]) {
+    min-width: 0;
+  }
+  .mtoni-os :is(button,[role="button"],input,select,[role="combobox"]) {
+    min-height: 36px;
+  }
+}
