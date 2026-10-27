@@ -104,21 +104,21 @@ function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-ivory text-charcoal flex items-center justify-center px-4">
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4 py-8">
       <form
         onSubmit={submit}
-        className="w-full max-w-sm rounded-2xl border border-charcoal/10 bg-ivory p-8 shadow-[0_24px_60px_-30px_rgba(30,45,30,0.35)]"
+        className="w-full max-w-sm rounded-lg border border-border bg-card p-6 shadow-sm sm:p-8"
       >
-        <p className="inline-flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-charcoal/60">
-          <Leaf className="h-3 w-3" style={{ color: "#0F3D3A" }} /> Staff Portal
+        <p className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          <Leaf className="h-4 w-4 text-primary" /> Staff Portal
         </p>
 
-        <h1 className="mt-3 font-display text-2xl">Sign in</h1>
-        <p className="mt-1 text-xs text-charcoal/60">Reservations & admin access only.</p>
+        <h1 className="mt-3 text-2xl font-semibold tracking-tight">Sign in</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Reservations & admin access only.</p>
 
         <div className="mt-6 space-y-4">
           <div>
-            <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">
+            <label className="text-sm font-medium text-foreground">
               Email
             </label>
             <input
@@ -127,7 +127,7 @@ function AuthPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal"
+              className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
 
@@ -149,8 +149,7 @@ function AuthPage() {
         <button
           type="submit"
           disabled={loading || resetting}
-          className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60"
-          style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
+          className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
           Sign in
@@ -160,14 +159,14 @@ function AuthPage() {
           type="button"
           onClick={resetPassword}
           disabled={loading || resetting}
-          className="mt-3 block w-full text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal disabled:opacity-60"
+          className="mt-3 block w-full text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-60"
         >
           {resetting ? "Sending reset link…" : "Forgot password?"}
         </button>
 
         <Link
           to="/"
-          className="mt-4 block text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal"
+          className="mt-4 block text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
         >
           ← Back to website
         </Link>
