@@ -110,9 +110,9 @@ BEGIN
     t.title,
     CASE
       WHEN t.status::text = 'in_progress'
-        AND COALESCE(t.started_at, t.due_at, t.created_at) < (_from::timestamp AT TIME ZONE _timezone)
+        AND COALESCE(t.due_at, t.created_at) < (_from::timestamp AT TIME ZONE _timezone)
       THEN (_from::timestamp AT TIME ZONE _timezone)
-      ELSE COALESCE(t.started_at, t.due_at, t.created_at)
+      ELSE COALESCE(t.due_at, t.created_at)
     END,
     COALESCE(t.completed_at, CASE WHEN t.status::text = 'in_progress' THEN now() ELSE COALESCE(t.due_at, t.started_at, t.created_at) + interval '30 minutes' END),
     false,
@@ -129,41 +129,17 @@ BEGIN
   WHERE rs.property_id = _property_id
     AND t.category IN ('housekeeping','maintenance')
     AND t.status::text <> 'cancelled'
-    AND COALESCE(t.started_at, t.due_at, t.created_at) < (_to::timestamp AT TIME ZONE _timezone)
+    AND COALESCE(t.due_at, t.created_at) < (_to::timestamp AT TIME ZONE _timezone)
     AND (
       (
-        (COALESCE(t.started_at, t.due_at, t.created_at) AT TIME ZONE _timezone)::date >= _from
-        AND (COALESCE(t.started_at, t.due_at, t.created_at) AT TIME ZONE _timezone)::date < _to
+        (COALESCE(t.due_at, t.created_at) AT TIME ZONE _timezone)::date >= _from
+        AND (COALESCE(t.due_at, t.created_at) AT TIME ZONE _timezone)::date < _to
       )
       OR (
         t.status::text = 'in_progress'
         AND COALESCE(t.completed_at, now()) > (_from::timestamp AT TIME ZONE _timezone)
       )
     )
-
-  UNION ALL
-
-  SELECT
-    e.id,
-    CASE WHEN e.exception_type = 'maintenance' THEN 'maintenance' ELSE 'housekeeping' END,
-    e.title,
-    GREATEST(e.created_at, (_from::timestamp AT TIME ZONE _timezone)),
-    COALESCE(e.resolved_at, now(), e.updated_at, e.created_at) + interval '30 minutes',
-    false,
-    e.status,
-    rs.room_id,
-    rs.id,
-    rs.booking_id,
-    e.assigned_to,
-    'housekeeping_exception'::text,
-    e.id,
-    e.notes
-  FROM public.housekeeping_exceptions e
-  JOIN public.room_states rs ON rs.id = e.room_state_id
-  WHERE rs.property_id = _property_id
-    AND e.status = 'open'
-    AND e.created_at < (_to::timestamp AT TIME ZONE _timezone)
-    AND COALESCE(e.resolved_at, now()) >= (_from::timestamp AT TIME ZONE _timezone)
 
   UNION ALL
 
@@ -187,6 +163,7 @@ BEGIN
     AND s.status <> 'cancelled'
     AND s.starts_at < (_to::timestamp AT TIME ZONE _timezone)
     AND s.ends_at > (_from::timestamp AT TIME ZONE _timezone)
+    AND public.staynas_user_has_property_access(s.staff_user_id, _property_id)
     AND (
       s.staff_user_id = _uid
       OR public.has_any_role(_uid, ARRAY['owner','manager','admin']::public.app_role[])
