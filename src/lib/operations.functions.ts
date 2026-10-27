@@ -527,6 +527,69 @@ export const getRecurringCalendarOccurrences = createServerFn({ method: "GET" })
     return rows ?? [];
   });
 
+export const saveRecurringCalendarException = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    propertyId: z.string().uuid(),
+    seriesId: z.string().uuid(),
+    occurrenceDate: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/),
+    exceptionType: z.enum(["cancelled", "override"]),
+    title: z.string().trim().min(2).max(160).optional(),
+    notes: z.string().max(1000).optional(),
+    startsAt: z.string().datetime().optional(),
+    endsAt: z.string().datetime().optional(),
+  }).superRefine((value, ctx) => {
+    if (value.exceptionType === "override" && (!value.startsAt || !value.endsAt || Date.parse(value.endsAt) <= Date.parse(value.startsAt))) {
+      ctx.addIssue({ code: "custom", path: ["endsAt"], message: "An override requires a valid start and end" });
+    }
+    if (value.exceptionType === "cancelled" && (value.startsAt || value.endsAt)) {
+      ctx.addIssue({ code: "custom", path: ["startsAt"], message: "Cancelled occurrences cannot have replacement times" });
+    }
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
+    await assertStaff(context.supabase, context.userId);
+    const sb: any = context.supabase;
+    const [{ data: canManage, error: roleError }, { data: hasAccess, error: accessError }] = await Promise.all([
+      sb.rpc("has_any_role", { _user_id: context.userId, _roles: ["owner", "manager", "admin"] }),
+      sb.rpc("staynas_user_has_property_access", { _uid: context.userId, _property_id: data.propertyId }),
+    ]);
+    if (roleError) throw new Error(roleError.message);
+    if (accessError) throw new Error(accessError.message);
+    if (!canManage) throw new Error("Only property managers can change recurring occurrences");
+    if (!hasAccess) throw new Error("Property access denied");
+    const { data: series, error: seriesError } = await sb.from("staynas_calendar_schedule_series")
+      .select("id,property_id,starts_on,ends_on,status").eq("id", data.seriesId).eq("property_id", data.propertyId).maybeSingle();
+    if (seriesError) throw new Error(seriesError.message);
+    if (!series || series.status !== "active") throw new Error("Active recurring schedule not found");
+    if (data.occurrenceDate < series.starts_on || (series.ends_on && data.occurrenceDate > series.ends_on)) {
+      throw new Error("Occurrence date is outside this recurring schedule");
+    }
+    const { data: row, error } = await sb.from("staynas_calendar_schedule_exceptions").upsert({
+      series_id: data.seriesId,
+      occurrence_date: data.occurrenceDate,
+      exception_type: data.exceptionType,
+      title: data.exceptionType === "override" ? data.title?.trim() || null : null,
+      notes: data.notes?.trim() || null,
+      starts_at: data.exceptionType === "override" ? data.startsAt : null,
+      ends_at: data.exceptionType === "override" ? data.endsAt : null,
+      created_by: context.userId,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "series_id,occurrence_date" })
+      .select("id,series_id,occurrence_date,exception_type,title,notes,starts_at,ends_at").single();
+    if (error) throw new Error(error.message);
+    await logOpsEvent(sb, context.userId, context.claims, {
+      type: "calendar_recurring_exception_saved",
+      module: "operations",
+      entityType: "calendar_schedule_exception",
+      entityId: row.id,
+      entityLabel: data.occurrenceDate,
+      meta: { property_id: data.propertyId, series_id: data.seriesId, exception_type: data.exceptionType },
+      severity: "audit",
+    });
+    return row;
+  });
+
 // -------------------------------------------------------------- Alerts
 
 export const refreshOpsAlerts = createServerFn({ method: "POST" })
