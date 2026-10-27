@@ -1761,3 +1761,56 @@ html[data-os-theme="dark"] .mtoni-os :is(a,button):focus-visible {
     min-height: 36px;
   }
 }
+
+
+/* Enterprise-neutral dropdown palette: native selects and Radix menus.
+   Keep selected/highlighted options on the shared charcoal/grey system,
+   not the legacy clay/gold accent. */
+.mtoni-os select {
+  color-scheme: light;
+  accent-color: #111827;
+  background-color: #FFFFFF;
+  color: #111827;
+}
+.mtoni-os select option,
+.mtoni-os select optgroup {
+  background-color: #FFFFFF;
+  color: #111827;
+}
+.mtoni-os select option:checked {
+  background: #111827 linear-gradient(0deg, #111827 0%, #111827 100%);
+  color: #FFFFFF;
+}
+.mtoni-os :is([role="option"],[role="menuitem"],[data-radix-select-item],[data-radix-menu-item])[data-highlighted],
+.mtoni-os :is([role="option"],[role="menuitem"],[data-radix-select-item],[data-radix-menu-item]):focus,
+.mtoni-os :is([role="option"],[role="menuitem"],[data-radix-select-item],[data-radix-menu-item])[data-state="checked"] {
+  background-color: #E5E7EB;
+  color: #111827;
+}
+.mtoni-os :is([role="option"],[data-radix-select-item])[aria-selected="true"] {
+  background-color: #111827;
+  color: #FFFFFF;
+}
+html[data-os-theme="dark"] .mtoni-os select {
+  color-scheme: dark;
+  background-color: #1F2937;
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] .mtoni-os select option,
+html[data-os-theme="dark"] .mtoni-os select optgroup {
+  background-color: #1F2937;
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] .mtoni-os select option:checked {
+  background: #F9FAFB linear-gradient(0deg, #F9FAFB 0%, #F9FAFB 100%);
+  color: #111827;
+}
+html[data-os-theme="dark"] .mtoni-os :is([role="option"],[role="menuitem"],[data-radix-select-item],[data-radix-menu-item])[data-highlighted],
+html[data-os-theme="dark"] .mtoni-os :is([role="option"],[role="menuitem"],[data-radix-select-item],[data-radix-menu-item]):focus {
+  background-color: #374151;
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] .mtoni-os :is([role="option"],[data-radix-select-item])[aria-selected="true"] {
+  background-color: #F9FAFB;
+  color: #111827;
+}
