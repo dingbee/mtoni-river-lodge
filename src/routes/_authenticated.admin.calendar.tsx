@@ -65,7 +65,7 @@ function dateInTimezone(value: string, timezone: string) {
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
 function propertyLocalDateTimeToIso(value: string, timezone: string) {
-  const match = /^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2})$/.exec(value);
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
   if (!match) throw new Error("Enter a valid property-local date and time");
   const desired = { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]), hour: Number(match[4]), minute: Number(match[5]) };
   const target = Date.UTC(desired.year, desired.month - 1, desired.day, desired.hour, desired.minute);
