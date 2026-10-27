@@ -114,19 +114,19 @@ BEGIN
       THEN (_from::timestamp AT TIME ZONE _timezone)
       ELSE COALESCE(t.due_at, t.created_at)
     END,
-    COALESCE(t.completed_at, CASE WHEN t.status::text = 'in_progress' THEN now() ELSE COALESCE(t.due_at, t.started_at, t.created_at) + interval '30 minutes' END),
+    COALESCE(t.completed_at, CASE WHEN t.status::text = 'in_progress' THEN now() ELSE COALESCE(t.due_at, t.created_at, t.created_at) + interval '30 minutes' END),
     false,
     t.status::text,
-    rs.room_id,
-    rs.id,
+    b.room_id,
+    NULL::uuid,
     t.booking_id,
     COALESCE(t.assignee_id, t.assigned_to),
     'ops_task'::text,
     t.id,
     t.description
   FROM public.ops_tasks t
-  JOIN public.room_states rs ON rs.id = t.room_state_id
-  WHERE rs.property_id = _property_id
+  JOIN public.bookings b ON b.id = t.booking_id AND b.property_id = _property_id
+  WHERE t.booking_id IS NOT NULL
     AND t.category IN ('housekeeping','maintenance')
     AND t.status::text <> 'cancelled'
     AND COALESCE(t.due_at, t.created_at) < (_to::timestamp AT TIME ZONE _timezone)
