@@ -100,7 +100,7 @@ BEGIN
         OR
         (s.frequency = 'weekly'
           AND mod(floor(((d::date - (s.starts_on - ((extract(dow FROM s.starts_on)::integer + 6) % 7)))::numeric) / 7)::integer, s.interval_count) = 0
-          AND extract(isodow FROM d)::smallint = ANY(s.days_of_week))
+          AND extract(dow FROM d)::smallint = ANY(s.days_of_week))
       )
   ), upserted AS (
     INSERT INTO public.staynas_calendar_schedule_occurrences (
