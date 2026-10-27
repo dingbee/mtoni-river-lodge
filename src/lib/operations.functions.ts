@@ -124,14 +124,16 @@ export const updateRoomState = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const housekeepingStates = new Set(["vacant_dirty", "inspection", "vacant_clean", "maintenance", "out_of_service"]);
-    if (housekeepingStates.has(data.state)) {
-      throw new Error("Housekeeping room-readiness states must be changed through the governed Housekeeping workflow.");
-    }
     const { data: prev } = await sb.from("room_states").select("state, unit_label").eq("id", data.id).maybeSingle();
-    const { error } = await sb.from("room_states")
-      .update({ state: data.state, state_note: data.note ?? null, updated_by: context.userId })
-      .eq("id", data.id);
+    if (!prev) throw new Error("Room state not found or not accessible");
+    // Use the canonical Housekeeping transition RPC so calendar changes obey
+    // the same transition graph, role checks and audit/idempotency rules.
+    const { error } = await sb.rpc("housekeeping_transition_room_state", {
+      _room_state_id: data.id,
+      _to_state: data.state,
+      _note: data.note ?? null,
+      _idempotency_key: `calendar-room-state:${data.id}:${data.state}:${Date.now()}`,
+    });
     if (error) throw new Error(error.message);
     await logOpsEvent(sb, context.userId, context.claims, {
       type: "room.state_changed",
@@ -296,31 +298,141 @@ export const checkOutBooking = createServerFn({ method: "POST" })
 export const getOpsCalendar = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({
+    propertyId: z.string().uuid(),
     from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
+    if (data.to <= data.from) throw new Error("Calendar end date must be after start date");
+    if ((Date.parse(`${data.to}T00:00:00Z`) - Date.parse(`${data.from}T00:00:00Z`)) / 86400000 > 93) throw new Error("Calendar range cannot exceed 93 days");
     const sb: any = context.supabase;
-    const [roomsRes, bookingsRes, invRes] = await Promise.all([
-      sb.from("rooms").select("id, slug, name, total_units").order("sort_order"),
+    const { data: hasAccess, error: accessError } = await sb.rpc("staynas_user_has_property_access", {
+      _uid: context.userId,
+      _property_id: data.propertyId,
+    });
+    if (accessError) throw new Error(accessError.message);
+    if (!hasAccess) throw new Error("Property access denied");
+
+    const { data: rooms, error: roomsError } = await sb
+      .from("rooms")
+      .select("id, slug, name, total_units")
+      .eq("property_id", data.propertyId)
+      .order("sort_order");
+    if (roomsError) throw new Error(roomsError.message);
+    const roomIds = (rooms ?? []).map((room: any) => room.id);
+
+    const [bookingsRes, invRes, operationalRes, roomStatesRes] = await Promise.all([
       sb.from("bookings")
-        .select("id, reference, guest_name, check_in, check_out, status, room_id")
+        .select("id, reference, guest_name, check_in, check_out, status, room_id, property_id, guest_type")
+        .eq("property_id", data.propertyId)
         .in("status", ["confirmed", "checked_in", "completed"])
-        .lte("check_in", data.to)
-        .gte("check_out", data.from)
+        .lt("check_in", data.to)
+        .gt("check_out", data.from)
         .order("check_in"),
-      sb.from("room_inventory")
-        .select("room_id, date, available_units, is_blocked, price_override")
-        .gte("date", data.from).lte("date", data.to),
+      roomIds.length
+        ? sb.from("room_inventory")
+            .select("room_id, date, available_units, is_blocked, price_override")
+            .in("room_id", roomIds)
+            .gte("date", data.from)
+            .lt("date", data.to)
+        : Promise.resolve({ data: [], error: null }),
+      sb.rpc("staynas_calendar_operational_events", {
+        _property_id: data.propertyId,
+        _from: data.from,
+        _to: data.to,
+      }),
+      roomIds.length
+        ? sb.from("room_states")
+            .select("id, room_id, unit_label, state, state_note, booking_id, updated_at")
+            .in("room_id", roomIds)
+            .order("unit_label")
+        : Promise.resolve({ data: [], error: null }),
     ]);
+    if (bookingsRes.error) throw new Error(bookingsRes.error.message);
+    if (invRes.error) throw new Error(invRes.error.message);
+    if (operationalRes.error) throw new Error(operationalRes.error.message);
+    if (roomStatesRes.error) throw new Error(roomStatesRes.error.message);
+    const roomById = new Map((rooms ?? []).map((room: any) => [room.id, room]));
+
     return {
-      rooms: roomsRes.data ?? [],
+      rooms: rooms ?? [],
       bookings: bookingsRes.data ?? [],
       inventory: invRes.data ?? [],
-      // TODO: drag-and-drop reassignment (future sprint)
+      operationalEvents: operationalRes.data ?? [],
+      roomStates: (roomStatesRes.data ?? []).map((unit: any) => ({
+        ...unit,
+        room: roomById.get(unit.room_id) ?? null,
+      })),
     };
+  });
+
+export const listCalendarStaff = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ propertyId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
+    await assertStaff(context.supabase, context.userId);
+    const sb: any = context.supabase;
+    const { data: hasAccess, error: accessError } = await sb.rpc("staynas_user_has_property_access", {
+      _uid: context.userId,
+      _property_id: data.propertyId,
+    });
+    if (accessError) throw new Error(accessError.message);
+    if (!hasAccess) throw new Error("Property access denied");
+    const { data: canManage, error: roleError } = await sb.rpc("has_any_role", {
+      _user_id: context.userId,
+      _roles: ["owner", "manager", "admin"],
+    });
+    if (roleError) throw new Error(roleError.message);
+    if (!canManage) return { canManage: false, staff: [] as Array<{ user_id: string; email: string }> };
+    const { data: staff, error } = await sb.rpc("staynas_calendar_list_staff", { _property_id: data.propertyId });
+    if (error) throw new Error(error.message);
+    return { canManage: true, staff: (staff ?? []) as Array<{ user_id: string; email: string }> };
+  });
+
+export const createCalendarStaffSchedule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    propertyId: z.string().uuid(),
+    staffUserId: z.string().uuid(),
+    title: z.string().trim().min(2).max(160),
+    startsAt: z.string().datetime(),
+    endsAt: z.string().datetime(),
+    notes: z.string().max(1000).optional(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
+    await assertStaff(context.supabase, context.userId);
+    if (Date.parse(data.endsAt) <= Date.parse(data.startsAt)) {
+      throw new Error("Schedule end must be after its start");
+    }
+    const sb: any = context.supabase;
+    const { data: canManage, error: roleError } = await sb.rpc("has_any_role", {
+      _user_id: context.userId,
+      _roles: ["owner", "manager", "admin"],
+    });
+    if (roleError) throw new Error(roleError.message);
+    if (!canManage) throw new Error("Only property managers can schedule staff");
+    const { data: hasAccess, error: accessError } = await sb.rpc("staynas_user_has_property_access", {
+      _uid: context.userId,
+      _property_id: data.propertyId,
+    });
+    if (accessError) throw new Error(accessError.message);
+    if (!hasAccess) throw new Error("Property access denied");
+
+    const { data: row, error } = await sb.from("staynas_staff_schedules").insert({
+      property_id: data.propertyId,
+      staff_user_id: data.staffUserId,
+      title: data.title,
+      starts_at: data.startsAt,
+      ends_at: data.endsAt,
+      notes: data.notes?.trim() || null,
+      created_by: context.userId,
+    }).select("id, staff_user_id, title, starts_at, ends_at, status, notes").single();
+    if (error) throw new Error(error.message);
+    return row;
   });
 
 // -------------------------------------------------------------- Alerts
