@@ -1,10 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { listBookings, getBookingDetail, updateBookingStatus } from "@/lib/admin.functions";
-import { Loader2, Plus } from "lucide-react";
+import { ArrowUpRight, CalendarDays, CheckCircle2, Clock3, Loader2, Plus, Users } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { Button } from "@/components/ui/button";
@@ -80,16 +80,41 @@ function AdminBookings() {
     }).format(n);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
-        title="Bookings"
-        description="Every direct reservation, its payment state and status history."
+        title="Reservations"
+        description="Manage bookings, room availability and guest stays in one workspace."
         actions={
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> New reservation
           </Button>
         }
       />
+
+      <div className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-muted/30 p-1" aria-label="Reservations workspace navigation">
+        <Link to="/admin/bookings" className="inline-flex items-center gap-2 rounded-lg bg-card px-4 py-2 text-sm font-semibold text-[color:var(--os-success)] shadow-sm" aria-current="page">
+          <Users className="h-4 w-4" /> Reservations list
+        </Link>
+        <Link to="/admin/calendar" className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-card hover:text-foreground">
+          <CalendarDays className="h-4 w-4" /> Room calendar <ArrowUpRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+
+      {bookings.data && (
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          {[
+            { label: "Arrivals today", value: bookings.data.filter((b: any) => b.check_in === new Date().toLocaleDateString("en-CA")).length, icon: Users, tone: "text-emerald-700 bg-emerald-50" },
+            { label: "Departures today", value: bookings.data.filter((b: any) => b.check_out === new Date().toLocaleDateString("en-CA")).length, icon: ArrowUpRight, tone: "text-amber-700 bg-amber-50" },
+            { label: "Confirmed stays", value: bookings.data.filter((b: any) => b.status === "confirmed").length, icon: CheckCircle2, tone: "text-sky-700 bg-sky-50" },
+            { label: "Pending reservations", value: bookings.data.filter((b: any) => b.status === "pending").length, icon: Clock3, tone: "text-orange-700 bg-orange-50" },
+          ].map((metric) => (
+            <div key={metric.label} className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <span className={"flex h-10 w-10 shrink-0 items-center justify-center rounded-full " + metric.tone}><metric.icon className="h-5 w-5" /></span>
+              <span className="min-w-0"><span className="block truncate text-xs text-muted-foreground">{metric.label}</span><span className="mt-0.5 block text-2xl font-semibold tracking-tight">{metric.value}</span></span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <NewReservationDialog
         open={createOpen}
@@ -100,8 +125,8 @@ function AdminBookings() {
       />
 
       <SectionCard
-        title="Filters"
-        description="Narrow the reservation book by status, payment and arrival window."
+        title="Find a reservation"
+        description="Filter by reservation status, payment state and arrival dates."
       >
         <div className="flex flex-wrap items-end gap-3">
           <div>
