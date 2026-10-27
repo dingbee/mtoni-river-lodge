@@ -1613,3 +1613,42 @@ body > #root button[aria-label="Open StayNas AI Concierge"]:hover {
 .mtoni-os .text-9xl { font-size: 1.875rem; line-height: 1.25; }
 .mtoni-os p { line-height: 1.55; }
 .mtoni-os :is(label,button,input,textarea,select) { font-family: "Inter", "Helvetica Neue", system-ui, sans-serif; }
+
+
+/* Enterprise Neutral — authoritative OS tokens for every admin module.
+   The older adaptive-theme block below the base tokens re-declared these
+   --os-* variables, so the landing/global palette changed while module
+   components that consume --os-ink/--os-green/--os-canvas kept the legacy
+   palette. Keep the OS token layer aligned with the shared semantic tokens. */
+.mtoni-os {
+  --os-canvas: #F3F4F6;
+  --os-surface: #FFFFFF;
+  --os-surface-2: #FFFFFF;
+  --os-hairline: #D1D5DB;
+  --os-hairline-strong: #9CA3AF;
+  --os-ink: #111827;
+  --os-ink-2: #374151;
+  --os-ink-3: #6B7280;
+  --os-green: #111827;
+  --os-green-soft: #F3F4F6;
+  --os-gold: #4B5563;
+  --os-gold-soft: #F3F4F6;
+  --os-shadow-card: 0 1px 2px rgba(17,24,39,0.04);
+  --os-shadow-float: 0 4px 12px rgba(17,24,39,0.08);
+  --surface: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --surface-muted: #F3F4F6;
+  --border-subtle: #D1D5DB;
+  --input-foreground: #111827;
+  --focus: #374151;
+}
+.mtoni-os :is(.os-card,.os-card-flat,[data-slot="card"],.bg-card) {
+  background-color: #FFFFFF;
+  border-color: #D1D5DB;
+  color: #111827;
+  border-radius: 8px;
+  box-shadow: none;
+}
+.mtoni-os :is(.os-chip,[class*="os-context-nav"]) {
+  border-color: #D1D5DB;
+}
