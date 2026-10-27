@@ -150,18 +150,18 @@ function UnifiedCalendarPage() {
   });
 
   const ops = useQuery({
-    queryKey: ["calendar", "ops", range.from, range.to],
-    queryFn: () => fetchOps({ data: { from: range.from, to: range.to } }),
+    queryKey: ["calendar", "ops", property.id, range.from, range.to],
+    queryFn: () => fetchOps({ data: { propertyId: property.id, from: range.from, to: range.to } }),
     staleTime: 30_000,
   });
   const holds = useQuery({
-    queryKey: ["calendar", "holds", range.from, range.to],
-    queryFn: () => fetchHolds({ data: { from: range.from, to: range.to } }),
+    queryKey: ["calendar", "holds", property.id, range.from, range.to],
+    queryFn: () => fetchHolds({ data: { propertyId: property.id, from: range.from, to: range.to } }),
     refetchInterval: 30_000,
   });
   const events = useQuery({
-    queryKey: ["calendar", "events", range.from, range.to],
-    queryFn: () => fetchEvents({ data: { limit: 50 } }),
+    queryKey: ["calendar", "events", property.id, range.from, range.to],
+    queryFn: () => fetchEvents({ data: { propertyId: property.id, from: range.from, to: range.to, limit: 50 } }),
     refetchInterval: 60_000,
   });
 
