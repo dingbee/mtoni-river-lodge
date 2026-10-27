@@ -21,7 +21,7 @@ describe("calendar recurrence", () => {
 
   it("honours interval counts and end dates", () => {
     const result = expandRecurringSchedule({
-      ...base, intervalCount: 2, endsOn: "2026-11-08",
+      ...base, intervalCount: 2, endsOn: "2026-11-13",
     }, "2026-10-26", "2026-11-16");
     expect(result.map((item) => item.occurrenceDate)).toEqual([
       "2026-10-26", "2026-10-28", "2026-10-30", "2026-11-09", "2026-11-11", "2026-11-13",
