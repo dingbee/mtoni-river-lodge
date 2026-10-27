@@ -51,7 +51,7 @@
   --color-focus: var(--focus);
 
   --color-ivory: var(--ivory);
-  --color-burgundy: #6C151E;
+  --color-burgundy: #B47A45;
   --color-bone: var(--bone);
   --color-clay: var(--clay);
   --color-ember: var(--ember);
@@ -71,21 +71,21 @@
      Token names retained for backward compatibility with existing
      class names (bg-ivory, bg-bone, text-charcoal, bg-charcoal,
      text-ivory, etc.) — only the values are refreshed. */
-  --ivory: #F5DABF;        /* dominant background + light text on dark */
-  --bone: #F9E8D5;         /* alternate sections, cards, content blocks */
-  --clay: #6C151E;         /* StayNas burgundy accent */
-  --ember: #6C151E;        /* accent alias */
-  --gold: #6C151E;         /* accent alias */
-  --river: #5C5854;        /* muted secondary text */
-  --forest: #0F3D3A;       /* deep green hover */
-  --charcoal: #171514;     /* primary text + black luxe surfaces */
-  --green: #0F3D3A;        /* StayNas primary deep green */
+  --ivory: #F7F7F3;        /* dominant background + light text on dark */
+  --bone: #EEEFE8;         /* alternate sections, cards, content blocks */
+  --clay: #B47A45;         /* StayNas burgundy accent */
+  --ember: #B47A45;        /* accent alias */
+  --gold: #B47A45;         /* accent alias */
+  --river: #68716B;        /* muted secondary text */
+  --forest: #202C29;       /* deep green hover */
+  --charcoal: #202522;     /* primary text + black luxe surfaces */
+  --green: #202C29;        /* StayNas primary deep green */
 
   --background: var(--ivory);
   --foreground: var(--charcoal);
-  --card: #FFFFFF;
+  --card: #FDFDF9;
   --card-foreground: var(--charcoal);
-  --popover: #FFFFFF;
+  --popover: #FDFDF9;
   --popover-foreground: var(--charcoal);
   --primary: var(--green);
   --primary-foreground: #FFFFFF;
@@ -1055,3 +1055,492 @@
 /* ---------- Colour-scheme hint (native controls, scrollbars) ---------- */
 [data-os-theme="dark"] { color-scheme: dark; }
 [data-os-theme="light"] { color-scheme: light; }
+
+
+/* ============================================================
+   STAYNAS REFINED OPERATIONS — UI FOUNDATION (v1)
+   Scoped to the authenticated operations shell. Public booking
+   and marketing pages retain their existing visual system.
+   ============================================================ */
+.mtoni-os {
+  --os-canvas: #F7F7F3;
+  --os-surface: #FFFFFF;
+  --os-surface-2: #F1F2ED;
+  --os-hairline: rgba(32, 44, 41, 0.09);
+  --os-hairline-strong: rgba(32, 44, 41, 0.15);
+  --os-ink: #202C29;
+  --os-ink-2: #4F5B55;
+  --os-ink-3: #707A73;
+  --os-green: #263D33;
+  --os-green-soft: rgba(38, 61, 51, 0.09);
+  --os-gold: #B47A45;
+  --os-gold-soft: rgba(180, 122, 69, 0.13);
+  --os-info: #426B83;
+  --os-info-soft: rgba(66, 107, 131, 0.10);
+  --os-warn: #9A6A2F;
+  --os-warn-soft: rgba(154, 106, 47, 0.12);
+  --os-danger: #A84842;
+  --os-danger-soft: rgba(168, 72, 66, 0.10);
+  --os-success: #397451;
+  --os-success-soft: rgba(57, 116, 81, 0.10);
+  --os-shadow-card: 0 1px 2px rgba(32, 44, 41, 0.035), 0 8px 24px -18px rgba(32, 44, 41, 0.18);
+  --os-shadow-float: 0 16px 40px -20px rgba(32, 44, 41, 0.22);
+
+  --background: var(--os-canvas);
+  --foreground: var(--os-ink);
+  --card: var(--os-surface);
+  --card-foreground: var(--os-ink);
+  --popover: var(--os-surface);
+  --popover-foreground: var(--os-ink);
+  --primary: var(--os-green);
+  --primary-foreground: #FFFFFF;
+  --secondary: var(--os-surface-2);
+  --secondary-foreground: var(--os-ink);
+  --muted: var(--os-surface-2);
+  --muted-foreground: var(--os-ink-3);
+  --accent: var(--os-gold-soft);
+  --accent-foreground: var(--os-ink);
+  --border: var(--os-hairline);
+  --input: var(--os-hairline-strong);
+  --ring: var(--os-green);
+
+  background: var(--os-canvas);
+  color: var(--os-ink);
+  font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  font-feature-settings: "ss01", "cv11", "tnum";
+  -webkit-font-smoothing: antialiased;
+}
+
+.mtoni-os :is(h1, h2, h3, h4, .font-display) {
+  font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  font-weight: 600;
+  overflow-wrap: normal;
+  hyphens: manual;
+}
+.mtoni-os h1, .mtoni-os .text-4xl { font-size: clamp(1.5rem, 1.25rem + 0.7vw, 1.875rem); line-height: 1.25; }
+.mtoni-os h2, .mtoni-os .text-3xl { font-size: clamp(1.25rem, 1.1rem + 0.45vw, 1.5rem); line-height: 1.3; }
+.mtoni-os h3, .mtoni-os .text-2xl { font-size: 1.125rem; line-height: 1.35; }
+.mtoni-os .text-5xl, .mtoni-os .text-6xl, .mtoni-os .text-7xl,
+.mtoni-os .text-8xl, .mtoni-os .text-9xl { font-size: 1.5rem; line-height: 1.3; }
+.mtoni-os p { line-height: 1.55; }
+.mtoni-os .os-card, .mtoni-os .os-card-flat,
+.mtoni-os [data-slot="card"], .mtoni-os .bg-card {
+  border-radius: 12px;
+  border-color: var(--os-hairline);
+  box-shadow: var(--os-shadow-card);
+}
+.mtoni-os .os-card-flat { box-shadow: none; }
+.mtoni-os :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), textarea, select, [role="combobox"]) {
+  min-height: 40px;
+  border-radius: 8px;
+  border-color: var(--os-hairline-strong);
+  background: var(--os-surface);
+  color: var(--os-ink);
+}
+.mtoni-os :is(input, textarea, select)::placeholder { color: var(--os-ink-3); opacity: 1; }
+.mtoni-os :is(input, textarea, select):disabled { opacity: 0.62; cursor: not-allowed; }
+.mtoni-os textarea { min-height: 96px; }
+.mtoni-os :is(button, [role="button"]) { border-radius: 8px; }
+.mtoni-os table { font-size: 13px; }
+.mtoni-os th { font-size: 11px; letter-spacing: 0.055em; font-weight: 600; }
+.mtoni-os .font-display.text-\[2\.4rem\] { font-size: clamp(1.5rem, 1.3rem + 0.5vw, 1.875rem); line-height: 1.25; font-weight: 600; }
+.mtoni-os .os-chip {
+  padding: 3px 9px;
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  border-color: var(--os-hairline-strong);
+}
+.mtoni-os :is(.text-muted-foreground, [class*="text-[color:var(--os-ink-3)]"]) { color: var(--os-ink-3); }
+.mtoni-os :is(a, button, input, textarea, select) { transition-duration: 160ms; }
+.mtoni-os :is(input, textarea, select, button):focus-visible {
+  outline-color: var(--os-green);
+  outline-offset: 2px;
+}
+.mtoni-os main#admin-main { min-width: 0; }
+@media (max-width: 767px) {
+  .mtoni-os main#admin-main { padding: 16px 14px max(20px, env(safe-area-inset-bottom)); }
+  .mtoni-os .os-hero-bleed { padding: 20px 18px; border-radius: 12px; gap: 16px; }
+  .mtoni-os .os-hero-bleed h1 { font-size: 1.5rem; line-height: 1.25; }
+  .mtoni-os .os-card, .mtoni-os .os-card-flat, .mtoni-os [data-slot="card"] { min-width: 0; }
+  .mtoni-os :is(h1, h2, h3, h4) { overflow-wrap: anywhere; }
+  .mtoni-os table { min-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mtoni-os *, .mtoni-os *::before, .mtoni-os *::after { scroll-behavior: auto !important; }
+}
+
+
+/* Dark appearance uses the same forest/bronze identity, with surfaces
+   and text tuned for low-glare operational work. */
+[data-os-theme="dark"] .mtoni-os {
+  --os-canvas: #171D1A;
+  --os-surface: #1E2622;
+  --os-surface-2: #26302B;
+  --os-hairline: rgba(239, 242, 235, 0.08);
+  --os-hairline-strong: rgba(239, 242, 235, 0.14);
+  --os-ink: #F1F3EE;
+  --os-ink-2: #C1C9C2;
+  --os-ink-3: #98A39B;
+  --os-green: #86A992;
+  --os-green-soft: rgba(134, 169, 146, 0.15);
+  --os-gold: #D2A16D;
+  --os-gold-soft: rgba(210, 161, 109, 0.15);
+  --os-shadow-card: 0 1px 0 rgba(255,255,255,0.025) inset, 0 8px 24px -18px rgba(0,0,0,0.55);
+  --background: var(--os-canvas);
+  --foreground: var(--os-ink);
+  --card: var(--os-surface-2);
+  --card-foreground: var(--os-ink);
+  --popover: #26302B;
+  --popover-foreground: var(--os-ink);
+  --primary: var(--os-green);
+  --primary-foreground: #17221B;
+  --secondary: var(--os-surface-2);
+  --secondary-foreground: var(--os-ink);
+  --muted: rgba(255,255,255,0.04);
+  --muted-foreground: var(--os-ink-3);
+  --accent: rgba(210, 161, 109, 0.12);
+  --accent-foreground: var(--os-ink);
+  --border: var(--os-hairline);
+  --input: var(--os-hairline-strong);
+  --ring: var(--os-green);
+}
+
+
+/* Final module-audit hardening: keep controls legible in both themes,
+   prevent wide operational views from forcing the whole mobile shell
+   wider than the viewport, and respect reduced-motion preferences. */
+[data-os-theme="dark"] .mtoni-os :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), textarea, select, [role="combobox"]) {
+  background: var(--os-surface-2);
+  color: var(--os-ink);
+  border-color: var(--os-hairline-strong);
+}
+[data-os-theme="dark"] .mtoni-os :is(input, textarea, select)::placeholder {
+  color: var(--os-ink-3);
+  opacity: 1;
+}
+.mtoni-os :is([data-slot="table-container"], .table-container, .table-scroll) {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+.mtoni-os :is([data-slot="table-container"], .table-container, .table-scroll) table {
+  min-width: max-content;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mtoni-os *, .mtoni-os *::before, .mtoni-os *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+/* Contrast correction confirmed from the mobile Knowledge Base preview.
+   Radix Select triggers expose role=combobox; force the OS surface tokens
+   in dark mode so global component/background utilities cannot paint them white. */
+[data-os-theme="dark"] .mtoni-os [role="combobox"] {
+  background-color: var(--os-surface-2) !important;
+  color: var(--os-ink) !important;
+  border-color: var(--os-hairline-strong) !important;
+  color-scheme: dark;
+}
+[data-os-theme="dark"] .mtoni-os [role="combobox"] [data-placeholder],
+[data-os-theme="dark"] .mtoni-os [role="combobox"][data-placeholder] {
+  color: var(--os-ink-2) !important;
+  opacity: 1;
+}
+[data-os-theme="dark"] .mtoni-os [role="listbox"],
+[data-os-theme="dark"] .mtoni-os [data-radix-popper-content-wrapper] [role="listbox"] {
+  background-color: var(--os-surface) !important;
+  color: var(--os-ink) !important;
+  border-color: var(--os-hairline-strong) !important;
+}
+
+
+/* StayNas dark-mode select contrast — include Radix trigger and portal
+   surfaces explicitly because their utility classes can otherwise retain
+   a light background even while the surrounding shell is dark. */
+[data-os-theme="dark"] .mtoni-os :is(
+  [data-slot="select-trigger"],
+  [data-slot="select-content"],
+  [data-radix-select-trigger],
+  [role="combobox"]
+) {
+  background-color: var(--os-surface-2) !important;
+  color: var(--os-ink) !important;
+  border-color: var(--os-hairline-strong) !important;
+  color-scheme: dark;
+}
+[data-os-theme="dark"] .mtoni-os :is(
+  [data-slot="select-trigger"],
+  [data-radix-select-trigger],
+  [role="combobox"]
+) [data-placeholder],
+[data-os-theme="dark"] .mtoni-os :is(
+  [data-slot="select-trigger"],
+  [data-radix-select-trigger],
+  [role="combobox"]
+) [data-slot="select-value"] {
+  color: var(--os-ink-2) !important;
+  opacity: 1 !important;
+}
+[data-os-theme="dark"] .mtoni-os [data-radix-popper-content-wrapper] [role="option"],
+[data-os-theme="dark"] .mtoni-os [data-slot="select-item"] {
+  color: var(--os-ink) !important;
+}
+[data-os-theme="dark"] .mtoni-os [data-radix-popper-content-wrapper] [role="option"][data-highlighted],
+[data-os-theme="dark"] .mtoni-os [data-slot="select-item"][data-highlighted] {
+  background-color: var(--os-green-soft) !important;
+  color: var(--os-ink) !important;
+}
+
+
+/* Global contextual navigation system: bounded card containers and
+   individually legible destinations, instead of loose wrapping labels. */
+.mtoni-os .os-context-nav,
+.mtoni-os main#admin-main nav.flex.flex-wrap.gap-1.overflow-x-auto.rounded-lg.border.bg-card.p-1.text-sm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--os-hairline);
+  border-radius: 14px;
+  background: var(--os-surface);
+  box-shadow: var(--os-shadow-card);
+  min-width: 0;
+}
+.mtoni-os .os-context-nav__link,
+.mtoni-os main#admin-main nav.flex.flex-wrap.gap-1.overflow-x-auto.rounded-lg.border.bg-card.p-1.text-sm > a {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: var(--os-ink-2);
+  background: transparent;
+  font-size: 13px;
+  line-height: 1.3;
+  text-decoration: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+.mtoni-os .os-context-nav__link:hover,
+.mtoni-os main#admin-main nav.flex.flex-wrap.gap-1.overflow-x-auto.rounded-lg.border.bg-card.p-1.text-sm > a:hover {
+  color: var(--os-ink);
+  background: var(--os-surface-2);
+}
+.mtoni-os .os-context-nav__link.is-active,
+.mtoni-os main#admin-main nav.flex.flex-wrap.gap-1.overflow-x-auto.rounded-lg.border.bg-card.p-1.text-sm > a[aria-current="page"] {
+  color: var(--os-ink);
+  background: var(--os-green-soft);
+  border-color: color-mix(in srgb, var(--os-green) 42%, transparent);
+  font-weight: 600;
+}
+.mtoni-os .os-context-nav__link:focus-visible,
+.mtoni-os main#admin-main nav.flex.flex-wrap.gap-1.overflow-x-auto.rounded-lg.border.bg-card.p-1.text-sm > a:focus-visible {
+  outline: 2px solid var(--os-green);
+  outline-offset: 2px;
+}
+@media (max-width: 767px) {
+  .mtoni-os .os-context-nav,
+  .mtoni-os main#admin-main nav.flex.flex-wrap.gap-1.overflow-x-auto.rounded-lg.border.bg-card.p-1.text-sm {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 7px;
+  }
+  .mtoni-os .os-context-nav__link,
+  .mtoni-os main#admin-main nav.flex.flex-wrap.gap-1.overflow-x-auto.rounded-lg.border.bg-card.p-1.text-sm > a {
+    min-height: 44px;
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+}
+
+
+/* Global contextual navigation cards — shared by StayNas AI and nested
+   intelligence workspaces. Mobile stays compact and horizontally navigable;
+   larger screens use a tidy card grid instead of floating wrapped labels. */
+.mtoni-os .os-context-nav {
+  min-width: 0;
+  box-shadow: var(--os-shadow-card);
+}
+.mtoni-os .os-context-nav__items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+.mtoni-os .os-context-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--os-hairline);
+  border-radius: 10px;
+  background: var(--os-surface-2);
+  color: var(--os-ink-2);
+  font-size: 13px;
+  line-height: 1.3;
+  text-decoration: none;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+.mtoni-os .os-context-nav__item span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mtoni-os .os-context-nav__item:hover {
+  border-color: var(--os-hairline-strong);
+  background: var(--os-green-soft);
+  color: var(--os-ink);
+}
+.mtoni-os .os-context-nav__item[data-context-active="true"] {
+  border-color: transparent;
+  background: var(--os-green);
+  color: var(--os-surface);
+  font-weight: 600;
+}
+[data-os-theme="dark"] .mtoni-os .os-context-nav__item[data-context-active="true"] {
+  color: #17221B;
+}
+.mtoni-os .os-context-nav__item:focus-visible {
+  outline: 2px solid var(--os-green);
+  outline-offset: 2px;
+}
+@media (max-width: 767px) {
+  .mtoni-os .os-context-nav__items {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 1px 1px 5px;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mtoni-os .os-context-nav__item {
+    flex: 0 0 auto;
+    max-width: 82vw;
+    min-height: 42px;
+    white-space: nowrap;
+    scroll-snap-align: start;
+  }
+  .mtoni-os .os-context-nav__item span {
+    overflow-wrap: normal;
+  }
+  .mtoni-os .os-context-nav__items--compact .os-context-nav__item {
+    padding: 9px 11px;
+  }
+}
+@media (min-width: 768px) {
+  .mtoni-os .os-context-nav__items--compact {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+}
+
+
+/* Unified StayNas visual system — applies to public pages, portal-mounted
+   dialogs/forms, floating concierge launcher and the authenticated OS. */
+:root {
+  --color-burgundy: #B47A45;
+  --primary: #202C29;
+  --primary-foreground: #F7F7F3;
+  --accent: #B47A45;
+  --accent-foreground: #202C29;
+  --ring: #B47A45;
+}
+.dark {
+  --primary: #B47A45;
+  --primary-foreground: #202C29;
+  --accent: rgba(180, 122, 69, 0.18);
+  --accent-foreground: #F7F7F3;
+  --ring: #B47A45;
+}
+/* Radix portals are mounted outside page wrappers; use semantic global
+   tokens so dialogs, sheets, popovers and menus share the brand palette. */
+[data-radix-dialog-content],
+[data-radix-alert-dialog-content],
+[data-radix-popover-content],
+[data-radix-dropdown-menu-content],
+[data-radix-select-content],
+[data-radix-popper-content-wrapper] [role="listbox"] {
+  border-color: var(--border);
+  color: var(--popover-foreground);
+}
+[data-radix-dialog-content],
+[data-radix-alert-dialog-content] {
+  background: var(--background);
+}
+[data-radix-popover-content],
+[data-radix-dropdown-menu-content],
+[data-radix-select-content],
+[data-radix-popper-content-wrapper] [role="listbox"] {
+  background: var(--popover);
+}
+[data-radix-dialog-overlay],
+[data-radix-alert-dialog-overlay] {
+  background: rgb(20 28 24 / 68%);
+}
+
+
+/* Contextual navigation must wrap into a complete card grid on mobile.
+   Horizontal scrolling caused Marketing Intelligence links to end mid-card. */
+.mtoni-os .os-context-nav {
+  display: block;
+  padding: 8px;
+  border: 1px solid var(--os-hairline);
+  border-radius: 14px;
+  background: var(--os-surface);
+}
+.mtoni-os .os-context-nav__items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+  padding: 0;
+}
+.mtoni-os .os-context-nav__item {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  min-height: 46px;
+  padding: 10px 11px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  scroll-snap-align: unset;
+}
+.mtoni-os .os-context-nav__item span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 768px) {
+  .mtoni-os .os-context-nav__items {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+  }
+}
+/* Unified floating guest concierge control: forest surface, ivory icon,
+   bronze ring; uses global primary tokens so it stays in sync with the site. */
+body > #root button[aria-label="Open StayNas AI Concierge"] {
+  background: #202C29;
+  color: #F7F7F3;
+  border-color: #B47A45;
+  box-shadow: 0 10px 28px rgb(32 44 41 / 22%);
+}
+body > #root button[aria-label="Open StayNas AI Concierge"]:hover {
+  background: #2C3B36;
+}

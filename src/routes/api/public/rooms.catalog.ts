@@ -17,7 +17,7 @@ export const Route = createFileRoute("/api/public/rooms/catalog")({
         // Only ever expose the configured booking property's rooms.
         const propertyId = await getConfiguredBookingPropertyId(sb);
         let query = sb.from("rooms")
-          .select("id,slug,name,short_description,capacity_adults,capacity_children,max_occupancy,total_units,base_price,currency,included_guests,extra_guest_fee,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,category:room_categories(id,slug,name,description,features,specifications)")
+          .select("id,slug,name,short_description,capacity_adults,capacity_children,max_occupancy,total_units,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,category:room_categories(id,slug,name,description,features,specifications)")
           .eq("status","active").eq("property_id", propertyId).order("sort_order").order("name");
         if (slug) query = query.eq("slug", slug);
         const { data, error } = await query;
