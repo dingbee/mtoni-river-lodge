@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -49,20 +49,34 @@ const SOURCE_LABEL: Record<string, string> = {
 
 const selectClass = "mt-1 w-full rounded-md border border-border bg-card px-3 py-2 text-sm";
 
+function todayISOFrom(value: string, offsetDays: number) {
+  const [year, month, day] = value.split("-").map(Number);
+  const d = new Date(year, month - 1, day);
+  d.setDate(d.getDate() + offsetDays);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function todayISO(offsetDays = 0) {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
-  return d.toISOString().slice(0, 10);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function NewReservationDialog({
   open,
   onOpenChange,
   onCreated,
+  initialCheckIn,
+  initialCheckOut,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onCreated?: (bookingId: string) => void;
+  initialCheckIn?: string;
+  initialCheckOut?: string;
 }) {
   const [step, setStep] = useState<Step>(1);
 
@@ -75,8 +89,15 @@ export function NewReservationDialog({
   const [country, setCountry] = useState("");
 
   // Stay
-  const [checkIn, setCheckIn] = useState(todayISO());
-  const [checkOut, setCheckOut] = useState(todayISO(1));
+  const [checkIn, setCheckIn] = useState(initialCheckIn ?? todayISO());
+  const [checkOut, setCheckOut] = useState(initialCheckOut ?? todayISO(1));
+
+  useEffect(() => {
+    if (!open) return;
+    if (initialCheckIn) setCheckIn(initialCheckIn);
+    if (initialCheckOut) setCheckOut(initialCheckOut);
+    setRoomSlug(null);
+  }, [open, initialCheckIn, initialCheckOut]);
   const [adults, setAdults] = useState(2);
   const [childrenBelow6, setChildrenBelow6] = useState(0);
   const [children7Plus, setChildren7Plus] = useState(0);
@@ -204,8 +225,8 @@ export function NewReservationDialog({
           </DialogTitle>
           <DialogDescription>
             {created
-              ? "Created through the Mtoni reservation engine. No guest email has been sent."
-              : "Guest, stay, room and payment state — booked through the existing reservation engine."}
+              ? "Created through the existing StayNas reservation engine. No guest email has been sent."
+              : "Create a reservation with live availability checks and a final review before saving."}
           </DialogDescription>
         </DialogHeader>
 
@@ -377,7 +398,12 @@ export function NewReservationDialog({
                     id="s-in"
                     type="date"
                     value={checkIn}
-                    onChange={(e) => setCheckIn(e.target.value)}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setCheckIn(next);
+                      if (checkOut <= next) setCheckOut(todayISOFrom(next, 1));
+                      setRoomSlug(null);
+                    }}
                   />
                 </div>
                 <div>
@@ -385,8 +411,12 @@ export function NewReservationDialog({
                   <Input
                     id="s-out"
                     type="date"
+                    min={checkIn}
                     value={checkOut}
-                    onChange={(e) => setCheckOut(e.target.value)}
+                    onChange={(e) => {
+                      setCheckOut(e.target.value);
+                      setRoomSlug(null);
+                    }}
                   />
                 </div>
                 <div>
@@ -424,11 +454,11 @@ export function NewReservationDialog({
                     />
                   </div>
                 </div>
-                {checkOut <= checkIn && (
-                  <p className="text-xs text-destructive sm:col-span-2">
-                    Check-out must be after check-in.
-                  </p>
-                )}
+                <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm sm:col-span-2">
+                  <div className="flex items-center justify-between gap-3"><span className="text-muted-foreground">Length of stay</span><strong>{checkOut > checkIn ? Math.round((new Date(checkOut + "T12:00:00").getTime() - new Date(checkIn + "T12:00:00").getTime()) / 86400000) + " night(s)" : "Select valid dates"}</strong></div>
+                  <div className="mt-1 flex items-center justify-between gap-3"><span className="text-muted-foreground">Guests</span><strong>{totalGuests} total · {adults} adults</strong></div>
+                  {checkOut <= checkIn && <p className="mt-2 text-xs text-destructive">Check-out must be after check-in.</p>}
+                </div>
               </div>
             )}
 
