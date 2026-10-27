@@ -209,6 +209,8 @@ BEGIN
   IF TG_TABLE_NAME = 'staynas_calendar_schedule_exceptions' THEN
     SELECT s.property_id INTO v_property_id FROM public.staynas_calendar_schedule_series s WHERE s.id = COALESCE(NEW.series_id, OLD.series_id);
     v_entity_id := COALESCE(NEW.id, OLD.id);
+    -- Parent-series cascade deletes may remove the parent before this trigger runs.
+    IF v_property_id IS NULL THEN RETURN COALESCE(NEW, OLD); END IF;
   ELSE
     v_property_id := COALESCE(NEW.property_id, OLD.property_id);
     v_entity_id := COALESCE(NEW.id, OLD.id);
