@@ -3,6 +3,7 @@
 // hold-aware get_room_availability path used by the public site.
 
 import { useMemo, useState } from "react";
+import { usePropertyContext } from "@/modules/property/PropertyContext";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -52,6 +53,16 @@ function formatEaDate(value: string | Date) {
   if (Number.isNaN(d.getTime())) return String(value);
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
+function todayInTimezone(timezone: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const value = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
 function iso(d: Date) {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -91,9 +102,10 @@ function daysBetween(from: string, to: string) {
 }
 
 function UnifiedCalendarPage() {
+  const { property } = usePropertyContext();
   const qc = useQueryClient();
   const [view, setView] = useState<View>("week");
-  const [anchor, setAnchor] = useState(() => new Date());
+  const [anchor, setAnchor] = useState(() => new Date(`${todayInTimezone(property.timezone)}T12:00:00`));
   const range = useMemo(() => rangeFor(view, anchor), [view, anchor]);
   const days = useMemo(() => daysBetween(range.from, range.to), [range]);
 
@@ -210,12 +222,12 @@ function UnifiedCalendarPage() {
   }, [activeHolds]);
 
   const bookingsToday = useMemo(() => {
-    const today = iso(new Date());
+    const today = todayInTimezone(property.timezone);
     return (d.bookings as any[]).filter((b) => b.check_in <= today && b.check_out > today).length;
   }, [d.bookings]);
 
   // Derived views after filter application.
-  const today = iso(new Date());
+  const today = todayInTimezone(property.timezone);
   const visibleBookings = useMemo(() => {
     return (d.bookings as any[]).filter((b) => {
       if (filters.arrivalsToday && b.check_in !== today) return false;
