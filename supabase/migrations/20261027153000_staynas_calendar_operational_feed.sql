@@ -108,7 +108,12 @@ BEGIN
     t.id,
     CASE WHEN t.category = 'maintenance' OR t.task_type ILIKE '%maintenance%' THEN 'maintenance' ELSE 'housekeeping' END,
     t.title,
-    COALESCE(t.started_at, t.due_at, t.created_at),
+    CASE
+      WHEN t.status::text = 'in_progress'
+        AND COALESCE(t.started_at, t.due_at, t.created_at) < (_from::timestamp AT TIME ZONE _timezone)
+      THEN (_from::timestamp AT TIME ZONE _timezone)
+      ELSE COALESCE(t.started_at, t.due_at, t.created_at)
+    END,
     COALESCE(t.completed_at, CASE WHEN t.status::text = 'in_progress' THEN now() ELSE COALESCE(t.due_at, t.started_at, t.created_at) + interval '30 minutes' END),
     false,
     t.status::text,
@@ -124,6 +129,7 @@ BEGIN
   WHERE rs.property_id = _property_id
     AND t.category IN ('housekeeping','maintenance')
     AND t.status::text <> 'cancelled'
+    AND COALESCE(t.started_at, t.due_at, t.created_at) < (_to::timestamp AT TIME ZONE _timezone)
     AND (
       (
         (COALESCE(t.started_at, t.due_at, t.created_at) AT TIME ZONE _timezone)::date >= _from
@@ -132,7 +138,6 @@ BEGIN
       OR (
         t.status::text = 'in_progress'
         AND COALESCE(t.completed_at, now()) > (_from::timestamp AT TIME ZONE _timezone)
-        AND COALESCE(t.started_at, t.due_at, t.created_at) < (_to::timestamp AT TIME ZONE _timezone)
       )
     )
 
@@ -142,8 +147,8 @@ BEGIN
     e.id,
     CASE WHEN e.exception_type = 'maintenance' THEN 'maintenance' ELSE 'housekeeping' END,
     e.title,
-    e.created_at,
-    COALESCE(e.resolved_at, e.updated_at, e.created_at) + interval '30 minutes',
+    GREATEST(e.created_at, (_from::timestamp AT TIME ZONE _timezone)),
+    COALESCE(e.resolved_at, now(), e.updated_at, e.created_at) + interval '30 minutes',
     false,
     e.status,
     rs.room_id,
@@ -157,8 +162,8 @@ BEGIN
   JOIN public.room_states rs ON rs.id = e.room_state_id
   WHERE rs.property_id = _property_id
     AND e.status = 'open'
-    AND (e.created_at AT TIME ZONE _timezone)::date >= _from
-    AND (e.created_at AT TIME ZONE _timezone)::date < _to
+    AND e.created_at < (_to::timestamp AT TIME ZONE _timezone)
+    AND COALESCE(e.resolved_at, now()) >= (_from::timestamp AT TIME ZONE _timezone)
 
   UNION ALL
 
