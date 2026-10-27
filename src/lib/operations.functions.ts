@@ -304,6 +304,7 @@ export const getOpsCalendar = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     if (data.to <= data.from) throw new Error("Calendar end date must be after start date");
+    if ((Date.parse(`${data.to}T00:00:00Z`) - Date.parse(`${data.from}T00:00:00Z`)) / 86400000 > 93) throw new Error("Calendar range cannot exceed 93 days");
     const sb: any = context.supabase;
     const { data: hasAccess, error: accessError } = await sb.rpc("staynas_user_has_property_access", {
       _uid: context.userId,
