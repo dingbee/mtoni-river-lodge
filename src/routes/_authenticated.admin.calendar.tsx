@@ -8,7 +8,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { formatDistanceToNow } from "date-fns";
-import { AlertTriangle, Ban, CalendarDays, RefreshCw, ShieldOff, Sparkles, Timer, Wrench } from "lucide-react";
+import { AlertTriangle, Ban, BedDouble, CalendarDays, RefreshCw, ShieldOff, Sparkles, Timer, Wrench } from "lucide-react";
 import { findCalendarConflicts, type StayNasCalendarEvent } from "@/lib/calendar-event-contract";
 import { toast } from "sonner";
 
@@ -446,7 +446,18 @@ function UnifiedCalendarPage() {
 
       <SectionCard title="Room status" description="Change readiness and service status using the governed room-state workflow. Status changes are scoped to the selected property.">
         {ops.isLoading ? <LoadingState label="Loading room status…" /> : (d.roomStates as any[]).length === 0 ? (
-          <EmptyState title="No room units found" description="This property has no configured room-state units yet." />
+          <div className="rounded-xl border border-dashed p-5 sm:p-7">
+            <div className="mx-auto max-w-xl text-center">
+              <BedDouble className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+              <h3 className="font-semibold">No room units configured for this property</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Room-status controls appear after this property has room types and physical units. The selected Nolmark CDMA owner context currently has no room inventory; StayNas will not attach Mtoni rooms or bookings to it.
+              </p>
+              <Button asChild className="mt-4">
+                <Link to="/admin/operations/rooms/configure">Configure room inventory</Link>
+              </Button>
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {(d.roomStates as any[]).map((unit) => (
