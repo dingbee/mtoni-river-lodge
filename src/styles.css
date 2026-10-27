@@ -1814,3 +1814,56 @@ html[data-os-theme="dark"] .mtoni-os :is([role="option"],[data-radix-select-item
   background-color: #F9FAFB;
   color: #111827;
 }
+
+
+/* Radix popovers/menus render in a portal outside .mtoni-os.
+   Apply the enterprise dropdown palette at document level as well. */
+[data-radix-popper-content-wrapper] [role="option"],
+[data-radix-popper-content-wrapper] [role="menuitem"],
+[data-radix-popper-content-wrapper] [data-radix-select-item],
+[data-radix-popper-content-wrapper] [data-radix-menu-item] {
+  background-color: transparent;
+  color: #111827;
+}
+[data-radix-popper-content-wrapper] [role="option"][data-highlighted],
+[data-radix-popper-content-wrapper] [role="menuitem"][data-highlighted],
+[data-radix-popper-content-wrapper] [data-radix-select-item][data-highlighted],
+[data-radix-popper-content-wrapper] [data-radix-menu-item][data-highlighted],
+[data-radix-popper-content-wrapper] [role="option"]:focus,
+[data-radix-popper-content-wrapper] [role="menuitem"]:focus {
+  background-color: #E5E7EB !important;
+  color: #111827 !important;
+}
+[data-radix-popper-content-wrapper] [role="option"][data-state="checked"],
+[data-radix-popper-content-wrapper] [data-radix-select-item][data-state="checked"],
+[data-radix-popper-content-wrapper] [role="option"][aria-selected="true"],
+[data-radix-popper-content-wrapper] [data-radix-select-item][aria-selected="true"] {
+  background-color: #111827 !important;
+  color: #FFFFFF !important;
+}
+[data-radix-popper-content-wrapper] [role="option"][data-state="checked"] *,
+[data-radix-popper-content-wrapper] [data-radix-select-item][data-state="checked"] *,
+[data-radix-popper-content-wrapper] [role="option"][aria-selected="true"] *,
+[data-radix-popper-content-wrapper] [data-radix-select-item][aria-selected="true"] * {
+  color: inherit !important;
+}
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="option"],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="menuitem"],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-select-item],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-menu-item] {
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="option"][data-highlighted],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="menuitem"][data-highlighted],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-select-item][data-highlighted],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-menu-item][data-highlighted] {
+  background-color: #374151 !important;
+  color: #F9FAFB !important;
+}
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="option"][data-state="checked"],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-select-item][data-state="checked"],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="option"][aria-selected="true"],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-select-item][aria-selected="true"] {
+  background-color: #F9FAFB !important;
+  color: #111827 !important;
+}
