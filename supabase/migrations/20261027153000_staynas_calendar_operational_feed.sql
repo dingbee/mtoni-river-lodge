@@ -88,8 +88,8 @@ DECLARE
   _timezone text;
   _uid uuid := auth.uid();
 BEGIN
-  IF _uid IS NULL OR NOT public.is_any_staff(_uid) THEN
-    RAISE EXCEPTION 'Staff access required';
+  IF _uid IS NULL OR NOT public.has_any_role(_uid, ARRAY['owner','manager','admin','reception','housekeeping']::public.app_role[]) THEN
+    RAISE EXCEPTION 'Operations calendar access required';
   END IF;
   IF NOT public.staynas_user_has_property_access(_uid, _property_id) THEN
     RAISE EXCEPTION 'Property access denied';
@@ -250,8 +250,8 @@ DECLARE
   _timezone text;
   _uid uuid := auth.uid();
 BEGIN
-  IF _uid IS NULL OR NOT public.is_any_staff(_uid) THEN
-    RAISE EXCEPTION 'Staff access required';
+  IF _uid IS NULL OR NOT public.has_any_role(_uid, ARRAY['owner','manager','admin','reception','housekeeping']::public.app_role[]) THEN
+    RAISE EXCEPTION 'Operations calendar access required';
   END IF;
   IF NOT public.staynas_user_has_property_access(_uid, _property_id) THEN
     RAISE EXCEPTION 'Property access denied';
