@@ -96,8 +96,8 @@ function rangeFor(view: View, anchor: Date) {
 }
 function daysBetween(from: string, to: string) {
   const out: string[] = [];
-  const s = new Date(from);
-  const e = new Date(to);
+  const s = new Date(`${from}T12:00:00`);
+  const e = new Date(`${to}T12:00:00`);
   for (let d = new Date(s); d < e; d.setDate(d.getDate() + 1)) out.push(iso(d));
   return out;
 }
@@ -233,8 +233,8 @@ function UnifiedCalendarPage() {
   const activeHoldsByRoomDate = useMemo(() => {
     const map: Record<string, Set<string>> = {};
     for (const h of activeHolds) {
-      const s = new Date(h.check_in);
-      const e = new Date(h.check_out);
+      const s = new Date(`${h.check_in}T12:00:00`);
+      const e = new Date(`${h.check_out}T12:00:00`);
       for (let dd = new Date(s); dd < e; dd.setDate(dd.getDate() + 1)) {
         const key = `${h.room_id}:${iso(dd)}`;
         (map[key] ??= new Set<string>()).add(h.id);
