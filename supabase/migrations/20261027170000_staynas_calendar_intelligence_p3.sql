@@ -1,6 +1,32 @@
 -- StayNas Phase 3 foundation: recurring schedules, exceptions, property rules, idempotent notifications and audit.
 -- Additive only. Deploy through preview and acceptance before applying to production.
 
+-- Tenant authorization: operational calendar privileges come from the user's active role
+-- in the requested property, never from a global user_roles assignment.
+CREATE OR REPLACE FUNCTION public.staynas_calendar_has_property_role(
+  _uid uuid,
+  _property_id uuid,
+  _roles public.app_role[]
+)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $
+  SELECT _uid IS NOT NULL
+    AND EXISTS (
+      SELECT 1
+      FROM public.staynas_property_members pm
+      WHERE pm.user_id = _uid
+        AND pm.property_id = _property_id
+        AND pm.status = 'active'
+        AND pm.role = ANY(_roles)
+    );
+$;
+REVOKE ALL ON FUNCTION public.staynas_calendar_has_property_role(uuid,uuid,public.app_role[]) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.staynas_calendar_has_property_role(uuid,uuid,public.app_role[]) TO authenticated, service_role;
+
 CREATE TABLE IF NOT EXISTS public.staynas_calendar_schedule_series (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE CASCADE,
@@ -159,15 +185,15 @@ CREATE POLICY "Calendar series read accessible" ON public.staynas_calendar_sched
   FOR SELECT TO authenticated
   USING (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND (staff_user_id = auth.uid() OR public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]))
+    AND (staff_user_id = auth.uid() OR public.staynas_calendar_has_property_role(auth.uid(), property_id, ARRAY['owner','manager','admin']::public.app_role[]))
   );
 DROP POLICY IF EXISTS "Calendar managers manage series" ON public.staynas_calendar_schedule_series;
 CREATE POLICY "Calendar managers manage series" ON public.staynas_calendar_schedule_series
   FOR ALL TO authenticated
   USING (public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]))
+    AND public.staynas_calendar_has_property_role(auth.uid(), property_id, ARRAY['owner','manager','admin']::public.app_role[]))
   WITH CHECK (public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
+    AND public.staynas_calendar_has_property_role(auth.uid(), property_id, ARRAY['owner','manager','admin']::public.app_role[])
     AND public.staynas_user_has_property_access(staff_user_id, property_id));
 
 DROP POLICY IF EXISTS "Calendar exceptions read accessible" ON public.staynas_calendar_schedule_exceptions;
@@ -176,7 +202,7 @@ CREATE POLICY "Calendar exceptions read accessible" ON public.staynas_calendar_s
   USING (EXISTS (
     SELECT 1 FROM public.staynas_calendar_schedule_series s
     WHERE s.id = series_id AND public.staynas_user_has_property_access(auth.uid(), s.property_id)
-      AND (s.staff_user_id = auth.uid() OR public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]))
+      AND (s.staff_user_id = auth.uid() OR public.staynas_calendar_has_property_role(auth.uid(), property_id, ARRAY['owner','manager','admin']::public.app_role[]))
   ));
 DROP POLICY IF EXISTS "Calendar managers manage exceptions" ON public.staynas_calendar_schedule_exceptions;
 CREATE POLICY "Calendar managers manage exceptions" ON public.staynas_calendar_schedule_exceptions
@@ -184,12 +210,12 @@ CREATE POLICY "Calendar managers manage exceptions" ON public.staynas_calendar_s
   USING (EXISTS (
     SELECT 1 FROM public.staynas_calendar_schedule_series s
     WHERE s.id = series_id AND public.staynas_user_has_property_access(auth.uid(), s.property_id)
-      AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
+      AND public.staynas_calendar_has_property_role(auth.uid(), property_id, ARRAY['owner','manager','admin']::public.app_role[])
   ))
   WITH CHECK (EXISTS (
     SELECT 1 FROM public.staynas_calendar_schedule_series s
     WHERE s.id = series_id AND public.staynas_user_has_property_access(auth.uid(), s.property_id)
-      AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
+      AND public.staynas_calendar_has_property_role(auth.uid(), s.property_id, ARRAY['owner','manager','admin']::public.app_role[])
   ));
 
 DROP POLICY IF EXISTS "Calendar rules read accessible" ON public.staynas_calendar_rules;
@@ -199,20 +225,20 @@ DROP POLICY IF EXISTS "Calendar managers manage rules" ON public.staynas_calenda
 CREATE POLICY "Calendar managers manage rules" ON public.staynas_calendar_rules
   FOR ALL TO authenticated
   USING (public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]))
+    AND public.staynas_calendar_has_property_role(auth.uid(), property_id, ARRAY['owner','manager','admin']::public.app_role[]))
   WITH CHECK (public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]));
+    AND public.staynas_calendar_has_property_role(auth.uid(), property_id, ARRAY['owner','manager','admin']::public.app_role[]));
 
 DROP POLICY IF EXISTS "Calendar notifications read own" ON public.staynas_calendar_notification_outbox;
 CREATE POLICY "Calendar notifications read own" ON public.staynas_calendar_notification_outbox
   FOR SELECT TO authenticated
   USING (public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND (recipient_id = auth.uid() OR public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])));
+    AND (recipient_id = auth.uid() OR public.staynas_calendar_has_property_role(auth.uid(), property_id, ARRAY['owner','manager','admin']::public.app_role[])));
 DROP POLICY IF EXISTS "Calendar managers queue notifications" ON public.staynas_calendar_notification_outbox;
 CREATE POLICY "Calendar managers queue notifications" ON public.staynas_calendar_notification_outbox
   FOR INSERT TO authenticated
   WITH CHECK (public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
+    AND public.staynas_calendar_has_property_role(auth.uid(), property_id, ARRAY['owner','manager','admin']::public.app_role[])
     AND (recipient_id IS NULL OR public.staynas_user_has_property_access(recipient_id, property_id)));
 -- Authenticated users cannot mutate delivery state directly. Service role owns processing.
 DROP POLICY IF EXISTS "Calendar managers update notifications" ON public.staynas_calendar_notification_outbox;
@@ -223,7 +249,7 @@ DROP POLICY IF EXISTS "Calendar audit read managers" ON public.staynas_calendar_
 CREATE POLICY "Calendar audit read managers" ON public.staynas_calendar_rule_audit
   FOR SELECT TO authenticated
   USING (public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]));
+    AND public.staynas_calendar_has_property_role(auth.uid(), property_id, ARRAY['owner','manager','admin']::public.app_role[]));
 
 CREATE OR REPLACE FUNCTION public.staynas_calendar_audit_phase3()
 RETURNS trigger
@@ -297,7 +323,7 @@ DECLARE
   v_uid uuid := auth.uid();
   v_timezone text;
 BEGIN
-  IF v_uid IS NULL OR NOT public.has_any_role(v_uid, ARRAY['owner','manager','admin','reception','housekeeping']::public.app_role[]) THEN
+  IF v_uid IS NULL OR NOT public.staynas_calendar_has_property_role(v_uid, _property_id, ARRAY['owner','manager','admin','reception','housekeeping']::public.app_role[]) THEN
     RAISE EXCEPTION 'Operations calendar access required';
   END IF;
   IF NOT public.staynas_user_has_property_access(v_uid, _property_id) THEN
@@ -324,7 +350,7 @@ BEGIN
     WHERE s.property_id = _property_id AND s.status = 'active'
       AND s.starts_on < _to AND COALESCE(s.ends_on, _to - 1) >= _from
       AND public.staynas_user_has_property_access(s.staff_user_id, _property_id)
-      AND (s.staff_user_id = v_uid OR public.has_any_role(v_uid, ARRAY['owner','manager','admin']::public.app_role[]))
+      AND (s.staff_user_id = v_uid OR public.staynas_calendar_has_property_role(v_uid, _property_id, ARRAY['owner','manager','admin']::public.app_role[]))
       AND (
         (s.frequency = 'daily' AND mod((d::date - s.starts_on), s.interval_count) = 0)
         OR
