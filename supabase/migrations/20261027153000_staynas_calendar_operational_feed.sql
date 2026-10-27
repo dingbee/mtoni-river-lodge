@@ -207,3 +207,87 @@ $$;
 
 REVOKE ALL ON FUNCTION public.staynas_calendar_operational_events(uuid,date,date) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.staynas_calendar_operational_events(uuid,date,date) TO authenticated, service_role;
+
+
+CREATE OR REPLACE FUNCTION public.staynas_calendar_audit_events(
+  _property_id uuid,
+  _from date,
+  _to date,
+  _limit integer DEFAULT 100
+)
+RETURNS TABLE (
+  id uuid,
+  event_type text,
+  room_id uuid,
+  booking_id uuid,
+  hold_id uuid,
+  date_from date,
+  date_to date,
+  actor_id uuid,
+  payload jsonb,
+  created_at timestamptz
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  _timezone text;
+  _uid uuid := auth.uid();
+BEGIN
+  IF _uid IS NULL OR NOT public.is_any_staff(_uid) THEN
+    RAISE EXCEPTION 'Staff access required';
+  END IF;
+  IF NOT public.staynas_user_has_property_access(_uid, _property_id) THEN
+    RAISE EXCEPTION 'Property access denied';
+  END IF;
+  IF _to <= _from OR (_to - _from) > 93 THEN
+    RAISE EXCEPTION 'Invalid calendar range';
+  END IF;
+  IF _limit < 1 OR _limit > 200 THEN
+    RAISE EXCEPTION 'Invalid event limit';
+  END IF;
+
+  SELECT p.timezone INTO _timezone
+  FROM public.staynas_properties p
+  WHERE p.id = _property_id AND p.status = 'active';
+  IF _timezone IS NULL THEN RAISE EXCEPTION 'Active property not found'; END IF;
+
+  RETURN QUERY
+  SELECT e.id, e.event_type, e.room_id, e.booking_id, e.hold_id,
+         e.date_from, e.date_to, e.actor_id, e.payload, e.created_at
+  FROM public.calendar_events e
+  WHERE (
+    (e.room_id IS NOT NULL AND EXISTS (
+      SELECT 1 FROM public.rooms r
+      WHERE r.id = e.room_id AND r.property_id = _property_id
+    ))
+    OR (e.booking_id IS NOT NULL AND EXISTS (
+      SELECT 1 FROM public.bookings b
+      WHERE b.id = e.booking_id AND b.property_id = _property_id
+    ))
+    OR (e.hold_id IS NOT NULL AND EXISTS (
+      SELECT 1 FROM public.booking_holds h
+      WHERE h.id = e.hold_id AND h.property_id = _property_id
+    ))
+  )
+  AND (
+    (
+      (e.date_from IS NOT NULL OR e.date_to IS NOT NULL)
+      AND COALESCE(e.date_to, e.date_from) >= _from
+      AND COALESCE(e.date_from, e.date_to) < _to
+    )
+    OR (
+      e.date_from IS NULL AND e.date_to IS NULL
+      AND (e.created_at AT TIME ZONE _timezone)::date >= _from
+      AND (e.created_at AT TIME ZONE _timezone)::date < _to
+    )
+  )
+  ORDER BY e.created_at DESC
+  LIMIT _limit;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.staynas_calendar_audit_events(uuid,date,date,integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.staynas_calendar_audit_events(uuid,date,date,integer) TO authenticated, service_role;
