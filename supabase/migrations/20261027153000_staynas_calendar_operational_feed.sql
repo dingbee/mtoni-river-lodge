@@ -305,3 +305,37 @@ $$;
 
 REVOKE ALL ON FUNCTION public.staynas_calendar_audit_events(uuid,date,date,integer) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.staynas_calendar_audit_events(uuid,date,date,integer) TO authenticated, service_role;
+
+
+CREATE OR REPLACE FUNCTION public.staynas_calendar_list_staff(_property_id uuid)
+RETURNS TABLE (user_id uuid, email text)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE _uid uuid := auth.uid();
+BEGIN
+  IF _uid IS NULL OR NOT public.is_any_staff(_uid) THEN
+    RAISE EXCEPTION 'Staff access required';
+  END IF;
+  IF NOT public.staynas_user_has_property_access(_uid, _property_id) THEN
+    RAISE EXCEPTION 'Property access denied';
+  END IF;
+  IF NOT public.has_any_role(_uid, ARRAY['owner','manager','admin']::public.app_role[]) THEN
+    RETURN;
+  END IF;
+
+  RETURN QUERY
+  SELECT DISTINCT pm.user_id, COALESCE(u.email, 'Staff member')::text
+  FROM public.staynas_property_members pm
+  JOIN auth.users u ON u.id = pm.user_id
+  WHERE pm.property_id = _property_id
+    AND pm.status = 'active'
+    AND public.staynas_user_has_property_access(pm.user_id, _property_id)
+  ORDER BY 2;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.staynas_calendar_list_staff(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.staynas_calendar_list_staff(uuid) TO authenticated, service_role;
