@@ -124,14 +124,16 @@ export const updateRoomState = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const housekeepingStates = new Set(["vacant_dirty", "inspection", "vacant_clean", "maintenance", "out_of_service"]);
-    if (housekeepingStates.has(data.state)) {
-      throw new Error("Housekeeping room-readiness states must be changed through the governed Housekeeping workflow.");
-    }
     const { data: prev } = await sb.from("room_states").select("state, unit_label").eq("id", data.id).maybeSingle();
-    const { error } = await sb.from("room_states")
-      .update({ state: data.state, state_note: data.note ?? null, updated_by: context.userId })
-      .eq("id", data.id);
+    if (!prev) throw new Error("Room state not found or not accessible");
+    // Use the canonical Housekeeping transition RPC so calendar changes obey
+    // the same transition graph, role checks and audit/idempotency rules.
+    const { error } = await sb.rpc("housekeeping_transition_room_state", {
+      _room_state_id: data.id,
+      _to_state: data.state,
+      _note: data.note ?? null,
+      _idempotency_key: `calendar-room-state:${data.id}:${data.state}:${Date.now()}`,
+    });
     if (error) throw new Error(error.message);
     await logOpsEvent(sb, context.userId, context.claims, {
       type: "room.state_changed",
