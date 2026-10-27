@@ -34,7 +34,7 @@ RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $$
 DECLARE
   v_property_timezone text;
 BEGIN
@@ -49,7 +49,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$$;
 
 DROP TRIGGER IF EXISTS staynas_calendar_series_timezone_check ON public.staynas_calendar_schedule_series;
 CREATE TRIGGER staynas_calendar_series_timezone_check
