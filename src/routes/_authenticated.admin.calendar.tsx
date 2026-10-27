@@ -21,6 +21,8 @@ import {
   setRoomBlock,
   suggestRoomAssignment,
 } from "@/lib/availability.functions";
+import { updateRoomState } from "@/lib/operations.functions";
+import { RoomStateChip, type RoomStateValue, ROOM_STATES } from "@/components/os/operations/RoomStateChip";
 
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
@@ -167,6 +169,7 @@ function UnifiedCalendarPage() {
   const suggestFn = useServerFn(suggestRoomAssignment);
   const fetchCalendarStaff = useServerFn(listCalendarStaff);
   const createScheduleFn = useServerFn(createCalendarStaffSchedule);
+  const updateRoomStateFn = useServerFn(updateRoomState);
 
   // ---- Filters -------------------------------------------------------
   const [filters, setFilters] = useState({
@@ -234,6 +237,18 @@ function UnifiedCalendarPage() {
   const [blockReason, setBlockReason] = useState("");
   const [blockNotes, setBlockNotes] = useState("");
 
+  const updateRoomStatus = useMutation({
+    mutationFn: (v: { id: string; state: RoomStateValue }) =>
+      updateRoomStateFn({ data: v }),
+    onSuccess: () => {
+      toast.success("Room status updated");
+      qc.invalidateQueries({ queryKey: ["calendar"] });
+      qc.invalidateQueries({ queryKey: ["ops-room-board"] });
+      qc.invalidateQueries({ queryKey: ["ops-dashboard"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const doBlock = useMutation({
     mutationFn: (v: { roomId: string; from: string; to: string; blocked: boolean; reason?: string }) =>
       blockFn({ data: v }),
@@ -291,7 +306,7 @@ function UnifiedCalendarPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const d: any = ops.data ?? { rooms: [], bookings: [], inventory: [], operationalEvents: [] };
+  const d: any = ops.data ?? { rooms: [], bookings: [], inventory: [], operationalEvents: [], roomStates: [] };
 
   const bookingEvents = useMemo(() =>
     (d.bookings as any[])
@@ -428,6 +443,43 @@ function UnifiedCalendarPage() {
           icon={Ban}
         />
       </div>
+
+      <SectionCard title="Room status" description="Change readiness and service status using the governed room-state workflow. Status changes are scoped to the selected property.">
+        {ops.isLoading ? <LoadingState label="Loading room status…" /> : (d.roomStates as any[]).length === 0 ? (
+          <EmptyState title="No room units found" description="This property has no configured room-state units yet." />
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {(d.roomStates as any[]).map((unit) => (
+              <div key={unit.id} className="min-w-0 rounded-lg border bg-card p-3">
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-medium">{unit.unit_label}</div>
+                    <div className="truncate text-xs text-muted-foreground">{unit.room?.name ?? "Room"}</div>
+                  </div>
+                  <RoomStateChip state={unit.state as RoomStateValue} />
+                </div>
+                <Select
+                  value={unit.state}
+                  onValueChange={(state) => updateRoomStatus.mutate({ id: unit.id, state: state as RoomStateValue })}
+                  disabled={updateRoomStatus.isPending}
+                >
+                  <SelectTrigger aria-label={`Change status for ${unit.unit_label}`} className="h-9 text-xs">
+                    <SelectValue placeholder="Change room status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROOM_STATES.map((state) => (
+                      <SelectItem key={state} value={state} className="text-xs">
+                        {state.replace(/_/g, " ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {unit.state_note && <p className="mt-2 text-xs text-muted-foreground">{unit.state_note}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
 
       <SectionCard title="Filters" description="Narrow the calendar and stat cards.">
         <div className="flex flex-wrap items-center gap-3">
