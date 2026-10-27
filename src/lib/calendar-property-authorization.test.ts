@@ -32,3 +32,11 @@ describe("StayNas calendar property authorization migrations", () => {
     expect(sql).not.toContain("public.has_any_role(");
   });
 });
+
+describe("calendar server-action authorization", () => {
+  it("uses the requested property's role for all calendar management actions", async () => {
+    const source = await readFile(new URL("./operations.functions.ts", import.meta.url), "utf8");
+    expect(source).toContain('sb.rpc("staynas_calendar_has_property_role"');
+    expect(source).not.toContain('sb.rpc("has_any_role", { _user_id: context.userId, _roles: ["owner", "manager", "admin"] })');
+  });
+});
