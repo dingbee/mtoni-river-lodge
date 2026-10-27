@@ -37,14 +37,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 export const Route = createFileRoute("/_authenticated/admin/calendar")({
   head: () => ({
     meta: [
-      { title: "Availability Calendar — Mtoni OS" },
+      { title: "StayNas Enterprise Calendar" },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
   component: UnifiedCalendarPage,
 });
 
-type View = "day" | "week" | "month";
+type View = "day" | "week" | "month" | "agenda";
 type Cell = { date: string; booking?: { id: string; guest_name: string; reference: string }; blocked?: boolean; units?: number; hold?: boolean };
 
 function formatEaDate(value: string | Date) {
@@ -61,7 +61,7 @@ function iso(d: Date) {
 function shift(d: Date, view: View, dir: number) {
   const n = new Date(d);
   if (view === "day") n.setDate(n.getDate() + dir);
-  else if (view === "week") n.setDate(n.getDate() + dir * 7);
+  else if (view === "week" || view === "agenda") n.setDate(n.getDate() + dir * 7);
   else { n.setDate(1); n.setMonth(n.getMonth() + dir); }
   return n;
 }
@@ -70,7 +70,7 @@ function rangeFor(view: View, anchor: Date) {
   const end = new Date(anchor);
   if (view === "day") {
     end.setDate(start.getDate() + 1);
-  } else if (view === "week") {
+  } else if (view === "week" || view === "agenda") {
     const dow = start.getDay();
     start.setDate(start.getDate() - dow);
     end.setTime(start.getTime());
@@ -152,6 +152,7 @@ function UnifiedCalendarPage() {
     refetchInterval: 60_000,
   });
 
+  const [selectedAgendaBooking, setSelectedAgendaBooking] = useState<any | null>(null);
   const [blockOpen, setBlockOpen] = useState(false);
   const [blockCtx, setBlockCtx] = useState<{ roomId: string; roomName: string; from: string; to: string }>();
   const [blockReason, setBlockReason] = useState("");
@@ -240,8 +241,8 @@ function UnifiedCalendarPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Availability Calendar"
-        description="Unified view of reservations, holds, and room blocks. Single source of truth for /book and admin."
+        title="Enterprise Calendar"
+        description="Coordinate reservations, room availability and operational activity in one property-aware workspace."
         actions={
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" asChild>
@@ -321,7 +322,7 @@ function UnifiedCalendarPage() {
       >
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-md border p-0.5 text-xs">
-            {(["day", "week", "month"] as View[]).map((v) => (
+            {(["day", "week", "month", "agenda"] as View[]).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
@@ -348,6 +349,41 @@ function UnifiedCalendarPage() {
         ) : (
           <>
           <p className="mb-2 rounded-md bg-muted/20 px-3 py-2 text-xs leading-relaxed text-muted-foreground md:hidden">Swipe the timeline horizontally to compare dates. Use the room name to manage blocks; open a booking to view details or choose a new room.</p>
+          {view === "agenda" ? (
+            <div className="space-y-3 p-1">
+              {days.map((day) => {
+                const items = (visibleBookings as any[]).flatMap((booking) => {
+                  const entries = [] as Array<{ key: string; label: string; booking: any }>;
+                  if (booking.check_in === day) entries.push({ key: `${booking.id}:arrival:${day}`, label: "Arrival", booking });
+                  if (booking.check_out === day) entries.push({ key: `${booking.id}:departure:${day}`, label: "Departure", booking });
+                  if (booking.check_in < day && booking.check_out > day) entries.push({ key: `${booking.id}:in-house:${day}`, label: "In house", booking });
+                  return entries;
+                });
+                return (
+                  <section key={day} className="overflow-hidden rounded-lg border">
+                    <div className="flex items-center justify-between bg-muted/40 px-3 py-2 text-sm font-medium">
+                      <span>{formatEaDate(day)}</span><Badge variant="outline">{items.length} {items.length === 1 ? "event" : "events"}</Badge>
+                    </div>
+                    {items.length === 0 ? (
+                      <p className="px-3 py-4 text-sm text-muted-foreground">No reservations for this date.</p>
+                    ) : (
+                      <div className="divide-y">
+                        {items.map((item) => {
+                          const room = (d.rooms as any[]).find((r) => r.id === item.booking.room_id);
+                          return (
+                            <button key={item.key} type="button" onClick={() => setSelectedAgendaBooking(item.booking)} className="flex w-full flex-col gap-1 px-3 py-3 text-left transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between">
+                              <span className="flex min-w-0 items-center gap-2"><Badge variant={item.label === "Departure" ? "secondary" : item.label === "Arrival" ? "default" : "outline"}>{item.label}</Badge><span className="truncate font-medium">{item.booking.guest_name || "Guest"}</span><span className="text-xs text-muted-foreground">{item.booking.reference}</span></span>
+                              <span className="text-xs text-muted-foreground">{room?.name ?? "Unassigned room"} · {formatEaDate(item.booking.check_in)} – {formatEaDate(item.booking.check_out)}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                );
+              })}
+            </div>
+          ) : (
           <div className="max-w-full overflow-x-auto rounded-lg border">
             <table className="w-max min-w-full table-fixed text-xs">
               <thead>
@@ -463,6 +499,7 @@ function UnifiedCalendarPage() {
               </tbody>
             </table>
           </div>
+          )}
           </>
         )}
       </SectionCard>
@@ -533,6 +570,28 @@ function UnifiedCalendarPage() {
           )}
         </SectionCard>
       </div>
+
+      <Dialog open={!!selectedAgendaBooking} onOpenChange={(open) => !open && setSelectedAgendaBooking(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reservation details</DialogTitle>
+            <DialogDescription>Authoritative booking record · read-only calendar preview</DialogDescription>
+          </DialogHeader>
+          {selectedAgendaBooking && (
+            <div className="space-y-3 text-sm">
+              <div><p className="text-xs text-muted-foreground">Guest</p><p className="font-medium">{selectedAgendaBooking.guest_name || "Guest"}</p></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><p className="text-xs text-muted-foreground">Reference</p><p>{selectedAgendaBooking.reference}</p></div>
+                <div><p className="text-xs text-muted-foreground">Status</p><Badge variant="outline">{selectedAgendaBooking.status}</Badge></div>
+                <div><p className="text-xs text-muted-foreground">Check-in</p><p>{formatEaDate(selectedAgendaBooking.check_in)}</p></div>
+                <div><p className="text-xs text-muted-foreground">Check-out</p><p>{formatEaDate(selectedAgendaBooking.check_out)}</p></div>
+              </div>
+              <p className="text-xs text-muted-foreground">This drawer does not modify the reservation. Use the Reservations workspace for governed booking actions.</p>
+            </div>
+          )}
+          <DialogFooter><Button variant="outline" onClick={() => setSelectedAgendaBooking(null)}>Close</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={blockOpen} onOpenChange={setBlockOpen}>
         {/* Block dialog kept below; reassign + suggest dialogs are appended before the outer wrapper close. */}
