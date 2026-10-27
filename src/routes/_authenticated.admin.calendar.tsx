@@ -401,8 +401,8 @@ function UnifiedCalendarPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Enterprise Calendar"
-        description="Coordinate reservations, room availability and operational activity in one property-aware workspace."
+        title="Calendar"
+        description="Manage reservations, room readiness and property operations in one workspace."
         actions={
           <div className="flex items-center gap-2">
             <Button
@@ -525,9 +525,10 @@ function UnifiedCalendarPage() {
         </div>
       </SectionCard>
 
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_270px]">
       <SectionCard
-        title="Reservation timeline"
-        description="Reservations are blue, blocks are red, active holds are amber. Drag a reservation onto another room row to reassign it. Click a room name to block/unblock a range."
+        title="Rooms & Reservations"
+        description="Reservations, blocked dates, active holds and operational markers. Select a room to manage its availability."
       >
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-md border p-0.5 text-xs">
@@ -750,6 +751,53 @@ function UnifiedCalendarPage() {
           </>
         )}
       </SectionCard>
+
+      <aside className="space-y-4">
+        <SectionCard title={anchor.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}>
+          <div className="mb-3 flex items-center justify-between">
+            <Button size="icon" variant="ghost" aria-label="Previous month" onClick={() => setAnchor(new Date(anchor.getFullYear(), anchor.getMonth() - 1, Math.min(anchor.getDate(), 28)))}>‹</Button>
+            <Button size="sm" variant="outline" onClick={() => setAnchor(new Date())}>Today</Button>
+            <Button size="icon" variant="ghost" aria-label="Next month" onClick={() => setAnchor(new Date(anchor.getFullYear(), anchor.getMonth() + 1, Math.min(anchor.getDate(), 28)))}>›</Button>
+          </div>
+          <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-muted-foreground">
+            {["Su","Mo","Tu","We","Th","Fr","Sa"].map((day) => <span key={day} className="py-1">{day}</span>)}
+            {Array.from({ length: new Date(anchor.getFullYear(), anchor.getMonth(), 1).getDay() }, (_, i) => <span key={`blank-${i}`} />)}
+            {Array.from({ length: new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate() }, (_, i) => {
+              const date = new Date(anchor.getFullYear(), anchor.getMonth(), i + 1, 12);
+              const dateKey = iso(date);
+              const selected = dateKey === iso(anchor);
+              const isToday = dateKey === todayInTimezone(property.timezone);
+              return <button key={dateKey} type="button" onClick={() => setAnchor(date)} className={`aspect-square rounded-md text-xs hover:bg-muted ${selected ? "bg-primary text-primary-foreground" : isToday ? "border border-primary text-primary" : ""}`}>{i + 1}</button>;
+            })}
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Calendars" description="Operational layers in this property.">
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-blue-500" />Reservations</div>
+            <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-emerald-500" />Housekeeping</div>
+            <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-amber-500" />Maintenance</div>
+            <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-violet-500" />Staff schedules</div>
+            <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-rose-500" />Blocked rooms</div>
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Today's agenda" description={formatEaDate(today)}>
+          <div className="space-y-3">
+            {(d.bookings as any[]).filter((booking) => booking.check_in === today || booking.check_out === today || (booking.check_in < today && booking.check_out > today)).slice(0, 8).map((booking) => (
+              <div key={booking.id} className="flex gap-2 text-xs">
+                <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${booking.check_in === today ? "bg-blue-500" : booking.check_out === today ? "bg-amber-500" : "bg-emerald-500"}`} />
+                <div className="min-w-0">
+                  <div className="font-medium">{booking.check_in === today ? "Arrival" : booking.check_out === today ? "Departure" : "In house"} · {booking.guest_name}</div>
+                  <div className="text-muted-foreground">{booking.reference} · {(d.rooms as any[]).find((room) => room.id === booking.room_id)?.name ?? "Room"}</div>
+                </div>
+              </div>
+            ))}
+            {(d.bookings as any[]).filter((booking) => booking.check_in === today || booking.check_out === today || (booking.check_in < today && booking.check_out > today)).length === 0 && <p className="text-xs text-muted-foreground">No reservation activity for today.</p>}
+          </div>
+        </SectionCard>
+      </aside>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <SectionCard title="Active holds" description="Temporary 15-minute reservations from /book. Expire automatically.">
