@@ -55,7 +55,8 @@ export const createStaffReservation = createServerFn({ method: "POST" })
     // Staff reservations are created against the same configured booking
     // property as the public engine; the RPC enforces it.
     const propertyId = await getConfiguredBookingPropertyId(sb);
-    const { data: result, error } = await bookingRpc(sb).rpc("create_booking", {
+    const { data: result, error } = await bookingRpc(sb).rpc("create_booking_for_property", {
+      _property_id: propertyId,
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
       _check_out: data.checkOut,
@@ -68,7 +69,6 @@ export const createStaffReservation = createServerFn({ method: "POST" })
       _guest_phone: data.guestPhone || null,
       _country: data.country || null,
       _special_requests: data.specialRequests || null,
-      _property_id: propertyId,
       _extras: [],
       _hold_id: null,
       _session_id: null,
@@ -87,7 +87,7 @@ export const createStaffReservation = createServerFn({ method: "POST" })
     };
     if (data.status === "confirmed") patch["confirmed_at"] = new Date().toISOString();
     if (data.notes) patch["notes"] = data.notes;
-    const { error: patchError } = await sb.from("bookings").update(patch).eq("id", bookingId);
+    const { error: patchError } = await sb.from("bookings").update(patch).eq("id", bookingId).eq("property_id", propertyId);
     if (patchError) throw new Error(patchError.message);
 
     let checkin: { token: string | null; status: string | null; eligible: boolean } = {
