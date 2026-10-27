@@ -8,7 +8,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { formatDistanceToNow } from "date-fns";
-import { AlertTriangle, Ban, BedDouble, CalendarDays, RefreshCw, ShieldOff, Sparkles, Timer, Wrench } from "lucide-react";
+import { AlertTriangle, Ban, BedDouble, CalendarDays, Plus, RefreshCw, ShieldOff, Sparkles, Timer, Wrench } from "lucide-react";
 import { findCalendarConflicts, type StayNasCalendarEvent } from "@/lib/calendar-event-contract";
 import { toast } from "sonner";
 
@@ -37,6 +37,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { NewReservationDialog } from "@/components/os/reservations/NewReservationDialog";
 
 export const Route = createFileRoute("/_authenticated/admin/calendar")({
   head: () => ({
@@ -157,6 +158,7 @@ function UnifiedCalendarPage() {
   const qc = useQueryClient();
   const [view, setView] = useState<View>("week");
   const [anchor, setAnchor] = useState(() => new Date(`${todayInTimezone(property.timezone)}T12:00:00`));
+  const [createReservationOpen, setCreateReservationOpen] = useState(false);
   const range = useMemo(() => rangeFor(view, anchor), [view, anchor]);
   const days = useMemo(() => daysBetween(range.from, range.to), [range]);
 
@@ -405,8 +407,10 @@ function UnifiedCalendarPage() {
         description="Manage reservations, room readiness and property operations in one workspace."
         actions={
           <div className="flex items-center gap-2">
+            <Button size="sm" onClick={() => setCreateReservationOpen(true)}><Plus className="mr-2 h-4 w-4" /> New reservation</Button>
             <Button
               size="sm"
+              variant="outline"
               onClick={() => {
                 const today = todayInTimezone(property.timezone);
                 setScheduleStart(today + "T09:00");
@@ -430,6 +434,22 @@ function UnifiedCalendarPage() {
             </Button>
           </div>
         }
+      />
+
+      <div className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-muted/30 p-1" aria-label="Reservations workspace navigation">
+        <Link to="/admin/bookings" className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-card hover:text-foreground">Reservations list</Link>
+        <Link to="/admin/calendar" className="inline-flex items-center gap-2 rounded-lg bg-card px-4 py-2 text-sm font-semibold text-[color:var(--os-success)] shadow-sm" aria-current="page"><CalendarDays className="h-4 w-4" /> Room calendar</Link>
+      </div>
+
+      <NewReservationDialog
+        open={createReservationOpen}
+        onOpenChange={setCreateReservationOpen}
+        initialCheckIn={iso(anchor)}
+        initialCheckOut={iso(shift(anchor, "day", 1))}
+        onCreated={() => {
+          qc.invalidateQueries({ queryKey: ["calendar"] });
+          qc.invalidateQueries({ queryKey: ["admin-bookings"] });
+        }}
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
