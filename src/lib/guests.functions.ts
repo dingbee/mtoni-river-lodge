@@ -35,7 +35,6 @@ export const listGuests = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => listSchema.parse(d ?? {}))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
-    await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     let query = sb
       .from("guest_directory")
