@@ -54,7 +54,7 @@ function weekday(value: string): number {
 
 function weekStart(value: string): string {
   const date = parseDate(value);
-  date.setUTCDate(date.getUTCDate() - date.getUTCDay() + 1);
+  date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
   return dateString(date);
 }
 
