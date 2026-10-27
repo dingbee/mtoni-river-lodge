@@ -29,6 +29,33 @@ CREATE TABLE IF NOT EXISTS public.staynas_calendar_schedule_series (
   )
 );
 
+CREATE OR REPLACE FUNCTION public.staynas_calendar_validate_series_timezone()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $
+DECLARE
+  v_property_timezone text;
+BEGIN
+  SELECT p.timezone INTO v_property_timezone
+  FROM public.staynas_properties p
+  WHERE p.id = NEW.property_id AND p.status = 'active';
+  IF v_property_timezone IS NULL THEN
+    RAISE EXCEPTION 'Active property not found';
+  END IF;
+  IF NEW.timezone <> v_property_timezone THEN
+    RAISE EXCEPTION 'Schedule timezone must match the selected property timezone';
+  END IF;
+  RETURN NEW;
+END;
+$;
+
+DROP TRIGGER IF EXISTS staynas_calendar_series_timezone_check ON public.staynas_calendar_schedule_series;
+CREATE TRIGGER staynas_calendar_series_timezone_check
+  BEFORE INSERT OR UPDATE OF property_id, timezone ON public.staynas_calendar_schedule_series
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_calendar_validate_series_timezone();
+
 CREATE INDEX IF NOT EXISTS staynas_calendar_series_property_dates_idx
   ON public.staynas_calendar_schedule_series(property_id, starts_on, ends_on)
   WHERE status = 'active';
@@ -185,7 +212,8 @@ DROP POLICY IF EXISTS "Calendar managers queue notifications" ON public.staynas_
 CREATE POLICY "Calendar managers queue notifications" ON public.staynas_calendar_notification_outbox
   FOR INSERT TO authenticated
   WITH CHECK (public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]));
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
+    AND (recipient_id IS NULL OR public.staynas_user_has_property_access(recipient_id, property_id)));
 -- Authenticated users cannot mutate delivery state directly. Service role owns processing.
 DROP POLICY IF EXISTS "Calendar managers update notifications" ON public.staynas_calendar_notification_outbox;
 CREATE POLICY "Calendar managers update notifications" ON public.staynas_calendar_notification_outbox
