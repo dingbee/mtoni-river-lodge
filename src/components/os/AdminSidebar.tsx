@@ -1,9 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { Building2, ChevronDown, ChevronRight, Command, Sparkles } from "lucide-react";
 import { NAV, type NavItem } from "./nav-config";
 import { canAccessModule } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
+import { usePropertyContext } from "@/modules/property/PropertyContext";
 
 function isActive(pathname: string, href: string) {
   if (href === "/admin") return pathname === "/admin";
@@ -29,25 +30,25 @@ function NavLink({
       aria-current={active ? "page" : undefined}
       data-nav-active={active ? "true" : undefined}
       className={cn(
-        "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-all",
+        "group relative flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-[13px] transition-colors duration-150",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         active
-          ? "font-medium"
-          : "text-[color:var(--os-ink-2)] hover:bg-white/[0.03] hover:text-[color:var(--os-ink)]",
+          ? "bg-primary/[0.09] font-semibold text-[color:var(--os-ink)] before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-r-full before:bg-primary"
+          : "text-[color:var(--os-ink-2)] hover:bg-muted/70 hover:text-[color:var(--os-ink)]",
         collapsed && "justify-center px-2",
       )}
       title={collapsed ? item.label : undefined}
     >
       <Icon
         className={cn(
-          "h-[15px] w-[15px] shrink-0 transition-colors",
+          "h-[16px] w-[16px] shrink-0 transition-colors",
           active
-            ? "text-[color:var(--os-green)]"
+            ? "text-primary"
             : "text-[color:var(--os-ink-3)] group-hover:text-[color:var(--os-ink)]",
         )}
         aria-hidden
       />
-      {!collapsed && <span className="truncate">{item.label}</span>}
+      {!collapsed && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
     </Link>
   );
 }
@@ -62,6 +63,7 @@ export function AdminSidebar({
   onNavigate?: () => void;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { organisation, property } = usePropertyContext();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   const entries = useMemo(
@@ -81,31 +83,34 @@ export function AdminSidebar({
   return (
     <aside
       className={cn(
-        "flex h-full flex-col border-r border-[color:var(--os-hairline)] bg-[color:var(--os-surface)]",
+        "flex h-full min-h-0 flex-col overflow-hidden border-r border-[color:var(--os-hairline)] bg-[color:var(--os-surface)]",
         collapsed ? "w-16" : "w-64",
       )}
       aria-label="Primary navigation"
     >
       <div
         className={cn(
-          "flex h-14 items-center border-b border-[color:var(--os-hairline)] px-3",
-          collapsed ? "justify-center" : "gap-2.5",
+          "flex h-[68px] shrink-0 items-center border-b border-[color:var(--os-hairline)] px-4",
+          collapsed ? "justify-center" : "gap-3",
         )}
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">S</div>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-sm">
+          S
+        </div>
         {!collapsed && (
-          <div className="min-w-0">
-            <p className="truncate font-display text-[15px] leading-none tracking-tight text-[color:var(--os-ink)]">
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-display text-[16px] font-semibold leading-none tracking-tight text-[color:var(--os-ink)]">
               StayNas
             </p>
-            <p className="mt-1 truncate text-[0.58rem] uppercase tracking-[0.24em] text-[color:var(--os-ink-3)]">
+            <p className="mt-1.5 truncate text-[0.58rem] font-medium uppercase tracking-[0.2em] text-[color:var(--os-ink-3)]">
               Command Centre
             </p>
           </div>
         )}
+        {!collapsed && <Sparkles className="h-4 w-4 shrink-0 text-primary/70" aria-hidden />}
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-2">
+      <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 py-3">
         <ul className="space-y-1">
           {entries.map((entry) => {
             if (entry.kind === "item") {
@@ -126,9 +131,9 @@ export function AdminSidebar({
             const isOpen = openGroups[group.id] ?? anyActive;
             const GroupIcon = group.icon;
             return (
-              <li key={group.id} className="mt-3">
+              <li key={group.id} className="pt-2">
                 {collapsed ? (
-                  <div className="mb-1 flex justify-center">
+                  <div className="mb-1 flex justify-center py-1.5">
                     {GroupIcon && (
                       <GroupIcon className="h-4 w-4 text-muted-foreground/60" aria-hidden />
                     )}
@@ -138,11 +143,11 @@ export function AdminSidebar({
                     type="button"
                     onClick={() => toggle(group.id)}
                     aria-expanded={isOpen}
-                    className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[0.65rem] font-medium uppercase tracking-[0.22em] text-muted-foreground/80 hover:text-foreground"
+                    className="flex min-h-8 w-full items-center justify-between rounded-lg px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[color:var(--os-ink-3)] transition-colors hover:bg-muted/50 hover:text-[color:var(--os-ink)]"
                   >
                     <span>{group.label}</span>
                     <ChevronDown
-                      className={cn("h-3 w-3 transition-transform", isOpen && "rotate-180")}
+                      className={cn("h-3.5 w-3.5 transition-transform duration-200", isOpen && "rotate-180")}
                       aria-hidden
                     />
                   </button>
@@ -168,8 +173,27 @@ export function AdminSidebar({
       </nav>
 
       {!collapsed && (
-        <div className="border-t border-border p-3 text-[0.6rem] uppercase tracking-[0.2em] text-muted-foreground">
-          StayNas
+        <div className="shrink-0 border-t border-[color:var(--os-hairline)] bg-[color:var(--os-surface)] p-3 pb-[max(12px,env(safe-area-inset-bottom))]">
+          <div className="mb-2 flex items-center gap-2 px-1">
+            <Command className="h-3.5 w-3.5 text-[color:var(--os-ink-3)]" aria-hidden />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--os-ink-3)]">
+              Workspace
+            </span>
+          </div>
+          <div className="flex min-w-0 items-center gap-3 rounded-xl border border-[color:var(--os-hairline)] bg-[color:var(--os-canvas)] p-2.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary/10 text-primary">
+              <Building2 className="h-5 w-5" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[12px] font-semibold leading-4 text-[color:var(--os-ink)]">
+                {property?.name ?? organisation?.name ?? "StayNas workspace"}
+              </p>
+              <p className="mt-1 truncate text-[10px] leading-3.5 text-[color:var(--os-ink-3)]">
+                {organisation?.name ?? "Workspace"} · Owner
+              </p>
+            </div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-[color:var(--os-ink-3)]" aria-hidden />
+          </div>
         </div>
       )}
     </aside>
