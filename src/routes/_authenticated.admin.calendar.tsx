@@ -423,21 +423,64 @@ function UnifiedCalendarPage() {
           {view === "agenda" ? (
             <div className="space-y-3 p-1">
               {days.map((day) => {
-                const items = (visibleBookings as any[]).flatMap((booking) => {
-                  const entries = [] as Array<{ key: string; label: string; booking: any }>;
-                  if (booking.check_in === day) entries.push({ key: `${booking.id}:arrival:${day}`, label: "Arrival", booking });
-                  if (booking.check_out === day) entries.push({ key: `${booking.id}:departure:${day}`, label: "Departure", booking });
-                  if (booking.check_in < day && booking.check_out > day) entries.push({ key: `${booking.id}:in-house:${day}`, label: "In house", booking });
+                const bookingItems = (visibleBookings as any[]).flatMap((booking) => {
+                  const entries: Array<{ key: string; label: string; booking: any; sortAt: string }> = [];
+                  if (booking.check_in === day) entries.push({ key: `${booking.id}:arrival:${day}`, label: "Arrival", booking, sortAt: `${day}T00:00:00` });
+                  if (booking.check_out === day) entries.push({ key: `${booking.id}:departure:${day}`, label: "Departure", booking, sortAt: `${day}T23:59:00` });
+                  if (booking.check_in < day && booking.check_out > day) entries.push({ key: `${booking.id}:in-house:${day}`, label: "In house", booking, sortAt: `${day}T12:00:00` });
                   return entries;
                 });
+                const operationalItems = (d.operationalEvents ?? [])
+                  .filter((event: any) => dateInTimezone(event.starts_at, property.timezone) === day)
+                  .map((event: any) => ({
+                    key: `ops:${event.source_type}:${event.id}:${day}`,
+                    label: String(event.event_kind ?? "Operational").replaceAll("_", " "),
+                    operational: event,
+                    sortAt: String(event.starts_at ?? ""),
+                  }));
+                const items = [...bookingItems, ...operationalItems].sort((a, b) => a.sortAt.localeCompare(b.sortAt));
                 return (
                   <section key={day} className="overflow-hidden rounded-lg border">
                     <div className="flex items-center justify-between bg-muted/40 px-3 py-2 text-sm font-medium">
                       <span>{formatEaDate(day)}</span><Badge variant="outline">{items.length} {items.length === 1 ? "event" : "events"}</Badge>
                     </div>
                     {items.length === 0 ? (
-                      <p className="px-3 py-4 text-sm text-muted-foreground">No reservations for this date.</p>
+                      <p className="px-3 py-4 text-sm text-muted-foreground">No events for this date.</p>
                     ) : (
+                      <div className="divide-y">
+                        {items.map((item: any) => {
+                          if (item.booking) {
+                            const room = (d.rooms as any[]).find((r) => r.id === item.booking.room_id);
+                            return (
+                              <button key={item.key} type="button" onClick={() => setSelectedAgendaBooking(item.booking)} className="flex w-full flex-col gap-1 px-3 py-3 text-left transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between">
+                                <span className="flex min-w-0 items-center gap-2"><Badge variant={item.label === "Departure" ? "secondary" : item.label === "Arrival" ? "default" : "outline"}>{item.label}</Badge><span className="truncate font-medium">{item.booking.guest_name || "Guest"}</span><span className="text-xs text-muted-foreground">{item.booking.reference}</span></span>
+                                <span className="text-xs text-muted-foreground">{room?.name ?? "Unassigned room"} · {formatEaDate(item.booking.check_in)} – {formatEaDate(item.booking.check_out)}</span>
+                              </button>
+                            );
+                          }
+                          const event = item.operational;
+                          const room = (d.rooms as any[]).find((r) => r.id === event.room_id);
+                          const label = String(event.event_kind ?? "task");
+                          return (
+                            <div key={item.key} className="flex flex-col gap-1 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                              <span className="flex min-w-0 items-center gap-2">
+                                <Badge variant={label === "maintenance" ? "destructive" : label === "staff" ? "secondary" : "outline"}>{item.label}</Badge>
+                                <span className="truncate font-medium">{event.title}</span>
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {room?.name ?? (event.assignee_id ? `Staff ${String(event.assignee_id).slice(0, 8)}` : "Property operations")}
+                                {event.status ? ` · ${String(event.status).replaceAll("_", " ")}` : ""}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                );
+              })}
+            </div>
+          ) : (
                       <div className="divide-y">
                         {items.map((item) => {
                           const room = (d.rooms as any[]).find((r) => r.id === item.booking.room_id);
