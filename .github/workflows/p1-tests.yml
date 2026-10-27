@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - sprint/tenant-isolation-payment-integrity
 
 jobs:
   tests:
@@ -21,4 +22,9 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - run: bunx vitest run src/lib/housekeeping-state-machine.test.ts src/lib/housekeeping-offline.test.ts src/lib/tenant-payment-integration.test.ts src/lib/payment-integrity.test.ts src/lib/payin-adapter.test.ts
+      - name: Run complete Vitest suite
+        run: bunx vitest run
+      - name: Lint changed root route (exclude existing repository-wide formatting debt)
+        run: bunx eslint src/routes/__root.tsx --rule 'prettier/prettier: off'
+      - name: Verify production build
+        run: bun run build

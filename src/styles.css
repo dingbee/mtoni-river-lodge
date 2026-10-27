@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-display: "Cormorant Garamond", "Playfair Display", Georgia, serif;
-  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-display: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  --font-serif: "Inter", "Helvetica Neue", system-ui, sans-serif;
   --font-sans: "Inter", "Helvetica Neue", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
@@ -71,21 +71,21 @@
      Token names retained for backward compatibility with existing
      class names (bg-ivory, bg-bone, text-charcoal, bg-charcoal,
      text-ivory, etc.) — only the values are refreshed. */
-  --ivory: #F7F7F3;        /* dominant background + light text on dark */
-  --bone: #EEEFE8;         /* alternate sections, cards, content blocks */
-  --clay: #B47A45;         /* StayNas burgundy accent */
-  --ember: #B47A45;        /* accent alias */
-  --gold: #B47A45;         /* accent alias */
-  --river: #68716B;        /* muted secondary text */
-  --forest: #202C29;       /* deep green hover */
-  --charcoal: #202522;     /* primary text + black luxe surfaces */
-  --green: #202C29;        /* StayNas primary deep green */
+  --ivory: #FFFFFF;        /* enterprise white surface */
+  --bone: #F3F4F6;         /* enterprise light-grey surface */
+  --clay: #374151;         /* neutral charcoal accent */
+  --ember: #374151;        /* neutral accent alias */
+  --gold: #374151;         /* neutral accent alias */
+  --river: #6B7280;        /* muted secondary text */
+  --forest: #111827;       /* charcoal action hover */
+  --charcoal: #374151;     /* enterprise charcoal text */
+  --green: #111827;        /* near-black primary actions */
 
   --background: var(--ivory);
   --foreground: var(--charcoal);
-  --card: #FDFDF9;
+  --card: #FFFFFF;
   --card-foreground: var(--charcoal);
-  --popover: #FDFDF9;
+  --popover: #FFFFFF;
   --popover-foreground: var(--charcoal);
   --primary: var(--green);
   --primary-foreground: #FFFFFF;
@@ -97,8 +97,8 @@
   --accent-foreground: var(--charcoal);
   --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: #FFFFFF;
-  --border: rgba(26, 26, 26, 0.10);
-  --input: rgba(26, 26, 26, 0.14);
+  --border: #D1D5DB;
+  --input: #D1D5DB;
   --ring: var(--green);
 }
 
@@ -277,18 +277,18 @@
      unaffected.
      ============================================================ */
   :root {
-    --os-canvas: #F7F7F5;          /* soft graphite-tinted warm off-white */
+    --os-canvas: #F3F4F6;          /* enterprise light-grey canvas */
     --os-surface: #FFFFFF;         /* card / panel surface */
-    --os-surface-2: #FAFAF8;       /* subtle nested surface */
-    --os-hairline: rgba(26,26,26,0.06);
-    --os-hairline-strong: rgba(26,26,26,0.10);
-    --os-ink: #0F1210;             /* primary ink */
-    --os-ink-2: #4A4E4B;           /* secondary ink */
-    --os-ink-3: #6B6F6C;           /* muted ink */
-    --os-green: #0F3D3A;
-    --os-green-soft: rgba(52,103,57,0.08);
-    --os-gold: #6C151E;
-    --os-gold-soft: rgba(192,184,122,0.14);
+    --os-surface-2: #FFFFFF;       /* white nested surface */
+    --os-hairline: #D1D5DB;
+    --os-hairline-strong: #9CA3AF;
+    --os-ink: #111827;             /* near-black primary ink */
+    --os-ink-2: #374151;           /* charcoal secondary ink */
+    --os-ink-3: #6B7280;           /* muted ink */
+    --os-green: #111827;
+    --os-green-soft: #F3F4F6;
+    --os-gold: #4B5563;
+    --os-gold-soft: #F3F4F6;
     --os-info: #3D6FA8;
     --os-info-soft: rgba(61,111,168,0.10);
     --os-warn: #B7791F;
@@ -298,8 +298,8 @@
     --os-success: #2F8F55;
     --os-success-soft: rgba(47,143,85,0.10);
 
-    --os-shadow-card: 0 1px 0 rgba(26,26,26,0.02), 0 2px 8px -4px rgba(26,26,26,0.06), 0 12px 32px -20px rgba(26,26,26,0.10);
-    --os-shadow-float: 0 1px 0 rgba(26,26,26,0.02), 0 12px 32px -12px rgba(26,26,26,0.12), 0 30px 60px -30px rgba(26,26,26,0.18);
+    --os-shadow-card: 0 1px 2px rgba(17,24,39,0.04);
+    --os-shadow-float: 0 4px 12px rgba(17,24,39,0.08);
   }
 
   /* Admin shell scope — swap the base canvas to warm graphite */
@@ -327,13 +327,13 @@
   .os-card {
     background: var(--os-surface);
     border: 1px solid var(--os-hairline);
-    border-radius: 20px;
+    border-radius: 8px;
     box-shadow: var(--os-shadow-card);
   }
   .os-card-flat {
     background: var(--os-surface);
     border: 1px solid var(--os-hairline);
-    border-radius: 20px;
+    border-radius: 8px;
   }
   .os-chip {
     display: inline-flex; align-items: center; gap: .35rem;
@@ -611,8 +611,8 @@
 
   --os-green: #5EA56D;
   --os-green-soft: rgba(94,165,109,0.14);
-  --os-gold: #6C151E;
-  --os-gold-soft: rgba(192,184,122,0.14);
+  --os-gold: #4B5563;
+  --os-gold-soft: #F3F4F6;
   --os-info: #7AA7D6;
   --os-info-soft: rgba(122,167,214,0.12);
   --os-warn: #D8A94A;
@@ -929,8 +929,8 @@
   --os-canvas: #F7F7F5;
   --os-surface: #FFFFFF;
   --os-surface-2: #FAFAF8;
-  --os-hairline: rgba(26,26,26,0.06);
-  --os-hairline-strong: rgba(26,26,26,0.10);
+  --os-hairline: #D1D5DB;
+  --os-hairline-strong: #9CA3AF;
   --os-ink: #0F1210;
   --os-ink-2: #4A4E4B;
   --os-ink-3: #5F6462;
@@ -1543,4 +1543,327 @@ body > #root button[aria-label="Open StayNas AI Concierge"] {
 }
 body > #root button[aria-label="Open StayNas AI Concierge"]:hover {
   background: #2C3B36;
+}
+
+
+/* StayNas Enterprise Neutral — shared component normalization. */
+.mtoni-os {
+  --background: #F3F4F6;
+  --foreground: #111827;
+  --card: #FFFFFF;
+  --card-foreground: #111827;
+  --popover: #FFFFFF;
+  --popover-foreground: #111827;
+  --primary: #111827;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F3F4F6;
+  --secondary-foreground: #374151;
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
+  --accent: #E5E7EB;
+  --accent-foreground: #111827;
+  --border: #D1D5DB;
+  --input: #D1D5DB;
+  --ring: #374151;
+  font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  background-color: #F3F4F6;
+  color: #111827;
+}
+.mtoni-os :is(h1,h2,h3,h4,[class*="font-display"]) {
+  font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.mtoni-os .os-card,
+.mtoni-os .os-card-flat {
+  background: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  box-shadow: none;
+}
+.mtoni-os :is(input,textarea,select,[role="combobox"]) {
+  border-color: #D1D5DB;
+}
+.mtoni-os :is(button,[role="button"],a[class*="bg-primary"]) {
+  --tw-ring-color: #374151;
+}
+.mtoni-os :is(button.bg-primary,[class~="bg-primary"]) {
+  background-color: #111827;
+  color: #FFFFFF;
+}
+.mtoni-os :is(button.bg-primary,[class~="bg-primary"]):hover {
+  background-color: #374151;
+}
+
+
+/* Controlled typography scale for operational screens. */
+.mtoni-os .text-xs { font-size: 0.75rem; line-height: 1.4; }
+.mtoni-os .text-sm { font-size: 0.875rem; line-height: 1.5; }
+.mtoni-os .text-base { font-size: 0.9375rem; line-height: 1.55; }
+.mtoni-os .text-lg { font-size: 1rem; line-height: 1.5; }
+.mtoni-os .text-xl { font-size: 1.125rem; line-height: 1.4; }
+.mtoni-os .text-2xl { font-size: 1.25rem; line-height: 1.35; }
+.mtoni-os .text-3xl { font-size: 1.5rem; line-height: 1.3; }
+.mtoni-os .text-4xl { font-size: 1.75rem; line-height: 1.25; }
+.mtoni-os .text-5xl,
+.mtoni-os .text-6xl,
+.mtoni-os .text-7xl,
+.mtoni-os .text-8xl,
+.mtoni-os .text-9xl { font-size: 1.875rem; line-height: 1.25; }
+.mtoni-os p { line-height: 1.55; }
+.mtoni-os :is(label,button,input,textarea,select) { font-family: "Inter", "Helvetica Neue", system-ui, sans-serif; }
+
+
+/* Enterprise Neutral — authoritative OS tokens for every admin module.
+   The older adaptive-theme block below the base tokens re-declared these
+   --os-* variables, so the landing/global palette changed while module
+   components that consume --os-ink/--os-green/--os-canvas kept the legacy
+   palette. Keep the OS token layer aligned with the shared semantic tokens. */
+.mtoni-os {
+  --os-canvas: #F3F4F6;
+  --os-surface: #FFFFFF;
+  --os-surface-2: #FFFFFF;
+  --os-hairline: #D1D5DB;
+  --os-hairline-strong: #9CA3AF;
+  --os-ink: #111827;
+  --os-ink-2: #374151;
+  --os-ink-3: #6B7280;
+  --os-green: #111827;
+  --os-green-soft: #F3F4F6;
+  --os-gold: #4B5563;
+  --os-gold-soft: #F3F4F6;
+  --os-shadow-card: 0 1px 2px rgba(17,24,39,0.04);
+  --os-shadow-float: 0 4px 12px rgba(17,24,39,0.08);
+  --surface: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --surface-muted: #F3F4F6;
+  --border-subtle: #D1D5DB;
+  --input-foreground: #111827;
+  --focus: #374151;
+}
+.mtoni-os :is(.os-card,.os-card-flat,[data-slot="card"],.bg-card) {
+  background-color: #FFFFFF;
+  border-color: #D1D5DB;
+  color: #111827;
+  border-radius: 8px;
+  box-shadow: none;
+}
+.mtoni-os :is(.os-chip,[class*="os-context-nav"]) {
+  border-color: #D1D5DB;
+}
+
+
+/* Enterprise-neutral hardening: preserve the user-selected dark appearance.
+   The light token normalization above must not override the dark theme tokens. */
+html[data-os-theme="dark"] .mtoni-os {
+  --os-canvas: #111827;
+  --os-surface: #1F2937;
+  --os-surface-2: #273449;
+  --os-hairline: #374151;
+  --os-hairline-strong: #4B5563;
+  --os-ink: #F9FAFB;
+  --os-ink-2: #E5E7EB;
+  --os-ink-3: #9CA3AF;
+  --os-green: #F9FAFB;
+  --os-green-soft: #374151;
+  --os-gold: #D1D5DB;
+  --os-gold-soft: #374151;
+  --os-shadow-card: 0 1px 2px rgba(0,0,0,0.18);
+  --os-shadow-float: 0 4px 12px rgba(0,0,0,0.24);
+  --background: #111827;
+  --foreground: #F9FAFB;
+  --card: #1F2937;
+  --card-foreground: #F9FAFB;
+  --popover: #1F2937;
+  --popover-foreground: #F9FAFB;
+  --primary: #F9FAFB;
+  --primary-foreground: #111827;
+  --secondary: #273449;
+  --secondary-foreground: #E5E7EB;
+  --muted: #273449;
+  --muted-foreground: #9CA3AF;
+  --accent: #374151;
+  --accent-foreground: #F9FAFB;
+  --border: #374151;
+  --input: #4B5563;
+  --ring: #D1D5DB;
+  --surface: #1F2937;
+  --surface-elevated: #273449;
+  --surface-muted: #273449;
+  --border-subtle: #374151;
+  --input-foreground: #F9FAFB;
+  --focus: #D1D5DB;
+  background-color: #111827;
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] .mtoni-os :is(.os-card,.os-card-flat,[data-slot="card"],.bg-card) {
+  background-color: #1F2937;
+  border-color: #374151;
+  color: #F9FAFB;
+  box-shadow: none;
+}
+html[data-os-theme="dark"] .mtoni-os :is(input,textarea,select,[role="combobox"]) {
+  background-color: #1F2937;
+  border-color: #4B5563;
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] .mtoni-os :is(button.bg-primary,[class~="bg-primary"]) {
+  background-color: #F9FAFB;
+  color: #111827;
+}
+html[data-os-theme="dark"] .mtoni-os :is(button.bg-primary,[class~="bg-primary"]):hover {
+  background-color: #E5E7EB;
+}
+html[data-os-theme="dark"] .mtoni-os :is(table,thead,tbody,tr,th,td) {
+  border-color: #374151;
+}
+html[data-os-theme="dark"] .mtoni-os :is(.os-chip,[class*="os-context-nav"]) {
+  background-color: #273449;
+  border-color: #4B5563;
+  color: #E5E7EB;
+}
+html[data-os-theme="dark"] .mtoni-os .text-muted-foreground {
+  color: #9CA3AF;
+}
+html[data-os-theme="dark"] .mtoni-os :is(a,button):focus-visible {
+  outline-color: #D1D5DB;
+}
+
+/* Shared operational content guardrails across module routes. */
+.mtoni-os :is(table) {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+}
+.mtoni-os :is(th,td) {
+  overflow-wrap: anywhere;
+}
+.mtoni-os :is(input,textarea,select,[role="combobox"]) {
+  min-width: 0;
+  max-width: 100%;
+}
+.mtoni-os :is(img,video,canvas,svg) {
+  max-width: 100%;
+}
+.mtoni-os :is(.overflow-x-auto,[data-scroll-container]) {
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+@media (max-width: 767px) {
+  .mtoni-os {
+    overflow-wrap: anywhere;
+  }
+  .mtoni-os :is(.os-card,.os-card-flat,[data-slot="card"]) {
+    min-width: 0;
+  }
+  .mtoni-os :is(button,[role="button"],input,select,[role="combobox"]) {
+    min-height: 36px;
+  }
+}
+
+
+/* Enterprise-neutral dropdown palette: native selects and Radix menus.
+   Keep selected/highlighted options on the shared charcoal/grey system,
+   not the legacy clay/gold accent. */
+.mtoni-os select {
+  color-scheme: light;
+  accent-color: #111827;
+  background-color: #FFFFFF;
+  color: #111827;
+}
+.mtoni-os select option,
+.mtoni-os select optgroup {
+  background-color: #FFFFFF;
+  color: #111827;
+}
+.mtoni-os select option:checked {
+  background: #111827 linear-gradient(0deg, #111827 0%, #111827 100%);
+  color: #FFFFFF;
+}
+.mtoni-os :is([role="option"],[role="menuitem"],[data-radix-select-item],[data-radix-menu-item])[data-highlighted],
+.mtoni-os :is([role="option"],[role="menuitem"],[data-radix-select-item],[data-radix-menu-item]):focus,
+.mtoni-os :is([role="option"],[role="menuitem"],[data-radix-select-item],[data-radix-menu-item])[data-state="checked"] {
+  background-color: #E5E7EB;
+  color: #111827;
+}
+.mtoni-os :is([role="option"],[data-radix-select-item])[aria-selected="true"] {
+  background-color: #111827;
+  color: #FFFFFF;
+}
+html[data-os-theme="dark"] .mtoni-os select {
+  color-scheme: dark;
+  background-color: #1F2937;
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] .mtoni-os select option,
+html[data-os-theme="dark"] .mtoni-os select optgroup {
+  background-color: #1F2937;
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] .mtoni-os select option:checked {
+  background: #F9FAFB linear-gradient(0deg, #F9FAFB 0%, #F9FAFB 100%);
+  color: #111827;
+}
+html[data-os-theme="dark"] .mtoni-os :is([role="option"],[role="menuitem"],[data-radix-select-item],[data-radix-menu-item])[data-highlighted],
+html[data-os-theme="dark"] .mtoni-os :is([role="option"],[role="menuitem"],[data-radix-select-item],[data-radix-menu-item]):focus {
+  background-color: #374151;
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] .mtoni-os :is([role="option"],[data-radix-select-item])[aria-selected="true"] {
+  background-color: #F9FAFB;
+  color: #111827;
+}
+
+
+/* Radix popovers/menus render in a portal outside .mtoni-os.
+   Apply the enterprise dropdown palette at document level as well. */
+[data-radix-popper-content-wrapper] [role="option"],
+[data-radix-popper-content-wrapper] [role="menuitem"],
+[data-radix-popper-content-wrapper] [data-radix-select-item],
+[data-radix-popper-content-wrapper] [data-radix-menu-item] {
+  background-color: transparent;
+  color: #111827;
+}
+[data-radix-popper-content-wrapper] [role="option"][data-highlighted],
+[data-radix-popper-content-wrapper] [role="menuitem"][data-highlighted],
+[data-radix-popper-content-wrapper] [data-radix-select-item][data-highlighted],
+[data-radix-popper-content-wrapper] [data-radix-menu-item][data-highlighted],
+[data-radix-popper-content-wrapper] [role="option"]:focus,
+[data-radix-popper-content-wrapper] [role="menuitem"]:focus {
+  background-color: #E5E7EB !important;
+  color: #111827 !important;
+}
+[data-radix-popper-content-wrapper] [role="option"][data-state="checked"],
+[data-radix-popper-content-wrapper] [data-radix-select-item][data-state="checked"],
+[data-radix-popper-content-wrapper] [role="option"][aria-selected="true"],
+[data-radix-popper-content-wrapper] [data-radix-select-item][aria-selected="true"] {
+  background-color: #111827 !important;
+  color: #FFFFFF !important;
+}
+[data-radix-popper-content-wrapper] [role="option"][data-state="checked"] *,
+[data-radix-popper-content-wrapper] [data-radix-select-item][data-state="checked"] *,
+[data-radix-popper-content-wrapper] [role="option"][aria-selected="true"] *,
+[data-radix-popper-content-wrapper] [data-radix-select-item][aria-selected="true"] * {
+  color: inherit !important;
+}
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="option"],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="menuitem"],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-select-item],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-menu-item] {
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="option"][data-highlighted],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="menuitem"][data-highlighted],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-select-item][data-highlighted],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-menu-item][data-highlighted] {
+  background-color: #374151 !important;
+  color: #F9FAFB !important;
+}
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="option"][data-state="checked"],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-select-item][data-state="checked"],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="option"][aria-selected="true"],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-select-item][aria-selected="true"] {
+  background-color: #F9FAFB !important;
+  color: #111827 !important;
 }
