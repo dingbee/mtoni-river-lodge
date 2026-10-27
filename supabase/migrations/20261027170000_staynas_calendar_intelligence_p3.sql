@@ -85,10 +85,11 @@ CREATE TABLE IF NOT EXISTS public.staynas_calendar_notification_outbox (
   attempt_count integer NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
   last_error text,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (property_id, event_key, recipient_id, channel)
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS staynas_calendar_outbox_idempotency_idx
+  ON public.staynas_calendar_notification_outbox(property_id, event_key, COALESCE(recipient_id, '00000000-0000-0000-0000-000000000000'::uuid), channel);
 CREATE INDEX IF NOT EXISTS staynas_calendar_outbox_due_idx
   ON public.staynas_calendar_notification_outbox(status, scheduled_for)
   WHERE status IN ('queued','failed');
