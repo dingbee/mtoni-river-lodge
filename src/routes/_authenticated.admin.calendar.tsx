@@ -390,6 +390,17 @@ function UnifiedCalendarPage() {
         description="Coordinate reservations, room availability and operational activity in one property-aware workspace."
         actions={
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                const today = todayInTimezone(property.timezone);
+                setScheduleStart(today + "T09:00");
+                setScheduleEnd(today + "T17:00");
+                setScheduleOpen(true);
+              }}
+            >
+              <CalendarDays className="mr-2 h-4 w-4" /> Schedule staff
+            </Button>
             <Button variant="outline" size="sm" asChild>
               <Link to="/admin/operations/calendar">Ops calendar</Link>
             </Button>
@@ -754,6 +765,65 @@ function UnifiedCalendarPage() {
           )}
         </SectionCard>
       </div>
+
+      <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Schedule staff</DialogTitle>
+            <DialogDescription>
+              Create a property-scoped shift or assignment. All entered times use {property.timezone}.
+            </DialogDescription>
+          </DialogHeader>
+          {calendarStaff.isLoading ? (
+            <LoadingState label="Loading property staff…" />
+          ) : calendarStaff.isError ? (
+            <p className="text-sm text-destructive">Could not load staff for this property. Refresh and try again.</p>
+          ) : !calendarStaff.data?.canManage ? (
+            <p className="text-sm text-muted-foreground">Only property owners, managers and administrators can create staff schedules.</p>
+          ) : (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label>Schedule title</Label>
+                <Input value={scheduleTitle} onChange={(e) => setScheduleTitle(e.target.value)} maxLength={160} placeholder="Front desk morning shift" />
+              </div>
+              <div className="space-y-1">
+                <Label>Staff member</Label>
+                <Select value={scheduleStaffId} onValueChange={setScheduleStaffId}>
+                  <SelectTrigger><SelectValue placeholder="Select staff member" /></SelectTrigger>
+                  <SelectContent>
+                    {(calendarStaff.data.staff ?? []).map((member) => (
+                      <SelectItem key={member.user_id} value={member.user_id}>{member.email}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label>Starts</Label>
+                  <Input type="datetime-local" value={scheduleStart} onChange={(e) => setScheduleStart(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Ends</Label>
+                  <Input type="datetime-local" value={scheduleEnd} onChange={(e) => setScheduleEnd(e.target.value)} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>Notes (optional)</Label>
+                <Textarea value={scheduleNotes} onChange={(e) => setScheduleNotes(e.target.value)} maxLength={1000} rows={2} placeholder="Role, handover notes or coverage details" />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setScheduleOpen(false)}>Cancel</Button>
+            <Button
+              disabled={!calendarStaff.data?.canManage || !scheduleStaffId || scheduleTitle.trim().length < 2 || !scheduleStart || !scheduleEnd || createSchedule.isPending}
+              onClick={() => createSchedule.mutate()}
+            >
+              Create schedule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!selectedAgendaBooking} onOpenChange={(open) => !open && setSelectedAgendaBooking(null)}>
         <DialogContent>
