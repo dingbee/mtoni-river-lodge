@@ -210,7 +210,9 @@ BEGIN
     SELECT s.property_id INTO v_property_id FROM public.staynas_calendar_schedule_series s WHERE s.id = COALESCE(NEW.series_id, OLD.series_id);
     v_entity_id := COALESCE(NEW.id, OLD.id);
     -- Parent-series cascade deletes may remove the parent before this trigger runs.
-    IF v_property_id IS NULL THEN RETURN COALESCE(NEW, OLD); END IF;
+    IF v_property_id IS NULL THEN
+      IF TG_OP = 'DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
+    END IF;
   ELSE
     v_property_id := COALESCE(NEW.property_id, OLD.property_id);
     v_entity_id := COALESCE(NEW.id, OLD.id);
@@ -227,9 +229,9 @@ BEGIN
     CASE WHEN TG_OP IN ('UPDATE','DELETE') THEN to_jsonb(OLD) ELSE NULL END,
     CASE WHEN TG_OP IN ('INSERT','UPDATE') THEN to_jsonb(NEW) ELSE NULL END
   );
-  RETURN COALESCE(NEW, OLD);
+  IF TG_OP = 'DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
 END;
-$$;
+$;
 
 DROP TRIGGER IF EXISTS staynas_calendar_rules_audit ON public.staynas_calendar_rules;
 CREATE TRIGGER staynas_calendar_rules_audit AFTER INSERT OR UPDATE OR DELETE ON public.staynas_calendar_rules
