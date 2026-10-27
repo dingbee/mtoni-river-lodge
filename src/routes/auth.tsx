@@ -54,7 +54,7 @@ function AuthPage() {
         return;
       }
 
-      if (!hasLegacyStaffRole && accessibleProperties.length === 1) {
+      if (accessibleProperties.length === 1) {
         const { error: contextError } = await staynasRpc(supabase).rpc("staynas_set_active_property", {
           _property_id: accessibleProperties[0].id,
         });
