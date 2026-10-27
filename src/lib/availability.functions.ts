@@ -162,22 +162,34 @@ export const listCalendarEvents = createServerFn({ method: "POST" })
 export const listActiveHolds = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ from: dateStr.optional(), to: dateStr.optional() }).parse(d),
+    z.object({
+      propertyId: z.string().uuid(),
+      from: dateStr.optional(),
+      to: dateStr.optional(),
+    }).parse(d),
   )
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     const sb: any = context.supabase;
+    const { data: hasAccess, error: accessError } = await sb.rpc("staynas_user_has_property_access", {
+      _uid: context.userId,
+      _property_id: data.propertyId,
+    });
+    if (accessError) throw new Error(accessError.message);
+    if (!hasAccess) throw new Error("Property access denied");
+
     let q = sb.from("booking_holds")
-      .select("id, room_id, check_in, check_out, expires_at, guest_email, status, session_id, created_at")
+      .select("id, property_id, room_id, check_in, check_out, expires_at, guest_email, status, session_id, created_at")
+      .eq("property_id", data.propertyId)
       .eq("status", "active")
       .gt("expires_at", new Date().toISOString());
-    if (data.from) q = q.gte("check_out", data.from);
-    if (data.to) q = q.lte("check_in", data.to);
+    if (data.from) q = q.lt("check_out", data.from).or(`check_out.gte.${data.from}`);
+    if (data.to) q = q.lt("check_in", data.to);
     const { data: rows, error } = await q.order("expires_at", { ascending: true }).limit(200);
     if (error) throw new Error(error.message);
     return (rows ?? []) as Array<{
-      id: string; room_id: string; check_in: string; check_out: string;
-      expires_at: string; guest_email: string | null; status: string; created_at: string;
+      id: string; property_id: string; room_id: string; check_in: string; check_out: string;
+      expires_at: string; guest_email: string | null; status: string; session_id: string; created_at: string;
     }>;
   });
 
@@ -187,20 +199,27 @@ export const releaseHoldStaff = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     const sb: any = context.supabase;
-    const { data: row, error: e1 } = await sb
+    const { data: row, error: rowError } = await sb
       .from("booking_holds")
-      .select("session_id")
+      .select("session_id, property_id")
       .eq("id", data.holdId)
       .maybeSingle();
-    if (e1 || !row) throw new Error(e1?.message ?? "Hold not found");
-    const propertyId = await getConfiguredBookingPropertyId(sb);
-    const { error } = await bookingRpc(sb).rpc("release_booking_hold_for_property", {
+    if (rowError || !row) throw new Error(rowError?.message ?? "Hold not found");
+
+    const { data: hasAccess, error: accessError } = await sb.rpc("staynas_user_has_property_access", {
+      _uid: context.userId,
+      _property_id: row.property_id,
+    });
+    if (accessError) throw new Error(accessError.message);
+    if (!hasAccess) throw new Error("Property access denied");
+
+    const { data: ok, error } = await bookingRpc(sb).rpc("release_booking_hold_for_property", {
       _hold_id: data.holdId,
       _session_id: row.session_id,
-      _property_id: propertyId,
+      _property_id: row.property_id,
     });
     if (error) throw new Error(error.message);
-    return { ok: true };
+    return { ok: Boolean(ok) };
   });
 
 // -------- Staff: reassign booking room --------------------------------
