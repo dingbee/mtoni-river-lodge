@@ -12,7 +12,7 @@ import { AlertTriangle, Ban, BedDouble, CalendarDays, RefreshCw, ShieldOff, Spar
 import { findCalendarConflicts, type StayNasCalendarEvent } from "@/lib/calendar-event-contract";
 import { toast } from "sonner";
 
-import { createCalendarStaffSchedule, createRecurringCalendarSchedule, getOpsCalendar, listCalendarStaff } from "@/lib/operations.functions";
+import { createCalendarStaffSchedule, createRecurringCalendarSchedule, getOpsCalendar, getRecurringCalendarOccurrences, listCalendarStaff } from "@/lib/operations.functions";
 import {
   listActiveHolds,
   listCalendarEvents,
@@ -161,6 +161,7 @@ function UnifiedCalendarPage() {
   const days = useMemo(() => daysBetween(range.from, range.to), [range]);
 
   const fetchOps = useServerFn(getOpsCalendar);
+  const fetchRecurringOccurrences = useServerFn(getRecurringCalendarOccurrences);
   const fetchHolds = useServerFn(listActiveHolds);
   const fetchEvents = useServerFn(listCalendarEvents);
   const blockFn = useServerFn(setRoomBlock);
@@ -206,6 +207,11 @@ function UnifiedCalendarPage() {
   const ops = useQuery({
     queryKey: ["calendar", "ops", property.id, range.from, range.to],
     queryFn: () => fetchOps({ data: { propertyId: property.id, from: range.from, to: range.to } }),
+    staleTime: 30_000,
+  });
+  const recurringOccurrences = useQuery({
+    queryKey: ["calendar", "recurring", property.id, range.from, range.to],
+    queryFn: () => fetchRecurringOccurrences({ data: { propertyId: property.id, from: range.from, to: range.to } }),
     staleTime: 30_000,
   });
   const holds = useQuery({
@@ -382,7 +388,25 @@ function UnifiedCalendarPage() {
     }),
     [d.operationalEvents, d.rooms, property.id, property.timezone],
   );
-  const allCalendarEvents = useMemo(() => [...bookingEvents, ...operationalCalendarEvents], [bookingEvents, operationalCalendarEvents]);
+  const recurringCalendarEvents = useMemo(() =>
+    ((recurringOccurrences.data ?? []) as any[]).map((item): StayNasCalendarEvent => ({
+      id: `recurring:${item.series_id}:${item.occurrence_date}`,
+      propertyId: property.id,
+      kind: "staff",
+      title: String(item.title ?? "Recurring staff shift"),
+      start: String(item.starts_at),
+      end: String(item.ends_at),
+      allDay: false,
+      timezone: property.timezone,
+      status: item.status === "cancelled" ? "cancelled" : "confirmed",
+      source: { domain: "staff", entityType: "calendar_schedule_series", entityId: String(item.series_id) },
+      resource: { kind: "staff", id: String(item.staff_user_id), label: String(item.staff_user_id) },
+      description: item.notes ?? "Recurring staff schedule",
+      editable: false,
+    })),
+    [recurringOccurrences.data, property.id, property.timezone],
+  );
+  const allCalendarEvents = useMemo(() => [...bookingEvents, ...operationalCalendarEvents, ...recurringCalendarEvents], [bookingEvents, operationalCalendarEvents, recurringCalendarEvents]);
   const bookingConflicts = useMemo(() => findCalendarConflicts(allCalendarEvents), [allCalendarEvents]);
 
   const activeHolds = holds.data ?? [];
