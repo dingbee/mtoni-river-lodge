@@ -65,3 +65,28 @@ export function calendarIntervalsOverlap(
 ): boolean {
   return a.start < b.end && b.start < a.end;
 }
+
+/** Returns conflicting event pairs when the same resource is double-booked. */
+export function findCalendarConflicts(events: StayNasCalendarEvent[]): Array<[string, string]> {
+  const conflicts: Array<[string, string]> = [];
+  const active = events.filter((event) =>
+    event.resource &&
+    event.status !== "cancelled" &&
+    event.status !== "completed",
+  );
+  for (let i = 0; i < active.length; i += 1) {
+    for (let j = i + 1; j < active.length; j += 1) {
+      const a = active[i];
+      const b = active[j];
+      if (
+        a.propertyId === b.propertyId &&
+        a.resource?.kind === b.resource?.kind &&
+        a.resource?.id === b.resource?.id &&
+        calendarIntervalsOverlap(a, b)
+      ) {
+        conflicts.push([a.id, b.id]);
+      }
+    }
+  }
+  return conflicts;
+}
