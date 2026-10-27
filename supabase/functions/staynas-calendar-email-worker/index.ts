@@ -50,12 +50,13 @@ Deno.serve(async (req: Request) => {
       const text = typeof payload.body === "string" && payload.body.trim()
         ? payload.body.trim()
         : String(item.event_type ?? "Calendar update");
-      const href = typeof payload.href === "string" && payload.href.startsWith("/")
-        ? payload.href
+      const appBaseUrl = Deno.env.get("STAYNAS_APP_URL")?.replace(/\\/$/, "");
+      const href = appBaseUrl && typeof payload.href === "string" && payload.href.startsWith("/")
+        ? `${appBaseUrl}${payload.href}`
         : null;
       const html = typeof payload.html === "string"
         ? payload.html
-        : `<div style="font-family:Arial,sans-serif;line-height:1.5"><h2>${escapeHtml(subject)}</h2><p>${escapeHtml(text)}</p>${href ? `<p><a href="${escapeHtml(supabaseUrl)}${escapeHtml(href)}">Open StayNas</a></p>` : ""}</div>`;
+        : `<div style="font-family:Arial,sans-serif;line-height:1.5"><h2>${escapeHtml(subject)}</h2><p>${escapeHtml(text)}</p>${href ? `<p><a href="${escapeHtml(href)}">Open StayNas</a></p>` : ""}</div>`;
 
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
