@@ -52,6 +52,12 @@ function weekday(value: string): number {
   return parseDate(value).getUTCDay();
 }
 
+function weekStart(value: string): string {
+  const date = parseDate(value);
+  date.setUTCDate(date.getUTCDate() - date.getUTCDay() + 1);
+  return dateString(date);
+}
+
 /** Expand a bounded date range. This function never performs writes or mutates source records. */
 export function expandRecurringSchedule(
   rule: RecurringScheduleRule,
@@ -89,7 +95,7 @@ export function expandRecurringSchedule(
     if (offset < 0) continue;
     const matches = rule.frequency === "daily"
       ? offset % rule.intervalCount === 0
-      : Math.floor(offset / 7) % rule.intervalCount === 0 && rule.daysOfWeek!.includes(weekday(date));
+      : Math.floor(dayDifference(date, weekStart(rule.startsOn)) / 7) % rule.intervalCount === 0 && rule.daysOfWeek!.includes(weekday(date));
     if (!matches) continue;
     const exception = exceptionMap.get(date);
     if (exception?.type === "cancelled") continue;
