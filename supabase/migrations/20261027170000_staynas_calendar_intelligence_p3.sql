@@ -15,6 +15,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $
   SELECT _uid IS NOT NULL
+    AND (_uid = auth.uid() OR auth.role() = 'service_role')
     AND EXISTS (
       SELECT 1
       FROM public.staynas_property_members pm
