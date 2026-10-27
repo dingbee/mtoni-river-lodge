@@ -354,6 +354,73 @@ export const getOpsCalendar = createServerFn({ method: "POST" })
     };
   });
 
+export const listCalendarStaff = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ propertyId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
+    await assertStaff(context.supabase, context.userId);
+    const sb: any = context.supabase;
+    const { data: hasAccess, error: accessError } = await sb.rpc("staynas_user_has_property_access", {
+      _uid: context.userId,
+      _property_id: data.propertyId,
+    });
+    if (accessError) throw new Error(accessError.message);
+    if (!hasAccess) throw new Error("Property access denied");
+    const { data: canManage, error: roleError } = await sb.rpc("has_any_role", {
+      _user_id: context.userId,
+      _roles: ["owner", "manager", "admin"],
+    });
+    if (roleError) throw new Error(roleError.message);
+    if (!canManage) return { canManage: false, staff: [] as Array<{ user_id: string; email: string }> };
+    const { data: staff, error } = await sb.rpc("staynas_calendar_list_staff", { _property_id: data.propertyId });
+    if (error) throw new Error(error.message);
+    return { canManage: true, staff: (staff ?? []) as Array<{ user_id: string; email: string }> };
+  });
+
+export const createCalendarStaffSchedule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    propertyId: z.string().uuid(),
+    staffUserId: z.string().uuid(),
+    title: z.string().trim().min(2).max(160),
+    startsAt: z.string().datetime(),
+    endsAt: z.string().datetime(),
+    notes: z.string().max(1000).optional(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
+    await assertStaff(context.supabase, context.userId);
+    if (Date.parse(data.endsAt) <= Date.parse(data.startsAt)) {
+      throw new Error("Schedule end must be after its start");
+    }
+    const sb: any = context.supabase;
+    const { data: canManage, error: roleError } = await sb.rpc("has_any_role", {
+      _user_id: context.userId,
+      _roles: ["owner", "manager", "admin"],
+    });
+    if (roleError) throw new Error(roleError.message);
+    if (!canManage) throw new Error("Only property managers can schedule staff");
+    const { data: hasAccess, error: accessError } = await sb.rpc("staynas_user_has_property_access", {
+      _uid: context.userId,
+      _property_id: data.propertyId,
+    });
+    if (accessError) throw new Error(accessError.message);
+    if (!hasAccess) throw new Error("Property access denied");
+
+    const { data: row, error } = await sb.from("staynas_staff_schedules").insert({
+      property_id: data.propertyId,
+      staff_user_id: data.staffUserId,
+      title: data.title,
+      starts_at: data.startsAt,
+      ends_at: data.endsAt,
+      notes: data.notes?.trim() || null,
+      created_by: context.userId,
+    }).select("id, staff_user_id, title, starts_at, ends_at, status, notes").single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
 // -------------------------------------------------------------- Alerts
 
 export const refreshOpsAlerts = createServerFn({ method: "POST" })
