@@ -183,7 +183,7 @@ export const listActiveHolds = createServerFn({ method: "POST" })
       .eq("property_id", data.propertyId)
       .eq("status", "active")
       .gt("expires_at", new Date().toISOString());
-    if (data.from) q = q.lt("check_out", data.from).or(`check_out.gte.${data.from}`);
+    if (data.from) q = q.gt("check_out", data.from);
     if (data.to) q = q.lt("check_in", data.to);
     const { data: rows, error } = await q.order("expires_at", { ascending: true }).limit(200);
     if (error) throw new Error(error.message);
