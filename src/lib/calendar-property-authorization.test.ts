@@ -11,6 +11,7 @@ describe("StayNas calendar property authorization migrations", () => {
     expect(sql).toContain("pm.property_id = _property_id");
     expect(sql).toContain("pm.status = 'active'");
     expect(sql).toContain("pm.role = ANY(_roles)");
+    expect(sql).toContain("_uid = auth.uid() OR auth.role() = 'service_role'");
     expect(sql).not.toContain("public.has_any_role(");
   });
 
