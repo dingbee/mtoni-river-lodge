@@ -12,7 +12,7 @@ import { AlertTriangle, Ban, CalendarDays, RefreshCw, ShieldOff, Sparkles, Timer
 import { findCalendarConflicts, type StayNasCalendarEvent } from "@/lib/calendar-event-contract";
 import { toast } from "sonner";
 
-import { getOpsCalendar } from "@/lib/operations.functions";
+import { createCalendarStaffSchedule, getOpsCalendar, listCalendarStaff } from "@/lib/operations.functions";
 import {
   listActiveHolds,
   listCalendarEvents,
@@ -63,6 +63,27 @@ function dateInTimezone(value: string, timezone: string) {
   }).formatToParts(new Date(value));
   const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
   return `${part("year")}-${part("month")}-${part("day")}`;
+}
+function propertyLocalDateTimeToIso(value: string, timezone: string) {
+  const match = /^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2})$/.exec(value);
+  if (!match) throw new Error("Enter a valid property-local date and time");
+  const desired = { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]), hour: Number(match[4]), minute: Number(match[5]) };
+  const target = Date.UTC(desired.year, desired.month - 1, desired.day, desired.hour, desired.minute);
+  let candidate = target;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const parts = new Intl.DateTimeFormat("en-GB", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(candidate));
+    const part = (type: string) => Number(parts.find((item) => item.type === type)?.value ?? 0);
+    const represented = Date.UTC(part("year"), part("month") - 1, part("day"), part("hour"), part("minute"));
+    const delta = target - represented;
+    if (delta === 0) break;
+    candidate += delta;
+  }
+  const verify = new Intl.DateTimeFormat("en-GB", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(candidate));
+  const part = (type: string) => Number(verify.find((item) => item.type === type)?.value ?? 0);
+  if (part("year") !== desired.year || part("month") !== desired.month || part("day") !== desired.day || part("hour") !== desired.hour || part("minute") !== desired.minute) {
+    throw new Error("That local time does not exist in the selected property timezone");
+  }
+  return new Date(candidate).toISOString();
 }
 function eventOccursOnDay(start: string, end: string, timezone: string, day: string) {
   const startDay = dateInTimezone(start, timezone);
