@@ -3,12 +3,6 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
-async function assertStaff(supabase: any, userId: string) {
-  const { data, error } = await supabase.rpc("is_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
-}
-
 const listSchema = z.object({
   status: z.enum(["all", "pending", "confirmed", "cancelled", "completed", "no_show"]).default("all"),
   paymentStatus: z.enum(["all", "unpaid", "deposit_paid", "paid", "refunded"]).default("all"),
@@ -21,7 +15,6 @@ export const listBookings = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => listSchema.parse(d ?? {}))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
-    await assertStaff(context.supabase, context.userId);
     let q = context.supabase
       .from("bookings")
       .select("id, reference, guest_name, guest_email, check_in, check_out, nights, adults, children, total, deposit_amount, balance_amount, currency, status, payment_status, payment_method, created_at, room_id")
@@ -47,7 +40,6 @@ export const getBookingDetail = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
-    await assertStaff(context.supabase, context.userId);
     const { data: booking, error } = await context.supabase
       .from("bookings").select("*").eq("id", data.id).maybeSingle();
     if (error) throw new Error(error.message);
@@ -80,7 +72,6 @@ export const updateBookingStatus = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
-    await assertStaff(context.supabase, context.userId);
     const patch: {
       status: typeof data.status;
       confirmed_at?: string;
