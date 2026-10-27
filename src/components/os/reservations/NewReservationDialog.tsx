@@ -348,9 +348,29 @@ export function NewReservationDialog({
                   </div>
                 </div>
                 <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm sm:col-span-2">
-                  <div className="flex items-center justify-between gap-3"><span className="text-muted-foreground">Length of stay</span><strong>{checkOut > checkIn ? Math.round((new Date(checkOut + "T12:00:00").getTime() - new Date(checkIn + "T12:00:00").getTime()) / 86400000) + " night(s)" : "Select valid dates"}</strong></div>
-                  <div className="mt-1 flex items-center justify-between gap-3"><span className="text-muted-foreground">Guests</span><strong>{totalGuests} total · {adults} adults</strong></div>
-                  {checkOut <= checkIn && <p className="mt-2 text-xs text-destructive">Check-out must be after check-in.</p>}
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Length of stay</span>
+                    <strong>
+                      {checkOut > checkIn
+                        ? Math.round(
+                            (new Date(checkOut + "T12:00:00").getTime() -
+                              new Date(checkIn + "T12:00:00").getTime()) /
+                              86400000,
+                          ) + " night(s)"
+                        : "Select valid dates"}
+                    </strong>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Guests</span>
+                    <strong>
+                      {totalGuests} total · {adults} adults
+                    </strong>
+                  </div>
+                  {checkOut <= checkIn && (
+                    <p className="mt-2 text-xs text-destructive">
+                      Check-out must be after check-in.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
