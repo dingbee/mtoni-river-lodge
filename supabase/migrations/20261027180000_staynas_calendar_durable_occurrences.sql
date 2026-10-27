@@ -38,7 +38,7 @@ CREATE POLICY "Calendar occurrences read accessible"
     public.staynas_user_has_property_access(auth.uid(), property_id)
     AND (
       staff_user_id = auth.uid()
-      OR public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
+      OR public.staynas_calendar_has_property_role(auth.uid(), property_id, ARRAY['owner','manager','admin']::public.app_role[])
     )
   );
 
@@ -58,7 +58,7 @@ DECLARE
 BEGIN
   IF v_uid IS NULL
      OR NOT public.staynas_user_has_property_access(v_uid, _property_id)
-     OR NOT public.has_any_role(v_uid, ARRAY['owner','manager','admin']::public.app_role[]) THEN
+     OR NOT public.staynas_calendar_has_property_role(v_uid, _property_id, ARRAY['owner','manager','admin']::public.app_role[]) THEN
     RAISE EXCEPTION 'Calendar manager access required';
   END IF;
   IF _to <= _from OR (_to - _from) > 93 THEN
