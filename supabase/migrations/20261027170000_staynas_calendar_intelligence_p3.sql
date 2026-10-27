@@ -231,7 +231,7 @@ BEGIN
   );
   IF TG_OP = 'DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
 END;
-$;
+$$;
 
 DROP TRIGGER IF EXISTS staynas_calendar_rules_audit ON public.staynas_calendar_rules;
 CREATE TRIGGER staynas_calendar_rules_audit AFTER INSERT OR UPDATE OR DELETE ON public.staynas_calendar_rules
