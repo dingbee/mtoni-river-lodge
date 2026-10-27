@@ -202,7 +202,7 @@ CREATE POLICY "Calendar exceptions read accessible" ON public.staynas_calendar_s
   USING (EXISTS (
     SELECT 1 FROM public.staynas_calendar_schedule_series s
     WHERE s.id = series_id AND public.staynas_user_has_property_access(auth.uid(), s.property_id)
-      AND (s.staff_user_id = auth.uid() OR public.staynas_calendar_has_property_role(auth.uid(), property_id, ARRAY['owner','manager','admin']::public.app_role[]))
+      AND (s.staff_user_id = auth.uid() OR public.staynas_calendar_has_property_role(auth.uid(), s.property_id, ARRAY['owner','manager','admin']::public.app_role[]))
   ));
 DROP POLICY IF EXISTS "Calendar managers manage exceptions" ON public.staynas_calendar_schedule_exceptions;
 CREATE POLICY "Calendar managers manage exceptions" ON public.staynas_calendar_schedule_exceptions
@@ -210,7 +210,7 @@ CREATE POLICY "Calendar managers manage exceptions" ON public.staynas_calendar_s
   USING (EXISTS (
     SELECT 1 FROM public.staynas_calendar_schedule_series s
     WHERE s.id = series_id AND public.staynas_user_has_property_access(auth.uid(), s.property_id)
-      AND public.staynas_calendar_has_property_role(auth.uid(), property_id, ARRAY['owner','manager','admin']::public.app_role[])
+      AND public.staynas_calendar_has_property_role(auth.uid(), s.property_id, ARRAY['owner','manager','admin']::public.app_role[])
   ))
   WITH CHECK (EXISTS (
     SELECT 1 FROM public.staynas_calendar_schedule_series s
