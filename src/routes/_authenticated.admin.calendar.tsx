@@ -165,6 +165,8 @@ function UnifiedCalendarPage() {
   const releaseFn = useServerFn(releaseHoldStaff);
   const reassignFn = useServerFn(reassignBookingRoom);
   const suggestFn = useServerFn(suggestRoomAssignment);
+  const fetchCalendarStaff = useServerFn(listCalendarStaff);
+  const createScheduleFn = useServerFn(createCalendarStaffSchedule);
 
   // ---- Filters -------------------------------------------------------
   const [filters, setFilters] = useState({
@@ -213,6 +215,19 @@ function UnifiedCalendarPage() {
     refetchInterval: 60_000,
   });
 
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduleTitle, setScheduleTitle] = useState("Staff shift");
+  const [scheduleStaffId, setScheduleStaffId] = useState("");
+  const [scheduleStart, setScheduleStart] = useState("");
+  const [scheduleEnd, setScheduleEnd] = useState("");
+  const [scheduleNotes, setScheduleNotes] = useState("");
+  const calendarStaff = useQuery({
+    queryKey: ["calendar", "staff", property.id],
+    queryFn: () => fetchCalendarStaff({ data: { propertyId: property.id } }),
+    enabled: scheduleOpen,
+    staleTime: 60_000,
+  });
+
   const [selectedAgendaBooking, setSelectedAgendaBooking] = useState<any | null>(null);
   const [blockOpen, setBlockOpen] = useState(false);
   const [blockCtx, setBlockCtx] = useState<{ roomId: string; roomName: string; from: string; to: string }>();
@@ -254,7 +269,29 @@ function UnifiedCalendarPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const d: any = ops.data ?? { rooms: [], bookings: [], inventory: [] };
+  const createSchedule = useMutation({
+    mutationFn: () => createScheduleFn({
+      data: {
+        propertyId: property.id,
+        staffUserId: scheduleStaffId,
+        title: scheduleTitle.trim(),
+        startsAt: propertyLocalDateTimeToIso(scheduleStart, property.timezone),
+        endsAt: propertyLocalDateTimeToIso(scheduleEnd, property.timezone),
+        notes: scheduleNotes.trim() || undefined,
+      },
+    }),
+    onSuccess: () => {
+      toast.success("Staff schedule created");
+      setScheduleOpen(false);
+      setScheduleTitle("Staff shift");
+      setScheduleStaffId("");
+      setScheduleNotes("");
+      qc.invalidateQueries({ queryKey: ["calendar"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const d: any = ops.data ?? { rooms: [], bookings: [], inventory: [], operationalEvents: [] };
 
   const bookingEvents = useMemo(() =>
     (d.bookings as any[])
