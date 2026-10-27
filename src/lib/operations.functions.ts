@@ -1,3 +1,4 @@
+import { rankCalendarStaff } from "./calendar-scheduling-recommendations";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -748,4 +749,50 @@ export const getOpsTimeline = createServerFn({ method: "POST" })
       .limit(data.limit);
     if (error) throw new Error(error.message);
     return rows ?? [];
+  });
+
+const schedulingRecommendationSchema = z.object({
+  propertyId: z.string().uuid(),
+  startsAt: z.string().datetime(),
+  endsAt: z.string().datetime(),
+}).refine((value) => Date.parse(value.endsAt) > Date.parse(value.startsAt), {
+  message: "End time must be after start time",
+  path: ["endsAt"],
+});
+
+export const recommendCalendarStaffAssignment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => schedulingRecommendationSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
+    await assertStaff(context.supabase, context.userId);
+    const sb: any = context.supabase;
+    const [{ data: canManage, error: roleError }, { data: hasAccess, error: accessError }] = await Promise.all([
+      sb.rpc("has_any_role", { _user_id: context.userId, _roles: ["owner", "manager", "admin"] }),
+      sb.rpc("staynas_user_has_property_access", { _uid: context.userId, _property_id: data.propertyId }),
+    ]);
+    if (roleError) throw new Error(roleError.message);
+    if (accessError) throw new Error(accessError.message);
+    if (!canManage) throw new Error("Only property managers can request staff assignment recommendations");
+    if (!hasAccess) throw new Error("Property access denied");
+
+    const from = data.startsAt.slice(0, 10);
+    const endDate = new Date(Date.parse(data.endsAt) + 86400000).toISOString().slice(0, 10);
+    const [{ data: staff, error: staffError }, { data: events, error: eventsError }] = await Promise.all([
+      sb.rpc("staynas_calendar_list_staff", { _property_id: data.propertyId }),
+      sb.rpc("staynas_calendar_operational_events", {
+        _property_id: data.propertyId, _from: from, _to: endDate,
+      }),
+    ]);
+    if (staffError) throw new Error(staffError.message);
+    if (eventsError) throw new Error(eventsError.message);
+    const recommendations = rankCalendarStaff(staff ?? [], events ?? [], data.startsAt, data.endsAt);
+    return {
+      propertyId: data.propertyId,
+      startsAt: data.startsAt,
+      endsAt: data.endsAt,
+      advisoryOnly: true,
+      requiresConflictRevalidationBeforeSave: true,
+      recommendations,
+    };
   });
