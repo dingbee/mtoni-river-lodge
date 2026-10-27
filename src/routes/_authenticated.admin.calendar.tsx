@@ -54,6 +54,16 @@ function formatEaDate(value: string | Date) {
   if (Number.isNaN(d.getTime())) return String(value);
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
+function dateInTimezone(value: string, timezone: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(value));
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
 function todayInTimezone(timezone: string) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: timezone,
@@ -227,7 +237,33 @@ function UnifiedCalendarPage() {
       })),
     [d.bookings, property.id, property.timezone],
   );
-  const bookingConflicts = useMemo(() => findCalendarConflicts(bookingEvents), [bookingEvents]);
+  const operationalCalendarEvents = useMemo(() =>
+    ((d.operationalEvents ?? []) as any[]).map((event): StayNasCalendarEvent => {
+      const room = (d.rooms as any[]).find((item) => item.id === event.room_id);
+      const kind = String(event.event_kind ?? "custom");
+      const sourceDomain = kind === "maintenance" ? "maintenance" : kind === "housekeeping" ? "housekeeping" : kind === "staff" ? "staff" : "calendar";
+      const rawStatus = String(event.status ?? "confirmed");
+      const status: StayNasCalendarEvent["status"] = rawStatus === "completed" ? "completed" : rawStatus === "in_progress" ? "in_progress" : rawStatus === "cancelled" ? "cancelled" : rawStatus === "conflict" ? "conflict" : "confirmed";
+      return {
+        id: String(event.id),
+        propertyId: property.id,
+        kind: kind as StayNasCalendarEvent["kind"],
+        title: String(event.title ?? "Operational event"),
+        start: String(event.starts_at),
+        end: String(event.ends_at),
+        allDay: Boolean(event.all_day),
+        timezone: property.timezone,
+        status,
+        source: { domain: sourceDomain, entityType: String(event.source_type ?? kind), entityId: String(event.source_id ?? event.id) },
+        ...(event.room_id ? { resource: { kind: "room" as const, id: String(event.room_id), label: room?.name ?? "Room" } } : event.assignee_id ? { resource: { kind: "staff" as const, id: String(event.assignee_id), label: String(event.assignee_id) } } : {}),
+        description: event.description ?? undefined,
+        editable: false,
+      };
+    }),
+    [d.operationalEvents, d.rooms, property.id, property.timezone],
+  );
+  const allCalendarEvents = useMemo(() => [...bookingEvents, ...operationalCalendarEvents], [bookingEvents, operationalCalendarEvents]);
+  const bookingConflicts = useMemo(() => findCalendarConflicts(allCalendarEvents), [allCalendarEvents]);
 
   const activeHolds = holds.data ?? [];
   const activeHoldsByRoomDate = useMemo(() => {
@@ -299,7 +335,7 @@ function UnifiedCalendarPage() {
         <StatCard label="In-house today" value={String(bookingsToday)} icon={CalendarDays} />
         <StatCard label="Arrivals today" value={String(arrivalsCount)} icon={CalendarDays} />
         <StatCard label="Departures today" value={String(departuresCount)} icon={CalendarDays} />
-        <StatCard label="Booking conflicts" value={String(bookingConflicts.length)} icon={AlertTriangle} />
+        <StatCard label="Resource conflicts" value={String(bookingConflicts.length)} icon={AlertTriangle} />
         <StatCard
           label="Blocked days"
           value={String((d.inventory as any[]).filter((i) => i.is_blocked).length)}
