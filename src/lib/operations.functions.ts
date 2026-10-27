@@ -296,30 +296,60 @@ export const checkOutBooking = createServerFn({ method: "POST" })
 export const getOpsCalendar = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({
+    propertyId: z.string().uuid(),
     from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
+    if (data.to <= data.from) throw new Error("Calendar end date must be after start date");
     const sb: any = context.supabase;
-    const [roomsRes, bookingsRes, invRes] = await Promise.all([
-      sb.from("rooms").select("id, slug, name, total_units").order("sort_order"),
+    const { data: hasAccess, error: accessError } = await sb.rpc("staynas_user_has_property_access", {
+      _uid: context.userId,
+      _property_id: data.propertyId,
+    });
+    if (accessError) throw new Error(accessError.message);
+    if (!hasAccess) throw new Error("Property access denied");
+
+    const { data: rooms, error: roomsError } = await sb
+      .from("rooms")
+      .select("id, slug, name, total_units")
+      .eq("property_id", data.propertyId)
+      .order("sort_order");
+    if (roomsError) throw new Error(roomsError.message);
+    const roomIds = (rooms ?? []).map((room: any) => room.id);
+
+    const [bookingsRes, invRes, operationalRes] = await Promise.all([
       sb.from("bookings")
-        .select("id, reference, guest_name, check_in, check_out, status, room_id")
+        .select("id, reference, guest_name, check_in, check_out, status, room_id, property_id, guest_type")
+        .eq("property_id", data.propertyId)
         .in("status", ["confirmed", "checked_in", "completed"])
-        .lte("check_in", data.to)
-        .gte("check_out", data.from)
+        .lt("check_in", data.to)
+        .gt("check_out", data.from)
         .order("check_in"),
-      sb.from("room_inventory")
-        .select("room_id, date, available_units, is_blocked, price_override")
-        .gte("date", data.from).lte("date", data.to),
+      roomIds.length
+        ? sb.from("room_inventory")
+            .select("room_id, date, available_units, is_blocked, price_override")
+            .in("room_id", roomIds)
+            .gte("date", data.from)
+            .lt("date", data.to)
+        : Promise.resolve({ data: [], error: null }),
+      sb.rpc("staynas_calendar_operational_events", {
+        _property_id: data.propertyId,
+        _from: data.from,
+        _to: data.to,
+      }),
     ]);
+    if (bookingsRes.error) throw new Error(bookingsRes.error.message);
+    if (invRes.error) throw new Error(invRes.error.message);
+    if (operationalRes.error) throw new Error(operationalRes.error.message);
+
     return {
-      rooms: roomsRes.data ?? [],
+      rooms: rooms ?? [],
       bookings: bookingsRes.data ?? [],
       inventory: invRes.data ?? [],
-      // TODO: drag-and-drop reassignment (future sprint)
+      operationalEvents: operationalRes.data ?? [],
     };
   });
 
