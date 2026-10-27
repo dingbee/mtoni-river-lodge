@@ -282,7 +282,7 @@ function UnifiedCalendarPage() {
   const bookingsToday = useMemo(() => {
     const today = todayInTimezone(property.timezone);
     return (d.bookings as any[]).filter((b) => b.check_in <= today && b.check_out > today).length;
-  }, [d.bookings]);
+  }, [d.bookings, property.timezone]);
 
   // Derived views after filter application.
   const today = todayInTimezone(property.timezone);
