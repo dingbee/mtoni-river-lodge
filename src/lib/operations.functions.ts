@@ -323,7 +323,7 @@ export const getOpsCalendar = createServerFn({ method: "POST" })
     if (roomsError) throw new Error(roomsError.message);
     const roomIds = (rooms ?? []).map((room: any) => room.id);
 
-    const [bookingsRes, invRes, operationalRes] = await Promise.all([
+    const [bookingsRes, invRes, operationalRes, roomStatesRes] = await Promise.all([
       sb.from("bookings")
         .select("id, reference, guest_name, check_in, check_out, status, room_id, property_id, guest_type")
         .eq("property_id", data.propertyId)
@@ -343,16 +343,28 @@ export const getOpsCalendar = createServerFn({ method: "POST" })
         _from: data.from,
         _to: data.to,
       }),
+      roomIds.length
+        ? sb.from("room_states")
+            .select("id, room_id, unit_label, state, state_note, booking_id, updated_at")
+            .in("room_id", roomIds)
+            .order("unit_label")
+        : Promise.resolve({ data: [], error: null }),
     ]);
     if (bookingsRes.error) throw new Error(bookingsRes.error.message);
     if (invRes.error) throw new Error(invRes.error.message);
     if (operationalRes.error) throw new Error(operationalRes.error.message);
+    if (roomStatesRes.error) throw new Error(roomStatesRes.error.message);
+    const roomById = new Map((rooms ?? []).map((room: any) => [room.id, room]));
 
     return {
       rooms: rooms ?? [],
       bookings: bookingsRes.data ?? [],
       inventory: invRes.data ?? [],
       operationalEvents: operationalRes.data ?? [],
+      roomStates: (roomStatesRes.data ?? []).map((unit: any) => ({
+        ...unit,
+        room: roomById.get(unit.room_id) ?? null,
+      })),
     };
   });
 
