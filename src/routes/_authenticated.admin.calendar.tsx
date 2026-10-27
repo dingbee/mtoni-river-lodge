@@ -64,6 +64,23 @@ function dateInTimezone(value: string, timezone: string) {
   const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
+function eventOccursOnDay(start: string, end: string, timezone: string, day: string) {
+  const startDay = dateInTimezone(start, timezone);
+  const endDay = dateInTimezone(end, timezone);
+  if (startDay > day || endDay < day) return false;
+  if (endDay === day) {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: timezone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(new Date(end));
+    const hour = parts.find((part) => part.type === "hour")?.value ?? "00";
+    const minute = parts.find((part) => part.type === "minute")?.value ?? "00";
+    if (hour === "00" && minute === "00") return false;
+  }
+  return true;
+}
 function todayInTimezone(timezone: string) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: timezone,
@@ -431,7 +448,7 @@ function UnifiedCalendarPage() {
                   return entries;
                 });
                 const operationalItems = (d.operationalEvents ?? [])
-                  .filter((event: any) => dateInTimezone(event.starts_at, property.timezone) === day)
+                  .filter((event: any) => eventOccursOnDay(event.starts_at, event.ends_at, property.timezone, day))
                   .map((event: any) => ({
                     key: "ops:" + event.source_type + ":" + event.id + ":" + day,
                     label: String(event.event_kind ?? "Operational").replaceAll("_", " "),
@@ -530,7 +547,7 @@ function UnifiedCalendarPage() {
                       );
                       const inv = (d.inventory as any[]).find((i) => i.room_id === r.id && i.date === day);
                       const operationalForCell = operationalCalendarEvents.filter((event) =>
-                        event.resource?.kind === "room" && event.resource.id === r.id && dateInTimezone(event.start, property.timezone) === day,
+                        event.resource?.kind === "room" && event.resource.id === r.id && eventOccursOnDay(event.start, event.end, property.timezone, day),
                       );
                       const blocked = inv?.is_blocked;
                       if (filters.blocked && !blocked) return <td key={day} className="border-r px-1 py-1 text-center text-muted-foreground">—</td>;
