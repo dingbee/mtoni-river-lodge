@@ -8,7 +8,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { formatDistanceToNow } from "date-fns";
-import { Ban, CalendarDays, RefreshCw, ShieldOff, Sparkles, Timer, Wrench } from "lucide-react";
+import { AlertTriangle, Ban, CalendarDays, RefreshCw, ShieldOff, Sparkles, Timer, Wrench } from "lucide-react";
+import { findCalendarConflicts, type StayNasCalendarEvent } from "@/lib/calendar-event-contract";
 import { toast } from "sonner";
 
 import { getOpsCalendar } from "@/lib/operations.functions";
@@ -207,6 +208,27 @@ function UnifiedCalendarPage() {
 
   const d: any = ops.data ?? { rooms: [], bookings: [], inventory: [] };
 
+  const bookingEvents = useMemo(() =>
+    (d.bookings as any[])
+      .filter((booking) => booking.room_id && ["confirmed", "checked_in"].includes(String(booking.status)))
+      .map((booking): StayNasCalendarEvent => ({
+        id: booking.id,
+        propertyId: property.id,
+        kind: "reservation",
+        title: booking.guest_name || booking.reference || "Reservation",
+        start: booking.check_in,
+        end: booking.check_out,
+        allDay: true,
+        timezone: property.timezone,
+        status: booking.status === "checked_in" ? "in_progress" : "confirmed",
+        source: { domain: "reservations", entityType: "booking", entityId: booking.id },
+        resource: { kind: "room", id: booking.room_id, label: booking.room_id },
+        editable: false,
+      })),
+    [d.bookings, property.id, property.timezone],
+  );
+  const bookingConflicts = useMemo(() => findCalendarConflicts(bookingEvents), [bookingEvents]);
+
   const activeHolds = holds.data ?? [];
   const activeHoldsByRoomDate = useMemo(() => {
     const map: Record<string, Set<string>> = {};
@@ -273,10 +295,11 @@ function UnifiedCalendarPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         <StatCard label="In-house today" value={String(bookingsToday)} icon={CalendarDays} />
         <StatCard label="Arrivals today" value={String(arrivalsCount)} icon={CalendarDays} />
         <StatCard label="Departures today" value={String(departuresCount)} icon={CalendarDays} />
+        <StatCard label="Booking conflicts" value={String(bookingConflicts.length)} icon={AlertTriangle} />
         <StatCard
           label="Blocked days"
           value={String((d.inventory as any[]).filter((i) => i.is_blocked).length)}
