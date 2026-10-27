@@ -546,6 +546,9 @@ function UnifiedCalendarPage() {
                         (bk) => bk.room_id === r.id && bk.check_in <= day && bk.check_out > day,
                       );
                       const inv = (d.inventory as any[]).find((i) => i.room_id === r.id && i.date === day);
+                      const operationalForCell = operationalCalendarEvents.filter((event) =>
+                        event.resource?.kind === "room" && event.resource.id === r.id && dateInTimezone(event.start, property.timezone) === day,
+                      );
                       const blocked = inv?.is_blocked;
                       if (filters.blocked && !blocked) return <td key={day} className="border-r px-1 py-1 text-center text-muted-foreground">—</td>;
                       const held = activeHoldsByRoomDate[`${r.id}:${day}`]?.size ?? 0;
@@ -556,7 +559,7 @@ function UnifiedCalendarPage() {
                         <td
                           key={day}
                           className={`w-[68px] min-w-[68px] border-r px-1 py-1 text-center sm:w-[78px] sm:min-w-[78px] ${
-                            blocked ? "bg-rose-500/15" : b ? "bg-blue-500/15" : held ? "bg-amber-500/15" : ""
+                            blocked || operationalForCell.some((event) => event.kind === "maintenance") ? "bg-rose-500/15" : b ? "bg-blue-500/15" : operationalForCell.length ? "bg-emerald-500/10" : held ? "bg-amber-500/15" : ""
                           }`}
                           title={
                             b
@@ -604,6 +607,15 @@ function UnifiedCalendarPage() {
                             `⏱${held}`
                           ) : (
                             inv?.available_units ?? r.total_units
+                          )}
+                          {operationalForCell.length > 0 && (
+                            <div className="mt-1 flex flex-col items-center gap-0.5">
+                              {operationalForCell.slice(0, 2).map((event) => (
+                                <span key={event.id} title={event.title} className={event.kind === "maintenance" ? "max-w-full truncate rounded bg-rose-500/20 px-1 text-[9px] leading-4 text-rose-700 dark:text-rose-300" : event.kind === "staff" ? "max-w-full truncate rounded bg-violet-500/15 px-1 text-[9px] leading-4 text-violet-700 dark:text-violet-300" : "max-w-full truncate rounded bg-emerald-500/15 px-1 text-[9px] leading-4 text-emerald-700 dark:text-emerald-300"}>
+                                  {event.kind === "maintenance" ? "MNT" : event.kind === "housekeeping" ? "HK" : "STAFF"}
+                                </span>
+                              ))}
+                            </div>
                           )}
                         </td>
                       );
