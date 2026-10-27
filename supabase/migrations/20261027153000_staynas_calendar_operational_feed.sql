@@ -108,8 +108,8 @@ BEGIN
     t.id,
     CASE WHEN t.category = 'maintenance' OR t.task_type ILIKE '%maintenance%' THEN 'maintenance' ELSE 'housekeeping' END,
     t.title,
-    COALESCE(t.due_at, t.started_at, t.created_at),
-    COALESCE(t.completed_at, COALESCE(t.due_at, t.started_at, t.created_at) + interval '30 minutes'),
+    COALESCE(t.started_at, t.due_at, t.created_at),
+    COALESCE(t.completed_at, CASE WHEN t.status::text = 'in_progress' THEN now() ELSE COALESCE(t.due_at, t.started_at, t.created_at) + interval '30 minutes' END),
     false,
     t.status::text,
     rs.room_id,
@@ -124,8 +124,17 @@ BEGIN
   WHERE rs.property_id = _property_id
     AND t.category IN ('housekeeping','maintenance')
     AND t.status::text <> 'cancelled'
-    AND (COALESCE(t.due_at, t.started_at, t.created_at) AT TIME ZONE _timezone)::date >= _from
-    AND (COALESCE(t.due_at, t.started_at, t.created_at) AT TIME ZONE _timezone)::date < _to
+    AND (
+      (
+        (COALESCE(t.started_at, t.due_at, t.created_at) AT TIME ZONE _timezone)::date >= _from
+        AND (COALESCE(t.started_at, t.due_at, t.created_at) AT TIME ZONE _timezone)::date < _to
+      )
+      OR (
+        t.status::text = 'in_progress'
+        AND COALESCE(t.completed_at, now()) > (_from::timestamp AT TIME ZONE _timezone)
+        AND COALESCE(t.started_at, t.due_at, t.created_at) < (_to::timestamp AT TIME ZONE _timezone)
+      )
+    )
 
   UNION ALL
 
