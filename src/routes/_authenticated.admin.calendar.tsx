@@ -463,7 +463,7 @@ function UnifiedCalendarPage() {
           label="Blocked days"
           value={String((d.inventory as any[]).filter((i) => i.is_blocked).length)}
           icon={Ban}
-          className="col-span-2 flex-row items-center justify-between p-3 sm:col-span-1 sm:flex-col sm:items-stretch sm:p-5 [&>p:nth-of-type(1)]:mt-0 [&>p:nth-of-type(1)]:text-3xl sm:[&>p:nth-of-type(1)]:mt-5 sm:[&>p:nth-of-type(1)]:text-[2.4rem]"
+          className="col-span-2 flex flex-row items-center justify-between gap-3 p-3 sm:col-span-1 sm:flex-col sm:items-stretch sm:p-5 [&>div:first-child]:flex-1 [&>p:nth-of-type(1)]:mt-0 [&>p:nth-of-type(1)]:shrink-0 [&>p:nth-of-type(1)]:text-3xl [&>div:last-child]:mt-0 sm:[&>p:nth-of-type(1)]:mt-5 sm:[&>p:nth-of-type(1)]:text-[2.4rem] sm:[&>div:last-child]:mt-4"
         />
       </div>
 
