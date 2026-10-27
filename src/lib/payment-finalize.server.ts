@@ -1,5 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { getPesapalTransactionStatus, classifyStatus } from "./pesapal.server";
+import { resolveBookingPaymentContext } from "./payment-context.server";
+import { getPaymentProvider } from "./payment-providers.server";
+import { validatePaymentCallbackIdentity } from "./payment-integrity";
 
 export type FinalizeOutcome =
   | "pending"
@@ -17,123 +19,179 @@ function makeInvoiceNumber(reference: string) {
   return `INV-${yy}${mm}-${reference.replace(/^MR-/, "")}-${rand}`;
 }
 
-/**
- * Verifies the Pesapal transaction for a booking and finalizes it.
- * - Requires paid amount to match stored deposit exactly (cent-level).
- *   Mismatch => booking moves to payment_mismatch and is NOT confirmed.
- * - On success: generates invoice_number, sets confirmed_at, sends email.
- */
 export async function verifyAndFinalizePayment(opts: {
   bookingId: string;
   orderTrackingId: string;
   source: "ipn" | "status_check";
+  expectedPropertyId?: string;
 }): Promise<{ outcome: FinalizeOutcome; paymentMethod: string | null }> {
-  const { data: booking } = await supabaseAdmin
+  const { data: booking, error } = await (supabaseAdmin as any)
     .from("bookings")
-    .select("id, reference, payment_status, status, deposit_amount, currency, invoice_number")
+    .select("id, reference, property_id, payment_status, status, deposit_amount, currency, invoice_number, payment_provider, payment_integration_id, provider_transaction_id, provider_merchant_reference, pesapal_merchant_reference")
     .eq("id", opts.bookingId)
     .maybeSingle();
+  if (error) throw new Error(`Could not load booking for payment finalization: ${error.message}`);
   if (!booking) return { outcome: "pending", paymentMethod: null };
-
-  if (
-    booking.payment_status === "paid" ||
-    booking.payment_status === "deposit_paid"
-  ) {
+  if (opts.expectedPropertyId && booking.property_id !== opts.expectedPropertyId) {
+    throw new Error("Payment callback tenant does not match booking tenant");
+  }
+  if (booking.payment_status === "paid" || booking.payment_status === "deposit_paid") {
     return { outcome: "already_finalized", paymentMethod: null };
   }
 
-  const status = await getPesapalTransactionStatus(opts.orderTrackingId);
-  const outcome = classifyStatus(status.status_code);
-  const paymentMethod = status.payment_method ?? null;
+  const provider = String(booking.payment_provider ?? "").toLowerCase();
+  const integrationId = booking.payment_integration_id as string | null;
+  const storedTransactionId = booking.provider_transaction_id ?? booking.pesapal_order_tracking_id;
+  const expectedMerchantReference = booking.provider_merchant_reference ?? booking.pesapal_merchant_reference;
+  const identityCheck = validatePaymentCallbackIdentity({
+    bookingPropertyId: booking.property_id,
+    callbackPropertyId: opts.expectedPropertyId,
+    bookingIntegrationId: integrationId,
+    bookingProvider: provider,
+    callbackProvider: provider,
+    storedTransactionId,
+    receivedTransactionId: opts.orderTrackingId,
+    storedMerchantReference: expectedMerchantReference,
+    receivedMerchantReference: expectedMerchantReference,
+  });
+  if (!identityCheck.ok) {
+    await (supabaseAdmin as any).from("payment_events").insert({
+      booking_id: booking.id,
+      property_id: booking.property_id,
+      integration_id: integrationId,
+      provider: provider || "unknown",
+      event_type: `security:payment_context_mismatch:${identityCheck.reason}`,
+      provider_transaction_id: opts.orderTrackingId,
+      raw: { expectedTransactionId: storedTransactionId, receivedTransactionId: opts.orderTrackingId },
+    });
+    return { outcome: "mismatch", paymentMethod: null };
+  }
 
-  await supabaseAdmin.from("payment_events").insert({
+  const { data: integration, error: integrationError } = await (supabaseAdmin as any)
+    .from("staynas_property_integrations")
+    .select("provider, enabled, property_id")
+    .eq("id", integrationId)
+    .maybeSingle();
+  if (integrationError) throw new Error(integrationError.message);
+  if (!integration || integration.property_id !== booking.property_id || !integration.enabled ||
+      String(integration.provider).toLowerCase() !== provider) {
+    throw new Error("Payment integration is disabled or does not belong to the booking tenant");
+  }
+
+  const { data: property } = await (supabaseAdmin as any)
+    .from("properties")
+    .select("id")
+    .eq("id", booking.property_id)
+    .maybeSingle();
+  if (!property) throw new Error("Booking property does not exist");
+
+  const context = await resolveBookingPaymentContext(supabaseAdmin, {
+    propertyId: booking.property_id,
+    integrationId,
+    currency: String(booking.currency).toUpperCase(),
+    callbackBaseUrl: "",
+  });
+  const adapter = getPaymentProvider(context.provider);
+  const status = await adapter.getStatus(context, opts.orderTrackingId);
+  const merchantMatches = Boolean(expectedMerchantReference) &&
+    Boolean(status.merchantReference) && status.merchantReference === expectedMerchantReference;
+
+  if (!merchantMatches) {
+    await (supabaseAdmin as any).from("payment_events").insert({
+      booking_id: booking.id,
+      property_id: booking.property_id,
+      integration_id: integrationId,
+      provider,
+      event_type: "security:merchant_reference_mismatch",
+      order_tracking_id: opts.orderTrackingId,
+      provider_transaction_id: opts.orderTrackingId,
+      merchant_reference: status.merchantReference,
+      amount: status.amount,
+      currency: status.currency,
+      raw: { expectedMerchantReference, receivedMerchantReference: status.merchantReference },
+    });
+    return { outcome: "mismatch", paymentMethod: null };
+  }
+
+  const paymentMethod = status.paymentMethod;
+  const outcome = status.status === "completed" ? "completed" :
+    status.status === "failed" ? "failed" :
+    status.status === "reversed" ? "reversed" : "pending";
+
+  await (supabaseAdmin as any).from("payment_events").insert({
     booking_id: booking.id,
-    provider: "pesapal",
+    property_id: booking.property_id,
+    integration_id: integrationId,
+    provider,
     event_type: `${opts.source}:${outcome}`,
     order_tracking_id: opts.orderTrackingId,
-    status_code: status.status_code ?? null,
+    provider_transaction_id: opts.orderTrackingId,
+    merchant_reference: status.merchantReference,
     payment_method: paymentMethod,
-    amount: status.amount ?? null,
-    currency: status.currency ?? null,
-    raw: JSON.parse(JSON.stringify(status)),
+    amount: status.amount,
+    currency: status.currency,
+    raw: JSON.parse(JSON.stringify(status.raw ?? status)),
   });
 
   if (outcome === "failed" || outcome === "reversed") {
-    await supabaseAdmin
-      .from("bookings")
+    await (supabaseAdmin as any).from("bookings")
       .update({ payment_failed_at: new Date().toISOString() })
-      .eq("id", booking.id);
+      .eq("id", booking.id).eq("property_id", booking.property_id);
     return { outcome, paymentMethod };
   }
+  if (outcome !== "completed") return { outcome, paymentMethod };
 
-  if (outcome !== "completed") {
-    return { outcome, paymentMethod };
-  }
-
-  // === Strict amount verification ===
-  const expected = Number(booking.deposit_amount);
-  const paid = Number(status.amount ?? 0);
-  const amountsMatch = Math.round(expected * 100) === Math.round(paid * 100);
-  const currencyMatches =
-    !status.currency || status.currency.toUpperCase() === (booking.currency || "USD").toUpperCase();
+  const expectedAmount = Number(booking.deposit_amount);
+  const paidAmount = status.amount == null ? Number.NaN : Number(status.amount);
+  const amountsMatch = Number.isFinite(paidAmount) &&
+    Math.round(expectedAmount * 100) === Math.round(paidAmount * 100);
+  const expectedCurrency = String(booking.currency).toUpperCase();
+  const currencyMatches = Boolean(status.currency) &&
+    status.currency.toUpperCase() === expectedCurrency;
 
   if (!amountsMatch || !currencyMatches) {
-    const nowIso = new Date().toISOString();
-    await supabaseAdmin
-      .from("bookings")
-      .update({
-        payment_status: "payment_mismatch",
-        payment_mismatch_at: nowIso,
-        paid_amount: paid,
-        payment_method: paymentMethod,
-      })
-      .eq("id", booking.id);
-    await supabaseAdmin.from("payment_events").insert({
+    const now = new Date().toISOString();
+    await (supabaseAdmin as any).from("bookings").update({
+      payment_status: "payment_mismatch",
+      payment_mismatch_at: now,
+      paid_amount: Number.isFinite(paidAmount) ? paidAmount : null,
+      payment_method: paymentMethod,
+    }).eq("id", booking.id).eq("property_id", booking.property_id);
+    await (supabaseAdmin as any).from("payment_events").insert({
       booking_id: booking.id,
-      provider: "pesapal",
+      property_id: booking.property_id,
+      integration_id: integrationId,
+      provider,
       event_type: "security:payment_mismatch",
       order_tracking_id: opts.orderTrackingId,
-      amount: paid,
-      currency: status.currency ?? null,
-      raw: {
-        expectedAmount: expected,
-        paidAmount: paid,
-        expectedCurrency: booking.currency,
-        paidCurrency: status.currency,
-      },
+      provider_transaction_id: opts.orderTrackingId,
+      amount: Number.isFinite(paidAmount) ? paidAmount : null,
+      currency: status.currency,
+      raw: { expectedAmount, paidAmount: status.amount, expectedCurrency, paidCurrency: status.currency },
     });
-    console.error(
-      `PAYMENT MISMATCH booking=${booking.reference} expected=${expected} ${booking.currency} paid=${paid} ${status.currency}`,
-    );
     return { outcome: "mismatch", paymentMethod };
   }
 
-  // Valid payment — confirm booking, mint invoice number.
-  const nowIso = new Date().toISOString();
+  const now = new Date().toISOString();
   const invoiceNumber = booking.invoice_number ?? makeInvoiceNumber(booking.reference);
-
-  await supabaseAdmin
-    .from("bookings")
-    .update({
-      payment_status: "deposit_paid",
-      status: "confirmed",
-      payment_method: paymentMethod,
-      payment_completed_at: nowIso,
-      confirmed_at: nowIso,
-      paid_amount: paid,
-      invoice_number: invoiceNumber,
-    })
-    .eq("id", booking.id)
-    .neq("payment_status", "deposit_paid")
-    .neq("payment_status", "paid");
+  const { error: finalizeError } = await (supabaseAdmin as any).from("bookings").update({
+    payment_status: "deposit_paid",
+    status: "confirmed",
+    payment_method: paymentMethod,
+    payment_completed_at: now,
+    confirmed_at: now,
+    paid_amount: paidAmount,
+    invoice_number: invoiceNumber,
+  }).eq("id", booking.id).eq("property_id", booking.property_id)
+    .not("payment_status", "in", '("deposit_paid","paid")');
+  if (finalizeError) throw new Error(`Could not finalize verified payment: ${finalizeError.message}`);
 
   try {
     const { sendBookingConfirmedEmail } = await import("./booking-confirmation-email.server");
-    const r = await sendBookingConfirmedEmail(booking.id);
-    if (!r.ok) console.error("confirmation email failed:", "error" in r ? r.error : "unknown");
+    const result = await sendBookingConfirmedEmail(booking.id);
+    if (!result.ok) console.error("confirmation email failed");
   } catch (e) {
-    console.error("confirmation email error:", e);
+    console.error("confirmation email error", e);
   }
-
   return { outcome: "completed", paymentMethod };
 }

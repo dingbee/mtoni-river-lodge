@@ -8,11 +8,13 @@ function deriveBaseUrl(): string {
   const envUrl = process.env.PUBLIC_BASE_URL;
   if (envUrl) return envUrl.replace(/\/$/, "");
   const proto = getRequestHeader("x-forwarded-proto") ?? "https";
-  const host = getRequestHeader("host") ?? "";
-  if (!host) {
-    console.warn("[pesapal] deriveBaseUrl: no host header and no PUBLIC_BASE_URL set");
-  }
-  return `${proto}://${host}`;
+  const host = getRequestHeader("x-forwarded-host") ?? getRequestHeader("host") ?? "";
+  if (!host) throw new Error("Cannot determine tenant callback URL");
+  return `${proto}://${host.split(",")[0].trim()}`;
+}
+
+function makeMerchantReference(reference: string): string {
+  return `${reference}-${Date.now().toString(36).toUpperCase()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`.slice(0, 40);
 }
 
 export const initiatePayment = createServerFn({ method: "POST" })
@@ -20,112 +22,128 @@ export const initiatePayment = createServerFn({ method: "POST" })
     z.object({
       reference: z.string().min(4).max(40),
       email: z.string().trim().email().max(255),
+      provider: z.string().trim().min(2).max(60).optional(),
+      integrationId: z.string().uuid().optional(),
     }).parse(d),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { ensureIpn, submitPesapalOrder } = await import("./pesapal.server");
+    const { resolveBookingPaymentContext } = await import("./payment-context.server");
+    const { getPaymentProvider } = await import("./payment-providers.server");
 
     const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
     const { data: booking, error } = await (supabaseAdmin as any)
       .from("bookings")
-      .select("id, reference, guest_name, guest_email, guest_phone, country, deposit_amount, total, currency, payment_status, pesapal_order_tracking_id, property_id")
+      .select("id, reference, guest_name, guest_email, guest_phone, country, deposit_amount, total, currency, payment_status, payment_provider, payment_integration_id, provider_transaction_id, provider_merchant_reference, pesapal_order_tracking_id, property_id")
       .eq("reference", data.reference)
+      .eq("property_id", propertyId)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!booking) throw new Error("Booking not found");
-    // Never initiate payment for a booking outside the configured property.
+    if (!booking) throw new Error("Booking not found for this property");
     assertSameProperty(booking.property_id, propertyId, "Booking");
-    if (booking.guest_email.toLowerCase() !== data.email.toLowerCase()) {
-      throw new Error("Email does not match booking");
-    }
-    if (booking.payment_status === "paid" || booking.payment_status === "deposit_paid") {
-      throw new Error("Booking is already paid");
+    if (booking.guest_email.toLowerCase() !== data.email.toLowerCase()) throw new Error("Email does not match booking");
+    if (booking.payment_status === "paid" || booking.payment_status === "deposit_paid") throw new Error("Booking is already paid");
+    if (booking.provider_transaction_id || booking.pesapal_order_tracking_id) {
+      throw new Error("A payment attempt already exists for this booking; check its status before creating another");
     }
 
+    const providerName = (data.provider ?? booking.payment_provider ?? "").toLowerCase();
+    if (!providerName) throw new Error("No payment provider is selected for this booking");
     const baseUrl = deriveBaseUrl();
-    console.info("[pesapal] initiatePayment", {
-      reference: data.reference,
-      baseUrl,
+    const context = await resolveBookingPaymentContext(supabaseAdmin, {
+      propertyId,
+      integrationId: data.integrationId ?? booking.payment_integration_id ?? undefined,
+      provider: data.integrationId || booking.payment_integration_id ? undefined : providerName,
+      currency: String(booking.currency).toUpperCase(),
+      callbackBaseUrl: baseUrl,
     });
-    const notificationId = await ensureIpn(baseUrl);
-
+    if (context.provider !== providerName) throw new Error("Selected provider does not match the booking's configured provider");
+    const adapter = getPaymentProvider(context.provider);
     const deposit = Number(booking.deposit_amount);
-    if (!deposit || deposit <= 0) throw new Error("Invalid deposit amount");
-
-    const merchantRef = `${booking.reference}-D${Date.now().toString(36).slice(-4).toUpperCase()}`;
-    const callbackUrl = `${baseUrl}/booking/return?ref=${encodeURIComponent(booking.reference)}`;
-
-    const [firstName, ...rest] = (booking.guest_name ?? "").trim().split(/\s+/);
-    const lastName = rest.join(" ") || firstName || "Guest";
-
-    const order = await submitPesapalOrder({
-      merchantReference: merchantRef,
+    if (!Number.isFinite(deposit) || deposit <= 0) throw new Error("Invalid deposit amount");
+    const merchantReference = makeMerchantReference(booking.reference);
+    const [firstName, ...rest] = String(booking.guest_name ?? "").trim().split(/\s+/);
+    const returnUrl = `${baseUrl}/booking/return?ref=${encodeURIComponent(booking.reference)}`;
+    const result = await adapter.createIntent(context, {
+      bookingId: booking.id,
+      bookingReference: booking.reference,
+      merchantReference,
       amount: deposit,
-      currency: booking.currency || "USD",
-      description: `Mtoni River Lodge deposit – ${booking.reference}`,
-      callbackUrl,
-      notificationId,
-      email: booking.guest_email,
-      phone: booking.guest_phone,
-      firstName: firstName || "Guest",
-      lastName,
+      currency: String(booking.currency).toUpperCase(),
+      description: `Accommodation deposit - ${booking.reference}`,
+      guest: {
+        email: booking.guest_email,
+        phone: booking.guest_phone,
+        firstName: firstName || "Guest",
+        lastName: rest.join(" ") || firstName || "Guest",
+        countryCode: String(booking.country ?? "").toUpperCase().slice(0, 2) || undefined,
+      },
+      returnUrl,
+      callbackUrl: `${baseUrl}/api/public/payments/${encodeURIComponent(context.provider)}/callback`,
     });
 
-    await supabaseAdmin
+    if (result.merchantReference !== merchantReference) throw new Error("Provider response merchant reference mismatch");
+    const { error: updateError } = await (supabaseAdmin as any)
       .from("bookings")
       .update({
-        pesapal_order_tracking_id: order.order_tracking_id,
-        pesapal_merchant_reference: order.merchant_reference,
+        payment_provider: context.provider,
+        payment_integration_id: context.integrationId,
+        provider_transaction_id: result.providerTransactionId,
+        provider_merchant_reference: result.merchantReference,
+        ...(context.provider === "pesapal" ? {
+          pesapal_order_tracking_id: result.providerTransactionId,
+          pesapal_merchant_reference: result.merchantReference,
+        } : {}),
         payment_initiated_at: new Date().toISOString(),
       })
-      .eq("id", booking.id);
+      .eq("id", booking.id)
+      .eq("property_id", propertyId);
+    if (updateError) throw new Error(`Payment intent created but booking record update failed: ${updateError.message}`);
 
-    await supabaseAdmin.from("payment_events").insert({
+    await (supabaseAdmin as any).from("payment_events").insert({
       booking_id: booking.id,
-      provider: "pesapal",
+      property_id: propertyId,
+      integration_id: context.integrationId,
+      provider: context.provider,
       event_type: "order_submitted",
-      order_tracking_id: order.order_tracking_id,
-      merchant_reference: order.merchant_reference,
+      order_tracking_id: result.providerTransactionId,
+      provider_transaction_id: result.providerTransactionId,
+      merchant_reference: result.merchantReference,
       amount: deposit,
       currency: booking.currency,
-      raw: JSON.parse(JSON.stringify(order)),
+      raw: JSON.parse(JSON.stringify(result.raw ?? { status: result.status })),
     });
 
     return {
-      redirectUrl: order.redirect_url,
-      orderTrackingId: order.order_tracking_id,
+      provider: context.provider,
+      redirectUrl: result.checkoutUrl ?? null,
+      instructions: result.instructions ?? null,
+      orderTrackingId: result.providerTransactionId,
       amount: deposit,
       currency: booking.currency,
+      status: result.status,
     };
   });
 
 export const getPaymentStatusByReference = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
-    z.object({ reference: z.string().min(4).max(40), email: z.string().email() }).parse(d),
+    z.object({ reference: z.string().min(4).max(40), email: z.string().trim().email().max(255) }).parse(d),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
     const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
     const { data: booking, error } = await (supabaseAdmin as any)
       .from("bookings")
-      .select("id, reference, guest_email, payment_status, status, deposit_amount, balance_amount, total, currency, pesapal_order_tracking_id, payment_method, property_id")
+      .select("id, reference, guest_email, payment_status, status, deposit_amount, balance_amount, total, currency, payment_provider, payment_method, payment_integration_id, provider_transaction_id, provider_merchant_reference, pesapal_order_tracking_id, property_id")
       .eq("reference", data.reference)
+      .eq("property_id", propertyId)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!booking) throw new Error("Booking not found");
-    // Never report payment state for a booking outside the configured property.
+    if (!booking) throw new Error("Booking not found for this property");
     assertSameProperty(booking.property_id, propertyId, "Booking");
-    if (booking.guest_email.toLowerCase() !== data.email.toLowerCase()) {
-      throw new Error("Email does not match booking");
-    }
+    if (booking.guest_email.toLowerCase() !== data.email.toLowerCase()) throw new Error("Email does not match booking");
 
-    // If already finalised, return cached.
-    if (
-      booking.payment_status === "paid" ||
-      booking.payment_status === "deposit_paid"
-    ) {
+    if (booking.payment_status === "paid" || booking.payment_status === "deposit_paid") {
       return {
         reference: booking.reference,
         bookingStatus: booking.status,
@@ -138,26 +156,26 @@ export const getPaymentStatusByReference = createServerFn({ method: "POST" })
       };
     }
 
-    let outcome: "pending" | "completed" | "failed" | "reversed" | "mismatch" | "already_finalized" = "pending";
+    const transactionId = booking.provider_transaction_id ?? booking.pesapal_order_tracking_id;
+    let outcome: string = "pending";
     let paymentMethod: string | null = booking.payment_method ?? null;
-
-    if (booking.pesapal_order_tracking_id) {
+    if (transactionId) {
       const { verifyAndFinalizePayment } = await import("./payment-finalize.server");
       const result = await verifyAndFinalizePayment({
         bookingId: booking.id,
-        orderTrackingId: booking.pesapal_order_tracking_id,
+        orderTrackingId: transactionId,
         source: "status_check",
       });
       outcome = result.outcome;
       paymentMethod = result.paymentMethod ?? paymentMethod;
     }
 
-    const { data: refreshed } = await supabaseAdmin
+    const { data: refreshed } = await (supabaseAdmin as any)
       .from("bookings")
       .select("status, payment_status, payment_method, deposit_amount, balance_amount, total, currency, invoice_number")
       .eq("id", booking.id)
+      .eq("property_id", propertyId)
       .maybeSingle();
-
     return {
       reference: booking.reference,
       bookingStatus: refreshed?.status ?? booking.status,

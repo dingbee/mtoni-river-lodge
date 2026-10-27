@@ -1,0 +1,29 @@
+name: Payment integration security gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - sprint/tenant-isolation-payment-integrity
+
+jobs:
+  payment-security:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Tenant payment and authorization tests
+        run: bunx vitest run src/lib/tenant-payment-integration.test.ts src/lib/payment-integrity.test.ts src/lib/payment-integration-authorization.test.ts src/lib/payin-adapter.test.ts
+      - name: Production build
+        run: bun run build
