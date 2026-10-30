@@ -266,6 +266,9 @@ export const createCommunicationDraft = createServerFn({ method: "POST" })
         .eq("property_id", propertyId)
         .maybeSingle();
       if (bookingError || !booking) throw new Error("Booking not found in the active property.");
+      if (booking.guest_id && session.guest_id !== booking.guest_id) {
+        throw new Error("Booking does not belong to the conversation guest.");
+      }
       if (data.guest_id && booking.guest_id && data.guest_id !== booking.guest_id) {
         throw new Error("Booking does not belong to the selected guest.");
       }
@@ -325,7 +328,15 @@ export const listCommunicationDrafts = createServerFn({ method: "POST" })
     if (bookingDrafts.error) throw new Error(bookingDrafts.error.message);
     const unique = new Map<string, CommunicationDraftRow>();
     for (const row of [...(sessionDrafts.data ?? []), ...(bookingDrafts.data ?? [])]) unique.set(row.id, row as CommunicationDraftRow);
+    const sessionSet = new Set(sessionIds);
+    const bookingSet = new Set(bookingIds);
     return Array.from(unique.values())
+      .filter((row) => {
+        const sessionScoped = Boolean(row.session_id && sessionSet.has(row.session_id));
+        const bookingScoped = Boolean(row.booking_id && bookingSet.has(row.booking_id));
+        if (row.session_id && row.booking_id) return sessionScoped && bookingScoped;
+        return sessionScoped || bookingScoped;
+      })
       .filter((row) => !data.status || data.status === "all" || row.status === data.status)
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
       .slice(0, 200);
@@ -357,7 +368,8 @@ export const updateCommunicationDraft = createServerFn({ method: "POST" })
     if (existingDraft.session_id) {
       await requireSessionInProperty(context.supabase, existingDraft.session_id, propertyId);
       belongsToProperty = true;
-    } else if (existingDraft.booking_id) {
+    }
+    if (existingDraft.booking_id) {
       await requireBookingInProperty(context.supabase, existingDraft.booking_id, propertyId);
       belongsToProperty = true;
     }
