@@ -322,6 +322,7 @@ export const listEscalations = createServerFn({ method: "POST" })
     let q = context.supabase
       .from("ai_escalations")
       .select("*")
+      .in("session_id", sessionIds)
       .order("priority", { ascending: true })
       .order("created_at", { ascending: false })
       .limit(200);
