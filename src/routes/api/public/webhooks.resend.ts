@@ -23,7 +23,7 @@ export const Route = createFileRoute("/api/public/webhooks/resend")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: mapping, error: mappingError } = await supabaseAdmin.from("ai_provider_property_bindings")
           .select("property_id,channel_id,external_account_id,enabled")
-          .eq("provider", "resend").eq("external_account_id", accountId).eq("enabled", true).maybeSingle();
+          .eq("provider", "resend").eq("external_account_id", accountId).eq("external_endpoint_id", String(events[0].safePayload.from ?? "")).eq("enabled", true).maybeSingle();
         if (mappingError || !mapping) return Response.json({ error: "No active founder-managed property mapping." }, { status: 202 });
         let persisted = 0, duplicates = 0;
         for (const event of events) {
