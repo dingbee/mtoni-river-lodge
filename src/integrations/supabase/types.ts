@@ -17387,6 +17387,25 @@ export type Database = {
         Args: { _guest_visible_only?: boolean; _limit?: number; _property_id: string; _query: string }
         Returns: {
           category_slug: string | null
+          chunk_index: number | null
+          content: string
+          language_code: string
+          rank: number
+          slug: string | null
+          source_id: string
+          source_kind: string
+          source_type: string
+          source_updated_at: string | null
+          summary: string | null
+          title: string
+          url: string | null
+        }[]
+      }
+      staynas_public_property_knowledge_search: {
+        Args: { _limit?: number; _property_id: string; _query: string }
+        Returns: {
+          category_slug: string | null
+          chunk_index: number | null
           content: string
           language_code: string
           rank: number
