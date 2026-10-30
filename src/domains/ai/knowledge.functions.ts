@@ -51,6 +51,8 @@ export interface KbSearchHit {
   chunk_index: number;
   content: string;
   rank: number;
+  language_code?: string;
+  source_updated_at?: string | null;
 }
 
 // ============= Helpers =============
@@ -62,6 +64,13 @@ function slugify(s: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80) || `doc-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function reviewDueAt(sourceType: string, now = new Date()): string {
+  const days: Record<string, number> = { policy: 180, experience: 60, room: 30, url: 30, html: 30, pdf: 180, docx: 180 };
+  const due = new Date(now);
+  due.setUTCDate(due.getUTCDate() + (days[sourceType] ?? 90));
+  return due.toISOString();
 }
 
 /** Split content into ~1200-char chunks on paragraph boundaries with 150-char overlap. */
@@ -262,15 +271,20 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
     tags?: string[];
     status?: KbDocument["status"];
     allowed_roles?: string[] | null;
-    language_code?: string;
+    language_code?: "en" | "sw";
     is_guest_visible?: boolean;
-    source_updated_at?: string | null;
     content_text?: string | null;
     change_note?: string | null;
   }) => {
     if (!input?.title?.trim()) throw new Error("Title is required.");
     if (input.content_text != null && input.content_text.length > 500_000) {
       throw new Error("Document content is too large (max 500 KB).");
+    }
+    if (input.language_code && !["en", "sw"].includes(input.language_code)) {
+      throw new Error("Knowledge language must be English (en) or Swahili (sw).");
+    }
+    if (input.is_guest_visible && (input.status ?? "draft") !== "published") {
+      throw new Error("Only published documents can be made guest-visible.");
     }
     return input;
   })
@@ -305,7 +319,9 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
         allowed_roles: data.allowed_roles ?? null,
         language_code: data.language_code ?? "en",
         is_guest_visible: data.is_guest_visible ?? false,
-        source_updated_at: data.source_updated_at ?? null,
+        source_updated_at: data.content_text != null ? now : undefined,
+        review_due_at: data.content_text != null ? reviewDueAt(data.source_type ?? "markdown") : undefined,
+        ...(data.status === "published" ? { reviewed_by: context.userId, reviewed_at: now } : {}),
         updated_by: context.userId,
         updated_at: now,
       };
@@ -327,7 +343,9 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
         property_id: propertyId,
         language_code: data.language_code ?? "en",
         is_guest_visible: data.is_guest_visible ?? false,
-        source_updated_at: data.source_updated_at ?? null,
+        source_updated_at: data.content_text != null ? now : null,
+        review_due_at: data.content_text != null ? reviewDueAt(data.source_type ?? "markdown") : null,
+        ...(data.status === "published" ? { reviewed_by: context.userId, reviewed_at: now } : {}),
         current_version: 1,
         byte_size: data.content_text?.length ?? 0,
         created_by: context.userId,
