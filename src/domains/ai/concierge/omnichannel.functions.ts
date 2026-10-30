@@ -518,15 +518,19 @@ export const getOmnichannelAnalytics = createServerFn({ method: "GET" })
         ? context.supabase.from("ai_escalations").select("id", { count: "exact", head: true }).in("session_id", sessionIds).in("status", ["open", "assigned", "in_progress"])
         : Promise.resolve({ count: 0, error: null }),
       sessionIds.length
-        ? context.supabase.from("ai_communication_drafts").select("id", { count: "exact", head: true }).in("session_id", sessionIds).eq("status", "pending")
-        : Promise.resolve({ count: 0, error: null }),
+        ? context.supabase.from("ai_communication_drafts").select("id").in("session_id", sessionIds).eq("status", "pending")
+        : Promise.resolve({ data: [], error: null }),
       bookingIds.length
-        ? context.supabase.from("ai_communication_drafts").select("id", { count: "exact", head: true }).in("booking_id", bookingIds).eq("status", "pending")
-        : Promise.resolve({ count: 0, error: null }),
+        ? context.supabase.from("ai_communication_drafts").select("id").in("booking_id", bookingIds).eq("status", "pending")
+        : Promise.resolve({ data: [], error: null }),
     ]);
     if (escOpen.error) throw new Error(escOpen.error.message);
     if (sessionDrafts.error) throw new Error(sessionDrafts.error.message);
     if (bookingDrafts.error) throw new Error(bookingDrafts.error.message);
+    const pendingDraftIds = new Set([
+      ...(sessionDrafts.data ?? []).map((row: { id: string }) => row.id),
+      ...(bookingDrafts.data ?? []).map((row: { id: string }) => row.id),
+    ]);
     return {
       sessions_30d: {
         web: sessions.filter((row: any) => row.channel === "web").length,
@@ -534,6 +538,6 @@ export const getOmnichannelAnalytics = createServerFn({ method: "GET" })
         email: sessions.filter((row: any) => row.channel === "email").length,
       },
       escalations_open: escOpen.count ?? 0,
-      drafts_pending: (sessionDrafts.count ?? 0) + (bookingDrafts.count ?? 0),
+      drafts_pending: pendingDraftIds.size,
     };
   });
