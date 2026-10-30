@@ -97,3 +97,41 @@ See Deferred Verification Register. SN-IQ-03 property-scoped booking/hold RPC an
 - Marketing consent contract requires affirmative guest action; withdrawal requires a timestamp; rejected drafts cannot be dispatched; approved dispatch requires approver and timestamp.
 
 **Verification boundary:** Vitest contract coverage and CI are authored. CI has not yet been confirmed green. SQL migration remains unapplied. No live RLS, foreign-key, grants, Data API exposure, service-role, or two-property isolation test has been run. The migration requires isolated database review before application; it must not be run against production.
+
+
+## SN-IQ-04.3 — Server-side provider adapters
+
+**Implementation artifacts added:**
+- `src/domains/ai/concierge/providers/provider-http.server.ts`
+- `src/domains/ai/concierge/providers/meta-whatsapp.server.ts`
+- `src/domains/ai/concierge/providers/resend-email.server.ts`
+- `src/domains/ai/concierge/providers/provider-adapters.server.test.ts`
+
+**Meta WhatsApp Cloud API**
+- Implements authenticated text and approved-template sends through the versioned Graph API `/{phone_number_id}/messages` endpoint.
+- Uses server-only `META_WHATSAPP_ACCESS_TOKEN`, `META_WHATSAPP_PHONE_NUMBER_ID`, and explicit `META_GRAPH_API_VERSION` configuration.
+- Validates E.164 recipient numbers, text length, template name and locale before network dispatch.
+- Returns the provider-issued WhatsApp message ID; classifies rate-limit, timeout and server errors for bounded retry orchestration.
+- Meta's send endpoint does not provide a general idempotency-key header. The adapter therefore requires the caller to enforce single-dispatch semantics using the durable StayNas dispatch ledger. The supplied idempotency key is validated as part of the dispatch contract but is not represented as provider-side deduplication.
+
+**Resend**
+- Implements authenticated email sends through `POST https://api.resend.com/emails`.
+- Uses server-only `RESEND_API_KEY` and sends the durable dispatch key in the `Idempotency-Key` request header.
+- Validates sender, recipients, subject, body and optional cc/bcc/reply-to/tags.
+- Returns Resend's provider-issued email ID and classifies retryable HTTP responses.
+
+**Shared controls**
+- Provider credentials are read only from server environment configuration or explicit server-side dependency injection for tests; no browser API or tenant UI receives credentials.
+- Request timeouts are bounded. Provider error messages are sanitized and response bodies are not logged.
+- Both adapters fail closed when required credentials/configuration are missing.
+- These adapters are transport boundaries only. The caller must first authorize the property/session, check channel consent and opt-out, enforce required human approval, persist the message and dispatch attempt, and then record provider acceptance/failure. No AI inference path may call the adapters directly.
+
+**Required server configuration (not set by this code change):**
+- `META_WHATSAPP_ACCESS_TOKEN`
+- `META_WHATSAPP_PHONE_NUMBER_ID`
+- `META_GRAPH_API_VERSION`
+- `RESEND_API_KEY`
+
+No provider secrets were created, copied, or modified. No production environment settings were changed.
+
+**Verification boundary:** Adapter regression tests were added and CI was updated to execute them alongside contract tests, TypeScript, lint and production build. Execution is still pending because the Vercel integration is currently rate-limited and the latest GitHub Actions attempt had no jobs. Do not claim these tests or build passed until a runnable CI attempt completes.
