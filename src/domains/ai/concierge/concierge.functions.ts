@@ -82,7 +82,7 @@ export const getConciergeStats = createServerFn({ method: "GET" })
     const sessionIds = await propertySessionIds(context.supabase, propertyId, since);
     if (sessionIds.length === 0) return { sessions_30d: 0, messages_30d: 0, escalations_30d: 0 };
     const [messages, escalations] = await Promise.all([
-      context.supabase.from("ai_concierge_messages").select("id", { count: "exact", head: true }).in("session_id", sessionIds),
+      context.supabase .from("ai_concierge_messages").select("id", { count: "exact", head: true }).in("session_id", sessionIds).gte("created_at", since),
       context.supabase.from("ai_concierge_sessions").select("id", { count: "exact", head: true }).in("id", sessionIds).eq("escalated", true),
     ]);
     if (messages.error) throw new Error(messages.error.message);
