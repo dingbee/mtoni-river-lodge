@@ -171,8 +171,9 @@ function KnowledgeAdmin() {
                   {testSearch.data.length === 0 ? (
                     <div className="text-muted-foreground text-xs">No matches.</div>
                   ) : testSearch.data.map((r) => (
-                    <div key={r.chunk_id} className="rounded border bg-card p-2 text-xs">
-                      <div className="font-medium">{r.document_title}</div>
+                    <div key={r.source_id} className="rounded border bg-card p-2 text-xs">
+                      <div className="font-medium">{r.title}</div>
+                      <div className="text-muted-foreground">{r.source_type.replace("_", " ")}{r.language_code === "sw" ? " · Kiswahili" : " · English"}</div>
                       <div className="text-muted-foreground line-clamp-3">{r.content}</div>
                     </div>
                   ))}
