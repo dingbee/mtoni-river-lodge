@@ -10,7 +10,7 @@ import type {
 } from "./concierge.types";
 import { classifyIntent } from "./concierge.intent";
 import { combinedRecommendations } from "./concierge.recommendations";
-import type { ConciergeRoomCatalogItem } from "./concierge.types";
+import type { ConciergeRoomCatalogItem, ConciergeExperienceCatalogItem } from "./concierge.types";
 import { searchAvailability, buildBookingPlan } from "./concierge.tools";
 import { loadConciergeMemoryContext, suggestMemoriesFromMessage } from "./memory.context";
 import { AI_GATEWAY_DEFAULT_MODEL, callAiGateway, parseAiJson } from "@/lib/ai-gateway.server";
@@ -41,6 +41,29 @@ async function loadRoomCatalog(supabaseAdmin: any, propertyId: string): Promise<
     .order("name", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []) as ConciergeRoomCatalogItem[];
+}
+
+async function loadExperienceCatalog(supabaseAdmin: any, propertyId: string): Promise<ConciergeExperienceCatalogItem[]> {
+  const { data, error } = await (supabaseAdmin as any)
+    .from("extras")
+    .select("slug,name,description,price,currency,unit")
+    .eq("property_id", propertyId)
+    .eq("active", true)
+    .order("sort_order", { ascending: true });
+  if (error) throw new Error(error.message);
+  // Transfers are logistics, not guest experiences. The catalogue is always
+  // scoped to the active property; no global/static experience list is used.
+  return ((data ?? []) as Array<Record<string, unknown>>)
+    .filter((item) => item.slug !== "airport-transfer")
+    .map((item) => ({
+      slug: String(item.slug ?? ""),
+      name: String(item.name ?? ""),
+      description: typeof item.description === "string" ? item.description : null,
+      price: Number(item.price),
+      currency: String(item.currency ?? "").toUpperCase(),
+      unit: String(item.unit ?? "per_stay"),
+    }))
+    .filter((item) => item.slug && item.name && Number.isFinite(item.price) && /^[A-Z]{3}$/.test(item.currency));
 }
 
 async function loadPropertyFacts(supabaseAdmin: any, propertyId: string): Promise<string> {
@@ -199,7 +222,7 @@ export async function handleConciergeChat(
 
   const historyText = history.map((h) => h.content);
   const intent = classifyIntent(message, historyText);
-  const recommendations: ConciergeRecommendation[] = intent.level !== "low" ? combinedRecommendations(intent, roomCatalog) : [];
+  const recommendations: ConciergeRecommendation[] = intent.level !== "low" ? combinedRecommendations(intent, roomCatalog, experienceCatalog) : [];
 
   let availability: ConciergeAvailabilityRoom[] = [];
   let plan: ConciergeBookingPlan | null = null;
