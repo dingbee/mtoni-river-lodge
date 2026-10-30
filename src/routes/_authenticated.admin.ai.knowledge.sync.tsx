@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { usePropertyContext } from "@/modules/property/PropertyContext";
 import {
   listKnowledgeSources,
   setKnowledgeSourceStatus,
@@ -37,6 +38,7 @@ const TYPE_ICONS: Record<string, any> = {
 
 function KnowledgeSyncPage() {
   const qc = useQueryClient();
+  const { property } = usePropertyContext();
   const listFn = useServerFn(listKnowledgeSources);
   const setStatusFn = useServerFn(setKnowledgeSourceStatus);
   const setGuestVisibilityFn = useServerFn(setKnowledgeSourceGuestVisibility);
@@ -48,7 +50,7 @@ function KnowledgeSyncPage() {
   const [search, setSearch] = useState("");
 
   const q = useQuery({
-    queryKey: ["ai-knowledge-sources", typeFilter, statusFilter, search],
+    queryKey: ["ai-knowledge-sources", property.id, typeFilter, statusFilter, search],
     queryFn: () =>
       listFn({
         data: {
