@@ -29,6 +29,6 @@ jobs:
       - name: TypeScript verification
         run: bunx tsc --noEmit
       - name: Lint omnichannel contracts, provider adapters, webhook security and tests
-        run: bunx eslint src/domains/ai/concierge/omnichannel.contracts.ts src/domains/ai/concierge/omnichannel.contracts.test.ts src/domains/ai/concierge/omnichannel.ledger.types.ts src/domains/ai/concierge/providers src/domains/ai/concierge/webhooks --rule 'prettier/prettier: off'
+        run: bunx eslint src/domains/ai/concierge/omnichannel.contracts.ts src/domains/ai/concierge/omnichannel.contracts.test.ts src/domains/ai/concierge/omnichannel.ledger.types.ts src/domains/ai/concierge/providers src/domains/ai/concierge/webhooks src/domains/ai/concierge/property-channel-settings.functions.ts src/domains/ai/concierge/founder-provider-settings.functions.ts --rule 'prettier/prettier: off'
       - name: Production build
         run: bun run build
