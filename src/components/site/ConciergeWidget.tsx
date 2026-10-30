@@ -447,6 +447,7 @@ function BookingPlanCard({ plan }: { plan: ConciergeBookingPlan }) {
       {plan.experiences.length > 0 && (
         <p className="mt-0.5 opacity-80">Experiences: {plan.experiences.map((e) => e.name).join(", ")}</p>
       )}
+      <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">No room is held at this stage. A temporary 15-minute hold is only requested after you continue to booking, acknowledge the hold terms, and select a room.</p>
       <a
         href={plan.booking_url}
         onClick={() => {
