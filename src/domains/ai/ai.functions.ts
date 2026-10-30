@@ -147,6 +147,7 @@ export const askAi = createServerFn({ method: "POST" })
 export const listAiActivity = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("ai_activity_logs")
       .select("id, user_id, question, domains_accessed, tool_called, response, recommendation, model, status, error, duration_ms, created_at")
