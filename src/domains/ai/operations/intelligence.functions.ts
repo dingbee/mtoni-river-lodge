@@ -692,12 +692,11 @@ export const generateOperationsPatterns = createServerFn({ method: "POST" })
 
     const patterns: any[] = [];
     const topics = [
-      { key: "airport_transfer", label: "Airport transfer", terms: ["airport", "transfer", "shuttle", "pickup", "pick up"] },
-      { key: "pool", label: "Pool", terms: ["pool", "swimming"] },
-      { key: "wifi", label: "Wi-Fi", terms: ["wifi", "wi-fi", "internet", "connection"] },
-      { key: "restaurant", label: "Restaurant / dining", terms: ["restaurant", "menu", "dining", "food"] },
-      { key: "kilimanjaro", label: "Kilimanjaro / climbing", terms: ["kilimanjaro", "climb", "trek"] },
-      { key: "safari", label: "Safari", terms: ["safari", "game drive", "serengeti", "ngorongoro"] },
+      { key: "transport", label: "Transport", terms: ["transfer", "shuttle", "pickup", "pick up", "taxi"] },
+      { key: "water_recreation", label: "Pool and water recreation", terms: ["pool", "swimming", "canoe", "water activity"] },
+      { key: "connectivity", label: "Connectivity", terms: ["wifi", "wi-fi", "internet", "connection"] },
+      { key: "dining", label: "Dining", terms: ["restaurant", "menu", "dining", "food"] },
+      { key: "excursions", label: "Excursions and activities", terms: ["excursion", "guided walk", "tour", "day trip", "activity"] },
     ];
 
     const countTopic = (rows: any[], terms: string[]) =>
