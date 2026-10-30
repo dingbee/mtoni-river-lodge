@@ -140,7 +140,7 @@ CREATE POLICY "Knowledge documents manage in active property"
     )
     AND (category_id IS NULL OR EXISTS (
       SELECT 1 FROM public.knowledge_categories category
-      WHERE category.id = category_id AND category.property_id = property_id
+      WHERE category.id = public.knowledge_documents.category_id AND category.property_id = public.knowledge_documents.property_id
     ))
   );
 
@@ -163,7 +163,7 @@ CREATE POLICY "Knowledge versions manage in active property"
     )
     AND EXISTS (
       SELECT 1 FROM public.knowledge_documents document
-      WHERE document.id = document_id AND document.property_id = property_id
+      WHERE document.id = public.knowledge_document_versions.document_id AND document.property_id = public.knowledge_document_versions.property_id
     )
   );
 
@@ -186,7 +186,7 @@ CREATE POLICY "Knowledge chunks manage in active property"
     )
     AND EXISTS (
       SELECT 1 FROM public.knowledge_documents document
-      WHERE document.id = document_id AND document.property_id = property_id
+      WHERE document.id = public.knowledge_chunks.document_id AND document.property_id = public.knowledge_chunks.property_id
     )
   );
 
