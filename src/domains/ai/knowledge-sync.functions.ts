@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { getActivePropertyAiRoles } from "@/domains/ai/ai.authorization.server";
 
 const APPROVER_ROLES = ["owner", "manager", "reception"] as const;
 const SOURCE_TYPES = [
@@ -16,17 +17,16 @@ const SOURCE_TYPES = [
 const STATUSES = ["pending", "processing", "approved", "archived", "failed"] as const;
 
 async function assertStaff(sb: any, userId: string) {
-  const { data, error } = await sb.rpc("is_any_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  const scope = await getActivePropertyAiRoles(sb, userId);
+  const allowed = ["owner", "manager", "admin", "reservations", "reception", "marketing"];
+  if (!scope.roles.some((role) => allowed.includes(role))) throw new Error("Forbidden");
+  return scope.propertyId;
 }
 async function assertApprover(sb: any, userId: string) {
-  const { data, error } = await sb.rpc("has_any_role", {
-    _user_id: userId,
-    _roles: [...APPROVER_ROLES],
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  const scope = await getActivePropertyAiRoles(sb, userId);
+  const allowed = [...APPROVER_ROLES, "admin"];
+  if (!scope.roles.some((role) => allowed.includes(role))) throw new Error("Forbidden");
+  return scope.propertyId;
 }
 
 export interface AiKnowledgeSource {
@@ -63,12 +63,13 @@ export const listKnowledgeSources = createServerFn({ method: "GET" })
   )
   .handler(async ({ context, data }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await assertStaff(context.supabase, context.userId);
     let q: any = context.supabase
       .from("ai_knowledge_sources")
       .select(
         "id, source_type, external_ref, title, url, summary, status, last_synced_at, indexed_at, metadata, created_at, updated_at",
       )
+      .eq("property_id", propertyId)
       .order("updated_at", { ascending: false })
       .limit(data.limit);
     if (data.source_type) q = q.eq("source_type", data.source_type);
@@ -84,11 +85,12 @@ export const getKnowledgeSource = createServerFn({ method: "GET" })
   .inputValidator((input: any) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await assertStaff(context.supabase, context.userId);
     const { data: row, error } = await context.supabase
       .from("ai_knowledge_sources")
       .select("*")
       .eq("id", data.id)
+      .eq("property_id", propertyId)
       .single();
     if (error) throw new Error(error.message);
     return row as AiKnowledgeSource;
@@ -112,9 +114,10 @@ export const upsertKnowledgeSource = createServerFn({ method: "POST" })
   .inputValidator((input: any) => upsertSchema.parse(input))
   .handler(async ({ context, data }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertApprover(context.supabase, context.userId);
+    const propertyId = await assertApprover(context.supabase, context.userId);
     const sb: any = context.supabase;
     const patch: any = {
+      property_id: propertyId,
       source_type: data.source_type,
       external_ref: data.external_ref ?? null,
       title: data.title,
@@ -131,6 +134,7 @@ export const upsertKnowledgeSource = createServerFn({ method: "POST" })
         .from("ai_knowledge_sources")
         .update(patch)
         .eq("id", data.id)
+        .eq("property_id", propertyId)
         .select()
         .single();
       if (error) throw new Error(error.message);
@@ -163,7 +167,7 @@ export const setKnowledgeSourceStatus = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertApprover(context.supabase, context.userId);
+    const propertyId = await assertApprover(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: row, error } = await sb
       .from("ai_knowledge_sources")
@@ -173,6 +177,7 @@ export const setKnowledgeSourceStatus = createServerFn({ method: "POST" })
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", data.id)
+      .eq("property_id", propertyId)
       .select("id, status, title")
       .single();
     if (error) throw new Error(error.message);
@@ -190,8 +195,8 @@ export const deleteKnowledgeSource = createServerFn({ method: "POST" })
   .inputValidator((input: any) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertApprover(context.supabase, context.userId);
-    const { error } = await context.supabase.from("ai_knowledge_sources").delete().eq("id", data.id);
+    const propertyId = await assertApprover(context.supabase, context.userId);
+    const { error } = await context.supabase.from("ai_knowledge_sources").delete().eq("id", data.id).eq("property_id", propertyId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -202,6 +207,9 @@ export const syncJournalArticles = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertApprover(context.supabase, context.userId);
+    // Journal articles are currently global rather than property-owned. Do not
+    // copy platform-wide content into a tenant knowledge catalogue.
+    return { upserted: 0, skipped: true, reason: "journal_articles_not_property_scoped" };
     const sb: any = context.supabase;
     const { data: articles, error } = await sb
       .from("journal_articles")
@@ -237,7 +245,7 @@ export const syncJournalArticles = createServerFn({ method: "POST" })
           reviewed_by: context.userId,
           reviewed_at: new Date().toISOString(),
         },
-        { onConflict: "source_type,external_ref" },
+        { onConflict: "property_id,source_type,external_ref" },
       );
       if (upErr) throw new Error(upErr.message);
       upserted++;
@@ -258,6 +266,9 @@ export const syncCmsPages = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertApprover(context.supabase, context.userId);
+    // CMS pages are currently global rather than property-owned. Do not copy
+    // platform-wide content into a tenant knowledge catalogue.
+    return { upserted: 0, skipped: true, reason: "cms_pages_not_property_scoped" };
     const sb: any = context.supabase;
     const { data: pages, error } = await sb
       .from("cms_pages")
@@ -314,11 +325,12 @@ export const syncRoomsAndExperiences = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertApprover(context.supabase, context.userId);
+    const propertyId = await assertApprover(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: rooms } = await sb
       .from("rooms")
       .select("id, slug, name, short_description, base_price, currency, capacity_adults, capacity_children, max_occupancy, status")
+      .eq("property_id", propertyId)
       .eq("status", "active");
     let upserted = 0;
     for (const r of rooms ?? []) {
@@ -331,6 +343,7 @@ export const syncRoomsAndExperiences = createServerFn({ method: "POST" })
         .join("\n\n");
       const { error } = await sb.from("ai_knowledge_sources").upsert(
         {
+          property_id: propertyId,
           source_type: "room",
           external_ref: r.id,
           title: r.name,
@@ -367,11 +380,13 @@ export const testKnowledgeQuery = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const { data: hits, error } = await sb.rpc("ai_knowledge_sources_search", {
+    const { data: hits, error } = await sb.rpc("staynas_ai_knowledge_search", {
+      _property_id: propertyId,
       _query: data.query,
       _limit: data.limit,
+      _guest_visible_only: false,
     });
     if (error) throw new Error(error.message);
     const top = (hits ?? []) as Array<{
@@ -385,6 +400,7 @@ export const testKnowledgeQuery = createServerFn({ method: "POST" })
     }>;
     const confidence = top[0]?.rank ? Math.min(0.99, top[0].rank / 0.6) : 0;
     await sb.from("ai_knowledge_search_log").insert({
+      property_id: propertyId,
       query: data.query,
       result_count: top.length,
       matched_source_ids: top.map((t: any) => t.id),
@@ -399,13 +415,14 @@ export const getKnowledgeAnalytics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const since = new Date(Date.now() - 30 * 86400_000).toISOString();
 
     const { data: byType } = await sb
       .from("ai_knowledge_sources")
       .select("source_type, status")
+      .eq("property_id", propertyId)
       .limit(2000);
     const counts: Record<string, { total: number; approved: number }> = {};
     for (const r of (byType ?? []) as any[]) {
@@ -418,6 +435,7 @@ export const getKnowledgeAnalytics = createServerFn({ method: "GET" })
     const { data: recent } = await sb
       .from("ai_knowledge_search_log")
       .select("query, result_count, confidence, created_at")
+      .eq("property_id", propertyId)
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(500);
