@@ -43,7 +43,7 @@ export const listConciergeMemories = createServerFn({ method: "POST" })
     await assertPropertyRole(sb, context.userId, propertyId, ["owner", "manager", "admin", "reception", "marketing"]);
     let q = sb
       .from("ai_guest_memories")
-      .select("*, guest:guests(id, full_name, email), session:ai_concierge_sessions(id, session_token, guest_email)")
+      .select("*, guest:guests(id, full_name, email), session:ai_concierge_sessions(id, guest_email)")
       .eq("property_id", propertyId)
       .order("created_at", { ascending: false })
       .limit(data?.limit ?? 100);
