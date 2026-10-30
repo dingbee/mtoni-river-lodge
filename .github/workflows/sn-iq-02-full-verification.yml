@@ -25,5 +25,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Run complete Vitest suite
         run: bunx vitest run
+      - name: Run TypeScript type check
+        run: bunx tsc --noEmit
       - name: Lint the new knowledge regression tests
         run: bunx eslint src/domains/ai/knowledge.functions.test.ts
