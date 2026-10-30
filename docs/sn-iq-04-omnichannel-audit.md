@@ -183,3 +183,27 @@ No provider secrets were created, copied, or modified. No production environment
 - Founder Admin provider-routing UI: `/admin/ai/concierge/providers`, linked from the founder-only Concierge Channels page. It maps Meta phone-number IDs and Resend sender identities/account IDs to one property and shows active routing records.
 - Tenant Admin property controls: `/admin/settings/channels`, linked from the Settings hub.
 - Credential entry remains deliberately outside these pages: founder must provision the access tokens and webhook signing secrets in the protected deployment secret manager. The UI does not persist or reveal secrets. The migration must be applied before either settings page can read/write its tables.
+
+
+## SN-IQ-04.5 — Property-scoped inbox processor
+
+**Implementation artifacts added:**
+- `src/domains/ai/concierge/webhooks/webhook-processor.server.ts`
+- `src/domains/ai/concierge/webhooks/webhook-processor.server.test.ts`
+- `supabase/migrations/20261030220000_sn_iq_04_5_inbox_processing.sql`
+
+**Processing behavior**
+- Newly persisted Meta and Resend inbox events are immediately passed to the processor. Duplicate provider deliveries re-read the existing inbox row and retry processing if it remains received/failed.
+- An atomic status claim prevents concurrent workers from processing the same inbox event. A processing claim older than five minutes can be reclaimed after a worker interruption.
+- WhatsApp inbound events create a new session under the property already assigned by the founder-managed provider mapping, then create a provider-authored inbound message in the omnichannel ledger.
+- Resend and Meta delivery events locate the original outbound ledger message by property, provider and provider message ID, append a deduplicated delivery event, and project the provider state onto the message.
+- Message status projection is monotonic for accepted → delivered → read; failure/bounce states remain terminal. Unknown delivery references are marked ignored rather than attached to another property's data.
+- Inbound contact details are retained on the new conversation only. No automatic cross-channel guest identity merge is attempted. Identity linking remains a separate verified-consent workflow.
+- The inbox row records session_id/message_id after processing, with composite property foreign keys in the new migration.
+
+**Important boundaries**
+- The processor is invoked inline after verified webhook persistence. A scheduled recovery worker is not yet configured; stale claims can be reclaimed when the same event is redelivered, but a periodic sweeper should be added before production to recover events without provider redelivery.
+- Inbound messages are materialized in `ai_omnichannel_messages`; the legacy website chat history table is not automatically populated. The unified inbox UI must read the omnichannel ledger in SN-IQ-04.6.
+- All migrations remain unapplied. Database FK/grant/RLS and real concurrent replay behavior require isolated Supabase verification.
+- Regression tests cover delivery-state mapping; the full processor integration tests, TypeScript, lint and production build remain unexecuted due the Vercel deployment rate-limit check preventing GitHub Actions jobs.
+- No production deployment, production DB write, secret provisioning or Lovable operation performed.
