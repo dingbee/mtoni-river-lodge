@@ -24,6 +24,9 @@ function knowledgeReviewDueAt(sourceType: string, now = new Date()): string {
 }
 
 async function assertStaff(sb: any, userId: string) {
+  if (process.env.STAYNAS_PROPERTY_KNOWLEDGE_SCHEMA_ENABLED !== "true") {
+    throw new Error("Property knowledge workspace is waiting for its database migration and isolation verification.");
+  }
   const scope = await getActivePropertyAiRoles(sb, userId);
   const allowed = ["owner", "manager", "admin", "reservations", "reception", "marketing", "finance", "housekeeping"];
   if (!scope.roles.some((role) => allowed.includes(role))) throw new Error("Forbidden");
