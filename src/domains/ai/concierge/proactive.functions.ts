@@ -312,7 +312,7 @@ export const getGuestJourney = createServerFn({ method: "GET" })
         .from("bookings")
         .select("id")
         .eq("property_id", propertyId)
-        .eq("guest_id", data.guest_id);
+        .eq("guest_id", data.guest_id!);
       if (bookingsError) throw new Error(bookingsError.message);
       bookingIds = (guestBookings ?? []).map((booking: { id: string }) => booking.id);
     }
@@ -391,7 +391,6 @@ export const generatePostStayDrafts = createServerFn({ method: "POST" })
           status: "pending",
           reasoning: "Post-stay relationship draft — human approval required before send.",
           supporting_context: { source: "post_stay", booking_ref: b.reference },
-          created_by: context.userId,
         })
         .select("id, draft_type")
         .single();

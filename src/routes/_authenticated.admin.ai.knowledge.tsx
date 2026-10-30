@@ -25,9 +25,10 @@ import {
   type KbDocument,
 } from "@/domains/ai/knowledge.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { usePropertyContext } from "@/modules/property/PropertyContext";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/knowledge")({
-  head: () => ({ meta: [{ title: "AI Knowledge Base — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "AI Knowledge Base — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: KnowledgeAdmin,
 });
 
@@ -37,7 +38,7 @@ const STATUSES = [
   { value: "archived", label: "Archived" },
 ];
 
-const ROLE_OPTIONS = ["owner", "manager", "reception", "finance", "marketing", "housekeeping", "editor"] as const;
+const ROLE_OPTIONS = ["owner", "manager", "admin", "reservations", "reception", "finance", "marketing", "housekeeping"] as const;
 
 function KnowledgeAdmin() {
   const listDocsFn = useServerFn(listKbDocuments);
@@ -45,6 +46,7 @@ function KnowledgeAdmin() {
   const searchFn = useServerFn(searchKnowledge);
   const deleteFn = useServerFn(deleteKbDocument);
   const qc = useQueryClient();
+  const { property } = usePropertyContext();
 
   const [categoryId, setCategoryId] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
@@ -52,9 +54,9 @@ function KnowledgeAdmin() {
   const [testQuery, setTestQuery] = useState("");
   const [editing, setEditing] = useState<KbDocument | null | "new">(null);
 
-  const categories = useQuery({ queryKey: ["kb.categories"], queryFn: () => listCatsFn() });
+  const categories = useQuery({ queryKey: ["kb.categories", property.id], queryFn: () => listCatsFn() });
   const docs = useQuery({
-    queryKey: ["kb.documents", categoryId, statusFilter, search],
+    queryKey: ["kb.documents", property.id, categoryId, statusFilter, search],
     queryFn: () => listDocsFn({ data: {
       category_id: categoryId || undefined,
       status: statusFilter || undefined,
@@ -79,7 +81,7 @@ function KnowledgeAdmin() {
     <div className="space-y-4">
       <PageHeader
         title="AI Knowledge Base"
-        description="SOPs, policies and brand reference material that Mtoni AI cites when answering questions."
+        description="SOPs, policies and brand reference material that StayNas AI cites when answering questions."
         actions={
           <Button onClick={() => setEditing("new")}>
             <Plus className="mr-1.5 size-4" /> New document
@@ -113,7 +115,7 @@ function KnowledgeAdmin() {
           {docs.isLoading ? (
             <LoadingState />
           ) : !docs.data || docs.data.length === 0 ? (
-            <EmptyState icon={BookOpen} title="No documents yet" description="Upload SOPs, policies or brand guidelines so Mtoni AI can cite them." />
+            <EmptyState icon={BookOpen} title="No documents yet" description="Upload SOPs, policies or brand guidelines so StayNas AI can cite them." />
           ) : (
             <div className="divide-y">
               {docs.data.map((d) => (
@@ -128,6 +130,13 @@ function KnowledgeAdmin() {
                       {d.category_slug && <Badge variant="outline">{d.category_slug}</Badge>}
                       <Badge variant="outline">{d.source_type}</Badge>
                       <Badge variant="outline">v{d.current_version}</Badge>
+                      {d.review_due_at && (
+                        <Badge variant={new Date(d.review_due_at).getTime() < Date.now() ? "destructive" : "outline"}>
+                          Review due {new Date(d.review_due_at).toLocaleDateString()}
+                        </Badge>
+                      )}
+                      <Badge variant="outline">{d.language_code === "sw" ? "Kiswahili" : "English"}</Badge>
+                      {d.is_guest_visible && <Badge variant="secondary">Guest-visible</Badge>}
                       {(d.tags ?? []).slice(0, 4).map((t) => <Badge key={t} variant="outline">#{t}</Badge>)}
                       {(d.allowed_roles ?? []).length > 0 && (
                         <Badge variant="outline">roles: {(d.allowed_roles ?? []).join(",")}</Badge>
@@ -169,8 +178,9 @@ function KnowledgeAdmin() {
                   {testSearch.data.length === 0 ? (
                     <div className="text-muted-foreground text-xs">No matches.</div>
                   ) : testSearch.data.map((r) => (
-                    <div key={r.chunk_id} className="rounded border bg-card p-2 text-xs">
-                      <div className="font-medium">{r.document_title}</div>
+                    <div key={r.source_id} className="rounded border bg-card p-2 text-xs">
+                      <div className="font-medium">{r.title}</div>
+                      <div className="text-muted-foreground">{r.source_type.replace("_", " ")}{r.language_code === "sw" ? " · Kiswahili" : " · English"}</div>
                       <div className="text-muted-foreground line-clamp-3">{r.content}</div>
                     </div>
                   ))}
@@ -227,6 +237,8 @@ function DocumentDialog({
   const [summary, setSummary] = useState(initial?.summary ?? "");
   const [categoryId, setCategoryId] = useState<string>(initial?.category_id ?? "");
   const [status, setStatus] = useState<string>(initial?.status ?? "draft");
+  const [languageCode, setLanguageCode] = useState<"en" | "sw">(initial?.language_code === "sw" ? "sw" : "en");
+  const [isGuestVisible, setIsGuestVisible] = useState<boolean>(Boolean(initial?.is_guest_visible));
   const [sourceType, setSourceType] = useState<string>(initial?.source_type ?? "markdown");
   const [tags, setTags] = useState<string>((initial?.tags ?? []).join(", "));
   const [allowedRoles, setAllowedRoles] = useState<string[]>(initial?.allowed_roles ?? []);
@@ -249,6 +261,8 @@ function DocumentDialog({
         summary: summary || null,
         category_id: categoryId || null,
         status: status as any,
+        language_code: languageCode,
+        is_guest_visible: isGuestVisible && status === "published",
         source_type: sourceType as any,
         storage_path: storagePath,
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
@@ -279,10 +293,10 @@ function DocumentDialog({
         setSourceType(/\.(md|markdown)$/i.test(file.name) ? "markdown" : "text");
       } else if (/\.pdf$/i.test(file.name)) {
         setSourceType("pdf");
-        toast("File uploaded", { description: "PDF stored. Paste extracted text below so Mtoni AI can index it." });
+        toast("File uploaded", { description: "PDF stored. Paste extracted text below so StayNas AI can index it." });
       } else if (/\.docx$/i.test(file.name)) {
         setSourceType("docx");
-        toast("File uploaded", { description: "DOCX stored. Paste extracted text below so Mtoni AI can index it." });
+        toast("File uploaded", { description: "DOCX stored. Paste extracted text below so StayNas AI can index it." });
       }
       if (!title) setTitle(file.name.replace(/\.[^.]+$/, ""));
     } catch (e: any) {
@@ -336,6 +350,31 @@ function DocumentDialog({
             </div>
           </div>
 
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Knowledge language</label>
+              <Select value={languageCode} onValueChange={(v) => setLanguageCode(v as "en" | "sw")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="sw">Kiswahili</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end pb-1">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={isGuestVisible}
+                  disabled={status !== "published"}
+                  onChange={(e) => setIsGuestVisible(e.target.checked)}
+                  className="size-4 accent-current"
+                />
+                Approved for guest-facing AI answers
+              </label>
+            </div>
+          </div>
+
           <div className="grid gap-2">
             <label className="text-sm font-medium">Tags (comma-separated)</label>
             <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="check-in, sop, front-desk" />
@@ -378,7 +417,7 @@ function DocumentDialog({
                 <Button variant="ghost" size="sm" onClick={downloadFile}><Download className="size-4 mr-1" /> Download</Button>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">Text/Markdown files auto-extract. For PDF/DOCX, paste the extracted text below so Mtoni AI can index it.</p>
+            <p className="text-xs text-muted-foreground">Text/Markdown files auto-extract. For PDF/DOCX, paste the extracted text below so StayNas AI can index it.</p>
           </div>
 
           <div className="grid gap-2">

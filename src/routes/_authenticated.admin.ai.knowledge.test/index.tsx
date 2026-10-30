@@ -65,7 +65,7 @@ function KnowledgeTestPage() {
           ) : (
             <ul className="space-y-3">
               {m.data.hits.map((h) => (
-                <li key={h.id} className="rounded border p-3">
+                <li key={`${h.source_id}-${h.rank}`} className="rounded border p-3">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{h.title}</span>
                     <Badge variant="outline">{h.source_type.replace("_", " ")}</Badge>

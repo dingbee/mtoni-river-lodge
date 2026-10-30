@@ -10,18 +10,18 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { usePropertyContext } from "@/modules/property/PropertyContext";
 import {
   listKnowledgeSources,
   setKnowledgeSourceStatus,
+  setKnowledgeSourceGuestVisibility,
   deleteKnowledgeSource,
-  syncJournalArticles,
-  syncCmsPages,
   syncRoomsAndExperiences,
 } from "@/domains/ai/knowledge-sync.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/knowledge/sync")({
   head: () => ({
-    meta: [{ title: "Knowledge Sync — Mtoni AI" }, { name: "robots", content: "noindex,nofollow" }],
+    meta: [{ title: "Knowledge Sync — StayNas AI" }, { name: "robots", content: "noindex,nofollow" }],
   }),
   component: KnowledgeSyncPage,
 });
@@ -38,11 +38,11 @@ const TYPE_ICONS: Record<string, any> = {
 
 function KnowledgeSyncPage() {
   const qc = useQueryClient();
+  const { property } = usePropertyContext();
   const listFn = useServerFn(listKnowledgeSources);
   const setStatusFn = useServerFn(setKnowledgeSourceStatus);
+  const setGuestVisibilityFn = useServerFn(setKnowledgeSourceGuestVisibility);
   const delFn = useServerFn(deleteKnowledgeSource);
-  const syncJournalFn = useServerFn(syncJournalArticles);
-  const syncCmsFn = useServerFn(syncCmsPages);
   const syncRoomsFn = useServerFn(syncRoomsAndExperiences);
 
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -50,7 +50,7 @@ function KnowledgeSyncPage() {
   const [search, setSearch] = useState("");
 
   const q = useQuery({
-    queryKey: ["ai-knowledge-sources", typeFilter, statusFilter, search],
+    queryKey: ["ai-knowledge-sources", property.id, typeFilter, statusFilter, search],
     queryFn: () =>
       listFn({
         data: {
@@ -63,22 +63,6 @@ function KnowledgeSyncPage() {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["ai-knowledge-sources"] });
 
-  const syncJournal = useMutation({
-    mutationFn: () => syncJournalFn(),
-    onSuccess: (r) => {
-      toast.success(`Synced ${r.upserted} journal articles`);
-      invalidate();
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Sync failed"),
-  });
-  const syncCms = useMutation({
-    mutationFn: () => syncCmsFn(),
-    onSuccess: (r) => {
-      toast.success(`Synced ${r.upserted} website pages`);
-      invalidate();
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Sync failed"),
-  });
   const syncRooms = useMutation({
     mutationFn: () => syncRoomsFn(),
     onSuccess: (r) => {
@@ -94,6 +78,12 @@ function KnowledgeSyncPage() {
     onSuccess: () => invalidate(),
     onError: (e: any) => toast.error(e?.message ?? "Update failed"),
   });
+  const setGuestVisibility = useMutation({
+    mutationFn: (v: { id: string; is_guest_visible: boolean }) => setGuestVisibilityFn({ data: v }),
+    onSuccess: () => invalidate(),
+    onError: (e: any) => toast.error(e?.message ?? "Guest visibility update failed"),
+  });
+
   const del = useMutation({
     mutationFn: (id: string) => delFn({ data: { id } }),
     onSuccess: () => {
@@ -106,8 +96,8 @@ function KnowledgeSyncPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Knowledge Sync Engine"
-        description="Connect Mtoni AI with approved sources — website pages, journal, rooms, and uploaded documents."
+        title="Property Knowledge"
+        description="Manage approved, property-owned knowledge sources for StayNas AI."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link to="/admin/ai/knowledge" className="text-sm underline">
@@ -123,23 +113,14 @@ function KnowledgeSyncPage() {
         }
       />
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <SectionCard title="Website (CMS pages)" description="Homepage, Rooms, Experiences, Gallery, and other published CMS pages.">
-          <Button onClick={() => syncCms.mutate()} disabled={syncCms.isPending} className="w-full">
-            <RefreshCw className={`mr-2 size-4 ${syncCms.isPending ? "animate-spin" : ""}`} /> Sync website
-          </Button>
-        </SectionCard>
-        <SectionCard title="Journal" description="Published articles from the Mtoni Journal.">
-          <Button onClick={() => syncJournal.mutate()} disabled={syncJournal.isPending} className="w-full">
-            <RefreshCw className={`mr-2 size-4 ${syncJournal.isPending ? "animate-spin" : ""}`} /> Sync journal
-          </Button>
-        </SectionCard>
-        <SectionCard title="Rooms" description="Active room descriptions and rates.">
-          <Button onClick={() => syncRooms.mutate()} disabled={syncRooms.isPending} className="w-full">
-            <RefreshCw className={`mr-2 size-4 ${syncRooms.isPending ? "animate-spin" : ""}`} /> Sync rooms
-          </Button>
-        </SectionCard>
-      </div>
+      <SectionCard title="Property room catalogue" description="Synchronise active room descriptions and configured rates for the currently selected property.">
+        <Button onClick={() => syncRooms.mutate()} disabled={syncRooms.isPending} className="w-full sm:w-auto">
+          <RefreshCw className={`mr-2 size-4 ${syncRooms.isPending ? "animate-spin" : ""}`} /> Sync property rooms
+        </Button>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Website and journal ingestion remain paused until those sources support property ownership. Add dining, facilities, policies and experiences as property knowledge documents.
+        </p>
+      </SectionCard>
 
       <SectionCard title="Knowledge sources">
         <div className="mb-3 flex flex-wrap gap-2">
@@ -180,7 +161,7 @@ function KnowledgeSyncPage() {
         {q.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : !q.data || q.data.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No sources match. Run a sync above to import from your website/journal.</p>
+          <p className="text-sm text-muted-foreground">No property sources match. Synchronise room data or add approved knowledge documents.</p>
         ) : (
           <ul className="divide-y">
             {q.data.map((s) => {
@@ -193,6 +174,12 @@ function KnowledgeSyncPage() {
                       <span className="font-medium">{s.title}</span>
                       <Badge variant={s.status === "approved" ? "default" : "secondary"}>{s.status}</Badge>
                       <Badge variant="outline">{s.source_type.replace("_", " ")}</Badge>
+                      {s.is_guest_visible && <Badge variant="secondary">Guest-visible</Badge>}
+                      {s.review_due_at && (
+                        <Badge variant={new Date(s.review_due_at).getTime() < Date.now() ? "destructive" : "outline"}>
+                          Review due {new Date(s.review_due_at).toLocaleDateString()}
+                        </Badge>
+                      )}
                     </div>
                     {s.url && <div className="mt-1 text-xs text-muted-foreground">{s.url}</div>}
                     {s.last_synced_at && (
@@ -220,6 +207,14 @@ function KnowledgeSyncPage() {
                         <Archive className="mr-1 size-4" /> Archive
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={s.status !== "approved" || setGuestVisibility.isPending}
+                      onClick={() => setGuestVisibility.mutate({ id: s.id, is_guest_visible: !s.is_guest_visible })}
+                    >
+                      {s.is_guest_visible ? "Hide from guests" : "Approve guest AI"}
+                    </Button>
                     <Button
                       size="sm"
                       variant="ghost"
