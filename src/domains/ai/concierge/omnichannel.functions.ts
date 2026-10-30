@@ -46,14 +46,15 @@ async function requireSessionInProperty(
   supabase: any,
   sessionId: string,
   propertyId: string,
-): Promise<void> {
+): Promise<{ id: string; guest_id: string | null }> {
   const { data, error } = await supabase
     .from("ai_concierge_sessions")
-    .select("id")
+    .select("id, guest_id")
     .eq("id", sessionId)
     .eq("property_id", propertyId)
     .maybeSingle();
   if (error || !data) throw new Error("Conversation not found in the active property.");
+  return data as { id: string; guest_id: string | null };
 }
 
 async function propertySessionIds(supabase: any, propertyId: string): Promise<string[]> {
@@ -137,7 +138,7 @@ export const listConciergeConversations = createServerFn({ method: "POST" })
     if (data.channel && data.channel !== "all") q = q.eq("channel", data.channel);
     if (data.escalated) q = q.eq("escalated", true);
     if (data.guest_query) {
-      const s = data.guest_query.trim();
+      const s = data.guest_query.trim().replace(/[(),]/g, "");
       if (s) q = q.or(`guest_name.ilike.%${s}%,guest_email.ilike.%${s}%`);
     }
     const { data: rows, error } = await q;
@@ -211,14 +212,29 @@ export const createCommunicationDraft = createServerFn({ method: "POST" })
       notes?: string | null;
     }) => {
       if (!isChannel(input?.channel)) throw new Error("invalid channel");
-      if (!input?.draft_type) throw new Error("draft_type required");
+      if (!["welcome", "pre_arrival", "activity_intro", "transfer_info", "follow_up", "custom"].includes(input?.draft_type)) throw new Error("invalid draft_type");
       return input;
     },
   )
   .handler(async ({ data, context }) => {
     const propertyId = await requirePropertyScope(context.supabase, context.userId);
     if (!data.session_id) throw new Error("A conversation from the active property is required.");
-    await requireSessionInProperty(context.supabase, data.session_id, propertyId);
+    const session = await requireSessionInProperty(context.supabase, data.session_id, propertyId);
+    if (data.guest_id && session.guest_id && data.guest_id !== session.guest_id) {
+      throw new Error("Guest does not match the selected conversation.");
+    }
+    if (data.booking_id) {
+      const { data: booking, error: bookingError } = await context.supabase
+        .from("bookings")
+        .select("id, guest_id")
+        .eq("id", data.booking_id)
+        .eq("property_id", propertyId)
+        .maybeSingle();
+      if (bookingError || !booking) throw new Error("Booking not found in the active property.");
+      if (session.guest_id && booking.guest_id && session.guest_id !== booking.guest_id) {
+        throw new Error("Booking does not belong to the conversation guest.");
+      }
+    }
     const tpl = draftTemplate(data.draft_type, {
       guest_name: data.guest_name ?? null,
       room_slug: data.room_slug ?? null,
@@ -292,12 +308,16 @@ export const updateCommunicationDraft = createServerFn({ method: "POST" })
     if (data.body !== undefined) patch.body = data.body;
     if (data.notes !== undefined) patch.notes = data.notes;
     if (data.status) {
+      if (["approved", "rejected", "sent", "archived"].includes(data.status)) {
+        await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
+      }
       patch.status = data.status;
-      if (data.status === "approved" || data.status === "edited") {
+      if (data.status === "approved") {
         patch.approved_by = context.userId;
         patch.approved_at = new Date().toISOString();
       }
     }
+    if (Object.keys(patch).length === 0) throw new Error("No draft changes supplied.");
     const { data: updated, error } = await context.supabase
       .from("ai_communication_drafts")
       .update(patch as never)
@@ -344,6 +364,8 @@ export const createEscalation = createServerFn({ method: "POST" })
     }) => {
       if (!input?.session_id) throw new Error("session_id required");
       if (!isChannel(input.channel)) throw new Error("invalid channel");
+      if (!["low_confidence", "complaint", "payment_issue", "complex_request", "human_requested", "other"].includes(input.reason)) throw new Error("invalid escalation reason");
+      if (input.priority !== undefined && ![1, 2, 3].includes(input.priority)) throw new Error("invalid priority");
       return input;
     },
   )
@@ -377,6 +399,7 @@ export const updateEscalation = createServerFn({ method: "POST" })
       resolution_notes?: string | null;
     }) => {
       if (!input?.id) throw new Error("id required");
+      if (input.status && !["open", "assigned", "in_progress", "resolved", "dismissed"].includes(input.status)) throw new Error("invalid escalation status");
       return input;
     },
   )
