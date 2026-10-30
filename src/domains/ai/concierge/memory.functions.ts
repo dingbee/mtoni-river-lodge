@@ -75,8 +75,16 @@ export const createConciergeMemory = createServerFn({ method: "POST" })
     await assertPropertyRole(sb, context.userId, propertyId, MANAGER_ROLES);
     if (!data.guestId && !data.sessionId) throw new Error("guestId or sessionId required");
     if (data.sessionId) {
-      const { data: session } = await sb.from("ai_concierge_sessions").select("id").eq("id", data.sessionId).eq("property_id", propertyId).maybeSingle();
-      if (!session) throw new Error("Session not found in the active property.");
+      const { data: session, error: sessionError } = await sb
+        .from("ai_concierge_sessions")
+        .select("id, guest_id")
+        .eq("id", data.sessionId)
+        .eq("property_id", propertyId)
+        .maybeSingle();
+      if (sessionError || !session) throw new Error("Session not found in the active property.");
+      if (data.guestId && data.guestId !== session.guest_id) {
+        throw new Error("Guest does not match the selected conversation.");
+      }
     }
     const { data: row, error } = await sb
       .from("ai_guest_memories")
