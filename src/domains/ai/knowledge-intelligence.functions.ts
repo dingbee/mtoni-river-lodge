@@ -94,12 +94,27 @@ export const getKnowledgeHealth = createServerFn({ method: "GET" })
     const propertyId = await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
 
-    const { data: sources } = await sb
-      .from("ai_knowledge_sources")
-      .select("id, source_type, status, last_synced_at, updated_at, source_updated_at, indexed_at, quality_score")
-      .eq("property_id", propertyId)
-      .limit(5000);
-    const rows = (sources ?? []) as any[];
+    const [{ data: sources }, { data: documents }] = await Promise.all([
+      sb.from("ai_knowledge_sources")
+        .select("id, source_type, status, last_synced_at, updated_at, source_updated_at, review_due_at, indexed_at, quality_score")
+        .eq("property_id", propertyId)
+        .limit(5000),
+      sb.from("knowledge_documents")
+        .select("id, source_type, status, updated_at, source_updated_at, review_due_at")
+        .eq("property_id", propertyId)
+        .limit(5000),
+    ]);
+    const rows = [
+      ...((sources ?? []) as any[]),
+      ...((documents ?? []) as any[]).map((document: any) => ({
+        ...document,
+        source_type: "document",
+        status: document.status === "published" ? "approved" : document.status,
+        last_synced_at: null,
+        indexed_at: null,
+        quality_score: null,
+      })),
+    ];
 
     const rules: Record<string, number> = { ...DEFAULT_FRESHNESS };
 
@@ -114,7 +129,7 @@ export const getKnowledgeHealth = createServerFn({ method: "GET" })
       const days = daysBetween(r.source_updated_at ?? r.last_synced_at ?? r.updated_at);
       ageSum += Number.isFinite(days) ? days : 0;
       const warn = rules[r.source_type] ?? 180;
-      if (days > warn) staleCount++;
+      if (days > warn || (r.review_due_at && new Date(r.review_due_at).getTime() < Date.now())) staleCount++;
     }
     const avgAge = approved.length ? Math.round(ageSum / approved.length) : 0;
     const qualityAvg =
@@ -164,16 +179,30 @@ export const getFreshnessReport = createServerFn({ method: "GET" })
     const sb: any = context.supabase;
     const rules: Record<string, number> = { ...DEFAULT_FRESHNESS };
 
-    const { data: sources } = await sb
-      .from("ai_knowledge_sources")
-      .select("id, source_type, title, url, status, last_synced_at, updated_at, source_updated_at, quality_score")
-      .eq("property_id", propertyId)
-      .eq("status", "approved")
-      .limit(2000);
+    const [{ data: sources }, { data: documents }] = await Promise.all([
+      sb.from("ai_knowledge_sources")
+        .select("id, source_type, title, url, status, last_synced_at, updated_at, source_updated_at, review_due_at, quality_score")
+        .eq("property_id", propertyId)
+        .eq("status", "approved")
+        .limit(2000),
+      sb.from("knowledge_documents")
+        .select("id, source_type, title, source_url, status, updated_at, source_updated_at, review_due_at")
+        .eq("property_id", propertyId)
+        .eq("status", "published")
+        .limit(2000),
+    ]);
 
-    const rows = ((sources ?? []) as any[]).map((r: any) => {
+    const combined = [
+      ...((sources ?? []) as any[]),
+      ...((documents ?? []) as any[]).map((document: any) => ({
+        ...document, source_type: "document", url: document.source_url, status: "approved",
+        last_synced_at: null, quality_score: null,
+      })),
+    ];
+    const rows = combined.map((r: any) => {
       const days = daysBetween(r.source_updated_at ?? r.last_synced_at ?? r.updated_at);
       const warn = rules[r.source_type] ?? 180;
+      const reviewOverdue = Boolean(r.review_due_at && new Date(r.review_due_at).getTime() < Date.now());
       return {
         id: r.id,
         title: r.title,
@@ -181,7 +210,8 @@ export const getFreshnessReport = createServerFn({ method: "GET" })
         url: r.url,
         age_days: Number.isFinite(days) ? days : null,
         warning_days: warn,
-        bucket: freshnessBucket(days, warn),
+        review_due_at: r.review_due_at ?? null,
+        bucket: reviewOverdue ? "stale" : freshnessBucket(days, warn),
         quality_score: r.quality_score,
       };
     });
@@ -238,12 +268,26 @@ export const getKnowledgeCoverage = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const propertyId = await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const { data: sources } = await sb
-      .from("ai_knowledge_sources")
-      .select("source_type, status, source_updated_at, last_synced_at, updated_at")
-      .eq("property_id", propertyId)
-      .limit(5000);
-    const rows = (sources ?? []) as any[];
+    const [{ data: sources }, { data: documents }] = await Promise.all([
+      sb.from("ai_knowledge_sources")
+        .select("source_type, status, source_updated_at, last_synced_at, updated_at")
+        .eq("property_id", propertyId)
+        .limit(5000),
+      sb.from("knowledge_documents")
+        .select("category_id, status, updated_at, source_updated_at, knowledge_categories(slug)")
+        .eq("property_id", propertyId)
+        .limit(5000),
+    ]);
+    const rows = [
+      ...((sources ?? []) as any[]),
+      ...((documents ?? []) as any[]).map((document: any) => ({
+        source_type: document.knowledge_categories?.slug ?? "documents",
+        status: document.status === "published" ? "approved" : document.status,
+        source_updated_at: document.source_updated_at,
+        last_synced_at: null,
+        updated_at: document.updated_at,
+      })),
+    ];
     const map: Record<string, { total: number; approved: number; freshest: string | null }> = {};
     for (const r of rows) {
       const t = r.source_type as string;
