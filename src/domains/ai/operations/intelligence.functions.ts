@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { assertFounderAiAdmin } from "@/domains/ai/ai.authorization.server";
 
 async function requirePropertyScope(sb: any, userId: string, roles: string[]): Promise<string> {
   const { data: propertyId, error: contextError } = await sb.rpc("staynas_active_property_id", { _uid: userId });
