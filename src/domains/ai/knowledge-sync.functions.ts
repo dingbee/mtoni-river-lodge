@@ -44,6 +44,10 @@ export interface AiKnowledgeSource {
   created_by: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
+  property_id: string;
+  language_code: string;
+  is_guest_visible: boolean;
+  source_updated_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -67,7 +71,7 @@ export const listKnowledgeSources = createServerFn({ method: "GET" })
     let q: any = context.supabase
       .from("ai_knowledge_sources")
       .select(
-        "id, source_type, external_ref, title, url, summary, status, last_synced_at, indexed_at, metadata, created_at, updated_at",
+        "id, property_id, source_type, external_ref, title, url, summary, status, is_guest_visible, language_code, source_updated_at, last_synced_at, indexed_at, metadata, created_at, updated_at",
       )
       .eq("property_id", propertyId)
       .order("updated_at", { ascending: false })
@@ -106,6 +110,8 @@ const upsertSchema = z.object({
   summary: z.string().max(2000).nullable().optional(),
   content: z.string().max(200_000).default(""),
   metadata: z.record(z.string(), z.any()).default({}),
+  language_code: z.enum(["en", "sw"]).default("en"),
+  is_guest_visible: z.boolean().default(false),
   status: z.enum(STATUSES).default("pending"),
 });
 
@@ -125,8 +131,12 @@ export const upsertKnowledgeSource = createServerFn({ method: "POST" })
       summary: data.summary ?? null,
       content: data.content ?? "",
       metadata: data.metadata ?? {},
+      language_code: data.language_code,
+      is_guest_visible: data.is_guest_visible && data.status === "approved",
       status: data.status,
+      source_updated_at: new Date().toISOString(),
       indexed_at: new Date().toISOString(),
+      ...(data.status === "approved" ? { reviewed_by: context.userId, reviewed_at: new Date().toISOString() } : {}),
     };
     let row: any;
     if (data.id) {
@@ -173,12 +183,13 @@ export const setKnowledgeSourceStatus = createServerFn({ method: "POST" })
       .from("ai_knowledge_sources")
       .update({
         status: data.status,
+        is_guest_visible: data.status === "approved" ? undefined : false,
         reviewed_by: context.userId,
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", data.id)
       .eq("property_id", propertyId)
-      .select("id, status, title")
+      .select("id, status, title, is_guest_visible")
       .single();
     if (error) throw new Error(error.message);
     await sb.from("ai_activity_logs").insert({
@@ -227,7 +238,7 @@ export const syncRoomsAndExperiences = createServerFn({ method: "POST" })
     const sb: any = context.supabase;
     const { data: rooms } = await sb
       .from("rooms")
-      .select("id, slug, name, short_description, base_price, currency, capacity_adults, capacity_children, max_occupancy, status")
+      .select("id, slug, name, short_description, base_price, currency, capacity_adults, capacity_children, max_occupancy, status, updated_at")
       .eq("property_id", propertyId)
       .eq("status", "active");
     let upserted = 0;
@@ -242,6 +253,9 @@ export const syncRoomsAndExperiences = createServerFn({ method: "POST" })
       const { error } = await sb.from("ai_knowledge_sources").upsert(
         {
           property_id: propertyId,
+          language_code: "en",
+          is_guest_visible: false,
+          source_updated_at: r.updated_at ?? new Date().toISOString(),
           source_type: "room",
           external_ref: r.id,
           title: r.name,
@@ -256,7 +270,7 @@ export const syncRoomsAndExperiences = createServerFn({ method: "POST" })
           reviewed_by: context.userId,
           reviewed_at: new Date().toISOString(),
         },
-        { onConflict: "source_type,external_ref" },
+        { onConflict: "property_id,source_type,external_ref" },
       );
       if (error) throw new Error(error.message);
       upserted++;
@@ -288,12 +302,17 @@ export const testKnowledgeQuery = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     const top = (hits ?? []) as Array<{
-      id: string;
+      source_id: string;
+      source_kind: string;
       source_type: string;
       title: string;
+      slug: string | null;
+      category_slug: string | null;
       url: string | null;
       summary: string | null;
       content: string;
+      language_code: string;
+      source_updated_at: string | null;
       rank: number;
     }>;
     const confidence = top[0]?.rank ? Math.min(0.99, top[0].rank / 0.6) : 0;
@@ -301,7 +320,7 @@ export const testKnowledgeQuery = createServerFn({ method: "POST" })
       property_id: propertyId,
       query: data.query,
       result_count: top.length,
-      matched_source_ids: top.map((t: any) => t.id),
+      matched_source_ids: top.map((t: any) => t.source_id),
       confidence,
       asked_by: context.userId,
     });
