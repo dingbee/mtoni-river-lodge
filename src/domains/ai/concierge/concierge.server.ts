@@ -7,7 +7,6 @@ import type {
   ConciergeAvailabilityRoom,
   ConciergeBookingPlan,
 } from "./concierge.types";
-import { WHATSAPP_URL } from "@/lib/contact";
 import { classifyIntent } from "./concierge.intent";
 import { combinedRecommendations } from "./concierge.recommendations";
 import type { ConciergeRoomCatalogItem } from "./concierge.types";
@@ -75,7 +74,7 @@ function buildSystemPrompt(
     "You are the StayNas AI Concierge, a warm, professional hospitality assistant that helps prospective guests move from discovery to booking on the public website.",
     "Tone: calm, gracious, concise. Prefer short paragraphs. No emojis unless the guest uses them first.",
     "Rules:",
-    "- Only answer using the active property facts, room information, and knowledge excerpts provided below. If the answer is not covered, say so honestly and offer to connect the guest with the reservations team via WhatsApp or email.",
+    "- Only answer using the active property facts, room information, and knowledge excerpts provided below. If the answer is not covered, say so honestly and offer to connect the guest with the property team using contact channels configured for this property.",
     "- Use the provided Availability section as the source of truth for whether specific dates and rooms are available. Never invent prices, availability, policies, or dates outside what is given.",
     "- When the guest shows booking intent, guide them naturally: recommend a suitable room (using the Recommendations section), suggest 1–2 experiences if relevant, and invite them to continue on /book. Do NOT try to collect payment or complete the booking yourself.",
     "- Never share internal operational details, staff information, financial data, or anything not in the provided context.",
@@ -195,7 +194,7 @@ export async function handleConciergeChat(
   const system = buildSystemPrompt(page, propertyFacts, buildRoomsContext(roomCatalog), knowledgeCtx, intentCtx, recsCtx, availabilityCtx) + (memoryPromptSection ? "\n\n" + memoryPromptSection : "");
   const { raw, latency } = await callModel(system, history, message);
   const parsed = tryJson<{ answer?: string; confidence?: number; escalate?: boolean; citations?: any[] }>(raw) ?? {};
-  const answer = (parsed.answer ?? "I'm sorry, I couldn't put together an answer just now. Please reach us on WhatsApp and we'll help right away.").trim();
+  const answer = (parsed.answer ?? "I'm sorry, I couldn't put together an answer just now. Please contact the property team using the contact details on this property website.").trim();
   const confidence = typeof parsed.confidence === "number" ? Math.max(0, Math.min(1, parsed.confidence)) : 0.6;
   const shouldEscalate = Boolean(parsed.escalate) || confidence < LOW_CONFIDENCE;
 
@@ -252,10 +251,7 @@ export async function handleConciergeChat(
   if (shouldEscalate) {
     reply.escalation = {
       reason: "For live availability or a personal itinerary, our reservations team can help you directly.",
-      channels: [
-        { type: "whatsapp", label: "Chat on WhatsApp", url: WHATSAPP_URL },
-        { type: "email", label: "Email reservations", url: "mailto:support@staynas.nolmark.co?subject=Concierge%20follow-up" },
-      ],
+      channels: [],
     };
   }
   return reply;
