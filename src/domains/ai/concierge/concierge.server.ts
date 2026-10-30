@@ -14,19 +14,12 @@ import type { ConciergeRoomCatalogItem } from "./concierge.types";
 import { searchAvailability, buildBookingPlan } from "./concierge.tools";
 import { loadConciergeMemoryContext, suggestMemoriesFromMessage } from "./memory.context";
 import { AI_GATEWAY_DEFAULT_MODEL, callAiGateway, parseAiJson } from "@/lib/ai-gateway.server";
+import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 
 const MODEL = AI_GATEWAY_DEFAULT_MODEL;
 const MAX_MESSAGE_LEN = 1000;
 const HISTORY_LIMIT = 10;
 const LOW_CONFIDENCE = 0.5;
-
-const LODGE_FACTS = `
-StayNas is an Intelligent Hospitality Operating System operated by Nolmark CDMA during product development.
-- Nolmark CDMA is the current StayNas property owner and operating context.
-- Property configuration, rooms, rates, availability, guest policies, and contact details are supplied by the active property configuration.
-- Do not invent property-specific facts when the active property has not configured them.
-- Guests can continue to booking through the StayNas booking flow at /book.
-`;
 
 function newToken() {
   return `cnc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
@@ -36,10 +29,33 @@ function safeString(v: unknown, max = 500) {
   return typeof v === "string" ? v.slice(0, max) : null;
 }
 
-async function loadRoomCatalog(supabaseAdmin: any): Promise<ConciergeRoomCatalogItem[]> {
-  const { data, error } = await supabaseAdmin.from("rooms").select("slug,name,short_description,capacity_adults,capacity_children,max_occupancy,base_price,currency").eq("status","active").order("sort_order",{ascending:true}).order("name",{ascending:true});
+async function loadRoomCatalog(supabaseAdmin: any, propertyId: string): Promise<ConciergeRoomCatalogItem[]> {
+  const { data, error } = await supabaseAdmin
+    .from("rooms")
+    .select("slug,name,short_description,capacity_adults,capacity_children,max_occupancy,base_price,currency")
+    .eq("property_id", propertyId)
+    .eq("status", "active")
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []) as ConciergeRoomCatalogItem[];
+}
+
+async function loadPropertyFacts(supabaseAdmin: any, propertyId: string): Promise<string> {
+  const { data, error } = await supabaseAdmin
+    .from("staynas_properties")
+    .select("name,currency,timezone")
+    .eq("id", propertyId)
+    .eq("status", "active")
+    .single();
+  if (error || !data) throw new Error("Active property context could not be resolved.");
+  return [
+    `Property: ${data.name}`,
+    `Configured currency: ${data.currency}`,
+    `Property timezone: ${data.timezone}`,
+    "Use only this property's approved configuration and knowledge. Never infer or disclose another property's information.",
+    "Guests can continue to booking through this property's StayNas booking flow at /book.",
+  ].join("\\n");
 }
 
 function buildRoomsContext(rooms: ConciergeRoomCatalogItem[]) {
@@ -48,6 +64,7 @@ function buildRoomsContext(rooms: ConciergeRoomCatalogItem[]) {
 
 function buildSystemPrompt(
   pageContext: string | null,
+  propertyFacts: string,
   roomsCtx: string,
   knowledge: string,
   intentCtx: string,
@@ -66,7 +83,7 @@ function buildSystemPrompt(
     "- Return STRICT JSON: {\"answer\": string, \"confidence\": number between 0 and 1, \"escalate\": boolean, \"citations\": [{document_id, document_title, chunk_index}]}. Set escalate=true when the guest asks about live availability, complex custom itineraries, complaints, medical/safety issues, or anything outside the provided knowledge.",
     "",
     "== Active property facts ==",
-    LODGE_FACTS.trim(),
+    propertyFacts,
     "",
     "== Rooms ==",
     roomsCtx,
@@ -106,14 +123,18 @@ export async function handleConciergeChat(
   const page = safeString(input.page, 200);
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const roomCatalog = await loadRoomCatalog(supabaseAdmin);
+  const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+  const [roomCatalog, propertyFacts] = await Promise.all([
+    loadRoomCatalog(supabaseAdmin, propertyId),
+    loadPropertyFacts(supabaseAdmin, propertyId),
+  ]);
 
   let sessionId: string | null = null;
   let sessionToken = safeString(input.session_token, 80);
   let existingGuestId: string | null = null;
   let existingGuestEmail: string | null = null;
   if (sessionToken) {
-    const { data } = await supabaseAdmin.from("ai_concierge_sessions").select("id, guest_id, guest_email").eq("session_token", sessionToken).maybeSingle();
+    const { data } = await supabaseAdmin.from("ai_concierge_sessions").select("id, guest_id, guest_email").eq("session_token", sessionToken).eq("property_id", propertyId).maybeSingle();
     sessionId = data?.id ?? null;
     existingGuestId = (data as any)?.guest_id ?? null;
     existingGuestEmail = (data as any)?.guest_email ?? null;
@@ -121,7 +142,7 @@ export async function handleConciergeChat(
   if (!sessionId) {
     sessionToken = newToken();
     const { data, error } = await supabaseAdmin.from("ai_concierge_sessions").insert({
-      session_token: sessionToken, locale, user_agent: safeString(meta.userAgent, 400),
+      session_token: sessionToken, property_id: propertyId, locale, user_agent: safeString(meta.userAgent, 400),
       referer: safeString(meta.referer, 400), page_context: page ? { page } : {},
     }).select("id").single();
     if (error) throw new Error(`Concierge session error: ${error.message}`);
@@ -173,7 +194,7 @@ export async function handleConciergeChat(
     memoryCtx.isReturningVisitor ? "This is a returning visitor. Greet them warmly and reference memories naturally, without revealing private history." : "Use these approved preferences to personalise your reply.",
     memoryCtx.contextText,
   ].join("\n") : "";
-  const system = buildSystemPrompt(page, buildRoomsContext(roomCatalog), knowledgeCtx, intentCtx, recsCtx, availabilityCtx) + (memoryPromptSection ? "\n\n" + memoryPromptSection : "");
+  const system = buildSystemPrompt(page, propertyFacts, buildRoomsContext(roomCatalog), knowledgeCtx, intentCtx, recsCtx, availabilityCtx) + (memoryPromptSection ? "\n\n" + memoryPromptSection : "");
   const { raw, latency } = await callModel(system, history, message);
   const parsed = tryJson<{ answer?: string; confidence?: number; escalate?: boolean; citations?: any[] }>(raw) ?? {};
   const answer = (parsed.answer ?? "I'm sorry, I couldn't put together an answer just now. Please reach us on WhatsApp and we'll help right away.").trim();
