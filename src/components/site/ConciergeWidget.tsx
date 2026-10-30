@@ -408,9 +408,7 @@ function RecommendationsList({ recs }: { recs: ConciergeRecommendation[] }) {
         >
           <div className="flex items-center justify-between gap-2">
             <span className="font-medium">{r.name}</span>
-            {r.type === "room" && (
-              <span className="whitespace-nowrap text-muted-foreground">from ${formatConciergeCurrency(r.from_price, r.currency)}</span>
-            )}
+            <span className="whitespace-nowrap text-muted-foreground">from {formatConciergeCurrency(r.from_price, r.currency)}</span>
           </div>
           <p className="opacity-70">{r.reasoning[0]}</p>
         </a>
