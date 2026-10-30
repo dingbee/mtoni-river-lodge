@@ -28,7 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePropertyContext } from "@/modules/property/PropertyContext";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/knowledge")({
-  head: () => ({ meta: [{ title: "AI Knowledge Base — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "AI Knowledge Base — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: KnowledgeAdmin,
 });
 
@@ -81,7 +81,7 @@ function KnowledgeAdmin() {
     <div className="space-y-4">
       <PageHeader
         title="AI Knowledge Base"
-        description="SOPs, policies and brand reference material that Mtoni AI cites when answering questions."
+        description="SOPs, policies and brand reference material that StayNas AI cites when answering questions."
         actions={
           <Button onClick={() => setEditing("new")}>
             <Plus className="mr-1.5 size-4" /> New document
@@ -115,7 +115,7 @@ function KnowledgeAdmin() {
           {docs.isLoading ? (
             <LoadingState />
           ) : !docs.data || docs.data.length === 0 ? (
-            <EmptyState icon={BookOpen} title="No documents yet" description="Upload SOPs, policies or brand guidelines so Mtoni AI can cite them." />
+            <EmptyState icon={BookOpen} title="No documents yet" description="Upload SOPs, policies or brand guidelines so StayNas AI can cite them." />
           ) : (
             <div className="divide-y">
               {docs.data.map((d) => (
@@ -293,10 +293,10 @@ function DocumentDialog({
         setSourceType(/\.(md|markdown)$/i.test(file.name) ? "markdown" : "text");
       } else if (/\.pdf$/i.test(file.name)) {
         setSourceType("pdf");
-        toast("File uploaded", { description: "PDF stored. Paste extracted text below so Mtoni AI can index it." });
+        toast("File uploaded", { description: "PDF stored. Paste extracted text below so StayNas AI can index it." });
       } else if (/\.docx$/i.test(file.name)) {
         setSourceType("docx");
-        toast("File uploaded", { description: "DOCX stored. Paste extracted text below so Mtoni AI can index it." });
+        toast("File uploaded", { description: "DOCX stored. Paste extracted text below so StayNas AI can index it." });
       }
       if (!title) setTitle(file.name.replace(/\.[^.]+$/, ""));
     } catch (e: any) {
@@ -417,7 +417,7 @@ function DocumentDialog({
                 <Button variant="ghost" size="sm" onClick={downloadFile}><Download className="size-4 mr-1" /> Download</Button>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">Text/Markdown files auto-extract. For PDF/DOCX, paste the extracted text below so Mtoni AI can index it.</p>
+            <p className="text-xs text-muted-foreground">Text/Markdown files auto-extract. For PDF/DOCX, paste the extracted text below so StayNas AI can index it.</p>
           </div>
 
           <div className="grid gap-2">
