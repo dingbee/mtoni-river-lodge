@@ -22,6 +22,24 @@ async function assertManager(sb: any, userId: string) {
   if (!data) throw new Error("Forbidden");
 }
 
+async function activePropertyId(sb: any, userId: string): Promise<string> {
+  const { data, error } = await sb.rpc("staynas_active_property_id", { _uid: userId });
+  if (error || !data) throw new Error("No active property selected.");
+  return data as string;
+}
+
+async function assertPropertyRole(sb: any, userId: string, propertyId: string, roles: readonly string[]) {
+  const { data, error } = await sb
+    .from("staynas_property_members")
+    .select("property_id")
+    .eq("user_id", userId)
+    .eq("property_id", propertyId)
+    .eq("status", "active")
+    .in("role", [...roles])
+    .maybeSingle();
+  if (error || !data) throw new Error("Forbidden");
+}
+
 // ---------- list ----------
 const listSchema = z
   .object({
@@ -35,11 +53,13 @@ export const listConciergeMemories = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => listSchema.parse(d))
   .handler(async ({ data, context }) => {
-    await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const propertyId = await activePropertyId(sb, context.userId);
+    await assertPropertyRole(sb, context.userId, propertyId, ["owner", "manager", "admin", "reception", "marketing"]);
     let q = sb
       .from("ai_guest_memories")
       .select("*, guest:guests(id, full_name, email), session:ai_concierge_sessions(id, session_token, guest_email)")
+      .eq("property_id", propertyId)
       .order("created_at", { ascending: false })
       .limit(data?.limit ?? 100);
     if (data?.status) q = q.eq("status", data.status);
@@ -65,12 +85,18 @@ export const createConciergeMemory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => createSchema.parse(d))
   .handler(async ({ data, context }) => {
-    await assertManager(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const propertyId = await activePropertyId(sb, context.userId);
+    await assertPropertyRole(sb, context.userId, propertyId, MANAGER_ROLES);
     if (!data.guestId && !data.sessionId) throw new Error("guestId or sessionId required");
+    if (data.sessionId) {
+      const { data: session } = await sb.from("ai_concierge_sessions").select("id").eq("id", data.sessionId).eq("property_id", propertyId).maybeSingle();
+      if (!session) throw new Error("Session not found in the active property.");
+    }
     const { data: row, error } = await sb
       .from("ai_guest_memories")
       .insert({
+        property_id: propertyId,
         guest_id: data.guestId ?? null,
         session_id: data.sessionId ?? null,
         memory_type: data.memoryType,
@@ -107,8 +133,9 @@ export const decideConciergeMemory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => decideSchema.parse(d))
   .handler(async ({ data, context }) => {
-    await assertManager(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const propertyId = await activePropertyId(sb, context.userId);
+    await assertPropertyRole(sb, context.userId, propertyId, MANAGER_ROLES);
     const patch: any = {
       status: data.decision,
       approved_by: data.decision === "approved" ? context.userId : null,
@@ -116,7 +143,7 @@ export const decideConciergeMemory = createServerFn({ method: "POST" })
     };
     if (data.memoryValue) patch.memory_value = data.memoryValue;
     if (data.notes !== undefined) patch.notes = data.notes;
-    const { error } = await sb.from("ai_guest_memories").update(patch).eq("id", data.id);
+    const { error } = await sb.from("ai_guest_memories").update(patch).eq("id", data.id).eq("property_id", propertyId);
     if (error) throw new Error(error.message);
     await sb.from("ai_memory_events").insert({
       memory_id: data.id,
@@ -166,13 +193,15 @@ export const deleteConciergeMemory = createServerFn({ method: "POST" })
     await assertManager(context.supabase, context.userId);
     const sb: any = context.supabase;
     // Log first, then delete (cascade removes events after the fact — capture beforehand)
+    const { data: memory } = await sb.from("ai_guest_memories").select("id").eq("id", data.id).eq("property_id", propertyId).maybeSingle();
+    if (!memory) throw new Error("Memory not found in the active property.");
     await sb.from("ai_memory_events").insert({
       memory_id: data.id,
       event_type: "deleted",
       actor_id: context.userId,
       payload: {},
     });
-    const { error } = await sb.from("ai_guest_memories").delete().eq("id", data.id);
+    const { error } = await sb.from("ai_guest_memories").delete().eq("id", data.id).eq("property_id", propertyId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -181,12 +210,13 @@ export const deleteConciergeMemory = createServerFn({ method: "POST" })
 export const getMemoryAnalytics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const propertyId = await activePropertyId(sb, context.userId);
+    await assertPropertyRole(sb, context.userId, propertyId, ["owner", "manager", "admin", "reception", "marketing"]);
     const [{ data: mems }, { data: sessions }, { data: perso }] = await Promise.all([
-      sb.from("ai_guest_memories").select("id, memory_type, memory_key, status"),
-      sb.from("ai_concierge_sessions").select("id, guest_id, guest_email"),
-      sb.from("ai_personalization_events").select("id, event_type, created_at"),
+      sb.from("ai_guest_memories").select("id, memory_type, memory_key, status").eq("property_id", propertyId),
+      sb.from("ai_concierge_sessions").select("id, guest_id, guest_email").eq("property_id", propertyId),
+      sb.from("ai_personalization_events").select("id, event_type, created_at").eq("property_id", propertyId),
     ]);
     const memories = (mems ?? []) as ConciergeMemoryRow[];
     const approved = memories.filter((m) => m.status === "approved");
