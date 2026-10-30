@@ -576,6 +576,7 @@ export const generateServiceRecoveryInsights = createServerFn({ method: "POST" }
         .select("id")
         .eq("signal_source", row.signal_source)
         .eq("source_ref", row.source_ref)
+        .contains("evidence", { property_id: propertyId })
         .maybeSingle();
       if (!existing) {
         const { error } = await sb.from("ai_service_recovery_insights").insert(row);
@@ -631,7 +632,12 @@ export const updateServiceRecoveryStatus = createServerFn({ method: "POST" })
       .maybeSingle();
     if (existingError || !existing) throw new Error("Recovery insight not found in the active property.");
     if (existing.booking_id) await requireBookingInProperty(sb, existing.booking_id, propertyId);
-    else if (existing.evidence?.property_id !== propertyId) throw new Error("Recovery insight not found in the active property.");
+    if (existing.evidence?.property_id && existing.evidence.property_id !== propertyId) {
+      throw new Error("Recovery insight not found in the active property.");
+    }
+    if (!existing.booking_id && existing.evidence?.property_id !== propertyId) {
+      throw new Error("Recovery insight not found in the active property.");
+    }
     const { data: row, error } = await sb
       .from("ai_service_recovery_insights")
       .update({
@@ -816,27 +822,42 @@ export const updatePatternStatus = createServerFn({ method: "POST" })
 export const getOperationsPressureSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const propertyId = await requirePropertyScope(sb, context.userId, ["owner", "manager", "admin", "housekeeping", "reception"]);
+    const bookingIds = await propertyBookingIds(sb, propertyId);
     const day = isoDate();
-    const [arr, dep, tasks, readiness, recovery, patterns, staff] = await Promise.all([
-      sb.from("bookings").select("id", { count: "exact", head: true }).eq("check_in", day).neq("status", "cancelled"),
-      sb.from("bookings").select("id", { count: "exact", head: true }).eq("check_out", day).neq("status", "cancelled"),
-      sb.from("ops_tasks").select("id", { count: "exact", head: true }).in("status", ["pending", "in_progress"]),
-      sb.from("ai_room_readiness_insights").select("id", { count: "exact", head: true }).eq("status", "pending"),
-      sb.from("ai_service_recovery_insights").select("id", { count: "exact", head: true }).eq("status", "pending"),
-      sb.from("ai_operations_patterns").select("id", { count: "exact", head: true }).eq("status", "pending"),
-      sb.from("ai_staff_operations_insights").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    const [arr, dep, tasks, readiness, recoveryByBooking, recoveryByEvidence] = await Promise.all([
+      sb.from("bookings").select("id", { count: "exact", head: true }).eq("property_id", propertyId).eq("check_in", day).neq("status", "cancelled"),
+      sb.from("bookings").select("id", { count: "exact", head: true }).eq("property_id", propertyId).eq("check_out", day).neq("status", "cancelled"),
+      bookingIds.length
+        ? sb.from("ops_tasks").select("id", { count: "exact", head: true }).in("booking_id", bookingIds).in("status", ["pending", "in_progress"])
+        : Promise.resolve({ count: 0, error: null }),
+      bookingIds.length
+        ? sb.from("ai_room_readiness_insights").select("id", { count: "exact", head: true }).in("booking_id", bookingIds).eq("status", "pending")
+        : Promise.resolve({ count: 0, error: null }),
+      bookingIds.length
+        ? sb.from("ai_service_recovery_insights").select("id").in("booking_id", bookingIds).eq("status", "pending")
+        : Promise.resolve({ data: [], error: null }),
+      sb.from("ai_service_recovery_insights").select("id").contains("evidence", { property_id: propertyId }).eq("status", "pending"),
     ]);
+    for (const result of [arr, dep, tasks, readiness, recoveryByBooking, recoveryByEvidence]) {
+      if (result.error) throw new Error(result.error.message);
+    }
+    const recoveryIds = new Set([
+      ...(recoveryByBooking.data ?? []).map((row: { id: string }) => row.id),
+      ...(recoveryByEvidence.data ?? []).map((row: { id: string }) => row.id),
+    ]);
+    const readinessCount = readiness.count ?? 0;
+    const recoveryCount = recoveryIds.size;
     return {
       arrivals: arr.count ?? 0,
       departures: dep.count ?? 0,
       open_tasks: tasks.count ?? 0,
-      readiness_pending: readiness.count ?? 0,
-      recovery_pending: recovery.count ?? 0,
-      patterns_pending: patterns.count ?? 0,
-      staff_pending: staff.count ?? 0,
-      pending_reviews:
-        (readiness.count ?? 0) + (recovery.count ?? 0) + (patterns.count ?? 0) + (staff.count ?? 0),
+      readiness_pending: readinessCount,
+      recovery_pending: recoveryCount,
+      // These two rollups have no property key and remain founder-only.
+      patterns_pending: 0,
+      staff_pending: 0,
+      pending_reviews: readinessCount + recoveryCount,
     };
   });
