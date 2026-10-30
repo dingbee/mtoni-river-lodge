@@ -49,7 +49,7 @@ describe("getActivePropertyAiRoles", () => {
       { data: { role: "manager" }, error: null },
     );
     const { getActivePropertyAiRoles } = await import("./ai.authorization.server");
-    await expect(getActivePropertyAiRoles(supabase as never, "user-a")).resolves.toEqual(["manager"]);
+    await expect(getActivePropertyAiRoles(supabase as never, "user-a")).resolves.toEqual({ propertyId: "property-a", roles: ["manager"] });
     expect(supabase.from).toHaveBeenNthCalledWith(1, "staynas_user_property_context");
     expect(supabase.from).toHaveBeenNthCalledWith(2, "staynas_property_members");
   });
