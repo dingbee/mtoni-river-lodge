@@ -13,7 +13,7 @@ import { combinedRecommendations } from "./concierge.recommendations";
 import type { ConciergeRoomCatalogItem } from "./concierge.types";
 import { searchAvailability, buildBookingPlan } from "./concierge.tools";
 import { loadConciergeMemoryContext, suggestMemoriesFromMessage } from "./memory.context";
-import { AI_GATEWAY_DEFAULT_MODEL, AI_GATEWAY_URL, parseAiJson } from "@/lib/ai-gateway.server";
+import { AI_GATEWAY_DEFAULT_MODEL, callAiGateway, parseAiJson } from "@/lib/ai-gateway.server";
 
 const GATEWAY_URL = AI_GATEWAY_URL;
 const MODEL = AI_GATEWAY_DEFAULT_MODEL;
@@ -83,29 +83,16 @@ function buildSystemPrompt(
 }
 
 async function callModel(system: string, history: ConciergeMessage[], userText: string) {
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("Concierge is not configured (missing LOVABLE_API_KEY).");
-  const messages = [
-    { role: "system", content: system },
-    ...history.map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content })),
-    { role: "user", content: userText },
-  ];
-  const start = Date.now();
-  const res = await fetch(GATEWAY_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-    body: JSON.stringify({ model: MODEL, messages, response_format: { type: "json_object" } }),
+  const result = await callAiGateway({
+    system,
+    user: userText,
+    history: history.map((message) => ({
+      role: message.role === "assistant" ? "assistant" : "user",
+      content: message.content,
+    })),
+    jsonMode: true,
   });
-  const latency = Date.now() - start;
-  if (!res.ok) {
-    const text = await res.text();
-    if (res.status === 429) throw new Error("Our concierge is a little busy right now. Please try again in a moment.");
-    if (res.status === 402) throw new Error("Concierge temporarily unavailable. Please reach us on WhatsApp.");
-    throw new Error(`Concierge request failed (${res.status}): ${text.slice(0, 160)}`);
-  }
-  const json = await res.json();
-  const raw = json.choices?.[0]?.message?.content ?? "";
-  return { raw, latency };
+  return { raw: result.content, latency: result.latencyMs };
 }
 
 const tryJson = parseAiJson;
