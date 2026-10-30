@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import type {
   ConciergeCitation,
   ConciergeChatInput,
@@ -21,7 +22,9 @@ const HISTORY_LIMIT = 10;
 const LOW_CONFIDENCE = 0.5;
 
 function newToken() {
-  return `cnc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  // Session tokens are bearer credentials; use cryptographic entropy rather
+  // than timestamps or Math.random so public history cannot be guessed.
+  return `cnc_${randomBytes(32).toString("base64url")}`;
 }
 
 function safeString(v: unknown, max = 500) {
