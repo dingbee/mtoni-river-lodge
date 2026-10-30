@@ -101,7 +101,7 @@ async function requireKnowledgeProperty(supabase: any, userId: string, manage = 
   const scope = await getActivePropertyAiRoles(supabase, userId);
   const allowed = manage
     ? ["owner", "manager", "admin"]
-    : ["owner", "manager", "admin", "reservations", "reception", "marketing"];
+    : ["owner", "manager", "admin", "reservations", "reception", "marketing", "finance", "housekeeping"];
   if (!scope.roles.some((role) => allowed.includes(role))) {
     throw new Error(manage ? "You do not have permission to manage property knowledge." : "You do not have access to property knowledge.");
   }
