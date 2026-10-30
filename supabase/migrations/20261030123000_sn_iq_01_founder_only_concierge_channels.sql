@@ -1,4 +1,63 @@
 -- SN-IQ-01: restrict global concierge channel configuration to the
+-- Property-scope guest conversations. Historical rows remain unassigned
+-- until their source property is verified; new sessions must carry property_id.
+ALTER TABLE public.ai_concierge_sessions
+  ADD COLUMN IF NOT EXISTS property_id uuid
+  REFERENCES public.staynas_properties(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS ai_concierge_sessions_property_activity_idx
+  ON public.ai_concierge_sessions(property_id, last_active_at DESC);
+
+DROP POLICY IF EXISTS "Staff can read concierge sessions" ON public.ai_concierge_sessions;
+CREATE POLICY "Staff can read concierge sessions in active property"
+  ON public.ai_concierge_sessions
+  FOR SELECT TO authenticated
+  USING (
+    property_id IS NOT NULL
+    AND EXISTS (
+      SELECT 1
+      FROM public.staynas_property_members AS member
+      WHERE member.property_id = ai_concierge_sessions.property_id
+        AND member.user_id = auth.uid()
+        AND member.status = 'active'
+        AND member.role = ANY (ARRAY['owner','manager','admin','reception','marketing']::public.app_role[])
+    )
+    AND EXISTS (
+      SELECT 1
+      FROM public.staynas_user_property_context AS active_context
+      WHERE active_context.user_id = auth.uid()
+        AND active_context.property_id = ai_concierge_sessions.property_id
+    )
+  );
+
+DROP POLICY IF EXISTS "Staff can read concierge messages" ON public.ai_concierge_messages;
+CREATE POLICY "Staff can read concierge messages in active property"
+  ON public.ai_concierge_messages
+  FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.ai_concierge_sessions AS session
+      JOIN public.staynas_property_members AS member
+        ON member.property_id = session.property_id
+      JOIN public.staynas_user_property_context AS active_context
+        ON active_context.user_id = member.user_id
+       AND active_context.property_id = session.property_id
+      WHERE session.id = ai_concierge_messages.session_id
+        AND member.user_id = auth.uid()
+        AND member.status = 'active'
+        AND member.role = ANY (ARRAY['owner','manager','admin','reception','marketing']::public.app_role[])
+    )
+  );
+
+-- Concierge insights are currently global aggregates without a property key.
+-- Keep them founder-only until property-scoped aggregation is implemented.
+DROP POLICY IF EXISTS "Staff can read concierge insights" ON public.ai_concierge_insights;
+CREATE POLICY "Founder can read global concierge insights"
+  ON public.ai_concierge_insights
+  FOR SELECT TO authenticated
+  USING (public.is_staynas_founder_ai_admin());
+
 -- Nolmark CDMA founder owner and restore the idempotent channel registry seed.
 -- No provider secrets are stored in this registry.
 
