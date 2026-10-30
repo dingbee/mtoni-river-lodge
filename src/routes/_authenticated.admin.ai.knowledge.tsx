@@ -25,6 +25,7 @@ import {
   type KbDocument,
 } from "@/domains/ai/knowledge.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { usePropertyContext } from "@/modules/property/PropertyContext";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/knowledge")({
   head: () => ({ meta: [{ title: "AI Knowledge Base — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -45,6 +46,7 @@ function KnowledgeAdmin() {
   const searchFn = useServerFn(searchKnowledge);
   const deleteFn = useServerFn(deleteKbDocument);
   const qc = useQueryClient();
+  const { property } = usePropertyContext();
 
   const [categoryId, setCategoryId] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
@@ -52,9 +54,9 @@ function KnowledgeAdmin() {
   const [testQuery, setTestQuery] = useState("");
   const [editing, setEditing] = useState<KbDocument | null | "new">(null);
 
-  const categories = useQuery({ queryKey: ["kb.categories"], queryFn: () => listCatsFn() });
+  const categories = useQuery({ queryKey: ["kb.categories", property.id], queryFn: () => listCatsFn() });
   const docs = useQuery({
-    queryKey: ["kb.documents", categoryId, statusFilter, search],
+    queryKey: ["kb.documents", property.id, categoryId, statusFilter, search],
     queryFn: () => listDocsFn({ data: {
       category_id: categoryId || undefined,
       status: statusFilter || undefined,
