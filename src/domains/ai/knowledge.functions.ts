@@ -322,7 +322,9 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
         language_code: data.language_code ?? "en",
         is_guest_visible: data.is_guest_visible ?? false,
         source_updated_at: data.content_text != null ? now : undefined,
-        review_due_at: data.content_text != null ? reviewDueAt(data.source_type ?? "markdown") : undefined,
+        review_due_at: data.content_text != null || data.status === "published"
+          ? reviewDueAt(data.source_type ?? "markdown")
+          : undefined,
         ...(data.status === "published" ? { reviewed_by: context.userId, reviewed_at: now } : {}),
         updated_by: context.userId,
         updated_at: now,
