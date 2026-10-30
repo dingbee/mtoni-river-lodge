@@ -105,7 +105,7 @@ function AuthPage() {
     }
     setResetting(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: "https://staynas.nolmark.co/auth/callback?type=recovery",
+      redirectTo: "https://staynas.nolmark.co/auth/callback",
     });
     setResetting(false);
     if (error) {
