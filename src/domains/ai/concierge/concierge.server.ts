@@ -234,8 +234,8 @@ export async function handleConciergeChat(
       party: { adults: intent.detected.adults, children: intent.detected.children },
     });
     if (memoryCtx.memoryIds.length > 0) {
-      await supabaseAdmin.from("ai_personalization_events").insert({
-        session_id: sessionId, guest_id: memoryCtx.guestId, event_type: "memory_applied",
+      await (supabaseAdmin as any).from("ai_personalization_events").insert({
+        property_id: propertyId, session_id: sessionId, guest_id: memoryCtx.guestId, event_type: "memory_applied",
         memory_ids: memoryCtx.memoryIds, detail: { message_id: assistantMessageId },
       });
     }
