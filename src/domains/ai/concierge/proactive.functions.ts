@@ -90,18 +90,18 @@ export const generatePreArrivalRecommendations = createServerFn({ method: "POST"
         slug: "airport-transfer",
         type: "transport",
         title: "Offer airport transfer",
-        reasoning: "Guests arriving from JRO/ARK benefit from a pre-booked transfer.",
+        reasoning: "Guests who share travel details may benefit from a pre-arranged transfer.",
         confidence: 0.7,
         evidence: { source: "booking", nights: b.nights },
       });
 
       // Kilimanjaro / trek
-      if (/kilimanjaro|climb|trek/.test(text)) {
+      if (/climb|trek|hike/.test(text)) {
         proposals.push({
           slug: "kilimanjaro-prep",
           type: "activity",
-          title: "Prepare early breakfast + trek transport",
-          reasoning: "Special requests reference Kilimanjaro/trekking.",
+          title: "Review requested excursion arrangements",
+          reasoning: "Special requests mention a climb, trek, or hike; confirm relevant local arrangements.",
           confidence: 0.9,
           evidence: { source: "special_requests", excerpt: b.special_requests },
         });
@@ -112,8 +112,8 @@ export const generatePreArrivalRecommendations = createServerFn({ method: "POST"
         proposals.push({
           slug: "family-welcome",
           type: "room_preparation",
-          title: "Prepare family welcome",
-          reasoning: "Children in party — add extra towels, activity guide.",
+          title: "Review family room preparation",
+          reasoning: "Children are included in the party; review the property's family preparation options.",
           confidence: 0.85,
           evidence: { source: "booking", children: b.children },
         });
@@ -122,10 +122,10 @@ export const generatePreArrivalRecommendations = createServerFn({ method: "POST"
       // Honeymoon / anniversary / romantic
       if (/honeymoon|anniversar|romant/.test(text)) {
         proposals.push({
-          slug: "romantic-turndown",
+          slug: "special-occasion-review",
           type: "special_occasion",
-          title: "Suggest romantic turndown + private dining",
-          reasoning: "Guest mentioned honeymoon/anniversary/romantic occasion.",
+          title: "Review special-occasion arrangements",
+          reasoning: "Guest mentioned a special occasion; confirm which arrangements this property offers.",
           confidence: 0.82,
           evidence: { source: "special_requests", excerpt: b.special_requests },
         });
@@ -133,16 +133,6 @@ export const generatePreArrivalRecommendations = createServerFn({ method: "POST"
 
       // Memory-driven
       for (const m of memMap) {
-        if (m.memory_key === "preference.room.river_facing") {
-          proposals.push({
-            slug: "river-facing",
-            type: "room_preparation",
-            title: "Assign river-facing allocation",
-            reasoning: "Approved memory: guest prefers river-facing rooms.",
-            confidence: 0.8,
-            evidence: { source: "memory", key: m.memory_key },
-          });
-        }
         if (m.memory_type === "interest") {
           proposals.push({
             slug: `interest-${String(m.memory_value ?? "").slice(0, 24)}`,
@@ -314,9 +304,18 @@ export const getGuestJourney = createServerFn({ method: "GET" })
     if (!data.guest_id && !data.booking_id) {
       throw new Error("guest_id or booking_id required");
     }
-    const bookingIds = data.booking_id
-      ? [(await requireBookingInProperty(context.supabase, data.booking_id, propertyId)).id]
-      : (await context.supabase.from("bookings").select("id").eq("property_id", propertyId).eq("guest_id", data.guest_id)).data?.map((b: any) => b.id) ?? [];
+    let bookingIds: string[];
+    if (data.booking_id) {
+      bookingIds = [(await requireBookingInProperty(context.supabase, data.booking_id, propertyId)).id];
+    } else {
+      const { data: guestBookings, error: bookingsError } = await context.supabase
+        .from("bookings")
+        .select("id")
+        .eq("property_id", propertyId)
+        .eq("guest_id", data.guest_id);
+      if (bookingsError) throw new Error(bookingsError.message);
+      bookingIds = (guestBookings ?? []).map((booking: { id: string }) => booking.id);
+    }
     if (bookingIds.length === 0) return [];
     let q: any = context.supabase
       .from("ai_guest_journey_events")
