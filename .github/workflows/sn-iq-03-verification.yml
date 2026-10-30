@@ -29,6 +29,7 @@ jobs:
       - name: TypeScript verification
         run: bunx tsc --noEmit
       - name: Lint changed concierge code and tests
-        run: bunx eslint src/domains/ai/concierge/concierge.tools.ts src/domains/ai/concierge/concierge.recommendations.ts src/domains/ai/concierge/concierge.tools.test.ts src/domains/ai/concierge/concierge.recommendations.test.ts --rule "prettier/prettier: off"
+        run: >-
+          bunx eslint src/domains/ai/concierge/concierge.tools.ts src/domains/ai/concierge/concierge.recommendations.ts src/domains/ai/concierge/concierge.tools.test.ts src/domains/ai/concierge/concierge.recommendations.test.ts --rule 'prettier/prettier: off'
       - name: Production build
         run: bun run build
