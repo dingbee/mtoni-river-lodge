@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { assertFounderAiAdmin } from "./ai.authorization.server";
+import { allowedToolsForRoles } from "./ai.context";
 
 describe("assertFounderAiAdmin", () => {
   it("allows an authenticated Nolmark founder administrator", async () => {
@@ -70,5 +71,39 @@ describe("getActivePropertyAiRoles", () => {
     const { getActivePropertyAiRoles } = await import("./ai.authorization.server");
     await expect(getActivePropertyAiRoles(supabase as never, "user-a"))
       .rejects.toThrow("No active membership");
+  });
+});
+
+
+describe("allowedToolsForRoles", () => {
+  const propertyScopedTools = [
+    "reservations.arrivals_today",
+    "reservations.departures_today",
+    "reservations.upcoming",
+    "reservations.occupancy",
+    "finance.revenue_summary",
+    "finance.outstanding",
+    "operations.room_status",
+  ];
+
+  it("exposes only property-scoped tools to an owner", () => {
+    expect(allowedToolsForRoles(["owner"])).toEqual(propertyScopedTools);
+  });
+
+  it("limits finance users to the property-scoped finance tools", () => {
+    expect(allowedToolsForRoles(["finance"])).toEqual([
+      "finance.revenue_summary",
+      "finance.outstanding",
+    ]);
+  });
+
+  it("limits housekeeping users to property room status", () => {
+    expect(allowedToolsForRoles(["housekeeping"])).toEqual([
+      "operations.room_status",
+    ]);
+  });
+
+  it("does not expose unscoped tools to unknown roles", () => {
+    expect(allowedToolsForRoles(["unknown-role"])).toEqual([]);
   });
 });
