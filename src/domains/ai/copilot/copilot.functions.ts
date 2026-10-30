@@ -170,7 +170,7 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
         const { memoizeTTL } = await import("@/lib/perf-cache");
         const q = String(data.question ?? "").trim().toLowerCase();
         const kb = await memoizeTTL(`kb:copilot:${propertyId}:${q}:4`, 60_000, async () => {
-          const { data: r, error } = await (context.supabase as any).rpc("staynas_knowledge_search", {
+          const { data: r, error } = await (context.supabase as any).rpc("staynas_property_knowledge_search", {
             _property_id: propertyId,
             _query: data.question,
             _limit: 4,
