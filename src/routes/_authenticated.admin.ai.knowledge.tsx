@@ -38,7 +38,7 @@ const STATUSES = [
   { value: "archived", label: "Archived" },
 ];
 
-const ROLE_OPTIONS = ["owner", "manager", "reception", "finance", "marketing", "housekeeping", "editor"] as const;
+const ROLE_OPTIONS = ["owner", "manager", "admin", "reservations", "reception", "finance", "marketing", "housekeeping"] as const;
 
 function KnowledgeAdmin() {
   const listDocsFn = useServerFn(listKbDocuments);
