@@ -128,6 +128,11 @@ function KnowledgeAdmin() {
                       {d.category_slug && <Badge variant="outline">{d.category_slug}</Badge>}
                       <Badge variant="outline">{d.source_type}</Badge>
                       <Badge variant="outline">v{d.current_version}</Badge>
+                      {d.review_due_at && (
+                        <Badge variant={new Date(d.review_due_at).getTime() < Date.now() ? "destructive" : "outline"}>
+                          Review due {new Date(d.review_due_at).toLocaleDateString()}
+                        </Badge>
+                      )}
                       <Badge variant="outline">{d.language_code === "sw" ? "Kiswahili" : "English"}</Badge>
                       {d.is_guest_visible && <Badge variant="secondary">Guest-visible</Badge>}
                       {(d.tags ?? []).slice(0, 4).map((t) => <Badge key={t} variant="outline">#{t}</Badge>)}
