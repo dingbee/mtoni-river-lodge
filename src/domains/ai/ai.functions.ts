@@ -156,6 +156,6 @@ export const getMyAiScope = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertFounderAiAdmin(context.supabase, context.userId);
-    const roles = await getActivePropertyAiRoles(context.supabase, context.userId);
+    const { roles } = await getActivePropertyAiRoles(context.supabase, context.userId);
     return { roles, tools: allowedToolsForRoles(roles) };
   });
