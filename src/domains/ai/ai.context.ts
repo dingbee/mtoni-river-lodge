@@ -27,7 +27,6 @@ export function allowedToolsForRoles(roles: readonly string[]): AiToolId[] {
       "finance.revenue_summary",
       "finance.outstanding",
       "operations.room_status",
-      "knowledge.search",
     ]);
     return propertyScopedTools.has(id) && domains.has(map[d] as any);
   });
