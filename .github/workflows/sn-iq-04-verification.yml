@@ -1,0 +1,34 @@
+name: SN-IQ-04 omnichannel contract verification
+
+on:
+  push:
+    branches:
+      - feat/sn-iq-04-omnichannel-communications
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  omnichannel-contracts:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Run omnichannel contract regressions
+        run: bunx vitest run src/domains/ai/concierge/omnichannel.contracts.test.ts
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Lint omnichannel contracts and tests
+        run: bunx eslint src/domains/ai/concierge/omnichannel.contracts.ts src/domains/ai/concierge/omnichannel.contracts.test.ts src/domains/ai/concierge/omnichannel.ledger.types.ts --rule 'prettier/prettier: off'
+      - name: Production build
+        run: bun run build
