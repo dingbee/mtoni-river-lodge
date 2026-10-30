@@ -67,9 +67,9 @@ ALTER TABLE public.knowledge_documents DROP CONSTRAINT IF EXISTS knowledge_docum
 ALTER TABLE public.ai_knowledge_sources DROP CONSTRAINT IF EXISTS ai_knowledge_sources_source_type_external_ref_key;
 
 CREATE UNIQUE INDEX IF NOT EXISTS knowledge_categories_property_slug_uidx
-  ON public.knowledge_categories(property_id, slug) WHERE property_id IS NOT NULL;
+  ON public.knowledge_categories(property_id, slug);
 CREATE UNIQUE INDEX IF NOT EXISTS knowledge_documents_property_slug_uidx
-  ON public.knowledge_documents(property_id, slug) WHERE property_id IS NOT NULL;
+  ON public.knowledge_documents(property_id, slug);
 CREATE UNIQUE INDEX IF NOT EXISTS ai_knowledge_sources_property_source_ref_uidx
   ON public.ai_knowledge_sources(property_id, source_type, external_ref);
 
