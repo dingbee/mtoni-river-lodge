@@ -8,7 +8,7 @@ type InboxRow = {
 };
 
 const providerName = (provider: InboxRow["provider"]) => provider === "meta_cloud_api" ? "meta_cloud_api" : "resend";
-const messageStatus = (event: NormalizedProviderEvent["eventType"]) => {
+export const messageStatus = (event: NormalizedProviderEvent["eventType"]) => {
   if (event === "sent") return "accepted";
   if (event === "delivered") return "delivered";
   if (event === "read") return "read";
@@ -36,7 +36,7 @@ async function processInbound(supabase: any, row: InboxRow, event: NormalizedPro
   }).select("id").single();
   if (sessionError || !session) throw new Error("Could not create property-scoped conversation: " + (sessionError?.message ?? "missing session"));
   const messageType = event.body ? "text" : "media";
-  const { data: existingMessage, error: existingError } = await supabase.from("ai_omnichannel_messages")\n    .select("id").eq("property_id", row.property_id).eq("channel", event.channel)\n    .eq("provider", providerName(row.provider)).eq("provider_message_id", event.providerMessageId).maybeSingle();\n  if (existingError) throw new Error(existingError.message);\n  if (existingMessage) return { sessionId: (await supabase.from("ai_omnichannel_messages").select("session_id").eq("id", existingMessage.id).single()).data.session_id as string, messageId: existingMessage.id as string };\n  const { data: message, error: messageError } = await supabase.from("ai_omnichannel_messages").insert({
+  const { data: existingMessage, error: existingError } = await supabase.from("ai_omnichannel_messages")\n    .select("id,session_id").eq("property_id", row.property_id).eq("channel", event.channel)\n    .eq("provider", providerName(row.provider)).eq("provider_message_id", event.providerMessageId).maybeSingle();\n  if (existingError) throw new Error(existingError.message);\n  if (existingMessage) return { sessionId: existingMessage.session_id as string, messageId: existingMessage.id as string };\n  const { data: message, error: messageError } = await supabase.from("ai_omnichannel_messages").insert({
     property_id: row.property_id, session_id: session.id, guest_id: null,
     channel: event.channel, direction: "inbound", actor_type: "provider",
     message_type: messageType, subject: event.subject, body: event.body,
