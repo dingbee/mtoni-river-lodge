@@ -2,7 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertFounderAiAdmin } from "@/domains/ai/ai.authorization.server";
 
-async function requirePropertyScope(sb: any, userId: string): Promise<string> {
+async function requirePropertyScope(
+  sb: any,
+  userId: string,
+  roles: string[] = ["owner", "manager", "admin", "reception", "marketing"],
+): Promise<string> {
   const { data: propertyId, error: contextError } = await sb.rpc("staynas_active_property_id", { _uid: userId });
   if (contextError || !propertyId) throw new Error("No active property selected.");
   const { data: membership, error: membershipError } = await sb
@@ -11,7 +15,7 @@ async function requirePropertyScope(sb: any, userId: string): Promise<string> {
     .eq("user_id", userId)
     .eq("property_id", propertyId)
     .eq("status", "active")
-    .in("role", ["owner", "manager", "admin", "reception", "marketing"])
+    .in("role", roles)
     .maybeSingle();
   if (membershipError || !membership) throw new Error("Forbidden");
   return String(propertyId);
@@ -194,7 +198,7 @@ export const classifyConciergeOutcomes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { window?: Window } | undefined) => ({ window: parseWindow(input?.window) }))
   .handler(async ({ data, context }) => {
-    const propertyId = await requirePropertyScope(context.supabase, context.userId);
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, ["owner", "manager", "admin", "marketing", "reservations"]);
     const since = sinceDays(data.window);
     const s = context.supabase;
 
