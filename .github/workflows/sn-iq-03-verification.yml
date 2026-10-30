@@ -25,7 +25,7 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - name: Run concierge quote and recommendation regressions
-        run: bunx vitest run src/domains/ai/concierge/concierge.tools.test.ts src/domains/ai/concierge/concierge.recommendations.test.ts
+        run: bunx vitest run src/domains/ai/concierge/concierge.tools.test.ts src/domains/ai/concierge/concierge.recommendations.test.ts src/domains/ai/concierge/concierge.types.ts src/components/site/ConciergeWidget.tsx
       - name: TypeScript verification
         run: bunx tsc --noEmit
       - name: Lint changed concierge code and tests
