@@ -22,21 +22,33 @@ async function processInbound(supabase: any, row: InboxRow, event: NormalizedPro
   if (!event.externalContact || (!event.body && event.safePayload.messageType !== "image" && event.safePayload.messageType !== "audio" && event.safePayload.messageType !== "document" && event.safePayload.messageType !== "video")) {
     throw new Error("Inbound message is missing a supported sender or message body.");
   }
+
+  // Check the durable provider-message key before creating a session. A replay
+  // must attach to the original conversation, never create an orphan session.
+  const { data: existingMessage, error: existingError } = await supabase.from("ai_omnichannel_messages")
+    .select("id,session_id").eq("property_id", row.property_id).eq("channel", event.channel)
+    .eq("provider", providerName(row.provider)).eq("provider_message_id", event.providerMessageId).maybeSingle();
+  if (existingError) throw new Error(existingError.message);
+  if (existingMessage) return { sessionId: existingMessage.session_id as string, messageId: existingMessage.id as string };
+
   const sessionToken = "cnc_" + randomBytes(32).toString("base64url");
   const { data: session, error: sessionError } = await supabase.from("ai_concierge_sessions").insert({
     session_token: sessionToken,
     property_id: row.property_id,
-    locale: "en",\n    channel: event.channel,
+    locale: "en",
+    channel: event.channel,
     guest_name: typeof event.safePayload.profileName === "string" ? event.safePayload.profileName.slice(0, 160) : null,
-    guest_phone: event.channel === "whatsapp" ? event.externalContact : null,\n    guest_email: event.channel === "email" ? event.externalContact : null,
+    guest_phone: event.channel === "whatsapp" ? event.externalContact : null,
+    guest_email: event.channel === "email" ? event.externalContact : null,
     referer: "provider:" + row.provider,
     page_context: { channel: event.channel, provider: row.provider },
     message_count: 1,
     last_active_at: event.occurredAt,
   }).select("id").single();
   if (sessionError || !session) throw new Error("Could not create property-scoped conversation: " + (sessionError?.message ?? "missing session"));
+
   const messageType = event.body ? "text" : "media";
-  const { data: existingMessage, error: existingError } = await supabase.from("ai_omnichannel_messages")\n    .select("id,session_id").eq("property_id", row.property_id).eq("channel", event.channel)\n    .eq("provider", providerName(row.provider)).eq("provider_message_id", event.providerMessageId).maybeSingle();\n  if (existingError) throw new Error(existingError.message);\n  if (existingMessage) return { sessionId: existingMessage.session_id as string, messageId: existingMessage.id as string };\n  const { data: message, error: messageError } = await supabase.from("ai_omnichannel_messages").insert({
+  const { data: message, error: messageError } = await supabase.from("ai_omnichannel_messages").insert({
     property_id: row.property_id, session_id: session.id, guest_id: null,
     channel: event.channel, direction: "inbound", actor_type: "provider",
     message_type: messageType, subject: event.subject, body: event.body,
@@ -44,7 +56,14 @@ async function processInbound(supabase: any, row: InboxRow, event: NormalizedPro
     status: "recorded", occurred_at: event.occurredAt,
     metadata: { externalContact: event.externalContact, providerEventId: row.provider_event_id, safePayload: event.safePayload },
   }).select("id").single();
-  if (messageError || !message) throw new Error("Could not materialize inbound message: " + (messageError?.message ?? "missing message"));
+  if (messageError || !message) {
+    // A concurrent duplicate may win the unique provider-message constraint.
+    const { data: replay, error: replayError } = await supabase.from("ai_omnichannel_messages")
+      .select("id,session_id").eq("property_id", row.property_id).eq("channel", event.channel)
+      .eq("provider", providerName(row.provider)).eq("provider_message_id", event.providerMessageId).maybeSingle();
+    if (replayError || !replay) throw new Error("Could not materialize inbound message: " + (messageError?.message ?? replayError?.message ?? "missing message"));
+    return { sessionId: replay.session_id as string, messageId: replay.id as string };
+  }
   return { sessionId: session.id as string, messageId: message.id as string };
 }
 
