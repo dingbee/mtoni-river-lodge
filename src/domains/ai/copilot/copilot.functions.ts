@@ -172,7 +172,11 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
     }
 
     // Always try knowledge fusion if not already done
-    if (!toolIds.includes("knowledge.search") && allowed.has("knowledge.search")) {
+    if (
+      process.env.STAYNAS_PROPERTY_KNOWLEDGE_SEARCH_ENABLED === "true"
+      && !toolIds.includes("knowledge.search")
+      && allowed.has("knowledge.search")
+    ) {
       try {
         const { memoizeTTL } = await import("@/lib/perf-cache");
         const q = String(data.question ?? "").trim().toLowerCase();
