@@ -126,6 +126,6 @@ export function buildBookingPlan(
     experiences: selectedExperiences,
     estimated_total: validRoomQuote ? room.nightly_total : undefined,
     currency: validRoomQuote ? room.currency : undefined,
-    booking_url: buildBookingUrl(intent, validRoomQuote ? room.slug : preferredRoomSlug),
+    booking_url: buildBookingUrl(intent, validRoomQuote ? room.slug : undefined),
   };
 }
