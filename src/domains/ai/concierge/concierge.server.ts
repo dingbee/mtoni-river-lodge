@@ -132,12 +132,10 @@ export async function handleConciergeChat(
   let sessionId: string | null = null;
   let sessionToken = safeString(input.session_token, 80);
   let existingGuestId: string | null = null;
-  let existingGuestEmail: string | null = null;
   if (sessionToken) {
-    const { data } = await (supabaseAdmin as any).from("ai_concierge_sessions").select("id, guest_id, guest_email").eq("session_token", sessionToken).eq("property_id", propertyId).maybeSingle();
+    const { data } = await (supabaseAdmin as any).from("ai_concierge_sessions").select("id, guest_id").eq("session_token", sessionToken).eq("property_id", propertyId).maybeSingle();
     sessionId = data?.id ?? null;
     existingGuestId = (data as any)?.guest_id ?? null;
-    existingGuestEmail = (data as any)?.guest_email ?? null;
   }
   if (!sessionId) {
     sessionToken = newToken();
