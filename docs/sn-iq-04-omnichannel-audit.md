@@ -70,3 +70,30 @@ Allow a guest conversation to continue across the supported website, WhatsApp Bu
 ## Deferred dependencies
 
 See Deferred Verification Register. SN-IQ-03 property-scoped booking/hold RPC and two-property authenticated-role RLS verification remain deferred and must not be represented as passed.
+
+
+## SN-IQ-04.2 — Durable ledger contract implementation
+
+**Artifacts added (not applied):**
+- `supabase/migrations/20261030200000_sn_iq_04_omnichannel_ledger.sql`
+- `src/domains/ai/concierge/omnichannel.contracts.ts`
+- `src/domains/ai/concierge/omnichannel.contracts.test.ts`
+- `src/domains/ai/concierge/omnichannel.ledger.types.ts`
+- `.github/workflows/sn-iq-04-verification.yml`
+
+**Ledger tables defined:**
+- `ai_omnichannel_messages` — immutable conversation message record with direction, actor, channel, status, provider IDs, client idempotency ID and property/session linkage.
+- `ai_guest_identity_links` — verified channel identifiers with keyed digest lookup and optional encrypted identifier value; no raw identifier lookup values.
+- `ai_guest_channel_preferences` — channel- and purpose-specific consent state, source, evidence and withdrawal timestamp.
+- `ai_communication_dispatch_attempts` — approval evidence, request fingerprint, idempotency key, attempt number, provider response and bounded retry scheduling fields.
+- `ai_omnichannel_delivery_events` — provider event ledger with unique provider event ID for callback deduplication.
+
+**Security posture encoded:**
+- Browser roles receive no write grants on the new ledger tables.
+- Only authenticated staff receive read access to messages, filtered by active property and active-property session authorization.
+- Identity, consent, dispatch and provider-event tables are not granted to browser roles; trusted server-side workers use service-role access only after application authorization.
+- Composite property/session foreign key ensures a message cannot point at a conversation belonging to a different property.
+- Explicit grants are used because Supabase changed default public-schema Data API exposure on 2026-10-30.
+- Marketing consent contract requires affirmative guest action; withdrawal requires a timestamp; rejected drafts cannot be dispatched; approved dispatch requires approver and timestamp.
+
+**Verification boundary:** Vitest contract coverage and CI are authored. CI has not yet been confirmed green. SQL migration remains unapplied. No live RLS, foreign-key, grants, Data API exposure, service-role, or two-property isolation test has been run. The migration requires isolated database review before application; it must not be run against production.
