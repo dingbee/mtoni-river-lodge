@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { assertFounderAiAdmin } from "@/domains/ai/ai.authorization.server";
+import { assertFounderAiAdmin, getActivePropertyAiRoles } from "@/domains/ai/ai.authorization.server";
 import { AI_TOOLS } from "./ai.tools";
 import { canUseTool, toolDomain } from "./ai.permissions";
 import { allowedToolsForRoles, buildAnswerSystemPrompt, buildRouterSystemPrompt } from "./ai.context";
@@ -16,12 +16,6 @@ async function chat(system: string, user: string): Promise<string> {
 
 const tryJson = parseAiJson;
 
-async function getRoles(supabase: any): Promise<string[]> {
-  const { data, error } = await supabase.rpc("current_user_roles");
-  if (error) return [];
-  return (data ?? []) as string[];
-}
-
 export const askAi = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { question: string }) => {
@@ -32,7 +26,7 @@ export const askAi = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }): Promise<AiResponse> => {
     const start = Date.now();
-    const roles = await getRoles(context.supabase);
+    const roles = await getActivePropertyAiRoles(context.supabase, context.userId);
     if (roles.length === 0) throw new Error("You do not have a staff role assigned.");
 
     // Step 1 — decide tool
@@ -161,6 +155,6 @@ export const getMyAiScope = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertFounderAiAdmin(context.supabase, context.userId);
-    const roles = await getRoles(context.supabase);
+    const roles = await getActivePropertyAiRoles(context.supabase, context.userId);
     return { roles, tools: allowedToolsForRoles(roles) };
   });
