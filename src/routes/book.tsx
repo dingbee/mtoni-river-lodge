@@ -30,6 +30,7 @@ import { initiatePayment } from "@/lib/payments.functions";
 import { newBookingSessionId } from "@/lib/booking-session";
 import { createBookingHold, releaseBookingHold } from "@/lib/availability.functions";
 import { buildPriceBreakdownFromConfig, type PriceBreakdown } from "@/lib/pricing";
+import { isBookingHoldActive } from "@/lib/booking-hold-policy";
 
 export const Route = createFileRoute("/book")({
   validateSearch: (
@@ -376,6 +377,8 @@ function BookPage() {
   const submit = useMutation({
     mutationFn: async () => {
       if (!selectedRoom) throw new Error("Select a room first");
+      const activeHoldId = hold && hold.roomSlug === selectedRoom.slug && isBookingHoldActive(hold.expiresAt) ? hold.id : undefined;
+      if (hold && !activeHoldId) setHold(null);
       const created = await createBookingFn({
         data: {
           roomSlug: selectedRoom.slug,
@@ -392,7 +395,7 @@ function BookPage() {
           specialRequests: guest.requests,
           visitPurpose: guest.purpose,
           extras: selectedExtras,
-          holdId: hold && hold.roomSlug === selectedRoom.slug ? hold.id : undefined,
+          holdId: activeHoldId,
           sessionId,
         },
       });
