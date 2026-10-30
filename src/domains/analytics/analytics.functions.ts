@@ -238,40 +238,67 @@ export const getMarketingAnalytics = createServerFn({ method: "POST" })
 export const getOperationsAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
+    const bookingIds = await propertyBookingIds(context.supabase, propertyId);
     const from = daysAgoISO(30);
-    const [{ data: tasks }, { data: alerts }, { data: recovery }, { data: readiness }] = await Promise.all([
-      context.supabase.from("ops_tasks").select("id, status, task_type, created_at, completed_at").gte("created_at", from),
-      context.supabase.from("ops_alerts").select("id, status, created_at").gte("created_at", from),
-      context.supabase.from("ai_service_recovery_insights").select("id, status").gte("created_at", from),
-      context.supabase.from("ai_room_readiness_insights").select("id, priority, status").gte("created_at", from),
+    const [tasks, alerts, recoveryByBooking, recoveryByEvidence, readiness] = await Promise.all([
+      bookingIds.length
+        ? context.supabase.from("ops_tasks").select("id, status, task_type, created_at, completed_at").in("booking_id", bookingIds).gte("created_at", from)
+        : Promise.resolve({ data: [], error: null }),
+      bookingIds.length
+        ? context.supabase.from("ops_alerts").select("id, status, created_at").in("booking_id", bookingIds).gte("created_at", from)
+        : Promise.resolve({ data: [], error: null }),
+      bookingIds.length
+        ? context.supabase.from("ai_service_recovery_insights").select("id, status").in("booking_id", bookingIds).gte("created_at", from)
+        : Promise.resolve({ data: [], error: null }),
+      context.supabase.from("ai_service_recovery_insights").select("id, status").contains("evidence", { property_id: propertyId }).gte("created_at", from),
+      bookingIds.length
+        ? context.supabase.from("ai_room_readiness_insights").select("id, priority, status").in("booking_id", bookingIds).gte("created_at", from)
+        : Promise.resolve({ data: [], error: null }),
     ]);
-    const t = (tasks ?? []) as Row[];
+    for (const result of [tasks, alerts, recoveryByBooking, recoveryByEvidence, readiness]) {
+      if (result.error) throw new Error(result.error.message);
+    }
+    const recoveryIds = new Set([
+      ...(recoveryByBooking.data ?? []).map((row: { id: string }) => row.id),
+      ...(recoveryByEvidence.data ?? []).map((row: { id: string }) => row.id),
+    ]);
+    const recovery = Array.from(recoveryIds);
+    const t = (tasks.data ?? []) as Row[];
     const done = t.filter((r) => r.status === "done" || r.status === "completed").length;
     return {
       tasksTotal: t.length,
       tasksCompleted: done,
       completionRate: t.length ? done / t.length : 0,
-      alertsOpen: (alerts ?? []).filter((a: any) => a.status === "open").length,
-      recoveryCases: (recovery ?? []).length,
-      readinessInsights: (readiness ?? []).length,
+      alertsOpen: (alerts.data ?? []).filter((a: any) => a.status === "open").length,
+      recoveryCases: recovery.length,
+      readinessInsights: (readiness.data ?? []).length,
     };
   });
 
 export const getAiAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const from = daysAgoISO(30);
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
     const s = context.supabase;
-    const [logs, feedback, escalations, concierge, copilot, guestRecs, revRecs, mktRecs] = await Promise.all([
-      s.from("ai_activity_logs").select("id, module, latency_ms, success, created_at").gte("created_at", from),
-      s.from("ai_feedback").select("id, rating").gte("created_at", from),
-      s.from("ai_escalations").select("id, status").gte("created_at", from),
-      s.from("ai_concierge_sessions").select("id, created_at").gte("created_at", from),
-      s.from("ai_copilot_sessions").select("id, created_at").gte("created_at", from),
-      s.from("ai_guest_recommendations").select("id, status").gte("created_at", from),
-      s.from("ai_pricing_recommendations").select("id, status").gte("created_at", from),
-      s.from("ai_marketing_recommendations").select("id, status").gte("created_at", from),
+    const from = daysAgoISO(30);
+    const [bookingIds, roomIds, sessionIds] = await Promise.all([
+      propertyBookingIds(s, propertyId),
+      propertyRoomIds(s, propertyId),
+      propertySessionIds(s, propertyId),
     ]);
+    const [logs, feedback, escalations, concierge, copilot, guestRecs, revRecs] = await Promise.all([
+      s.from("ai_activity_logs").select("id, module, latency_ms, success, created_at").eq("user_id", context.userId).gte("created_at", from),
+      s.from("ai_feedback").select("id, rating").eq("user_id", context.userId).gte("created_at", from),
+      sessionIds.length ? s.from("ai_escalations").select("id, status").in("session_id", sessionIds).gte("created_at", from) : Promise.resolve({ data: [], error: null }),
+      s.from("ai_concierge_sessions").select("id, created_at").eq("property_id", propertyId).gte("created_at", from),
+      s.from("ai_copilot_sessions").select("id, created_at").eq("user_id", context.userId).gte("created_at", from),
+      bookingIds.length ? s.from("ai_guest_recommendations").select("id, status").in("booking_id", bookingIds).gte("created_at", from) : Promise.resolve({ data: [], error: null }),
+      roomIds.length ? s.from("ai_pricing_recommendations").select("id, status").in("room_id", roomIds).gte("created_at", from) : Promise.resolve({ data: [], error: null }),
+    ]);
+    for (const result of [logs, feedback, escalations, concierge, copilot, guestRecs, revRecs]) {
+      if (result.error) throw new Error(result.error.message);
+    }
     const l = (logs.data ?? []) as Row[];
     const byModule = new Map<string, { count: number; latency: number; success: number }>();
     for (const r of l) {
@@ -294,7 +321,7 @@ export const getAiAnalytics = createServerFn({ method: "POST" })
       recommendations: {
         guest: { accepted: acceptedOf(guestRecs.data), dismissed: dismissedOf(guestRecs.data) },
         revenue: { accepted: acceptedOf(revRecs.data), dismissed: dismissedOf(revRecs.data) },
-        marketing: { accepted: acceptedOf(mktRecs.data), dismissed: dismissedOf(mktRecs.data) },
+        marketing: { accepted: 0, dismissed: 0 },
       },
       byModule: [...byModule.entries()].map(([module, v]) => ({
         module, count: v.count,
