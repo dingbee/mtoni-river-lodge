@@ -1,6 +1,12 @@
 -- SN-IQ-04.5 inbox processing linkage. ARTIFACT ONLY; isolated DB verification required.
 BEGIN;
 ALTER TABLE public.ai_provider_webhook_inbox
+  DROP CONSTRAINT IF EXISTS ai_provider_webhook_inbox_processing_status_check;
+ALTER TABLE public.ai_provider_webhook_inbox
+  ADD CONSTRAINT ai_provider_webhook_inbox_processing_status_check
+  CHECK (processing_status IN ('received','processing','processed','ignored','failed'));
+
+ALTER TABLE public.ai_provider_webhook_inbox
   ADD COLUMN IF NOT EXISTS session_id uuid,
   ADD COLUMN IF NOT EXISTS message_id uuid,
   ADD COLUMN IF NOT EXISTS processing_started_at timestamptz,
