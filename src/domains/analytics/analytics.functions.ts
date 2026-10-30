@@ -68,8 +68,8 @@ export const getAnalyticsHub = createServerFn({ method: "POST" })
     const bookingIds = await propertyBookingIds(s, propertyId);
     const today = todayISO();
     const start30 = daysAgoISO(30);
-    const [{ data: bookings30 }, { data: todayBookings }, { data: rooms }, { data: aiLogs }, opsAlerts, reviews] = await Promise.all([
-      s.from("bookings").select("id, total, status, check_in, check_out, nights, created_at, payment_status").eq("property_id", propertyId).gte("created_at", start30),
+    const [{ data: bookings30 }, { data: todayBookings }, { data: rooms }, { data: aiLogs }, opsAlerts, reviews, { data: property, error: propertyError }] = await Promise.all([
+      s.from("bookings").select("id, total, currency, status, check_in, check_out, nights, created_at, payment_status").eq("property_id", propertyId).gte("created_at", start30),
       s.from("bookings").select("id, status").eq("property_id", propertyId).eq("check_in", today),
       s.from("rooms").select("id, total_units").eq("property_id", propertyId).eq("status", "active"),
       s.from("ai_activity_logs").select("id, created_at").eq("user_id", context.userId).gte("created_at", start30),
@@ -79,13 +79,17 @@ export const getAnalyticsHub = createServerFn({ method: "POST" })
       bookingIds.length
         ? s.from("reviews").select("rating").in("booking_id", bookingIds).eq("status", "approved").gte("created_at", start30)
         : Promise.resolve({ data: [], error: null }),
+      s.from("staynas_properties").select("currency").eq("id", propertyId).single(),
     ]);
+    if (propertyError || !property?.currency) throw new Error("Active property currency is not configured.");
     const b30 = (bookings30 ?? []) as Row[];
     const active = b30.filter((b) => b.status !== "cancelled");
     const totalUnits = (rooms ?? []).reduce((n: number, r: any) => n + (r.total_units ?? 1), 0) || 1;
     const roomNights = active.reduce((n, b) => n + (b.nights ?? 0), 0);
-    const revenue = active.reduce((n, b) => n + Number(b.total ?? 0), 0);
-    const adr = roomNights ? revenue / roomNights : 0;
+    const currencyRows = active.filter((b) => !b.currency || b.currency === property.currency);
+    const currencyRoomNights = currencyRows.reduce((n, b) => n + (b.nights ?? 0), 0);
+    const revenue = currencyRows.reduce((n, b) => n + Number(b.total ?? 0), 0);
+    const adr = currencyRoomNights ? revenue / currencyRoomNights : 0;
     const revpar = totalUnits ? revenue / (totalUnits * 30) : 0;
     const occupancy = Math.min(1, roomNights / (totalUnits * 30));
     const cancelRate = b30.length ? b30.filter((b) => b.status === "cancelled").length / b30.length : 0;
@@ -94,7 +98,7 @@ export const getAnalyticsHub = createServerFn({ method: "POST" })
     return {
       today: {
         arrivalsCount: (todayBookings ?? []).length,
-        occupancy, adr, revpar, revenue,
+        occupancy, adr, revpar, revenue, currency: property.currency,
         bookings30d: b30.length, cancelRate, avgRating,
         aiInteractions30d: (aiLogs ?? []).length,
         openAlerts: (opsAlerts.data ?? []).length,
