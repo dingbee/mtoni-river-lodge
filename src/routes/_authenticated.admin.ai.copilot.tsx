@@ -275,7 +275,7 @@ function MessageBubble({ m, onFeedback }: { m: any; onFeedback: (r: string) => v
                     <ul className="mt-1 space-y-1">
                       {m.citations.map((c: any, i: number) => (
                         <li key={i} className="rounded bg-background/60 p-1.5">
-                          <div className="font-medium">{c.document_title}</div>
+                          <div className="font-medium">{c.title}</div>
                           <div className="text-muted-foreground">{c.excerpt}</div>
                         </li>
                       ))}
