@@ -8,7 +8,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export async function getActivePropertyAiRoles(
   supabase: SupabaseClient<any>,
   userId: string,
-): Promise<string[]> {
+): Promise<{ propertyId: string; roles: string[] }> {
   if (!userId) throw new Error("Forbidden");
 
   const { data: context, error: contextError } = await (supabase as any)
@@ -33,7 +33,7 @@ export async function getActivePropertyAiRoles(
   if (membershipError) throw new Error("Unable to verify active property membership.");
   if (!membership?.role) throw new Error("No active membership for the selected property.");
 
-  return [String(membership.role)];
+  return { propertyId: String(context.property_id), roles: [String(membership.role)] };
 }
 
 /**
