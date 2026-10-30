@@ -128,6 +128,12 @@ CROSS JOIN (VALUES
 WHERE property.status = 'active'
 ON CONFLICT (property_id, slug) DO NOTHING;
 
+-- Table privileges are separate from RLS policies. The original catalogue
+-- migration granted SELECT-only on categories and scheduler configuration;
+-- grant the minimum DML required by their new property-scoped manager flows.
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.knowledge_categories TO authenticated;
+GRANT UPDATE ON public.ai_knowledge_scheduler_config TO authenticated;
+
 -- ---------------------------------------------------------------------------
 -- 2. RLS: every tenant catalogue and intelligence record follows active scope.
 -- Requires the SN-IQ-01 staynas_ai_property_in_active_context helper.
