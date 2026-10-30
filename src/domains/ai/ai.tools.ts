@@ -154,13 +154,23 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
       if (error) throw error;
       if (propertyError || !property?.currency) throw new Error("Active property currency is not configured.");
       const rows = data ?? [];
-      const currency = rows[0]?.currency ?? property.currency;
-      const gross = rows.reduce((s: number, r: any) => s + Number(r.total ?? 0), 0);
-      const paid = rows.reduce((s: number, r: any) => s + Number(r.paid_amount ?? 0), 0);
-      const outstanding = rows.reduce((s: number, r: any) => s + Number(r.balance_due ?? 0), 0);
+      const grouped = new Map<string, { currency: string; gross: number; paid: number; outstanding: number; reservations: number }>();
+      for (const row of rows as any[]) {
+        const currency = row.currency ?? property.currency;
+        const totals = grouped.get(currency) ?? { currency, gross: 0, paid: 0, outstanding: 0, reservations: 0 };
+        totals.gross += Number(row.total ?? 0);
+        totals.paid += Number(row.paid_amount ?? 0);
+        totals.outstanding += Number(row.balance_due ?? 0);
+        totals.reservations += 1;
+        grouped.set(currency, totals);
+      }
+      const byCurrency = Array.from(grouped.values());
+      const summary = byCurrency.length
+        ? byCurrency.map((totals) => `${totals.currency} ${Math.round(totals.gross).toLocaleString()} gross · ${Math.round(totals.paid).toLocaleString()} paid · ${Math.round(totals.outstanding).toLocaleString()} outstanding (${totals.reservations} bookings)`).join("; ")
+        : `No confirmed booking revenue recorded for ${from.slice(0, 7)}.`;
       return {
-        summary: `${currency} ${Math.round(gross).toLocaleString()} gross · ${currency} ${Math.round(paid).toLocaleString()} paid · ${currency} ${Math.round(outstanding).toLocaleString()} outstanding across ${rows.length} bookings this month.`,
-        data: { currency, gross, paid, outstanding, reservations: rows.length },
+        summary,
+        data: { byCurrency, reservations: rows.length, propertyCurrency: property.currency },
         count: rows.length,
         window: from.slice(0, 7),
       };
@@ -184,9 +194,16 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
       if (error) throw error;
       if (propertyError || !property?.currency) throw new Error("Active property currency is not configured.");
       const rows = data ?? [];
-      const totalOutstanding = rows.reduce((s: number, r: any) => s + Number(r.balance_due ?? 0), 0);
-      const currency = rows[0]?.currency ?? property.currency;
-      return { summary: `${rows.length} bookings with unpaid balances totalling ${currency} ${Math.round(totalOutstanding).toLocaleString()}.`, data: rows, count: rows.length };
+      const grouped = new Map<string, number>();
+      for (const row of rows as any[]) {
+        const currency = row.currency ?? property.currency;
+        grouped.set(currency, (grouped.get(currency) ?? 0) + Number(row.balance_due ?? 0));
+      }
+      const totals = Array.from(grouped.entries()).map(([currency, amount]) => ({ currency, amount }));
+      const summary = totals.length
+        ? `${rows.length} bookings with unpaid balances: ${totals.map((item) => `${item.currency} ${Math.round(item.amount).toLocaleString()}`).join("; ")}.`
+        : "No outstanding booking balances.";
+      return { summary, data: { bookings: rows, totalsByCurrency: totals }, count: rows.length };
     },
   },
   "finance.recent_transactions": {
