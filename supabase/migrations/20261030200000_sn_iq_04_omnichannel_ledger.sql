@@ -135,6 +135,20 @@ CREATE TABLE IF NOT EXISTS public.ai_communication_dispatch_attempts (
   UNIQUE (property_id, provider, idempotency_key, attempt_number),
   CHECK ((approval_status <> 'approved') OR (approved_by IS NOT NULL AND approved_at IS NOT NULL))
 );
+-- Composite references prevent cross-property linkage in dispatch and receipts.
+ALTER TABLE public.ai_omnichannel_messages
+  ADD CONSTRAINT ai_omnichannel_messages_id_property_key UNIQUE (id, property_id);
+
+ALTER TABLE public.ai_communication_dispatch_attempts
+  ADD CONSTRAINT ai_communication_dispatch_session_property_fkey
+  FOREIGN KEY (session_id, property_id)
+  REFERENCES public.ai_concierge_sessions(id, property_id)
+  ON DELETE RESTRICT,
+  ADD CONSTRAINT ai_communication_dispatch_message_property_fkey
+  FOREIGN KEY (message_id, property_id)
+  REFERENCES public.ai_omnichannel_messages(id, property_id)
+  ON DELETE RESTRICT;
+
 CREATE INDEX IF NOT EXISTS ai_communication_dispatch_due_idx
   ON public.ai_communication_dispatch_attempts(status, next_retry_at)
   WHERE status IN ('pending','retryable_failure');
@@ -156,6 +170,12 @@ CREATE TABLE IF NOT EXISTS public.ai_omnichannel_delivery_events (
   payload jsonb NOT NULL DEFAULT '{}'::jsonb,
   UNIQUE (provider, provider_event_id)
 );
+ALTER TABLE public.ai_omnichannel_delivery_events
+  ADD CONSTRAINT ai_omnichannel_delivery_events_message_property_fkey
+  FOREIGN KEY (message_id, property_id)
+  REFERENCES public.ai_omnichannel_messages(id, property_id)
+  ON DELETE RESTRICT;
+
 CREATE INDEX IF NOT EXISTS ai_omnichannel_delivery_events_message_time_idx
   ON public.ai_omnichannel_delivery_events(property_id, message_id, occurred_at DESC);
 
