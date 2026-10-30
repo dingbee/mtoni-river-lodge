@@ -160,7 +160,7 @@ export async function handleConciergeChat(
   // Guest retrieval is feature-gated until SN-IQ-01 database isolation and
   // the property-scoped public search migration have been applied and verified.
   let knowledgeCtx = "";
-  const citations: ConciergeCitation[] = [];
+  const retrievedCitations: ConciergeCitation[] = [];
   if (process.env.STAYNAS_PUBLIC_KNOWLEDGE_RETRIEVAL_ENABLED === "true") {
     try {
       const { data: hits, error } = await (supabaseAdmin as any).rpc(
@@ -176,7 +176,7 @@ export async function handleConciergeChat(
       knowledgeCtx = rows.map((row, index) =>
         `[K${index + 1}] ${row.title} (${row.source_type}; ${row.language_code})\n${row.content}`
       ).join("\n---\n");
-      citations.push(...rows.map((row) => ({
+      retrievedCitations.push(...rows.map((row) => ({
         source_id: row.source_id,
         source_kind: row.source_kind,
         source_type: row.source_type,
@@ -222,6 +222,21 @@ export async function handleConciergeChat(
   const { raw, latency } = await callModel(system, history, message);
   const parsed = tryJson<{ answer?: string; confidence?: number; escalate?: boolean; citations?: any[] }>(raw) ?? {};
   const answer = (parsed.answer ?? "I'm sorry, I couldn't put together an answer just now. Please contact the property team using the contact details on this property website.").trim();
+  // Only expose citations explicitly selected by the model and validated against
+  // this property's retrieved evidence. Never attach every retrieved row by default.
+  const citationKeys = new Set<string>();
+  const citations: ConciergeCitation[] = (parsed.citations ?? []).flatMap((candidate) => {
+    if (!candidate || typeof candidate.source_id !== "string") return [];
+    const source = retrievedCitations.find((item) =>
+      item.source_id === candidate.source_id &&
+      (candidate.chunk_index == null || item.chunk_index === candidate.chunk_index),
+    );
+    if (!source) return [];
+    const key = `${source.source_id}:${source.chunk_index ?? "source"}`;
+    if (citationKeys.has(key)) return [];
+    citationKeys.add(key);
+    return [source];
+  });
   const confidence = typeof parsed.confidence === "number" ? Math.max(0, Math.min(1, parsed.confidence)) : 0.6;
   const shouldEscalate = Boolean(parsed.escalate) || confidence < LOW_CONFIDENCE;
 
