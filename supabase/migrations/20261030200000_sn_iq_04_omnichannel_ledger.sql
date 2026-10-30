@@ -11,7 +11,7 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS public.ai_omnichannel_messages (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
-  session_id uuid NOT NULL REFERENCES public.ai_concierge_sessions(id) ON DELETE RESTRICT,
+  session_id uuid NOT NULL,
   guest_id uuid,
   channel text NOT NULL CHECK (channel IN ('web','whatsapp','email')),
   direction text NOT NULL CHECK (direction IN ('inbound','outbound','internal')),
@@ -34,6 +34,26 @@ CREATE TABLE IF NOT EXISTS public.ai_omnichannel_messages (
   CHECK (direction <> 'outbound' OR actor_type IN ('staff','assistant','system')),
   CHECK (direction <> 'inbound' OR actor_type IN ('guest','provider'))
 );
+
+-- Enforce that a message's property matches the owning conversation's property.
+DO $sn_iq$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'ai_concierge_sessions_id_property_key'
+      AND conrelid = 'public.ai_concierge_sessions'::regclass
+  ) THEN
+    ALTER TABLE public.ai_concierge_sessions
+      ADD CONSTRAINT ai_concierge_sessions_id_property_key UNIQUE (id, property_id);
+  END IF;
+END
+$sn_iq$;
+
+ALTER TABLE public.ai_omnichannel_messages
+  ADD CONSTRAINT ai_omnichannel_messages_session_property_fkey
+  FOREIGN KEY (session_id, property_id)
+  REFERENCES public.ai_concierge_sessions(id, property_id)
+  ON DELETE RESTRICT;
 
 CREATE UNIQUE INDEX IF NOT EXISTS ai_omnichannel_messages_provider_dedupe_idx
   ON public.ai_omnichannel_messages(channel, provider, provider_message_id)
