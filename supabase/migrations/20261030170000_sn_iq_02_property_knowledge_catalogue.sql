@@ -122,7 +122,7 @@ LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path = public, pg_temp
-AS $
+AS $sn_iq_02$
   SELECT EXISTS (
     SELECT 1
     FROM public.knowledge_documents document
@@ -152,7 +152,7 @@ AS $
         OR public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
       )
   );
-$;
+$sn_iq_02$;
 REVOKE ALL ON FUNCTION public.staynas_knowledge_document_readable(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.staynas_knowledge_document_readable(uuid) TO authenticated;
 
@@ -462,7 +462,7 @@ LANGUAGE sql
 STABLE
 SECURITY INVOKER
 SET search_path = public, pg_temp
-AS $
+AS $sn_iq_02$
   WITH document_hits AS (
     SELECT
       document.id AS source_id,
@@ -537,7 +537,7 @@ AS $
   WHERE _query IS NOT NULL AND length(trim(_query)) > 0
   ORDER BY rank DESC
   LIMIT LEAST(GREATEST(COALESCE(_limit, 8), 1), 20);
-$;
+$sn_iq_02$;
 
 REVOKE ALL ON FUNCTION public.staynas_property_knowledge_search(uuid, text, integer, boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.staynas_property_knowledge_search(uuid, text, integer, boolean) TO authenticated;
@@ -572,7 +572,7 @@ LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path = public, pg_temp
-AS $
+AS $sn_iq_02$
   WITH active_property AS (
     SELECT id FROM public.staynas_properties
     WHERE id = _property_id AND status = 'active'
@@ -646,7 +646,7 @@ AS $
   WHERE _query IS NOT NULL AND length(trim(_query)) > 0
   ORDER BY rank DESC
   LIMIT LEAST(GREATEST(COALESCE(_limit, 6), 1), 12);
-$;
+$sn_iq_02$;
 
 REVOKE ALL ON FUNCTION public.staynas_public_property_knowledge_search(uuid, text, integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.staynas_public_property_knowledge_search(uuid, text, integer) TO service_role;
