@@ -270,12 +270,15 @@ export const updateRoomReadinessStatus = createServerFn({ method: "POST" })
 export const getMaintenanceIntelligence = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const propertyId = await requirePropertyScope(sb, context.userId, ["owner", "manager", "admin", "housekeeping", "maintenance"]);
+    const bookingIds = await propertyBookingIds(sb, propertyId);
+    if (bookingIds.length === 0) return { recurring: [], delayed: [], highImpactBookings: [], total: 0 };
     const since = new Date(Date.now() - 60 * 86400_000).toISOString();
     const { data, error } = await sb
       .from("ops_tasks")
       .select("id, title, description, status, priority, due_at, completed_at, created_at, booking_id, category, task_type")
+      .in("booking_id", bookingIds)
       .or("category.eq.maintenance,task_type.eq.maintenance")
       .gte("created_at", since)
       .order("created_at", { ascending: false });
@@ -334,7 +337,7 @@ export const getMaintenanceIntelligence = createServerFn({ method: "GET" })
 export const generateStaffOperationsInsights = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertRole(context.supabase, context.userId, ["owner", "manager"]);
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const sb: any = context.supabase;
     const since = new Date(Date.now() - 30 * 86400_000).toISOString();
 
@@ -439,7 +442,7 @@ export const listStaffOperationsInsights = createServerFn({ method: "GET" })
     z.object({ status: z.enum(["pending", "approved", "dismissed", "actioned", "all"]).default("pending") }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
-    await assertRole(context.supabase, context.userId, ["owner", "manager"]);
+    await assertFounderAiAdmin(context.supabase, context.userId);
     let q: any = context.supabase
       .from("ai_staff_operations_insights")
       .select("*")
@@ -461,7 +464,7 @@ export const updateStaffInsightStatus = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ context, data }) => {
-    await assertRole(context.supabase, context.userId, ["owner", "manager"]);
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: row, error } = await sb
       .from("ai_staff_operations_insights")
@@ -657,7 +660,7 @@ export const updateServiceRecoveryStatus = createServerFn({ method: "POST" })
 export const generateOperationsPatterns = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertRole(context.supabase, context.userId, ["owner", "manager"]);
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const sb: any = context.supabase;
     const now = Date.now();
     const thirtyAgo = new Date(now - 30 * 86400_000).toISOString();
@@ -761,7 +764,7 @@ export const listOperationsPatterns = createServerFn({ method: "GET" })
     z.object({ status: z.enum(["pending", "approved", "dismissed", "actioned", "all"]).default("pending") }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
-    await assertStaff(context.supabase, context.userId);
+    await assertFounderAiAdmin(context.supabase, context.userId);
     let q: any = context.supabase
       .from("ai_operations_patterns")
       .select("*")
@@ -783,7 +786,7 @@ export const updatePatternStatus = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ context, data }) => {
-    await assertRole(context.supabase, context.userId, ["owner", "manager"]);
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: row, error } = await sb
       .from("ai_operations_patterns")
