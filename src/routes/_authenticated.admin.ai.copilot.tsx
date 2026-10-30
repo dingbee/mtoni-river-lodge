@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "@/components/os/PageHeader";
+import { usePropertyContext } from "@/modules/property/PropertyContext";
 import { SectionCard } from "@/components/os/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/_authenticated/admin/ai/copilot")({
 
 function CopilotPage() {
   const qc = useQueryClient();
+  const { property } = usePropertyContext();
   const listSessions = useServerFn(listCopilotSessions);
   const getSession = useServerFn(getCopilotSession);
   const send = useServerFn(sendCopilotMessage);
@@ -33,14 +35,14 @@ function CopilotPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
 
-  const sessionsQ = useQuery({ queryKey: ["copilot-sessions"], queryFn: () => listSessions({ data: undefined as any }) });
+  const sessionsQ = useQuery({ queryKey: ["copilot-sessions", property.id], queryFn: () => listSessions({ data: undefined as any }) });
   const sessionQ = useQuery({
-    queryKey: ["copilot-session", activeId],
+    queryKey: ["copilot-session", property.id, activeId],
     queryFn: () => getSession({ data: { sessionId: activeId! } }),
     enabled: !!activeId,
   });
   const promptsQ = useQuery({ queryKey: ["copilot-prompts"], queryFn: () => listPrompts({ data: undefined as any }) });
-  const analyticsQ = useQuery({ queryKey: ["copilot-analytics"], queryFn: () => analyticsFn({ data: undefined as any }) });
+  const analyticsQ = useQuery({ queryKey: ["copilot-analytics", property.id], queryFn: () => analyticsFn({ data: undefined as any }) });
 
   const sendM = useMutation({
     mutationFn: (payload: { sessionId: string | null; question: string }) => send({ data: payload }),
