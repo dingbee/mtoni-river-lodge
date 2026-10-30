@@ -355,12 +355,9 @@ export const updateCommunicationDraft = createServerFn({ method: "POST" })
     if (draftError || !existingDraft) throw new Error("Draft not found in the active property.");
     let belongsToProperty = false;
     if (existingDraft.session_id) {
-      try {
-        await requireSessionInProperty(context.supabase, existingDraft.session_id, propertyId);
-        belongsToProperty = true;
-      } catch { /* check booking association next */ }
-    }
-    if (!belongsToProperty && existingDraft.booking_id) {
+      await requireSessionInProperty(context.supabase, existingDraft.session_id, propertyId);
+      belongsToProperty = true;
+    } else if (existingDraft.booking_id) {
       await requireBookingInProperty(context.supabase, existingDraft.booking_id, propertyId);
       belongsToProperty = true;
     }
@@ -515,23 +512,21 @@ export const getOmnichannelAnalytics = createServerFn({ method: "GET" })
       .gte("created_at", since);
     if (sessionError) throw new Error(sessionError.message);
     const sessionIds = (sessions ?? []).map((row: { id: string }) => row.id);
-    if (sessionIds.length === 0) {
-      return { sessions_30d: { web: 0, whatsapp: 0, email: 0 }, escalations_open: 0, drafts_pending: 0 };
-    }
-    const [escOpen, drafts] = await Promise.all([
-      context.supabase
-        .from("ai_escalations")
-        .select("id", { count: "exact", head: true })
-        .in("session_id", sessionIds)
-        .in("status", ["open", "assigned", "in_progress"]),
-      context.supabase
-        .from("ai_communication_drafts")
-        .select("id", { count: "exact", head: true })
-        .in("session_id", sessionIds)
-        .eq("status", "pending"),
+    const bookingIds = await propertyBookingIds(context.supabase, propertyId);
+    const [escOpen, sessionDrafts, bookingDrafts] = await Promise.all([
+      sessionIds.length
+        ? context.supabase.from("ai_escalations").select("id", { count: "exact", head: true }).in("session_id", sessionIds).in("status", ["open", "assigned", "in_progress"])
+        : Promise.resolve({ count: 0, error: null }),
+      sessionIds.length
+        ? context.supabase.from("ai_communication_drafts").select("id", { count: "exact", head: true }).in("session_id", sessionIds).eq("status", "pending")
+        : Promise.resolve({ count: 0, error: null }),
+      bookingIds.length
+        ? context.supabase.from("ai_communication_drafts").select("id", { count: "exact", head: true }).in("booking_id", bookingIds).eq("status", "pending")
+        : Promise.resolve({ count: 0, error: null }),
     ]);
     if (escOpen.error) throw new Error(escOpen.error.message);
-    if (drafts.error) throw new Error(drafts.error.message);
+    if (sessionDrafts.error) throw new Error(sessionDrafts.error.message);
+    if (bookingDrafts.error) throw new Error(bookingDrafts.error.message);
     return {
       sessions_30d: {
         web: sessions.filter((row: any) => row.channel === "web").length,
@@ -539,6 +534,6 @@ export const getOmnichannelAnalytics = createServerFn({ method: "GET" })
         email: sessions.filter((row: any) => row.channel === "email").length,
       },
       escalations_open: escOpen.count ?? 0,
-      drafts_pending: drafts.count ?? 0,
+      drafts_pending: (sessionDrafts.count ?? 0) + (bookingDrafts.count ?? 0),
     };
   });
