@@ -20,20 +20,20 @@ export const Route = createFileRoute("/api/public/webhooks/resend")({
         if (!events.length) return Response.json({ received: true, persisted: 0 });
         const accountId = process.env.RESEND_WEBHOOK_ACCOUNT_ID;
         if (!accountId) return Response.json({ error: "Resend account routing is not configured." }, { status: 503 });
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data: mapping, error: mappingError } = await supabaseAdmin.from("ai_provider_property_bindings")
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");\n        const { processProviderWebhookInbox } = await import("@/domains/ai/concierge/webhooks/webhook-processor.server");
+        const { data: mapping, error: mappingError } = await (supabaseAdmin as any).from("ai_provider_property_bindings")
           .select("property_id,channel_id,external_account_id,enabled")
           .eq("provider", "resend").eq("external_account_id", accountId).eq("external_endpoint_id", String(events[0].safePayload.from ?? "")).eq("enabled", true).maybeSingle();
         if (mappingError || !mapping) return Response.json({ error: "No active founder-managed property mapping." }, { status: 202 });
         let persisted = 0, duplicates = 0;
         for (const event of events) {
-          const { data, error } = await supabaseAdmin.from("ai_provider_webhook_inbox").upsert({
+          const { data, error } = await (supabaseAdmin as any).from("ai_provider_webhook_inbox").upsert({
             property_id: mapping.property_id, channel_id: mapping.channel_id, provider: "resend",
             external_account_id: mapping.external_account_id, provider_event_id: event.providerEventId,
             event_type: event.eventType, normalized_event: event,
           }, { onConflict: "provider,provider_event_id", ignoreDuplicates: true }).select("id");
           if (error) throw new Error(error.message);
-          if (data?.length) persisted++; else duplicates++;
+          if (data?.length) {\n            persisted++;\n            await processProviderWebhookInbox(supabaseAdmin, data[0].id);\n          } else duplicates++;
         }
         return Response.json({ received: true, persisted, duplicates });
       } catch (error) {
