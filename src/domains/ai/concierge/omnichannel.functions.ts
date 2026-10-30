@@ -482,9 +482,9 @@ export const updateEscalation = createServerFn({ method: "POST" })
     const patch: Record<string, unknown> = {};
     if (data.status) {
       patch.status = data.status;
-      if (data.status === "resolved" || data.status === "dismissed") {
-        patch.resolved_at = new Date().toISOString();
-      }
+      patch.resolved_at = data.status === "resolved" || data.status === "dismissed"
+        ? new Date().toISOString()
+        : null;
     }
     if (data.assigned_to !== undefined) {
       if (data.assigned_to !== null) {
@@ -532,19 +532,27 @@ export const getOmnichannelAnalytics = createServerFn({ method: "GET" })
         ? context.supabase.from("ai_escalations").select("id", { count: "exact", head: true }).in("session_id", sessionIds).in("status", ["open", "assigned", "in_progress"])
         : Promise.resolve({ count: 0, error: null }),
       sessionIds.length
-        ? context.supabase.from("ai_communication_drafts").select("id").in("session_id", sessionIds).eq("status", "pending")
+        ? context.supabase.from("ai_communication_drafts").select("id, session_id, booking_id").in("session_id", sessionIds).eq("status", "pending")
         : Promise.resolve({ data: [], error: null }),
       bookingIds.length
-        ? context.supabase.from("ai_communication_drafts").select("id").in("booking_id", bookingIds).eq("status", "pending")
+        ? context.supabase.from("ai_communication_drafts").select("id, session_id, booking_id").in("booking_id", bookingIds).eq("status", "pending")
         : Promise.resolve({ data: [], error: null }),
     ]);
     if (escOpen.error) throw new Error(escOpen.error.message);
     if (sessionDrafts.error) throw new Error(sessionDrafts.error.message);
     if (bookingDrafts.error) throw new Error(bookingDrafts.error.message);
-    const pendingDraftIds = new Set([
-      ...(sessionDrafts.data ?? []).map((row: { id: string }) => row.id),
-      ...(bookingDrafts.data ?? []).map((row: { id: string }) => row.id),
-    ]);
+    const sessionSet = new Set(sessionIds);
+    const bookingSet = new Set(bookingIds);
+    const pendingDraftIds = new Set(
+      [...(sessionDrafts.data ?? []), ...(bookingDrafts.data ?? [])]
+        .filter((row: { session_id: string | null; booking_id: string | null }) => {
+          const sessionScoped = Boolean(row.session_id && sessionSet.has(row.session_id));
+          const bookingScoped = Boolean(row.booking_id && bookingSet.has(row.booking_id));
+          if (row.session_id && row.booking_id) return sessionScoped && bookingScoped;
+          return sessionScoped || bookingScoped;
+        })
+        .map((row: { id: string }) => row.id),
+    );
     return {
       sessions_30d: {
         web: sessions.filter((row: any) => row.channel === "web").length,
