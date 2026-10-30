@@ -128,6 +128,8 @@ function KnowledgeAdmin() {
                       {d.category_slug && <Badge variant="outline">{d.category_slug}</Badge>}
                       <Badge variant="outline">{d.source_type}</Badge>
                       <Badge variant="outline">v{d.current_version}</Badge>
+                      <Badge variant="outline">{d.language_code === "sw" ? "Kiswahili" : "English"}</Badge>
+                      {d.is_guest_visible && <Badge variant="secondary">Guest-visible</Badge>}
                       {(d.tags ?? []).slice(0, 4).map((t) => <Badge key={t} variant="outline">#{t}</Badge>)}
                       {(d.allowed_roles ?? []).length > 0 && (
                         <Badge variant="outline">roles: {(d.allowed_roles ?? []).join(",")}</Badge>
@@ -227,6 +229,8 @@ function DocumentDialog({
   const [summary, setSummary] = useState(initial?.summary ?? "");
   const [categoryId, setCategoryId] = useState<string>(initial?.category_id ?? "");
   const [status, setStatus] = useState<string>(initial?.status ?? "draft");
+  const [languageCode, setLanguageCode] = useState<"en" | "sw">(initial?.language_code === "sw" ? "sw" : "en");
+  const [isGuestVisible, setIsGuestVisible] = useState<boolean>(Boolean(initial?.is_guest_visible));
   const [sourceType, setSourceType] = useState<string>(initial?.source_type ?? "markdown");
   const [tags, setTags] = useState<string>((initial?.tags ?? []).join(", "));
   const [allowedRoles, setAllowedRoles] = useState<string[]>(initial?.allowed_roles ?? []);
@@ -249,6 +253,8 @@ function DocumentDialog({
         summary: summary || null,
         category_id: categoryId || null,
         status: status as any,
+        language_code: languageCode,
+        is_guest_visible: isGuestVisible && status === "published",
         source_type: sourceType as any,
         storage_path: storagePath,
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
@@ -333,6 +339,31 @@ function DocumentDialog({
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
               </Select>
+            </div>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Knowledge language</label>
+              <Select value={languageCode} onValueChange={(v) => setLanguageCode(v as "en" | "sw")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="sw">Kiswahili</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end pb-1">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={isGuestVisible}
+                  disabled={status !== "published"}
+                  onChange={(e) => setIsGuestVisible(e.target.checked)}
+                  className="size-4 accent-current"
+                />
+                Approved for guest-facing AI answers
+              </label>
             </div>
           </div>
 
