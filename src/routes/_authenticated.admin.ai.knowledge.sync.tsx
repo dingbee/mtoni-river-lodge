@@ -21,7 +21,7 @@ import {
 
 export const Route = createFileRoute("/_authenticated/admin/ai/knowledge/sync")({
   head: () => ({
-    meta: [{ title: "Knowledge Sync — Mtoni AI" }, { name: "robots", content: "noindex,nofollow" }],
+    meta: [{ title: "Knowledge Sync — StayNas AI" }, { name: "robots", content: "noindex,nofollow" }],
   }),
   component: KnowledgeSyncPage,
 });
