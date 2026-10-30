@@ -1,6 +1,53 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { assertFounderAiAdmin } from "@/domains/ai/ai.authorization.server";
+
+async function requirePropertyScope(sb: any, userId: string, roles: string[]): Promise<string> {
+  const { data: propertyId, error: contextError } = await sb.rpc("staynas_active_property_id", { _uid: userId });
+  if (contextError || !propertyId) throw new Error("No active property selected.");
+  const { data: membership, error: membershipError } = await sb
+    .from("staynas_property_members")
+    .select("property_id")
+    .eq("user_id", userId)
+    .eq("property_id", propertyId)
+    .eq("status", "active")
+    .in("role", roles)
+    .maybeSingle();
+  if (membershipError || !membership) throw new Error("Forbidden");
+  return String(propertyId);
+}
+
+async function propertyBookingIds(sb: any, propertyId: string): Promise<string[]> {
+  const ids: string[] = [];
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await sb.from("bookings").select("id").eq("property_id", propertyId).range(from, from + pageSize - 1);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []).map((row: { id: string }) => row.id);
+    ids.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return ids;
+}
+
+async function propertySessionIds(sb: any, propertyId: string): Promise<string[]> {
+  const ids: string[] = [];
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await sb.from("ai_concierge_sessions").select("id").eq("property_id", propertyId).range(from, from + pageSize - 1);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []).map((row: { id: string }) => row.id);
+    ids.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return ids;
+}
+
+async function requireBookingInProperty(sb: any, bookingId: string, propertyId: string): Promise<void> {
+  const { data, error } = await sb.from("bookings").select("id").eq("id", bookingId).eq("property_id", propertyId).maybeSingle();
+  if (error || !data) throw new Error("Booking not found in the active property.");
+}
 
 async function assertStaff(sb: any, userId: string) {
   const { data, error } = await sb.rpc("is_any_staff", { _user_id: userId });
@@ -35,29 +82,28 @@ const isoDate = (d = new Date()) => d.toISOString().slice(0, 10);
 export const generateRoomReadinessInsights = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertRole(context.supabase, context.userId, [
-      "owner", "manager", "housekeeping", "reception",
-    ]);
     const sb: any = context.supabase;
+    const propertyId = await requirePropertyScope(sb, context.userId, ["owner", "manager", "housekeeping", "reception"]);
     const day = isoDate();
 
-    const [depRes, arrRes, prefRes] = await Promise.all([
+    const [depRes, arrRes] = await Promise.all([
       sb.from("bookings")
         .select("id, reference, guest_name, room_id, check_out, rooms(name)")
+        .eq("property_id", propertyId)
         .eq("check_out", day)
         .neq("status", "cancelled"),
       sb.from("bookings")
         .select("id, reference, guest_name, guest_type, guest_id, room_id, check_in, check_out, special_requests, rooms(name)")
+        .eq("property_id", propertyId)
         .eq("check_in", day)
         .neq("status", "cancelled"),
-      sb.from("guest_preferences")
-        .select("guest_id, preference_type, value, status")
-        .eq("status", "approved")
-        .limit(500),
     ]);
+    if (depRes.error) throw new Error(depRes.error.message);
+    if (arrRes.error) throw new Error(arrRes.error.message);
     const departures = depRes.data ?? [];
     const arrivals = arrRes.data ?? [];
-    const prefs = prefRes.data ?? [];
+    // guest_preferences is not yet property-keyed; omit it from tenant AI signals.
+    const prefs: any[] = [];
     const prefByGuest = new Map<string, any[]>();
     for (const p of prefs) {
       const arr = prefByGuest.get(p.guest_id) ?? [];
