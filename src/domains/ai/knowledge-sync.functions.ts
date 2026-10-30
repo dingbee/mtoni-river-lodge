@@ -18,7 +18,7 @@ const STATUSES = ["pending", "processing", "approved", "archived", "failed"] as 
 
 async function assertStaff(sb: any, userId: string) {
   const scope = await getActivePropertyAiRoles(sb, userId);
-  const allowed = ["owner", "manager", "admin", "reservations", "reception", "marketing"];
+  const allowed = ["owner", "manager", "admin", "reservations", "reception", "marketing", "finance", "housekeeping"];
   if (!scope.roles.some((role) => allowed.includes(role))) throw new Error("Forbidden");
   return scope.propertyId;
 }
