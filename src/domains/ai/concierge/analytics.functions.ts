@@ -223,6 +223,9 @@ export const classifyConciergeOutcomes = createServerFn({ method: "POST" })
     for (const result of [existing, intents, leads, atts, msgs]) {
       if (result.error) throw new Error(result.error.message);
     }
+    for (const result of [existing, intents, leads, atts, msgs]) {
+      if (result.error) throw new Error(result.error.message);
+    }
 
     const done = new Set((existing.data ?? []).map((r: any) => r.session_id));
     const intentBySession = new Map<string, string>();
