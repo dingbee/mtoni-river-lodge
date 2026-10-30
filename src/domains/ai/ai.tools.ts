@@ -302,7 +302,12 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
       if (!q) return { summary: "No query provided.", data: [], count: 0 };
       const { memoizeTTL } = await import("@/lib/perf-cache");
       const rows = await memoizeTTL(`kb:tools:${propertyId}:${q.toLowerCase()}:6`, 60_000, async () => {
-        const { data, error } = await supabase.rpc("knowledge_search", { _query: q, _limit: 6 });
+        const { data, error } = await supabase.rpc("staynas_knowledge_search", {
+          _property_id: propertyId,
+          _query: q,
+          _limit: 6,
+          _guest_visible_only: false,
+        });
         if (error) throw error;
         return (data ?? []) as Array<any>;
       });
