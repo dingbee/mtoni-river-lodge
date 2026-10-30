@@ -489,34 +489,27 @@ export const updateStaffInsightStatus = createServerFn({ method: "POST" })
 export const generateServiceRecoveryInsights = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertRole(context.supabase, context.userId, [
-      "owner", "manager", "reception", "marketing",
-    ]);
     const sb: any = context.supabase;
+    const propertyId = await requirePropertyScope(sb, context.userId, ["owner", "manager", "reception", "marketing"]);
+    const bookingIds = await propertyBookingIds(sb, propertyId);
+    const sessionIds = await propertySessionIds(sb, propertyId);
     const since = new Date(Date.now() - 14 * 86400_000).toISOString();
 
     const [escRes, revRes, stayRes, fbRes] = await Promise.all([
-      sb.from("ai_escalations")
-        .select("id, guest_id, reason, summary, priority, status, ai_confidence, created_at, session_id")
-        .gte("created_at", since)
-        .in("status", ["open", "pending", "in_progress"])
-        .limit(50),
-      sb.from("reviews")
-        .select("id, guest_id, booking_id, rating, title, comment, source, created_at")
-        .lte("rating", 3)
-        .gte("created_at", since)
-        .limit(50),
-      sb.from("ai_stay_insights")
-        .select("id, booking_id, insight_type, content, confidence, status, created_at")
-        .in("insight_type", ["complaint", "risk", "issue"])
-        .gte("created_at", since)
-        .limit(50),
-      sb.from("ai_concierge_feedback")
-        .select("id, session_id, rating, comment, created_at")
-        .in("rating", ["incorrect", "unhelpful", "bad"])
-        .gte("created_at", since)
-        .limit(50),
+      sessionIds.length
+        ? sb.from("ai_escalations").select("id, guest_id, reason, summary, priority, status, ai_confidence, created_at, session_id").in("session_id", sessionIds).gte("created_at", since).in("status", ["open", "pending", "in_progress"]).limit(50)
+        : Promise.resolve({ data: [], error: null }),
+      bookingIds.length
+        ? sb.from("reviews").select("id, guest_id, booking_id, rating, title, comment, source, created_at").in("booking_id", bookingIds).lte("rating", 3).gte("created_at", since).limit(50)
+        : Promise.resolve({ data: [], error: null }),
+      bookingIds.length
+        ? sb.from("ai_stay_insights").select("id, booking_id, insight_type, content, confidence, status, created_at").in("booking_id", bookingIds).in("insight_type", ["complaint", "risk", "issue"]).gte("created_at", since).limit(50)
+        : Promise.resolve({ data: [], error: null }),
+      sessionIds.length
+        ? sb.from("ai_concierge_feedback").select("id, session_id, rating, comment, created_at").in("session_id", sessionIds).in("rating", ["incorrect", "unhelpful", "bad"]).gte("created_at", since).limit(50)
+        : Promise.resolve({ data: [], error: null }),
     ]);
+    for (const result of [escRes, revRes, stayRes, fbRes]) if (result.error) throw new Error(result.error.message);
 
     const upserts: any[] = [];
     for (const e of escRes.data ?? []) {
@@ -528,7 +521,7 @@ export const generateServiceRecoveryInsights = createServerFn({ method: "POST" }
         title: `Escalation: ${(e.reason ?? "guest issue").slice(0, 80)}`,
         signal: e.summary ?? e.reason ?? "Concierge flagged this conversation.",
         recommendation: "Manager to follow up with guest within 24 hours.",
-        evidence: { escalation_id: e.id, session_id: e.session_id, ai_confidence: e.ai_confidence },
+        evidence: { property_id: propertyId, escalation_id: e.id, session_id: e.session_id, ai_confidence: e.ai_confidence },
         confidence: Number(e.ai_confidence ?? 0.75),
         generated_by: context.userId,
       });
@@ -543,7 +536,7 @@ export const generateServiceRecoveryInsights = createServerFn({ method: "POST" }
         title: `Low review (${r.rating}/5) from ${r.source ?? "guest"}`,
         signal: r.comment ?? r.title ?? "Low rating recorded.",
         recommendation: "Draft personalised response and internal debrief with team.",
-        evidence: { review_id: r.id, rating: r.rating, source: r.source },
+        evidence: { property_id: propertyId, review_id: r.id, rating: r.rating, source: r.source },
         confidence: 0.85,
         generated_by: context.userId,
       });
@@ -557,7 +550,7 @@ export const generateServiceRecoveryInsights = createServerFn({ method: "POST" }
         title: `Stay signal: ${s.insight_type}`,
         signal: s.content ?? "",
         recommendation: "Reach out during stay to recover experience.",
-        evidence: { stay_insight_id: s.id, insight_type: s.insight_type },
+        evidence: { property_id: propertyId, stay_insight_id: s.id, insight_type: s.insight_type },
         confidence: Number(s.confidence ?? 0.7),
         generated_by: context.userId,
       });
@@ -570,7 +563,7 @@ export const generateServiceRecoveryInsights = createServerFn({ method: "POST" }
         title: `Concierge feedback: ${f.rating}`,
         signal: f.comment ?? "Guest marked concierge response unhelpful.",
         recommendation: "Review concierge answer quality; refine knowledge base.",
-        evidence: { feedback_id: f.id, session_id: f.session_id, rating: f.rating },
+        evidence: { property_id: propertyId, feedback_id: f.id, session_id: f.session_id, rating: f.rating },
         confidence: 0.65,
         generated_by: context.userId,
       });
@@ -601,16 +594,22 @@ export const listServiceRecoveryInsights = createServerFn({ method: "GET" })
     }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
-    await assertStaff(context.supabase, context.userId);
-    let q: any = context.supabase
-      .from("ai_service_recovery_insights")
-      .select("*, bookings(reference, guest_name), guests(full_name, email)")
-      .order("created_at", { ascending: false })
-      .limit(100);
-    if (data.status !== "all") q = q.eq("status", data.status);
-    const { data: rows, error } = await q;
-    if (error) throw new Error(error.message);
-    return rows ?? [];
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, ["owner", "manager", "admin", "reception", "marketing"]);
+    const bookingIds = await propertyBookingIds(context.supabase, propertyId);
+    const [bookingRows, evidenceRows] = await Promise.all([
+      bookingIds.length
+        ? context.supabase.from("ai_service_recovery_insights").select("*, bookings(reference, guest_name), guests(full_name, email)").in("booking_id", bookingIds)
+        : Promise.resolve({ data: [], error: null }),
+      context.supabase.from("ai_service_recovery_insights").select("*, bookings(reference, guest_name), guests(full_name, email)").contains("evidence", { property_id: propertyId }),
+    ]);
+    if (bookingRows.error) throw new Error(bookingRows.error.message);
+    if (evidenceRows.error) throw new Error(evidenceRows.error.message);
+    const unique = new Map<string, any>();
+    for (const row of [...(bookingRows.data ?? []), ...(evidenceRows.data ?? [])]) unique.set(row.id, row);
+    return Array.from(unique.values())
+      .filter((row) => !data.status || data.status === "all" || row.status === data.status)
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+      .slice(0, 100);
   });
 
 export const updateServiceRecoveryStatus = createServerFn({ method: "POST" })
@@ -623,10 +622,16 @@ export const updateServiceRecoveryStatus = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ context, data }) => {
-    await assertRole(context.supabase, context.userId, [
-      "owner", "manager", "reception", "marketing",
-    ]);
     const sb: any = context.supabase;
+    const propertyId = await requirePropertyScope(sb, context.userId, ["owner", "manager", "reception"]);
+    const { data: existing, error: existingError } = await sb
+      .from("ai_service_recovery_insights")
+      .select("id, booking_id, evidence")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (existingError || !existing) throw new Error("Recovery insight not found in the active property.");
+    if (existing.booking_id) await requireBookingInProperty(sb, existing.booking_id, propertyId);
+    else if (existing.evidence?.property_id !== propertyId) throw new Error("Recovery insight not found in the active property.");
     const { data: row, error } = await sb
       .from("ai_service_recovery_insights")
       .update({
