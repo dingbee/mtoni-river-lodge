@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - feat/sn-iq-02-property-knowledge-intelligence
 
 jobs:
   tests:
@@ -21,4 +22,4 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - run: bunx vitest run src/lib/housekeeping-state-machine.test.ts src/lib/housekeeping-offline.test.ts src/domains/ai/ai.authorization.server.test.ts
+      - run: bunx vitest run src/lib/housekeeping-state-machine.test.ts src/lib/housekeeping-offline.test.ts src/domains/ai/ai.authorization.server.test.ts && if [ -f src/domains/ai/knowledge.functions.test.ts ]; then bunx vitest run src/domains/ai/knowledge.functions.test.ts; fi
