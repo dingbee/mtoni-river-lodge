@@ -195,6 +195,8 @@ export async function handleConciergeChat(
     }
   }
 
+  if (!sessionId) throw new Error("Unable to establish a property-scoped concierge session.");
+
   const historyText = history.map((h) => h.content);
   const intent = classifyIntent(message, historyText);
   const recommendations: ConciergeRecommendation[] = intent.level !== "low" ? combinedRecommendations(intent, roomCatalog) : [];
