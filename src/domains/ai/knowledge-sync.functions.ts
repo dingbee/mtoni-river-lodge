@@ -201,123 +201,21 @@ export const deleteKnowledgeSource = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// ---------- Sync: Journal ----------
+// ---------- Global content adapters (intentionally deferred) ----------
 export const syncJournalArticles = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertApprover(context.supabase, context.userId);
-    // Journal articles are currently global rather than property-owned. Do not
-    // copy platform-wide content into a tenant knowledge catalogue.
     return { upserted: 0, skipped: true, reason: "journal_articles_not_property_scoped" };
-    const sb: any = context.supabase;
-    const { data: articles, error } = await sb
-      .from("journal_articles")
-      .select("id, slug, title, excerpt, content_html, status, published_at, updated_at, seo_title, seo_description")
-      .eq("status", "published")
-      .order("published_at", { ascending: false })
-      .limit(500);
-    if (error) throw new Error(error.message);
-
-    let upserted = 0;
-    for (const a of articles ?? []) {
-      const url = `/journal/${a.slug}`;
-      const contentText = stripHtml(String(a.content_html ?? "")).slice(0, 180_000);
-      const summary = a.excerpt ?? a.seo_description ?? null;
-      const { error: upErr } = await sb.from("ai_knowledge_sources").upsert(
-        {
-          source_type: "journal_article",
-          external_ref: a.id,
-          title: a.title,
-          url,
-          summary,
-          content: contentText,
-          metadata: {
-            slug: a.slug,
-            published_at: a.published_at,
-            updated_at: a.updated_at,
-            seo_title: a.seo_title,
-          },
-          status: "approved",
-          last_synced_at: new Date().toISOString(),
-          indexed_at: new Date().toISOString(),
-          created_by: context.userId,
-          reviewed_by: context.userId,
-          reviewed_at: new Date().toISOString(),
-        },
-        { onConflict: "property_id,source_type,external_ref" },
-      );
-      if (upErr) throw new Error(upErr.message);
-      upserted++;
-    }
-
-    await sb.from("ai_activity_logs").insert({
-      user_id: context.userId,
-      tool_called: "knowledge_sync.sync_journal",
-      tool_args: { upserted },
-      status: "ok",
-    });
-    return { upserted };
   });
 
-// ---------- Sync: CMS pages ----------
 export const syncCmsPages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertApprover(context.supabase, context.userId);
-    // CMS pages are currently global rather than property-owned. Do not copy
-    // platform-wide content into a tenant knowledge catalogue.
     return { upserted: 0, skipped: true, reason: "cms_pages_not_property_scoped" };
-    const sb: any = context.supabase;
-    const { data: pages, error } = await sb
-      .from("cms_pages")
-      .select("id, slug, title, description, status, updated_at")
-      .eq("status", "published")
-      .limit(200);
-    if (error) throw new Error(error.message);
-
-    let upserted = 0;
-    for (const p of pages ?? []) {
-      const { data: blocks } = await sb
-        .from("cms_blocks")
-        .select("data, position, kind")
-        .eq("page_id", p.id)
-        .order("position", { ascending: true });
-      const content = (blocks ?? [])
-        .map((b: any) => extractBlockText(b))
-        .filter(Boolean)
-        .join("\n\n")
-        .slice(0, 180_000);
-      const url = p.slug === "home" || p.slug === "index" ? "/" : `/${p.slug}`;
-      const { error: upErr } = await sb.from("ai_knowledge_sources").upsert(
-        {
-          source_type: "website_page",
-          external_ref: p.id,
-          title: p.title,
-          url,
-          summary: p.description ?? null,
-          content,
-          metadata: { slug: p.slug, updated_at: p.updated_at },
-          status: "approved",
-          last_synced_at: new Date().toISOString(),
-          indexed_at: new Date().toISOString(),
-          created_by: context.userId,
-          reviewed_by: context.userId,
-          reviewed_at: new Date().toISOString(),
-        },
-        { onConflict: "source_type,external_ref" },
-      );
-      if (upErr) throw new Error(upErr.message);
-      upserted++;
-    }
-    await sb.from("ai_activity_logs").insert({
-      user_id: context.userId,
-      tool_called: "knowledge_sync.sync_cms",
-      tool_args: { upserted },
-      status: "ok",
-    });
-    return { upserted };
   });
 
 // ---------- Sync: Rooms & Experiences (from CMS pages tagged) ----------
