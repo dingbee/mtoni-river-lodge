@@ -280,7 +280,7 @@ export const testKnowledgeQuery = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     const propertyId = await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const { data: hits, error } = await sb.rpc("staynas_ai_knowledge_search", {
+    const { data: hits, error } = await sb.rpc("staynas_property_knowledge_search", {
       _property_id: propertyId,
       _query: data.query,
       _limit: data.limit,
