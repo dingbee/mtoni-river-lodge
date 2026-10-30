@@ -26,9 +26,9 @@ async function processInbound(supabase: any, row: InboxRow, event: NormalizedPro
   const { data: session, error: sessionError } = await supabase.from("ai_concierge_sessions").insert({
     session_token: sessionToken,
     property_id: row.property_id,
-    locale: "en",
+    locale: "en",\n    channel: event.channel,
     guest_name: typeof event.safePayload.profileName === "string" ? event.safePayload.profileName.slice(0, 160) : null,
-    guest_phone: event.channel === "whatsapp" ? event.externalContact : null,
+    guest_phone: event.channel === "whatsapp" ? event.externalContact : null,\n    guest_email: event.channel === "email" ? event.externalContact : null,
     referer: "provider:" + row.provider,
     page_context: { channel: event.channel, provider: row.provider },
     message_count: 1,
