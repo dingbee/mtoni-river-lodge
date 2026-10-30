@@ -392,3 +392,96 @@ COMMENT ON FUNCTION public.staynas_knowledge_search(uuid, text, integer, boolean
   'Property-scoped bilingual knowledge search. Guest retrieval remains disabled until database isolation verification.';
 COMMENT ON FUNCTION public.staynas_ai_knowledge_search(uuid, text, integer, boolean) IS
   'Property-scoped bilingual source search. Guest retrieval remains disabled until database isolation verification.';
+
+-- ---------------------------------------------------------------------------
+-- 4. Copilot history is property-bound because it contains knowledge excerpts
+-- and citations. A user's own sessions must not cross active properties.
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.ai_copilot_sessions
+  ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE CASCADE;
+
+DO $sn_iq_02_copilot$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ai_copilot_sessions_property_required' AND conrelid = 'public.ai_copilot_sessions'::regclass) THEN
+    ALTER TABLE public.ai_copilot_sessions
+      ADD CONSTRAINT ai_copilot_sessions_property_required CHECK (property_id IS NOT NULL) NOT VALID;
+  END IF;
+END
+$sn_iq_02_copilot$;
+
+CREATE INDEX IF NOT EXISTS ai_copilot_sessions_property_user_idx
+  ON public.ai_copilot_sessions(property_id, user_id, updated_at DESC);
+
+DROP POLICY IF EXISTS "own copilot sessions" ON public.ai_copilot_sessions;
+CREATE POLICY "Copilot sessions read and manage in active property"
+  ON public.ai_copilot_sessions FOR ALL TO authenticated
+  USING (
+    user_id = auth.uid()
+    AND property_id IS NOT NULL
+    AND public.staynas_ai_property_in_active_context(
+      property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
+    )
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    AND property_id IS NOT NULL
+    AND public.staynas_ai_property_in_active_context(
+      property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
+    )
+  );
+
+DROP POLICY IF EXISTS "own copilot messages" ON public.ai_copilot_messages;
+CREATE POLICY "Copilot messages read and manage in active property"
+  ON public.ai_copilot_messages FOR ALL TO authenticated
+  USING (
+    user_id = auth.uid()
+    AND EXISTS (
+      SELECT 1 FROM public.ai_copilot_sessions session
+      WHERE session.id = ai_copilot_messages.session_id
+        AND session.user_id = auth.uid()
+        AND public.staynas_ai_property_in_active_context(
+          session.property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
+        )
+    )
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    AND EXISTS (
+      SELECT 1 FROM public.ai_copilot_sessions session
+      WHERE session.id = ai_copilot_messages.session_id
+        AND session.user_id = auth.uid()
+        AND public.staynas_ai_property_in_active_context(
+          session.property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS "own copilot feedback" ON public.ai_copilot_feedback;
+CREATE POLICY "Copilot feedback read and manage in active property"
+  ON public.ai_copilot_feedback FOR ALL TO authenticated
+  USING (
+    user_id = auth.uid()
+    AND EXISTS (
+      SELECT 1
+      FROM public.ai_copilot_messages message
+      JOIN public.ai_copilot_sessions session ON session.id = message.session_id
+      WHERE message.id = ai_copilot_feedback.message_id
+        AND session.user_id = auth.uid()
+        AND public.staynas_ai_property_in_active_context(
+          session.property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
+        )
+    )
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    AND EXISTS (
+      SELECT 1
+      FROM public.ai_copilot_messages message
+      JOIN public.ai_copilot_sessions session ON session.id = message.session_id
+      WHERE message.id = ai_copilot_feedback.message_id
+        AND session.user_id = auth.uid()
+        AND public.staynas_ai_property_in_active_context(
+          session.property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
+        )
+    )
+  );
