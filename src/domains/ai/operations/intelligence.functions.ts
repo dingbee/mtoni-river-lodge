@@ -200,10 +200,13 @@ export const listRoomReadinessInsights = createServerFn({ method: "GET" })
     }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, ["owner", "manager", "admin", "housekeeping", "reception"]);
+    const bookingIds = await propertyBookingIds(context.supabase, propertyId);
+    if (bookingIds.length === 0) return [];
     let q: any = context.supabase
       .from("ai_room_readiness_insights")
       .select("*, rooms(name, slug), bookings(reference, guest_name, check_in, check_out)")
+      .in("booking_id", bookingIds)
       .order("created_at", { ascending: false })
       .limit(100);
     if (data.status !== "all") q = q.eq("status", data.status);
@@ -222,10 +225,15 @@ export const updateRoomReadinessStatus = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ context, data }) => {
-    await assertRole(context.supabase, context.userId, [
-      "owner", "manager", "reception", "housekeeping",
-    ]);
     const sb: any = context.supabase;
+    const propertyId = await requirePropertyScope(sb, context.userId, ["owner", "manager", "reception", "housekeeping"]);
+    const { data: existing, error: existingError } = await sb
+      .from("ai_room_readiness_insights")
+      .select("id, booking_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (existingError || !existing?.booking_id) throw new Error("Readiness insight not found in the active property.");
+    await requireBookingInProperty(sb, existing.booking_id, propertyId);
     const { data: row, error } = await sb
       .from("ai_room_readiness_insights")
       .update({
@@ -235,6 +243,7 @@ export const updateRoomReadinessStatus = createServerFn({ method: "POST" })
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", data.id)
+      .eq("booking_id", existing.booking_id)
       .select("*")
       .single();
     if (error) throw new Error(error.message);
