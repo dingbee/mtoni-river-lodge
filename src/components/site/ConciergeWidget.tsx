@@ -257,7 +257,7 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
                     <p className="font-medium">Source: StayNas property information</p>
                     <ul className="mt-1 space-y-0.5 opacity-80">
                       {m.citations.map((c, j) => (
-                        <li key={j}>· {c.document_title}</li>
+                        <li key={j}>· {c.title}</li>
                       ))}
                     </ul>
                   </div>
