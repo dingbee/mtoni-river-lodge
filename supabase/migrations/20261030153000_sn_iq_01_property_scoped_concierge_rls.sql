@@ -221,33 +221,42 @@ DROP POLICY IF EXISTS "drafts staff write" ON public.ai_communication_drafts;
 CREATE POLICY "Communication drafts read in active property"
   ON public.ai_communication_drafts FOR SELECT TO authenticated
   USING (
-    (session_id IS NOT NULL AND public.staynas_ai_session_in_active_property(
+    session_id IS NOT NULL
+    AND public.staynas_ai_session_in_active_property(
       session_id, ARRAY['owner','manager','admin','reservations','reception','marketing']::public.app_role[]
-    ))
-    OR
-    (booking_id IS NOT NULL AND public.staynas_ai_booking_in_active_property(
-      booking_id, ARRAY['owner','manager','admin','reservations','reception','marketing']::public.app_role[]
-    ))
+    )
+    AND (
+      booking_id IS NULL
+      OR public.staynas_ai_booking_in_active_property(
+        booking_id, ARRAY['owner','manager','admin','reservations','reception','marketing']::public.app_role[]
+      )
+    )
   );
 CREATE POLICY "Communication drafts manage in active property"
   ON public.ai_communication_drafts FOR ALL TO authenticated
   USING (
-    (session_id IS NOT NULL AND public.staynas_ai_session_in_active_property(
+    session_id IS NOT NULL
+    AND public.staynas_ai_session_in_active_property(
       session_id, ARRAY['owner','manager','admin','reservations']::public.app_role[]
-    ))
-    OR
-    (booking_id IS NOT NULL AND public.staynas_ai_booking_in_active_property(
-      booking_id, ARRAY['owner','manager','admin','reservations']::public.app_role[]
-    ))
+    )
+    AND (
+      booking_id IS NULL
+      OR public.staynas_ai_booking_in_active_property(
+        booking_id, ARRAY['owner','manager','admin','reservations']::public.app_role[]
+      )
+    )
   )
   WITH CHECK (
-    (session_id IS NOT NULL AND public.staynas_ai_session_in_active_property(
+    session_id IS NOT NULL
+    AND public.staynas_ai_session_in_active_property(
       session_id, ARRAY['owner','manager','admin','reservations']::public.app_role[]
-    ))
-    OR
-    (booking_id IS NOT NULL AND public.staynas_ai_booking_in_active_property(
-      booking_id, ARRAY['owner','manager','admin','reservations']::public.app_role[]
-    ))
+    )
+    AND (
+      booking_id IS NULL
+      OR public.staynas_ai_booking_in_active_property(
+        booking_id, ARRAY['owner','manager','admin','reservations']::public.app_role[]
+      )
+    )
   );
 
 DROP POLICY IF EXISTS "escalations staff read" ON public.ai_escalations;
