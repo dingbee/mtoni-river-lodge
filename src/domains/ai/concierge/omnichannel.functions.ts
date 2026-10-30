@@ -74,6 +74,33 @@ async function propertySessionIds(supabase: any, propertyId: string): Promise<st
   return ids;
 }
 
+async function propertyBookingIds(supabase: any, propertyId: string): Promise<string[]> {
+  const ids: string[] = [];
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("id")
+      .eq("property_id", propertyId)
+      .range(from, from + pageSize - 1);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []).map((row: { id: string }) => row.id);
+    ids.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return ids;
+}
+
+async function requireBookingInProperty(supabase: any, bookingId: string, propertyId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("id")
+    .eq("id", bookingId)
+    .eq("property_id", propertyId)
+    .maybeSingle();
+  if (error || !data) throw new Error("Booking not found in the active property.");
+}
+
 // ── Channels ────────────────────────────────────────────────────────────────
 export const listConciergeChannels = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -282,18 +309,26 @@ export const listCommunicationDrafts = createServerFn({ method: "POST" })
   .inputValidator((input: { status?: CommunicationDraftStatus | "all" }) => input ?? {})
   .handler(async ({ data, context }) => {
     const propertyId = await requirePropertyScope(context.supabase, context.userId);
-    const sessionIds = await propertySessionIds(context.supabase, propertyId);
-    if (sessionIds.length === 0) return [];
-    let q = context.supabase
-      .from("ai_communication_drafts")
-      .select("*")
-      .in("session_id", sessionIds)
-      .order("created_at", { ascending: false })
-      .limit(200);
-    if (data.status && data.status !== "all") q = q.eq("status", data.status);
-    const { data: rows, error } = await q;
-    if (error) throw new Error(error.message);
-    return (rows ?? []) as CommunicationDraftRow[];
+    const [sessionIds, bookingIds] = await Promise.all([
+      propertySessionIds(context.supabase, propertyId),
+      propertyBookingIds(context.supabase, propertyId),
+    ]);
+    const [sessionDrafts, bookingDrafts] = await Promise.all([
+      sessionIds.length
+        ? context.supabase.from("ai_communication_drafts").select("*").in("session_id", sessionIds)
+        : Promise.resolve({ data: [], error: null }),
+      bookingIds.length
+        ? context.supabase.from("ai_communication_drafts").select("*").in("booking_id", bookingIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+    if (sessionDrafts.error) throw new Error(sessionDrafts.error.message);
+    if (bookingDrafts.error) throw new Error(bookingDrafts.error.message);
+    const unique = new Map<string, CommunicationDraftRow>();
+    for (const row of [...(sessionDrafts.data ?? []), ...(bookingDrafts.data ?? [])]) unique.set(row.id, row as CommunicationDraftRow);
+    return Array.from(unique.values())
+      .filter((row) => !data.status || data.status === "all" || row.status === data.status)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .slice(0, 200);
   });
 
 export const updateCommunicationDraft = createServerFn({ method: "POST" })
@@ -312,8 +347,24 @@ export const updateCommunicationDraft = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const propertyId = await requirePropertyScope(context.supabase, context.userId);
-    const sessionIds = await propertySessionIds(context.supabase, propertyId);
-    if (sessionIds.length === 0) throw new Error("Draft not found in the active property.");
+    const { data: existingDraft, error: draftError } = await context.supabase
+      .from("ai_communication_drafts")
+      .select("id, session_id, booking_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (draftError || !existingDraft) throw new Error("Draft not found in the active property.");
+    let belongsToProperty = false;
+    if (existingDraft.session_id) {
+      try {
+        await requireSessionInProperty(context.supabase, existingDraft.session_id, propertyId);
+        belongsToProperty = true;
+      } catch { /* check booking association next */ }
+    }
+    if (!belongsToProperty && existingDraft.booking_id) {
+      await requireBookingInProperty(context.supabase, existingDraft.booking_id, propertyId);
+      belongsToProperty = true;
+    }
+    if (!belongsToProperty) throw new Error("Draft not found in the active property.");
     const patch: Record<string, unknown> = {};
     if (data.subject !== undefined) patch.subject = data.subject;
     if (data.body !== undefined) patch.body = data.body;
@@ -333,7 +384,6 @@ export const updateCommunicationDraft = createServerFn({ method: "POST" })
       .from("ai_communication_drafts")
       .update(patch as never)
       .eq("id", data.id)
-      .in("session_id", sessionIds)
       .select("id")
       .maybeSingle();
     if (error) throw new Error(error.message);
