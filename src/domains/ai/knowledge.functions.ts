@@ -109,6 +109,9 @@ export function chunkText(text: string, maxLen = 1200, overlap = 150): string[] 
 }
 
 async function requireKnowledgeProperty(supabase: any, userId: string, manage = false) {
+  if (process.env.STAYNAS_PROPERTY_KNOWLEDGE_SCHEMA_ENABLED !== "true") {
+    throw new Error("Property knowledge workspace is waiting for its database migration and isolation verification.");
+  }
   const scope = await getActivePropertyAiRoles(supabase, userId);
   const allowed = manage
     ? ["owner", "manager", "admin"]
