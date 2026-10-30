@@ -610,6 +610,7 @@ AS $sn_iq_02$
      AND category.property_id = property.id
     WHERE document.status = 'published'
       AND document.is_guest_visible = true
+      AND (document.review_due_at IS NULL OR document.review_due_at >= now())
       AND (
         chunk.tsv @@ plainto_tsquery('english', _query)
         OR chunk.simple_tsv @@ plainto_tsquery('simple', _query)
