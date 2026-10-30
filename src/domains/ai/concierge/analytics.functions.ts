@@ -198,7 +198,7 @@ export const classifyConciergeOutcomes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { window?: Window } | undefined) => ({ window: parseWindow(input?.window) }))
   .handler(async ({ data, context }) => {
-    const propertyId = await requirePropertyScope(context.supabase, context.userId, ["owner", "manager", "admin", "marketing", "reservations"]);
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, ["owner", "manager", "admin", "marketing"]);
     const since = sinceDays(data.window);
     const s = context.supabase;
 
@@ -220,6 +220,9 @@ export const classifyConciergeOutcomes = createServerFn({ method: "POST" })
       s.from("ai_concierge_attributions").select("session_id, conversion_type").in("session_id", ids),
       s.from("ai_concierge_messages").select("session_id, role, content").in("session_id", ids),
     ]);
+    for (const result of [existing, intents, leads, atts, msgs]) {
+      if (result.error) throw new Error(result.error.message);
+    }
 
     const done = new Set((existing.data ?? []).map((r: any) => r.session_id));
     const intentBySession = new Map<string, string>();
