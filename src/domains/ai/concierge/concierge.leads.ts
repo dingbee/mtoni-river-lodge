@@ -68,7 +68,8 @@ export async function captureLead(input: ConciergeLeadInput) {
     await db
       .from("ai_concierge_sessions")
       .update({ escalated: true, escalation_channel: "lead" })
-      .eq("id", sessionId);
+      .eq("id", sessionId)
+      .eq("property_id", propertyId);
   }
 
   return { ok: true, lead_id: data.id, intent_level: data.intent_level };
