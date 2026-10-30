@@ -174,8 +174,8 @@ export async function handleConciergeChat(
         url: string | null; summary: string | null; content: string; language_code: string;
       }>;
       knowledgeCtx = rows.map((row, index) =>
-        `[K${index + 1}] ${row.title} (${row.source_type}; ${row.language_code})\\n${row.content}`
-      ).join("\\n---\\n");
+        `[K${index + 1}] ${row.title} (${row.source_type}; ${row.language_code})\n${row.content}`
+      ).join("\n---\n");
       citations.push(...rows.map((row) => ({
         source_id: row.source_id,
         source_kind: row.source_kind,
