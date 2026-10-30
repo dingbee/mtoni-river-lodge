@@ -13,7 +13,6 @@ export async function assertFounderAiAdmin(
 
   const { data, error } = await (supabase as any).rpc(
     "is_staynas_founder_ai_admin",
-    { _user_id: userId },
   );
 
   if (error) throw new Error("Unable to verify founder AI administration access.");
