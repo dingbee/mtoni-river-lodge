@@ -64,7 +64,7 @@ function SettingsHub() {
       Icon: Activity,
     },
     {
-      to: "/admin/guests/messages",
+      to: "/admin/settings/channels",\n      title: "Messaging Channels",\n      description: "Property-level inbound, outbound, consent and handoff controls.",\n      Icon: Radio,\n    },\n    {\n      to: "/admin/guests/messages",
       title: "Messages & Channels",
       description: "Guest conversations across email and WhatsApp.",
       Icon: MessageSquare,
