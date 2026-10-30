@@ -152,6 +152,8 @@ export async function handleConciergeChat(
     sessionId = data.id;
   }
 
+  if (!sessionId) throw new Error("Unable to establish a property-scoped concierge session.");
+
   const { data: historyRows } = await supabaseAdmin.from("ai_concierge_messages").select("role, content").eq("session_id", sessionId).order("created_at", { ascending: true }).limit(HISTORY_LIMIT);
   const history = (historyRows ?? []).map((r): ConciergeMessage => ({ role: r.role as ConciergeMessage["role"], content: r.content }));
 
@@ -194,8 +196,6 @@ export async function handleConciergeChat(
       knowledgeCtx = "";
     }
   }
-
-  if (!sessionId) throw new Error("Unable to establish a property-scoped concierge session.");
 
   const historyText = history.map((h) => h.content);
   const intent = classifyIntent(message, historyText);
