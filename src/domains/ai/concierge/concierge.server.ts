@@ -15,7 +15,6 @@ import { searchAvailability, buildBookingPlan } from "./concierge.tools";
 import { loadConciergeMemoryContext, suggestMemoriesFromMessage } from "./memory.context";
 import { AI_GATEWAY_DEFAULT_MODEL, callAiGateway, parseAiJson } from "@/lib/ai-gateway.server";
 
-const GATEWAY_URL = AI_GATEWAY_URL;
 const MODEL = AI_GATEWAY_DEFAULT_MODEL;
 const MAX_MESSAGE_LEN = 1000;
 const HISTORY_LIMIT = 10;
