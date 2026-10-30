@@ -52,42 +52,10 @@ export const askAi = createServerFn({ method: "POST" })
       }
     }
 
-    // Always attempt a knowledge lookup so answers can cite SOPs/policies
-    // alongside live data. RLS filters by role automatically.
-    let citations: AiKnowledgeCitation[] = [];
-    let kbSummary = "";
-    if (toolId !== "knowledge.search") {
-      try {
-        const { data: kbRows } = await context.supabase.rpc("knowledge_search", {
-          _query: data.question,
-          _limit: 4,
-        });
-        const rows = (kbRows ?? []) as Array<any>;
-        if (rows.length > 0) {
-          citations = rows.map((r) => ({
-            document_id: r.document_id,
-            document_title: r.document_title,
-            document_slug: r.document_slug,
-            category_slug: r.category_slug ?? null,
-            chunk_index: r.chunk_index,
-            excerpt: String(r.content ?? "").slice(0, 400),
-          }));
-          kbSummary = rows
-            .map((r, i) => `[K${i + 1}] ${r.document_title}${r.category_slug ? ` (${r.category_slug})` : ""}: ${String(r.content ?? "").slice(0, 500)}`)
-            .join("\n");
-        }
-      } catch { /* knowledge is best-effort */ }
-    } else if (Array.isArray(toolResult?.data)) {
-      const rows = toolResult!.data as Array<any>;
-      citations = rows.map((r) => ({
-        document_id: r.document_id,
-        document_title: r.document_title,
-        document_slug: r.document_slug,
-        category_slug: r.category_slug ?? null,
-        chunk_index: r.chunk_index,
-        excerpt: String(r.content ?? "").slice(0, 400),
-      }));
-    }
+    // Knowledge search is deliberately disabled until its RPC security,
+    // grants and tenant isolation can be verified in an isolated database.
+    // Do not query it through the authenticated or service-role client here.
+    const citations: AiKnowledgeCitation[] = [];
 
     // Step 2 — compose answer
     const answerUser = [
