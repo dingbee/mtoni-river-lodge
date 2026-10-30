@@ -31,21 +31,44 @@ async function processInbound(supabase: any, row: InboxRow, event: NormalizedPro
   if (existingError) throw new Error(existingError.message);
   if (existingMessage) return { sessionId: existingMessage.session_id as string, messageId: existingMessage.id as string };
 
-  const sessionToken = "cnc_" + randomBytes(32).toString("base64url");
-  const { data: session, error: sessionError } = await supabase.from("ai_concierge_sessions").insert({
-    session_token: sessionToken,
-    property_id: row.property_id,
-    locale: "en",
-    channel: event.channel,
-    guest_name: typeof event.safePayload.profileName === "string" ? event.safePayload.profileName.slice(0, 160) : null,
-    guest_phone: event.channel === "whatsapp" ? event.externalContact : null,
-    guest_email: event.channel === "email" ? event.externalContact : null,
-    referer: "provider:" + row.provider,
-    page_context: { channel: event.channel, provider: row.provider },
-    message_count: 1,
-    last_active_at: event.occurredAt,
-  }).select("id").single();
-  if (sessionError || !session) throw new Error("Could not create property-scoped conversation: " + (sessionError?.message ?? "missing session"));
+  let session: { id: string; message_count?: number } | null = null;
+  if (event.channel === "whatsapp" || event.channel === "email") {
+    let existingSessionQuery = supabase.from("ai_concierge_sessions")
+      .select("id,message_count")
+      .eq("property_id", row.property_id)
+      .eq("channel", event.channel);
+    existingSessionQuery = event.channel === "whatsapp"
+      ? existingSessionQuery.eq("guest_phone", event.externalContact)
+      : existingSessionQuery.eq("guest_email", event.externalContact);
+    const { data: existingSession, error: sessionLookupError } = await existingSessionQuery
+      .order("last_active_at", { ascending: false }).limit(1).maybeSingle();
+    if (sessionLookupError) throw new Error(sessionLookupError.message);
+    if (existingSession) session = existingSession;
+  }
+  if (session) {
+    const { error: touchError } = await supabase.from("ai_concierge_sessions").update({
+      message_count: (session.message_count ?? 0) + 1,
+      last_active_at: event.occurredAt,
+    }).eq("id", session.id).eq("property_id", row.property_id);
+    if (touchError) throw new Error(touchError.message);
+  } else {
+    const sessionToken = "cnc_" + randomBytes(32).toString("base64url");
+    const { data: createdSession, error: sessionError } = await supabase.from("ai_concierge_sessions").insert({
+      session_token: sessionToken,
+      property_id: row.property_id,
+      locale: "en",
+      channel: event.channel,
+      guest_name: typeof event.safePayload.profileName === "string" ? event.safePayload.profileName.slice(0, 160) : null,
+      guest_phone: event.channel === "whatsapp" ? event.externalContact : null,
+      guest_email: event.channel === "email" ? event.externalContact : null,
+      referer: "provider:" + row.provider,
+      page_context: { channel: event.channel, provider: row.provider },
+      message_count: 1,
+      last_active_at: event.occurredAt,
+    }).select("id").single();
+    if (sessionError || !createdSession) throw new Error("Could not create property-scoped conversation: " + (sessionError?.message ?? "missing session"));
+    session = createdSession;
+  }
 
   const messageType = event.body ? "text" : "media";
   const { data: message, error: messageError } = await supabase.from("ai_omnichannel_messages").insert({
