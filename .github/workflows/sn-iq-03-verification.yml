@@ -25,11 +25,11 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - name: Run concierge quote and recommendation regressions
-        run: bunx vitest run src/domains/ai/concierge/concierge.tools.test.ts src/domains/ai/concierge/concierge.recommendations.test.ts
+        run: bunx vitest run src/domains/ai/concierge/concierge.tools.test.ts src/domains/ai/concierge/concierge.recommendations.test.ts src/lib/booking-hold-policy.test.ts
       - name: TypeScript verification
         run: bunx tsc --noEmit
       - name: Lint changed concierge code and tests
         run: >-
-          bunx eslint src/domains/ai/concierge/concierge.tools.ts src/domains/ai/concierge/concierge.recommendations.ts src/domains/ai/concierge/concierge.tools.test.ts src/domains/ai/concierge/concierge.recommendations.test.ts --rule 'prettier/prettier: off'
+          bunx eslint src/domains/ai/concierge/concierge.tools.ts src/domains/ai/concierge/concierge.recommendations.ts src/domains/ai/concierge/concierge.tools.test.ts src/domains/ai/concierge/concierge.recommendations.test.ts src/lib/booking-hold-policy.ts src/lib/booking-hold-policy.test.ts src/lib/availability.functions.ts src/routes/book.tsx src/components/site/ConciergeWidget.tsx --rule 'prettier/prettier: off'
       - name: Production build
         run: bun run build
