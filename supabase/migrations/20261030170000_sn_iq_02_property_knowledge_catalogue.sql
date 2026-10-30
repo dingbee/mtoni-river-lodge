@@ -58,6 +58,21 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ai_knowledge_sources_property_required' AND conrelid = 'public.ai_knowledge_sources'::regclass) THEN
     ALTER TABLE public.ai_knowledge_sources ADD CONSTRAINT ai_knowledge_sources_property_required CHECK (property_id IS NOT NULL) NOT VALID;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'knowledge_versions_property_required' AND conrelid = 'public.knowledge_document_versions'::regclass) THEN
+    ALTER TABLE public.knowledge_document_versions ADD CONSTRAINT knowledge_versions_property_required CHECK (property_id IS NOT NULL) NOT VALID;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'knowledge_chunks_property_required' AND conrelid = 'public.knowledge_chunks'::regclass) THEN
+    ALTER TABLE public.knowledge_chunks ADD CONSTRAINT knowledge_chunks_property_required CHECK (property_id IS NOT NULL) NOT VALID;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ai_knowledge_search_log_property_required' AND conrelid = 'public.ai_knowledge_search_log'::regclass) THEN
+    ALTER TABLE public.ai_knowledge_search_log ADD CONSTRAINT ai_knowledge_search_log_property_required CHECK (property_id IS NOT NULL) NOT VALID;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ai_knowledge_sync_runs_property_required' AND conrelid = 'public.ai_knowledge_sync_runs'::regclass) THEN
+    ALTER TABLE public.ai_knowledge_sync_runs ADD CONSTRAINT ai_knowledge_sync_runs_property_required CHECK (property_id IS NOT NULL) NOT VALID;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ai_knowledge_notifications_property_required' AND conrelid = 'public.ai_knowledge_notifications'::regclass) THEN
+    ALTER TABLE public.ai_knowledge_notifications ADD CONSTRAINT ai_knowledge_notifications_property_required CHECK (property_id IS NOT NULL) NOT VALID;
+  END IF;
 END
 $sn_iq_02$;
 
