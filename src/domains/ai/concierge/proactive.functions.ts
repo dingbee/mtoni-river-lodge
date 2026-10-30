@@ -223,10 +223,10 @@ export const listRecommendations = createServerFn({ method: "GET" })
     if (bookingIds.length === 0) return [];
     let q: any = context.supabase
       .from("ai_concierge_recommendations")
-      .in("booking_id", bookingIds)
       .select(
         "id, guest_id, booking_id, session_id, recommendation_type, item_slug, item_name, title, reasoning, confidence, evidence, status, notes, reviewed_at, created_at, updated_at",
       )
+      .in("booking_id", bookingIds)
       .order("created_at", { ascending: false })
       .limit(data.limit);
     if (data.status !== "all") q = q.eq("status", data.status);
