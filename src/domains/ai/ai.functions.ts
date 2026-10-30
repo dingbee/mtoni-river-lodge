@@ -63,7 +63,6 @@ export const askAi = createServerFn({ method: "POST" })
       toolId ? `Tool used: ${toolId}` : "Tool used: none",
       toolResult ? `Tool summary: ${toolResult.summary}` : "",
       toolResult ? `Tool data (JSON, truncated): ${JSON.stringify(toolResult.data).slice(0, 4000)}` : "",
-      kbSummary ? `Knowledge base excerpts:\n${kbSummary}` : "",
     ].filter(Boolean).join("\n");
     const answerRaw = await chat(buildAnswerSystemPrompt(), answerUser);
     const answer = tryJson<{ answer: string; recommendation: string | null }>(answerRaw) ?? {
