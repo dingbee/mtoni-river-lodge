@@ -33,7 +33,7 @@ export const Route = createFileRoute("/api/public/webhooks/resend")({
             event_type: event.eventType, normalized_event: event,
           }, { onConflict: "provider,provider_event_id", ignoreDuplicates: true }).select("id");
           if (error) throw new Error(error.message);
-          if (data?.length) {\n            persisted++;\n            await processProviderWebhookInbox(supabaseAdmin, data[0].id);\n          } else duplicates++;
+          let inboxId = data?.[0]?.id as string | undefined;\n          if (inboxId) persisted++;\n          else {\n            duplicates++;\n            const { data: existing, error: lookupError } = await (supabaseAdmin as any).from("ai_provider_webhook_inbox")\n              .select("id").eq("provider", "resend").eq("provider_event_id", event.providerEventId).maybeSingle();\n            if (lookupError) throw new Error(lookupError.message);\n            inboxId = existing?.id;\n          }\n          if (inboxId) await processProviderWebhookInbox(supabaseAdmin, inboxId);
         }
         return Response.json({ received: true, persisted, duplicates });
       } catch (error) {
