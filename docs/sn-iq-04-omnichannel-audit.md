@@ -135,3 +135,45 @@ See Deferred Verification Register. SN-IQ-03 property-scoped booking/hold RPC an
 No provider secrets were created, copied, or modified. No production environment settings were changed.
 
 **Verification boundary:** Adapter regression tests were added and CI was updated to execute them alongside contract tests, TypeScript, lint and production build. Execution is still pending because the Vercel integration is currently rate-limited and the latest GitHub Actions attempt had no jobs. Do not claim these tests or build passed until a runnable CI attempt completes.
+
+
+## SN-IQ-04.4 — Verified inbound webhook ingestion
+
+**Implementation artifacts added:**
+- `src/domains/ai/concierge/webhooks/webhook-signatures.server.ts`
+- `src/domains/ai/concierge/webhooks/webhook-normalization.server.ts`
+- `src/domains/ai/concierge/webhooks/webhook-ingestion.server.ts`
+- `src/domains/ai/concierge/webhooks/webhook-security.server.test.ts`
+- `src/routes/api/public/webhooks.meta.ts`
+- `src/routes/api/public/webhooks.resend.ts`
+- `supabase/migrations/20261030213000_sn_iq_04_4_provider_routing_and_property_settings.sql`
+- `supabase/migrations/20261030214000_sn_iq_04_4_webhook_inbox.sql`
+- `src/domains/ai/concierge/property-channel-settings.functions.ts`
+- `src/routes/_authenticated.admin.settings.channels.tsx`
+
+**Webhook controls**
+- Meta POST validates `X-Hub-Signature-256` against the exact raw request body using HMAC-SHA256 and constant-time comparison. GET implements the challenge/verify-token handshake.
+- Resend validates Svix `svix-id`, `svix-timestamp` and all supported `v1` signatures against the exact raw body, with a five-minute timestamp tolerance and constant-time comparison.
+- WhatsApp inbound messages and status callbacks are normalized to provider-neutral events. Resend delivery/bounce/complaint events are normalized; unsupported event types are ignored.
+- Events are routed only by trusted founder-managed mappings: Meta phone-number ID, or the configured Resend account. The payload cannot supply a property ID.
+- Verified events are persisted to `ai_provider_webhook_inbox` using a unique `(provider, provider_event_id)` conflict key. Replays are acknowledged as duplicates, not inserted again.
+- Webhook inbox, provider mapping and message ledger tables are server/service-role only. The inbox records property assignment and normalized event evidence; a subsequent processing worker must attach inbound messages to a validated property conversation and update message/delivery ledger state.
+
+**Administration separation**
+- Tenant Admin UI: `/admin/settings/channels`. Property owner/manager/admin can enable channels, inbound/outbound operations, human-approval requirements, and marketing-consent requirements. Queries are bound to the authenticated active property.
+- Founder Admin: existing founder-only Concierge Channels page remains the global provider/channel governance surface. Founder-managed provider-to-property mappings are stored separately from tenant settings. Provider credentials and webhook signing secrets remain protected deployment secrets; no raw secrets are returned to either browser role.
+- Property channel settings and founder provider mappings are separate tables with separate authorization boundaries. Provider bindings are not readable/writable by tenant roles.
+
+**Required founder-managed secrets/configuration (not provisioned by this change):**
+- `META_APP_SECRET`
+- `META_WHATSAPP_WEBHOOK_VERIFY_TOKEN`
+- `RESEND_WEBHOOK_SIGNING_SECRET`
+- `RESEND_WEBHOOK_ACCOUNT_ID`
+- Existing outbound credentials: `META_WHATSAPP_ACCESS_TOKEN`, `META_WHATSAPP_PHONE_NUMBER_ID`, `META_GRAPH_API_VERSION`, `RESEND_API_KEY`.
+
+**Verification boundary**
+- Webhook signature and normalization regression tests have been added to the SN-IQ-04 workflow.
+- CI execution, TypeScript, lint and production build are not yet verified. Prior workflow run `41100795302` had zero GitHub Actions jobs, so its failed conclusion is not evidence of a test failure.
+- All three migration artifacts remain unapplied. No production DB, provider secrets, Vercel deployment settings, production deployment or Lovable resources were changed.
+- Isolated DB verification is still required for grants, RLS, mapping uniqueness, inbox deduplication, and property scoping. End-to-end webhook replay and provider-console handshake checks remain pending.
+- The inbound message processor that creates/attaches a property-scoped conversation and materializes the omnichannel message row remains a follow-on integration task; the current endpoint safely persists verified normalized events in the property-routed inbox.
