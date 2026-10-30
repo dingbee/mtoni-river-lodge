@@ -435,6 +435,113 @@ AS $$
   LIMIT LEAST(GREATEST(COALESCE(_limit, 8), 1), 20);
 $$;
 
+
+-- Canonical unified retrieval across manually curated documents and
+-- property-synchronised sources. One contract supplies grounded citations.
+CREATE OR REPLACE FUNCTION public.staynas_property_knowledge_search(
+  _property_id uuid,
+  _query text,
+  _limit integer DEFAULT 8,
+  _guest_visible_only boolean DEFAULT false
+)
+RETURNS TABLE (
+  source_id uuid,
+  source_kind text,
+  source_type text,
+  title text,
+  slug text,
+  category_slug text,
+  url text,
+  summary text,
+  content text,
+  language_code text,
+  source_updated_at timestamptz,
+  rank real
+)
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path = public, pg_temp
+AS $
+  WITH document_hits AS (
+    SELECT
+      document.id AS source_id,
+      'document'::text AS source_kind,
+      document.source_type,
+      document.title,
+      document.slug,
+      category.slug AS category_slug,
+      document.source_url AS url,
+      document.summary,
+      chunk.content,
+      document.language_code,
+      document.source_updated_at,
+      (
+        ts_rank(chunk.tsv, plainto_tsquery('english', _query))
+        + ts_rank(chunk.simple_tsv, plainto_tsquery('simple', _query))
+      )::real AS rank
+    FROM public.knowledge_chunks chunk
+    JOIN public.knowledge_documents document
+      ON document.id = chunk.document_id
+     AND document.property_id = chunk.property_id
+    LEFT JOIN public.knowledge_categories category
+      ON category.id = document.category_id
+     AND category.property_id = document.property_id
+    WHERE document.property_id = _property_id
+      AND chunk.property_id = _property_id
+      AND chunk.version = document.current_version
+      AND document.status = 'published'
+      AND (NOT _guest_visible_only OR document.is_guest_visible = true)
+      AND public.staynas_knowledge_document_readable(document.id)
+      AND (
+        chunk.tsv @@ plainto_tsquery('english', _query)
+        OR chunk.simple_tsv @@ plainto_tsquery('simple', _query)
+      )
+  ),
+  source_hits AS (
+    SELECT
+      source.id AS source_id,
+      'synced_source'::text AS source_kind,
+      source.source_type,
+      source.title,
+      coalesce(source.metadata->>'slug', source.external_ref) AS slug,
+      NULL::text AS category_slug,
+      source.url,
+      source.summary,
+      left(source.content, 4000) AS content,
+      source.language_code,
+      source.source_updated_at,
+      (
+        ts_rank(source.content_tsv, plainto_tsquery('english', _query))
+        + ts_rank(source.simple_tsv, plainto_tsquery('simple', _query))
+      )::real AS rank
+    FROM public.ai_knowledge_sources source
+    WHERE source.property_id = _property_id
+      AND source.status = 'approved'
+      AND (NOT _guest_visible_only OR source.is_guest_visible = true)
+      AND public.staynas_ai_property_in_active_context(
+        _property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
+      )
+      AND (
+        source.content_tsv @@ plainto_tsquery('english', _query)
+        OR source.simple_tsv @@ plainto_tsquery('simple', _query)
+      )
+  )
+  SELECT * FROM (
+    SELECT * FROM document_hits
+    UNION ALL
+    SELECT * FROM source_hits
+  ) matches
+  WHERE _query IS NOT NULL AND length(trim(_query)) > 0
+  ORDER BY rank DESC
+  LIMIT LEAST(GREATEST(COALESCE(_limit, 8), 1), 20);
+$;
+
+REVOKE ALL ON FUNCTION public.staynas_property_knowledge_search(uuid, text, integer, boolean) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.staynas_property_knowledge_search(uuid, text, integer, boolean) TO authenticated;
+COMMENT ON FUNCTION public.staynas_property_knowledge_search(uuid, text, integer, boolean) IS
+  'Unified bilingual, property-scoped retrieval. Guest visibility is an additional filter; public guest execution remains disabled pending isolation verification.';
+
 REVOKE EXECUTE ON FUNCTION public.knowledge_search(text, integer) FROM PUBLIC, anon, authenticated, service_role;
 REVOKE EXECUTE ON FUNCTION public.ai_knowledge_sources_search(text, integer) FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public.staynas_knowledge_search(uuid, text, integer, boolean) FROM PUBLIC, anon;
