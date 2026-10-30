@@ -5,7 +5,7 @@ import type { AiToolId } from "./ai.types";
 // RLS applies exactly as if the user queried the tables directly. No
 // service-role client is used here.
 
-type Ctx = { supabase: SupabaseClient<any, any, any> };
+type Ctx = { supabase: SupabaseClient<any, any, any>; propertyId: string };
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -65,6 +65,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
       const { data, error } = await supabase
         .from("bookings")
         .select("id, reference, guest_name, guest_email, room_id, check_in, check_out, status, guest_type")
+        .eq("property_id", propertyId)
         .eq("check_in", t)
         .in("status", ["confirmed", "checked_in"])
         .order("guest_name");
@@ -80,6 +81,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
       const { data, error } = await supabase
         .from("bookings")
         .select("id, reference, guest_name, room_id, check_in, check_out, balance_due, status")
+        .eq("property_id", propertyId)
         .eq("check_out", t)
         .in("status", ["confirmed", "checked_in"])
         .order("guest_name");
@@ -96,6 +98,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
       const { data, error } = await supabase
         .from("bookings")
         .select("id, reference, guest_name, room_id, check_in, check_out, status, total, currency")
+        .eq("property_id", propertyId)
         .gte("check_in", from)
         .lte("check_in", to)
         .in("status", ["confirmed", "pending"])
@@ -117,6 +120,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
       const [{ data: bookings }, { data: rooms }] = await Promise.all([
         supabase.from("bookings")
           .select("nights, check_in, check_out, status")
+          .eq("property_id", propertyId)
           .gte("check_in", first).lt("check_in", nextMonth)
           .in("status", ["confirmed", "checked_in", "checked_out"]),
         supabase.from("rooms").select("total_units").eq("status", "active"),
@@ -141,6 +145,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
       const { data, error } = await supabase
         .from("bookings")
         .select("total, paid_amount, balance_due, currency, status, payment_status")
+        .eq("property_id", propertyId)
         .gte("check_in", from)
         .in("status", ["confirmed", "checked_in", "checked_out"]);
       if (error) throw error;
@@ -164,6 +169,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
       const { data, error } = await supabase
         .from("bookings")
         .select("id, reference, guest_name, guest_email, check_in, balance_due, total, currency, payment_status, status")
+        .eq("property_id", propertyId)
         .gt("balance_due", 0)
         .in("status", ["confirmed", "checked_in", "checked_out"])
         .order("balance_due", { ascending: false })
@@ -195,6 +201,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
       const { data, error } = await supabase
         .from("room_states")
         .select("id, room_id, unit_label, state, state_note, booking_id, updated_at")
+        .eq("property_id", propertyId)
         .order("unit_label");
       if (error) throw error;
       const rows = data ?? [];
