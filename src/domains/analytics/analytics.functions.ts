@@ -89,14 +89,15 @@ export const getAnalyticsHub = createServerFn({ method: "POST" })
     const revpar = totalUnits ? revenue / (totalUnits * 30) : 0;
     const occupancy = Math.min(1, roomNights / (totalUnits * 30));
     const cancelRate = b30.length ? b30.filter((b) => b.status === "cancelled").length / b30.length : 0;
-    const avgRating = (reviews ?? []).length ? (reviews ?? []).reduce((n: number, r: any) => n + Number(r.rating ?? 0), 0) / (reviews ?? []).length : 0;
+    const reviewRows = reviews.data ?? [];
+    const avgRating = reviewRows.length ? reviewRows.reduce((n: number, r: any) => n + Number(r.rating ?? 0), 0) / reviewRows.length : 0;
     return {
       today: {
         arrivalsCount: (todayBookings ?? []).length,
         occupancy, adr, revpar, revenue,
         bookings30d: b30.length, cancelRate, avgRating,
         aiInteractions30d: (aiLogs ?? []).length,
-        openAlerts: (opsAlerts ?? []).length,
+        openAlerts: (opsAlerts.data ?? []).length,
         activeCampaigns: 0, // Campaigns are global legacy records; withheld until property-keyed.
       },
     };
