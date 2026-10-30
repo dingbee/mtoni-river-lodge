@@ -137,6 +137,11 @@ async function syncRooms(sb: any, userId: string | null): Promise<TaskResult> {
 }
 
 export async function runKnowledgeSyncJob(opts: { triggeredBy?: string } = {}) {
+  // The legacy scheduler reads global journal/CMS content and writes through
+  // service role. It stays disabled until each source adapter is property-bound
+  // and the SN-IQ-01 database isolation gate has been verified.
+  return { ok: false, deferred: true, reason: "property_scoped_sync_adapter_required", triggeredBy: opts.triggeredBy ?? "manual" };
+
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const sb: any = supabaseAdmin;
 
