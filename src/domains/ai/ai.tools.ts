@@ -28,7 +28,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
     id: "guest.search",
     description: "Search guests by name, email, or phone. args: { query: string }.",
     args: '{"query": "partial name or email"}',
-    run: async ({ supabase }, args) => {
+    run: async ({ supabase, propertyId }, args) => {
       const q = String(args.query ?? "").trim();
       if (!q) return { summary: "No query provided.", data: [], count: 0 };
       const like = `%${q}%`;
@@ -46,7 +46,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
     id: "guest.summary",
     description: "Fetch summary of one guest including preferences and stay count. args: { guest_id: uuid }.",
     args: '{"guest_id": "uuid"}',
-    run: async ({ supabase }, args) => {
+    run: async ({ supabase, propertyId }, args) => {
       const id = String(args.guest_id ?? "");
       if (!id) return { summary: "guest_id required.", data: null };
       const [{ data: guest }, { data: prefs }, { count: stays }] = await Promise.all([
@@ -60,7 +60,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "reservations.arrivals_today": {
     id: "reservations.arrivals_today",
     description: "List bookings checking in today.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const t = today();
       const { data, error } = await supabase
         .from("bookings")
@@ -76,7 +76,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "reservations.departures_today": {
     id: "reservations.departures_today",
     description: "List bookings checking out today.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const t = today();
       const { data, error } = await supabase
         .from("bookings")
@@ -92,7 +92,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "reservations.upcoming": {
     id: "reservations.upcoming",
     description: "Bookings arriving in the next 7 days.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const from = today();
       const to = daysFromNow(7);
       const { data, error } = await supabase
@@ -111,7 +111,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "reservations.occupancy": {
     id: "reservations.occupancy",
     description: "Occupancy this month: total nights vs available room-nights.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const now = new Date();
       const first = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString().slice(0, 10);
       const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString().slice(0, 10);
@@ -139,7 +139,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "finance.revenue_summary": {
     id: "finance.revenue_summary",
     description: "Revenue totals for the current month from confirmed bookings.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const first = new Date(); first.setUTCDate(1);
       const from = first.toISOString().slice(0, 10);
       const { data, error } = await supabase
@@ -165,7 +165,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "finance.outstanding": {
     id: "finance.outstanding",
     description: "Bookings with unpaid balances.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const { data, error } = await supabase
         .from("bookings")
         .select("id, reference, guest_name, guest_email, check_in, balance_due, total, currency, payment_status, status")
@@ -184,7 +184,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "finance.recent_transactions": {
     id: "finance.recent_transactions",
     description: "Most recent payment events.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const { data, error } = await supabase
         .from("payment_events")
         .select("id, booking_id, provider, event_type, amount, currency, status_code, created_at")
@@ -197,7 +197,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "operations.room_status": {
     id: "operations.room_status",
     description: "Current room states across the property.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const { data, error } = await supabase
         .from("room_states")
         .select("id, room_id, unit_label, state, state_note, booking_id, updated_at")
@@ -214,7 +214,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "operations.open_tasks": {
     id: "operations.open_tasks",
     description: "Open operations tasks (housekeeping, maintenance, other).",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const { data, error } = await supabase
         .from("ops_tasks")
         .select("id, title, task_type, priority, status, due_at, assignee_id, booking_id, category")
@@ -228,7 +228,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "operations.alerts": {
     id: "operations.alerts",
     description: "Active operational alerts.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const { data, error } = await supabase
         .from("ops_alerts")
         .select("id, kind, severity, message, booking_id, room_id, created_at")
@@ -242,7 +242,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "marketing.latest_articles": {
     id: "marketing.latest_articles",
     description: "Recently published journal articles.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const { data, error } = await supabase
         .from("journal_articles")
         .select("id, slug, title, status, published_at, featured")
@@ -256,7 +256,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "marketing.seo_status": {
     id: "marketing.seo_status",
     description: "SEO overrides configured across routes.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const { data, error } = await supabase
         .from("seo_overrides")
         .select("route_path, title, description, index_status, updated_at")
@@ -272,7 +272,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
     id: "knowledge.search",
     description: "Search Mtoni's internal knowledge base (SOPs, policies, brand, experiences). Use whenever the question is procedural, definitional, or reference-based. args: { query: string }.",
     args: '{"query": "keywords or a short phrase"}',
-    run: async ({ supabase }, args) => {
+    run: async ({ supabase, propertyId }, args) => {
       const q = String(args.query ?? "").trim();
       if (!q) return { summary: "No query provided.", data: [], count: 0 };
       const { memoizeTTL } = await import("@/lib/perf-cache");
