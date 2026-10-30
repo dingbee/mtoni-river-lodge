@@ -261,7 +261,6 @@ export const listCommunicationDrafts = createServerFn({ method: "POST" })
       .from("ai_communication_drafts")
       .select("*")
       .in("session_id", sessionIds)
-      .in("session_id", sessionIds)
       .order("created_at", { ascending: false })
       .limit(200);
     if (data.status && data.status !== "all") q = q.eq("status", data.status);
