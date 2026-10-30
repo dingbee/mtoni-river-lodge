@@ -274,3 +274,20 @@ CREATE POLICY "Escalations manage in active property"
   WITH CHECK (public.staynas_ai_session_in_active_property(
     session_id, ARRAY['owner','manager','admin','reservations']::public.app_role[]
   ));
+
+-- Rebind the session and message read policies to the same active-property
+-- predicate used by the child intelligence tables. This also rejects inactive
+-- properties and keeps historical NULL-property sessions inaccessible.
+DROP POLICY IF EXISTS "Staff can read concierge sessions in active property" ON public.ai_concierge_sessions;
+CREATE POLICY "Concierge sessions read in active property"
+  ON public.ai_concierge_sessions FOR SELECT TO authenticated
+  USING (property_id IS NOT NULL AND public.staynas_ai_property_in_active_context(
+    property_id, ARRAY['owner','manager','admin','reception','marketing']::public.app_role[]
+  ));
+
+DROP POLICY IF EXISTS "Staff can read concierge messages in active property" ON public.ai_concierge_messages;
+CREATE POLICY "Concierge messages read in active property"
+  ON public.ai_concierge_messages FOR SELECT TO authenticated
+  USING (public.staynas_ai_session_in_active_property(
+    session_id, ARRAY['owner','manager','admin','reception','marketing']::public.app_role[]
+  ));
