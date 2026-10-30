@@ -252,7 +252,7 @@ export const createCommunicationDraft = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data, context }) => {
-    const propertyId = await requirePropertyScope(context.supabase, context.userId);
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
     if (!data.session_id) throw new Error("A conversation from the active property is required.");
     const session = await requireSessionInProperty(context.supabase, data.session_id, propertyId);
     if (data.guest_id && data.guest_id !== session.guest_id) {
@@ -358,7 +358,7 @@ export const updateCommunicationDraft = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data, context }) => {
-    const propertyId = await requirePropertyScope(context.supabase, context.userId);
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
     const { data: existingDraft, error: draftError } = await context.supabase
       .from("ai_communication_drafts")
       .select("id, session_id, booking_id")
