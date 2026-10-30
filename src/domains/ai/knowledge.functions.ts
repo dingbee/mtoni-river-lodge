@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { getActivePropertyAiRoles } from "@/domains/ai/ai.authorization.server";
 
 // ============= Types =============
 
@@ -30,6 +31,12 @@ export interface KbDocument {
   allowed_roles: string[] | null;
   current_version: number;
   byte_size: number | null;
+  property_id: string;
+  language_code: string;
+  is_guest_visible: boolean;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  source_updated_at: string | null;
   created_at: string;
   updated_at: string;
   category_slug?: string | null;
@@ -90,12 +97,15 @@ export function chunkText(text: string, maxLen = 1200, overlap = 150): string[] 
   return out;
 }
 
-async function assertAdmin(supabase: any, userId: string) {
-  const { data } = await supabase.rpc("has_any_role", {
-    _user_id: userId,
-    _roles: ["owner", "manager"],
-  });
-  if (!data) throw new Error("You do not have permission to manage knowledge.");
+async function requireKnowledgeProperty(supabase: any, userId: string, manage = false) {
+  const scope = await getActivePropertyAiRoles(supabase, userId);
+  const allowed = manage
+    ? ["owner", "manager", "admin"]
+    : ["owner", "manager", "admin", "reservations", "reception", "marketing"];
+  if (!scope.roles.some((role) => allowed.includes(role))) {
+    throw new Error(manage ? "You do not have permission to manage property knowledge." : "You do not have access to property knowledge.");
+  }
+  return scope.propertyId;
 }
 
 // ============= Categories =============
@@ -104,9 +114,11 @@ export const listKbCategories = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<KbCategory[]> => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
+    const propertyId = await requireKnowledgeProperty(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("knowledge_categories")
       .select("*")
+      .eq("property_id", propertyId)
       .order("sort_order")
       .order("name");
     if (error) throw error;
@@ -129,8 +141,9 @@ export const upsertKbCategory = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertAdmin(context.supabase, context.userId);
+    const propertyId = await requireKnowledgeProperty(context.supabase, context.userId, true);
     const payload: any = {
+      property_id: propertyId,
       name: data.name.trim(),
       description: data.description ?? null,
       parent_id: data.parent_id ?? null,
@@ -142,6 +155,7 @@ export const upsertKbCategory = createServerFn({ method: "POST" })
         .from("knowledge_categories")
         .update(payload)
         .eq("id", data.id)
+        .eq("property_id", propertyId)
         .select()
         .maybeSingle();
       if (error) throw error;
@@ -165,8 +179,8 @@ export const deleteKbCategory = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertAdmin(context.supabase, context.userId);
-    const { error } = await context.supabase.from("knowledge_categories").delete().eq("id", data.id);
+    const propertyId = await requireKnowledgeProperty(context.supabase, context.userId, true);
+    const { error } = await context.supabase.from("knowledge_categories").delete().eq("id", data.id).eq("property_id", propertyId);
     if (error) throw error;
     return { ok: true };
   });
@@ -178,9 +192,11 @@ export const listKbDocuments = createServerFn({ method: "GET" })
   .inputValidator((input?: { category_id?: string; status?: string; search?: string }) => input ?? {})
   .handler(async ({ data, context }): Promise<KbDocument[]> => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
+    const propertyId = await requireKnowledgeProperty(context.supabase, context.userId);
     let q = context.supabase
       .from("knowledge_documents")
       .select("*, knowledge_categories(slug)")
+      .eq("property_id", propertyId)
       .order("updated_at", { ascending: false })
       .limit(200);
     if (data.category_id) q = q.eq("category_id", data.category_id);
@@ -201,16 +217,20 @@ export const getKbDocument = createServerFn({ method: "GET" })
     return input;
   })
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
+    const propertyId = await requireKnowledgeProperty(context.supabase, context.userId);
     const [{ data: doc }, { data: versions }] = await Promise.all([
       context.supabase
         .from("knowledge_documents")
         .select("*, knowledge_categories(slug, name)")
         .eq("id", data.id)
+        .eq("property_id", propertyId)
         .maybeSingle(),
       context.supabase
         .from("knowledge_document_versions")
         .select("id, version, byte_size, change_note, created_at, created_by")
         .eq("document_id", data.id)
+        .eq("property_id", propertyId)
         .order("version", { ascending: false }),
     ]);
     if (!doc) throw new Error("Document not found or you do not have access.");
@@ -218,6 +238,7 @@ export const getKbDocument = createServerFn({ method: "GET" })
       .from("knowledge_document_versions")
       .select("content_text")
       .eq("document_id", data.id)
+      .eq("property_id", propertyId)
       .eq("version", (doc as any).current_version)
       .maybeSingle();
     return { document: doc, versions: versions ?? [], content: (current as any)?.content_text ?? "" };
@@ -241,6 +262,9 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
     tags?: string[];
     status?: KbDocument["status"];
     allowed_roles?: string[] | null;
+    language_code?: string;
+    is_guest_visible?: boolean;
+    source_updated_at?: string | null;
     content_text?: string | null;
     change_note?: string | null;
   }) => {
@@ -252,7 +276,7 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertAdmin(context.supabase, context.userId);
+    const propertyId = await requireKnowledgeProperty(context.supabase, context.userId, true);
     const supabase = context.supabase;
     const now = new Date().toISOString();
 
@@ -264,6 +288,7 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
         .from("knowledge_documents")
         .select("current_version")
         .eq("id", docId)
+        .eq("property_id", propertyId)
         .maybeSingle();
       if (error || !existing) throw new Error("Document not found.");
       currentVersion = (existing as any).current_version ?? 1;
@@ -278,10 +303,13 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
         tags: data.tags ?? [],
         status: data.status ?? "draft",
         allowed_roles: data.allowed_roles ?? null,
+        language_code: data.language_code ?? "en",
+        is_guest_visible: data.is_guest_visible ?? false,
+        source_updated_at: data.source_updated_at ?? null,
         updated_by: context.userId,
         updated_at: now,
       };
-      const { error: upErr } = await supabase.from("knowledge_documents").update(patch).eq("id", docId);
+      const { error: upErr } = await supabase.from("knowledge_documents").update(patch).eq("id", docId).eq("property_id", propertyId);
       if (upErr) throw upErr;
     } else {
       const slug = data.slug ?? slugify(data.title);
@@ -296,6 +324,10 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
         tags: data.tags ?? [],
         status: data.status ?? "draft",
         allowed_roles: data.allowed_roles ?? null,
+        property_id: propertyId,
+        language_code: data.language_code ?? "en",
+        is_guest_visible: data.is_guest_visible ?? false,
+        source_updated_at: data.source_updated_at ?? null,
         current_version: 1,
         byte_size: data.content_text?.length ?? 0,
         created_by: context.userId,
@@ -305,6 +337,7 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
         .from("knowledge_documents")
         .insert(insertPayload)
         .select("id, current_version")
+        .eq("property_id", propertyId)
         .maybeSingle();
       if (error || !row) throw error ?? new Error("Insert failed.");
       docId = (row as any).id;
@@ -318,6 +351,7 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
 
       const { error: vErr } = await supabase.from("knowledge_document_versions").insert({
         document_id: docId,
+        property_id: propertyId,
         version: nextVersion,
         content_text: content,
         byte_size: content.length,
@@ -327,11 +361,14 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
       if (vErr) throw vErr;
 
       // Delete old chunks and rebuild for the new current version
-      await supabase.from("knowledge_chunks").delete().eq("document_id", docId);
+      const { error: deleteChunksError } = await supabase.from("knowledge_chunks").delete().eq("document_id", docId).eq("property_id", propertyId);
+      if (deleteChunksError) throw deleteChunksError;
       const chunks = chunkText(content);
       if (chunks.length > 0) {
         const rows = chunks.map((c, i) => ({
           document_id: docId,
+          property_id: propertyId,
+          language_code: data.language_code ?? "en",
           version: nextVersion,
           chunk_index: i,
           content: c,
@@ -343,7 +380,8 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
       await supabase
         .from("knowledge_documents")
         .update({ current_version: nextVersion, byte_size: content.length, updated_by: context.userId })
-        .eq("id", docId);
+        .eq("id", docId)
+        .eq("property_id", propertyId);
     }
 
     return { id: docId };
@@ -357,18 +395,19 @@ export const deleteKbDocument = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertAdmin(context.supabase, context.userId);
+    const propertyId = await requireKnowledgeProperty(context.supabase, context.userId, true);
     // best-effort storage cleanup
     const { data: doc } = await context.supabase
       .from("knowledge_documents")
       .select("storage_path")
       .eq("id", data.id)
+      .eq("property_id", propertyId)
       .maybeSingle();
     const path = (doc as any)?.storage_path as string | null | undefined;
     if (path) {
       await context.supabase.storage.from("knowledge-docs").remove([path]);
     }
-    const { error } = await context.supabase.from("knowledge_documents").delete().eq("id", data.id);
+    const { error } = await context.supabase.from("knowledge_documents").delete().eq("id", data.id).eq("property_id", propertyId);
     if (error) throw error;
     return { ok: true };
   });
@@ -381,10 +420,13 @@ export const getKbDocumentFileUrl = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
+    const propertyId = await requireKnowledgeProperty(context.supabase, context.userId);
     const { data: doc } = await context.supabase
       .from("knowledge_documents")
       .select("storage_path")
       .eq("id", data.id)
+      .eq("property_id", propertyId)
       .maybeSingle();
     const path = (doc as any)?.storage_path as string | null;
     if (!path) return { url: null };
@@ -406,9 +448,12 @@ export const searchKnowledge = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }): Promise<KbSearchHit[]> => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    const { data: rows, error } = await context.supabase.rpc("knowledge_search", {
+    const propertyId = await requireKnowledgeProperty(context.supabase, context.userId);
+    const { data: rows, error } = await context.supabase.rpc("staynas_knowledge_search", {
+      _property_id: propertyId,
       _query: data.query,
       _limit: data.limit,
+      _guest_visible_only: false,
     });
     if (error) throw error;
     return (rows ?? []) as KbSearchHit[];
