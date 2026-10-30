@@ -188,7 +188,7 @@ export async function handleConciergeChat(
   const recsCtx = recommendations.map((r) => `- [${r.type}] ${r.name} (slug: ${r.slug}, conf ${r.confidence.toFixed(2)}): ${r.reasoning.join(" ")}`).join("\n");
   const availabilityCtx = availability.map((a) => `- ${a.name} (slug: ${a.slug}) — ${a.is_available ? `available (${a.min_available} left)` : "not available"} for ${a.nights} night(s), total ${a.currency} ${a.nightly_total}`).join("\n") + (plan?.booking_url ? `\nbooking_url: ${plan.booking_url}` : "");
 
-  const memoryCtx = await loadConciergeMemoryContext({ sessionId: sessionId!, guestId: existingGuestId, guestEmail: existingGuestEmail });
+  const memoryCtx = await loadConciergeMemoryContext({ sessionId: sessionId!, guestId: existingGuestId, propertyId });
   const memoryPromptSection = memoryCtx.contextText ? [
     "== Guest memory (approved) ==",
     memoryCtx.isReturningVisitor ? "This is a returning visitor. Greet them warmly and reference memories naturally, without revealing private history." : "Use these approved preferences to personalise your reply.",
@@ -229,7 +229,7 @@ export async function handleConciergeChat(
 
   try {
     await suggestMemoriesFromMessage({
-      sessionId: sessionId!, guestId: memoryCtx.guestId, message,
+      sessionId: sessionId!, guestId: memoryCtx.guestId, propertyId, message,
       interests: intent.detected.interests ?? [],
       party: { adults: intent.detected.adults, children: intent.detected.children },
     });
