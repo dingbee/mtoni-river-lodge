@@ -469,6 +469,9 @@ export const searchKnowledge = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<KbSearchHit[]> => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     const propertyId = await requireKnowledgeProperty(context.supabase, context.userId);
+    if (process.env.STAYNAS_PROPERTY_KNOWLEDGE_SEARCH_ENABLED !== "true") {
+      throw new Error("Property knowledge retrieval is disabled until database isolation verification is complete.");
+    }
     const { data: rows, error } = await context.supabase.rpc("staynas_property_knowledge_search", {
       _property_id: propertyId,
       _query: data.query,
