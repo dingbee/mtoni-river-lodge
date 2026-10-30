@@ -1653,6 +1653,7 @@ export type Database = {
       }
       ai_knowledge_notifications: {
         Row: {
+          property_id: string | null
           created_at: string
           id: string
           message: string | null
@@ -1737,6 +1738,7 @@ export type Database = {
       }
       ai_knowledge_search_log: {
         Row: {
+          property_id: string | null
           asked_by: string | null
           confidence: number | null
           created_at: string
@@ -1767,6 +1769,10 @@ export type Database = {
       }
       ai_knowledge_sources: {
         Row: {
+          simple_tsv: unknown
+          is_guest_visible: boolean
+          language_code: string
+          property_id: string | null
           completeness_score: number | null
           confidence_score: number | null
           content: string
@@ -1851,6 +1857,7 @@ export type Database = {
       }
       ai_knowledge_sync_runs: {
         Row: {
+          property_id: string | null
           created_at: string
           error: string | null
           finished_at: string | null
@@ -6524,6 +6531,7 @@ export type Database = {
       }
       knowledge_categories: {
         Row: {
+          property_id: string | null
           allowed_roles: Database["public"]["Enums"]["app_role"][]
           created_at: string
           description: string | null
@@ -6568,6 +6576,9 @@ export type Database = {
       }
       knowledge_chunks: {
         Row: {
+          simple_tsv: unknown
+          language_code: string
+          property_id: string | null
           chunk_index: number
           content: string
           created_at: string
@@ -6606,6 +6617,7 @@ export type Database = {
       }
       knowledge_document_versions: {
         Row: {
+          property_id: string | null
           byte_size: number | null
           change_note: string | null
           checksum: string | null
@@ -6650,6 +6662,12 @@ export type Database = {
       }
       knowledge_documents: {
         Row: {
+          review_due_at: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_updated_at: string | null
+          language_code: string
+          property_id: string | null
           allowed_roles: Database["public"]["Enums"]["app_role"][] | null
           byte_size: number | null
           category_id: string | null
@@ -17295,6 +17313,35 @@ export type Database = {
           document_slug: string
           document_title: string
           rank: number
+        }[]
+      }
+      staynas_knowledge_search: {
+        Args: { _guest_visible_only?: boolean; _limit?: number; _property_id: string; _query: string }
+        Returns: {
+          category_slug: string | null
+          chunk_id: string
+          chunk_index: number
+          content: string
+          document_id: string
+          document_slug: string
+          document_title: string
+          language_code: string
+          rank: number
+          source_updated_at: string | null
+        }[]
+      }
+      staynas_ai_knowledge_search: {
+        Args: { _guest_visible_only?: boolean; _limit?: number; _property_id: string; _query: string }
+        Returns: {
+          content: string
+          id: string
+          language_code: string
+          rank: number
+          source_type: string
+          source_updated_at: string | null
+          summary: string | null
+          title: string
+          url: string | null
         }[]
       }
       log_calendar_event: {
