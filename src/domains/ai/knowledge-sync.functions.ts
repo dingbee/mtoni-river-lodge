@@ -193,6 +193,7 @@ export const setKnowledgeSourceStatus = createServerFn({ method: "POST" })
       .update({
         status: data.status,
         is_guest_visible: data.status === "approved" ? undefined : false,
+        review_due_at: data.status === "approved" ? knowledgeReviewDueAt("document") : undefined,
         reviewed_by: context.userId,
         reviewed_at: new Date().toISOString(),
       })
