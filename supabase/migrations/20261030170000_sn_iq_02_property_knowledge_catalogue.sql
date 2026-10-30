@@ -94,6 +94,22 @@ CREATE INDEX IF NOT EXISTS ai_knowledge_sync_runs_property_started_idx
 CREATE INDEX IF NOT EXISTS ai_knowledge_notifications_property_status_idx
   ON public.ai_knowledge_notifications(property_id, status, created_at DESC);
 
+-- Seed neutral catalogue categories independently for every active property.
+INSERT INTO public.knowledge_categories (property_id, slug, name, description, sort_order)
+SELECT property.id, category.slug, category.name, category.description, category.sort_order
+FROM public.staynas_properties property
+CROSS JOIN (VALUES
+  ('property', 'Property', 'Property overview and guest information', 10),
+  ('rooms', 'Rooms', 'Room types, occupancy and configured rates', 20),
+  ('facilities', 'Facilities', 'Facilities, amenities and accessibility', 30),
+  ('dining', 'Dining', 'Restaurants, menus and dining arrangements', 40),
+  ('policies', 'Policies', 'Guest policies, terms and service rules', 50),
+  ('experiences', 'Experiences', 'Activities, excursions and experiences', 60),
+  ('guest-services', 'Guest Services', 'Transfers, concierge and guest services', 70)
+) AS category(slug, name, description, sort_order)
+WHERE property.status = 'active'
+ON CONFLICT (property_id, slug) DO NOTHING;
+
 -- ---------------------------------------------------------------------------
 -- 2. RLS: every tenant catalogue and intelligence record follows active scope.
 -- Requires the SN-IQ-01 staynas_ai_property_in_active_context helper.
