@@ -58,12 +58,20 @@ async function requireSessionInProperty(
 }
 
 async function propertySessionIds(supabase: any, propertyId: string): Promise<string[]> {
-  const { data, error } = await supabase
-    .from("ai_concierge_sessions")
-    .select("id")
-    .eq("property_id", propertyId);
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((row: { id: string }) => row.id);
+  const ids: string[] = [];
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("ai_concierge_sessions")
+      .select("id")
+      .eq("property_id", propertyId)
+      .range(from, from + pageSize - 1);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []).map((row: { id: string }) => row.id);
+    ids.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return ids;
 }
 
 // ── Channels ────────────────────────────────────────────────────────────────
@@ -220,7 +228,7 @@ export const createCommunicationDraft = createServerFn({ method: "POST" })
     const propertyId = await requirePropertyScope(context.supabase, context.userId);
     if (!data.session_id) throw new Error("A conversation from the active property is required.");
     const session = await requireSessionInProperty(context.supabase, data.session_id, propertyId);
-    if (data.guest_id && session.guest_id && data.guest_id !== session.guest_id) {
+    if (data.guest_id && data.guest_id !== session.guest_id) {
       throw new Error("Guest does not match the selected conversation.");
     }
     if (data.booking_id) {
@@ -231,6 +239,9 @@ export const createCommunicationDraft = createServerFn({ method: "POST" })
         .eq("property_id", propertyId)
         .maybeSingle();
       if (bookingError || !booking) throw new Error("Booking not found in the active property.");
+      if (data.guest_id && booking.guest_id && data.guest_id !== booking.guest_id) {
+        throw new Error("Booking does not belong to the selected guest.");
+      }
       if (session.guest_id && booking.guest_id && session.guest_id !== booking.guest_id) {
         throw new Error("Booking does not belong to the conversation guest.");
       }
@@ -246,7 +257,7 @@ export const createCommunicationDraft = createServerFn({ method: "POST" })
         channel: data.channel,
         draft_type: data.draft_type,
         session_id: data.session_id ?? null,
-        guest_id: data.guest_id ?? null,
+        guest_id: data.guest_id ?? session.guest_id ?? null,
         booking_id: data.booking_id ?? null,
         subject: data.subject ?? tpl.subject,
         body: data.body ?? tpl.body,
@@ -414,8 +425,21 @@ export const updateEscalation = createServerFn({ method: "POST" })
         patch.resolved_at = new Date().toISOString();
       }
     }
-    if (data.assigned_to !== undefined) patch.assigned_to = data.assigned_to;
+    if (data.assigned_to !== undefined) {
+      if (data.assigned_to !== null) {
+        const { data: assignee, error: assigneeError } = await context.supabase
+          .from("staynas_property_members")
+          .select("user_id")
+          .eq("user_id", data.assigned_to)
+          .eq("property_id", propertyId)
+          .eq("status", "active")
+          .maybeSingle();
+        if (assigneeError || !assignee) throw new Error("Assignee must be an active member of the selected property.");
+      }
+      patch.assigned_to = data.assigned_to;
+    }
     if (data.resolution_notes !== undefined) patch.resolution_notes = data.resolution_notes;
+    if (Object.keys(patch).length === 0) throw new Error("No escalation changes supplied.");
     const { data: updated, error } = await context.supabase
       .from("ai_escalations")
       .update(patch as never)
