@@ -177,3 +177,9 @@ No provider secrets were created, copied, or modified. No production environment
 - All three migration artifacts remain unapplied. No production DB, provider secrets, Vercel deployment settings, production deployment or Lovable resources were changed.
 - Isolated DB verification is still required for grants, RLS, mapping uniqueness, inbox deduplication, and property scoping. End-to-end webhook replay and provider-console handshake checks remain pending.
 - The inbound message processor that creates/attaches a property-scoped conversation and materializes the omnichannel message row remains a follow-on integration task; the current endpoint safely persists verified normalized events in the property-routed inbox.
+
+
+**Administration UI completion update**
+- Founder Admin provider-routing UI: `/admin/ai/concierge/providers`, linked from the founder-only Concierge Channels page. It maps Meta phone-number IDs and Resend sender identities/account IDs to one property and shows active routing records.
+- Tenant Admin property controls: `/admin/settings/channels`, linked from the Settings hub.
+- Credential entry remains deliberately outside these pages: founder must provision the access tokens and webhook signing secrets in the protected deployment secret manager. The UI does not persist or reveal secrets. The migration must be applied before either settings page can read/write its tables.
