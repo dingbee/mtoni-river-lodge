@@ -201,6 +201,47 @@ export const setKnowledgeSourceStatus = createServerFn({ method: "POST" })
     return row;
   });
 
+export const setKnowledgeSourceGuestVisibility = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: any) =>
+    z.object({ id: z.string().uuid(), is_guest_visible: z.boolean() }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
+    const propertyId = await assertApprover(context.supabase, context.userId);
+    const sb: any = context.supabase;
+    const { data: source, error: readError } = await sb
+      .from("ai_knowledge_sources")
+      .select("id, status")
+      .eq("id", data.id)
+      .eq("property_id", propertyId)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (!source) throw new Error("Knowledge source not found in the active property.");
+    if (data.is_guest_visible && source.status !== "approved") {
+      throw new Error("Approve the source before enabling guest-facing answers.");
+    }
+    const { data: row, error } = await sb
+      .from("ai_knowledge_sources")
+      .update({
+        is_guest_visible: data.is_guest_visible,
+        reviewed_by: context.userId,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", data.id)
+      .eq("property_id", propertyId)
+      .select("id, status, title, is_guest_visible")
+      .single();
+    if (error) throw new Error(error.message);
+    await sb.from("ai_activity_logs").insert({
+      user_id: context.userId,
+      tool_called: data.is_guest_visible ? "knowledge_sync.enable_guest_visibility" : "knowledge_sync.disable_guest_visibility",
+      tool_args: { id: data.id },
+      status: "ok",
+    });
+    return row;
+  });
+
 export const deleteKnowledgeSource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: any) => z.object({ id: z.string().uuid() }).parse(input))
