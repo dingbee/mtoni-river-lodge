@@ -1670,6 +1670,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          property_id?: string | null
           created_at?: string
           id?: string
           message?: string | null
@@ -1683,6 +1684,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          property_id?: string | null
           created_at?: string
           id?: string
           message?: string | null
@@ -1751,6 +1753,7 @@ export type Database = {
           result_count: number
         }
         Insert: {
+          property_id?: string | null
           asked_by?: string | null
           confidence?: number | null
           created_at?: string
@@ -1760,6 +1763,7 @@ export type Database = {
           result_count?: number
         }
         Update: {
+          property_id?: string | null
           asked_by?: string | null
           confidence?: number | null
           created_at?: string
@@ -1803,6 +1807,10 @@ export type Database = {
           usage_score: number | null
         }
         Insert: {
+          property_id?: string | null
+          language_code?: string
+          is_guest_visible?: boolean
+          simple_tsv?: unknown
           completeness_score?: number | null
           confidence_score?: number | null
           content?: string
@@ -1830,6 +1838,10 @@ export type Database = {
           usage_score?: number | null
         }
         Update: {
+          property_id?: string | null
+          language_code?: string
+          is_guest_visible?: boolean
+          simple_tsv?: unknown
           completeness_score?: number | null
           confidence_score?: number | null
           content?: string
@@ -1872,6 +1884,7 @@ export type Database = {
           triggered_by: string
         }
         Insert: {
+          property_id?: string | null
           created_at?: string
           error?: string | null
           finished_at?: string | null
@@ -1883,6 +1896,7 @@ export type Database = {
           triggered_by?: string
         }
         Update: {
+          property_id?: string | null
           created_at?: string
           error?: string | null
           finished_at?: string | null
@@ -6546,6 +6560,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          property_id?: string | null
           allowed_roles?: Database["public"]["Enums"]["app_role"][]
           created_at?: string
           description?: string | null
@@ -6557,6 +6572,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          property_id?: string | null
           allowed_roles?: Database["public"]["Enums"]["app_role"][]
           created_at?: string
           description?: string | null
@@ -6591,6 +6607,9 @@ export type Database = {
           version: number
         }
         Insert: {
+          property_id?: string | null
+          language_code?: string
+          simple_tsv?: unknown
           chunk_index: number
           content: string
           created_at?: string
@@ -6600,6 +6619,9 @@ export type Database = {
           version: number
         }
         Update: {
+          property_id?: string | null
+          language_code?: string
+          simple_tsv?: unknown
           chunk_index?: number
           content?: string
           created_at?: string
@@ -6632,6 +6654,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          property_id?: string | null
           byte_size?: number | null
           change_note?: string | null
           checksum?: string | null
@@ -6643,6 +6666,7 @@ export type Database = {
           version: number
         }
         Update: {
+          property_id?: string | null
           byte_size?: number | null
           change_note?: string | null
           checksum?: string | null
@@ -6691,6 +6715,12 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          property_id?: string | null
+          language_code?: string
+          source_updated_at?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          review_due_at?: string | null
           allowed_roles?: Database["public"]["Enums"]["app_role"][] | null
           byte_size?: number | null
           category_id?: string | null
@@ -6711,6 +6741,12 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          property_id?: string | null
+          language_code?: string
+          source_updated_at?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          review_due_at?: string | null
           allowed_roles?: Database["public"]["Enums"]["app_role"][] | null
           byte_size?: number | null
           category_id?: string | null
