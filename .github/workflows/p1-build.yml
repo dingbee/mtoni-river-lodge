@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+      - feat/sn-iq-02-property-knowledge-intelligence
 
 jobs:
   build:
