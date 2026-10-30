@@ -263,7 +263,8 @@ export async function handleConciergeChat(
 
 export async function loadConciergeSession(token: string): Promise<{ token: string; messages: ConciergeMessage[] } | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: session } = await supabaseAdmin.from("ai_concierge_sessions").select("id, session_token").eq("session_token", token).maybeSingle();
+  const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+  const { data: session } = await (supabaseAdmin as any).from("ai_concierge_sessions").select("id, session_token").eq("session_token", token).eq("property_id", propertyId).maybeSingle();
   if (!session) return null;
   const { data: rows } = await supabaseAdmin.from("ai_concierge_messages").select("id, role, content, citations, confidence, escalated, created_at").eq("session_id", session.id).order("created_at", { ascending: true }).limit(50);
   return {
