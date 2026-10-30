@@ -74,6 +74,7 @@ export const createConciergeMemory = createServerFn({ method: "POST" })
     const propertyId = await activePropertyId(sb, context.userId);
     await assertPropertyRole(sb, context.userId, propertyId, MANAGER_ROLES);
     if (!data.guestId && !data.sessionId) throw new Error("guestId or sessionId required");
+    let resolvedGuestId: string | null = data.guestId ?? null;
     if (data.sessionId) {
       const { data: session, error: sessionError } = await sb
         .from("ai_concierge_sessions")
@@ -85,12 +86,24 @@ export const createConciergeMemory = createServerFn({ method: "POST" })
       if (data.guestId && data.guestId !== session.guest_id) {
         throw new Error("Guest does not match the selected conversation.");
       }
+      resolvedGuestId = session.guest_id ?? null;
+    } else if (data.guestId) {
+      const { data: propertyBooking, error: bookingError } = await sb
+        .from("bookings")
+        .select("id")
+        .eq("property_id", propertyId)
+        .eq("guest_id", data.guestId)
+        .limit(1)
+        .maybeSingle();
+      if (bookingError || !propertyBooking) {
+        throw new Error("Guest is not associated with a booking in the active property.");
+      }
     }
     const { data: row, error } = await sb
       .from("ai_guest_memories")
       .insert({
         property_id: propertyId,
-        guest_id: data.guestId ?? null,
+        guest_id: resolvedGuestId,
         session_id: data.sessionId ?? null,
         memory_type: data.memoryType,
         memory_key: data.memoryKey,
