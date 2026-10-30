@@ -18,6 +18,9 @@ async function chat(system: string, user: string, jsonMode = true): Promise<stri
 const tryJson = parseAiJson;
 
 async function getActiveScope(supabase: any, userId: string) {
+  if (process.env.STAYNAS_PROPERTY_KNOWLEDGE_SCHEMA_ENABLED !== "true") {
+    throw new Error("Staff Copilot property history is waiting for database isolation verification.");
+  }
   return getActivePropertyAiRoles(supabase, userId);
 }
 
