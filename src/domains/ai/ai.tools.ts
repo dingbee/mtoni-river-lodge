@@ -295,11 +295,14 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   },
   "knowledge.search": {
     id: "knowledge.search",
-    description: "Search Mtoni's internal knowledge base (SOPs, policies, brand, experiences). Use whenever the question is procedural, definitional, or reference-based. args: { query: string }.",
+    description: "Search the active property's approved knowledge catalogue (policies, rooms, facilities, dining and experiences). Use for procedural or reference-based questions. args: { query: string }.",
     args: '{"query": "keywords or a short phrase"}',
     run: async ({ supabase, propertyId }, args) => {
       const q = String(args.query ?? "").trim();
       if (!q) return { summary: "No query provided.", data: [], count: 0 };
+      if (process.env.STAYNAS_PROPERTY_KNOWLEDGE_SEARCH_ENABLED !== "true") {
+        return { summary: "Property knowledge retrieval is not yet enabled pending database isolation verification.", data: [], count: 0 };
+      }
       const { memoizeTTL } = await import("@/lib/perf-cache");
       const rows = await memoizeTTL(`kb:tools:${propertyId}:${q.toLowerCase()}:6`, 60_000, async () => {
         const { data, error } = await supabase.rpc("staynas_property_knowledge_search", {
