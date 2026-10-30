@@ -210,7 +210,7 @@ export async function handleConciergeChat(
     message_count: history.length + 2, last_active_at: new Date().toISOString(),
     escalated: shouldEscalate, escalation_channel: shouldEscalate ? "whatsapp" : null,
     guest_id: memoryCtx.guestId ?? existingGuestId ?? null,
-  }).eq("id", sessionId);
+  }).eq("id", sessionId).eq("property_id", propertyId);
 
   try {
     await suggestMemoriesFromMessage({
