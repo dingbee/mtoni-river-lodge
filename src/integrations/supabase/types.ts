@@ -529,6 +529,7 @@ export type Database = {
       }
       ai_concierge_leads: {
         Row: {
+          property_id: string | null
           assigned_to: string | null
           country: string | null
           created_at: string
@@ -548,6 +549,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          property_id?: string | null
           assigned_to?: string | null
           country?: string | null
           created_at?: string
@@ -567,6 +569,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          property_id?: string | null
           assigned_to?: string | null
           country?: string | null
           created_at?: string
@@ -795,6 +798,7 @@ export type Database = {
       }
       ai_concierge_sessions: {
         Row: {
+          property_id: string | null
           channel: string
           channel_thread_id: string | null
           created_at: string
@@ -816,6 +820,7 @@ export type Database = {
           user_agent: string | null
         }
         Insert: {
+          property_id?: string | null
           channel?: string
           channel_thread_id?: string | null
           created_at?: string
@@ -837,6 +842,7 @@ export type Database = {
           user_agent?: string | null
         }
         Update: {
+          property_id?: string | null
           channel?: string
           channel_thread_id?: string | null
           created_at?: string
@@ -1434,6 +1440,7 @@ export type Database = {
       }
       ai_guest_memories: {
         Row: {
+          property_id: string | null
           approved_at: string | null
           approved_by: string | null
           confidence: number
@@ -1450,6 +1457,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          property_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           confidence?: number
@@ -1466,6 +1474,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          property_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           confidence?: number
@@ -2319,6 +2328,7 @@ export type Database = {
       }
       ai_personalization_events: {
         Row: {
+          property_id: string | null
           created_at: string
           detail: Json
           event_type: string
@@ -2328,6 +2338,7 @@ export type Database = {
           session_id: string | null
         }
         Insert: {
+          property_id?: string | null
           created_at?: string
           detail?: Json
           event_type: string
@@ -2337,6 +2348,7 @@ export type Database = {
           session_id?: string | null
         }
         Update: {
+          property_id?: string | null
           created_at?: string
           detail?: Json
           event_type?: string
