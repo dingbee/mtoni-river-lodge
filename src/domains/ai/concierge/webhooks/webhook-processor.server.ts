@@ -36,7 +36,7 @@ async function processInbound(supabase: any, row: InboxRow, event: NormalizedPro
   }).select("id").single();
   if (sessionError || !session) throw new Error("Could not create property-scoped conversation: " + (sessionError?.message ?? "missing session"));
   const messageType = event.body ? "text" : "media";
-  const { data: message, error: messageError } = await supabase.from("ai_omnichannel_messages").insert({
+  const { data: existingMessage, error: existingError } = await supabase.from("ai_omnichannel_messages")\n    .select("id").eq("property_id", row.property_id).eq("channel", event.channel)\n    .eq("provider", providerName(row.provider)).eq("provider_message_id", event.providerMessageId).maybeSingle();\n  if (existingError) throw new Error(existingError.message);\n  if (existingMessage) return { sessionId: (await supabase.from("ai_omnichannel_messages").select("session_id").eq("id", existingMessage.id).single()).data.session_id as string, messageId: existingMessage.id as string };\n  const { data: message, error: messageError } = await supabase.from("ai_omnichannel_messages").insert({
     property_id: row.property_id, session_id: session.id, guest_id: null,
     channel: event.channel, direction: "inbound", actor_type: "provider",
     message_type: messageType, subject: event.subject, body: event.body,
@@ -83,7 +83,7 @@ async function processDelivery(supabase: any, row: InboxRow, event: NormalizedPr
 export async function processProviderWebhookInbox(supabase: any, inboxId: string) {
   const { data: row, error: claimError } = await supabase.from("ai_provider_webhook_inbox")
     .update({ processing_status: "processing", processing_started_at: new Date().toISOString(), last_error: null })
-    .eq("id", inboxId).in("processing_status", ["received", "failed"])
+    .eq("id", inboxId).or(`processing_status.in.(received,failed),and(processing_status.eq.processing,processing_started_at.lt.${new Date(Date.now() - 5 * 60 * 1000).toISOString()})`)
     .select("id,property_id,channel_id,provider,external_account_id,provider_event_id,event_type,normalized_event,processing_status")
     .maybeSingle();
   if (claimError) throw new Error(claimError.message);
