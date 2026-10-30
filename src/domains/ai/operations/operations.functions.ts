@@ -512,7 +512,7 @@ export const askOperationsKnowledge = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const scope = await getActivePropertyAiRoles(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const { data: results, error } = await sb.rpc("staynas_knowledge_search", {
+    const { data: results, error } = await sb.rpc("staynas_property_knowledge_search", {
       _property_id: scope.propertyId,
       _query: data.query,
       _limit: 5,
