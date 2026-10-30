@@ -16,6 +16,55 @@ const CHANNELS: ConciergeChannel[] = ["web", "whatsapp", "email"];
 const isChannel = (v: unknown): v is ConciergeChannel =>
   typeof v === "string" && (CHANNELS as string[]).includes(v);
 
+const STAFF_ROLES = ["owner", "manager", "admin", "reception"] as const;
+const MANAGER_ROLES = ["owner", "manager", "admin"] as const;
+
+async function requirePropertyScope(
+  supabase: any,
+  userId: string,
+  allowedRoles: readonly string[] = STAFF_ROLES,
+): Promise<string> {
+  const { data: propertyId, error: contextError } = await supabase.rpc(
+    "staynas_active_property_id",
+    { _uid: userId },
+  );
+  if (contextError || !propertyId) throw new Error("No active property selected.");
+
+  const { data: membership, error: membershipError } = await supabase
+    .from("staynas_property_members")
+    .select("property_id")
+    .eq("user_id", userId)
+    .eq("property_id", propertyId)
+    .eq("status", "active")
+    .in("role", [...allowedRoles])
+    .maybeSingle();
+  if (membershipError || !membership) throw new Error("Forbidden");
+  return String(propertyId);
+}
+
+async function requireSessionInProperty(
+  supabase: any,
+  sessionId: string,
+  propertyId: string,
+): Promise<void> {
+  const { data, error } = await supabase
+    .from("ai_concierge_sessions")
+    .select("id")
+    .eq("id", sessionId)
+    .eq("property_id", propertyId)
+    .maybeSingle();
+  if (error || !data) throw new Error("Conversation not found in the active property.");
+}
+
+async function propertySessionIds(supabase: any, propertyId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("ai_concierge_sessions")
+    .select("id")
+    .eq("property_id", propertyId);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row: { id: string }) => row.id);
+}
+
 // ── Channels ────────────────────────────────────────────────────────────────
 export const listConciergeChannels = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -76,11 +125,13 @@ export const listConciergeConversations = createServerFn({ method: "POST" })
     }) => input ?? {},
   )
   .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
     let q = context.supabase
       .from("ai_concierge_sessions")
       .select(
         "id, channel, session_token, locale, page_context, guest_id, guest_name, guest_email, message_count, escalated, identity_confidence, last_active_at, created_at",
       )
+      .eq("property_id", propertyId)
       .order("last_active_at", { ascending: false })
       .limit(Math.min(Math.max(data.limit ?? 100, 1), 300));
     if (data.channel && data.channel !== "all") q = q.eq("channel", data.channel);
@@ -165,6 +216,9 @@ export const createCommunicationDraft = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
+    if (!data.session_id) throw new Error("A conversation from the active property is required.");
+    await requireSessionInProperty(context.supabase, data.session_id, propertyId);
     const tpl = draftTemplate(data.draft_type, {
       guest_name: data.guest_name ?? null,
       room_slug: data.room_slug ?? null,
@@ -200,9 +254,14 @@ export const listCommunicationDrafts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { status?: CommunicationDraftStatus | "all" }) => input ?? {})
   .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
+    const sessionIds = await propertySessionIds(context.supabase, propertyId);
+    if (sessionIds.length === 0) return [];
     let q = context.supabase
       .from("ai_communication_drafts")
       .select("*")
+      .in("session_id", sessionIds)
+      .in("session_id", sessionIds)
       .order("created_at", { ascending: false })
       .limit(200);
     if (data.status && data.status !== "all") q = q.eq("status", data.status);
@@ -226,6 +285,9 @@ export const updateCommunicationDraft = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
+    const sessionIds = await propertySessionIds(context.supabase, propertyId);
+    if (sessionIds.length === 0) throw new Error("Draft not found in the active property.");
     const patch: Record<string, unknown> = {};
     if (data.subject !== undefined) patch.subject = data.subject;
     if (data.body !== undefined) patch.body = data.body;
@@ -237,11 +299,15 @@ export const updateCommunicationDraft = createServerFn({ method: "POST" })
         patch.approved_at = new Date().toISOString();
       }
     }
-    const { error } = await context.supabase
+    const { data: updated, error } = await context.supabase
       .from("ai_communication_drafts")
       .update(patch as never)
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .in("session_id", sessionIds)
+      .select("id")
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!updated) throw new Error("Draft not found in the active property.");
     return { ok: true };
   });
 
@@ -250,6 +316,9 @@ export const listEscalations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { status?: EscalationStatus | "all" }) => input ?? {})
   .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
+    const sessionIds = await propertySessionIds(context.supabase, propertyId);
+    if (sessionIds.length === 0) return [];
     let q = context.supabase
       .from("ai_escalations")
       .select("*")
@@ -279,6 +348,8 @@ export const createEscalation = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
+    await requireSessionInProperty(context.supabase, data.session_id, propertyId);
     const { data: row, error } = await context.supabase
       .from("ai_escalations")
       .insert({
@@ -310,6 +381,9 @@ export const updateEscalation = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
+    const sessionIds = await propertySessionIds(context.supabase, propertyId);
+    if (sessionIds.length === 0) throw new Error("Escalation not found in the active property.");
     const patch: Record<string, unknown> = {};
     if (data.status) {
       patch.status = data.status;
@@ -319,11 +393,15 @@ export const updateEscalation = createServerFn({ method: "POST" })
     }
     if (data.assigned_to !== undefined) patch.assigned_to = data.assigned_to;
     if (data.resolution_notes !== undefined) patch.resolution_notes = data.resolution_notes;
-    const { error } = await context.supabase
+    const { data: updated, error } = await context.supabase
       .from("ai_escalations")
       .update(patch as never)
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .in("session_id", sessionIds)
+      .select("id")
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!updated) throw new Error("Escalation not found in the active property.");
     return { ok: true };
   });
 
@@ -331,37 +409,37 @@ export const updateEscalation = createServerFn({ method: "POST" })
 export const getOmnichannelAnalytics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
     const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
-    const [web, wa, em, escOpen, drafts] = await Promise.all([
-      context.supabase
-        .from("ai_concierge_sessions")
-        .select("id", { count: "exact", head: true })
-        .eq("channel", "web")
-        .gte("created_at", since),
-      context.supabase
-        .from("ai_concierge_sessions")
-        .select("id", { count: "exact", head: true })
-        .eq("channel", "whatsapp")
-        .gte("created_at", since),
-      context.supabase
-        .from("ai_concierge_sessions")
-        .select("id", { count: "exact", head: true })
-        .eq("channel", "email")
-        .gte("created_at", since),
+    const { data: sessions, error: sessionError } = await context.supabase
+      .from("ai_concierge_sessions")
+      .select("id, channel")
+      .eq("property_id", propertyId)
+      .gte("created_at", since);
+    if (sessionError) throw new Error(sessionError.message);
+    const sessionIds = (sessions ?? []).map((row: { id: string }) => row.id);
+    if (sessionIds.length === 0) {
+      return { sessions_30d: { web: 0, whatsapp: 0, email: 0 }, escalations_open: 0, drafts_pending: 0 };
+    }
+    const [escOpen, drafts] = await Promise.all([
       context.supabase
         .from("ai_escalations")
         .select("id", { count: "exact", head: true })
+        .in("session_id", sessionIds)
         .in("status", ["open", "assigned", "in_progress"]),
       context.supabase
         .from("ai_communication_drafts")
         .select("id", { count: "exact", head: true })
+        .in("session_id", sessionIds)
         .eq("status", "pending"),
     ]);
+    if (escOpen.error) throw new Error(escOpen.error.message);
+    if (drafts.error) throw new Error(drafts.error.message);
     return {
       sessions_30d: {
-        web: web.count ?? 0,
-        whatsapp: wa.count ?? 0,
-        email: em.count ?? 0,
+        web: sessions.filter((row: any) => row.channel === "web").length,
+        whatsapp: sessions.filter((row: any) => row.channel === "whatsapp").length,
+        email: sessions.filter((row: any) => row.channel === "email").length,
       },
       escalations_open: escOpen.count ?? 0,
       drafts_pending: drafts.count ?? 0,
