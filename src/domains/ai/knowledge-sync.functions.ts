@@ -16,6 +16,13 @@ const SOURCE_TYPES = [
 ] as const;
 const STATUSES = ["pending", "processing", "approved", "archived", "failed"] as const;
 
+function knowledgeReviewDueAt(sourceType: string, now = new Date()): string {
+  const days: Record<string, number> = { room: 30, experience: 60, website_page: 30, journal_article: 90, policy: 180, document: 180, other: 90 };
+  const due = new Date(now);
+  due.setUTCDate(due.getUTCDate() + (days[sourceType] ?? 90));
+  return due.toISOString();
+}
+
 async function assertStaff(sb: any, userId: string) {
   const scope = await getActivePropertyAiRoles(sb, userId);
   const allowed = ["owner", "manager", "admin", "reservations", "reception", "marketing", "finance", "housekeeping"];
@@ -48,6 +55,7 @@ export interface AiKnowledgeSource {
   language_code: string;
   is_guest_visible: boolean;
   source_updated_at: string | null;
+  review_due_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -71,7 +79,7 @@ export const listKnowledgeSources = createServerFn({ method: "GET" })
     let q: any = context.supabase
       .from("ai_knowledge_sources")
       .select(
-        "id, property_id, source_type, external_ref, title, url, summary, status, is_guest_visible, language_code, source_updated_at, last_synced_at, indexed_at, metadata, created_at, updated_at",
+        "id, property_id, source_type, external_ref, title, url, summary, status, is_guest_visible, language_code, source_updated_at, review_due_at, last_synced_at, indexed_at, metadata, created_at, updated_at",
       )
       .eq("property_id", propertyId)
       .order("updated_at", { ascending: false })
@@ -135,6 +143,7 @@ export const upsertKnowledgeSource = createServerFn({ method: "POST" })
       is_guest_visible: data.is_guest_visible && data.status === "approved",
       status: data.status,
       source_updated_at: new Date().toISOString(),
+      review_due_at: knowledgeReviewDueAt(data.source_type),
       indexed_at: new Date().toISOString(),
       ...(data.status === "approved" ? { reviewed_by: context.userId, reviewed_at: new Date().toISOString() } : {}),
     };
@@ -212,7 +221,7 @@ export const setKnowledgeSourceGuestVisibility = createServerFn({ method: "POST"
     const sb: any = context.supabase;
     const { data: source, error: readError } = await sb
       .from("ai_knowledge_sources")
-      .select("id, status")
+      .select("id, status, review_due_at")
       .eq("id", data.id)
       .eq("property_id", propertyId)
       .maybeSingle();
@@ -220,6 +229,9 @@ export const setKnowledgeSourceGuestVisibility = createServerFn({ method: "POST"
     if (!source) throw new Error("Knowledge source not found in the active property.");
     if (data.is_guest_visible && source.status !== "approved") {
       throw new Error("Approve the source before enabling guest-facing answers.");
+    }
+    if (data.is_guest_visible && source.review_due_at && new Date(source.review_due_at).getTime() < Date.now()) {
+      throw new Error("Refresh and re-review this source before enabling guest-facing answers.");
     }
     const { data: row, error } = await sb
       .from("ai_knowledge_sources")
@@ -297,6 +309,7 @@ export const syncRoomsAndExperiences = createServerFn({ method: "POST" })
           language_code: "en",
           is_guest_visible: false,
           source_updated_at: r.updated_at ?? new Date().toISOString(),
+          review_due_at: knowledgeReviewDueAt("room"),
           source_type: "room",
           external_ref: r.id,
           title: r.name,
