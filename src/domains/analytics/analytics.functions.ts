@@ -64,16 +64,21 @@ export const getAnalyticsHub = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const s = context.supabase;
+    const propertyId = await requirePropertyScope(s, context.userId);
+    const bookingIds = await propertyBookingIds(s, propertyId);
     const today = todayISO();
     const start30 = daysAgoISO(30);
-    const [{ data: bookings30 }, { data: todayBookings }, { data: rooms }, { data: aiLogs }, { data: opsAlerts }, { data: reviews }, { data: campaigns }] = await Promise.all([
-      s.from("bookings").select("id, total, status, check_in, check_out, nights, created_at, payment_status").gte("created_at", start30),
-      s.from("bookings").select("id, status").eq("check_in", today),
-      s.from("rooms").select("id, total_units").eq("status", "active"),
-      s.from("ai_activity_logs").select("id, created_at").gte("created_at", start30),
-      s.from("ops_alerts").select("id, resolved_at").is("resolved_at", null),
-      s.from("reviews").select("rating").eq("status", "approved").gte("created_at", start30),
-      s.from("campaigns").select("id, status").eq("status", "running"),
+    const [{ data: bookings30 }, { data: todayBookings }, { data: rooms }, { data: aiLogs }, opsAlerts, reviews] = await Promise.all([
+      s.from("bookings").select("id, total, status, check_in, check_out, nights, created_at, payment_status").eq("property_id", propertyId).gte("created_at", start30),
+      s.from("bookings").select("id, status").eq("property_id", propertyId).eq("check_in", today),
+      s.from("rooms").select("id, total_units").eq("property_id", propertyId).eq("status", "active"),
+      s.from("ai_activity_logs").select("id, created_at").eq("user_id", context.userId).gte("created_at", start30),
+      bookingIds.length
+        ? s.from("ops_alerts").select("id, resolved_at").in("booking_id", bookingIds).is("resolved_at", null)
+        : Promise.resolve({ data: [], error: null }),
+      bookingIds.length
+        ? s.from("reviews").select("rating").in("booking_id", bookingIds).eq("status", "approved").gte("created_at", start30)
+        : Promise.resolve({ data: [], error: null }),
     ]);
     const b30 = (bookings30 ?? []) as Row[];
     const active = b30.filter((b) => b.status !== "cancelled");
@@ -92,7 +97,7 @@ export const getAnalyticsHub = createServerFn({ method: "POST" })
         bookings30d: b30.length, cancelRate, avgRating,
         aiInteractions30d: (aiLogs ?? []).length,
         openAlerts: (opsAlerts ?? []).length,
-        activeCampaigns: (campaigns ?? []).length,
+        activeCampaigns: 0, // Campaigns are global legacy records; withheld until property-keyed.
       },
     };
   });
@@ -103,11 +108,14 @@ export const getBookingAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => rangeSchema.parse(d ?? {}))
   .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
     const from = daysAgoISO(data.days);
-    const { data: bookings } = await context.supabase
+    const { data: bookings, error: bookingsError } = await context.supabase
       .from("bookings")
       .select("id, created_at, check_in, check_out, nights, source, country, room_id, status, total, adults, children")
+      .eq("property_id", propertyId)
       .gte("created_at", from);
+    if (bookingsError) throw new Error(bookingsError.message);
     const b = (bookings ?? []) as Row[];
     const byDay = new Map<string, number>();
     const bySource = new Map<string, number>();
@@ -123,7 +131,11 @@ export const getBookingAnalytics = createServerFn({ method: "POST" })
       staySum += row.nights ?? 0;
       if (row.status === "cancelled") cancelled++;
     }
-    const { data: extras } = await context.supabase.from("booking_extras").select("booking_id").limit(2000);
+    const bookingIds = b.map((row) => row.id);
+    const { data: extras, error: extrasError } = bookingIds.length
+      ? await context.supabase.from("booking_extras").select("booking_id").in("booking_id", bookingIds).limit(2000)
+      : { data: [], error: null };
+    if (extrasError) throw new Error(extrasError.message);
     const withExtras = new Set((extras ?? []).map((e: any) => e.booking_id));
     const attachRate = b.length ? [...withExtras].filter((id) => b.find((x) => x.id === id)).length / b.length : 0;
     return {
@@ -142,10 +154,13 @@ export const getBookingAnalytics = createServerFn({ method: "POST" })
 export const getWebsiteAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: sessions } = await context.supabase
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
+    const { data: sessions, error } = await context.supabase
       .from("ai_concierge_sessions")
       .select("id, created_at, channel")
+      .eq("property_id", propertyId)
       .gte("created_at", daysAgoISO(30));
+    if (error) throw new Error(error.message);
     return {
       note: "Traffic, sessions, sources, devices — connect GA4 or wire server-side proxy.",
       conciergeSessions30d: (sessions ?? []).length,
@@ -158,26 +173,40 @@ export const getRevenueAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => rangeSchema.parse(d ?? {}))
   .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
     const from = daysAgoISO(data.days);
-    const { data: rows } = await context.supabase
-      .from("bookings")
-      .select("id, total, paid_amount, balance_amount, check_in, nights, status, payment_status")
-      .gte("check_in", from);
+    const [{ data: rows, error: bookingsError }, { data: property, error: propertyError }] = await Promise.all([
+      context.supabase.from("bookings")
+        .select("id, total, paid_amount, balance_amount, check_in, nights, status, payment_status, currency")
+        .eq("property_id", propertyId)
+        .gte("check_in", from),
+      context.supabase.from("staynas_properties").select("currency").eq("id", propertyId).single(),
+    ]);
+    if (bookingsError) throw new Error(bookingsError.message);
+    if (propertyError || !property?.currency) throw new Error("Active property currency is not configured.");
     const b = ((rows ?? []) as Row[]).filter((r) => r.status !== "cancelled");
     const revByDay = new Map<string, number>();
-    let revenue = 0, paid = 0, outstanding = 0, roomNights = 0;
+    const totalsByCurrency = new Map<string, { revenue: number; paid: number; outstanding: number }>();
+    let roomNights = 0;
     for (const r of b) {
-      const day = String(r.check_in);
-      revByDay.set(day, (revByDay.get(day) ?? 0) + Number(r.total ?? 0));
-      revenue += Number(r.total ?? 0);
-      paid += Number(r.paid_amount ?? 0);
-      outstanding += Number(r.balance_amount ?? 0);
+      const currency = String(r.currency ?? property.currency);
+      const totals = totalsByCurrency.get(currency) ?? { revenue: 0, paid: 0, outstanding: 0 };
+      totals.revenue += Number(r.total ?? 0);
+      totals.paid += Number(r.paid_amount ?? 0);
+      totals.outstanding += Number(r.balance_amount ?? 0);
+      totalsByCurrency.set(currency, totals);
       roomNights += r.nights ?? 0;
     }
-    const { data: rooms } = await context.supabase.from("rooms").select("id, total_units").eq("status", "active");
+    const primaryTotals = totalsByCurrency.get(property.currency) ?? { revenue: 0, paid: 0, outstanding: 0 };
+    const revenue = totalsByCurrency.size <= 1 ? (Array.from(totalsByCurrency.values())[0]?.revenue ?? 0) : primaryTotals.revenue;
+    const paid = totalsByCurrency.size <= 1 ? (Array.from(totalsByCurrency.values())[0]?.paid ?? 0) : primaryTotals.paid;
+    const outstanding = totalsByCurrency.size <= 1 ? (Array.from(totalsByCurrency.values())[0]?.outstanding ?? 0) : primaryTotals.outstanding;
+    const { data: rooms } = await context.supabase.from("rooms").select("id, total_units").eq("property_id", propertyId).eq("status", "active");
     const totalUnits = (rooms ?? []).reduce((n: number, r: any) => n + (r.total_units ?? 1), 0) || 1;
     return {
       revenue, paid, outstanding,
+      currency: property.currency,
+      totalsByCurrency: Array.from(totalsByCurrency.entries()).map(([currency, totals]) => ({ currency, ...totals })),
       paymentCompletion: revenue ? paid / revenue : 0,
       adr: roomNights ? revenue / roomNights : 0,
       revpar: totalUnits ? revenue / (totalUnits * data.days) : 0,
