@@ -37,6 +37,7 @@ export interface KbDocument {
   reviewed_by: string | null;
   reviewed_at: string | null;
   source_updated_at: string | null;
+  review_due_at: string | null;
   created_at: string;
   updated_at: string;
   category_slug?: string | null;
@@ -351,7 +352,9 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
         language_code: data.language_code ?? "en",
         is_guest_visible: data.is_guest_visible ?? false,
         source_updated_at: data.content_text != null ? now : null,
-        review_due_at: data.content_text != null ? reviewDueAt(data.source_type ?? "markdown") : null,
+        review_due_at: data.content_text != null || data.status === "published"
+          ? reviewDueAt(data.source_type ?? "markdown")
+          : null,
         ...(data.status === "published" ? { reviewed_by: context.userId, reviewed_at: now } : {}),
         current_version: 1,
         byte_size: data.content_text?.length ?? 0,
@@ -402,11 +405,12 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
         if (cErr) throw cErr;
       }
 
-      await supabase
+      const { error: versionUpdateError } = await supabase
         .from("knowledge_documents")
         .update({ current_version: nextVersion, byte_size: content.length, updated_by: context.userId })
         .eq("id", docId)
         .eq("property_id", propertyId);
+      if (versionUpdateError) throw versionUpdateError;
     }
 
     return { id: docId };
