@@ -30,7 +30,7 @@ function safeString(v: unknown, max = 500) {
 }
 
 async function loadRoomCatalog(supabaseAdmin: any, propertyId: string): Promise<ConciergeRoomCatalogItem[]> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await (supabaseAdmin as any)
     .from("rooms")
     .select("slug,name,short_description,capacity_adults,capacity_children,max_occupancy,base_price,currency")
     .eq("property_id", propertyId)
@@ -42,20 +42,20 @@ async function loadRoomCatalog(supabaseAdmin: any, propertyId: string): Promise<
 }
 
 async function loadPropertyFacts(supabaseAdmin: any, propertyId: string): Promise<string> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await (supabaseAdmin as any)
     .from("staynas_properties")
     .select("name,currency,timezone")
     .eq("id", propertyId)
     .eq("status", "active")
     .single();
-  if (error || !data) throw new Error("Active property context could not be resolved.");
+  if (error || !data || !data.currency) throw new Error("Active property context or currency could not be resolved.");
   return [
     `Property: ${data.name}`,
     `Configured currency: ${data.currency}`,
     `Property timezone: ${data.timezone}`,
     "Use only this property's approved configuration and knowledge. Never infer or disclose another property's information.",
     "Guests can continue to booking through this property's StayNas booking flow at /book.",
-  ].join("\\n");
+  ].join("\n");
 }
 
 function buildRoomsContext(rooms: ConciergeRoomCatalogItem[]) {
@@ -134,14 +134,14 @@ export async function handleConciergeChat(
   let existingGuestId: string | null = null;
   let existingGuestEmail: string | null = null;
   if (sessionToken) {
-    const { data } = await supabaseAdmin.from("ai_concierge_sessions").select("id, guest_id, guest_email").eq("session_token", sessionToken).eq("property_id", propertyId).maybeSingle();
+    const { data } = await (supabaseAdmin as any).from("ai_concierge_sessions").select("id, guest_id, guest_email").eq("session_token", sessionToken).eq("property_id", propertyId).maybeSingle();
     sessionId = data?.id ?? null;
     existingGuestId = (data as any)?.guest_id ?? null;
     existingGuestEmail = (data as any)?.guest_email ?? null;
   }
   if (!sessionId) {
     sessionToken = newToken();
-    const { data, error } = await supabaseAdmin.from("ai_concierge_sessions").insert({
+    const { data, error } = await (supabaseAdmin as any).from("ai_concierge_sessions").insert({
       session_token: sessionToken, property_id: propertyId, locale, user_agent: safeString(meta.userAgent, 400),
       referer: safeString(meta.referer, 400), page_context: page ? { page } : {},
     }).select("id").single();
