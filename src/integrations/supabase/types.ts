@@ -1063,6 +1063,7 @@ export type Database = {
       }
       ai_copilot_sessions: {
         Row: {
+          property_id: string | null
           created_at: string
           id: string
           last_message_at: string | null
