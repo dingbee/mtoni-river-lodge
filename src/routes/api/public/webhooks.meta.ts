@@ -27,22 +27,22 @@ export const Route = createFileRoute("/api/public/webhooks/meta")({
       try {
         const events = normalizeMetaWebhook(payload);
         if (!events.length) return Response.json({ received: true, persisted: 0 });
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");\n        const { processProviderWebhookInbox } = await import("@/domains/ai/concierge/webhooks/webhook-processor.server");
         let persisted = 0, duplicates = 0, rejected = 0;
         for (const event of events) {
           const phoneNumberId = typeof event.safePayload.phoneNumberId === "string" ? event.safePayload.phoneNumberId : null;
           if (!phoneNumberId) { rejected++; continue; }
-          const { data: mapping, error: mappingError } = await supabaseAdmin.from("ai_provider_property_bindings")
+          const { data: mapping, error: mappingError } = await (supabaseAdmin as any).from("ai_provider_property_bindings")
             .select("property_id,channel_id,external_account_id,enabled")
             .eq("provider", "meta_cloud_api").eq("external_endpoint_id", phoneNumberId).eq("enabled", true).maybeSingle();
           if (mappingError || !mapping) { rejected++; continue; }
-          const { data, error } = await supabaseAdmin.from("ai_provider_webhook_inbox").upsert({
+          const { data, error } = await (supabaseAdmin as any).from("ai_provider_webhook_inbox").upsert({
             property_id: mapping.property_id, channel_id: mapping.channel_id, provider: "meta_cloud_api",
             external_account_id: mapping.external_account_id, provider_event_id: event.providerEventId,
             event_type: event.eventType, normalized_event: event,
           }, { onConflict: "provider,provider_event_id", ignoreDuplicates: true }).select("id");
           if (error) throw new Error(error.message);
-          if (data?.length) persisted++; else duplicates++;
+          if (data?.length) {\n            persisted++;\n            await processProviderWebhookInbox(supabaseAdmin, data[0].id);\n          } else duplicates++;
         }
         return Response.json({ received: true, persisted, duplicates, rejected });
       } catch (error) {
