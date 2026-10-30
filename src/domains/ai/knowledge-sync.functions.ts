@@ -245,7 +245,10 @@ export const setKnowledgeSourceGuestVisibility = createServerFn({ method: "POST"
     if (data.is_guest_visible && source.status !== "approved") {
       throw new Error("Approve the source before enabling guest-facing answers.");
     }
-    if (data.is_guest_visible && source.review_due_at && new Date(source.review_due_at).getTime() < Date.now()) {
+    if (
+      data.is_guest_visible
+      && (!source.review_due_at || new Date(source.review_due_at).getTime() < Date.now())
+    ) {
       throw new Error("Refresh and re-review this source before enabling guest-facing answers.");
     }
     const { data: row, error } = await sb
