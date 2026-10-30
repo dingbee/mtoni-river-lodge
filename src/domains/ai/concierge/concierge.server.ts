@@ -159,7 +159,7 @@ export async function handleConciergeChat(
     const rows = (hits ?? []) as Array<any>;
     if (rows.length > 0) {
       const docIds = Array.from(new Set(rows.map((r) => r.document_id)));
-      const { data: docs } = await supabaseAdmin.from("knowledge_documents").select("id, property_id, is_guest_visible, status").in("id", docIds);
+      const { data: docs } = await (supabaseAdmin as any).from("knowledge_documents").select("id, property_id, is_guest_visible, status").in("id", docIds);
       const guestOk = new Set((docs ?? []).filter((d) => d.property_id === propertyId && d.is_guest_visible && d.status === "published").map((d) => d.id));
       const filtered = rows.filter((r) => guestOk.has(r.document_id));
       if (filtered.length > 0) {
