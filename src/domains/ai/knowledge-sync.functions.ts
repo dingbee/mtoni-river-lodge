@@ -357,22 +357,3 @@ export const getKnowledgeAnalytics = createServerFn({ method: "GET" })
 
     return { counts, topUnanswered, totalSearches, successRate, avgConfidence };
   });
-
-// ---------- Helpers ----------
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-}
-function extractBlockText(block: any): string {
-  const data = block?.data ?? {};
-  const parts: string[] = [];
-  const walk = (v: any) => {
-    if (v == null) return;
-    if (typeof v === "string") {
-      const s = stripHtml(v);
-      if (s.length > 1) parts.push(s);
-    } else if (Array.isArray(v)) v.forEach(walk);
-    else if (typeof v === "object") Object.values(v).forEach(walk);
-  };
-  walk(data);
-  return parts.join("\n");
-}
