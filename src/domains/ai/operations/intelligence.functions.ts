@@ -49,16 +49,6 @@ async function requireBookingInProperty(sb: any, bookingId: string, propertyId: 
   if (error || !data) throw new Error("Booking not found in the active property.");
 }
 
-async function assertStaff(sb: any, userId: string) {
-  const { data, error } = await sb.rpc("is_any_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
-}
-async function assertRole(sb: any, userId: string, roles: string[]) {
-  const { data, error } = await sb.rpc("has_any_role", { _user_id: userId, _roles: roles });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
-}
 async function log(sb: any, userId: string, tool: string, args: any = {}) {
   await sb.from("ai_activity_logs").insert({
     user_id: userId,
@@ -607,7 +597,13 @@ export const listServiceRecoveryInsights = createServerFn({ method: "GET" })
     if (evidenceRows.error) throw new Error(evidenceRows.error.message);
     const unique = new Map<string, any>();
     for (const row of [...(bookingRows.data ?? []), ...(evidenceRows.data ?? [])]) unique.set(row.id, row);
+    const bookingSet = new Set(bookingIds);
     return Array.from(unique.values())
+      .filter((row) => {
+        if (row.booking_id && !bookingSet.has(row.booking_id)) return false;
+        if (row.evidence?.property_id && row.evidence.property_id !== propertyId) return false;
+        return Boolean(row.booking_id || row.evidence?.property_id === propertyId);
+      })
       .filter((row) => !data.status || data.status === "all" || row.status === data.status)
       .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
       .slice(0, 100);
