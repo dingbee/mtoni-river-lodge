@@ -58,7 +58,6 @@ function SettingsHub() {
   ];
   const aiAndMessaging: LinkTile[] = [
     {
-    {
       to: "/admin/ai/concierge/analytics",
       title: "Concierge Analytics",
       description: "Web / WhatsApp / Email concierge performance.",
