@@ -25,6 +25,9 @@ async function assertStaff(sb: any, userId: string) {
   return scope.propertyId;
 }
 async function assertManager(sb: any, userId: string) {
+  if (process.env.STAYNAS_PROPERTY_KNOWLEDGE_SCHEMA_ENABLED !== "true") {
+    throw new Error("Property knowledge intelligence is waiting for its database migration and isolation verification.");
+  }
   const scope = await getActivePropertyAiRoles(sb, userId);
   if (!scope.roles.some((role) => [...MANAGER_ROLES, "admin"].includes(role as any))) throw new Error("Forbidden");
   return scope.propertyId;
