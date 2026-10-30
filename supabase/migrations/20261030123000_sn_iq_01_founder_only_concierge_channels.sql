@@ -50,14 +50,6 @@ CREATE POLICY "Staff can read concierge messages in active property"
     )
   );
 
--- Concierge insights are currently global aggregates without a property key.
--- Keep them founder-only until property-scoped aggregation is implemented.
-DROP POLICY IF EXISTS "Staff can read concierge insights" ON public.ai_concierge_insights;
-CREATE POLICY "Founder can read global concierge insights"
-  ON public.ai_concierge_insights
-  FOR SELECT TO authenticated
-  USING (public.is_staynas_founder_ai_admin());
-
 -- Nolmark CDMA founder owner and restore the idempotent channel registry seed.
 -- No provider secrets are stored in this registry.
 
@@ -86,6 +78,15 @@ $$;
 
 REVOKE ALL ON FUNCTION public.is_staynas_founder_ai_admin() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.is_staynas_founder_ai_admin() TO authenticated;
+
+-- Concierge insights are currently global aggregates without a property key.
+-- Keep them founder-only until property-scoped aggregation is implemented.
+DROP POLICY IF EXISTS "Staff can read concierge insights" ON public.ai_concierge_insights;
+CREATE POLICY "Founder can read global concierge insights"
+  ON public.ai_concierge_insights
+  FOR SELECT TO authenticated
+  USING (public.is_staynas_founder_ai_admin());
+
 
 DROP POLICY IF EXISTS "channels staff read" ON public.ai_concierge_channels;
 DROP POLICY IF EXISTS "channels admin write" ON public.ai_concierge_channels;
