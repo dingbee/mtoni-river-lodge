@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertFounderAiAdmin } from "@/domains/ai/ai.authorization.server";
 import { AI_TOOLS } from "./ai.tools";
 import { canUseTool, toolDomain } from "./ai.permissions";
 import { allowedToolsForRoles, buildAnswerSystemPrompt, buildRouterSystemPrompt } from "./ai.context";
@@ -158,6 +159,7 @@ export const listAiActivity = createServerFn({ method: "GET" })
 export const getMyAiScope = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const roles = await getRoles(context.supabase);
     return { roles, tools: allowedToolsForRoles(roles) };
   });
