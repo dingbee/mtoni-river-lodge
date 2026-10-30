@@ -98,6 +98,49 @@ CREATE INDEX IF NOT EXISTS ai_knowledge_notifications_property_status_idx
 -- 2. RLS: every tenant catalogue and intelligence record follows active scope.
 -- Requires the SN-IQ-01 staynas_ai_property_in_active_context helper.
 -- ---------------------------------------------------------------------------
+-- Document-level role and publication check shared by documents, versions,
+-- chunks and retrieval. SECURITY DEFINER avoids recursive RLS evaluation;
+-- every authorization predicate is re-applied explicitly here.
+CREATE OR REPLACE FUNCTION public.staynas_knowledge_document_readable(_document_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.knowledge_documents document
+    LEFT JOIN public.knowledge_categories category
+      ON category.id = document.category_id
+     AND category.property_id = document.property_id
+    WHERE document.id = _document_id
+      AND document.property_id IS NOT NULL
+      AND public.staynas_ai_property_in_active_context(
+        document.property_id,
+        ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
+      )
+      AND (
+        public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
+        OR document.status = 'published'
+      )
+      AND (
+        document.allowed_roles IS NULL
+        OR cardinality(document.allowed_roles) = 0
+        OR public.has_any_role(auth.uid(), document.allowed_roles)
+        OR public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
+      )
+      AND (
+        category.id IS NULL
+        OR cardinality(category.allowed_roles) = 0
+        OR public.has_any_role(auth.uid(), category.allowed_roles)
+        OR public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
+      )
+  );
+$;
+REVOKE ALL ON FUNCTION public.staynas_knowledge_document_readable(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.staynas_knowledge_document_readable(uuid) TO authenticated;
+
 DROP POLICY IF EXISTS "kb_categories_staff_read" ON public.knowledge_categories;
 DROP POLICY IF EXISTS "kb_categories_admin_write" ON public.knowledge_categories;
 CREATE POLICY "Knowledge categories read in active property"
@@ -110,24 +153,23 @@ CREATE POLICY "Knowledge categories manage in active property"
   USING (property_id IS NOT NULL AND public.staynas_ai_property_in_active_context(
     property_id, ARRAY['owner','manager','admin']::public.app_role[]
   ))
-  WITH CHECK (property_id IS NOT NULL AND public.staynas_ai_property_in_active_context(
-    property_id, ARRAY['owner','manager','admin']::public.app_role[]
-  ));
+  WITH CHECK (
+    property_id IS NOT NULL
+    AND public.staynas_ai_property_in_active_context(
+      property_id, ARRAY['owner','manager','admin']::public.app_role[]
+    )
+    AND (parent_id IS NULL OR EXISTS (
+      SELECT 1 FROM public.knowledge_categories parent
+      WHERE parent.id = public.knowledge_categories.parent_id
+        AND parent.property_id = public.knowledge_categories.property_id
+    ))
+  );
 
 DROP POLICY IF EXISTS "kb_documents_read" ON public.knowledge_documents;
 DROP POLICY IF EXISTS "kb_documents_admin_write" ON public.knowledge_documents;
 CREATE POLICY "Knowledge documents read in active property"
   ON public.knowledge_documents FOR SELECT TO authenticated
-  USING (
-    property_id IS NOT NULL
-    AND public.staynas_ai_property_in_active_context(
-      property_id, ARRAY['owner','manager','admin','reservations','reception','marketing']::public.app_role[]
-    )
-    AND (
-      public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
-      OR status = 'published'
-    )
-  );
+  USING (public.staynas_knowledge_document_readable(id));
 CREATE POLICY "Knowledge documents manage in active property"
   ON public.knowledge_documents FOR ALL TO authenticated
   USING (property_id IS NOT NULL AND public.staynas_ai_property_in_active_context(
@@ -148,9 +190,7 @@ DROP POLICY IF EXISTS "kb_versions_read" ON public.knowledge_document_versions;
 DROP POLICY IF EXISTS "kb_versions_admin_write" ON public.knowledge_document_versions;
 CREATE POLICY "Knowledge versions read in active property"
   ON public.knowledge_document_versions FOR SELECT TO authenticated
-  USING (property_id IS NOT NULL AND public.staynas_ai_property_in_active_context(
-    property_id, ARRAY['owner','manager','admin','reservations','reception','marketing']::public.app_role[]
-  ));
+  USING (public.staynas_knowledge_document_readable(document_id));
 CREATE POLICY "Knowledge versions manage in active property"
   ON public.knowledge_document_versions FOR ALL TO authenticated
   USING (property_id IS NOT NULL AND public.staynas_ai_property_in_active_context(
@@ -171,9 +211,7 @@ DROP POLICY IF EXISTS "kb_chunks_read" ON public.knowledge_chunks;
 DROP POLICY IF EXISTS "kb_chunks_admin_write" ON public.knowledge_chunks;
 CREATE POLICY "Knowledge chunks read in active property"
   ON public.knowledge_chunks FOR SELECT TO authenticated
-  USING (property_id IS NOT NULL AND public.staynas_ai_property_in_active_context(
-    property_id, ARRAY['owner','manager','admin','reservations','reception','marketing']::public.app_role[]
-  ));
+  USING (public.staynas_knowledge_document_readable(document_id));
 CREATE POLICY "Knowledge chunks manage in active property"
   ON public.knowledge_chunks FOR ALL TO authenticated
   USING (property_id IS NOT NULL AND public.staynas_ai_property_in_active_context(
