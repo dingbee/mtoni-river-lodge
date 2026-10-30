@@ -128,8 +128,9 @@ export const decideConciergeMemory = createServerFn({ method: "POST" })
     };
     if (data.memoryValue) patch.memory_value = data.memoryValue;
     if (data.notes !== undefined) patch.notes = data.notes;
-    const { error } = await sb.from("ai_guest_memories").update(patch).eq("id", data.id).eq("property_id", propertyId).eq("property_id", propertyId);
+    const { error } = await sb.from("ai_guest_memories").update(patch).eq("id", data.id).eq("property_id", propertyId).select("id").maybeSingle();
     if (error) throw new Error(error.message);
+    if (!data) throw new Error("Memory not found in the active property.");
     await sb.from("ai_memory_events").insert({
       memory_id: data.id,
       event_type: data.decision === "archived" ? "archived" : data.decision,
@@ -163,8 +164,15 @@ export const editConciergeMemory = createServerFn({ method: "POST" })
     if (data.confidence !== undefined) patch.confidence = data.confidence;
     if (data.notes !== undefined) patch.notes = data.notes;
     if (Object.keys(patch).length === 0) return { ok: true };
-    const { error } = await sb.from("ai_guest_memories").update(patch).eq("id", data.id);
+    const { data: updated, error } = await sb
+      .from("ai_guest_memories")
+      .update(patch)
+      .eq("id", data.id)
+      .eq("property_id", propertyId)
+      .select("id")
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!updated) throw new Error("Memory not found in the active property.");
     await sb
       .from("ai_memory_events")
       .insert({ memory_id: data.id, event_type: "edited", actor_id: context.userId, payload: patch });
