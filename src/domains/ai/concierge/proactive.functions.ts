@@ -2,16 +2,43 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-async function assertStaff(sb: any, userId: string) {
-  const { data, error } = await sb.rpc("is_any_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+async function requirePropertyScope(sb: any, userId: string, roles: string[]): Promise<string> {
+  const { data: propertyId, error: contextError } = await sb.rpc("staynas_active_property_id", { _uid: userId });
+  if (contextError || !propertyId) throw new Error("No active property selected.");
+  const { data: membership, error: membershipError } = await sb
+    .from("staynas_property_members")
+    .select("property_id")
+    .eq("user_id", userId)
+    .eq("property_id", propertyId)
+    .eq("status", "active")
+    .in("role", roles)
+    .maybeSingle();
+  if (membershipError || !membership) throw new Error("Forbidden");
+  return String(propertyId);
 }
 
-async function assertRole(sb: any, userId: string, roles: string[]) {
-  const { data, error } = await sb.rpc("has_any_role", { _user_id: userId, _roles: roles });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+async function requireBookingInProperty(sb: any, bookingId: string, propertyId: string) {
+  const { data, error } = await sb
+    .from("bookings")
+    .select("id, guest_id, guest_name, guest_email, reference, check_in, check_out")
+    .eq("id", bookingId)
+    .eq("property_id", propertyId)
+    .maybeSingle();
+  if (error || !data) throw new Error("Booking not found in the active property.");
+  return data;
+}
+
+async function propertyBookingIds(sb: any, propertyId: string): Promise<string[]> {
+  const ids: string[] = [];
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await sb.from("bookings").select("id").eq("property_id", propertyId).range(from, from + pageSize - 1);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []).map((row: { id: string }) => row.id);
+    ids.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return ids;
 }
 
 /**
@@ -22,11 +49,8 @@ async function assertRole(sb: any, userId: string, roles: string[]) {
 export const generatePreArrivalRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertRole(context.supabase, context.userId, [
-      "owner",
-      "manager",
-    ]);
     const sb: any = context.supabase;
+    const propertyId = await requirePropertyScope(sb, context.userId, ["owner", "manager"]);
     const today = new Date();
     const in14 = new Date(today);
     in14.setDate(in14.getDate() + 14);
@@ -37,6 +61,7 @@ export const generatePreArrivalRecommendations = createServerFn({ method: "POST"
       .select(
         "id, reference, guest_id, guest_name, check_in, check_out, adults, children, nights, special_requests, visit_purpose",
       )
+      .eq("property_id", propertyId)
       .gte("check_in", iso(today))
       .lte("check_in", iso(in14))
       .neq("status", "cancelled")
@@ -50,6 +75,7 @@ export const generatePreArrivalRecommendations = createServerFn({ method: "POST"
         const { data } = await sb
           .from("ai_guest_memories")
           .select("memory_type, memory_key, memory_value")
+          .eq("property_id", propertyId)
           .eq("guest_id", b.guest_id)
           .eq("status", "approved");
         memMap.push(...(data ?? []));
@@ -202,9 +228,12 @@ export const listRecommendations = createServerFn({ method: "GET" })
       .parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, ["owner", "manager", "admin", "reception"]);
+    const bookingIds = await propertyBookingIds(context.supabase, propertyId);
+    if (bookingIds.length === 0) return [];
     let q: any = context.supabase
       .from("ai_concierge_recommendations")
+      .in("booking_id", bookingIds)
       .select(
         "id, guest_id, booking_id, session_id, recommendation_type, item_slug, item_name, title, reasoning, confidence, evidence, status, notes, reviewed_at, created_at, updated_at",
       )
@@ -229,12 +258,15 @@ export const updateRecommendationStatus = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ context, data }) => {
-    await assertRole(context.supabase, context.userId, [
-      "owner",
-      "manager",
-      "reception",
-    ]);
     const sb: any = context.supabase;
+    const propertyId = await requirePropertyScope(sb, context.userId, ["owner", "manager", "reception"]);
+    const { data: existing, error: existingError } = await sb
+      .from("ai_concierge_recommendations")
+      .select("id, booking_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (existingError || !existing?.booking_id) throw new Error("Recommendation not found in the active property.");
+    await requireBookingInProperty(sb, existing.booking_id, propertyId);
     const { data: row, error } = await sb
       .from("ai_concierge_recommendations")
       .update({
@@ -244,6 +276,7 @@ export const updateRecommendationStatus = createServerFn({ method: "POST" })
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", data.id)
+      .eq("booking_id", existing.booking_id)
       .select("id, booking_id, guest_id, title")
       .single();
     if (error) throw new Error(error.message);
@@ -277,17 +310,20 @@ export const getGuestJourney = createServerFn({ method: "GET" })
       .parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, ["owner", "manager", "admin", "reception"]);
     if (!data.guest_id && !data.booking_id) {
       throw new Error("guest_id or booking_id required");
     }
+    const bookingIds = data.booking_id
+      ? [(await requireBookingInProperty(context.supabase, data.booking_id, propertyId)).id]
+      : (await context.supabase.from("bookings").select("id").eq("property_id", propertyId).eq("guest_id", data.guest_id)).data?.map((b: any) => b.id) ?? [];
+    if (bookingIds.length === 0) return [];
     let q: any = context.supabase
       .from("ai_guest_journey_events")
       .select("id, guest_id, booking_id, event_type, source, title, metadata, occurred_at")
+      .in("booking_id", bookingIds)
       .order("occurred_at", { ascending: false })
       .limit(data.limit);
-    if (data.guest_id) q = q.eq("guest_id", data.guest_id);
-    if (data.booking_id) q = q.eq("booking_id", data.booking_id);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return rows ?? [];
@@ -297,7 +333,8 @@ export const listStayInsights = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ booking_id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, ["owner", "manager", "admin", "reception"]);
+    await requireBookingInProperty(context.supabase, data.booking_id, propertyId);
     const { data: rows, error } = await context.supabase
       .from("ai_stay_insights")
       .select("id, insight_type, content, confidence, evidence, status, created_at")
@@ -315,41 +352,28 @@ export const generatePostStayDrafts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ booking_id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
-    await assertRole(context.supabase, context.userId, [
-      "owner",
-      "manager",
-    ]);
     const sb: any = context.supabase;
-    const { data: b, error } = await sb
-      .from("bookings")
-      .select("id, reference, guest_id, guest_name, guest_email, check_in, check_out")
-      .eq("id", data.booking_id)
-      .single();
-    if (error) throw new Error(error.message);
+    const propertyId = await requirePropertyScope(sb, context.userId, ["owner", "manager"]);
+    const b = await requireBookingInProperty(sb, data.booking_id, propertyId);
 
     const drafts = [
       {
-        kind: "post_stay_thank_you",
-        subject: `Asante, ${b.guest_name?.split(" ")[0] ?? "guest"} — thank you for staying at Mtoni`,
+        kind: "follow_up",
+        subject: `Thank you for your stay, ${b.guest_name?.split(" ")[0] ?? "guest"}`,
         body:
-          `Dear ${b.guest_name},\n\nIt was our pleasure to host you at Mtoni River Lodge. ` +
-          `We hope your time by the Nduruma River was restorative.\n\n` +
-          `Warm regards,\nMtoni River Lodge`,
+          `Dear ${b.guest_name ?? "guest"},\n\nThank you for choosing to stay with us. We hope you had a pleasant experience. Your feedback is valuable to the property team, and we would be pleased to welcome you again.\n\nKind regards,\nThe property team`,
       },
       {
-        kind: "post_stay_review_request",
-        subject: "A quick favour — share your Mtoni experience",
+        kind: "follow_up",
+        subject: "Would you share feedback about your stay?",
         body:
-          `Dear ${b.guest_name},\n\nIf you enjoyed your stay, we would be grateful for a short review. ` +
-          `Your words help fellow travellers find us.\n\nAsante sana,\nMtoni River Lodge`,
+          `Dear ${b.guest_name ?? "guest"},\n\nIf you have a moment, we would appreciate your feedback about your stay. Your comments help the property team improve the guest experience.\n\nKind regards,\nThe property team`,
       },
       {
-        kind: "post_stay_return_invite",
-        subject: "Karibu tena — a returning-guest welcome from Mtoni",
+        kind: "follow_up",
+        subject: "We would be pleased to welcome you again",
         body:
-          `Dear ${b.guest_name},\n\nWhenever you are ready for another gentle escape, ` +
-          `we would love to welcome you back with a returning-guest gesture.\n\n` +
-          `Warmly,\nMtoni River Lodge`,
+          `Dear ${b.guest_name ?? "guest"},\n\nWe would be pleased to welcome you again whenever your plans bring you back to the area. Please contact the property team for future-stay information.\n\nKind regards,\nThe property team`,
       },
     ];
 
@@ -364,6 +388,7 @@ export const generatePostStayDrafts = createServerFn({ method: "POST" })
           body: d.body,
           booking_id: b.id,
           guest_id: b.guest_id,
+          created_by: context.userId,
           status: "pending",
           reasoning: "Post-stay relationship draft — human approval required before send.",
           supporting_context: { source: "post_stay", booking_ref: b.reference },
@@ -402,13 +427,16 @@ export const getPersonalisationMetrics = createServerFn({ method: "GET" })
     z.object({ window: z.enum(["7d", "30d", "90d"]).default("30d") }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, ["owner", "manager", "admin", "reception"]);
+    const bookingIds = await propertyBookingIds(context.supabase, propertyId);
+    if (bookingIds.length === 0) return { total: 0, approved: 0, completed: 0, dismissed: 0, acceptance: 0 };
     const days = data.window === "7d" ? 7 : data.window === "90d" ? 90 : 30;
     const since = new Date(Date.now() - days * 86400_000).toISOString();
     const sb: any = context.supabase;
     const { data: rows, error } = await sb
       .from("ai_concierge_recommendations")
       .select("status")
+      .in("booking_id", bookingIds)
       .gte("created_at", since);
     if (error) throw new Error(error.message);
     const total = rows?.length ?? 0;
