@@ -11,6 +11,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { bookingRpc } from "@/lib/booking-rpc";
 import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
+import { isBookingHoldConsentGranted } from "@/lib/booking-hold-policy";
 
 function publicClient() {
   return createClient<Database>(
@@ -30,7 +31,7 @@ const createHoldSchema = z.object({
   checkOut: dateStr,
   sessionId: z.string().min(6).max(120),
   guestEmail: z.string().email().max(255).optional(),
-  consentToTemporaryHold: z.literal(true),
+  consentToTemporaryHold: z.custom<true>(isBookingHoldConsentGranted, "Explicit guest consent is required."),
   ttlSeconds: z.number().int().min(60).max(3600).optional(),
 });
 
