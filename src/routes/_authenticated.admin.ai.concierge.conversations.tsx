@@ -88,8 +88,11 @@ function UnifiedInboxPage() {
             {timeline.data && timeline.data.messages.length === 0 && timeline.data.legacyMessages.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No messages recorded in this conversation.</p>}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
-            <p className="text-xs text-muted-foreground">Replies and approvals remain governed by the communication draft workflow.</p>
-            <Button size="sm" variant="outline" onClick={() => window.location.assign("/admin/ai/concierge/drafts")}>Review drafts & approvals</Button>
+            <p className="text-xs text-muted-foreground">Assignment and human approval remain property-scoped and are handled by the existing escalation and draft controls.</p>
+            <div className="flex flex-wrap gap-2">
+              <a className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted" href="/admin/ai/concierge/escalations">Staff assignment</a>
+              <a className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted" href="/admin/ai/concierge/drafts">Draft approval</a>
+            </div>
           </div>
         </div>}
       </SectionCard>
