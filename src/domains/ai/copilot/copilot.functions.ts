@@ -184,8 +184,10 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
         const rows = (kb ?? []) as any[];
         if (rows.length) {
           citations = rows.map((r) => ({
-            document_id: r.document_id, document_title: r.document_title, document_slug: r.document_slug,
-            category_slug: r.category_slug ?? null, chunk_index: r.chunk_index, excerpt: String(r.content ?? "").slice(0, 400),
+            source_id: r.source_id, source_kind: r.source_kind, source_type: r.source_type,
+            title: r.title, slug: r.slug ?? null, category_slug: r.category_slug ?? null,
+            chunk_index: r.chunk_index ?? null, url: r.url ?? null, language_code: r.language_code,
+            excerpt: String(r.content ?? "").slice(0, 400),
           }));
           domainsUsed.add("knowledge");
           evidence.push({ domain: "knowledge", tool: "knowledge.search", count: rows.length });
