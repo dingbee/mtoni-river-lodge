@@ -26,7 +26,8 @@ export const askAi = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }): Promise<AiResponse> => {
     const start = Date.now();
-    const roles = await getActivePropertyAiRoles(context.supabase, context.userId);
+    const activeScope = await getActivePropertyAiRoles(context.supabase, context.userId);
+    const roles = activeScope.roles;
     if (roles.length === 0) throw new Error("You do not have a staff role assigned.");
 
     // Step 1 — decide tool
@@ -44,7 +45,7 @@ export const askAi = createServerFn({ method: "POST" })
         toolId = null;
       } else {
         try {
-          toolResult = await AI_TOOLS[toolId].run({ supabase: context.supabase }, router.args ?? {});
+          toolResult = await AI_TOOLS[toolId].run({ supabase: context.supabase, propertyId: activeScope.propertyId }, router.args ?? {});
         } catch (err: any) {
           toolResult = { summary: `Tool error: ${err?.message ?? "unknown"}`, data: null };
         }
