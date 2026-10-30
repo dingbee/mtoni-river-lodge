@@ -146,7 +146,7 @@ DROP POLICY IF EXISTS "kb_categories_admin_write" ON public.knowledge_categories
 CREATE POLICY "Knowledge categories read in active property"
   ON public.knowledge_categories FOR SELECT TO authenticated
   USING (property_id IS NOT NULL AND public.staynas_ai_property_in_active_context(
-    property_id, ARRAY['owner','manager','admin','reservations','reception','marketing']::public.app_role[]
+    property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
   ));
 CREATE POLICY "Knowledge categories manage in active property"
   ON public.knowledge_categories FOR ALL TO authenticated
@@ -235,7 +235,7 @@ DROP POLICY IF EXISTS "Owners can delete sources" ON public.ai_knowledge_sources
 CREATE POLICY "AI knowledge sources read in active property"
   ON public.ai_knowledge_sources FOR SELECT TO authenticated
   USING (property_id IS NOT NULL AND public.staynas_ai_property_in_active_context(
-    property_id, ARRAY['owner','manager','admin','reservations','reception','marketing']::public.app_role[]
+    property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
   ));
 CREATE POLICY "AI knowledge sources insert in active property"
   ON public.ai_knowledge_sources FOR INSERT TO authenticated
@@ -261,19 +261,19 @@ DROP POLICY IF EXISTS "Staff can log searches" ON public.ai_knowledge_search_log
 CREATE POLICY "Knowledge search logs read in active property"
   ON public.ai_knowledge_search_log FOR SELECT TO authenticated
   USING (property_id IS NOT NULL AND public.staynas_ai_property_in_active_context(
-    property_id, ARRAY['owner','manager','admin','reservations','reception','marketing']::public.app_role[]
+    property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
   ));
 CREATE POLICY "Knowledge search logs insert in active property"
   ON public.ai_knowledge_search_log FOR INSERT TO authenticated
   WITH CHECK (property_id IS NOT NULL AND public.staynas_ai_property_in_active_context(
-    property_id, ARRAY['owner','manager','admin','reservations','reception','marketing']::public.app_role[]
+    property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
   ));
 
 DROP POLICY IF EXISTS "staff read sync runs" ON public.ai_knowledge_sync_runs;
 CREATE POLICY "Knowledge sync runs read in active property"
   ON public.ai_knowledge_sync_runs FOR SELECT TO authenticated
   USING (property_id IS NOT NULL AND public.staynas_ai_property_in_active_context(
-    property_id, ARRAY['owner','manager','admin','reservations','reception','marketing']::public.app_role[]
+    property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
   ));
 
 DROP POLICY IF EXISTS "staff read notifications" ON public.ai_knowledge_notifications;
@@ -281,7 +281,7 @@ DROP POLICY IF EXISTS "managers manage notifications" ON public.ai_knowledge_not
 CREATE POLICY "Knowledge notifications read in active property"
   ON public.ai_knowledge_notifications FOR SELECT TO authenticated
   USING (property_id IS NOT NULL AND public.staynas_ai_property_in_active_context(
-    property_id, ARRAY['owner','manager','admin','reservations','reception','marketing']::public.app_role[]
+    property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
   ));
 CREATE POLICY "Knowledge notifications manage in active property"
   ON public.ai_knowledge_notifications FOR ALL TO authenticated
@@ -357,7 +357,7 @@ AS $$
     AND document.status = 'published'
     AND (NOT _guest_visible_only OR document.is_guest_visible = true)
     AND public.staynas_ai_property_in_active_context(
-      _property_id, ARRAY['owner','manager','admin','reservations','reception','marketing']::public.app_role[]
+      _property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
     )
     AND (
       chunk.tsv @@ plainto_tsquery('english', _query)
@@ -409,7 +409,7 @@ AS $$
     AND source.status = 'approved'
     AND (NOT _guest_visible_only OR source.is_guest_visible = true)
     AND public.staynas_ai_property_in_active_context(
-      _property_id, ARRAY['owner','manager','admin','reservations','reception','marketing']::public.app_role[]
+      _property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
     )
     AND (
       source.content_tsv @@ plainto_tsquery('english', _query)
