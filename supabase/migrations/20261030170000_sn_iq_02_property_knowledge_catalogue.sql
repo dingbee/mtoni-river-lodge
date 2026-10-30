@@ -161,7 +161,9 @@ AS $sn_iq_02$
         ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
       )
       AND (
-        public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
+        public.staynas_ai_property_in_active_context(
+          document.property_id, ARRAY['owner','manager','admin']::public.app_role[]
+        )
         OR document.status = 'published'
       )
       AND (
