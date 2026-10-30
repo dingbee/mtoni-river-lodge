@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { PageHeader } from "@/components/os/PageHeader";
@@ -38,7 +38,7 @@ function ChannelsPage() {
         title="Channels"
         description="Register and toggle the channels Mtoni AI can listen and respond on. Configuration and secrets stay in workspace settings."
       />
-      <SectionCard title="Channels">
+      <div className="flex justify-end"><Button asChild variant="outline"><Link to="/admin/ai/concierge/providers">Provider routing settings</Link></Button></div>\n      <SectionCard title="Channels">
         <div className="space-y-3">
           {list.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
           {list.data?.map((c: ChannelRow) => (
