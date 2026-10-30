@@ -194,7 +194,7 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
           }));
           domainsUsed.add("knowledge");
           evidence.push({ domain: "knowledge", tool: "knowledge.search", count: rows.length });
-          toolPayloads.push(`### Knowledge excerpts\n${rows.map((r, i) => `[K${i+1}] ${r.document_title}: ${String(r.content ?? "").slice(0, 500)}`).join("\n")}`);
+          toolPayloads.push(`### Knowledge excerpts\n${rows.map((r, i) => `[K${i+1}] ${r.title}: ${String(r.content ?? "").slice(0, 500)}`).join("\n")}`);
         }
       } catch {}
     }
