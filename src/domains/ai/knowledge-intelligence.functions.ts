@@ -132,10 +132,10 @@ export const getKnowledgeHealth = createServerFn({ method: "GET" })
       if (days > warn || (r.review_due_at && new Date(r.review_due_at).getTime() < Date.now())) staleCount++;
     }
     const avgAge = approved.length ? Math.round(ageSum / approved.length) : 0;
-    const qualityAvg =
-      approved.length && approved.some((r: any) => r.quality_score != null)
-        ? approved.reduce((a: any, r: any) => a + (Number(r.quality_score) || 0), 0) / approved.length
-        : null;
+    const qualityRows = approved.filter((r: any) => r.quality_score != null);
+    const qualityAvg = qualityRows.length
+      ? qualityRows.reduce((sum: number, r: any) => sum + (Number(r.quality_score) || 0), 0) / qualityRows.length
+      : null;
 
     // Health score: weighted composite
     const stalePct = approved.length ? staleCount / approved.length : 0;
