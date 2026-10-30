@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - feat/sn-iq-01-secure-intelligence-foundation
       - feat/sn-iq-02-property-knowledge-intelligence
 
 jobs:
