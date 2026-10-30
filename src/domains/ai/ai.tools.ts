@@ -28,7 +28,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
     id: "guest.search",
     description: "Search guests by name, email, or phone. args: { query: string }.",
     args: '{"query": "partial name or email"}',
-    run: async ({ supabase, propertyId }, args) => {
+    run: async ({ supabase }, args) => {
       const q = String(args.query ?? "").trim();
       if (!q) return { summary: "No query provided.", data: [], count: 0 };
       const like = `%${q}%`;
@@ -142,15 +142,19 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
     run: async ({ supabase, propertyId }) => {
       const first = new Date(); first.setUTCDate(1);
       const from = first.toISOString().slice(0, 10);
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("total, paid_amount, balance_due, currency, status, payment_status")
-        .eq("property_id", propertyId)
-        .gte("check_in", from)
-        .in("status", ["confirmed", "checked_in", "checked_out"]);
+      const [{ data, error }, { data: property, error: propertyError }] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("total, paid_amount, balance_due, currency, status, payment_status")
+          .eq("property_id", propertyId)
+          .gte("check_in", from)
+          .in("status", ["confirmed", "checked_in", "checked_out"]),
+        supabase.from("staynas_properties").select("currency").eq("id", propertyId).single(),
+      ]);
       if (error) throw error;
+      if (propertyError || !property?.currency) throw new Error("Active property currency is not configured.");
       const rows = data ?? [];
-      const currency = rows[0]?.currency ?? "USD";
+      const currency = rows[0]?.currency ?? property.currency;
       const gross = rows.reduce((s: number, r: any) => s + Number(r.total ?? 0), 0);
       const paid = rows.reduce((s: number, r: any) => s + Number(r.paid_amount ?? 0), 0);
       const outstanding = rows.reduce((s: number, r: any) => s + Number(r.balance_due ?? 0), 0);
@@ -166,25 +170,29 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
     id: "finance.outstanding",
     description: "Bookings with unpaid balances.",
     run: async ({ supabase, propertyId }) => {
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("id, reference, guest_name, guest_email, check_in, balance_due, total, currency, payment_status, status")
-        .eq("property_id", propertyId)
-        .gt("balance_due", 0)
-        .in("status", ["confirmed", "checked_in", "checked_out"])
-        .order("balance_due", { ascending: false })
-        .limit(25);
+      const [{ data, error }, { data: property, error: propertyError }] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("id, reference, guest_name, guest_email, check_in, balance_due, total, currency, payment_status, status")
+          .eq("property_id", propertyId)
+          .gt("balance_due", 0)
+          .in("status", ["confirmed", "checked_in", "checked_out"])
+          .order("balance_due", { ascending: false })
+          .limit(25),
+        supabase.from("staynas_properties").select("currency").eq("id", propertyId).single(),
+      ]);
       if (error) throw error;
+      if (propertyError || !property?.currency) throw new Error("Active property currency is not configured.");
       const rows = data ?? [];
       const totalOutstanding = rows.reduce((s: number, r: any) => s + Number(r.balance_due ?? 0), 0);
-      const currency = rows[0]?.currency ?? "USD";
+      const currency = rows[0]?.currency ?? property.currency;
       return { summary: `${rows.length} bookings with unpaid balances totalling ${currency} ${Math.round(totalOutstanding).toLocaleString()}.`, data: rows, count: rows.length };
     },
   },
   "finance.recent_transactions": {
     id: "finance.recent_transactions",
     description: "Most recent payment events.",
-    run: async ({ supabase, propertyId }) => {
+    run: async ({ supabase }) => {
       const { data, error } = await supabase
         .from("payment_events")
         .select("id, booking_id, provider, event_type, amount, currency, status_code, created_at")
