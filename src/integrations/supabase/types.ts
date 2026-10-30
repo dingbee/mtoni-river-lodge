@@ -1074,6 +1074,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          property_id?: string | null
           created_at?: string
           id?: string
           last_message_at?: string | null
@@ -1084,6 +1085,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          property_id?: string | null
           created_at?: string
           id?: string
           last_message_at?: string | null
