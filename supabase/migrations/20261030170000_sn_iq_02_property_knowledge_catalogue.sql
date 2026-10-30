@@ -167,14 +167,18 @@ AS $sn_iq_02$
       AND (
         document.allowed_roles IS NULL
         OR cardinality(document.allowed_roles) = 0
-        OR public.has_any_role(auth.uid(), document.allowed_roles)
-        OR public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
+        OR public.staynas_ai_property_in_active_context(document.property_id, document.allowed_roles)
+        OR public.staynas_ai_property_in_active_context(
+          document.property_id, ARRAY['owner','manager','admin']::public.app_role[]
+        )
       )
       AND (
         category.id IS NULL
         OR cardinality(category.allowed_roles) = 0
-        OR public.has_any_role(auth.uid(), category.allowed_roles)
-        OR public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
+        OR public.staynas_ai_property_in_active_context(document.property_id, category.allowed_roles)
+        OR public.staynas_ai_property_in_active_context(
+          document.property_id, ARRAY['owner','manager','admin']::public.app_role[]
+        )
       )
   );
 $sn_iq_02$;
