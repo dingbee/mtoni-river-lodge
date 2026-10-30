@@ -30,6 +30,7 @@ ALTER TABLE public.ai_knowledge_sources
   ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE CASCADE,
   ADD COLUMN IF NOT EXISTS language_code text NOT NULL DEFAULT 'en',
   ADD COLUMN IF NOT EXISTS is_guest_visible boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS review_due_at timestamptz,
   ADD COLUMN IF NOT EXISTS simple_tsv tsvector
     GENERATED ALWAYS AS (to_tsvector('simple',
       coalesce(title, '') || ' ' || coalesce(summary, '') || ' ' || coalesce(content, '')
@@ -86,6 +87,9 @@ CREATE INDEX IF NOT EXISTS ai_knowledge_sources_property_status_idx
   ON public.ai_knowledge_sources(property_id, status, updated_at DESC);
 CREATE INDEX IF NOT EXISTS ai_knowledge_sources_simple_tsv_idx
   ON public.ai_knowledge_sources USING gin(simple_tsv);
+CREATE INDEX IF NOT EXISTS ai_knowledge_sources_guest_review_idx
+  ON public.ai_knowledge_sources(property_id, review_due_at)
+  WHERE is_guest_visible = true;
 CREATE INDEX IF NOT EXISTS ai_knowledge_search_log_property_created_idx
   ON public.ai_knowledge_search_log(property_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS ai_knowledge_sync_runs_property_started_idx
@@ -633,6 +637,7 @@ AS $sn_iq_02$
     JOIN public.ai_knowledge_sources source ON source.property_id = property.id
     WHERE source.status = 'approved'
       AND source.is_guest_visible = true
+      AND (source.review_due_at IS NULL OR source.review_due_at >= now())
       AND (
         source.content_tsv @@ plainto_tsquery('english', _query)
         OR source.simple_tsv @@ plainto_tsquery('simple', _query)
