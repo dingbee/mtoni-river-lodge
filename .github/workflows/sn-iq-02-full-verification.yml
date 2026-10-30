@@ -1,0 +1,29 @@
+name: SN-IQ-02 full verification
+
+on:
+  pull_request:
+    branches:
+      - main
+      - feat/sn-iq-01-secure-intelligence-foundation
+      - feat/sn-iq-02-property-knowledge-intelligence
+
+jobs:
+  full-verification:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Run complete Vitest suite
+        run: bunx vitest run
+      - name: Run ESLint
+        run: bun run lint
