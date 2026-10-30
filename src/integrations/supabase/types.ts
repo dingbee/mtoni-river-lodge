@@ -3844,6 +3844,7 @@ export type Database = {
       }
       bookings: {
         Row: {
+          property_id: string | null
           adults: number
           balance_amount: number
           balance_due: number
@@ -3891,6 +3892,7 @@ export type Database = {
           visit_purpose: string | null
         }
         Insert: {
+          property_id?: string | null
           adults?: number
           balance_amount?: number
           balance_due?: number
@@ -3938,6 +3940,7 @@ export type Database = {
           visit_purpose?: string | null
         }
         Update: {
+          property_id?: string | null
           adults?: number
           balance_amount?: number
           balance_due?: number
@@ -16345,6 +16348,7 @@ export type Database = {
       }
       rooms: {
         Row: {
+          property_id: string | null
           base_price: number
           bathroom_label: string | null
           bed_label: string | null
@@ -16371,6 +16375,7 @@ export type Database = {
           view_label: string | null
         }
         Insert: {
+          property_id?: string | null
           base_price: number
           bathroom_label?: string | null
           bed_label?: string | null
@@ -16397,6 +16402,7 @@ export type Database = {
           view_label?: string | null
         }
         Update: {
+          property_id?: string | null
           base_price?: number
           bathroom_label?: string | null
           bed_label?: string | null
@@ -16878,6 +16884,18 @@ export type Database = {
         Relationships: []
       }
     }
+      staynas_properties: {
+        Row: { id: string; organisation_id: string; slug: string; code: string; name: string; timezone: string; currency: string; status: string; created_at: string; updated_at: string }
+        Insert: { id?: string; organisation_id: string; slug: string; code: string; name: string; timezone?: string; currency?: string; status?: string; created_at?: string; updated_at?: string }
+        Update: { id?: string; organisation_id?: string; slug?: string; code?: string; name?: string; timezone?: string; currency?: string; status?: string; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      staynas_property_members: {
+        Row: { property_id: string; user_id: string; role: Database["public"]["Enums"]["app_role"]; status: string; created_at: string; updated_at: string }
+        Insert: { property_id: string; user_id: string; role: Database["public"]["Enums"]["app_role"]; status?: string; created_at?: string; updated_at?: string }
+        Update: { property_id?: string; user_id?: string; role?: Database["public"]["Enums"]["app_role"]; status?: string; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
     Views: {
       guest_country_stats: {
         Row: {
