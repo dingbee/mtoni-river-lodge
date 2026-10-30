@@ -8,7 +8,34 @@ ALTER TABLE public.ai_concierge_sessions
 CREATE INDEX IF NOT EXISTS ai_concierge_sessions_property_activity_idx
   ON public.ai_concierge_sessions(property_id, last_active_at DESC);
 
-DO $
+
+
+ALTER TABLE public.ai_concierge_leads
+  ADD COLUMN IF NOT EXISTS property_id uuid
+  REFERENCES public.staynas_properties(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS ai_concierge_leads_property_created_idx
+  ON public.ai_concierge_leads(property_id, created_at DESC);
+
+ALTER TABLE public.ai_guest_memories
+  ADD COLUMN IF NOT EXISTS property_id uuid
+  REFERENCES public.staynas_properties(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS ai_guest_memories_property_guest_idx
+  ON public.ai_guest_memories(property_id, guest_id, updated_at DESC);
+
+ALTER TABLE public.ai_personalization_events
+  ADD COLUMN IF NOT EXISTS property_id uuid
+  REFERENCES public.staynas_properties(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS ai_personalization_events_property_created_idx
+  ON public.ai_personalization_events(property_id, created_at DESC);
+
+ALTER TABLE public.knowledge_documents
+  ADD COLUMN IF NOT EXISTS property_id uuid
+  REFERENCES public.staynas_properties(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS knowledge_documents_property_guest_idx
+  ON public.knowledge_documents(property_id, status)
+  WHERE is_guest_visible = true;
+
+DO $sn_iq$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
@@ -37,32 +64,8 @@ BEGIN
       ADD CONSTRAINT ai_personalization_events_property_required
       CHECK (property_id IS NOT NULL) NOT VALID;
   END IF;
-END $;
-
-ALTER TABLE public.ai_concierge_leads
-  ADD COLUMN IF NOT EXISTS property_id uuid
-  REFERENCES public.staynas_properties(id) ON DELETE SET NULL;
-CREATE INDEX IF NOT EXISTS ai_concierge_leads_property_created_idx
-  ON public.ai_concierge_leads(property_id, created_at DESC);
-
-ALTER TABLE public.ai_guest_memories
-  ADD COLUMN IF NOT EXISTS property_id uuid
-  REFERENCES public.staynas_properties(id) ON DELETE SET NULL;
-CREATE INDEX IF NOT EXISTS ai_guest_memories_property_guest_idx
-  ON public.ai_guest_memories(property_id, guest_id, updated_at DESC);
-
-ALTER TABLE public.ai_personalization_events
-  ADD COLUMN IF NOT EXISTS property_id uuid
-  REFERENCES public.staynas_properties(id) ON DELETE SET NULL;
-CREATE INDEX IF NOT EXISTS ai_personalization_events_property_created_idx
-  ON public.ai_personalization_events(property_id, created_at DESC);
-
-ALTER TABLE public.knowledge_documents
-  ADD COLUMN IF NOT EXISTS property_id uuid
-  REFERENCES public.staynas_properties(id) ON DELETE SET NULL;
-CREATE INDEX IF NOT EXISTS knowledge_documents_property_guest_idx
-  ON public.knowledge_documents(property_id, status)
-  WHERE is_guest_visible = true;
+END
+$sn_iq$;
 
 DROP POLICY IF EXISTS "Staff can read concierge sessions" ON public.ai_concierge_sessions;
 CREATE POLICY "Staff can read concierge sessions in active property"
