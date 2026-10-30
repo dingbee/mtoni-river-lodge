@@ -173,6 +173,11 @@ function KnowledgeSyncPage() {
                       <Badge variant={s.status === "approved" ? "default" : "secondary"}>{s.status}</Badge>
                       <Badge variant="outline">{s.source_type.replace("_", " ")}</Badge>
                       {s.is_guest_visible && <Badge variant="secondary">Guest-visible</Badge>}
+                      {s.review_due_at && (
+                        <Badge variant={new Date(s.review_due_at).getTime() < Date.now() ? "destructive" : "outline"}>
+                          Review due {new Date(s.review_due_at).toLocaleDateString()}
+                        </Badge>
+                      )}
                     </div>
                     {s.url && <div className="mt-1 text-xs text-muted-foreground">{s.url}</div>}
                     {s.last_synced_at && (
