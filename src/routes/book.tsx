@@ -519,6 +519,7 @@ function BookPage() {
                       checkOut,
                       sessionId,
                       guestEmail: guest.email || undefined,
+                      consentToTemporaryHold: true,
                     },
                   })
                     .then((h) => setHold({ id: h.holdId, expiresAt: h.expiresAt, roomSlug: r.slug }))
@@ -783,9 +784,14 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
   const fmt = (n: number, c: string) => new Intl.NumberFormat("en-US", { style: "currency", currency: c, maximumFractionDigits: 0 }).format(n);
   const totalOccupants = adults + childrenBelow6 + children7Plus;
   const paidOccupants = adults + children7Plus;
+  const [holdConsent, setHoldConsent] = useState(false);
   return (
     <div className="space-y-4">
       <button onClick={onBack} className="text-xs uppercase tracking-[0.22em] text-charcoal/60 hover:text-charcoal">← Change dates</button>
+      <label className="flex items-start gap-3 rounded-xl border border-charcoal/15 bg-ivory p-4 text-sm text-charcoal/80">
+        <input type="checkbox" checked={holdConsent} onChange={(event) => setHoldConsent(event.target.checked)} className="mt-1 size-4 accent-charcoal" />
+        <span><strong className="font-semibold text-charcoal">I agree to a temporary room hold.</strong> When I select a room, StayNas may hold that room for up to 15 minutes while I complete the booking details. This is not a confirmed reservation and no payment is taken by creating the hold.</span>
+      </label>
       {results.map((r) => {
         const fits = totalOccupants <= Number(r.max_occupancy);
         const disabled = !r.is_available || !fits;
@@ -811,11 +817,11 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
               <p className="font-display text-2xl">{fmt(displayTotal, r.currency)}</p>
               <p className="text-xs text-charcoal/55">{fmt(nightlyRate, r.currency)} / night · {paidOccupants} paid · {totalOccupants} total</p>
               <button
-                onClick={() => onSelect(r)} disabled={disabled}
+                onClick={() => onSelect(r)} disabled={disabled || !holdConsent}
                 className="mt-3 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
                 style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
               >
-                {r.is_available ? "Select" : "Unavailable"} →
+                {!r.is_available ? "Unavailable" : !fits ? "Party does not fit" : "Select"} →
               </button>
             </div>
           </div>
