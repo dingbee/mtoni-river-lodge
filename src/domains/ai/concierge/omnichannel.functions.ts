@@ -165,33 +165,33 @@ function draftTemplate(type: CommunicationDraftType, ctx: {
   switch (type) {
     case "welcome":
       return {
-        subject: `Karibu to StayNas, ${name}`,
-        body: `Hi ${name},\n\nA warm karibu from the property team. We're delighted you'll be staying with us in ${roomName}${ctx.check_in ? ` from ${ctx.check_in}` : ""}. If there's anything we can prepare in advance — dietary needs, airport transfer, or a special occasion — just reply to this message.\n\nWith warm regards,\nThe StayNas team`,
-        reasoning: "Warm, personal welcome referencing the guest's booked room.",
+        subject: `Welcome to your stay, ${name}`,
+        body: `Hi ${name},\n\nWe're looking forward to welcoming you to the property${ctx.room_slug ? ` in ${roomName}` : ""}${ctx.check_in ? ` from ${ctx.check_in}` : ""}. Let us know if there is anything the team should know before your arrival.\n\nKind regards,\nThe property team`,
+        reasoning: "A neutral welcome draft using only the room and arrival details supplied.",
       };
     case "pre_arrival":
       return {
-        subject: `Getting ready for your StayNas stay`,
-        body: `Hi ${name},\n\nYour stay is almost here. A few notes to help you settle in easily:\n• Check-in from 14:00; late arrivals welcome — please share your flight details if we can help with the transfer.\n• Dinner is served à la carte at the riverside restaurant; do let us know of any dietary needs.\n• Guided experiences (river walk, canoe, bonfire dining) can be reserved in advance.\n\nSafari njema,\nThe StayNas team`,
-        reasoning: "Standard pre-arrival brief covering check-in, dining and experiences.",
+        subject: `Preparing for your arrival`,
+        body: `Hi ${name},\n\nYour stay is approaching. The property team is preparing for your arrival. Please reply with your estimated arrival time and let us know about any dietary, accessibility, transport, or special-arrangement requirements. The team will confirm the property's check-in details and available services.\n\nKind regards,\nThe property team`,
+        reasoning: "A property-neutral pre-arrival draft that avoids unconfigured times or services.",
       };
     case "activity_intro":
       return {
-        subject: `Ideas for your days at the property`,
-        body: `Hi ${name},\n\nBased on what you've mentioned, you may enjoy a guided river walk in the golden hour and a candlelit dinner by the water. If you'd like to add a Lake Duluti canoe morning or an early Arusha coffee farm tour, we can pre-arrange transport.\n\nJust let us know and we'll take care of it.\n\nThe StayNas team`,
-        reasoning: "Suggests signature experiences aligned to typical guest interests.",
+        subject: `Experiences during your stay`,
+        body: `Hi ${name},\n\nWe'd be pleased to help you explore the experiences available at the property. Let us know what interests you and the team can share suitable options, availability, and any applicable rates.\n\nKind regards,\nThe property team`,
+        reasoning: "Invites the guest to explore experiences without inventing property-specific offerings.",
       };
     case "transfer_info":
       return {
-        subject: `Airport transfer for your StayNas stay`,
-        body: `Hi ${name},\n\nWe can arrange a private transfer from Kilimanjaro International (JRO) or Arusha Airport (ARK). Share your flight number and arrival time and we'll confirm the driver and rate directly.\n\nThe StayNas team`,
-        reasoning: "Standard transfer prompt asking for flight details.",
+        subject: `Transport arrangements for your stay`,
+        body: `Hi ${name},\n\nIf you require transport assistance, please share your arrival or departure details and preferred arrangements. The property team will confirm the available options and applicable rates.\n\nKind regards,\nThe property team`,
+        reasoning: "Requests transport details without assuming an airport, provider, or fixed rate.",
       };
     case "follow_up":
       return {
-        subject: `Thank you for staying with us`,
-        body: `Hi ${name},\n\nAsante sana for choosing the property. It was a pleasure hosting you. If you enjoyed your stay, a short review would mean the world to our small team — and we'd love to welcome you back on your next journey to Tanzania.\n\nWith warm regards,\nThe StayNas team`,
-        reasoning: "Post-stay thank-you with a soft review nudge.",
+        subject: `Thank you for your stay`,
+        body: `Hi ${name},\n\nThank you for choosing to stay with us. We hope you had a pleasant experience. Your feedback is valuable to the property team, and we would be pleased to welcome you again.\n\nKind regards,\nThe property team`,
+        reasoning: "A neutral post-stay thank-you with a feedback invitation.",
       };
     case "custom":
     default:
