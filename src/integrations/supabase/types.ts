@@ -16883,7 +16883,6 @@ export type Database = {
         }
         Relationships: []
       }
-    }
       staynas_properties: {
         Row: { id: string; organisation_id: string; slug: string; code: string; name: string; timezone: string; currency: string; status: string; created_at: string; updated_at: string }
         Insert: { id?: string; organisation_id: string; slug: string; code: string; name: string; timezone?: string; currency?: string; status?: string; created_at?: string; updated_at?: string }
@@ -16896,6 +16895,7 @@ export type Database = {
         Update: { property_id?: string; user_id?: string; role?: Database["public"]["Enums"]["app_role"]; status?: string; created_at?: string; updated_at?: string }
         Relationships: []
       }
+    }
     Views: {
       guest_country_stats: {
         Row: {
