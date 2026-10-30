@@ -152,8 +152,9 @@ export async function handleConciergeChat(
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
-  const [roomCatalog, propertyFacts] = await Promise.all([
+  const [roomCatalog, experienceCatalog, propertyFacts] = await Promise.all([
     loadRoomCatalog(supabaseAdmin, propertyId),
+    loadExperienceCatalog(supabaseAdmin, propertyId),
     loadPropertyFacts(supabaseAdmin, propertyId),
   ]);
 
