@@ -234,7 +234,7 @@ export async function handleConciergeChat(
   }
 
   const intentCtx = `level=${intent.level} confidence=${intent.confidence.toFixed(2)}; dates=${intent.detected.check_in ?? "?"} → ${intent.detected.check_out ?? "?"}; party=${intent.detected.adults ?? "?"} adults / ${intent.detected.children ?? 0} children; interests=${(intent.detected.interests ?? []).join(",") || "none"}`;
-  const recsCtx = recommendations.map((r) => `- [${r.type}] ${r.name} (slug: ${r.slug}, conf ${r.confidence.toFixed(2)}): ${r.reasoning.join(" ")}`).join("\n");
+  const recsCtx = recommendations.map((r) => `- [${r.type}] ${r.name} (slug: ${r.slug}, from ${r.currency} ${r.from_price}${r.type === "experience" ? ` ${r.unit}` : "/night"}, conf ${r.confidence.toFixed(2)}): ${r.reasoning.join(" ")}`).join("\n");
   const availabilityCtx = availability.map((a) => `- ${a.name} (slug: ${a.slug}) — ${a.is_available ? (a.fits_party ? `available (${a.min_available} left), fits party` : "available but does not fit party") : "not available"} for ${a.nights} night(s), full-stay total ${a.currency} ${a.nightly_total}`).join("\n") + (plan?.booking_url ? `\nbooking_url: ${plan.booking_url}` : "");
 
   const memoryCtx = await loadConciergeMemoryContext({ sessionId: sessionId!, guestId: existingGuestId, propertyId });
@@ -280,7 +280,7 @@ export async function handleConciergeChat(
       await supabaseAdmin.from("ai_concierge_recommendations").insert(recommendations.map((r) => ({
         session_id: sessionId, message_id: assistantMessageId, recommendation_type: r.type,
         item_slug: r.slug, item_name: r.name, reasoning: r.reasoning.join(" "),
-        confidence: r.confidence, evidence: (r.type === "room" ? { from_price: r.from_price, currency: r.currency } : {}) as any,
+        confidence: r.confidence, evidence: { from_price: r.from_price, currency: r.currency, ...(r.type === "experience" ? { unit: r.unit } : {}) } as any,
       })));
     }
   } catch {}
