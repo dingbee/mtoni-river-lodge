@@ -43,16 +43,18 @@ export interface KbDocument {
 }
 
 export interface KbSearchHit {
-  chunk_id: string;
-  document_id: string;
-  document_title: string;
-  document_slug: string;
+  source_id: string;
+  source_kind: string;
+  source_type: string;
+  title: string;
+  slug: string | null;
   category_slug: string | null;
-  chunk_index: number;
+  url: string | null;
+  summary: string | null;
   content: string;
+  language_code: string;
+  source_updated_at: string | null;
   rank: number;
-  language_code?: string;
-  source_updated_at?: string | null;
 }
 
 // ============= Helpers =============
@@ -467,7 +469,7 @@ export const searchKnowledge = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<KbSearchHit[]> => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     const propertyId = await requireKnowledgeProperty(context.supabase, context.userId);
-    const { data: rows, error } = await context.supabase.rpc("staynas_knowledge_search", {
+    const { data: rows, error } = await context.supabase.rpc("staynas_property_knowledge_search", {
       _property_id: propertyId,
       _query: data.query,
       _limit: data.limit,
