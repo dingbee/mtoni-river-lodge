@@ -511,6 +511,9 @@ export const askOperationsKnowledge = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const scope = await getActivePropertyAiRoles(context.supabase, context.userId);
+    if (process.env.STAYNAS_PROPERTY_KNOWLEDGE_SEARCH_ENABLED !== "true") {
+      throw new Error("Property knowledge retrieval is disabled until database isolation verification is complete.");
+    }
     const sb: any = context.supabase;
     const { data: results, error } = await sb.rpc("staynas_property_knowledge_search", {
       _property_id: scope.propertyId,
