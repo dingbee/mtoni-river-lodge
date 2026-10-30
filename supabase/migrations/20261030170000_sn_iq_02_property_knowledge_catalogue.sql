@@ -70,8 +70,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS knowledge_categories_property_slug_uidx
 CREATE UNIQUE INDEX IF NOT EXISTS knowledge_documents_property_slug_uidx
   ON public.knowledge_documents(property_id, slug) WHERE property_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS ai_knowledge_sources_property_source_ref_uidx
-  ON public.ai_knowledge_sources(property_id, source_type, external_ref)
-  WHERE property_id IS NOT NULL AND external_ref IS NOT NULL;
+  ON public.ai_knowledge_sources(property_id, source_type, external_ref);
 
 CREATE INDEX IF NOT EXISTS knowledge_documents_property_status_idx
   ON public.knowledge_documents(property_id, status, updated_at DESC);
