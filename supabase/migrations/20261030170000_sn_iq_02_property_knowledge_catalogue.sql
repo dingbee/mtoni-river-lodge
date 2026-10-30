@@ -497,6 +497,7 @@ AS $sn_iq_02$
       AND chunk.version = document.current_version
       AND document.status = 'published'
       AND (NOT _guest_visible_only OR document.is_guest_visible = true)
+      AND (document.review_due_at IS NULL OR document.review_due_at >= now())
       AND public.staynas_knowledge_document_readable(document.id)
       AND (
         chunk.tsv @@ plainto_tsquery('english', _query)
@@ -525,6 +526,7 @@ AS $sn_iq_02$
     WHERE source.property_id = _property_id
       AND source.status = 'approved'
       AND (NOT _guest_visible_only OR source.is_guest_visible = true)
+      AND (source.review_due_at IS NULL OR source.review_due_at >= now())
       AND public.staynas_ai_property_in_active_context(
         _property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
       )
@@ -543,6 +545,8 @@ AS $sn_iq_02$
   LIMIT LEAST(GREATEST(COALESCE(_limit, 8), 1), 20);
 $sn_iq_02$;
 
+REVOKE ALL ON FUNCTION public.staynas_knowledge_search(uuid, text, integer, boolean) FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.staynas_ai_knowledge_search(uuid, text, integer, boolean) FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public.staynas_property_knowledge_search(uuid, text, integer, boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.staynas_property_knowledge_search(uuid, text, integer, boolean) TO authenticated;
 COMMENT ON FUNCTION public.staynas_property_knowledge_search(uuid, text, integer, boolean) IS
