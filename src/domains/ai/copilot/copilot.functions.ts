@@ -5,6 +5,7 @@ import { canUseTool, toolDomain } from "../ai.permissions";
 import { allowedToolsForRoles, SYSTEM_BRAND } from "../ai.context";
 import type { AiKnowledgeCitation, AiToolId } from "../ai.types";
 import { AI_GATEWAY_DEFAULT_MODEL, callAiGateway, parseAiJson } from "@/lib/ai-gateway.server";
+import { getActivePropertyAiRoles } from "@/domains/ai/ai.authorization.server";
 
 const MODEL = AI_GATEWAY_DEFAULT_MODEL;
 const MAX_TOOLS_PER_TURN = 3;
@@ -16,9 +17,8 @@ async function chat(system: string, user: string, jsonMode = true): Promise<stri
 
 const tryJson = parseAiJson;
 
-async function getRoles(supabase: any): Promise<string[]> {
-  const { data } = await supabase.rpc("current_user_roles");
-  return (data ?? []) as string[];
+async function getActiveScope(supabase: any, userId: string) {
+  return getActivePropertyAiRoles(supabase, userId);
 }
 
 function buildMultiRouterPrompt(roles: readonly string[]): string {
@@ -54,9 +54,11 @@ function buildAnswerPrompt(): string {
 export const listCopilotSessions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const scope = await getActiveScope(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("ai_copilot_sessions")
       .select("id, title, message_count, last_message_at, created_at, updated_at")
+      .eq("property_id", scope.propertyId)
       .order("updated_at", { ascending: false })
       .limit(50);
     if (error) throw error;
@@ -67,8 +69,9 @@ export const getCopilotSession = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { sessionId: string }) => ({ sessionId: String(i.sessionId) }))
   .handler(async ({ data, context }) => {
+    const scope = await getActiveScope(context.supabase, context.userId);
     const [{ data: session }, { data: messages }] = await Promise.all([
-      context.supabase.from("ai_copilot_sessions").select("*").eq("id", data.sessionId).maybeSingle(),
+      context.supabase.from("ai_copilot_sessions").select("*").eq("id", data.sessionId).eq("property_id", scope.propertyId).maybeSingle(),
       context.supabase.from("ai_copilot_messages").select("*").eq("session_id", data.sessionId).order("created_at"),
     ]);
     return { session, messages: messages ?? [] };
@@ -78,7 +81,8 @@ export const deleteCopilotSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { sessionId: string }) => ({ sessionId: String(i.sessionId) }))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("ai_copilot_sessions").delete().eq("id", data.sessionId);
+    const scope = await getActiveScope(context.supabase, context.userId);
+    const { error } = await context.supabase.from("ai_copilot_sessions").delete().eq("id", data.sessionId).eq("property_id", scope.propertyId);
     if (error) throw error;
     return { ok: true };
   });
@@ -106,15 +110,16 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const start = Date.now();
-    const roles = await getRoles(context.supabase);
-    if (roles.length === 0) throw new Error("You do not have a staff role assigned.");
+    const scope = await getActiveScope(context.supabase, context.userId);
+    const roles = scope.roles;
+    const propertyId = scope.propertyId;
 
     // Session
     let sessionId = data.sessionId;
     if (!sessionId) {
       const { data: session, error } = await context.supabase
         .from("ai_copilot_sessions")
-        .insert({ user_id: context.userId, title: data.question.slice(0, 80), role_snapshot: roles })
+        .insert({ user_id: context.userId, property_id: propertyId, title: data.question.slice(0, 80), role_snapshot: roles } as any)
         .select("id").single();
       if (error) throw error;
       sessionId = session.id;
@@ -143,7 +148,7 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
       const tid = t.tool as AiToolId;
       if (!canUseTool(tid, roles)) continue;
       try {
-        const res = await AI_TOOLS[tid].run({ supabase: context.supabase }, t.args ?? {});
+        const res = await AI_TOOLS[tid].run({ supabase: context.supabase, propertyId }, t.args ?? {});
         toolIds.push(tid);
         domainsUsed.add(toolDomain(tid));
         evidence.push({ domain: toolDomain(tid), tool: tid, count: res.count, window: res.window, summary: res.summary });
@@ -164,8 +169,14 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
       try {
         const { memoizeTTL } = await import("@/lib/perf-cache");
         const q = String(data.question ?? "").trim().toLowerCase();
-        const kb = await memoizeTTL(`kb:copilot:${q}:4`, 60_000, async () => {
-          const { data: r } = await context.supabase.rpc("knowledge_search", { _query: data.question, _limit: 4 });
+        const kb = await memoizeTTL(`kb:copilot:${propertyId}:${q}:4`, 60_000, async () => {
+          const { data: r, error } = await (context.supabase as any).rpc("staynas_knowledge_search", {
+            _property_id: propertyId,
+            _query: data.question,
+            _limit: 4,
+            _guest_visible_only: false,
+          });
+          if (error) throw error;
           return r;
         });
         const rows = (kb ?? []) as any[];
