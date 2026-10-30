@@ -130,7 +130,7 @@ export const listConciergeConversations = createServerFn({ method: "POST" })
     let q = context.supabase
       .from("ai_concierge_sessions")
       .select(
-        "id, channel, session_token, locale, page_context, guest_id, guest_name, guest_email, message_count, escalated, identity_confidence, last_active_at, created_at",
+        "id, channel, locale, page_context, guest_id, guest_name, guest_email, message_count, escalated, identity_confidence, last_active_at, created_at",
       )
       .eq("property_id", propertyId)
       .order("last_active_at", { ascending: false })
