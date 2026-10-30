@@ -327,14 +327,18 @@ export const getMaintenanceIntelligence = createServerFn({ method: "GET" })
 export const generateStaffOperationsInsights = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertFounderAiAdmin(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const propertyId = await requirePropertyScope(sb, context.userId, ["owner", "manager"]);
+    const bookingIds = await propertyBookingIds(sb, propertyId);
+    if (bookingIds.length === 0) return { inserted: 0, insights: [] };
     const since = new Date(Date.now() - 30 * 86400_000).toISOString();
 
-    const { data: tasks } = await sb
+    const { data: tasks, error: tasksError } = await sb
       .from("ops_tasks")
       .select("id, category, task_type, status, priority, due_at, completed_at, created_at")
+      .in("booking_id", bookingIds)
       .gte("created_at", since);
+    if (tasksError) throw new Error(tasksError.message);
 
     const list = tasks ?? [];
     const total = list.length;
@@ -366,7 +370,7 @@ export const generateStaffOperationsInsights = createServerFn({ method: "POST" }
           insight_type: "response_time",
           title: `Average task resolution: ${avgHours}h`,
           reasoning: "Average resolution time above 48h suggests process delay — not an individual concern.",
-          evidence: { avg_hours: avgHours, sample: completedWithTimes.length },
+          evidence: { property_id: propertyId, avg_hours: avgHours, sample: completedWithTimes.length },
           affected_area: "operations",
           recommendation: "Review triage workflow and task-assignment cadence.",
           confidence: 0.75,
@@ -385,7 +389,7 @@ export const generateStaffOperationsInsights = createServerFn({ method: "POST" }
           insight_type: "workload_balance",
           title: `${top[0]} carries ${top[1].total} tasks (3× the lightest area)`,
           reasoning: "Uneven workload across operational categories may need resourcing review.",
-          evidence: { distribution: byCategory },
+          evidence: { property_id: propertyId, distribution: byCategory },
           affected_area: top[0],
           recommendation: `Consider redistributing recurring ${top[0]} tasks or adding capacity.`,
           confidence: 0.7,
@@ -400,7 +404,7 @@ export const generateStaffOperationsInsights = createServerFn({ method: "POST" }
         insight_type: "process_improvement",
         title: `${overdue.length} of ${total} tasks running overdue`,
         reasoning: "Over 15% of tasks are overdue — indicates a scheduling or capacity gap.",
-        evidence: { overdue: overdue.length, total },
+        evidence: { property_id: propertyId, overdue: overdue.length, total },
         affected_area: "task_scheduling",
         recommendation: "Introduce daily standup or reprioritisation checkpoint.",
         confidence: 0.72,
@@ -415,6 +419,7 @@ export const generateStaffOperationsInsights = createServerFn({ method: "POST" }
         .select("id")
         .eq("insight_type", ins.insight_type)
         .eq("status", "pending")
+        .contains("evidence", { property_id: propertyId })
         .maybeSingle();
       if (!existing) {
         const { error } = await sb.from("ai_staff_operations_insights").insert(ins);
@@ -432,10 +437,11 @@ export const listStaffOperationsInsights = createServerFn({ method: "GET" })
     z.object({ status: z.enum(["pending", "approved", "dismissed", "actioned", "all"]).default("pending") }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
-    await assertFounderAiAdmin(context.supabase, context.userId);
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, ["owner", "manager"]);
     let q: any = context.supabase
       .from("ai_staff_operations_insights")
       .select("*")
+      .contains("evidence", { property_id: propertyId })
       .order("created_at", { ascending: false })
       .limit(100);
     if (data.status !== "all") q = q.eq("status", data.status);
@@ -454,8 +460,10 @@ export const updateStaffInsightStatus = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ context, data }) => {
-    await assertFounderAiAdmin(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const propertyId = await requirePropertyScope(sb, context.userId, ["owner", "manager"]);
+    const { data: existing, error: existingError } = await sb.from("ai_staff_operations_insights").select("id, evidence").eq("id", data.id).maybeSingle();
+    if (existingError || existing?.evidence?.property_id !== propertyId) throw new Error("Staff insight not found in the active property.");
     const { data: row, error } = await sb
       .from("ai_staff_operations_insights")
       .update({
@@ -465,6 +473,7 @@ export const updateStaffInsightStatus = createServerFn({ method: "POST" })
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", data.id)
+      .contains("evidence", { property_id: propertyId })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
@@ -667,17 +676,19 @@ export const updateServiceRecoveryStatus = createServerFn({ method: "POST" })
 export const generateOperationsPatterns = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertFounderAiAdmin(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const propertyId = await requirePropertyScope(sb, context.userId, ["owner", "manager"]);
+    const bookingIds = await propertyBookingIds(sb, propertyId);
+    if (bookingIds.length === 0) return { inserted: 0, patterns: [] };
     const now = Date.now();
     const thirtyAgo = new Date(now - 30 * 86400_000).toISOString();
     const sixtyAgo = new Date(now - 60 * 86400_000).toISOString();
 
     const [recentComms, olderComms, recentTasks, olderTasks] = await Promise.all([
-      sb.from("guest_communications").select("id, subject, body, occurred_at").gte("occurred_at", thirtyAgo).limit(1000),
-      sb.from("guest_communications").select("id, subject, body, occurred_at").gte("occurred_at", sixtyAgo).lt("occurred_at", thirtyAgo).limit(1000),
-      sb.from("ops_tasks").select("id, title, category, created_at").gte("created_at", thirtyAgo).limit(1000),
-      sb.from("ops_tasks").select("id, title, category, created_at").gte("created_at", sixtyAgo).lt("created_at", thirtyAgo).limit(1000),
+      sb.from("guest_communications").select("id, subject, body, occurred_at").in("booking_id", bookingIds).gte("occurred_at", thirtyAgo).limit(1000),
+      sb.from("guest_communications").select("id, subject, body, occurred_at").in("booking_id", bookingIds).gte("occurred_at", sixtyAgo).lt("occurred_at", thirtyAgo).limit(1000),
+      sb.from("ops_tasks").select("id, title, category, created_at").in("booking_id", bookingIds).gte("created_at", thirtyAgo).limit(1000),
+      sb.from("ops_tasks").select("id, title, category, created_at").in("booking_id", bookingIds).gte("created_at", sixtyAgo).lt("created_at", thirtyAgo).limit(1000),
     ]);
 
     const patterns: any[] = [];
@@ -709,7 +720,7 @@ export const generateOperationsPatterns = createServerFn({ method: "POST" })
           metric_change: Number((delta * 100).toFixed(1)),
           timeframe_days: 30,
           occurrences: recent,
-          evidence: { recent_30d: recent, previous_30d: older, terms: topic.terms },
+          evidence: { property_id: propertyId, recent_30d: recent, previous_30d: older, terms: topic.terms },
           recommendation: `Ensure knowledge base + concierge script covers ${topic.label} thoroughly.`,
           confidence: Math.min(0.9, 0.5 + delta * 0.3),
           generated_by: context.userId,
@@ -740,7 +751,7 @@ export const generateOperationsPatterns = createServerFn({ method: "POST" })
           metric_change: Number((delta * 100).toFixed(1)),
           timeframe_days: 30,
           occurrences: r,
-          evidence: { category: cat, recent: r, previous: o },
+          evidence: { property_id: propertyId, category: cat, recent: r, previous: o },
           recommendation: `Plan capacity or preventive maintenance for ${cat}.`,
           confidence: 0.7,
           generated_by: context.userId,
@@ -755,6 +766,7 @@ export const generateOperationsPatterns = createServerFn({ method: "POST" })
         .select("id")
         .eq("title", p.title)
         .eq("status", "pending")
+        .contains("evidence", { property_id: propertyId })
         .maybeSingle();
       if (!existing) {
         const { error } = await sb.from("ai_operations_patterns").insert(p);
@@ -771,10 +783,11 @@ export const listOperationsPatterns = createServerFn({ method: "GET" })
     z.object({ status: z.enum(["pending", "approved", "dismissed", "actioned", "all"]).default("pending") }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
-    await assertFounderAiAdmin(context.supabase, context.userId);
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, ["owner", "manager"]);
     let q: any = context.supabase
       .from("ai_operations_patterns")
       .select("*")
+      .contains("evidence", { property_id: propertyId })
       .order("created_at", { ascending: false })
       .limit(100);
     if (data.status !== "all") q = q.eq("status", data.status);
@@ -793,8 +806,10 @@ export const updatePatternStatus = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ context, data }) => {
-    await assertFounderAiAdmin(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const propertyId = await requirePropertyScope(sb, context.userId, ["owner", "manager"]);
+    const { data: existing, error: existingError } = await sb.from("ai_operations_patterns").select("id, evidence").eq("id", data.id).maybeSingle();
+    if (existingError || existing?.evidence?.property_id !== propertyId) throw new Error("Operations pattern not found in the active property.");
     const { data: row, error } = await sb
       .from("ai_operations_patterns")
       .update({
@@ -804,6 +819,7 @@ export const updatePatternStatus = createServerFn({ method: "POST" })
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", data.id)
+      .contains("evidence", { property_id: propertyId })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
