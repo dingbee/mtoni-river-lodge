@@ -1776,6 +1776,7 @@ export type Database = {
       }
       ai_knowledge_sources: {
         Row: {
+          review_due_at: string | null
           simple_tsv: unknown
           is_guest_visible: boolean
           language_code: string
@@ -1807,6 +1808,7 @@ export type Database = {
           usage_score: number | null
         }
         Insert: {
+          review_due_at?: string | null
           property_id?: string | null
           language_code?: string
           is_guest_visible?: boolean
@@ -1838,6 +1840,7 @@ export type Database = {
           usage_score?: number | null
         }
         Update: {
+          review_due_at?: string | null
           property_id?: string | null
           language_code?: string
           is_guest_visible?: boolean
