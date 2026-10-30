@@ -69,7 +69,7 @@ function slugify(s: string): string {
     .slice(0, 80) || `doc-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function reviewDueAt(sourceType: string, now = new Date()): string {
+export function reviewDueAt(sourceType: string, now = new Date()): string {
   const days: Record<string, number> = { policy: 180, experience: 60, room: 30, url: 30, html: 30, pdf: 180, docx: 180 };
   const due = new Date(now);
   due.setUTCDate(due.getUTCDate() + (days[sourceType] ?? 90));
@@ -78,6 +78,9 @@ function reviewDueAt(sourceType: string, now = new Date()): string {
 
 /** Split content into ~1200-char chunks on paragraph boundaries with 150-char overlap. */
 export function chunkText(text: string, maxLen = 1200, overlap = 150): string[] {
+  if (!Number.isInteger(maxLen) || maxLen < 1 || !Number.isInteger(overlap) || overlap < 0 || overlap >= maxLen) {
+    throw new Error("Chunk size must be positive and overlap must be smaller than chunk size.");
+  }
   const cleaned = text.replace(/\r\n?/g, "\n").trim();
   if (!cleaned) return [];
   if (cleaned.length <= maxLen) return [cleaned];
