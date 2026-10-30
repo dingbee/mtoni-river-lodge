@@ -196,12 +196,16 @@ export const getRevenueAnalytics = createServerFn({ method: "POST" })
       totals.paid += Number(r.paid_amount ?? 0);
       totals.outstanding += Number(r.balance_amount ?? 0);
       totalsByCurrency.set(currency, totals);
-      roomNights += r.nights ?? 0;
+      if (currency === property.currency) {
+        const day = String(r.check_in);
+        revByDay.set(day, (revByDay.get(day) ?? 0) + Number(r.total ?? 0));
+        roomNights += r.nights ?? 0;
+      }
     }
     const primaryTotals = totalsByCurrency.get(property.currency) ?? { revenue: 0, paid: 0, outstanding: 0 };
-    const revenue = totalsByCurrency.size <= 1 ? (Array.from(totalsByCurrency.values())[0]?.revenue ?? 0) : primaryTotals.revenue;
-    const paid = totalsByCurrency.size <= 1 ? (Array.from(totalsByCurrency.values())[0]?.paid ?? 0) : primaryTotals.paid;
-    const outstanding = totalsByCurrency.size <= 1 ? (Array.from(totalsByCurrency.values())[0]?.outstanding ?? 0) : primaryTotals.outstanding;
+    const revenue = primaryTotals.revenue;
+    const paid = primaryTotals.paid;
+    const outstanding = primaryTotals.outstanding;
     const { data: rooms } = await context.supabase.from("rooms").select("id, total_units").eq("property_id", propertyId).eq("status", "active");
     const totalUnits = (rooms ?? []).reduce((n: number, r: any) => n + (r.total_units ?? 1), 0) || 1;
     return {
