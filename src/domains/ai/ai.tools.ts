@@ -52,7 +52,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
       const [{ data: guest }, { data: prefs }, { count: stays }] = await Promise.all([
         supabase.from("guests").select("*").eq("id", id).maybeSingle(),
         supabase.from("guest_preferences").select("*").eq("guest_id", id),
-        supabase.from("bookings").select("id", { count: "exact", head: true }).eq("guest_id", id),
+        supabase.from("bookings").select("id", { count: "exact", head: true }).eq("property_id", propertyId).eq("guest_id", id),
       ]);
       return { summary: guest ? `Guest ${guest.full_name ?? guest.email}, ${stays ?? 0} stay(s).` : "Guest not found.", data: { guest, preferences: prefs, stays }, count: stays ?? 0 };
     },
@@ -123,7 +123,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
           .eq("property_id", propertyId)
           .gte("check_in", first).lt("check_in", nextMonth)
           .in("status", ["confirmed", "checked_in", "checked_out"]),
-        supabase.from("rooms").select("total_units").eq("status", "active"),
+        supabase.from("rooms").select("total_units").eq("property_id", propertyId).eq("status", "active"),
       ]);
       const soldNights = (bookings ?? []).reduce((sum, b: any) => sum + (b.nights ?? 0), 0);
       const totalUnits = (rooms ?? []).reduce((sum, r: any) => sum + (r.total_units ?? 0), 0);
@@ -276,7 +276,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
       const q = String(args.query ?? "").trim();
       if (!q) return { summary: "No query provided.", data: [], count: 0 };
       const { memoizeTTL } = await import("@/lib/perf-cache");
-      const rows = await memoizeTTL(`kb:tools:${q.toLowerCase()}:6`, 60_000, async () => {
+      const rows = await memoizeTTL(`kb:tools:${propertyId}:${q.toLowerCase()}:6`, 60_000, async () => {
         const { data, error } = await supabase.rpc("knowledge_search", { _query: q, _limit: 6 });
         if (error) throw error;
         return (data ?? []) as Array<any>;
