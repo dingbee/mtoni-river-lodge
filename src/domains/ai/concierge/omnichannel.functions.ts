@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertFounderAiAdmin } from "@/domains/ai/ai.authorization.server";
 import type {
   ChannelRow,
   CommunicationDraftRow,
@@ -15,17 +16,11 @@ const CHANNELS: ConciergeChannel[] = ["web", "whatsapp", "email"];
 const isChannel = (v: unknown): v is ConciergeChannel =>
   typeof v === "string" && (CHANNELS as string[]).includes(v);
 
-function requireManager(userId: string, roles: string[]) {
-  return roles.some((r) =>
-    ["owner", "manager"].includes(r),
-  ) || !!userId;
-}
-void requireManager;
-
 // ── Channels ────────────────────────────────────────────────────────────────
 export const listConciergeChannels = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("ai_concierge_channels")
       .select("*")
@@ -50,6 +45,7 @@ export const updateConciergeChannel = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data, context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const patch: Record<string, unknown> = {};
     for (const k of [
       "status",
