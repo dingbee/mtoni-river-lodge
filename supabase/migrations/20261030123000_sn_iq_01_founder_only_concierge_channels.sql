@@ -8,6 +8,37 @@ ALTER TABLE public.ai_concierge_sessions
 CREATE INDEX IF NOT EXISTS ai_concierge_sessions_property_activity_idx
   ON public.ai_concierge_sessions(property_id, last_active_at DESC);
 
+DO $
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'ai_concierge_sessions_property_required'
+      AND conrelid = 'public.ai_concierge_sessions'::regclass
+  ) THEN
+    ALTER TABLE public.ai_concierge_sessions
+      ADD CONSTRAINT ai_concierge_sessions_property_required
+      CHECK (property_id IS NOT NULL) NOT VALID;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'ai_concierge_leads_property_required'
+      AND conrelid = 'public.ai_concierge_leads'::regclass
+  ) THEN
+    ALTER TABLE public.ai_concierge_leads
+      ADD CONSTRAINT ai_concierge_leads_property_required
+      CHECK (property_id IS NOT NULL) NOT VALID;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'ai_personalization_events_property_required'
+      AND conrelid = 'public.ai_personalization_events'::regclass
+  ) THEN
+    ALTER TABLE public.ai_personalization_events
+      ADD CONSTRAINT ai_personalization_events_property_required
+      CHECK (property_id IS NOT NULL) NOT VALID;
+  END IF;
+END $;
+
 ALTER TABLE public.ai_concierge_leads
   ADD COLUMN IF NOT EXISTS property_id uuid
   REFERENCES public.staynas_properties(id) ON DELETE SET NULL;
