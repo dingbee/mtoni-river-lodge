@@ -1,6 +1,58 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { assertFounderAiAdmin } from "@/domains/ai/ai.authorization.server";
+
+async function requirePropertyScope(sb: any, userId: string): Promise<string> {
+  const { data: propertyId, error: contextError } = await sb.rpc("staynas_active_property_id", { _uid: userId });
+  if (contextError || !propertyId) throw new Error("No active property selected.");
+  const { data: membership, error: membershipError } = await sb
+    .from("staynas_property_members")
+    .select("property_id")
+    .eq("user_id", userId)
+    .eq("property_id", propertyId)
+    .eq("status", "active")
+    .in("role", ["owner", "manager", "admin", "finance", "reception", "marketing", "housekeeping"])
+    .maybeSingle();
+  if (membershipError || !membership) throw new Error("Forbidden");
+  return String(propertyId);
+}
+
+async function propertyBookingIds(sb: any, propertyId: string): Promise<string[]> {
+  const ids: string[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from("bookings").select("id").eq("property_id", propertyId).range(from, from + 999);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []).map((row: { id: string }) => row.id);
+    ids.push(...page);
+    if (page.length < 1000) break;
+  }
+  return ids;
+}
+
+async function propertyRoomIds(sb: any, propertyId: string): Promise<string[]> {
+  const ids: string[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from("rooms").select("id").eq("property_id", propertyId).range(from, from + 999);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []).map((row: { id: string }) => row.id);
+    ids.push(...page);
+    if (page.length < 1000) break;
+  }
+  return ids;
+}
+
+async function propertySessionIds(sb: any, propertyId: string): Promise<string[]> {
+  const ids: string[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from("ai_concierge_sessions").select("id").eq("property_id", propertyId).range(from, from + 999);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []).map((row: { id: string }) => row.id);
+    ids.push(...page);
+    if (page.length < 1000) break;
+  }
+  return ids;
+}
 
 function daysAgoISO(n: number) { const d = new Date(); d.setUTCDate(d.getUTCDate() - n); return d.toISOString().slice(0, 10); }
 function todayISO() { return new Date().toISOString().slice(0, 10); }
@@ -137,6 +189,7 @@ export const getRevenueAnalytics = createServerFn({ method: "POST" })
 export const getMarketingAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const from = daysAgoISO(30);
     const [{ data: campaigns }, { data: journal }, { data: reviews }, { data: seoRecs }] = await Promise.all([
       context.supabase.from("campaigns").select("id, name, status, created_at").gte("created_at", from),
@@ -225,6 +278,7 @@ export const getAiAnalytics = createServerFn({ method: "POST" })
 export const getExecutiveAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const s = context.supabase;
     const from = daysAgoISO(30);
     const [{ data: risks }, { data: recs }, { data: bookings }, { data: reviews }, { data: alerts }] = await Promise.all([
@@ -257,6 +311,7 @@ export const generateAnalyticsReport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => reportKindSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const dayMap = { daily: 1, weekly: 7, monthly: 30, quarterly: 90, annual: 365 } as const;
     const days = dayMap[data.kind];
     const start = daysAgoISO(days);
@@ -290,6 +345,7 @@ export const generateAnalyticsReport = createServerFn({ method: "POST" })
 export const listAnalyticsReports = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const { data } = await context.supabase
       .from("analytics_reports")
       .select("id, kind, period, period_start, period_end, title, summary, status, created_at")
@@ -310,6 +366,7 @@ async function bookingsSum(supabase: any, days: number) {
 export const computeTrends = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const windows = [7, 30, 90, 365];
     const out: any[] = [];
     for (const w of windows) {
@@ -341,6 +398,7 @@ export const computeTrends = createServerFn({ method: "POST" })
 export const listTrends = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const { data } = await context.supabase.from("ai_trend_snapshots").select("*").order("captured_at", { ascending: false }).limit(200);
     return data ?? [];
   });
@@ -348,6 +406,7 @@ export const listTrends = createServerFn({ method: "POST" })
 export const generateAnalyticsRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const { data: trends } = await context.supabase.from("ai_trend_snapshots").select("*").order("captured_at", { ascending: false }).limit(60);
     const created: any[] = [];
     for (const t of (trends ?? []) as Row[]) {
@@ -375,6 +434,7 @@ export const generateAnalyticsRecommendations = createServerFn({ method: "POST" 
 export const listAnalyticsRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const { data } = await context.supabase.from("ai_analytics_recommendations").select("*").order("created_at", { ascending: false }).limit(50);
     return data ?? [];
   });
@@ -383,6 +443,7 @@ export const setAnalyticsRecommendationStatus = createServerFn({ method: "POST" 
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), status: z.enum(["open", "accepted", "dismissed", "resolved"]) }).parse(d))
   .handler(async ({ data, context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const { error } = await context.supabase
       .from("ai_analytics_recommendations")
       .update({ status: data.status, reviewed_by: context.userId, reviewed_at: new Date().toISOString() })
