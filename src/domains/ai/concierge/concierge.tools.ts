@@ -100,9 +100,10 @@ export function buildBookingPlan(
   const nights = intent.detected.nights ?? Math.round((new Date(`${co}T00:00:00Z`).getTime() - new Date(`${ci}T00:00:00Z`).getTime()) / 86400000);
   if (!Number.isInteger(nights) || nights < 1) return null;
 
+  const eligibleRooms = availability.filter((r) => r.is_available && r.fits_party);
   const room = (preferredRoomSlug
-    ? availability.find((r) => r.slug === preferredRoomSlug && r.is_available && r.fits_party)
-    : availability.find((r) => r.is_available && r.fits_party));
+    ? eligibleRooms.find((r) => r.slug === preferredRoomSlug) ?? eligibleRooms[0]
+    : eligibleRooms[0]);
 
   const selectedCurrency = room?.currency;
   const validRoomQuote = room &&
