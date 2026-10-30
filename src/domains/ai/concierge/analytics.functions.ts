@@ -148,7 +148,7 @@ export const getConciergeJourney = createServerFn({ method: "POST" })
     const s = context.supabase;
     const { data: sessionRow, error: sessionError } = await s
       .from("ai_concierge_sessions")
-      .select("*")
+      .select("id, property_id, channel, locale, page_context, guest_id, guest_name, guest_email, guest_phone, message_count, escalated, identity_confidence, last_active_at, created_at")
       .eq("id", data.session_id)
       .eq("property_id", propertyId)
       .maybeSingle();
