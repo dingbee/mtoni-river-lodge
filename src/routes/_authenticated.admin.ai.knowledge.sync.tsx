@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import {
   listKnowledgeSources,
   setKnowledgeSourceStatus,
+  setKnowledgeSourceGuestVisibility,
   deleteKnowledgeSource,
   syncRoomsAndExperiences,
 } from "@/domains/ai/knowledge-sync.functions";
@@ -38,6 +39,7 @@ function KnowledgeSyncPage() {
   const qc = useQueryClient();
   const listFn = useServerFn(listKnowledgeSources);
   const setStatusFn = useServerFn(setKnowledgeSourceStatus);
+  const setGuestVisibilityFn = useServerFn(setKnowledgeSourceGuestVisibility);
   const delFn = useServerFn(deleteKnowledgeSource);
   const syncRoomsFn = useServerFn(syncRoomsAndExperiences);
 
@@ -74,6 +76,12 @@ function KnowledgeSyncPage() {
     onSuccess: () => invalidate(),
     onError: (e: any) => toast.error(e?.message ?? "Update failed"),
   });
+  const setGuestVisibility = useMutation({
+    mutationFn: (v: { id: string; is_guest_visible: boolean }) => setGuestVisibilityFn({ data: v }),
+    onSuccess: () => invalidate(),
+    onError: (e: any) => toast.error(e?.message ?? "Guest visibility update failed"),
+  });
+
   const del = useMutation({
     mutationFn: (id: string) => delFn({ data: { id } }),
     onSuccess: () => {
@@ -164,6 +172,7 @@ function KnowledgeSyncPage() {
                       <span className="font-medium">{s.title}</span>
                       <Badge variant={s.status === "approved" ? "default" : "secondary"}>{s.status}</Badge>
                       <Badge variant="outline">{s.source_type.replace("_", " ")}</Badge>
+                      {s.is_guest_visible && <Badge variant="secondary">Guest-visible</Badge>}
                     </div>
                     {s.url && <div className="mt-1 text-xs text-muted-foreground">{s.url}</div>}
                     {s.last_synced_at && (
@@ -191,6 +200,14 @@ function KnowledgeSyncPage() {
                         <Archive className="mr-1 size-4" /> Archive
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={s.status !== "approved" || setGuestVisibility.isPending}
+                      onClick={() => setGuestVisibility.mutate({ id: s.id, is_guest_visible: !s.is_guest_visible })}
+                    >
+                      {s.is_guest_visible ? "Hide from guests" : "Approve guest AI"}
+                    </Button>
                     <Button
                       size="sm"
                       variant="ghost"
