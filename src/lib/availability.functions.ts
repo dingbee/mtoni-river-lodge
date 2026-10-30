@@ -30,6 +30,7 @@ const createHoldSchema = z.object({
   checkOut: dateStr,
   sessionId: z.string().min(6).max(120),
   guestEmail: z.string().email().max(255).optional(),
+  consentToTemporaryHold: z.literal(true),
   ttlSeconds: z.number().int().min(60).max(3600).optional(),
 });
 
