@@ -395,7 +395,10 @@ AS $$
     AND chunk.property_id = _property_id
     AND chunk.version = document.current_version
     AND document.status = 'published'
-    AND (NOT _guest_visible_only OR document.is_guest_visible = true)
+    AND (
+      NOT _guest_visible_only
+      OR (document.is_guest_visible = true AND document.review_due_at IS NOT NULL AND document.review_due_at >= now())
+    )
     AND public.staynas_ai_property_in_active_context(
       _property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
     )
@@ -447,7 +450,10 @@ AS $$
     AND length(trim(_query)) > 0
     AND source.property_id = _property_id
     AND source.status = 'approved'
-    AND (NOT _guest_visible_only OR source.is_guest_visible = true)
+    AND (
+      NOT _guest_visible_only
+      OR (source.is_guest_visible = true AND source.review_due_at IS NOT NULL AND source.review_due_at >= now())
+    )
     AND public.staynas_ai_property_in_active_context(
       _property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
     )
@@ -517,7 +523,10 @@ AS $sn_iq_02$
       AND chunk.property_id = _property_id
       AND chunk.version = document.current_version
       AND document.status = 'published'
-      AND (NOT _guest_visible_only OR document.is_guest_visible = true)
+      AND (
+      NOT _guest_visible_only
+      OR (document.is_guest_visible = true AND document.review_due_at IS NOT NULL AND document.review_due_at >= now())
+    )
       AND (document.review_due_at IS NULL OR document.review_due_at >= now())
       AND public.staynas_knowledge_document_readable(document.id)
       AND (
@@ -546,7 +555,10 @@ AS $sn_iq_02$
     FROM public.ai_knowledge_sources source
     WHERE source.property_id = _property_id
       AND source.status = 'approved'
-      AND (NOT _guest_visible_only OR source.is_guest_visible = true)
+      AND (
+      NOT _guest_visible_only
+      OR (source.is_guest_visible = true AND source.review_due_at IS NOT NULL AND source.review_due_at >= now())
+    )
       AND (source.review_due_at IS NULL OR source.review_due_at >= now())
       AND public.staynas_ai_property_in_active_context(
         _property_id, ARRAY['owner','manager','admin','reservations','reception','marketing','finance','housekeeping']::public.app_role[]
@@ -635,7 +647,7 @@ AS $sn_iq_02$
      AND category.property_id = property.id
     WHERE document.status = 'published'
       AND document.is_guest_visible = true
-      AND (document.review_due_at IS NULL OR document.review_due_at >= now())
+      AND document.review_due_at IS NOT NULL AND document.review_due_at >= now()
       AND (
         chunk.tsv @@ plainto_tsquery('english', _query)
         OR chunk.simple_tsv @@ plainto_tsquery('simple', _query)
@@ -663,7 +675,7 @@ AS $sn_iq_02$
     JOIN public.ai_knowledge_sources source ON source.property_id = property.id
     WHERE source.status = 'approved'
       AND source.is_guest_visible = true
-      AND (source.review_due_at IS NULL OR source.review_due_at >= now())
+      AND source.review_due_at IS NOT NULL AND source.review_due_at >= now()
       AND (
         source.content_tsv @@ plainto_tsquery('english', _query)
         OR source.simple_tsv @@ plainto_tsquery('simple', _query)
