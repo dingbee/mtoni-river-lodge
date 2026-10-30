@@ -353,6 +353,7 @@ export const updateCommunicationDraft = createServerFn({ method: "POST" })
       notes?: string | null;
     }) => {
       if (!input?.id) throw new Error("id required");
+      if (input.status && !["pending", "approved", "edited", "rejected", "sent", "archived"].includes(input.status)) throw new Error("invalid draft status");
       return input;
     },
   )
@@ -387,6 +388,7 @@ export const updateCommunicationDraft = createServerFn({ method: "POST" })
         patch.approved_by = context.userId;
         patch.approved_at = new Date().toISOString();
       }
+      if (data.status === "sent") patch.sent_at = new Date().toISOString();
     }
     if (Object.keys(patch).length === 0) throw new Error("No draft changes supplied.");
     const { data: updated, error } = await context.supabase
