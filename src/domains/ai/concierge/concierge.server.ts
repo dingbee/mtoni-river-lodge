@@ -228,14 +228,14 @@ export async function handleConciergeChat(
   let plan: ConciergeBookingPlan | null = null;
   if (intent.detected.check_in && intent.detected.check_out) {
     try {
-      availability = await searchAvailability({ check_in: intent.detected.check_in, check_out: intent.detected.check_out });
-      plan = buildBookingPlan(intent, availability, recommendations.find((r) => r.type === "room")?.slug);
+      availability = await searchAvailability({ check_in: intent.detected.check_in, check_out: intent.detected.check_out, adults: intent.detected.adults ?? 2, children: intent.detected.children ?? 0 });
+      plan = buildBookingPlan(intent, availability, recommendations.find((r) => r.type === "room")?.slug, experienceCatalog);
     } catch {}
   }
 
   const intentCtx = `level=${intent.level} confidence=${intent.confidence.toFixed(2)}; dates=${intent.detected.check_in ?? "?"} → ${intent.detected.check_out ?? "?"}; party=${intent.detected.adults ?? "?"} adults / ${intent.detected.children ?? 0} children; interests=${(intent.detected.interests ?? []).join(",") || "none"}`;
   const recsCtx = recommendations.map((r) => `- [${r.type}] ${r.name} (slug: ${r.slug}, conf ${r.confidence.toFixed(2)}): ${r.reasoning.join(" ")}`).join("\n");
-  const availabilityCtx = availability.map((a) => `- ${a.name} (slug: ${a.slug}) — ${a.is_available ? `available (${a.min_available} left)` : "not available"} for ${a.nights} night(s), total ${a.currency} ${a.nightly_total}`).join("\n") + (plan?.booking_url ? `\nbooking_url: ${plan.booking_url}` : "");
+  const availabilityCtx = availability.map((a) => `- ${a.name} (slug: ${a.slug}) — ${a.is_available ? (a.fits_party ? `available (${a.min_available} left), fits party` : "available but does not fit party") : "not available"} for ${a.nights} night(s), full-stay total ${a.currency} ${a.nightly_total}`).join("\n") + (plan?.booking_url ? `\nbooking_url: ${plan.booking_url}` : "");
 
   const memoryCtx = await loadConciergeMemoryContext({ sessionId: sessionId!, guestId: existingGuestId, propertyId });
   const memoryPromptSection = memoryCtx.contextText ? [
