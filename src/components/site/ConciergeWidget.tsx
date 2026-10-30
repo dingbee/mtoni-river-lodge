@@ -425,7 +425,7 @@ function AvailabilityList({ rooms }: { rooms: ConciergeAvailabilityRoom[] }) {
         <div key={r.slug} className="flex items-center justify-between gap-2">
           <span>{r.name}</span>
           <span className={cn("whitespace-nowrap", r.is_available ? "text-primary" : "text-muted-foreground line-through")}>
-            {r.is_available ? `${formatConciergeCurrency(r.nightly_total, r.currency)} · ${r.nights}n` : "Unavailable"}
+            {!r.is_available ? "Unavailable" : !r.fits_party ? "Available · party does not fit" : `${formatConciergeCurrency(r.nightly_total, r.currency)} · ${r.nights}n`}
           </span>
         </div>
       ))}
@@ -443,7 +443,7 @@ function BookingPlanCard({ plan }: { plan: ConciergeBookingPlan }) {
       <p className="flex items-center gap-1 opacity-80">
         <Users className="size-3" /> {plan.adults} adults{plan.children ? ` · ${plan.children} children` : ""}
       </p>
-      {plan.room && <p className="mt-1">Suggested: <strong>{plan.room.name}</strong> — ${formatConciergeCurrency(plan.room.total_price, plan.room.currency)}</p>}
+      {plan.room && <p className="mt-1">Suggested: <strong>{plan.room.name}</strong> — {formatConciergeCurrency(plan.room.total_price, plan.room.currency)}</p>}
       {plan.experiences.length > 0 && (
         <p className="mt-0.5 opacity-80">Experiences: {plan.experiences.map((e) => e.name).join(", ")}</p>
       )}
