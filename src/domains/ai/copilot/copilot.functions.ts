@@ -155,8 +155,10 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
         toolPayloads.push(`### Tool: ${tid}\n${res.summary}\nData: ${JSON.stringify(res.data).slice(0, 3000)}`);
         if (tid === "knowledge.search" && Array.isArray(res.data)) {
           citations = (res.data as any[]).map((r) => ({
-            document_id: r.document_id, document_title: r.document_title, document_slug: r.document_slug,
-            category_slug: r.category_slug ?? null, chunk_index: r.chunk_index, excerpt: String(r.content ?? "").slice(0, 400),
+            source_id: r.source_id, source_kind: r.source_kind, source_type: r.source_type,
+            title: r.title, slug: r.slug ?? null, category_slug: r.category_slug ?? null,
+            chunk_index: r.chunk_index ?? null, url: r.url ?? null, language_code: r.language_code,
+            excerpt: String(r.content ?? "").slice(0, 400),
           }));
         }
       } catch (err: any) {
