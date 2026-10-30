@@ -25,7 +25,7 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - name: Run omnichannel contract and provider adapter regressions
-        run: bunx vitest run src/domains/ai/concierge/omnichannel.contracts.test.ts src/domains/ai/concierge/providers/provider-adapters.server.test.ts src/domains/ai/concierge/webhooks/webhook-security.server.test.ts
+        run: bunx vitest run src/domains/ai/concierge/omnichannel.contracts.test.ts src/domains/ai/concierge/providers/provider-adapters.server.test.ts src/domains/ai/concierge/webhooks/webhook-security.server.test.ts src/domains/ai/concierge/webhooks/webhook-processor.server.test.ts
       - name: TypeScript verification
         run: bunx tsc --noEmit
       - name: Lint omnichannel contracts, provider adapters, webhook security and tests
