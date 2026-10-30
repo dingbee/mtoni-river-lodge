@@ -188,12 +188,20 @@ export const setKnowledgeSourceStatus = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     const propertyId = await assertApprover(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: current, error: currentError } = await sb
+      .from("ai_knowledge_sources")
+      .select("source_type")
+      .eq("id", data.id)
+      .eq("property_id", propertyId)
+      .maybeSingle();
+    if (currentError) throw new Error(currentError.message);
+    if (!current) throw new Error("Knowledge source not found in the active property.");
     const { data: row, error } = await sb
       .from("ai_knowledge_sources")
       .update({
         status: data.status,
         is_guest_visible: data.status === "approved" ? undefined : false,
-        review_due_at: data.status === "approved" ? knowledgeReviewDueAt("document") : undefined,
+        review_due_at: data.status === "approved" ? knowledgeReviewDueAt(current.source_type) : undefined,
         reviewed_by: context.userId,
         reviewed_at: new Date().toISOString(),
       })
