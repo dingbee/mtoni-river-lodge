@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { getMyAiScope } from "@/domains/ai/ai.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/settings")({
-  head: () => ({ meta: [{ title: "AI Settings — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
+  head: () => ({ meta: [{ title: "AI Settings — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   component: AiSettings,
 });
 
@@ -15,13 +15,16 @@ function AiSettings() {
   const scopeFn = useServerFn(getMyAiScope);
   const scope = useQuery({ queryKey: ["ai.scope"], queryFn: () => scopeFn() });
 
+  if (scope.isPending) return <div className="p-6 text-sm text-muted-foreground">Verifying access…</div>;
+  if (scope.isError || !scope.data) return <div className="p-6 text-sm text-muted-foreground">This workspace is restricted to Nolmark CDMA founder administration.</div>;
+
   return (
     <div className="space-y-4">
-      <PageHeader title="Mtoni AI Settings" description="Configuration and scope for the AI Command Centre." />
-      <SectionCard title="Model">
-        <div className="text-sm">Chat model: <Badge variant="secondary">google/gemini-2.5-flash</Badge></div>
+      <PageHeader title="StayNas AI Settings" description="Founder-governed configuration and scope for StayNas Intelligence." />
+      <SectionCard title="Provider governance">
+        <div className="text-sm"><Badge variant="secondary">Founder managed</Badge></div>
         <div className="mt-2 text-xs text-muted-foreground">
-          Managed via the Lovable AI Gateway. All requests are audited to <code>ai_activity_logs</code>.
+          Provider endpoints, model selection and credentials are controlled by Nolmark CDMA. Secrets remain server-side and are never exposed to property tenants.
         </div>
       </SectionCard>
       <SectionCard title="Your role scope">
