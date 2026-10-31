@@ -120,7 +120,7 @@ function AuthPage() {
 
   const verifyRecoveryCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    const token = recoveryCode.replace(/\\s/g, "");
+    const token = recoveryCode.replace(/\s/g, "");
     if (!email.trim() || !token) {
       toast.error("Enter the email address and the code from your reset email.");
       return;
