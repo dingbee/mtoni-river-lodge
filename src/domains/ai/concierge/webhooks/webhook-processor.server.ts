@@ -16,7 +16,13 @@ export const messageStatus = (event: NormalizedProviderEvent["eventType"]) => {
   if (event === "failed" || event === "complained" || event === "unsubscribed") return "failed";
   return null;
 };
-const rank: Record<string, number> = { recorded: 0, queued: 1, accepted: 2, delivered: 3, read: 4, failed: 5, undeliverable: 5 };
+const rank: Record<string, number> = { recorded: 0, queued: 1, accepted: 2, delivered: 3, read: 4 };
+export function canTransitionMessageStatus(current: string, next: string): boolean {
+  // A late failure/bounce callback must never downgrade a confirmed delivery/read.
+  if (current === "read" || current === "delivered") return false;
+  if (next === "failed" || next === "undeliverable") return true;
+  return (rank[next] ?? -1) >= (rank[current] ?? -1);
+}
 
 async function processInbound(supabase: any, row: InboxRow, event: NormalizedProviderEvent) {
   const supportedMedia = ["image", "audio", "document", "video"].includes(String(event.safePayload.messageType));
@@ -54,7 +60,7 @@ async function processDelivery(supabase: any, row: InboxRow, event: NormalizedPr
   if (error) throw new Error(error.message);
   if (!message) return { ignored: true as const };
   const nextStatus = messageStatus(event.eventType);
-  if (nextStatus && (rank[nextStatus] ?? 0) >= (rank[message.status] ?? 0)) {
+  if (nextStatus && canTransitionMessageStatus(message.status, nextStatus)) {
     const { error: updateError } = await supabase.from("ai_omnichannel_messages")
       .update({ status: nextStatus })
       .eq("id", message.id).eq("property_id", row.property_id);
