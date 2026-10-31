@@ -7,6 +7,8 @@ on:
   pull_request:
     branches:
       - main
+      - feat/staynas-enterprise-neutral-theme
+      - integration/staynas-nolmark-reconciliation
       - feat/staynas-calendar-intelligence-p3
 
 permissions:
