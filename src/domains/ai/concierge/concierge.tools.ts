@@ -64,7 +64,9 @@ export async function searchAvailability(input: {
   const sb = getPublicClient();
   try {
     const propertyId = await getConfiguredBookingPropertyId(sb);
-    const { data, error } = await (bookingRpc(sb) as any).rpc("get_room_availability", {
+    const { data, error } = await (bookingRpc(sb) as unknown as {
+      rpc: (name: string, args: Record<string, string>) => Promise<{ data: unknown; error: unknown }>;
+    }).rpc("get_room_availability", {
       _check_in: input.check_in,
       _check_out: input.check_out,
       _property_id: propertyId,
