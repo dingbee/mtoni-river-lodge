@@ -18,8 +18,13 @@ export const messageStatus = (event: NormalizedProviderEvent["eventType"]) => {
 };
 const rank: Record<string, number> = { recorded: 0, queued: 1, accepted: 2, delivered: 3, read: 4 };
 export function canTransitionMessageStatus(current: string, next: string): boolean {
-  // A late failure/bounce callback must never downgrade a confirmed delivery/read.
+  // Confirmed delivery is stronger than any failure callback.
   if (current === "read" || current === "delivered") return false;
+  // A failure is provisional: only a later positive provider confirmation may
+  // supersede it. Never move a failed message backwards to queued/accepted.
+  if (current === "failed" || current === "undeliverable") {
+    return next === "delivered" || next === "read";
+  }
   if (next === "failed" || next === "undeliverable") return true;
   return (rank[next] ?? -1) >= (rank[current] ?? -1);
 }
