@@ -460,9 +460,10 @@ function UnifiedCalendarPage() {
         title="Calendar"
         description="Manage reservations, room readiness and property operations in one workspace."
         actions={
-          <div className="flex items-center gap-2">
-            <Button size="sm" onClick={() => setCreateReservationOpen(true)}><Plus className="mr-2 h-4 w-4" /> New reservation</Button>
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
+            <Button className="col-span-2 w-full sm:col-span-1 sm:w-auto" size="sm" onClick={() => setCreateReservationOpen(true)}><Plus className="mr-2 h-4 w-4" /> New reservation</Button>
             <Button
+              className="w-full sm:w-auto"
               size="sm"
               variant="outline"
               onClick={() => {
@@ -474,10 +475,11 @@ function UnifiedCalendarPage() {
             >
               <CalendarDays className="mr-2 h-4 w-4" /> Schedule staff
             </Button>
-            <Button variant="outline" size="sm" asChild>
+            <Button className="w-full sm:w-auto" variant="outline" size="sm" asChild>
               <Link to="/admin/operations/calendar">Ops calendar</Link>
             </Button>
             <Button
+              className="w-full sm:w-auto"
               variant="outline"
               size="sm"
               onClick={() => {
@@ -506,15 +508,16 @@ function UnifiedCalendarPage() {
         }}
       />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        <StatCard label="In-house today" value={String(bookingsToday)} icon={CalendarDays} />
-        <StatCard label="Arrivals today" value={String(arrivalsCount)} icon={CalendarDays} />
-        <StatCard label="Departures today" value={String(departuresCount)} icon={CalendarDays} />
-        <StatCard label="Resource conflicts" value={String(bookingConflicts.length)} icon={AlertTriangle} />
+      <div className="grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 xl:grid-cols-5">
+        <StatCard label="In-house today" value={String(bookingsToday)} icon={CalendarDays} className="p-3 sm:p-5" />
+        <StatCard label="Arrivals today" value={String(arrivalsCount)} icon={CalendarDays} className="p-3 sm:p-5" />
+        <StatCard label="Departures today" value={String(departuresCount)} icon={CalendarDays} className="p-3 sm:p-5" />
+        <StatCard label="Resource conflicts" value={String(bookingConflicts.length)} icon={AlertTriangle} className="p-3 sm:p-5" />
         <StatCard
           label="Blocked days"
           value={String((d.inventory as any[]).filter((i) => i.is_blocked).length)}
           icon={Ban}
+          className="col-span-2 flex flex-row items-center justify-between gap-3 p-3 sm:col-span-1 sm:flex-col sm:items-stretch sm:p-5 [&>div:first-child]:flex-1 [&>p:nth-of-type(1)]:mt-0 [&>p:nth-of-type(1)]:shrink-0 [&>p:nth-of-type(1)]:text-3xl [&>div:last-child]:mt-0 sm:[&>p:nth-of-type(1)]:mt-5 sm:[&>p:nth-of-type(1)]:text-[2.4rem] sm:[&>div:last-child]:mt-4"
         />
       </div>
 
