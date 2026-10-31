@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { staynasRpc } from "@/lib/staynas-rpc";
-import { Loader2, Leaf } from "lucide-react";
+import { Loader2, Leaf, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
@@ -17,12 +17,15 @@ function AuthPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [recoveryCode, setRecoveryCode] = useState("");
+  const [recoverySent, setRecoverySent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [verifyingRecovery, setVerifyingRecovery] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading || resetting) return;
+    if (loading || resetting || verifyingRecovery) return;
     setLoading(true);
 
     try {
@@ -104,82 +107,169 @@ function AuthPage() {
       return;
     }
     setResetting(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: "https://staynas.nolmark.co/auth/callback?type=recovery",
-    });
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
     setResetting(false);
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success("If that staff account exists, a password-reset email has been sent.");
+    setRecoverySent(true);
+    setRecoveryCode("");
+    toast.success("If that staff account exists, a password-reset code has been sent.");
+  };
+
+  const verifyRecoveryCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = recoveryCode.replace(/\\s/g, "");
+    if (!email.trim() || !token) {
+      toast.error("Enter the email address and the code from your reset email.");
+      return;
+    }
+    if (verifyingRecovery) return;
+
+    setVerifyingRecovery(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token,
+        type: "recovery",
+      });
+      if (error) throw error;
+
+      // verifyOtp persists the recovery session through the configured Supabase client.
+      // Confirm it is usable before allowing the password update screen to open.
+      const { data: verifiedUser, error: userError } = await supabase.auth.getUser();
+      if (userError || !verifiedUser.user || !data.session) {
+        throw userError ?? new Error("Recovery session could not be established. Request a new code.");
+      }
+
+      await navigate({ to: "/auth/set-password", search: { type: "recovery" } as never });
+    } catch (error) {
+      console.error("[StayNas auth] Recovery code verification failed", error);
+      toast.error(error instanceof Error ? error.message : "The code is invalid or expired. Request a new one.");
+    } finally {
+      setVerifyingRecovery(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-ivory text-charcoal flex items-center justify-center px-4">
       <form
-        onSubmit={submit}
+        onSubmit={recoverySent ? verifyRecoveryCode : submit}
         className="w-full max-w-sm rounded-2xl border border-charcoal/10 bg-ivory p-8 shadow-[0_24px_60px_-30px_rgba(30,45,30,0.35)]"
       >
         <p className="inline-flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-charcoal/60">
           <Leaf className="h-3 w-3" style={{ color: "#0F3D3A" }} /> Staff Portal
         </p>
 
-        <h1 className="mt-3 font-display text-2xl">Sign in</h1>
-        <p className="mt-1 text-xs text-charcoal/60">Reservations & admin access only.</p>
+        {recoverySent ? (
+          <>
+            <h1 className="mt-3 font-display text-2xl">Enter reset code</h1>
+            <p className="mt-1 text-xs leading-5 text-charcoal/60">
+              Enter the one-time code sent to <span className="font-medium text-charcoal">{email}</span>.
+              Keep this page open while you retrieve the email.
+            </p>
+            <div className="mt-6">
+              <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">
+                Email verification code
+              </label>
+              <input
+                type="text"
+                required
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                maxLength={12}
+                value={recoveryCode}
+                onChange={(e) => setRecoveryCode(e.target.value)}
+                className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-center text-xl tracking-[0.35em] outline-none focus:border-charcoal"
+                placeholder="••••••"
+                autoFocus
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={verifyingRecovery || !recoveryCode.trim()}
+              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60"
+              style={{ background: "#171717" }}
+            >
+              {verifyingRecovery && <Loader2 className="h-4 w-4 animate-spin" />}
+              Verify code
+            </button>
+            <button
+              type="button"
+              onClick={resetPassword}
+              disabled={resetting || verifyingRecovery}
+              className="mt-4 block w-full text-center text-[0.65rem] uppercase tracking-[0.18em] text-charcoal/55 hover:text-charcoal disabled:opacity-60"
+            >
+              {resetting ? "Sending…" : "Send a new code"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setRecoverySent(false); setRecoveryCode(""); }}
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 text-[0.65rem] uppercase tracking-[0.18em] text-charcoal/50 hover:text-charcoal"
+            >
+              <ArrowLeft className="h-3 w-3" /> Back to sign in
+            </button>
+          </>
+        ) : (
+          <>
+            <h1 className="mt-3 font-display text-2xl">Sign in</h1>
+            <p className="mt-1 text-xs text-charcoal/60">Reservations & admin access only.</p>
 
-        <div className="mt-6 space-y-4">
-          <div>
-            <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">
-              Email
-            </label>
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal"
-            />
-          </div>
+            <div className="mt-6 space-y-4">
+              <div>
+                <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal"
+                />
+              </div>
 
-          <div>
-            <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">
-              Password
-            </label>
-            <input
-              type="password"
-              required
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal"
-            />
-          </div>
-        </div>
+              <div>
+                <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal"
+                />
+              </div>
+            </div>
 
-        <button
-          type="submit"
-          disabled={loading || resetting}
-          className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60"
-          style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
-        >
-          {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-          Sign in
-        </button>
+            <button
+              type="submit"
+              disabled={loading || resetting}
+              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60"
+              style={{ background: "#171717" }}
+            >
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              Sign in
+            </button>
 
-        <button
-          type="button"
-          onClick={resetPassword}
-          disabled={loading || resetting}
-          className="mt-3 block w-full text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal disabled:opacity-60"
-        >
-          {resetting ? "Sending reset link…" : "Forgot password?"}
-        </button>
+            <button
+              type="button"
+              onClick={resetPassword}
+              disabled={loading || resetting}
+              className="mt-3 block w-full text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal disabled:opacity-60"
+            >
+              {resetting ? "Sending reset code…" : "Forgot password?"}
+            </button>
+          </>
+        )}
 
         <Link
           to="/"
-          className="mt-4 block text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal"
+          className="mt-5 block text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal"
         >
           ← Back to website
         </Link>
