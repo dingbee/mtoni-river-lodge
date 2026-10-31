@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Building2,
   ArrowRight,
+  Radio,
 } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
@@ -64,7 +65,13 @@ function SettingsHub() {
       Icon: Activity,
     },
     {
-      to: "/admin/settings/channels",\n      title: "Messaging Channels",\n      description: "Property-level inbound, outbound, consent and handoff controls.",\n      Icon: Radio,\n    },\n    {\n      to: "/admin/guests/messages",
+      to: "/admin/settings/channels",
+      title: "Messaging Channels",
+      description: "Property-level inbound, outbound, consent and handoff controls.",
+      Icon: Radio,
+    },
+    {
+      to: "/admin/guests/messages",
       title: "Messages & Channels",
       description: "Guest conversations across email and WhatsApp.",
       Icon: MessageSquare,
