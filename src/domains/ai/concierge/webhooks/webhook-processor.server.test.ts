@@ -31,4 +31,10 @@ describe("delivery status transition safety", () => {
   it("does not regress a confirmed read state", () => {
     expect(canTransitionMessageStatus("read", "accepted")).toBe(false);
   });
+  it("only permits positive delivery confirmation to supersede a failure", () => {
+    expect(canTransitionMessageStatus("failed", "accepted")).toBe(false);
+    expect(canTransitionMessageStatus("undeliverable", "queued")).toBe(false);
+    expect(canTransitionMessageStatus("failed", "delivered")).toBe(true);
+    expect(canTransitionMessageStatus("undeliverable", "read")).toBe(true);
+  });
 });
