@@ -5,7 +5,7 @@ import type { AiToolId } from "./ai.types";
 // RLS applies exactly as if the user queried the tables directly. No
 // service-role client is used here.
 
-type Ctx = { supabase: SupabaseClient<any, any, any> };
+type Ctx = { supabase: SupabaseClient<any, any, any>; propertyId: string };
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -46,13 +46,13 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
     id: "guest.summary",
     description: "Fetch summary of one guest including preferences and stay count. args: { guest_id: uuid }.",
     args: '{"guest_id": "uuid"}',
-    run: async ({ supabase }, args) => {
+    run: async ({ supabase, propertyId }, args) => {
       const id = String(args.guest_id ?? "");
       if (!id) return { summary: "guest_id required.", data: null };
       const [{ data: guest }, { data: prefs }, { count: stays }] = await Promise.all([
         supabase.from("guests").select("*").eq("id", id).maybeSingle(),
         supabase.from("guest_preferences").select("*").eq("guest_id", id),
-        supabase.from("bookings").select("id", { count: "exact", head: true }).eq("guest_id", id),
+        supabase.from("bookings").select("id", { count: "exact", head: true }).eq("property_id", propertyId).eq("guest_id", id),
       ]);
       return { summary: guest ? `Guest ${guest.full_name ?? guest.email}, ${stays ?? 0} stay(s).` : "Guest not found.", data: { guest, preferences: prefs, stays }, count: stays ?? 0 };
     },
@@ -60,11 +60,12 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "reservations.arrivals_today": {
     id: "reservations.arrivals_today",
     description: "List bookings checking in today.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const t = today();
       const { data, error } = await supabase
         .from("bookings")
         .select("id, reference, guest_name, guest_email, room_id, check_in, check_out, status, guest_type")
+        .eq("property_id", propertyId)
         .eq("check_in", t)
         .in("status", ["confirmed", "checked_in"])
         .order("guest_name");
@@ -75,11 +76,12 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "reservations.departures_today": {
     id: "reservations.departures_today",
     description: "List bookings checking out today.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const t = today();
       const { data, error } = await supabase
         .from("bookings")
         .select("id, reference, guest_name, room_id, check_in, check_out, balance_due, status")
+        .eq("property_id", propertyId)
         .eq("check_out", t)
         .in("status", ["confirmed", "checked_in"])
         .order("guest_name");
@@ -90,12 +92,13 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "reservations.upcoming": {
     id: "reservations.upcoming",
     description: "Bookings arriving in the next 7 days.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const from = today();
       const to = daysFromNow(7);
       const { data, error } = await supabase
         .from("bookings")
         .select("id, reference, guest_name, room_id, check_in, check_out, status, total, currency")
+        .eq("property_id", propertyId)
         .gte("check_in", from)
         .lte("check_in", to)
         .in("status", ["confirmed", "pending"])
@@ -108,7 +111,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "reservations.occupancy": {
     id: "reservations.occupancy",
     description: "Occupancy this month: total nights vs available room-nights.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const now = new Date();
       const first = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString().slice(0, 10);
       const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString().slice(0, 10);
@@ -117,9 +120,10 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
       const [{ data: bookings }, { data: rooms }] = await Promise.all([
         supabase.from("bookings")
           .select("nights, check_in, check_out, status")
+          .eq("property_id", propertyId)
           .gte("check_in", first).lt("check_in", nextMonth)
           .in("status", ["confirmed", "checked_in", "checked_out"]),
-        supabase.from("rooms").select("total_units").eq("status", "active"),
+        supabase.from("rooms").select("total_units").eq("property_id", propertyId).eq("status", "active"),
       ]);
       const soldNights = (bookings ?? []).reduce((sum, b: any) => sum + (b.nights ?? 0), 0);
       const totalUnits = (rooms ?? []).reduce((sum, r: any) => sum + (r.total_units ?? 0), 0);
@@ -135,23 +139,38 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "finance.revenue_summary": {
     id: "finance.revenue_summary",
     description: "Revenue totals for the current month from confirmed bookings.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const first = new Date(); first.setUTCDate(1);
       const from = first.toISOString().slice(0, 10);
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("total, paid_amount, balance_due, currency, status, payment_status")
-        .gte("check_in", from)
-        .in("status", ["confirmed", "checked_in", "checked_out"]);
+      const [{ data, error }, { data: property, error: propertyError }] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("total, paid_amount, balance_due, currency, status, payment_status")
+          .eq("property_id", propertyId)
+          .gte("check_in", from)
+          .in("status", ["confirmed", "checked_in", "checked_out"]),
+        supabase.from("staynas_properties").select("currency").eq("id", propertyId).single(),
+      ]);
       if (error) throw error;
+      if (propertyError || !property?.currency) throw new Error("Active property currency is not configured.");
       const rows = data ?? [];
-      const currency = rows[0]?.currency ?? "USD";
-      const gross = rows.reduce((s: number, r: any) => s + Number(r.total ?? 0), 0);
-      const paid = rows.reduce((s: number, r: any) => s + Number(r.paid_amount ?? 0), 0);
-      const outstanding = rows.reduce((s: number, r: any) => s + Number(r.balance_due ?? 0), 0);
+      const grouped = new Map<string, { currency: string; gross: number; paid: number; outstanding: number; reservations: number }>();
+      for (const row of rows as any[]) {
+        const currency = row.currency ?? property.currency;
+        const totals = grouped.get(currency) ?? { currency, gross: 0, paid: 0, outstanding: 0, reservations: 0 };
+        totals.gross += Number(row.total ?? 0);
+        totals.paid += Number(row.paid_amount ?? 0);
+        totals.outstanding += Number(row.balance_due ?? 0);
+        totals.reservations += 1;
+        grouped.set(currency, totals);
+      }
+      const byCurrency = Array.from(grouped.values());
+      const summary = byCurrency.length
+        ? byCurrency.map((totals) => `${totals.currency} ${Math.round(totals.gross).toLocaleString()} gross · ${Math.round(totals.paid).toLocaleString()} paid · ${Math.round(totals.outstanding).toLocaleString()} outstanding (${totals.reservations} bookings)`).join("; ")
+        : `No confirmed booking revenue recorded for ${from.slice(0, 7)}.`;
       return {
-        summary: `${currency} ${Math.round(gross).toLocaleString()} gross · ${currency} ${Math.round(paid).toLocaleString()} paid · ${currency} ${Math.round(outstanding).toLocaleString()} outstanding across ${rows.length} bookings this month.`,
-        data: { currency, gross, paid, outstanding, reservations: rows.length },
+        summary,
+        data: { byCurrency, reservations: rows.length, propertyCurrency: property.currency },
         count: rows.length,
         window: from.slice(0, 7),
       };
@@ -160,19 +179,31 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "finance.outstanding": {
     id: "finance.outstanding",
     description: "Bookings with unpaid balances.",
-    run: async ({ supabase }) => {
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("id, reference, guest_name, guest_email, check_in, balance_due, total, currency, payment_status, status")
-        .gt("balance_due", 0)
-        .in("status", ["confirmed", "checked_in", "checked_out"])
-        .order("balance_due", { ascending: false })
-        .limit(25);
+    run: async ({ supabase, propertyId }) => {
+      const [{ data, error }, { data: property, error: propertyError }] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("id, reference, guest_name, guest_email, check_in, balance_due, total, currency, payment_status, status")
+          .eq("property_id", propertyId)
+          .gt("balance_due", 0)
+          .in("status", ["confirmed", "checked_in", "checked_out"])
+          .order("balance_due", { ascending: false })
+          .limit(25),
+        supabase.from("staynas_properties").select("currency").eq("id", propertyId).single(),
+      ]);
       if (error) throw error;
+      if (propertyError || !property?.currency) throw new Error("Active property currency is not configured.");
       const rows = data ?? [];
-      const totalOutstanding = rows.reduce((s: number, r: any) => s + Number(r.balance_due ?? 0), 0);
-      const currency = rows[0]?.currency ?? "USD";
-      return { summary: `${rows.length} bookings with unpaid balances totalling ${currency} ${Math.round(totalOutstanding).toLocaleString()}.`, data: rows, count: rows.length };
+      const grouped = new Map<string, number>();
+      for (const row of rows as any[]) {
+        const currency = row.currency ?? property.currency;
+        grouped.set(currency, (grouped.get(currency) ?? 0) + Number(row.balance_due ?? 0));
+      }
+      const totals = Array.from(grouped.entries()).map(([currency, amount]) => ({ currency, amount }));
+      const summary = totals.length
+        ? `${rows.length} bookings with unpaid balances: ${totals.map((item) => `${item.currency} ${Math.round(item.amount).toLocaleString()}`).join("; ")}.`
+        : "No outstanding booking balances.";
+      return { summary, data: { bookings: rows, totalsByCurrency: totals }, count: rows.length };
     },
   },
   "finance.recent_transactions": {
@@ -191,10 +222,11 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "operations.room_status": {
     id: "operations.room_status",
     description: "Current room states across the property.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const { data, error } = await supabase
         .from("room_states")
         .select("id, room_id, unit_label, state, state_note, booking_id, updated_at")
+        .eq("property_id", propertyId)
         .order("unit_label");
       if (error) throw error;
       const rows = data ?? [];
@@ -207,7 +239,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "operations.open_tasks": {
     id: "operations.open_tasks",
     description: "Open operations tasks (housekeeping, maintenance, other).",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const { data, error } = await supabase
         .from("ops_tasks")
         .select("id, title, task_type, priority, status, due_at, assignee_id, booking_id, category")
@@ -221,7 +253,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "operations.alerts": {
     id: "operations.alerts",
     description: "Active operational alerts.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const { data, error } = await supabase
         .from("ops_alerts")
         .select("id, kind, severity, message, booking_id, room_id, created_at")
@@ -235,7 +267,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "marketing.latest_articles": {
     id: "marketing.latest_articles",
     description: "Recently published journal articles.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const { data, error } = await supabase
         .from("journal_articles")
         .select("id, slug, title, status, published_at, featured")
@@ -249,7 +281,7 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   "marketing.seo_status": {
     id: "marketing.seo_status",
     description: "SEO overrides configured across routes.",
-    run: async ({ supabase }) => {
+    run: async ({ supabase, propertyId }) => {
       const { data, error } = await supabase
         .from("seo_overrides")
         .select("route_path, title, description, index_status, updated_at")
@@ -263,14 +295,22 @@ export const AI_TOOLS: Record<AiToolId, ToolDefinition> = {
   },
   "knowledge.search": {
     id: "knowledge.search",
-    description: "Search Mtoni's internal knowledge base (SOPs, policies, brand, experiences). Use whenever the question is procedural, definitional, or reference-based. args: { query: string }.",
+    description: "Search the active property's approved knowledge catalogue (policies, rooms, facilities, dining and experiences). Use for procedural or reference-based questions. args: { query: string }.",
     args: '{"query": "keywords or a short phrase"}',
-    run: async ({ supabase }, args) => {
+    run: async ({ supabase, propertyId }, args) => {
       const q = String(args.query ?? "").trim();
       if (!q) return { summary: "No query provided.", data: [], count: 0 };
+      if (process.env.STAYNAS_PROPERTY_KNOWLEDGE_SEARCH_ENABLED !== "true") {
+        return { summary: "Property knowledge retrieval is not yet enabled pending database isolation verification.", data: [], count: 0 };
+      }
       const { memoizeTTL } = await import("@/lib/perf-cache");
-      const rows = await memoizeTTL(`kb:tools:${q.toLowerCase()}:6`, 60_000, async () => {
-        const { data, error } = await supabase.rpc("knowledge_search", { _query: q, _limit: 6 });
+      const rows = await memoizeTTL(`kb:tools:${propertyId}:${q.toLowerCase()}:6`, 60_000, async () => {
+        const { data, error } = await supabase.rpc("staynas_property_knowledge_search", {
+          _property_id: propertyId,
+          _query: q,
+          _limit: 6,
+          _guest_visible_only: false,
+        });
         if (error) throw error;
         return (data ?? []) as Array<any>;
       });

@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertFounderAiAdmin, getActivePropertyAiRoles } from "@/domains/ai/ai.authorization.server";
 import { AI_TOOLS } from "./ai.tools";
 import { canUseTool, toolDomain } from "./ai.permissions";
 import { allowedToolsForRoles, buildAnswerSystemPrompt, buildRouterSystemPrompt } from "./ai.context";
@@ -15,12 +16,6 @@ async function chat(system: string, user: string): Promise<string> {
 
 const tryJson = parseAiJson;
 
-async function getRoles(supabase: any): Promise<string[]> {
-  const { data, error } = await supabase.rpc("current_user_roles");
-  if (error) return [];
-  return (data ?? []) as string[];
-}
-
 export const askAi = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { question: string }) => {
@@ -31,7 +26,8 @@ export const askAi = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }): Promise<AiResponse> => {
     const start = Date.now();
-    const roles = await getRoles(context.supabase);
+    const activeScope = await getActivePropertyAiRoles(context.supabase, context.userId);
+    const roles = activeScope.roles;
     if (roles.length === 0) throw new Error("You do not have a staff role assigned.");
 
     // Step 1 — decide tool
@@ -49,49 +45,17 @@ export const askAi = createServerFn({ method: "POST" })
         toolId = null;
       } else {
         try {
-          toolResult = await AI_TOOLS[toolId].run({ supabase: context.supabase }, router.args ?? {});
+          toolResult = await AI_TOOLS[toolId].run({ supabase: context.supabase, propertyId: activeScope.propertyId }, router.args ?? {});
         } catch (err: any) {
           toolResult = { summary: `Tool error: ${err?.message ?? "unknown"}`, data: null };
         }
       }
     }
 
-    // Always attempt a knowledge lookup so answers can cite SOPs/policies
-    // alongside live data. RLS filters by role automatically.
-    let citations: AiKnowledgeCitation[] = [];
-    let kbSummary = "";
-    if (toolId !== "knowledge.search") {
-      try {
-        const { data: kbRows } = await context.supabase.rpc("knowledge_search", {
-          _query: data.question,
-          _limit: 4,
-        });
-        const rows = (kbRows ?? []) as Array<any>;
-        if (rows.length > 0) {
-          citations = rows.map((r) => ({
-            document_id: r.document_id,
-            document_title: r.document_title,
-            document_slug: r.document_slug,
-            category_slug: r.category_slug ?? null,
-            chunk_index: r.chunk_index,
-            excerpt: String(r.content ?? "").slice(0, 400),
-          }));
-          kbSummary = rows
-            .map((r, i) => `[K${i + 1}] ${r.document_title}${r.category_slug ? ` (${r.category_slug})` : ""}: ${String(r.content ?? "").slice(0, 500)}`)
-            .join("\n");
-        }
-      } catch { /* knowledge is best-effort */ }
-    } else if (Array.isArray(toolResult?.data)) {
-      const rows = toolResult!.data as Array<any>;
-      citations = rows.map((r) => ({
-        document_id: r.document_id,
-        document_title: r.document_title,
-        document_slug: r.document_slug,
-        category_slug: r.category_slug ?? null,
-        chunk_index: r.chunk_index,
-        excerpt: String(r.content ?? "").slice(0, 400),
-      }));
-    }
+    // Knowledge search is deliberately disabled until its RPC security,
+    // grants and tenant isolation can be verified in an isolated database.
+    // Do not query it through the authenticated or service-role client here.
+    const citations: AiKnowledgeCitation[] = [];
 
     // Step 2 — compose answer
     const answerUser = [
@@ -99,7 +63,6 @@ export const askAi = createServerFn({ method: "POST" })
       toolId ? `Tool used: ${toolId}` : "Tool used: none",
       toolResult ? `Tool summary: ${toolResult.summary}` : "",
       toolResult ? `Tool data (JSON, truncated): ${JSON.stringify(toolResult.data).slice(0, 4000)}` : "",
-      kbSummary ? `Knowledge base excerpts:\n${kbSummary}` : "",
     ].filter(Boolean).join("\n");
     const answerRaw = await chat(buildAnswerSystemPrompt(), answerUser);
     const answer = tryJson<{ answer: string; recommendation: string | null }>(answerRaw) ?? {
@@ -146,6 +109,7 @@ export const askAi = createServerFn({ method: "POST" })
 export const listAiActivity = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("ai_activity_logs")
       .select("id, user_id, question, domains_accessed, tool_called, response, recommendation, model, status, error, duration_ms, created_at")
@@ -158,6 +122,7 @@ export const listAiActivity = createServerFn({ method: "GET" })
 export const getMyAiScope = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const roles = await getRoles(context.supabase);
+    await assertFounderAiAdmin(context.supabase, context.userId);
+    const { roles } = await getActivePropertyAiRoles(context.supabase, context.userId);
     return { roles, tools: allowedToolsForRoles(roles) };
   });
