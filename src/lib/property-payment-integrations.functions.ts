@@ -29,7 +29,7 @@ export const listPropertyPaymentIntegrations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const propertyId = await requirePropertyAdmin(context.supabase, context.userId);
-    const { data, error } = await context.supabase.from("staynas_property_integrations")
+    const { data, error } = await (context.supabase as any).from("staynas_property_integrations")
       .select("id,property_id,provider,purpose,enabled,environment,credential_reference,public_config,display_name,supported_methods,supported_currencies,verification_status,last_verified_at,last_verification_error,updated_at")
       .eq("property_id", propertyId).eq("purpose", "payments").order("updated_at", { ascending: false });
     if (error) throw new Error("Unable to load property payment integrations");
