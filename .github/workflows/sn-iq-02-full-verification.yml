@@ -6,6 +6,7 @@ on:
       - main
       - feat/sn-iq-01-secure-intelligence-foundation
       - feat/sn-iq-02-property-knowledge-intelligence
+      - integration/staynas-ops-release-2026-10-31
 
 jobs:
   full-verification:
