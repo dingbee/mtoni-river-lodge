@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/sn-iq-04-omnichannel-communications
+      - fix/sn-iq-04-*
   pull_request:
     branches:
       - main
