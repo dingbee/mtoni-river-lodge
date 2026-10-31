@@ -64,7 +64,7 @@ function ConciergePage() {
               >
                 <div className="min-w-0">
                   <p className="truncate font-medium">
-                    {(s.page_context as any)?.page ?? s.session_token}
+                    {(s.page_context as any)?.page ?? `Conversation ${String(s.id).slice(0, 8)}`}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {s.message_count} msgs · {formatDistanceToNow(new Date(s.last_active_at), { addSuffix: true })}
