@@ -9,6 +9,7 @@ on:
     branches:
       - main
       - integration/staynas-ops-release-2026-10-31
+      - integration/staynas-ops-release-2026-10-31
 
 jobs:
   concierge-verification:
