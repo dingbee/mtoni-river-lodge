@@ -19,75 +19,28 @@ export const messageStatus = (event: NormalizedProviderEvent["eventType"]) => {
 const rank: Record<string, number> = { recorded: 0, queued: 1, accepted: 2, delivered: 3, read: 4, failed: 5, undeliverable: 5 };
 
 async function processInbound(supabase: any, row: InboxRow, event: NormalizedProviderEvent) {
-  if (!event.externalContact || (!event.body && event.safePayload.messageType !== "image" && event.safePayload.messageType !== "audio" && event.safePayload.messageType !== "document" && event.safePayload.messageType !== "video")) {
+  const supportedMedia = ["image", "audio", "document", "video"].includes(String(event.safePayload.messageType));
+  if (!event.externalContact || (!event.body && !supportedMedia)) {
     throw new Error("Inbound message is missing a supported sender or message body.");
   }
-
-  // Check the durable provider-message key before creating a session. A replay
-  // must attach to the original conversation, never create an orphan session.
-  const { data: existingMessage, error: existingError } = await supabase.from("ai_omnichannel_messages")
-    .select("id,session_id").eq("property_id", row.property_id).eq("channel", event.channel)
-    .eq("provider", providerName(row.provider)).eq("provider_message_id", event.providerMessageId).maybeSingle();
-  if (existingError) throw new Error(existingError.message);
-  if (existingMessage) return { sessionId: existingMessage.session_id as string, messageId: existingMessage.id as string };
-
-  let session: { id: string; message_count?: number } | null = null;
-  if (event.channel === "whatsapp" || event.channel === "email") {
-    let existingSessionQuery = supabase.from("ai_concierge_sessions")
-      .select("id,message_count")
-      .eq("property_id", row.property_id)
-      .eq("channel", event.channel);
-    existingSessionQuery = event.channel === "whatsapp"
-      ? existingSessionQuery.eq("guest_phone", event.externalContact)
-      : existingSessionQuery.eq("guest_email", event.externalContact);
-    const { data: existingSession, error: sessionLookupError } = await existingSessionQuery
-      .order("last_active_at", { ascending: false }).limit(1).maybeSingle();
-    if (sessionLookupError) throw new Error(sessionLookupError.message);
-    if (existingSession) session = existingSession;
-  }
-  if (session) {
-    const { error: touchError } = await supabase.from("ai_concierge_sessions").update({
-      message_count: (session.message_count ?? 0) + 1,
-      last_active_at: event.occurredAt,
-    }).eq("id", session.id).eq("property_id", row.property_id);
-    if (touchError) throw new Error(touchError.message);
-  } else {
-    const sessionToken = "cnc_" + randomBytes(32).toString("base64url");
-    const { data: createdSession, error: sessionError } = await supabase.from("ai_concierge_sessions").insert({
-      session_token: sessionToken,
-      property_id: row.property_id,
-      locale: "en",
-      channel: event.channel,
-      guest_name: typeof event.safePayload.profileName === "string" ? event.safePayload.profileName.slice(0, 160) : null,
-      guest_phone: event.channel === "whatsapp" ? event.externalContact : null,
-      guest_email: event.channel === "email" ? event.externalContact : null,
-      referer: "provider:" + row.provider,
-      page_context: { channel: event.channel, provider: row.provider },
-      message_count: 1,
-      last_active_at: event.occurredAt,
-    }).select("id").single();
-    if (sessionError || !createdSession) throw new Error("Could not create property-scoped conversation: " + (sessionError?.message ?? "missing session"));
-    session = createdSession;
-  }
-
-  const messageType = event.body ? "text" : "media";
-  const { data: message, error: messageError } = await supabase.from("ai_omnichannel_messages").insert({
-    property_id: row.property_id, session_id: session.id, guest_id: null,
-    channel: event.channel, direction: "inbound", actor_type: "provider",
-    message_type: messageType, subject: event.subject, body: event.body,
-    provider: providerName(row.provider), provider_message_id: event.providerMessageId,
-    status: "recorded", occurred_at: event.occurredAt,
-    metadata: { externalContact: event.externalContact, providerEventId: row.provider_event_id, safePayload: event.safePayload },
-  }).select("id").single();
-  if (messageError || !message) {
-    // A concurrent duplicate may win the unique provider-message constraint.
-    const { data: replay, error: replayError } = await supabase.from("ai_omnichannel_messages")
-      .select("id,session_id").eq("property_id", row.property_id).eq("channel", event.channel)
-      .eq("provider", providerName(row.provider)).eq("provider_message_id", event.providerMessageId).maybeSingle();
-    if (replayError || !replay) throw new Error("Could not materialize inbound message: " + (messageError?.message ?? replayError?.message ?? "missing message"));
-    return { sessionId: replay.session_id as string, messageId: replay.id as string };
-  }
-  return { sessionId: session.id as string, messageId: message.id as string };
+  const { data, error } = await supabase.rpc("staynas_process_provider_inbound", {
+    p_property_id: row.property_id,
+    p_channel: event.channel,
+    p_provider: providerName(row.provider),
+    p_provider_message_id: event.providerMessageId,
+    p_provider_event_id: row.provider_event_id,
+    p_external_contact: event.externalContact,
+    p_guest_name: typeof event.safePayload.profileName === "string" ? event.safePayload.profileName : null,
+    p_body: event.body,
+    p_subject: event.subject,
+    p_message_type: event.body ? "text" : "media",
+    p_occurred_at: event.occurredAt,
+    p_safe_payload: event.safePayload,
+  });
+  if (error) throw new Error("Atomic inbound persistence failed: " + error.message);
+  const result = Array.isArray(data) ? data[0] : data;
+  if (!result?.session_id || !result?.message_id) throw new Error("Atomic inbound persistence returned no message linkage.");
+  return { sessionId: result.session_id as string, messageId: result.message_id as string };
 }
 
 async function processDelivery(supabase: any, row: InboxRow, event: NormalizedProviderEvent) {
