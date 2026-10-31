@@ -4,17 +4,19 @@ import { useServerFn } from "@tanstack/react-start";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { getKnowledgeAnalytics } from "@/domains/ai/knowledge-sync.functions";
+import { usePropertyContext } from "@/modules/property/PropertyContext";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/knowledge/analytics")({
   head: () => ({
-    meta: [{ title: "Knowledge Analytics — Mtoni AI" }, { name: "robots", content: "noindex,nofollow" }],
+    meta: [{ title: "Knowledge Analytics — StayNas AI" }, { name: "robots", content: "noindex,nofollow" }],
   }),
   component: KnowledgeAnalyticsPage,
 });
 
 function KnowledgeAnalyticsPage() {
   const fn = useServerFn(getKnowledgeAnalytics);
-  const q = useQuery({ queryKey: ["knowledge-analytics"], queryFn: () => fn() });
+  const { property } = usePropertyContext();
+  const q = useQuery({ queryKey: ["knowledge-analytics", property.id], queryFn: () => fn() });
 
   return (
     <div className="space-y-6">
