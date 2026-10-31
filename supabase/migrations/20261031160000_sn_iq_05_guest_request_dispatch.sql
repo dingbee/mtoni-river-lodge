@@ -21,7 +21,7 @@ DROP POLICY IF EXISTS "Staff manage ops_tasks" ON public.ops_tasks;
 CREATE POLICY "Property staff manage operational tasks" ON public.ops_tasks
   FOR ALL TO authenticated
   USING (
-    (property_id IS NOT NULL AND public.staynas_user_has_property_access(auth.uid(), property_id))
+    (property_id IS NOT NULL AND public.staynas_user_has_property_access(auth.uid(), property_id) AND public.is_any_staff(auth.uid()))
     OR (property_id IS NULL AND public.has_any_role(auth.uid(), ARRAY['owner','admin']::public.app_role[]))
   )
   WITH CHECK (
@@ -86,6 +86,15 @@ BEGIN
       AND pm.user_id = _assignee_id
       AND pm.status = 'active'
       AND public.is_any_staff(pm.user_id)
+      AND CASE _request.category
+        WHEN 'housekeeping' THEN public.has_any_role(_assignee_id, ARRAY['housekeeping']::public.app_role[])
+        WHEN 'maintenance' THEN public.has_any_role(_assignee_id, ARRAY['maintenance','manager','admin','owner']::public.app_role[])
+        WHEN 'airport_transfer' THEN public.has_any_role(_assignee_id, ARRAY['transport','manager','admin','owner']::public.app_role[])
+        WHEN 'room_service' THEN public.has_any_role(_assignee_id, ARRAY['fnb','manager','admin','owner']::public.app_role[])
+        WHEN 'dining' THEN public.has_any_role(_assignee_id, ARRAY['fnb','manager','admin','owner']::public.app_role[])
+        WHEN 'private_dining' THEN public.has_any_role(_assignee_id, ARRAY['fnb','manager','admin','owner']::public.app_role[])
+        ELSE public.has_any_role(_assignee_id, ARRAY['manager','admin','owner','reception']::public.app_role[])
+      END
   ) THEN
     RAISE EXCEPTION 'Assignee is not an active member of this property';
   END IF;
