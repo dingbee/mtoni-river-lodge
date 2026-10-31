@@ -630,8 +630,7 @@ export function NewReservationDialog({
                 <div>
                   <dt className="inline text-muted-foreground">Payment: </dt>
                   <dd className="inline">
-                    {paymentStatus.replace("_", " ")}
-                    {paymentMethod ? ` · ${paymentMethod}` : ""}
+                    Unpaid — payment not collected in staff reservation creation
                   </dd>
                 </div>
                 <div className="sm:col-span-2 border-t border-border pt-2 text-base">
