@@ -24,6 +24,7 @@ AS $$
 DECLARE
   v_session_id uuid;
   v_message_id uuid;
+  v_existing_property_id uuid;
   v_lock_key text;
 BEGIN
   IF p_channel NOT IN ('whatsapp','email')
@@ -38,7 +39,7 @@ BEGIN
   v_lock_key := p_property_id::text || ':' || p_channel || ':' || lower(trim(p_external_contact));
   PERFORM pg_advisory_xact_lock(hashtextextended(v_lock_key, 0));
 
-  SELECT m.id, m.session_id INTO v_message_id, v_session_id
+  SELECT m.id, m.session_id, m.property_id INTO v_message_id, v_session_id, v_existing_property_id
   FROM public.ai_omnichannel_messages m
   WHERE m.channel = p_channel
     AND m.provider = p_provider
@@ -46,6 +47,9 @@ BEGIN
   LIMIT 1;
 
   IF v_message_id IS NOT NULL THEN
+    IF v_existing_property_id <> p_property_id THEN
+      RAISE EXCEPTION 'Provider message identifier is already bound to another property';
+    END IF;
     RETURN QUERY SELECT v_session_id, v_message_id, true;
     RETURN;
   END IF;
