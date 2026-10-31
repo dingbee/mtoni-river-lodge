@@ -75,7 +75,7 @@ BEGIN
       session_token, property_id, locale, channel, guest_name,
       guest_phone, guest_email, referer, page_context, message_count, last_active_at
     ) VALUES (
-      'cnc_' || encode(gen_random_bytes(32), 'base64'),
+      'cnc_' || translate(rtrim(encode(gen_random_bytes(32), 'base64'), '='), '+/', '-_'),
       p_property_id, 'en', p_channel, nullif(left(p_guest_name, 160), ''),
       CASE WHEN p_channel = 'whatsapp' THEN p_external_contact ELSE NULL END,
       CASE WHEN p_channel = 'email' THEN p_external_contact ELSE NULL END,
