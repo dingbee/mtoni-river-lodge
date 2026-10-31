@@ -1,6 +1,9 @@
 name: SN-IQ-02 full verification
 
 on:
+  push:
+    branches:
+      - integration/sn-iq-01-03-port-2026-10-31
   pull_request:
     branches:
       - main
