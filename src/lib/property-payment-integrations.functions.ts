@@ -49,7 +49,7 @@ export const savePropertyPaymentIntegration = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => integrationSchema.parse(d))
   .handler(async ({ data, context }) => {
     const propertyId = await requirePropertyAdmin(context.supabase, context.userId);
-    const { data: existing, error: lookupError } = await context.supabase.from("staynas_property_integrations")
+    const { data: existing, error: lookupError } = await (context.supabase as any).from("staynas_property_integrations")
       .select("id").eq("property_id", propertyId).eq("purpose", "payments").eq("provider", data.provider).eq("environment", data.environment).maybeSingle();
     if (lookupError) throw new Error("Unable to inspect existing property integration");
     // The authenticated tenant context is checked before any service-role Vault access.
@@ -73,8 +73,8 @@ export const savePropertyPaymentIntegration = createServerFn({ method: "POST" })
       updated_at: new Date().toISOString(),
     };
     const q = existing?.id
-      ? context.supabase.from("staynas_property_integrations").update(payload).eq("id", existing.id).eq("property_id", propertyId).select("id").single()
-      : context.supabase.from("staynas_property_integrations").insert(payload).select("id").single();
+      ? (context.supabase as any).from("staynas_property_integrations").update(payload).eq("id", existing.id).eq("property_id", propertyId).select("id").single()
+      : (context.supabase as any).from("staynas_property_integrations").insert(payload).select("id").single();
     const { data: saved, error } = await q;
     if (error || !saved) throw new Error("Secure credentials were stored, but integration metadata could not be saved. Contact support to reconcile the orphaned secret.");
     return { id: saved.id, credentialsConfigured: true, enabled: false, verificationStatus: "pending" as const };
