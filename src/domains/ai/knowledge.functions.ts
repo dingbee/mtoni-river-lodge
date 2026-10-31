@@ -412,18 +412,19 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
         if (createError || !createdId) throw createError ?? new Error("Atomic knowledge document creation failed.");
         docId = createdId;
       } else {
+        const draftInsertPayload: any = {
+          ...metadata,
+          property_id: propertyId,
+          language_code: data.language_code ?? "en",
+          source_updated_at: null,
+          current_version: 1,
+          byte_size: 0,
+          created_by: context.userId,
+          updated_by: context.userId,
+        };
         const { data: row, error } = await supabase
           .from("knowledge_documents")
-          .insert({
-            ...metadata,
-            property_id: propertyId,
-            language_code: data.language_code ?? "en",
-            source_updated_at: null,
-            current_version: 1,
-            byte_size: 0,
-            created_by: context.userId,
-            updated_by: context.userId,
-          })
+          .insert(draftInsertPayload)
           .select("id, current_version")
           .eq("property_id", propertyId)
           .maybeSingle();
