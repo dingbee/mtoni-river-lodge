@@ -907,3 +907,98 @@ $sn_iq_02_atomic$;
 
 REVOKE ALL ON FUNCTION public.staynas_commit_knowledge_document_version(uuid,uuid,integer,jsonb,text,text,jsonb,text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.staynas_commit_knowledge_document_version(uuid,uuid,integer,jsonb,text,text,jsonb,text) TO authenticated;
+
+
+
+-- Atomic initial creation: the document row, version 1 and all search chunks
+-- are committed together. SECURITY INVOKER keeps table grants and RLS active.
+CREATE OR REPLACE FUNCTION public.staynas_create_knowledge_document(
+  _property_id uuid,
+  _metadata jsonb,
+  _content_text text,
+  _language_code text,
+  _chunks jsonb,
+  _change_note text
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public, pg_temp
+AS $sn_iq_02_create$
+DECLARE
+  _document_id uuid;
+  _title text;
+  _slug text;
+  _status text;
+  _source_type text;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+  IF _property_id IS NULL OR _content_text IS NULL THEN
+    RAISE EXCEPTION 'Property and document content are required';
+  END IF;
+  IF length(_content_text) > 500000 THEN
+    RAISE EXCEPTION 'Document content exceeds 500 KB';
+  END IF;
+  IF _language_code NOT IN ('en','sw') THEN
+    RAISE EXCEPTION 'Unsupported knowledge language';
+  END IF;
+  IF NOT public.staynas_ai_property_in_active_context(
+    _property_id, ARRAY['owner','manager','admin']::public.app_role[]
+  ) THEN
+    RAISE EXCEPTION 'Property knowledge management access required';
+  END IF;
+
+  _title := NULLIF(trim(_metadata->>'title'), '');
+  _slug := NULLIF(trim(_metadata->>'slug'), '');
+  _status := COALESCE(_metadata->>'status', 'draft');
+  _source_type := COALESCE(_metadata->>'source_type', 'markdown');
+  IF _title IS NULL OR _slug IS NULL THEN
+    RAISE EXCEPTION 'Document title and slug are required';
+  END IF;
+  IF _status NOT IN ('draft','published','archived') THEN
+    RAISE EXCEPTION 'Invalid document status';
+  END IF;
+
+  INSERT INTO public.knowledge_documents (
+    property_id, slug, title, summary, category_id, source_type, source_url,
+    storage_path, tags, status, allowed_roles, language_code,
+    is_guest_visible, source_updated_at, review_due_at, reviewed_by,
+    reviewed_at, current_version, byte_size, created_by, updated_by
+  ) VALUES (
+    _property_id, _slug, _title, _metadata->>'summary',
+    NULLIF(_metadata->>'category_id','')::uuid, _source_type,
+    _metadata->>'source_url', _metadata->>'storage_path',
+    CASE WHEN jsonb_typeof(_metadata->'tags') = 'array'
+      THEN ARRAY(SELECT jsonb_array_elements_text(_metadata->'tags')) ELSE '{}'::text[] END,
+    _status,
+    CASE WHEN jsonb_typeof(_metadata->'allowed_roles') = 'array'
+      THEN ARRAY(SELECT jsonb_array_elements_text(_metadata->'allowed_roles')) ELSE NULL END,
+    _language_code,
+    COALESCE((_metadata->>'is_guest_visible')::boolean, false),
+    now(), NULLIF(_metadata->>'review_due_at','')::timestamptz,
+    CASE WHEN _status = 'published' THEN auth.uid() ELSE NULL END,
+    CASE WHEN _status = 'published' THEN now() ELSE NULL END,
+    1, length(_content_text), auth.uid(), auth.uid()
+  )
+  RETURNING id INTO _document_id;
+
+  INSERT INTO public.knowledge_document_versions
+    (document_id, property_id, version, content_text, byte_size, change_note, created_by)
+  VALUES
+    (_document_id, _property_id, 1, _content_text, length(_content_text), _change_note, auth.uid());
+
+  INSERT INTO public.knowledge_chunks
+    (document_id, property_id, language_code, version, chunk_index, content)
+  SELECT _document_id, _property_id, _language_code, 1,
+         (item.ordinality - 1)::integer, item.content
+  FROM jsonb_array_elements_text(COALESCE(_chunks, '[]'::jsonb))
+       WITH ORDINALITY AS item(content, ordinality);
+
+  RETURN _document_id;
+END;
+$sn_iq_02_create$;
+
+REVOKE ALL ON FUNCTION public.staynas_create_knowledge_document(uuid,jsonb,text,text,jsonb,text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.staynas_create_knowledge_document(uuid,jsonb,text,text,jsonb,text) TO authenticated;
