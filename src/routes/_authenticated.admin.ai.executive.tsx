@@ -18,16 +18,21 @@ const TABS = [
 function ExecutiveAiLayout() {
   return (
     <div className="space-y-4">
-      <nav className="flex flex-wrap gap-1 overflow-x-auto rounded-lg border bg-card p-1 text-sm">
-        {TABS.map((t) => (
-          <Link key={t.to} to={t.to as any}
-            activeOptions={{ exact: (t as any).exact ?? false }}
-            activeProps={{ className: "bg-primary text-primary-foreground" }}
-            inactiveProps={{ className: "text-muted-foreground hover:bg-muted" }}
-            className="inline-flex items-center gap-1.5 rounded px-3 py-1.5">
-            <t.icon className="size-4" /> {t.label}
-          </Link>
-        ))}
+      <nav aria-label="Executive Intelligence navigation" className="os-context-nav">
+        <div className="os-context-nav__items">
+          {TABS.map((t) => (
+            <Link
+              key={t.to}
+              to={t.to as any}
+              activeOptions={{ exact: (t as any).exact ?? false }}
+              activeProps={{ "data-context-active": "true" }}
+              className="os-context-nav__item"
+            >
+              <t.icon className="size-4 shrink-0" aria-hidden="true" />
+              <span>{t.label}</span>
+            </Link>
+          ))}
+        </div>
       </nav>
       <Outlet />
     </div>
