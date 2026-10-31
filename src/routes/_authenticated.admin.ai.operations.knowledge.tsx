@@ -46,9 +46,9 @@ function StaffKnowledge() {
           {(m.data as any[]).length ? (
             <ul className="space-y-3 text-sm">
               {(m.data as any[]).map((r: any) => (
-                <li key={r.chunk_id} className="rounded border p-3">
+                <li key={r.source_id} className="rounded border p-3">
                   <div className="text-xs uppercase text-muted-foreground">
-                    {r.category_slug ?? "knowledge"} · {r.document_title}
+                    {r.category_slug ?? r.source_type ?? "knowledge"} · {r.title}
                   </div>
                   <div className="mt-1 whitespace-pre-wrap">{r.content}</div>
                 </li>
