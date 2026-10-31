@@ -64,7 +64,7 @@ export const createStaffReservation = createServerFn({ method: "POST" })
     // Staff reservations are created against the same configured booking
     // property as the public engine; the RPC enforces it.
     const propertyId = await getConfiguredBookingPropertyId(sb);
-    const { data: result, error } = await bookingRpc(sb).rpc("create_booking", {
+    const { data: result, error } = await bookingRpc(sb).rpc("create_booking_for_property", {
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
       _check_out: data.checkOut,
