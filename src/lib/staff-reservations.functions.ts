@@ -21,12 +21,6 @@ const STAFF_SOURCES = [
 
 export const RESERVATION_SOURCES = STAFF_SOURCES;
 
-async function assertStaff(supabase: any, userId: string) {
-  const { data, error } = await supabase.rpc("is_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
-}
-
 const createSchema = z.object({
   guestId: z.string().uuid().optional(),
   guestName: z.string().trim().min(2).max(100),
@@ -54,7 +48,6 @@ export const createStaffReservation = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createSchema.parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
-    await assertStaff(context.supabase, context.userId);
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in");
 
     const sb: any = context.supabase;
@@ -133,7 +126,6 @@ export const getReservationCheckinAccess = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
-    await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: elig, error } = await sb.rpc("checkin_eligibility", { _booking_id: data.bookingId });
     if (error) throw new Error(error.message);
@@ -161,7 +153,6 @@ export const ensureReservationCheckin = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
-    await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: ensured, error } = await sb.rpc("checkin_ensure_for_booking", { _booking_id: data.bookingId });
     if (error) throw new Error(error.message);

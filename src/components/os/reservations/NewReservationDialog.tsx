@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -30,10 +30,10 @@ type GuestRow = {
 };
 
 const STEPS: { id: Step; label: string }[] = [
-  { id: 1, label: "Guest" },
-  { id: 2, label: "Stay" },
-  { id: 3, label: "Room" },
-  { id: 4, label: "Confirm" },
+  { id: 1, label: "Stay" },
+  { id: 2, label: "Room" },
+  { id: 3, label: "Guest" },
+  { id: 4, label: "Review" },
 ];
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -49,20 +49,34 @@ const SOURCE_LABEL: Record<string, string> = {
 
 const selectClass = "mt-1 w-full rounded-md border border-border bg-card px-3 py-2 text-sm";
 
+function todayISOFrom(value: string, offsetDays: number) {
+  const [year, month, day] = value.split("-").map(Number);
+  const d = new Date(year, month - 1, day);
+  d.setDate(d.getDate() + offsetDays);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function todayISO(offsetDays = 0) {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
-  return d.toISOString().slice(0, 10);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function NewReservationDialog({
   open,
   onOpenChange,
   onCreated,
+  initialCheckIn,
+  initialCheckOut,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onCreated?: (bookingId: string) => void;
+  initialCheckIn?: string;
+  initialCheckOut?: string;
 }) {
   const [step, setStep] = useState<Step>(1);
 
@@ -75,8 +89,15 @@ export function NewReservationDialog({
   const [country, setCountry] = useState("");
 
   // Stay
-  const [checkIn, setCheckIn] = useState(todayISO());
-  const [checkOut, setCheckOut] = useState(todayISO(1));
+  const [checkIn, setCheckIn] = useState(initialCheckIn ?? todayISO());
+  const [checkOut, setCheckOut] = useState(initialCheckOut ?? todayISO(1));
+
+  useEffect(() => {
+    if (!open) return;
+    if (initialCheckIn) setCheckIn(initialCheckIn);
+    if (initialCheckOut) setCheckOut(initialCheckOut);
+    setRoomSlug(null);
+  }, [open, initialCheckIn, initialCheckOut]);
   const [adults, setAdults] = useState(2);
   const [childrenBelow6, setChildrenBelow6] = useState(0);
   const [children7Plus, setChildren7Plus] = useState(0);
@@ -113,7 +134,7 @@ export function NewReservationDialog({
   const availability = useQuery({
     queryKey: ["reservation-availability", checkIn, checkOut, totalGuests],
     queryFn: () => availabilityFn({ data: { checkIn, checkOut, guests: totalGuests } }),
-    enabled: open && step >= 3 && checkOut > checkIn,
+    enabled: open && step >= 2 && checkOut > checkIn,
   });
 
   const rooms = useMemo(
@@ -204,8 +225,8 @@ export function NewReservationDialog({
           </DialogTitle>
           <DialogDescription>
             {created
-              ? "Created through the Mtoni reservation engine. No guest email has been sent."
-              : "Guest, stay, room and payment state — booked through the existing reservation engine."}
+              ? "Created through the existing StayNas reservation engine. No guest email has been sent."
+              : "Create a reservation with live availability checks and a final review before saving."}
           </DialogDescription>
         </DialogHeader>
 
@@ -269,107 +290,6 @@ export function NewReservationDialog({
             </ol>
 
             {step === 1 && (
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="guest-search">Search existing guest</Label>
-                  <div className="relative mt-1">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="guest-search"
-                      className="pl-9"
-                      placeholder="Name, email or phone"
-                      value={guestQuery}
-                      onChange={(e) => setGuestQuery(e.target.value)}
-                    />
-                  </div>
-                  {guestSearch.isFetching && (
-                    <p className="mt-2 text-xs text-muted-foreground">Searching…</p>
-                  )}
-                  {guestSearch.data && guestSearch.data.rows.length > 0 && (
-                    <ul className="mt-2 divide-y divide-border rounded-md border border-border">
-                      {guestSearch.data.rows.map((g: GuestRow) => (
-                        <li key={g.id}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setGuestId(g.id);
-                              setGuestName(g.full_name ?? "");
-                              setGuestEmail(g.email ?? "");
-                              setGuestPhone(g.phone_e164 ?? "");
-                              setCountry(g.country ?? "");
-                            }}
-                            className={cn(
-                              "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-muted/40",
-                              guestId === g.id && "bg-muted/50",
-                            )}
-                          >
-                            <span className="min-w-0">
-                              <span className="block truncate">{g.full_name}</span>
-                              <span className="block truncate text-xs text-muted-foreground">
-                                {g.email ?? "—"}
-                              </span>
-                            </span>
-                            {guestId === g.id && <Check className="h-4 w-4 shrink-0" />}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {guestSearch.data &&
-                    guestQuery.trim().length >= 2 &&
-                    guestSearch.data.rows.length === 0 && (
-                      <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                        <UserPlus className="h-3.5 w-3.5" /> No match — fill the details below to
-                        create a new guest.
-                      </p>
-                    )}
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <Label htmlFor="g-name">Full name</Label>
-                    <Input
-                      id="g-name"
-                      value={guestName}
-                      onChange={(e) => {
-                        setGuestName(e.target.value);
-                        setGuestId(undefined);
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="g-email">Email</Label>
-                    <Input
-                      id="g-email"
-                      type="email"
-                      value={guestEmail}
-                      onChange={(e) => {
-                        setGuestEmail(e.target.value);
-                        setGuestId(undefined);
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="g-phone">Phone</Label>
-                    <Input
-                      id="g-phone"
-                      value={guestPhone}
-                      onChange={(e) => setGuestPhone(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="g-country">Country</Label>
-                    <Input
-                      id="g-country"
-                      value={country}
-                      onChange={(e) => setCountry(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {step === 2 && (
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="s-in">Check-in</Label>
@@ -377,7 +297,12 @@ export function NewReservationDialog({
                     id="s-in"
                     type="date"
                     value={checkIn}
-                    onChange={(e) => setCheckIn(e.target.value)}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setCheckIn(next);
+                      if (checkOut <= next) setCheckOut(todayISOFrom(next, 1));
+                      setRoomSlug(null);
+                    }}
                   />
                 </div>
                 <div>
@@ -385,8 +310,12 @@ export function NewReservationDialog({
                   <Input
                     id="s-out"
                     type="date"
+                    min={checkIn}
                     value={checkOut}
-                    onChange={(e) => setCheckOut(e.target.value)}
+                    onChange={(e) => {
+                      setCheckOut(e.target.value);
+                      setRoomSlug(null);
+                    }}
                   />
                 </div>
                 <div>
@@ -424,15 +353,15 @@ export function NewReservationDialog({
                     />
                   </div>
                 </div>
-                {checkOut <= checkIn && (
-                  <p className="text-xs text-destructive sm:col-span-2">
-                    Check-out must be after check-in.
-                  </p>
-                )}
+                <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm sm:col-span-2">
+                  <div className="flex items-center justify-between gap-3"><span className="text-muted-foreground">Length of stay</span><strong>{checkOut > checkIn ? Math.round((new Date(checkOut + "T12:00:00").getTime() - new Date(checkIn + "T12:00:00").getTime()) / 86400000) + " night(s)" : "Select valid dates"}</strong></div>
+                  <div className="mt-1 flex items-center justify-between gap-3"><span className="text-muted-foreground">Guests</span><strong>{totalGuests} total · {adults} adults</strong></div>
+                  {checkOut <= checkIn && <p className="mt-2 text-xs text-destructive">Check-out must be after check-in.</p>}
+                </div>
               </div>
             )}
 
-            {step === 3 && (
+            {step === 2 && (
               <div className="space-y-4">
                 {availability.isFetching ? (
                   <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -559,6 +488,107 @@ export function NewReservationDialog({
               </div>
             )}
 
+            {step === 3 && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="guest-search">Search existing guest</Label>
+                  <div className="relative mt-1">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="guest-search"
+                      className="pl-9"
+                      placeholder="Name, email or phone"
+                      value={guestQuery}
+                      onChange={(e) => setGuestQuery(e.target.value)}
+                    />
+                  </div>
+                  {guestSearch.isFetching && (
+                    <p className="mt-2 text-xs text-muted-foreground">Searching…</p>
+                  )}
+                  {guestSearch.data && guestSearch.data.rows.length > 0 && (
+                    <ul className="mt-2 divide-y divide-border rounded-md border border-border">
+                      {guestSearch.data.rows.map((g: GuestRow) => (
+                        <li key={g.id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setGuestId(g.id);
+                              setGuestName(g.full_name ?? "");
+                              setGuestEmail(g.email ?? "");
+                              setGuestPhone(g.phone_e164 ?? "");
+                              setCountry(g.country ?? "");
+                            }}
+                            className={cn(
+                              "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-muted/40",
+                              guestId === g.id && "bg-muted/50",
+                            )}
+                          >
+                            <span className="min-w-0">
+                              <span className="block truncate">{g.full_name}</span>
+                              <span className="block truncate text-xs text-muted-foreground">
+                                {g.email ?? "—"}
+                              </span>
+                            </span>
+                            {guestId === g.id && <Check className="h-4 w-4 shrink-0" />}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {guestSearch.data &&
+                    guestQuery.trim().length >= 2 &&
+                    guestSearch.data.rows.length === 0 && (
+                      <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                        <UserPlus className="h-3.5 w-3.5" /> No match — fill the details below to
+                        create a new guest.
+                      </p>
+                    )}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="g-name">Full name</Label>
+                    <Input
+                      id="g-name"
+                      value={guestName}
+                      onChange={(e) => {
+                        setGuestName(e.target.value);
+                        setGuestId(undefined);
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="g-email">Email</Label>
+                    <Input
+                      id="g-email"
+                      type="email"
+                      value={guestEmail}
+                      onChange={(e) => {
+                        setGuestEmail(e.target.value);
+                        setGuestId(undefined);
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="g-phone">Phone</Label>
+                    <Input
+                      id="g-phone"
+                      value={guestPhone}
+                      onChange={(e) => setGuestPhone(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="g-country">Country</Label>
+                    <Input
+                      id="g-country"
+                      value={country}
+                      onChange={(e) => setCountry(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {step === 4 && (
               <dl className="grid gap-2 rounded-lg border border-border bg-muted/30 p-4 text-sm sm:grid-cols-2">
                 <div>
@@ -636,9 +666,9 @@ export function NewReservationDialog({
                 <Button
                   onClick={() => setStep((step + 1) as Step)}
                   disabled={
-                    (step === 1 && !guestValid) ||
-                    (step === 2 && !stayValid) ||
-                    (step === 3 && !roomSlug)
+                    (step === 1 && !stayValid) ||
+                    (step === 2 && !roomSlug) ||
+                    (step === 3 && !guestValid)
                   }
                 >
                   Continue
