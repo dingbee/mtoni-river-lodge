@@ -65,13 +65,13 @@ export interface CreateBookingArgs {
 }
 
 export interface BookingPropertyRpc {
-  rpc(fn: "staynas_booking_property_id"): Result<string>;
+  rpc(fn: "staynas_booking_property_id", args: { _hostname: string }): Result<string>;
   rpc(
-    fn: "get_room_availability",
+    fn: "get_room_availability_for_property",
     args: { _check_in: string; _check_out: string; _property_id: string },
   ): Result<AvailabilityRow[]>;
   rpc(
-    fn: "create_booking_hold",
+    fn: "create_booking_hold_for_property",
     args: {
       _room_slug: string;
       _check_in: string;
@@ -83,14 +83,14 @@ export interface BookingPropertyRpc {
     },
   ): Result<HoldCreatedRow[]>;
   rpc(
-    fn: "release_booking_hold",
+    fn: "release_booking_hold_for_property",
     args: { _hold_id: string; _session_id: string; _property_id: string },
   ): Result<boolean>;
   rpc(
-    fn: "get_booking_hold_for_session",
+    fn: "get_booking_hold_for_property",
     args: { _hold_id: string; _session_id: string; _property_id: string },
   ): Result<HoldSessionRow[]>;
-  rpc(fn: "create_booking", args: CreateBookingArgs): Result<CreateBookingRow[]>;
+  rpc(fn: "create_booking_for_property", args: CreateBookingArgs): Result<CreateBookingRow[]>;
 }
 
 export function bookingRpc(client: SupabaseClient<any>): BookingPropertyRpc {
