@@ -305,6 +305,7 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
 
     let docId = data.id;
     let currentVersion = 1;
+    let documentPatch: Record<string, unknown> | null = null;
 
     if (docId) {
       const { data: existing, error } = await supabase
@@ -336,8 +337,12 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
         updated_by: context.userId,
         updated_at: now,
       };
-      const { error: upErr } = await supabase.from("knowledge_documents").update(patch).eq("id", docId).eq("property_id", propertyId);
-      if (upErr) throw upErr;
+      if (data.content_text != null) {
+        documentPatch = patch;
+      } else {
+        const { error: upErr } = await supabase.from("knowledge_documents").update(patch).eq("id", docId).eq("property_id", propertyId);
+        if (upErr) throw upErr;
+      }
     } else {
       const slug = data.slug ?? slugify(data.title);
       const insertPayload: any = {
@@ -375,45 +380,59 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
       currentVersion = 1;
     }
 
-    // If content provided, bump version and rebuild chunks
-    if (docId && data.content_text != null) {
-      const nextVersion = data.id ? currentVersion + 1 : 1;
+    // Existing-document content changes are committed in one PostgreSQL
+    // transaction. Row locking and expected-version checks prevent partial
+    // chunk replacement and lost updates when two managers edit concurrently.
+    if (docId && data.content_text != null && data.id) {
+      const chunks = chunkText(data.content_text);
+      const { data: committedVersion, error: commitError } = await (supabase as any).rpc(
+        "staynas_commit_knowledge_document_version",
+        {
+          _property_id: propertyId,
+          _document_id: docId,
+          _expected_version: currentVersion,
+          _metadata: {
+            ...(documentPatch ?? {}),
+            ...(data.status === "published" ? { reviewed_by: context.userId, reviewed_at: now } : {}),
+            review_due_at: reviewDueAt(data.source_type ?? "markdown"),
+          },
+          _content_text: data.content_text,
+          _language_code: data.language_code ?? "en",
+          _chunks: chunks,
+          _change_note: data.change_note ?? null,
+        },
+      );
+      if (commitError) throw new Error(commitError.message);
+      if (Number(committedVersion) !== currentVersion + 1) {
+        throw new Error("Knowledge document version commit returned an unexpected version.");
+      }
+    } else if (docId && data.content_text != null) {
+      // New document creation has no concurrent prior version; create its
+      // initial version and chunks. Subsequent edits use the atomic RPC above.
       const content = data.content_text;
-
       const { error: vErr } = await supabase.from("knowledge_document_versions").insert({
         document_id: docId,
         property_id: propertyId,
-        version: nextVersion,
+        version: 1,
         content_text: content,
         byte_size: content.length,
         change_note: data.change_note ?? null,
         created_by: context.userId,
       });
       if (vErr) throw vErr;
-
-      // Delete old chunks and rebuild for the new current version
-      const { error: deleteChunksError } = await supabase.from("knowledge_chunks").delete().eq("document_id", docId).eq("property_id", propertyId);
-      if (deleteChunksError) throw deleteChunksError;
       const chunks = chunkText(content);
       if (chunks.length > 0) {
-        const rows = chunks.map((c, i) => ({
+        const rows = chunks.map((chunk, index) => ({
           document_id: docId,
           property_id: propertyId,
           language_code: data.language_code ?? "en",
-          version: nextVersion,
-          chunk_index: i,
-          content: c,
+          version: 1,
+          chunk_index: index,
+          content: chunk,
         }));
-        const { error: cErr } = await supabase.from("knowledge_chunks").insert(rows);
-        if (cErr) throw cErr;
+        const { error: chunkError } = await supabase.from("knowledge_chunks").insert(rows);
+        if (chunkError) throw chunkError;
       }
-
-      const { error: versionUpdateError } = await supabase
-        .from("knowledge_documents")
-        .update({ current_version: nextVersion, byte_size: content.length, updated_by: context.userId })
-        .eq("id", docId)
-        .eq("property_id", propertyId);
-      if (versionUpdateError) throw versionUpdateError;
     }
 
     return { id: docId };
