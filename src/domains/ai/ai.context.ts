@@ -19,7 +19,16 @@ export function allowedToolsForRoles(roles: readonly string[]): AiToolId[] {
       marketing: "marketing",
       knowledge: "knowledge",
     };
-    return domains.has(map[d] as any);
+    const propertyScopedTools = new Set<AiToolId>([
+      "reservations.arrivals_today",
+      "reservations.departures_today",
+      "reservations.upcoming",
+      "reservations.occupancy",
+      "finance.revenue_summary",
+      "finance.outstanding",
+      "operations.room_status",
+    ]);
+    return propertyScopedTools.has(id) && domains.has(map[d] as any);
   });
 }
 
