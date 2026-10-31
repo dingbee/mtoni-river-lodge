@@ -1,6 +1,34 @@
 -- SN-IQ-05 workstream 2: dispatch guest requests into operational task queues.
 -- Dispatch is idempotent: one guest request can create at most one ops task.
 
+ALTER TABLE public.ops_tasks
+  ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE CASCADE;
+
+UPDATE public.ops_tasks t
+SET property_id = b.property_id
+FROM public.bookings b
+WHERE t.booking_id = b.id AND t.property_id IS NULL;
+
+UPDATE public.ops_tasks t
+SET property_id = rs.property_id
+FROM public.room_states rs
+WHERE t.room_state_id = rs.id AND t.property_id IS NULL;
+
+CREATE INDEX IF NOT EXISTS ops_tasks_property_status_idx
+  ON public.ops_tasks(property_id, status, priority, due_at);
+
+DROP POLICY IF EXISTS "Staff manage ops_tasks" ON public.ops_tasks;
+CREATE POLICY "Property staff manage operational tasks" ON public.ops_tasks
+  FOR ALL TO authenticated
+  USING (
+    (property_id IS NOT NULL AND public.staynas_user_has_property_access(auth.uid(), property_id))
+    OR (property_id IS NULL AND public.has_any_role(auth.uid(), ARRAY['owner','admin']::public.app_role[]))
+  )
+  WITH CHECK (
+    (property_id IS NOT NULL AND public.staynas_user_has_property_access(auth.uid(), property_id) AND public.is_any_staff(auth.uid()))
+    OR (property_id IS NULL AND public.has_any_role(auth.uid(), ARRAY['owner','admin']::public.app_role[]))
+  );
+
 ALTER TABLE public.staynas_guest_requests
   ADD COLUMN IF NOT EXISTS dispatched_at timestamptz,
   ADD COLUMN IF NOT EXISTS dispatched_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -57,7 +85,7 @@ BEGIN
     WHERE pm.property_id = _property_id
       AND pm.user_id = _assignee_id
       AND pm.status = 'active'
-      AND pm.role IN ('owner','manager','admin','reception','housekeeping')
+      AND public.is_any_staff(pm.user_id)
   ) THEN
     RAISE EXCEPTION 'Assignee is not an active member of this property';
   END IF;
@@ -86,10 +114,10 @@ BEGIN
   END;
 
   INSERT INTO public.ops_tasks (
-    booking_id, task_type, category, title, description, priority, status,
+    property_id, booking_id, task_type, category, title, description, priority, status,
     due_at, assignee_id
   ) VALUES (
-    _request.booking_id, _task_type, _task_category, _title,
+    _property_id, _request.booking_id, _task_type, _task_category, _title,
     _request.request_text, _request.priority, 'pending',
     _due_at, _assignee_id
   ) RETURNING id INTO _task_id;
