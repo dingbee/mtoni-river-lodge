@@ -27,7 +27,8 @@ export const Route = createFileRoute("/api/public/webhooks/meta")({
       try {
         const events = normalizeMetaWebhook(payload);
         if (!events.length) return Response.json({ received: true, persisted: 0 });
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");\n        const { processProviderWebhookInbox } = await import("@/domains/ai/concierge/webhooks/webhook-processor.server");
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { processProviderWebhookInbox } = await import("@/domains/ai/concierge/webhooks/webhook-processor.server");
         let persisted = 0, duplicates = 0, rejected = 0;
         for (const event of events) {
           const phoneNumberId = typeof event.safePayload.phoneNumberId === "string" ? event.safePayload.phoneNumberId : null;
@@ -42,7 +43,16 @@ export const Route = createFileRoute("/api/public/webhooks/meta")({
             event_type: event.eventType, normalized_event: event,
           }, { onConflict: "provider,provider_event_id", ignoreDuplicates: true }).select("id");
           if (error) throw new Error(error.message);
-          let inboxId = data?.[0]?.id as string | undefined;\n          if (inboxId) persisted++;\n          else {\n            duplicates++;\n            const { data: existing, error: lookupError } = await (supabaseAdmin as any).from("ai_provider_webhook_inbox")\n              .select("id").eq("provider", "meta_cloud_api").eq("provider_event_id", event.providerEventId).maybeSingle();\n            if (lookupError) throw new Error(lookupError.message);\n            inboxId = existing?.id;\n          }\n          if (inboxId) await processProviderWebhookInbox(supabaseAdmin, inboxId);
+          let inboxId = data?.[0]?.id as string | undefined;
+          if (inboxId) persisted++;
+          else {
+            duplicates++;
+            const { data: existing, error: lookupError } = await (supabaseAdmin as any).from("ai_provider_webhook_inbox")
+              .select("id").eq("provider", "meta_cloud_api").eq("provider_event_id", event.providerEventId).maybeSingle();
+            if (lookupError) throw new Error(lookupError.message);
+            inboxId = existing?.id;
+          }
+          if (inboxId) await processProviderWebhookInbox(supabaseAdmin, inboxId);
         }
         return Response.json({ received: true, persisted, duplicates, rejected });
       } catch (error) {
