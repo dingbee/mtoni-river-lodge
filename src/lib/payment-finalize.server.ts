@@ -87,7 +87,7 @@ export async function verifyAndFinalizePayment(opts: {
 
   const context = await resolveBookingPaymentContext(supabaseAdmin, {
     propertyId: booking.property_id,
-    integrationId,
+    integrationId: integrationId ?? undefined,
     currency: String(booking.currency).toUpperCase(),
     callbackBaseUrl: "",
   });
@@ -146,7 +146,7 @@ export async function verifyAndFinalizePayment(opts: {
   const amountsMatch = Number.isFinite(paidAmount) &&
     Math.round(expectedAmount * 100) === Math.round(paidAmount * 100);
   const expectedCurrency = String(booking.currency).toUpperCase();
-  const currencyMatches = Boolean(status.currency) &&
+  const currencyMatches = typeof status.currency === "string" &&
     status.currency.toUpperCase() === expectedCurrency;
 
   if (!amountsMatch || !currencyMatches) {
