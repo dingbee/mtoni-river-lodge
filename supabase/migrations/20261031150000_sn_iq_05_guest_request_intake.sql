@@ -44,7 +44,10 @@ GRANT ALL ON public.staynas_guest_requests TO service_role;
 DROP POLICY IF EXISTS "Property staff read guest requests" ON public.staynas_guest_requests;
 CREATE POLICY "Property staff read guest requests"
   ON public.staynas_guest_requests FOR SELECT TO authenticated
-  USING (public.staynas_user_has_property_access(auth.uid(), property_id));
+  USING (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.is_any_staff(auth.uid())
+  );
 
 DROP POLICY IF EXISTS "Property staff create guest requests" ON public.staynas_guest_requests;
 CREATE POLICY "Property staff create guest requests"
