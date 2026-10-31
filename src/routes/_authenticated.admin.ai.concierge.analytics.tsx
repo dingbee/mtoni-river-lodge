@@ -13,8 +13,6 @@ import {
   getConciergeOutcomes,
   getKnowledgeGaps,
   classifyConciergeOutcomes,
-  listConciergeInsights,
-  updateConciergeInsight,
 } from "@/domains/ai/concierge/analytics.functions";
 
 type Window = "7d" | "30d" | "90d";
@@ -38,14 +36,10 @@ function AnalyticsPage() {
   const outcomesFn = useServerFn(getConciergeOutcomes);
   const gapsFn = useServerFn(getKnowledgeGaps);
   const classifyFn = useServerFn(classifyConciergeOutcomes);
-  const insightsFn = useServerFn(listConciergeInsights);
-  const updateInsightFn = useServerFn(updateConciergeInsight);
 
   const analytics = useQuery({ queryKey: ["concierge.analytics", win], queryFn: () => analyticsFn({ data: { window: win } }) });
   const outcomes = useQuery({ queryKey: ["concierge.outcomes", win], queryFn: () => outcomesFn({ data: { window: win } }) });
   const gaps = useQuery({ queryKey: ["concierge.gaps", win], queryFn: () => gapsFn({ data: { window: win } }) });
-  const insights = useQuery({ queryKey: ["concierge.insights"], queryFn: () => insightsFn() });
-
   const classify = useMutation({
     mutationFn: () => classifyFn({ data: { window: win } }),
     onSuccess: () => {
@@ -54,18 +48,13 @@ function AnalyticsPage() {
     },
   });
 
-  const updateInsight = useMutation({
-    mutationFn: (v: { id: string; status: string }) => updateInsightFn({ data: v }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["concierge.insights"] }),
-  });
-
   const a = analytics.data;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Concierge Analytics"
-        description="Measurable hospitality conversion intelligence for Mtoni AI Concierge."
+        description="Property-scoped guest engagement, conversion, and service-quality metrics."
         actions={
           <div className="flex items-center gap-2">
             {(["7d", "30d", "90d"] as const).map((w) => (
@@ -147,37 +136,6 @@ function AnalyticsPage() {
         )}
       </SectionCard>
 
-      <SectionCard title="Insight review queue" description="Approve or dismiss AI-generated hospitality insights.">
-        {(insights.data ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">No insights recorded yet.</p>
-        ) : (
-          <ul className="divide-y text-sm">
-            {insights.data?.map((i: any) => (
-              <li key={i.id} className="flex items-start justify-between gap-3 py-2">
-                <div className="min-w-0">
-                  <p className="font-medium">{i.topic}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {i.question_count ?? 0} questions · {i.escalation_count ?? 0} escalations
-                    {i.category ? ` · ${i.category}` : ""}
-                  </p>
-                  {i.recommended_action && (
-                    <p className="mt-1 text-xs">Recommend: {i.recommended_action}</p>
-                  )}
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  <Badge variant="outline">{i.status ?? "new"}</Badge>
-                  <Button size="sm" variant="ghost" onClick={() => updateInsight.mutate({ id: i.id, status: "accepted" })}>
-                    Accept
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => updateInsight.mutate({ id: i.id, status: "dismissed" })}>
-                    Dismiss
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </SectionCard>
     </div>
   );
 }

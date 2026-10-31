@@ -18,11 +18,15 @@ export type AiToolId =
 export type AiDomain = "guests" | "reservations" | "finance" | "operations" | "marketing" | "knowledge";
 
 export interface AiKnowledgeCitation {
-  document_id: string;
-  document_title: string;
-  document_slug: string;
+  source_id: string;
+  source_kind: "document" | "synced_source";
+  source_type: string;
+  title: string;
+  slug: string | null;
   category_slug: string | null;
-  chunk_index: number;
+  chunk_index: number | null;
+  url: string | null;
+  language_code: string;
   excerpt: string;
 }
 

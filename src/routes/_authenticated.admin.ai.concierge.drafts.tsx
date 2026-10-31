@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
   listCommunicationDrafts,
+  listConciergeConversations,
   createCommunicationDraft,
   updateCommunicationDraft,
 } from "@/domains/ai/concierge/omnichannel.functions";
@@ -34,6 +35,7 @@ export const Route = createFileRoute("/_authenticated/admin/ai/concierge/drafts"
 function DraftsPage() {
   const listFn = useServerFn(listCommunicationDrafts);
   const createFn = useServerFn(createCommunicationDraft);
+  const conversationsFn = useServerFn(listConciergeConversations);
   const updateFn = useServerFn(updateCommunicationDraft);
   const qc = useQueryClient();
   const [status, setStatus] = useState<CommunicationDraftStatus | "all">("pending");
@@ -42,7 +44,13 @@ function DraftsPage() {
     channel: ConciergeChannel;
     draft_type: CommunicationDraftType;
     guest_name: string;
-  }>({ channel: "email", draft_type: "welcome", guest_name: "" });
+    session_id: string;
+  }>({ channel: "email", draft_type: "welcome", guest_name: "", session_id: "" });
+
+  const conversations = useQuery({
+    queryKey: ["oc.draft-conversations"],
+    queryFn: () => conversationsFn({ data: { limit: 100 } }),
+  });
 
   const list = useQuery({
     queryKey: ["oc.drafts", status],
@@ -55,6 +63,7 @@ function DraftsPage() {
         data: {
           channel: form.channel,
           draft_type: form.draft_type,
+          session_id: form.session_id,
           guest_name: form.guest_name || null,
         },
       }),
@@ -128,12 +137,24 @@ function DraftsPage() {
               <option value="follow_up">follow_up</option>
               <option value="custom">custom</option>
             </select>
+            <select
+              className="rounded border bg-background px-2 py-1 text-sm"
+              value={form.session_id}
+              onChange={(e) => setForm({ ...form, session_id: e.target.value })}
+            >
+              <option value="">Select conversation…</option>
+              {(conversations.data ?? []).map((session: any) => (
+                <option key={session.id} value={session.id}>
+                  {session.guest_name || session.guest_email || `Conversation ${String(session.id).slice(0, 8)}`}
+                </option>
+              ))}
+            </select>
             <Input
               placeholder="Guest name (optional)"
               value={form.guest_name}
               onChange={(e) => setForm({ ...form, guest_name: e.target.value })}
             />
-            <Button size="sm" onClick={() => create.mutate()} disabled={create.isPending}>
+            <Button size="sm" onClick={() => create.mutate()} disabled={create.isPending || !form.session_id}>
               {create.isPending ? "Creating…" : "Generate draft"}
             </Button>
           </div>

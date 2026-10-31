@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { getActivePropertyAiRoles } from "@/domains/ai/ai.authorization.server";
 
 const APPROVER_ROLES = ["owner", "manager", "reception"] as const;
 const SOURCE_TYPES = [
@@ -15,18 +16,30 @@ const SOURCE_TYPES = [
 ] as const;
 const STATUSES = ["pending", "processing", "approved", "archived", "failed"] as const;
 
+function knowledgeReviewDueAt(sourceType: string, now = new Date()): string {
+  const days: Record<string, number> = { room: 30, experience: 60, website_page: 30, journal_article: 90, policy: 180, document: 180, other: 90 };
+  const due = new Date(now);
+  due.setUTCDate(due.getUTCDate() + (days[sourceType] ?? 90));
+  return due.toISOString();
+}
+
 async function assertStaff(sb: any, userId: string) {
-  const { data, error } = await sb.rpc("is_any_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  if (process.env.STAYNAS_PROPERTY_KNOWLEDGE_SCHEMA_ENABLED !== "true") {
+    throw new Error("Property knowledge workspace is waiting for its database migration and isolation verification.");
+  }
+  const scope = await getActivePropertyAiRoles(sb, userId);
+  const allowed = ["owner", "manager", "admin", "reservations", "reception", "marketing", "finance", "housekeeping"];
+  if (!scope.roles.some((role) => allowed.includes(role))) throw new Error("Forbidden");
+  return scope.propertyId;
 }
 async function assertApprover(sb: any, userId: string) {
-  const { data, error } = await sb.rpc("has_any_role", {
-    _user_id: userId,
-    _roles: [...APPROVER_ROLES],
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  if (process.env.STAYNAS_PROPERTY_KNOWLEDGE_SCHEMA_ENABLED !== "true") {
+    throw new Error("Property knowledge workspace is waiting for its database migration and isolation verification.");
+  }
+  const scope = await getActivePropertyAiRoles(sb, userId);
+  const allowed = [...APPROVER_ROLES, "admin"];
+  if (!scope.roles.some((role) => allowed.includes(role))) throw new Error("Forbidden");
+  return scope.propertyId;
 }
 
 export interface AiKnowledgeSource {
@@ -44,6 +57,11 @@ export interface AiKnowledgeSource {
   created_by: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
+  property_id: string;
+  language_code: string;
+  is_guest_visible: boolean;
+  source_updated_at: string | null;
+  review_due_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -63,12 +81,13 @@ export const listKnowledgeSources = createServerFn({ method: "GET" })
   )
   .handler(async ({ context, data }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await assertStaff(context.supabase, context.userId);
     let q: any = context.supabase
       .from("ai_knowledge_sources")
       .select(
-        "id, source_type, external_ref, title, url, summary, status, last_synced_at, indexed_at, metadata, created_at, updated_at",
+        "id, property_id, source_type, external_ref, title, url, summary, status, is_guest_visible, language_code, source_updated_at, review_due_at, last_synced_at, indexed_at, metadata, created_at, updated_at",
       )
+      .eq("property_id", propertyId)
       .order("updated_at", { ascending: false })
       .limit(data.limit);
     if (data.source_type) q = q.eq("source_type", data.source_type);
@@ -84,11 +103,12 @@ export const getKnowledgeSource = createServerFn({ method: "GET" })
   .inputValidator((input: any) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await assertStaff(context.supabase, context.userId);
     const { data: row, error } = await context.supabase
       .from("ai_knowledge_sources")
       .select("*")
       .eq("id", data.id)
+      .eq("property_id", propertyId)
       .single();
     if (error) throw new Error(error.message);
     return row as AiKnowledgeSource;
@@ -104,6 +124,8 @@ const upsertSchema = z.object({
   summary: z.string().max(2000).nullable().optional(),
   content: z.string().max(200_000).default(""),
   metadata: z.record(z.string(), z.any()).default({}),
+  language_code: z.enum(["en", "sw"]).default("en"),
+  is_guest_visible: z.boolean().default(false),
   status: z.enum(STATUSES).default("pending"),
 });
 
@@ -112,9 +134,10 @@ export const upsertKnowledgeSource = createServerFn({ method: "POST" })
   .inputValidator((input: any) => upsertSchema.parse(input))
   .handler(async ({ context, data }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertApprover(context.supabase, context.userId);
+    const propertyId = await assertApprover(context.supabase, context.userId);
     const sb: any = context.supabase;
     const patch: any = {
+      property_id: propertyId,
       source_type: data.source_type,
       external_ref: data.external_ref ?? null,
       title: data.title,
@@ -122,8 +145,13 @@ export const upsertKnowledgeSource = createServerFn({ method: "POST" })
       summary: data.summary ?? null,
       content: data.content ?? "",
       metadata: data.metadata ?? {},
+      language_code: data.language_code,
+      is_guest_visible: data.is_guest_visible && data.status === "approved",
       status: data.status,
+      source_updated_at: new Date().toISOString(),
+      review_due_at: knowledgeReviewDueAt(data.source_type),
       indexed_at: new Date().toISOString(),
+      ...(data.status === "approved" ? { reviewed_by: context.userId, reviewed_at: new Date().toISOString() } : {}),
     };
     let row: any;
     if (data.id) {
@@ -131,6 +159,7 @@ export const upsertKnowledgeSource = createServerFn({ method: "POST" })
         .from("ai_knowledge_sources")
         .update(patch)
         .eq("id", data.id)
+        .eq("property_id", propertyId)
         .select()
         .single();
       if (error) throw new Error(error.message);
@@ -163,17 +192,28 @@ export const setKnowledgeSourceStatus = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertApprover(context.supabase, context.userId);
+    const propertyId = await assertApprover(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: current, error: currentError } = await sb
+      .from("ai_knowledge_sources")
+      .select("source_type")
+      .eq("id", data.id)
+      .eq("property_id", propertyId)
+      .maybeSingle();
+    if (currentError) throw new Error(currentError.message);
+    if (!current) throw new Error("Knowledge source not found in the active property.");
     const { data: row, error } = await sb
       .from("ai_knowledge_sources")
       .update({
         status: data.status,
+        is_guest_visible: data.status === "approved" ? undefined : false,
+        review_due_at: data.status === "approved" ? knowledgeReviewDueAt(current.source_type) : undefined,
         reviewed_by: context.userId,
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", data.id)
-      .select("id, status, title")
+      .eq("property_id", propertyId)
+      .select("id, status, title, is_guest_visible")
       .single();
     if (error) throw new Error(error.message);
     await sb.from("ai_activity_logs").insert({
@@ -185,128 +225,79 @@ export const setKnowledgeSourceStatus = createServerFn({ method: "POST" })
     return row;
   });
 
+export const setKnowledgeSourceGuestVisibility = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: any) =>
+    z.object({ id: z.string().uuid(), is_guest_visible: z.boolean() }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
+    const propertyId = await assertApprover(context.supabase, context.userId);
+    const sb: any = context.supabase;
+    const { data: source, error: readError } = await sb
+      .from("ai_knowledge_sources")
+      .select("id, status, review_due_at")
+      .eq("id", data.id)
+      .eq("property_id", propertyId)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (!source) throw new Error("Knowledge source not found in the active property.");
+    if (data.is_guest_visible && source.status !== "approved") {
+      throw new Error("Approve the source before enabling guest-facing answers.");
+    }
+    if (
+      data.is_guest_visible
+      && (!source.review_due_at || new Date(source.review_due_at).getTime() < Date.now())
+    ) {
+      throw new Error("Refresh and re-review this source before enabling guest-facing answers.");
+    }
+    const { data: row, error } = await sb
+      .from("ai_knowledge_sources")
+      .update({
+        is_guest_visible: data.is_guest_visible,
+        reviewed_by: context.userId,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", data.id)
+      .eq("property_id", propertyId)
+      .select("id, status, title, is_guest_visible")
+      .single();
+    if (error) throw new Error(error.message);
+    await sb.from("ai_activity_logs").insert({
+      user_id: context.userId,
+      tool_called: data.is_guest_visible ? "knowledge_sync.enable_guest_visibility" : "knowledge_sync.disable_guest_visibility",
+      tool_args: { id: data.id },
+      status: "ok",
+    });
+    return row;
+  });
+
 export const deleteKnowledgeSource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: any) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertApprover(context.supabase, context.userId);
-    const { error } = await context.supabase.from("ai_knowledge_sources").delete().eq("id", data.id);
+    const propertyId = await assertApprover(context.supabase, context.userId);
+    const { error } = await context.supabase.from("ai_knowledge_sources").delete().eq("id", data.id).eq("property_id", propertyId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
-// ---------- Sync: Journal ----------
+// ---------- Global content adapters (intentionally deferred) ----------
 export const syncJournalArticles = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertApprover(context.supabase, context.userId);
-    const sb: any = context.supabase;
-    const { data: articles, error } = await sb
-      .from("journal_articles")
-      .select("id, slug, title, excerpt, content_html, status, published_at, updated_at, seo_title, seo_description")
-      .eq("status", "published")
-      .order("published_at", { ascending: false })
-      .limit(500);
-    if (error) throw new Error(error.message);
-
-    let upserted = 0;
-    for (const a of articles ?? []) {
-      const url = `/journal/${a.slug}`;
-      const contentText = stripHtml(String(a.content_html ?? "")).slice(0, 180_000);
-      const summary = a.excerpt ?? a.seo_description ?? null;
-      const { error: upErr } = await sb.from("ai_knowledge_sources").upsert(
-        {
-          source_type: "journal_article",
-          external_ref: a.id,
-          title: a.title,
-          url,
-          summary,
-          content: contentText,
-          metadata: {
-            slug: a.slug,
-            published_at: a.published_at,
-            updated_at: a.updated_at,
-            seo_title: a.seo_title,
-          },
-          status: "approved",
-          last_synced_at: new Date().toISOString(),
-          indexed_at: new Date().toISOString(),
-          created_by: context.userId,
-          reviewed_by: context.userId,
-          reviewed_at: new Date().toISOString(),
-        },
-        { onConflict: "source_type,external_ref" },
-      );
-      if (upErr) throw new Error(upErr.message);
-      upserted++;
-    }
-
-    await sb.from("ai_activity_logs").insert({
-      user_id: context.userId,
-      tool_called: "knowledge_sync.sync_journal",
-      tool_args: { upserted },
-      status: "ok",
-    });
-    return { upserted };
+    return { upserted: 0, skipped: true, reason: "journal_articles_not_property_scoped" };
   });
 
-// ---------- Sync: CMS pages ----------
 export const syncCmsPages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
     await assertApprover(context.supabase, context.userId);
-    const sb: any = context.supabase;
-    const { data: pages, error } = await sb
-      .from("cms_pages")
-      .select("id, slug, title, description, status, updated_at")
-      .eq("status", "published")
-      .limit(200);
-    if (error) throw new Error(error.message);
-
-    let upserted = 0;
-    for (const p of pages ?? []) {
-      const { data: blocks } = await sb
-        .from("cms_blocks")
-        .select("data, position, kind")
-        .eq("page_id", p.id)
-        .order("position", { ascending: true });
-      const content = (blocks ?? [])
-        .map((b: any) => extractBlockText(b))
-        .filter(Boolean)
-        .join("\n\n")
-        .slice(0, 180_000);
-      const url = p.slug === "home" || p.slug === "index" ? "/" : `/${p.slug}`;
-      const { error: upErr } = await sb.from("ai_knowledge_sources").upsert(
-        {
-          source_type: "website_page",
-          external_ref: p.id,
-          title: p.title,
-          url,
-          summary: p.description ?? null,
-          content,
-          metadata: { slug: p.slug, updated_at: p.updated_at },
-          status: "approved",
-          last_synced_at: new Date().toISOString(),
-          indexed_at: new Date().toISOString(),
-          created_by: context.userId,
-          reviewed_by: context.userId,
-          reviewed_at: new Date().toISOString(),
-        },
-        { onConflict: "source_type,external_ref" },
-      );
-      if (upErr) throw new Error(upErr.message);
-      upserted++;
-    }
-    await sb.from("ai_activity_logs").insert({
-      user_id: context.userId,
-      tool_called: "knowledge_sync.sync_cms",
-      tool_args: { upserted },
-      status: "ok",
-    });
-    return { upserted };
+    return { upserted: 0, skipped: true, reason: "cms_pages_not_property_scoped" };
   });
 
 // ---------- Sync: Rooms & Experiences (from CMS pages tagged) ----------
@@ -314,11 +305,12 @@ export const syncRoomsAndExperiences = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertApprover(context.supabase, context.userId);
+    const propertyId = await assertApprover(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: rooms } = await sb
       .from("rooms")
-      .select("id, slug, name, short_description, base_price, currency, capacity_adults, capacity_children, max_occupancy, status")
+      .select("id, slug, name, short_description, base_price, currency, capacity_adults, capacity_children, max_occupancy, status, updated_at")
+      .eq("property_id", propertyId)
       .eq("status", "active");
     let upserted = 0;
     for (const r of rooms ?? []) {
@@ -331,6 +323,11 @@ export const syncRoomsAndExperiences = createServerFn({ method: "POST" })
         .join("\n\n");
       const { error } = await sb.from("ai_knowledge_sources").upsert(
         {
+          property_id: propertyId,
+          language_code: "en",
+          is_guest_visible: false,
+          source_updated_at: r.updated_at ?? new Date().toISOString(),
+          review_due_at: knowledgeReviewDueAt("room"),
           source_type: "room",
           external_ref: r.id,
           title: r.name,
@@ -345,7 +342,7 @@ export const syncRoomsAndExperiences = createServerFn({ method: "POST" })
           reviewed_by: context.userId,
           reviewed_at: new Date().toISOString(),
         },
-        { onConflict: "source_type,external_ref" },
+        { onConflict: "property_id,source_type,external_ref" },
       );
       if (error) throw new Error(error.message);
       upserted++;
@@ -367,27 +364,38 @@ export const testKnowledgeQuery = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await assertStaff(context.supabase, context.userId);
+    if (process.env.STAYNAS_PROPERTY_KNOWLEDGE_SEARCH_ENABLED !== "true") {
+      throw new Error("Property knowledge retrieval is disabled until database isolation verification is complete.");
+    }
     const sb: any = context.supabase;
-    const { data: hits, error } = await sb.rpc("ai_knowledge_sources_search", {
+    const { data: hits, error } = await sb.rpc("staynas_property_knowledge_search", {
+      _property_id: propertyId,
       _query: data.query,
       _limit: data.limit,
+      _guest_visible_only: false,
     });
     if (error) throw new Error(error.message);
     const top = (hits ?? []) as Array<{
-      id: string;
+      source_id: string;
+      source_kind: string;
       source_type: string;
       title: string;
+      slug: string | null;
+      category_slug: string | null;
       url: string | null;
       summary: string | null;
       content: string;
+      language_code: string;
+      source_updated_at: string | null;
       rank: number;
     }>;
     const confidence = top[0]?.rank ? Math.min(0.99, top[0].rank / 0.6) : 0;
     await sb.from("ai_knowledge_search_log").insert({
+      property_id: propertyId,
       query: data.query,
       result_count: top.length,
-      matched_source_ids: top.map((t: any) => t.id),
+      matched_source_ids: top.map((t: any) => t.source_id),
       confidence,
       asked_by: context.userId,
     });
@@ -399,13 +407,14 @@ export const getKnowledgeAnalytics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "knowledge");
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const since = new Date(Date.now() - 30 * 86400_000).toISOString();
 
     const { data: byType } = await sb
       .from("ai_knowledge_sources")
       .select("source_type, status")
+      .eq("property_id", propertyId)
       .limit(2000);
     const counts: Record<string, { total: number; approved: number }> = {};
     for (const r of (byType ?? []) as any[]) {
@@ -418,6 +427,7 @@ export const getKnowledgeAnalytics = createServerFn({ method: "GET" })
     const { data: recent } = await sb
       .from("ai_knowledge_search_log")
       .select("query, result_count, confidence, created_at")
+      .eq("property_id", propertyId)
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(500);
@@ -441,22 +451,3 @@ export const getKnowledgeAnalytics = createServerFn({ method: "GET" })
 
     return { counts, topUnanswered, totalSearches, successRate, avgConfidence };
   });
-
-// ---------- Helpers ----------
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-}
-function extractBlockText(block: any): string {
-  const data = block?.data ?? {};
-  const parts: string[] = [];
-  const walk = (v: any) => {
-    if (v == null) return;
-    if (typeof v === "string") {
-      const s = stripHtml(v);
-      if (s.length > 1) parts.push(s);
-    } else if (Array.isArray(v)) v.forEach(walk);
-    else if (typeof v === "object") Object.values(v).forEach(walk);
-  };
-  walk(data);
-  return parts.join("\n");
-}

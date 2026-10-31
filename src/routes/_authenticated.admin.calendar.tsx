@@ -931,7 +931,7 @@ function UnifiedCalendarPage() {
             <EmptyState title="Quiet" description="No calendar events recorded yet." />
           ) : (
             <div className="space-y-2">
-              {(events.data ?? []).slice(0, 30).map((e) => (
+              {(events.data ?? []).slice(0, 30).map((e: { id: string; event_type: string; created_at: string; date_from: string | null; date_to: string | null }) => (
                 <div key={e.id} className="rounded-md border p-2 text-sm">
                   <div className="flex items-center gap-2">
                     <Badge variant={e.event_type.startsWith("room.") ? "destructive" : "outline"}>

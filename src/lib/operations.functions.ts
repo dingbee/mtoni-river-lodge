@@ -523,7 +523,7 @@ export const getRecurringCalendarOccurrences = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
-    const { data: rows, error } = await context.supabase.rpc("staynas_calendar_recurring_occurrences", {
+    const { data: rows, error } = await (context.supabase as any).rpc("staynas_calendar_recurring_occurrences", {
       _property_id: data.propertyId, _from: data.from, _to: data.to,
     });
     if (error) throw new Error(error.message);

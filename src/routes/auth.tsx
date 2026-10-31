@@ -54,7 +54,7 @@ function AuthPage() {
         return;
       }
 
-      if (!hasLegacyStaffRole && accessibleProperties.length === 1) {
+      if (accessibleProperties.length === 1) {
         const { error: contextError } = await staynasRpc(supabase).rpc("staynas_set_active_property", {
           _property_id: accessibleProperties[0].id,
         });
@@ -73,11 +73,23 @@ function AuthPage() {
         return;
       }
 
-      // Successful sign-in and active-property selection are already confirmed.
-      // Route directly to the protected admin area so first-login metadata cannot strand
-      // the account on the password-setup route. Password changes remain available via
-      // the normal account recovery flow.
-      await navigate({ to: "/admin/bookings" });
+      // Route housekeeping-only staff directly to their operational workspace.
+      const normalizedRoles = (Array.isArray(roles) ? roles : []).map((entry: unknown) => {
+        if (typeof entry === "string") return entry.toLowerCase();
+        if (entry && typeof entry === "object") {
+          const record = entry as Record<string, unknown>;
+          return String(record.role ?? record.name ?? record.app_role ?? "").toLowerCase();
+        }
+        return "";
+      });
+      const housekeepingOnly =
+        normalizedRoles.includes("housekeeping") &&
+        !normalizedRoles.some((role: string) =>
+          ["owner", "manager", "admin", "reception", "front_desk"].includes(role),
+        );
+      await navigate({
+        to: housekeepingOnly ? "/admin/operations/housekeeping" : "/admin/bookings",
+      });
     } catch (error) {
       console.error("[StayNas auth] Sign-in flow failed", error);
       toast.error("Sign-in completed, but StayNas could not open the next screen. Please retry.");

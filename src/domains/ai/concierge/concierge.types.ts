@@ -1,11 +1,15 @@
 export type ConciergeRole = "user" | "assistant" | "system";
 
 export interface ConciergeCitation {
-  document_id: string;
-  document_title: string;
-  document_slug: string;
+  source_id: string;
+  source_kind: "document" | "synced_source";
+  source_type: string;
+  title: string;
+  slug: string | null;
   category_slug: string | null;
-  chunk_index: number;
+  chunk_index: number | null;
+  url: string | null;
+  language_code: string;
   excerpt: string;
 }
 
@@ -38,13 +42,23 @@ export interface ConciergeRoomCatalogItem {
   currency: string;
 }
 
+export interface ConciergeExperienceCatalogItem {
+  slug: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  currency: string;
+  unit: string;
+}
+
 export interface ConciergeRoomRecommendation {
   type: "room";
   slug: string;
   name: string;
   reasoning: string[];
   confidence: number;
-  from_price_usd: number;
+  from_price: number;
+  currency: string;
 }
 
 export interface ConciergeExperienceRecommendation {
@@ -53,6 +67,9 @@ export interface ConciergeExperienceRecommendation {
   name: string;
   reasoning: string[];
   confidence: number;
+  from_price: number;
+  currency: string;
+  unit: string;
 }
 
 export type ConciergeRecommendation =
@@ -62,12 +79,14 @@ export type ConciergeRecommendation =
 export interface ConciergeAvailabilityRoom {
   slug: string;
   name: string;
-  base_price_usd: number;
+  base_price: number;
+  currency: string;
   max_occupancy: number;
   is_available: boolean;
   min_available: number;
-  nightly_total_usd: number;
+  nightly_total: number;
   nights: number;
+  fits_party: boolean;
 }
 
 export interface ConciergeBookingPlan {
@@ -76,9 +95,10 @@ export interface ConciergeBookingPlan {
   nights: number;
   adults: number;
   children: number;
-  room?: { slug: string; name: string; nightly_total_usd: number };
-  experiences: Array<{ slug: string; name: string }>;
-  estimated_total_usd?: number;
+  room?: { slug: string; name: string; total_price: number; currency: string };
+  experiences: Array<{ slug: string; name: string; price?: number; currency?: string; unit?: string }>;
+  estimated_total?: number;
+  currency?: string;
   booking_url: string;
 }
 
