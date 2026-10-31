@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - sprint/tenant-isolation-payment-integrity
+      - integration/staynas-ops-release-2026-10-31
 
 jobs:
   tests:
