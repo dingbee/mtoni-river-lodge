@@ -1055,3 +1055,76 @@
 /* ---------- Colour-scheme hint (native controls, scrollbars) ---------- */
 [data-os-theme="dark"] { color-scheme: dark; }
 [data-os-theme="light"] { color-scheme: light; }
+
+/* ============================================================
+   STAYNAS ADMIN — PURE ENTERPRISE NEUTRAL
+   Deliberately scoped to the operating system shell. Public
+   guest-facing pages retain their independent brand identity.
+   ============================================================ */
+.mtoni-os {
+  --font-display: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  --font-serif: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  --font-sans: "Inter", "Helvetica Neue", system-ui, sans-serif;
+
+  --os-canvas: #F3F4F6;
+  --os-surface: #FFFFFF;
+  --os-surface-2: #FFFFFF;
+  --os-hairline: #D1D5DB;
+  --os-hairline-strong: #9CA3AF;
+  --os-ink: #111827;
+  --os-ink-2: #374151;
+  --os-ink-3: #6B7280;
+  --os-green: #111827;
+  --os-green-soft: #F3F4F6;
+  --os-gold: #4B5563;
+  --os-gold-soft: #F3F4F6;
+
+  --background: #F3F4F6;
+  --foreground: #111827;
+  --card: #FFFFFF;
+  --card-foreground: #111827;
+  --popover: #FFFFFF;
+  --popover-foreground: #111827;
+  --primary: #111827;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F3F4F6;
+  --secondary-foreground: #374151;
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
+  --accent: #E5E7EB;
+  --accent-foreground: #111827;
+  --border: #D1D5DB;
+  --input: #D1D5DB;
+  --ring: #111827;
+
+  background-color: var(--os-canvas);
+  color: var(--os-ink);
+  font-family: var(--font-sans);
+}
+
+/* Keep optional dark mode neutral as well; no legacy green/burgundy. */
+[data-os-theme="dark"] .mtoni-os {
+  --os-green: #111827;
+  --os-green-soft: rgba(255,255,255,0.08);
+  --os-gold: #9CA3AF;
+  --os-gold-soft: rgba(255,255,255,0.08);
+  --primary: #111827;
+  --primary-foreground: #FFFFFF;
+  --ring: #D1D5DB;
+}
+.mtoni-os button.bg-primary,
+.mtoni-os [data-variant="default"].bg-primary {
+  background-color: #111827;
+  color: #FFFFFF;
+}
+.mtoni-os button.bg-primary:hover,
+.mtoni-os [data-variant="default"].bg-primary:hover {
+  background-color: #374151;
+}
+.mtoni-os [data-nav-active="true"] {
+  background: #F3F4F6;
+  color: #111827;
+}
+.mtoni-os [data-nav-active="true"]::before {
+  background: #111827;
+}
