@@ -88,16 +88,16 @@ export const listGuestRequests = createServerFn({ method: "POST" })
   }).parse(input ?? {}))
   .handler(async ({ data, context }) => {
     const propertyId = await activePropertyId(context.supabase, context.userId);
-    const { data: rows, error } = await context.supabase
+    let query = context.supabase
       .from("staynas_guest_requests")
       .select("id, session_id, booking_id, guest_id, category, request_text, intake_channel, status, priority, guest_name, guest_contact, requested_for, created_at, updated_at")
-      .eq("property_id", propertyId)
+      .eq("property_id", propertyId);
+    if (data.status !== "all") query = query.eq("status", data.status);
+    if (data.category) query = query.eq("category", data.category);
+    const { data: rows, error } = await query
       .order("priority", { ascending: true })
       .order("created_at", { ascending: false })
       .limit(data.limit);
     if (error) throw new Error(error.message);
-    return (rows ?? []).filter((row: any) =>
-      (data.status === "all" || row.status === data.status) &&
-      (!data.category || row.category === data.category)
-    );
+    return rows ?? [];
   });
