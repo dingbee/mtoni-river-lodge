@@ -86,14 +86,10 @@ BEGIN
       AND pm.user_id = _assignee_id
       AND pm.status = 'active'
       AND public.is_any_staff(pm.user_id)
-      AND CASE _request.category
-        WHEN 'housekeeping' THEN public.has_any_role(_assignee_id, ARRAY['housekeeping']::public.app_role[])
-        WHEN 'maintenance' THEN public.has_any_role(_assignee_id, ARRAY['maintenance','manager','admin','owner']::public.app_role[])
-        WHEN 'airport_transfer' THEN public.has_any_role(_assignee_id, ARRAY['transport','manager','admin','owner']::public.app_role[])
-        WHEN 'room_service' THEN public.has_any_role(_assignee_id, ARRAY['fnb','manager','admin','owner']::public.app_role[])
-        WHEN 'dining' THEN public.has_any_role(_assignee_id, ARRAY['fnb','manager','admin','owner']::public.app_role[])
-        WHEN 'private_dining' THEN public.has_any_role(_assignee_id, ARRAY['fnb','manager','admin','owner']::public.app_role[])
-        ELSE public.has_any_role(_assignee_id, ARRAY['manager','admin','owner','reception']::public.app_role[])
+      AND CASE
+        WHEN _request.category = 'housekeeping'
+          THEN public.has_any_role(_assignee_id, ARRAY['housekeeping']::public.app_role[])
+        ELSE true
       END
   ) THEN
     RAISE EXCEPTION 'Assignee is not an active member of this property';
