@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { staynasRpc } from "@/lib/staynas-rpc";
 import { Loader2, Leaf, ArrowLeft } from "lucide-react";
@@ -22,6 +22,7 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [verifyingRecovery, setVerifyingRecovery] = useState(false);
+  const recoveryVerificationStarted = useRef(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,8 +126,9 @@ function AuthPage() {
       toast.error("Enter the email address and the code from your reset email.");
       return;
     }
-    if (verifyingRecovery) return;
+    if (recoveryVerificationStarted.current || verifyingRecovery) return;
 
+    recoveryVerificationStarted.current = true;
     setVerifyingRecovery(true);
     try {
       const { data, error } = await supabase.auth.verifyOtp({
@@ -143,12 +145,15 @@ function AuthPage() {
         throw userError ?? new Error("Recovery session could not be established. Request a new code.");
       }
 
-      await navigate({ to: "/auth/set-password", search: { type: "recovery" } as never });
+      // Start a fresh document after the recovery session is persisted. This avoids
+      // stale auth-route state swallowing the transition on mobile browsers.
+      window.location.assign("/auth/set-password?type=recovery");
     } catch (error) {
       console.error("[StayNas auth] Recovery code verification failed", error);
       toast.error(error instanceof Error ? error.message : "The code is invalid or expired. Request a new one.");
     } finally {
       setVerifyingRecovery(false);
+      recoveryVerificationStarted.current = false;
     }
   };
 
