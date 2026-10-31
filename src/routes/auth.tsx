@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { staynasRpc } from "@/lib/staynas-rpc";
 import { Loader2, Leaf, ArrowLeft } from "lucide-react";
@@ -22,6 +22,11 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [verifyingRecovery, setVerifyingRecovery] = useState(false);
+  const [recoveryVerified, setRecoveryVerified] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [savingNewPassword, setSavingNewPassword] = useState(false);
+  const recoveryVerificationStarted = useRef(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,6 +123,33 @@ function AuthPage() {
     toast.success("If that staff account exists, a password-reset code has been sent.");
   };
 
+  const saveRecoveredPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 8) return toast.error("Password must be at least 8 characters.");
+    if (newPassword !== confirmNewPassword) return toast.error("Passwords do not match.");
+    setSavingNewPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+        data: { staynas_password_initialized: true },
+      });
+      if (error) throw error;
+      toast.success("Password updated. Sign in with your new password.");
+      await supabase.auth.signOut();
+      setRecoveryVerified(false);
+      setRecoverySent(false);
+      setRecoveryCode("");
+      setPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+    } catch (error) {
+      console.error("[StayNas auth] Password recovery update failed", error);
+      toast.error(error instanceof Error ? error.message : "Could not update password. Please retry.");
+    } finally {
+      setSavingNewPassword(false);
+    }
+  };
+
   const verifyRecoveryCode = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = recoveryCode.replace(/\s/g, "");
@@ -125,8 +157,9 @@ function AuthPage() {
       toast.error("Enter the email address and the code from your reset email.");
       return;
     }
-    if (verifyingRecovery) return;
+    if (recoveryVerificationStarted.current || verifyingRecovery) return;
 
+    recoveryVerificationStarted.current = true;
     setVerifyingRecovery(true);
     try {
       const { data, error } = await supabase.auth.verifyOtp({
@@ -143,26 +176,48 @@ function AuthPage() {
         throw userError ?? new Error("Recovery session could not be established. Request a new code.");
       }
 
-      await navigate({ to: "/auth/set-password", search: { type: "recovery" } as never });
+      // Keep the verified recovery session and reveal the password form in-place.
+      // This avoids losing the session across route/document transitions on mobile.
+      setRecoveryVerified(true);
     } catch (error) {
       console.error("[StayNas auth] Recovery code verification failed", error);
       toast.error(error instanceof Error ? error.message : "The code is invalid or expired. Request a new one.");
     } finally {
       setVerifyingRecovery(false);
+      recoveryVerificationStarted.current = false;
     }
   };
 
   return (
     <div className="min-h-screen bg-ivory text-charcoal flex items-center justify-center px-4">
       <form
-        onSubmit={recoverySent ? verifyRecoveryCode : submit}
+        onSubmit={recoveryVerified ? saveRecoveredPassword : recoverySent ? verifyRecoveryCode : submit}
         className="w-full max-w-sm rounded-2xl border border-charcoal/10 bg-ivory p-8 shadow-[0_24px_60px_-30px_rgba(30,45,30,0.35)]"
       >
         <p className="inline-flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-charcoal/60">
           <Leaf className="h-3 w-3" style={{ color: "#0F3D3A" }} /> Staff Portal
         </p>
 
-        {recoverySent ? (
+        {recoveryVerified ? (
+          <>
+            <h1 className="mt-3 font-display text-2xl">Reset your password</h1>
+            <p className="mt-1 text-xs leading-5 text-charcoal/60">Your email is verified. Choose a new password to continue.</p>
+            <div className="mt-6 space-y-4">
+              <div>
+                <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">New password</label>
+                <input type="password" required minLength={8} autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal" />
+              </div>
+              <div>
+                <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">Confirm new password</label>
+                <input type="password" required minLength={8} autoComplete="new-password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal" />
+              </div>
+            </div>
+            <button type="submit" disabled={savingNewPassword || !newPassword || !confirmNewPassword} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60" style={{ background: "#171717" }}>
+              {savingNewPassword && <Loader2 className="h-4 w-4 animate-spin" />}
+              Save new password
+            </button>
+          </>
+        ) : recoverySent ? (
           <>
             <h1 className="mt-3 font-display text-2xl">Enter reset code</h1>
             <p className="mt-1 text-xs leading-5 text-charcoal/60">
