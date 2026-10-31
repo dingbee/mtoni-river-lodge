@@ -1,6 +1,58 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { assertFounderAiAdmin } from "@/domains/ai/ai.authorization.server";
+
+async function requirePropertyScope(sb: any, userId: string): Promise<string> {
+  const { data: propertyId, error: contextError } = await sb.rpc("staynas_active_property_id", { _uid: userId });
+  if (contextError || !propertyId) throw new Error("No active property selected.");
+  const { data: membership, error: membershipError } = await sb
+    .from("staynas_property_members")
+    .select("property_id")
+    .eq("user_id", userId)
+    .eq("property_id", propertyId)
+    .eq("status", "active")
+    .in("role", ["owner", "manager", "admin", "finance", "reception", "marketing", "housekeeping"])
+    .maybeSingle();
+  if (membershipError || !membership) throw new Error("Forbidden");
+  return String(propertyId);
+}
+
+async function propertyBookingIds(sb: any, propertyId: string): Promise<string[]> {
+  const ids: string[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from("bookings").select("id").eq("property_id", propertyId).range(from, from + 999);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []).map((row: { id: string }) => row.id);
+    ids.push(...page);
+    if (page.length < 1000) break;
+  }
+  return ids;
+}
+
+async function propertyRoomIds(sb: any, propertyId: string): Promise<string[]> {
+  const ids: string[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from("rooms").select("id").eq("property_id", propertyId).range(from, from + 999);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []).map((row: { id: string }) => row.id);
+    ids.push(...page);
+    if (page.length < 1000) break;
+  }
+  return ids;
+}
+
+async function propertySessionIds(sb: any, propertyId: string): Promise<string[]> {
+  const ids: string[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from("ai_concierge_sessions").select("id").eq("property_id", propertyId).range(from, from + 999);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []).map((row: { id: string }) => row.id);
+    ids.push(...page);
+    if (page.length < 1000) break;
+  }
+  return ids;
+}
 
 function daysAgoISO(n: number) { const d = new Date(); d.setUTCDate(d.getUTCDate() - n); return d.toISOString().slice(0, 10); }
 function todayISO() { return new Date().toISOString().slice(0, 10); }
@@ -12,35 +64,45 @@ export const getAnalyticsHub = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const s = context.supabase;
+    const propertyId = await requirePropertyScope(s, context.userId);
+    const bookingIds = await propertyBookingIds(s, propertyId);
     const today = todayISO();
     const start30 = daysAgoISO(30);
-    const [{ data: bookings30 }, { data: todayBookings }, { data: rooms }, { data: aiLogs }, { data: opsAlerts }, { data: reviews }, { data: campaigns }] = await Promise.all([
-      s.from("bookings").select("id, total, status, check_in, check_out, nights, created_at, payment_status").gte("created_at", start30),
-      s.from("bookings").select("id, status").eq("check_in", today),
-      s.from("rooms").select("id, total_units").eq("status", "active"),
-      s.from("ai_activity_logs").select("id, created_at").gte("created_at", start30),
-      s.from("ops_alerts").select("id, resolved_at").is("resolved_at", null),
-      s.from("reviews").select("rating").eq("status", "approved").gte("created_at", start30),
-      s.from("campaigns").select("id, status").eq("status", "running"),
+    const [{ data: bookings30 }, { data: todayBookings }, { data: rooms }, { data: aiLogs }, opsAlerts, reviews, { data: property, error: propertyError }] = await Promise.all([
+      s.from("bookings").select("id, total, currency, status, check_in, check_out, nights, created_at, payment_status").eq("property_id", propertyId).gte("created_at", start30),
+      s.from("bookings").select("id, status").eq("property_id", propertyId).eq("check_in", today),
+      s.from("rooms").select("id, total_units").eq("property_id", propertyId).eq("status", "active"),
+      s.from("ai_activity_logs").select("id, created_at").eq("user_id", context.userId).gte("created_at", start30),
+      bookingIds.length
+        ? s.from("ops_alerts").select("id, resolved_at").in("booking_id", bookingIds).is("resolved_at", null)
+        : Promise.resolve({ data: [], error: null }),
+      bookingIds.length
+        ? s.from("reviews").select("rating").in("booking_id", bookingIds).eq("status", "approved").gte("created_at", start30)
+        : Promise.resolve({ data: [], error: null }),
+      s.from("staynas_properties").select("currency").eq("id", propertyId).single(),
     ]);
+    if (propertyError || !property?.currency) throw new Error("Active property currency is not configured.");
     const b30 = (bookings30 ?? []) as Row[];
     const active = b30.filter((b) => b.status !== "cancelled");
     const totalUnits = (rooms ?? []).reduce((n: number, r: any) => n + (r.total_units ?? 1), 0) || 1;
     const roomNights = active.reduce((n, b) => n + (b.nights ?? 0), 0);
-    const revenue = active.reduce((n, b) => n + Number(b.total ?? 0), 0);
-    const adr = roomNights ? revenue / roomNights : 0;
+    const currencyRows = active.filter((b) => !b.currency || b.currency === property.currency);
+    const currencyRoomNights = currencyRows.reduce((n, b) => n + (b.nights ?? 0), 0);
+    const revenue = currencyRows.reduce((n, b) => n + Number(b.total ?? 0), 0);
+    const adr = currencyRoomNights ? revenue / currencyRoomNights : 0;
     const revpar = totalUnits ? revenue / (totalUnits * 30) : 0;
     const occupancy = Math.min(1, roomNights / (totalUnits * 30));
     const cancelRate = b30.length ? b30.filter((b) => b.status === "cancelled").length / b30.length : 0;
-    const avgRating = (reviews ?? []).length ? (reviews ?? []).reduce((n: number, r: any) => n + Number(r.rating ?? 0), 0) / (reviews ?? []).length : 0;
+    const reviewRows = reviews.data ?? [];
+    const avgRating = reviewRows.length ? reviewRows.reduce((n: number, r: any) => n + Number(r.rating ?? 0), 0) / reviewRows.length : 0;
     return {
       today: {
         arrivalsCount: (todayBookings ?? []).length,
-        occupancy, adr, revpar, revenue,
+        occupancy, adr, revpar, revenue, currency: property.currency,
         bookings30d: b30.length, cancelRate, avgRating,
         aiInteractions30d: (aiLogs ?? []).length,
-        openAlerts: (opsAlerts ?? []).length,
-        activeCampaigns: (campaigns ?? []).length,
+        openAlerts: (opsAlerts.data ?? []).length,
+        activeCampaigns: 0, // Campaigns are global legacy records; withheld until property-keyed.
       },
     };
   });
@@ -51,11 +113,14 @@ export const getBookingAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => rangeSchema.parse(d ?? {}))
   .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
     const from = daysAgoISO(data.days);
-    const { data: bookings } = await context.supabase
+    const { data: bookings, error: bookingsError } = await context.supabase
       .from("bookings")
       .select("id, created_at, check_in, check_out, nights, source, country, room_id, status, total, adults, children")
+      .eq("property_id", propertyId)
       .gte("created_at", from);
+    if (bookingsError) throw new Error(bookingsError.message);
     const b = (bookings ?? []) as Row[];
     const byDay = new Map<string, number>();
     const bySource = new Map<string, number>();
@@ -71,7 +136,11 @@ export const getBookingAnalytics = createServerFn({ method: "POST" })
       staySum += row.nights ?? 0;
       if (row.status === "cancelled") cancelled++;
     }
-    const { data: extras } = await context.supabase.from("booking_extras").select("booking_id").limit(2000);
+    const bookingIds = b.map((row) => row.id);
+    const { data: extras, error: extrasError } = bookingIds.length
+      ? await context.supabase.from("booking_extras").select("booking_id").in("booking_id", bookingIds).limit(2000)
+      : { data: [], error: null };
+    if (extrasError) throw new Error(extrasError.message);
     const withExtras = new Set((extras ?? []).map((e: any) => e.booking_id));
     const attachRate = b.length ? [...withExtras].filter((id) => b.find((x) => x.id === id)).length / b.length : 0;
     return {
@@ -90,10 +159,13 @@ export const getBookingAnalytics = createServerFn({ method: "POST" })
 export const getWebsiteAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: sessions } = await context.supabase
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
+    const { data: sessions, error } = await context.supabase
       .from("ai_concierge_sessions")
       .select("id, created_at, channel")
+      .eq("property_id", propertyId)
       .gte("created_at", daysAgoISO(30));
+    if (error) throw new Error(error.message);
     return {
       note: "Traffic, sessions, sources, devices — connect GA4 or wire server-side proxy.",
       conciergeSessions30d: (sessions ?? []).length,
@@ -106,26 +178,44 @@ export const getRevenueAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => rangeSchema.parse(d ?? {}))
   .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
     const from = daysAgoISO(data.days);
-    const { data: rows } = await context.supabase
-      .from("bookings")
-      .select("id, total, paid_amount, balance_amount, check_in, nights, status, payment_status")
-      .gte("check_in", from);
+    const [{ data: rows, error: bookingsError }, { data: property, error: propertyError }] = await Promise.all([
+      context.supabase.from("bookings")
+        .select("id, total, paid_amount, balance_amount, check_in, nights, status, payment_status, currency")
+        .eq("property_id", propertyId)
+        .gte("check_in", from),
+      context.supabase.from("staynas_properties").select("currency").eq("id", propertyId).single(),
+    ]);
+    if (bookingsError) throw new Error(bookingsError.message);
+    if (propertyError || !property?.currency) throw new Error("Active property currency is not configured.");
     const b = ((rows ?? []) as Row[]).filter((r) => r.status !== "cancelled");
     const revByDay = new Map<string, number>();
-    let revenue = 0, paid = 0, outstanding = 0, roomNights = 0;
+    const totalsByCurrency = new Map<string, { revenue: number; paid: number; outstanding: number }>();
+    let roomNights = 0;
     for (const r of b) {
-      const day = String(r.check_in);
-      revByDay.set(day, (revByDay.get(day) ?? 0) + Number(r.total ?? 0));
-      revenue += Number(r.total ?? 0);
-      paid += Number(r.paid_amount ?? 0);
-      outstanding += Number(r.balance_amount ?? 0);
-      roomNights += r.nights ?? 0;
+      const currency = String(r.currency ?? property.currency);
+      const totals = totalsByCurrency.get(currency) ?? { revenue: 0, paid: 0, outstanding: 0 };
+      totals.revenue += Number(r.total ?? 0);
+      totals.paid += Number(r.paid_amount ?? 0);
+      totals.outstanding += Number(r.balance_amount ?? 0);
+      totalsByCurrency.set(currency, totals);
+      if (currency === property.currency) {
+        const day = String(r.check_in);
+        revByDay.set(day, (revByDay.get(day) ?? 0) + Number(r.total ?? 0));
+        roomNights += r.nights ?? 0;
+      }
     }
-    const { data: rooms } = await context.supabase.from("rooms").select("id, total_units").eq("status", "active");
+    const primaryTotals = totalsByCurrency.get(property.currency) ?? { revenue: 0, paid: 0, outstanding: 0 };
+    const revenue = primaryTotals.revenue;
+    const paid = primaryTotals.paid;
+    const outstanding = primaryTotals.outstanding;
+    const { data: rooms } = await context.supabase.from("rooms").select("id, total_units").eq("property_id", propertyId).eq("status", "active");
     const totalUnits = (rooms ?? []).reduce((n: number, r: any) => n + (r.total_units ?? 1), 0) || 1;
     return {
       revenue, paid, outstanding,
+      currency: property.currency,
+      totalsByCurrency: Array.from(totalsByCurrency.entries()).map(([currency, totals]) => ({ currency, ...totals })),
       paymentCompletion: revenue ? paid / revenue : 0,
       adr: roomNights ? revenue / roomNights : 0,
       revpar: totalUnits ? revenue / (totalUnits * data.days) : 0,
@@ -137,6 +227,7 @@ export const getRevenueAnalytics = createServerFn({ method: "POST" })
 export const getMarketingAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const from = daysAgoISO(30);
     const [{ data: campaigns }, { data: journal }, { data: reviews }, { data: seoRecs }] = await Promise.all([
       context.supabase.from("campaigns").select("id, name, status, created_at").gte("created_at", from),
@@ -156,40 +247,67 @@ export const getMarketingAnalytics = createServerFn({ method: "POST" })
 export const getOperationsAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
+    const bookingIds = await propertyBookingIds(context.supabase, propertyId);
     const from = daysAgoISO(30);
-    const [{ data: tasks }, { data: alerts }, { data: recovery }, { data: readiness }] = await Promise.all([
-      context.supabase.from("ops_tasks").select("id, status, task_type, created_at, completed_at").gte("created_at", from),
-      context.supabase.from("ops_alerts").select("id, status, created_at").gte("created_at", from),
-      context.supabase.from("ai_service_recovery_insights").select("id, status").gte("created_at", from),
-      context.supabase.from("ai_room_readiness_insights").select("id, priority, status").gte("created_at", from),
+    const [tasks, alerts, recoveryByBooking, recoveryByEvidence, readiness] = await Promise.all([
+      bookingIds.length
+        ? context.supabase.from("ops_tasks").select("id, status, task_type, created_at, completed_at").in("booking_id", bookingIds).gte("created_at", from)
+        : Promise.resolve({ data: [], error: null }),
+      bookingIds.length
+        ? context.supabase.from("ops_alerts").select("id, status, created_at").in("booking_id", bookingIds).gte("created_at", from)
+        : Promise.resolve({ data: [], error: null }),
+      bookingIds.length
+        ? context.supabase.from("ai_service_recovery_insights").select("id, status").in("booking_id", bookingIds).gte("created_at", from)
+        : Promise.resolve({ data: [], error: null }),
+      context.supabase.from("ai_service_recovery_insights").select("id, status").contains("evidence", { property_id: propertyId }).gte("created_at", from),
+      bookingIds.length
+        ? context.supabase.from("ai_room_readiness_insights").select("id, priority, status").in("booking_id", bookingIds).gte("created_at", from)
+        : Promise.resolve({ data: [], error: null }),
     ]);
-    const t = (tasks ?? []) as Row[];
+    for (const result of [tasks, alerts, recoveryByBooking, recoveryByEvidence, readiness]) {
+      if (result.error) throw new Error(result.error.message);
+    }
+    const recoveryIds = new Set([
+      ...(recoveryByBooking.data ?? []).map((row: { id: string }) => row.id),
+      ...(recoveryByEvidence.data ?? []).map((row: { id: string }) => row.id),
+    ]);
+    const recovery = Array.from(recoveryIds);
+    const t = (tasks.data ?? []) as Row[];
     const done = t.filter((r) => r.status === "done" || r.status === "completed").length;
     return {
       tasksTotal: t.length,
       tasksCompleted: done,
       completionRate: t.length ? done / t.length : 0,
-      alertsOpen: (alerts ?? []).filter((a: any) => a.status === "open").length,
-      recoveryCases: (recovery ?? []).length,
-      readinessInsights: (readiness ?? []).length,
+      alertsOpen: (alerts.data ?? []).filter((a: any) => a.status === "open").length,
+      recoveryCases: recovery.length,
+      readinessInsights: (readiness.data ?? []).length,
     };
   });
 
 export const getAiAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const from = daysAgoISO(30);
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
     const s = context.supabase;
-    const [logs, feedback, escalations, concierge, copilot, guestRecs, revRecs, mktRecs] = await Promise.all([
-      s.from("ai_activity_logs").select("id, module, latency_ms, success, created_at").gte("created_at", from),
-      s.from("ai_feedback").select("id, rating").gte("created_at", from),
-      s.from("ai_escalations").select("id, status").gte("created_at", from),
-      s.from("ai_concierge_sessions").select("id, created_at").gte("created_at", from),
-      s.from("ai_copilot_sessions").select("id, created_at").gte("created_at", from),
-      s.from("ai_guest_recommendations").select("id, status").gte("created_at", from),
-      s.from("ai_pricing_recommendations").select("id, status").gte("created_at", from),
-      s.from("ai_marketing_recommendations").select("id, status").gte("created_at", from),
+    const from = daysAgoISO(30);
+    const [bookingIds, roomIds, sessionIds] = await Promise.all([
+      propertyBookingIds(s, propertyId),
+      propertyRoomIds(s, propertyId),
+      propertySessionIds(s, propertyId),
     ]);
+    const [logs, feedback, escalations, concierge, copilot, guestRecs, revRecs] = await Promise.all([
+      s.from("ai_activity_logs").select("id, module, latency_ms, success, created_at").eq("user_id", context.userId).gte("created_at", from),
+      s.from("ai_feedback").select("id, rating").eq("user_id", context.userId).gte("created_at", from),
+      sessionIds.length ? s.from("ai_escalations").select("id, status").in("session_id", sessionIds).gte("created_at", from) : Promise.resolve({ data: [], error: null }),
+      s.from("ai_concierge_sessions").select("id, created_at").eq("property_id", propertyId).gte("created_at", from),
+      s.from("ai_copilot_sessions").select("id, created_at").eq("user_id", context.userId).gte("created_at", from),
+      bookingIds.length ? s.from("ai_guest_recommendations").select("id, status").in("booking_id", bookingIds).gte("created_at", from) : Promise.resolve({ data: [], error: null }),
+      roomIds.length ? s.from("ai_pricing_recommendations").select("id, status").in("room_id", roomIds).gte("created_at", from) : Promise.resolve({ data: [], error: null }),
+    ]);
+    for (const result of [logs, feedback, escalations, concierge, copilot, guestRecs, revRecs]) {
+      if (result.error) throw new Error(result.error.message);
+    }
     const l = (logs.data ?? []) as Row[];
     const byModule = new Map<string, { count: number; latency: number; success: number }>();
     for (const r of l) {
@@ -212,7 +330,7 @@ export const getAiAnalytics = createServerFn({ method: "POST" })
       recommendations: {
         guest: { accepted: acceptedOf(guestRecs.data), dismissed: dismissedOf(guestRecs.data) },
         revenue: { accepted: acceptedOf(revRecs.data), dismissed: dismissedOf(revRecs.data) },
-        marketing: { accepted: acceptedOf(mktRecs.data), dismissed: dismissedOf(mktRecs.data) },
+        marketing: { accepted: 0, dismissed: 0 },
       },
       byModule: [...byModule.entries()].map(([module, v]) => ({
         module, count: v.count,
@@ -225,6 +343,7 @@ export const getAiAnalytics = createServerFn({ method: "POST" })
 export const getExecutiveAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const s = context.supabase;
     const from = daysAgoISO(30);
     const [{ data: risks }, { data: recs }, { data: bookings }, { data: reviews }, { data: alerts }] = await Promise.all([
@@ -257,6 +376,7 @@ export const generateAnalyticsReport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => reportKindSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const dayMap = { daily: 1, weekly: 7, monthly: 30, quarterly: 90, annual: 365 } as const;
     const days = dayMap[data.kind];
     const start = daysAgoISO(days);
@@ -290,6 +410,7 @@ export const generateAnalyticsReport = createServerFn({ method: "POST" })
 export const listAnalyticsReports = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const { data } = await context.supabase
       .from("analytics_reports")
       .select("id, kind, period, period_start, period_end, title, summary, status, created_at")
@@ -310,6 +431,7 @@ async function bookingsSum(supabase: any, days: number) {
 export const computeTrends = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const windows = [7, 30, 90, 365];
     const out: any[] = [];
     for (const w of windows) {
@@ -341,6 +463,7 @@ export const computeTrends = createServerFn({ method: "POST" })
 export const listTrends = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const { data } = await context.supabase.from("ai_trend_snapshots").select("*").order("captured_at", { ascending: false }).limit(200);
     return data ?? [];
   });
@@ -348,6 +471,7 @@ export const listTrends = createServerFn({ method: "POST" })
 export const generateAnalyticsRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const { data: trends } = await context.supabase.from("ai_trend_snapshots").select("*").order("captured_at", { ascending: false }).limit(60);
     const created: any[] = [];
     for (const t of (trends ?? []) as Row[]) {
@@ -375,6 +499,7 @@ export const generateAnalyticsRecommendations = createServerFn({ method: "POST" 
 export const listAnalyticsRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const { data } = await context.supabase.from("ai_analytics_recommendations").select("*").order("created_at", { ascending: false }).limit(50);
     return data ?? [];
   });
@@ -383,6 +508,7 @@ export const setAnalyticsRecommendationStatus = createServerFn({ method: "POST" 
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), status: z.enum(["open", "accepted", "dismissed", "resolved"]) }).parse(d))
   .handler(async ({ data, context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const { error } = await context.supabase
       .from("ai_analytics_recommendations")
       .update({ status: data.status, reviewed_by: context.userId, reviewed_at: new Date().toISOString() })
