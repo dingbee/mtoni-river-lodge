@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getActivePropertyAiRoles, assertFounderAiAdmin } from "@/domains/ai/ai.authorization.server";
 
 const MANAGER_ROLES = ["owner", "manager"] as const;
 
@@ -15,17 +16,21 @@ const DEFAULT_FRESHNESS: Record<string, number> = {
 };
 
 async function assertStaff(sb: any, userId: string) {
-  const { data, error } = await sb.rpc("is_any_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  if (process.env.STAYNAS_PROPERTY_KNOWLEDGE_SCHEMA_ENABLED !== "true") {
+    throw new Error("Property knowledge intelligence is waiting for its database migration and isolation verification.");
+  }
+  const scope = await getActivePropertyAiRoles(sb, userId);
+  const allowed = ["owner", "manager", "admin", "reservations", "reception", "marketing", "finance", "housekeeping"];
+  if (!scope.roles.some((role) => allowed.includes(role))) throw new Error("Forbidden");
+  return scope.propertyId;
 }
 async function assertManager(sb: any, userId: string) {
-  const { data, error } = await sb.rpc("has_any_role", {
-    _user_id: userId,
-    _roles: [...MANAGER_ROLES],
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  if (process.env.STAYNAS_PROPERTY_KNOWLEDGE_SCHEMA_ENABLED !== "true") {
+    throw new Error("Property knowledge intelligence is waiting for its database migration and isolation verification.");
+  }
+  const scope = await getActivePropertyAiRoles(sb, userId);
+  if (!scope.roles.some((role) => [...MANAGER_ROLES, "admin"].includes(role as any))) throw new Error("Forbidden");
+  return scope.propertyId;
 }
 
 function daysBetween(a: string | null | undefined, b: Date = new Date()) {
@@ -44,7 +49,7 @@ function freshnessBucket(days: number, warning: number) {
 export const getSchedulerConfig = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertStaff(context.supabase, context.userId);
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const { data, error } = await (context.supabase as any)
       .from("ai_knowledge_scheduler_config").select("*").eq("id", 1).single();
     if (error) throw new Error(error.message);
@@ -63,7 +68,7 @@ export const updateSchedulerConfig = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ context, data }) => {
-    await assertManager(context.supabase, context.userId);
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const patch: any = {};
     if (data.enabled !== undefined) patch.enabled = data.enabled;
     if (data.cron_expression) patch.cron_expression = data.cron_expression;
@@ -86,17 +91,32 @@ export const updateSchedulerConfig = createServerFn({ method: "POST" })
 export const getKnowledgeHealth = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
 
-    const { data: sources } = await sb
-      .from("ai_knowledge_sources")
-      .select("id, source_type, status, last_synced_at, updated_at, source_updated_at, indexed_at, quality_score")
-      .limit(5000);
-    const rows = (sources ?? []) as any[];
+    const [{ data: sources }, { data: documents }] = await Promise.all([
+      sb.from("ai_knowledge_sources")
+        .select("id, source_type, status, last_synced_at, updated_at, source_updated_at, review_due_at, indexed_at, quality_score")
+        .eq("property_id", propertyId)
+        .limit(5000),
+      sb.from("knowledge_documents")
+        .select("id, source_type, status, updated_at, source_updated_at, review_due_at")
+        .eq("property_id", propertyId)
+        .limit(5000),
+    ]);
+    const rows = [
+      ...((sources ?? []) as any[]),
+      ...((documents ?? []) as any[]).map((document: any) => ({
+        ...document,
+        source_type: "document",
+        status: document.status === "published" ? "approved" : document.status,
+        last_synced_at: null,
+        indexed_at: null,
+        quality_score: null,
+      })),
+    ];
 
-    const { data: cfg } = await sb.from("ai_knowledge_scheduler_config").select("*").eq("id", 1).single();
-    const rules: Record<string, number> = { ...DEFAULT_FRESHNESS, ...(cfg?.freshness_rules ?? {}) };
+    const rules: Record<string, number> = { ...DEFAULT_FRESHNESS };
 
     const approved = rows.filter((r: any) => r.status === "approved");
     const pending = rows.filter((r: any) => r.status === "pending" || r.status === "processing");
@@ -109,13 +129,13 @@ export const getKnowledgeHealth = createServerFn({ method: "GET" })
       const days = daysBetween(r.source_updated_at ?? r.last_synced_at ?? r.updated_at);
       ageSum += Number.isFinite(days) ? days : 0;
       const warn = rules[r.source_type] ?? 180;
-      if (days > warn) staleCount++;
+      if (days > warn || (r.review_due_at && new Date(r.review_due_at).getTime() < Date.now())) staleCount++;
     }
     const avgAge = approved.length ? Math.round(ageSum / approved.length) : 0;
-    const qualityAvg =
-      approved.length && approved.some((r: any) => r.quality_score != null)
-        ? approved.reduce((a: any, r: any) => a + (Number(r.quality_score) || 0), 0) / approved.length
-        : null;
+    const qualityRows = approved.filter((r: any) => r.quality_score != null);
+    const qualityAvg = qualityRows.length
+      ? qualityRows.reduce((sum: number, r: any) => sum + (Number(r.quality_score) || 0), 0) / qualityRows.length
+      : null;
 
     // Health score: weighted composite
     const stalePct = approved.length ? staleCount / approved.length : 0;
@@ -129,6 +149,7 @@ export const getKnowledgeHealth = createServerFn({ method: "GET" })
     const { data: lastRun } = await sb
       .from("ai_knowledge_sync_runs")
       .select("started_at, finished_at, status, error")
+      .eq("property_id", propertyId)
       .order("started_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -146,7 +167,7 @@ export const getKnowledgeHealth = createServerFn({ method: "GET" })
       },
       averageAgeDays: avgAge,
       lastRun: lastRun ?? null,
-      confidenceThreshold: Number(cfg?.confidence_threshold ?? 0.6),
+      confidenceThreshold: 0.6,
     };
   });
 
@@ -154,20 +175,34 @@ export const getKnowledgeHealth = createServerFn({ method: "GET" })
 export const getFreshnessReport = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const { data: cfg } = await sb.from("ai_knowledge_scheduler_config").select("freshness_rules").eq("id", 1).single();
-    const rules: Record<string, number> = { ...DEFAULT_FRESHNESS, ...(cfg?.freshness_rules ?? {}) };
+    const rules: Record<string, number> = { ...DEFAULT_FRESHNESS };
 
-    const { data: sources } = await sb
-      .from("ai_knowledge_sources")
-      .select("id, source_type, title, url, status, last_synced_at, updated_at, source_updated_at, quality_score")
-      .eq("status", "approved")
-      .limit(2000);
+    const [{ data: sources }, { data: documents }] = await Promise.all([
+      sb.from("ai_knowledge_sources")
+        .select("id, source_type, title, url, status, last_synced_at, updated_at, source_updated_at, review_due_at, quality_score")
+        .eq("property_id", propertyId)
+        .eq("status", "approved")
+        .limit(2000),
+      sb.from("knowledge_documents")
+        .select("id, source_type, title, source_url, status, updated_at, source_updated_at, review_due_at")
+        .eq("property_id", propertyId)
+        .eq("status", "published")
+        .limit(2000),
+    ]);
 
-    const rows = ((sources ?? []) as any[]).map((r: any) => {
+    const combined = [
+      ...((sources ?? []) as any[]),
+      ...((documents ?? []) as any[]).map((document: any) => ({
+        ...document, source_type: "document", url: document.source_url, status: "approved",
+        last_synced_at: null, quality_score: null,
+      })),
+    ];
+    const rows = combined.map((r: any) => {
       const days = daysBetween(r.source_updated_at ?? r.last_synced_at ?? r.updated_at);
       const warn = rules[r.source_type] ?? 180;
+      const reviewOverdue = Boolean(r.review_due_at && new Date(r.review_due_at).getTime() < Date.now());
       return {
         id: r.id,
         title: r.title,
@@ -175,7 +210,8 @@ export const getFreshnessReport = createServerFn({ method: "GET" })
         url: r.url,
         age_days: Number.isFinite(days) ? days : null,
         warning_days: warn,
-        bucket: freshnessBucket(days, warn),
+        review_due_at: r.review_due_at ?? null,
+        bucket: reviewOverdue ? "stale" : freshnessBucket(days, warn),
         quality_score: r.quality_score,
       };
     });
@@ -194,12 +230,13 @@ export const getFreshnessReport = createServerFn({ method: "GET" })
 export const getKnowledgeGaps = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const since = new Date(Date.now() - 60 * 86400_000).toISOString();
     const { data: logs } = await sb
       .from("ai_knowledge_search_log")
       .select("query, result_count, confidence, created_at")
+      .eq("property_id", propertyId)
       .gte("created_at", since)
       .limit(5000);
     const rows = (logs ?? []) as any[];
@@ -229,13 +266,28 @@ export const getKnowledgeGaps = createServerFn({ method: "GET" })
 export const getKnowledgeCoverage = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const { data: sources } = await sb
-      .from("ai_knowledge_sources")
-      .select("source_type, status, source_updated_at, last_synced_at, updated_at")
-      .limit(5000);
-    const rows = (sources ?? []) as any[];
+    const [{ data: sources }, { data: documents }] = await Promise.all([
+      sb.from("ai_knowledge_sources")
+        .select("source_type, status, source_updated_at, last_synced_at, updated_at")
+        .eq("property_id", propertyId)
+        .limit(5000),
+      sb.from("knowledge_documents")
+        .select("category_id, status, updated_at, source_updated_at, knowledge_categories(slug)")
+        .eq("property_id", propertyId)
+        .limit(5000),
+    ]);
+    const rows = [
+      ...((sources ?? []) as any[]),
+      ...((documents ?? []) as any[]).map((document: any) => ({
+        source_type: document.knowledge_categories?.slug ?? "documents",
+        status: document.status === "published" ? "approved" : document.status,
+        source_updated_at: document.source_updated_at,
+        last_synced_at: null,
+        updated_at: document.updated_at,
+      })),
+    ];
     const map: Record<string, { total: number; approved: number; freshest: string | null }> = {};
     for (const r of rows) {
       const t = r.source_type as string;
@@ -258,12 +310,13 @@ export const getKnowledgeCoverage = createServerFn({ method: "GET" })
 export const getContentRecommendations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const since = new Date(Date.now() - 60 * 86400_000).toISOString();
     const { data: logs } = await sb
       .from("ai_knowledge_search_log")
       .select("query, result_count, confidence")
+      .eq("property_id", propertyId)
       .gte("created_at", since)
       .limit(5000);
     const grouped: Record<string, { asked: number; noResult: number; confSum: number }> = {};
@@ -308,11 +361,12 @@ export const getSourceQualityList = createServerFn({ method: "GET" })
     z.object({ limit: z.number().int().min(1).max(500).default(100) }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: rows } = await sb
       .from("ai_knowledge_sources")
       .select("id, title, source_type, url, status, completeness_score, freshness_score, usage_score, confidence_score, quality_score, usage_count, last_used_at, last_synced_at, source_updated_at, updated_at, content")
+      .eq("property_id", propertyId)
       .order("quality_score", { ascending: true, nullsFirst: true })
       .limit(data.limit);
     return (rows ?? []).map((r: any) => ({ ...r, content: undefined, content_length: (r.content ?? "").length }));
@@ -322,13 +376,13 @@ export const getSourceQualityList = createServerFn({ method: "GET" })
 export const recomputeQualityScores = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertManager(context.supabase, context.userId);
+    const propertyId = await assertManager(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const { data: cfg } = await sb.from("ai_knowledge_scheduler_config").select("freshness_rules").eq("id", 1).single();
-    const rules: Record<string, number> = { ...DEFAULT_FRESHNESS, ...(cfg?.freshness_rules ?? {}) };
+    const rules: Record<string, number> = { ...DEFAULT_FRESHNESS };
     const { data: rows } = await sb
       .from("ai_knowledge_sources")
       .select("id, source_type, content, summary, usage_count, last_synced_at, source_updated_at, updated_at")
+      .eq("property_id", propertyId)
       .eq("status", "approved")
       .limit(5000);
 
@@ -349,7 +403,7 @@ export const recomputeQualityScores = createServerFn({ method: "POST" })
         usage_score: Number(usage.toFixed(3)),
         confidence_score: Number(Math.min(1, confidence).toFixed(3)),
         quality_score: Number(overall.toFixed(3)),
-      }).eq("id", r.id);
+      }).eq("id", r.id).eq("property_id", propertyId);
       updated++;
     }
     await sb.from("ai_activity_logs").insert({
@@ -368,10 +422,11 @@ export const listKnowledgeNotifications = createServerFn({ method: "GET" })
     z.object({ status: z.enum(["open", "dismissed", "all"]).default("open") }).parse(input ?? {}),
   )
   .handler(async ({ context, data }) => {
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await assertStaff(context.supabase, context.userId);
     let q: any = (context.supabase as any)
       .from("ai_knowledge_notifications")
       .select("*")
+      .eq("property_id", propertyId)
       .order("created_at", { ascending: false })
       .limit(100);
     if (data.status !== "all") q = q.eq("status", data.status);
@@ -384,11 +439,12 @@ export const dismissKnowledgeNotification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: any) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
-    await assertManager(context.supabase, context.userId);
+    const propertyId = await assertManager(context.supabase, context.userId);
     const { error } = await (context.supabase as any)
       .from("ai_knowledge_notifications")
       .update({ status: "dismissed", resolved_by: context.userId, resolved_at: new Date().toISOString() })
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .eq("property_id", propertyId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -397,10 +453,11 @@ export const dismissKnowledgeNotification = createServerFn({ method: "POST" })
 export const listSyncRuns = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertStaff(context.supabase, context.userId);
+    const propertyId = await assertStaff(context.supabase, context.userId);
     const { data, error } = await (context.supabase as any)
       .from("ai_knowledge_sync_runs")
       .select("*")
+      .eq("property_id", propertyId)
       .order("started_at", { ascending: false })
       .limit(30);
     if (error) throw new Error(error.message);
@@ -411,8 +468,8 @@ export const listSyncRuns = createServerFn({ method: "GET" })
 export const triggerScheduledSync = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertManager(context.supabase, context.userId);
-    const { runKnowledgeSyncJob } = await import("./knowledge-intelligence.server");
-    const result = await runKnowledgeSyncJob({ triggeredBy: `user:${context.userId}` });
-    return result;
+    await assertFounderAiAdmin(context.supabase, context.userId);
+    // Legacy sync reads platform-global journal/CMS sources. Keep it disabled
+    // until every adapter has an explicit property scope.
+    return { ok: false, deferred: true, reason: "property_scoped_sync_adapter_required" };
   });
