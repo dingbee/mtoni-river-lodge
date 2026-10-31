@@ -86,7 +86,7 @@ function ConversationsPage() {
             <div key={s.id} className="flex items-center justify-between px-3 py-2 text-sm">
               <div className="min-w-0">
                 <p className="truncate font-medium">
-                  {s.guest_name || s.guest_email || s.session_token}
+                  {s.guest_name || s.guest_email || `Conversation ${String(s.id).slice(0, 8)}`}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {s.message_count} msgs ·{" "}
