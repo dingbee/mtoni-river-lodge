@@ -9,10 +9,13 @@ function clean(v: unknown, max = 200): string | null {
 async function resolveSessionId(token: string | null) {
   if (!token) return null;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin
+  const { getConfiguredBookingPropertyId } = await import("@/lib/booking-property.server");
+  const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+  const { data } = await (supabaseAdmin as any)
     .from("ai_concierge_sessions")
     .select("id")
     .eq("session_token", token)
+    .eq("property_id", propertyId)
     .maybeSingle();
   return data?.id ?? null;
 }
