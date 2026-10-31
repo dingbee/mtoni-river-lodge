@@ -380,7 +380,7 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
       }
     } else {
       const slug = data.slug ?? slugify(data.title);
-      const insertPayload: any = {
+      const metadata = {
         slug,
         title: data.title.trim(),
         summary: data.summary ?? null,
@@ -391,27 +391,45 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
         tags: data.tags ?? [],
         status: data.status ?? "draft",
         allowed_roles: data.allowed_roles ?? null,
-        property_id: propertyId,
-        language_code: data.language_code ?? "en",
         is_guest_visible: data.is_guest_visible ?? false,
-        source_updated_at: data.content_text != null ? now : null,
         review_due_at: data.content_text != null || data.status === "published"
           ? reviewDueAt(data.source_type ?? "markdown")
           : null,
         ...(data.status === "published" ? { reviewed_by: context.userId, reviewed_at: now } : {}),
-        current_version: 1,
-        byte_size: data.content_text?.length ?? 0,
-        created_by: context.userId,
-        updated_by: context.userId,
       };
-      const { data: row, error } = await supabase
-        .from("knowledge_documents")
-        .insert(insertPayload)
-        .select("id, current_version")
-        .eq("property_id", propertyId)
-        .maybeSingle();
-      if (error || !row) throw error ?? new Error("Insert failed.");
-      docId = (row as any).id;
+      if (data.content_text != null) {
+        const { data: createdId, error: createError } = await (supabase as any).rpc(
+          "staynas_create_knowledge_document_with_version",
+          {
+            _property_id: propertyId,
+            _metadata: metadata,
+            _content_text: data.content_text,
+            _language_code: data.language_code ?? "en",
+            _chunks: chunkText(data.content_text),
+            _change_note: data.change_note ?? null,
+          },
+        );
+        if (createError || !createdId) throw createError ?? new Error("Atomic knowledge document creation failed.");
+        docId = createdId;
+      } else {
+        const { data: row, error } = await supabase
+          .from("knowledge_documents")
+          .insert({
+            ...metadata,
+            property_id: propertyId,
+            language_code: data.language_code ?? "en",
+            source_updated_at: null,
+            current_version: 1,
+            byte_size: 0,
+            created_by: context.userId,
+            updated_by: context.userId,
+          })
+          .select("id, current_version")
+          .eq("property_id", propertyId)
+          .maybeSingle();
+        if (error || !row) throw error ?? new Error("Insert failed.");
+        docId = (row as any).id;
+      }
       currentVersion = 1;
     }
 
@@ -440,33 +458,6 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
       if (commitError) throw new Error(commitError.message);
       if (Number(committedVersion) !== currentVersion + 1) {
         throw new Error("Knowledge document version commit returned an unexpected version.");
-      }
-    } else if (docId && data.content_text != null) {
-      // New document creation has no concurrent prior version; create its
-      // initial version and chunks. Subsequent edits use the atomic RPC above.
-      const content = data.content_text;
-      const { error: vErr } = await supabase.from("knowledge_document_versions").insert({
-        document_id: docId,
-        property_id: propertyId,
-        version: 1,
-        content_text: content,
-        byte_size: content.length,
-        change_note: data.change_note ?? null,
-        created_by: context.userId,
-      });
-      if (vErr) throw vErr;
-      const chunks = chunkText(content);
-      if (chunks.length > 0) {
-        const rows = chunks.map((chunk, index) => ({
-          document_id: docId,
-          property_id: propertyId,
-          language_code: data.language_code ?? "en",
-          version: 1,
-          chunk_index: index,
-          content: chunk,
-        }));
-        const { error: chunkError } = await supabase.from("knowledge_chunks").insert(rows);
-        if (chunkError) throw chunkError;
       }
     }
 
