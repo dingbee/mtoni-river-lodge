@@ -8,6 +8,22 @@ async function assertStaff(supabase: any, userId: string) {
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden");
 }
+async function activePropertyId(supabase: any, userId: string) {
+  const { data, error } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
+  if (error || !data) throw new Error("Active property context is required.");
+  const { data: allowed, error: accessError } = await supabase.rpc(
+    "staynas_user_has_property_access", { _uid: userId, _property_id: data },
+  );
+  if (accessError || !allowed) throw new Error("Active property access denied.");
+  return data as string;
+}
+async function assertPropertyAssignee(supabase: any, propertyId: string, assigneeId: string | null) {
+  if (!assigneeId) return;
+  const { data, error } = await supabase.from("staynas_property_members")
+    .select("user_id").eq("property_id", propertyId).eq("user_id", assigneeId)
+    .eq("status", "active").maybeSingle();
+  if (error || !data) throw new Error("Assignee is not an active member of this property.");
+}
 
 const TASK_STATUS = ["pending", "in_progress", "completed", "cancelled"] as const;
 
@@ -21,9 +37,11 @@ export const listOpsTasks = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
+    const propertyId = await activePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
     let q = sb.from("ops_tasks")
       .select("*, booking:bookings(id, reference, guest_name, check_in, check_out)")
+      .eq("property_id", propertyId)
       .order("due_at", { ascending: true, nullsFirst: false })
       .limit(200);
     if (data.status !== "all") q = q.eq("status", data.status);
@@ -51,8 +69,16 @@ export const createOpsTask = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
+    const propertyId = await activePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
+    if (data.bookingId) {
+      const { data: booking, error: bookingError } = await sb.from("bookings").select("id")
+        .eq("id", data.bookingId).eq("property_id", propertyId).maybeSingle();
+      if (bookingError || !booking) throw new Error("Booking is not part of the active property.");
+    }
+    await assertPropertyAssignee(sb, propertyId, data.assigneeId ?? null);
     const { data: row, error } = await sb.from("ops_tasks").insert({
+      property_id: propertyId,
       booking_id: data.bookingId ?? null,
       task_type: data.taskType,
       category: data.category,
@@ -83,7 +109,9 @@ export const updateOpsTask = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
+    const propertyId = await activePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
+    await assertPropertyAssignee(sb, propertyId, data.assigneeId ?? null);
     const patch: any = {};
     if (data.status) {
       patch.status = data.status;
@@ -94,7 +122,7 @@ export const updateOpsTask = createServerFn({ method: "POST" })
     if (data.description !== undefined) patch.description = data.description;
     if (data.priority !== undefined) patch.priority = data.priority;
     if (data.dueAt !== undefined) patch.due_at = data.dueAt;
-    const { error } = await sb.from("ops_tasks").update(patch).eq("id", data.id);
+    const { error } = await sb.from("ops_tasks").update(patch).eq("id", data.id).eq("property_id", propertyId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -105,10 +133,11 @@ export const completeOpsTask = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
+    const propertyId = await activePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { error } = await sb.from("ops_tasks")
       .update({ status: "completed", completed_at: new Date().toISOString() })
-      .eq("id", data.id);
+      .eq("id", data.id).eq("property_id", propertyId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
