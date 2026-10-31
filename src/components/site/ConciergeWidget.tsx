@@ -13,6 +13,18 @@ import type {
 const STORAGE_KEY = "staynas.concierge.session";
 const FEEDBACK_KEY = "staynas.concierge.feedback";
 
+function formatConciergeCurrency(amount: number, currency: string) {
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${currency} ${amount.toLocaleString()}`;
+  }
+}
+
 function postBeacon(url: string, body: unknown) {
   try {
     const data = JSON.stringify(body);
@@ -245,7 +257,7 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
                     <p className="font-medium">Source: StayNas property information</p>
                     <ul className="mt-1 space-y-0.5 opacity-80">
                       {m.citations.map((c, j) => (
-                        <li key={j}>· {c.document_title}</li>
+                        <li key={j}>· {c.title}</li>
                       ))}
                     </ul>
                   </div>
@@ -396,9 +408,7 @@ function RecommendationsList({ recs }: { recs: ConciergeRecommendation[] }) {
         >
           <div className="flex items-center justify-between gap-2">
             <span className="font-medium">{r.name}</span>
-            {r.type === "room" && (
-              <span className="whitespace-nowrap text-muted-foreground">from US${r.from_price_usd}</span>
-            )}
+            <span className="whitespace-nowrap text-muted-foreground">from {formatConciergeCurrency(r.from_price, r.currency)}</span>
           </div>
           <p className="opacity-70">{r.reasoning[0]}</p>
         </a>
@@ -415,7 +425,7 @@ function AvailabilityList({ rooms }: { rooms: ConciergeAvailabilityRoom[] }) {
         <div key={r.slug} className="flex items-center justify-between gap-2">
           <span>{r.name}</span>
           <span className={cn("whitespace-nowrap", r.is_available ? "text-primary" : "text-muted-foreground line-through")}>
-            {r.is_available ? `US$${r.nightly_total_usd} · ${r.nights}n` : "Unavailable"}
+            {!r.is_available ? "Unavailable" : !r.fits_party ? "Available · party does not fit" : `${formatConciergeCurrency(r.nightly_total, r.currency)} · ${r.nights}n`}
           </span>
         </div>
       ))}
@@ -433,10 +443,11 @@ function BookingPlanCard({ plan }: { plan: ConciergeBookingPlan }) {
       <p className="flex items-center gap-1 opacity-80">
         <Users className="size-3" /> {plan.adults} adults{plan.children ? ` · ${plan.children} children` : ""}
       </p>
-      {plan.room && <p className="mt-1">Suggested: <strong>{plan.room.name}</strong> — US${plan.room.nightly_total_usd}</p>}
+      {plan.room && <p className="mt-1">Suggested: <strong>{plan.room.name}</strong> — {formatConciergeCurrency(plan.room.total_price, plan.room.currency)}</p>}
       {plan.experiences.length > 0 && (
         <p className="mt-0.5 opacity-80">Experiences: {plan.experiences.map((e) => e.name).join(", ")}</p>
       )}
+      <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">No room is held at this stage. A temporary 15-minute hold is only requested after you continue to booking, acknowledge the hold terms, and select a room.</p>
       <a
         href={plan.booking_url}
         onClick={() => {
