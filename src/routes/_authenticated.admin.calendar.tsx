@@ -12,7 +12,7 @@ import { AlertTriangle, Ban, BedDouble, CalendarDays, RefreshCw, ShieldOff, Spar
 import { findCalendarConflicts, type StayNasCalendarEvent } from "@/lib/calendar-event-contract";
 import { toast } from "sonner";
 
-import { createCalendarStaffSchedule, getOpsCalendar, listCalendarStaff } from "@/lib/operations.functions";
+import { createCalendarStaffSchedule, createRecurringCalendarSchedule, getOpsCalendar, getRecurringCalendarOccurrences, listCalendarStaff } from "@/lib/operations.functions";
 import {
   listActiveHolds,
   listCalendarEvents,
@@ -161,6 +161,7 @@ function UnifiedCalendarPage() {
   const days = useMemo(() => daysBetween(range.from, range.to), [range]);
 
   const fetchOps = useServerFn(getOpsCalendar);
+  const fetchRecurringOccurrences = useServerFn(getRecurringCalendarOccurrences);
   const fetchHolds = useServerFn(listActiveHolds);
   const fetchEvents = useServerFn(listCalendarEvents);
   const blockFn = useServerFn(setRoomBlock);
@@ -169,6 +170,7 @@ function UnifiedCalendarPage() {
   const suggestFn = useServerFn(suggestRoomAssignment);
   const fetchCalendarStaff = useServerFn(listCalendarStaff);
   const createScheduleFn = useServerFn(createCalendarStaffSchedule);
+  const createRecurringScheduleFn = useServerFn(createRecurringCalendarSchedule);
   const updateRoomStateFn = useServerFn(updateRoomState);
 
   // ---- Filters -------------------------------------------------------
@@ -207,6 +209,11 @@ function UnifiedCalendarPage() {
     queryFn: () => fetchOps({ data: { propertyId: property.id, from: range.from, to: range.to } }),
     staleTime: 30_000,
   });
+  const recurringOccurrences = useQuery({
+    queryKey: ["calendar", "recurring", property.id, range.from, range.to],
+    queryFn: () => fetchRecurringOccurrences({ data: { propertyId: property.id, from: range.from, to: range.to } }),
+    staleTime: 30_000,
+  });
   const holds = useQuery({
     queryKey: ["calendar", "holds", property.id, range.from, range.to],
     queryFn: () => fetchHolds({ data: { propertyId: property.id, from: range.from, to: range.to } }),
@@ -224,6 +231,11 @@ function UnifiedCalendarPage() {
   const [scheduleStart, setScheduleStart] = useState("");
   const [scheduleEnd, setScheduleEnd] = useState("");
   const [scheduleNotes, setScheduleNotes] = useState("");
+  const [scheduleRepeats, setScheduleRepeats] = useState(false);
+  const [scheduleFrequency, setScheduleFrequency] = useState<"daily" | "weekly">("weekly");
+  const [scheduleInterval, setScheduleInterval] = useState("1");
+  const [scheduleDays, setScheduleDays] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [scheduleEndsOn, setScheduleEndsOn] = useState("");
   const calendarStaff = useQuery({
     queryKey: ["calendar", "staff", property.id],
     queryFn: () => fetchCalendarStaff({ data: { propertyId: property.id } }),
@@ -285,22 +297,46 @@ function UnifiedCalendarPage() {
   });
 
   const createSchedule = useMutation({
-    mutationFn: () => createScheduleFn({
-      data: {
-        propertyId: property.id,
-        staffUserId: scheduleStaffId,
-        title: scheduleTitle.trim(),
-        startsAt: propertyLocalDateTimeToIso(scheduleStart, property.timezone),
-        endsAt: propertyLocalDateTimeToIso(scheduleEnd, property.timezone),
-        notes: scheduleNotes.trim() || undefined,
-      },
-    }),
+    mutationFn: () => {
+      if (scheduleRepeats) {
+        if (!scheduleStart || !scheduleEnd) throw new Error("Set the first occurrence start and end");
+        if (scheduleStart.slice(0, 10) !== scheduleEnd.slice(0, 10)) throw new Error("Recurring shifts must start and end on the same local date");
+        return createRecurringScheduleFn({
+          data: {
+            propertyId: property.id,
+            staffUserId: scheduleStaffId,
+            title: scheduleTitle.trim(),
+            notes: scheduleNotes.trim() || undefined,
+            timezone: property.timezone,
+            startsOn: scheduleStart.slice(0, 10),
+            endsOn: scheduleEndsOn || undefined,
+            localStart: scheduleStart.slice(11, 16),
+            localEnd: scheduleEnd.slice(11, 16),
+            frequency: scheduleFrequency,
+            intervalCount: Number(scheduleInterval),
+            daysOfWeek: scheduleFrequency === "weekly" ? scheduleDays : [],
+          },
+        });
+      }
+      return createScheduleFn({
+        data: {
+          propertyId: property.id,
+          staffUserId: scheduleStaffId,
+          title: scheduleTitle.trim(),
+          startsAt: propertyLocalDateTimeToIso(scheduleStart, property.timezone),
+          endsAt: propertyLocalDateTimeToIso(scheduleEnd, property.timezone),
+          notes: scheduleNotes.trim() || undefined,
+        },
+      });
+    },
     onSuccess: () => {
-      toast.success("Staff schedule created");
+      toast.success(scheduleRepeats ? "Recurring staff schedule created" : "Staff schedule created");
       setScheduleOpen(false);
       setScheduleTitle("Staff shift");
       setScheduleStaffId("");
       setScheduleNotes("");
+      setScheduleRepeats(false);
+      setScheduleEndsOn("");
       qc.invalidateQueries({ queryKey: ["calendar"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -352,7 +388,25 @@ function UnifiedCalendarPage() {
     }),
     [d.operationalEvents, d.rooms, property.id, property.timezone],
   );
-  const allCalendarEvents = useMemo(() => [...bookingEvents, ...operationalCalendarEvents], [bookingEvents, operationalCalendarEvents]);
+  const recurringCalendarEvents = useMemo(() =>
+    ((recurringOccurrences.data ?? []) as any[]).map((item): StayNasCalendarEvent => ({
+      id: `recurring:${item.series_id}:${item.occurrence_date}`,
+      propertyId: property.id,
+      kind: "staff",
+      title: String(item.title ?? "Recurring staff shift"),
+      start: String(item.starts_at),
+      end: String(item.ends_at),
+      allDay: false,
+      timezone: property.timezone,
+      status: item.status === "cancelled" ? "cancelled" : "confirmed",
+      source: { domain: "staff", entityType: "calendar_schedule_series", entityId: String(item.series_id) },
+      resource: { kind: "staff", id: String(item.staff_user_id), label: String(item.staff_user_id) },
+      description: item.notes ?? "Recurring staff schedule",
+      editable: false,
+    })),
+    [recurringOccurrences.data, property.id, property.timezone],
+  );
+  const allCalendarEvents = useMemo(() => [...bookingEvents, ...operationalCalendarEvents, ...recurringCalendarEvents], [bookingEvents, operationalCalendarEvents, recurringCalendarEvents]);
   const bookingConflicts = useMemo(() => findCalendarConflicts(allCalendarEvents), [allCalendarEvents]);
 
   const activeHolds = holds.data ?? [];
@@ -918,6 +972,51 @@ function UnifiedCalendarPage() {
                   <Input type="datetime-local" value={scheduleEnd} onChange={(e) => setScheduleEnd(e.target.value)} />
                 </div>
               </div>
+              <div className="flex items-center gap-2 rounded-md border p-3">
+                <Checkbox id="calendar-recurring-toggle" checked={scheduleRepeats} onCheckedChange={(checked) => setScheduleRepeats(checked === true)} />
+                <div className="space-y-0.5">
+                  <Label htmlFor="calendar-recurring-toggle">Repeat this shift</Label>
+                  <p className="text-xs text-muted-foreground">Creates a recurring series rather than a single shift.</p>
+                </div>
+              </div>
+              {scheduleRepeats && (
+                <div className="space-y-3 rounded-md border p-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label>Repeat</Label>
+                      <Select value={scheduleFrequency} onValueChange={(value) => setScheduleFrequency(value as "daily" | "weekly")}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="daily">Every day</SelectItem>
+                          <SelectItem value="weekly">Selected weekdays</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Every (interval)</Label>
+                      <Input type="number" min={1} max={12} step={1} value={scheduleInterval} onChange={(e) => setScheduleInterval(e.target.value)} />
+                    </div>
+                  </div>
+                  {scheduleFrequency === "weekly" && (
+                    <div className="space-y-2">
+                      <Label>Days of week</Label>
+                      <div className="flex flex-wrap gap-3">
+                        {([{ label: "Mon", value: 1 }, { label: "Tue", value: 2 }, { label: "Wed", value: 3 }, { label: "Thu", value: 4 }, { label: "Fri", value: 5 }, { label: "Sat", value: 6 }, { label: "Sun", value: 0 }] as const).map((day) => (
+                          <label key={day.value} className="flex items-center gap-1.5 text-sm">
+                            <Checkbox checked={scheduleDays.includes(day.value)} onCheckedChange={(checked) => setScheduleDays((current) => checked ? [...new Set([...current, day.value])] : current.filter((value) => value !== day.value))} />
+                            {day.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <Label>Repeat until (optional)</Label>
+                    <Input type="date" min={scheduleStart.slice(0, 10) || undefined} value={scheduleEndsOn} onChange={(e) => setScheduleEndsOn(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">Leave blank for no end date. The calendar occurrence query is limited to 93 days per request.</p>
+                  </div>
+                </div>
+              )}
               <div className="space-y-1">
                 <Label>Notes (optional)</Label>
                 <Textarea value={scheduleNotes} onChange={(e) => setScheduleNotes(e.target.value)} maxLength={1000} rows={2} placeholder="Role, handover notes or coverage details" />
@@ -927,7 +1026,7 @@ function UnifiedCalendarPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setScheduleOpen(false)}>Cancel</Button>
             <Button
-              disabled={!calendarStaff.data?.canManage || !scheduleStaffId || scheduleTitle.trim().length < 2 || !scheduleStart || !scheduleEnd || createSchedule.isPending}
+              disabled={!calendarStaff.data?.canManage || !scheduleStaffId || scheduleTitle.trim().length < 2 || !scheduleStart || !scheduleEnd || (scheduleRepeats && (!Number.isInteger(Number(scheduleInterval)) || Number(scheduleInterval) < 1 || Number(scheduleInterval) > 12 || (scheduleFrequency === "weekly" && scheduleDays.length === 0) || (scheduleEndsOn && scheduleEndsOn < scheduleStart.slice(0, 10)))) || createSchedule.isPending}
               onClick={() => createSchedule.mutate()}
             >
               Create schedule

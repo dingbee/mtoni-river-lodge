@@ -1,3 +1,4 @@
+import { rankCalendarStaff } from "./calendar-scheduling-recommendations";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -381,8 +382,9 @@ export const listCalendarStaff = createServerFn({ method: "POST" })
     });
     if (accessError) throw new Error(accessError.message);
     if (!hasAccess) throw new Error("Property access denied");
-    const { data: canManage, error: roleError } = await sb.rpc("has_any_role", {
-      _user_id: context.userId,
+    const { data: canManage, error: roleError } = await sb.rpc("staynas_calendar_has_property_role", {
+      _uid: context.userId,
+      _property_id: data.propertyId,
       _roles: ["owner", "manager", "admin"],
     });
     if (roleError) throw new Error(roleError.message);
@@ -409,8 +411,9 @@ export const createCalendarStaffSchedule = createServerFn({ method: "POST" })
       throw new Error("Schedule end must be after its start");
     }
     const sb: any = context.supabase;
-    const { data: canManage, error: roleError } = await sb.rpc("has_any_role", {
-      _user_id: context.userId,
+    const { data: canManage, error: roleError } = await sb.rpc("staynas_calendar_has_property_role", {
+      _uid: context.userId,
+      _property_id: data.propertyId,
       _roles: ["owner", "manager", "admin"],
     });
     if (roleError) throw new Error(roleError.message);
@@ -432,6 +435,231 @@ export const createCalendarStaffSchedule = createServerFn({ method: "POST" })
       created_by: context.userId,
     }).select("id, staff_user_id, title, starts_at, ends_at, status, notes").single();
     if (error) throw new Error(error.message);
+    return row;
+  });
+
+// -------------------------------------------------------------- Recurring calendar schedules (Phase 3)
+
+const recurringScheduleSchema = z.object({
+  propertyId: z.string().uuid(),
+  staffUserId: z.string().uuid(),
+  title: z.string().trim().min(2).max(160),
+  notes: z.string().max(1000).optional(),
+  timezone: z.string().min(3).max(100),
+  startsOn: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/),
+  endsOn: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/).optional(),
+  localStart: z.string().regex(/^([01]\\d|2[0-3]):[0-5]\\d$/),
+  localEnd: z.string().regex(/^([01]\\d|2[0-3]):[0-5]\\d$/),
+  frequency: z.enum(["daily", "weekly"]),
+  intervalCount: z.number().int().min(1).max(12),
+  daysOfWeek: z.array(z.number().int().min(0).max(6)).max(7).default([]),
+}).superRefine((value, ctx) => {
+  if (value.localEnd <= value.localStart) ctx.addIssue({ code: "custom", path: ["localEnd"], message: "End time must be after start time" });
+  if (value.endsOn && value.endsOn < value.startsOn) ctx.addIssue({ code: "custom", path: ["endsOn"], message: "End date must be on or after start date" });
+  if (value.frequency === "weekly" && value.daysOfWeek.length === 0) ctx.addIssue({ code: "custom", path: ["daysOfWeek"], message: "Choose at least one weekday" });
+  if (value.frequency === "daily" && value.daysOfWeek.length > 0) ctx.addIssue({ code: "custom", path: ["daysOfWeek"], message: "Daily schedules must not include weekday filters" });
+});
+
+export const createRecurringCalendarSchedule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => recurringScheduleSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
+    await assertStaff(context.supabase, context.userId);
+    const sb: any = context.supabase;
+    const [{ data: canManage, error: roleError }, { data: hasAccess, error: accessError }] = await Promise.all([
+      sb.rpc("staynas_calendar_has_property_role", { _uid: context.userId, _property_id: data.propertyId, _roles: ["owner", "manager", "admin"] }),
+      sb.rpc("staynas_user_has_property_access", { _uid: context.userId, _property_id: data.propertyId }),
+    ]);
+    if (roleError) throw new Error(roleError.message);
+    if (accessError) throw new Error(accessError.message);
+    if (!canManage) throw new Error("Only property managers can create recurring schedules");
+    if (!hasAccess) throw new Error("Property access denied");
+    const { data: property, error: propertyError } = await sb.from("staynas_properties")
+      .select("timezone,status").eq("id", data.propertyId).maybeSingle();
+    if (propertyError) throw new Error(propertyError.message);
+    if (!property || property.status !== "active") throw new Error("Active property not found");
+    if (property.timezone !== data.timezone) throw new Error("Schedule timezone must match the selected property timezone");
+    const { data: staffHasAccess, error: staffAccessError } = await sb.rpc("staynas_user_has_property_access", {
+      _uid: data.staffUserId, _property_id: data.propertyId,
+    });
+    if (staffAccessError) throw new Error(staffAccessError.message);
+    if (!staffHasAccess) throw new Error("Selected staff member is not assigned to this property");
+    const { data: row, error } = await sb.from("staynas_calendar_schedule_series").insert({
+      property_id: data.propertyId,
+      staff_user_id: data.staffUserId,
+      title: data.title,
+      notes: data.notes?.trim() || null,
+      timezone: data.timezone,
+      starts_on: data.startsOn,
+      ends_on: data.endsOn || null,
+      local_start: data.localStart,
+      local_end: data.localEnd,
+      frequency: data.frequency,
+      interval_count: data.intervalCount,
+      days_of_week: data.daysOfWeek,
+      created_by: context.userId,
+    }).select("id,property_id,staff_user_id,title,timezone,starts_on,ends_on,local_start,local_end,frequency,interval_count,days_of_week,status").single();
+    if (error) throw new Error(error.message);
+    await logOpsEvent(sb, context.userId, context.claims, {
+      type: "calendar_recurring_schedule_created",
+      module: "operations",
+      entityType: "calendar_schedule_series",
+      entityId: row.id,
+      entityLabel: row.title,
+      meta: { property_id: data.propertyId, staff_user_id: data.staffUserId, frequency: data.frequency },
+      severity: "audit",
+    });
+    return row;
+  });
+
+export const getRecurringCalendarOccurrences = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    propertyId: z.string().uuid(),
+    from: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/),
+    to: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
+    await assertStaff(context.supabase, context.userId);
+    const { data: rows, error } = await context.supabase.rpc("staynas_calendar_recurring_occurrences", {
+      _property_id: data.propertyId, _from: data.from, _to: data.to,
+    });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const saveRecurringCalendarException = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    propertyId: z.string().uuid(),
+    seriesId: z.string().uuid(),
+    occurrenceDate: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/),
+    exceptionType: z.enum(["cancelled", "override"]),
+    title: z.string().trim().min(2).max(160).optional(),
+    notes: z.string().max(1000).optional(),
+    startsAt: z.string().datetime().optional(),
+    endsAt: z.string().datetime().optional(),
+  }).superRefine((value, ctx) => {
+    if (value.exceptionType === "override" && (!value.startsAt || !value.endsAt || Date.parse(value.endsAt) <= Date.parse(value.startsAt))) {
+      ctx.addIssue({ code: "custom", path: ["endsAt"], message: "An override requires a valid start and end" });
+    }
+    if (value.exceptionType === "cancelled" && (value.startsAt || value.endsAt)) {
+      ctx.addIssue({ code: "custom", path: ["startsAt"], message: "Cancelled occurrences cannot have replacement times" });
+    }
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
+    await assertStaff(context.supabase, context.userId);
+    const sb: any = context.supabase;
+    const [{ data: canManage, error: roleError }, { data: hasAccess, error: accessError }] = await Promise.all([
+      sb.rpc("staynas_calendar_has_property_role", { _uid: context.userId, _property_id: data.propertyId, _roles: ["owner", "manager", "admin"] }),
+      sb.rpc("staynas_user_has_property_access", { _uid: context.userId, _property_id: data.propertyId }),
+    ]);
+    if (roleError) throw new Error(roleError.message);
+    if (accessError) throw new Error(accessError.message);
+    if (!canManage) throw new Error("Only property managers can change recurring occurrences");
+    if (!hasAccess) throw new Error("Property access denied");
+    const { data: series, error: seriesError } = await sb.from("staynas_calendar_schedule_series")
+      .select("id,property_id,starts_on,ends_on,status").eq("id", data.seriesId).eq("property_id", data.propertyId).maybeSingle();
+    if (seriesError) throw new Error(seriesError.message);
+    if (!series || series.status !== "active") throw new Error("Active recurring schedule not found");
+    if (data.occurrenceDate < series.starts_on || (series.ends_on && data.occurrenceDate > series.ends_on)) {
+      throw new Error("Occurrence date is outside this recurring schedule");
+    }
+    const { data: row, error } = await sb.from("staynas_calendar_schedule_exceptions").upsert({
+      series_id: data.seriesId,
+      occurrence_date: data.occurrenceDate,
+      exception_type: data.exceptionType,
+      title: data.exceptionType === "override" ? data.title?.trim() || null : null,
+      notes: data.notes?.trim() || null,
+      starts_at: data.exceptionType === "override" ? data.startsAt : null,
+      ends_at: data.exceptionType === "override" ? data.endsAt : null,
+      created_by: context.userId,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "series_id,occurrence_date" })
+      .select("id,series_id,occurrence_date,exception_type,title,notes,starts_at,ends_at").single();
+    if (error) throw new Error(error.message);
+    await logOpsEvent(sb, context.userId, context.claims, {
+      type: "calendar_recurring_exception_saved",
+      module: "operations",
+      entityType: "calendar_schedule_exception",
+      entityId: row.id,
+      entityLabel: data.occurrenceDate,
+      meta: { property_id: data.propertyId, series_id: data.seriesId, exception_type: data.exceptionType },
+      severity: "audit",
+    });
+    return row;
+  });
+
+export const saveCalendarRule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    propertyId: z.string().uuid(),
+    ruleKey: z.enum([
+      "booking_lead_time", "blackout_windows", "staff_conflict_policy",
+      "maintenance_buffer_minutes", "housekeeping_turnaround_minutes", "notification_preferences",
+    ]),
+    config: z.record(z.string(), z.unknown()),
+    enabled: z.boolean().default(true),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
+    await assertStaff(context.supabase, context.userId);
+    const sb: any = context.supabase;
+    const [{ data: canManage, error: roleError }, { data: hasAccess, error: accessError }] = await Promise.all([
+      sb.rpc("staynas_calendar_has_property_role", { _uid: context.userId, _property_id: data.propertyId, _roles: ["owner", "manager", "admin"] }),
+      sb.rpc("staynas_user_has_property_access", { _uid: context.userId, _property_id: data.propertyId }),
+    ]);
+    if (roleError) throw new Error(roleError.message);
+    if (accessError) throw new Error(accessError.message);
+    if (!canManage) throw new Error("Only property managers can configure calendar rules");
+    if (!hasAccess) throw new Error("Property access denied");
+
+    const config = data.config as Record<string, unknown>;
+    const isIntegerInRange = (key: string, min: number, max: number) =>
+      Number.isInteger(config[key]) && Number(config[key]) >= min && Number(config[key]) <= max;
+    if (data.ruleKey === "booking_lead_time" && !isIntegerInRange("minutes", 0, 525600)) {
+      throw new Error("Booking lead time requires minutes between 0 and 525600");
+    }
+    if (data.ruleKey === "maintenance_buffer_minutes" && !isIntegerInRange("minutes", 0, 10080)) {
+      throw new Error("Maintenance buffer requires minutes between 0 and 10080");
+    }
+    if (data.ruleKey === "housekeeping_turnaround_minutes" && !isIntegerInRange("minutes", 0, 1440)) {
+      throw new Error("Housekeeping turnaround requires minutes between 0 and 1440");
+    }
+    if (data.ruleKey === "staff_conflict_policy" && !["warn", "prevent"].includes(String(config.policy))) {
+      throw new Error("Staff conflict policy must be warn or prevent");
+    }
+    if (data.ruleKey === "blackout_windows" && (!Array.isArray(config.windows) || config.windows.length > 100)) {
+      throw new Error("Blackout windows must be an array containing at most 100 entries");
+    }
+    if (data.ruleKey === "notification_preferences" &&
+      (typeof config.email !== "boolean" || typeof config.inApp !== "boolean")) {
+      throw new Error("Notification preferences require email and inApp boolean values");
+    }
+
+    const { data: row, error } = await sb.from("staynas_calendar_rules").upsert({
+      property_id: data.propertyId,
+      rule_key: data.ruleKey,
+      config: data.config,
+      enabled: data.enabled,
+      created_by: context.userId,
+      updated_by: context.userId,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "property_id,rule_key" })
+      .select("id,property_id,rule_key,config,enabled,created_at,updated_at").single();
+    if (error) throw new Error(error.message);
+    await logOpsEvent(sb, context.userId, context.claims, {
+      type: "calendar_rule_saved",
+      module: "operations",
+      entityType: "calendar_rule",
+      entityId: row.id,
+      entityLabel: data.ruleKey,
+      meta: { property_id: data.propertyId, rule_key: data.ruleKey, enabled: data.enabled },
+      severity: "audit",
+    });
     return row;
   });
 
@@ -523,4 +751,50 @@ export const getOpsTimeline = createServerFn({ method: "POST" })
       .limit(data.limit);
     if (error) throw new Error(error.message);
     return rows ?? [];
+  });
+
+const schedulingRecommendationSchema = z.object({
+  propertyId: z.string().uuid(),
+  startsAt: z.string().datetime(),
+  endsAt: z.string().datetime(),
+}).refine((value) => Date.parse(value.endsAt) > Date.parse(value.startsAt), {
+  message: "End time must be after start time",
+  path: ["endsAt"],
+});
+
+export const recommendCalendarStaffAssignment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => schedulingRecommendationSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
+    await assertStaff(context.supabase, context.userId);
+    const sb: any = context.supabase;
+    const [{ data: canManage, error: roleError }, { data: hasAccess, error: accessError }] = await Promise.all([
+      sb.rpc("staynas_calendar_has_property_role", { _uid: context.userId, _property_id: data.propertyId, _roles: ["owner", "manager", "admin"] }),
+      sb.rpc("staynas_user_has_property_access", { _uid: context.userId, _property_id: data.propertyId }),
+    ]);
+    if (roleError) throw new Error(roleError.message);
+    if (accessError) throw new Error(accessError.message);
+    if (!canManage) throw new Error("Only property managers can request staff assignment recommendations");
+    if (!hasAccess) throw new Error("Property access denied");
+
+    const from = data.startsAt.slice(0, 10);
+    const endDate = new Date(Date.parse(data.endsAt) + 86400000).toISOString().slice(0, 10);
+    const [{ data: staff, error: staffError }, { data: events, error: eventsError }] = await Promise.all([
+      sb.rpc("staynas_calendar_list_staff", { _property_id: data.propertyId }),
+      sb.rpc("staynas_calendar_operational_events", {
+        _property_id: data.propertyId, _from: from, _to: endDate,
+      }),
+    ]);
+    if (staffError) throw new Error(staffError.message);
+    if (eventsError) throw new Error(eventsError.message);
+    const recommendations = rankCalendarStaff(staff ?? [], events ?? [], data.startsAt, data.endsAt);
+    return {
+      propertyId: data.propertyId,
+      startsAt: data.startsAt,
+      endsAt: data.endsAt,
+      advisoryOnly: true,
+      requiresConflictRevalidationBeforeSave: true,
+      recommendations,
+    };
   });
