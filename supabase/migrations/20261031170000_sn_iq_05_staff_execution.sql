@@ -1,3 +1,23 @@
+-- Ensure the task ledger has a durable property boundary before execution actions.
+ALTER TABLE public.ops_tasks
+  ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE CASCADE;
+UPDATE public.ops_tasks t SET property_id = b.property_id
+FROM public.bookings b WHERE t.booking_id = b.id AND t.property_id IS NULL;
+UPDATE public.ops_tasks t SET property_id = rs.property_id
+FROM public.room_states rs WHERE t.room_state_id = rs.id AND t.property_id IS NULL;
+CREATE INDEX IF NOT EXISTS ops_tasks_property_status_idx
+  ON public.ops_tasks(property_id, status, priority, due_at);
+DROP POLICY IF EXISTS "Staff manage ops_tasks" ON public.ops_tasks;
+DROP POLICY IF EXISTS "Property staff manage operational tasks" ON public.ops_tasks;
+CREATE POLICY "Property staff manage operational tasks" ON public.ops_tasks
+  FOR ALL TO authenticated
+  USING (property_id IS NOT NULL
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.is_any_staff(auth.uid()))
+  WITH CHECK (property_id IS NOT NULL
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.is_any_staff(auth.uid()));
+
 -- SN-IQ-05 workstream 3: staff assignment, task execution and guest request status.
 -- Depends on the intake and dispatch migrations in this milestone.
 
