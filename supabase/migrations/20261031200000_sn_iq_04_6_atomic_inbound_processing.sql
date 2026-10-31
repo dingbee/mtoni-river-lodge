@@ -35,8 +35,14 @@ BEGIN
     RAISE EXCEPTION 'Invalid inbound provider message contract';
   END IF;
 
-  -- Serialize all first/repeat messages for this property + channel + contact.
-  v_lock_key := p_property_id::text || ':' || p_channel || ':' || lower(trim(p_external_contact));
+  -- Serialize provider-message identity globally first. Provider IDs are unique
+  -- across properties in the ledger index; this prevents cross-contact/property
+  -- races from surfacing as an unhandled unique-index violation.
+  v_lock_key := 'provider-message:' || p_channel || ':' || p_provider || ':' || p_provider_message_id;
+  PERFORM pg_advisory_xact_lock(hashtextextended(v_lock_key, 0));
+
+  -- Then serialize first/repeat messages for this property + channel + contact.
+  v_lock_key := 'guest-session:' || p_property_id::text || ':' || p_channel || ':' || lower(trim(p_external_contact));
   PERFORM pg_advisory_xact_lock(hashtextextended(v_lock_key, 0));
 
   SELECT m.id, m.session_id, m.property_id INTO v_message_id, v_session_id, v_existing_property_id
