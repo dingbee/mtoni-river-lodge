@@ -308,7 +308,7 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
       const chunks = chunkText(data.content_text);
       const slug = data.slug ?? slugify(data.title);
       const { data: createdId, error: createError } = await (supabase as any).rpc(
-        "staynas_create_knowledge_document",
+        "staynas_create_knowledge_document_with_version",
         {
           _property_id: propertyId,
           _metadata: {
@@ -424,7 +424,7 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
         };
         const { data: row, error } = await supabase
           .from("knowledge_documents")
-          .insert(draftInsertPayload)
+          .insert(draftInsertPayload as any)
           .select("id, current_version")
           .eq("property_id", propertyId)
           .maybeSingle();
