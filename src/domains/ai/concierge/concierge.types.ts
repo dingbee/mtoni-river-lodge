@@ -44,7 +44,8 @@ export interface ConciergeRoomRecommendation {
   name: string;
   reasoning: string[];
   confidence: number;
-  from_price_usd: number;
+  from_price: number;
+  currency: string;
 }
 
 export interface ConciergeExperienceRecommendation {
@@ -62,11 +63,12 @@ export type ConciergeRecommendation =
 export interface ConciergeAvailabilityRoom {
   slug: string;
   name: string;
-  base_price_usd: number;
+  base_price: number;
+  currency: string;
   max_occupancy: number;
   is_available: boolean;
   min_available: number;
-  nightly_total_usd: number;
+  nightly_total: number;
   nights: number;
 }
 
@@ -76,9 +78,10 @@ export interface ConciergeBookingPlan {
   nights: number;
   adults: number;
   children: number;
-  room?: { slug: string; name: string; nightly_total_usd: number };
+  room?: { slug: string; name: string; total_price: number; currency: string };
   experiences: Array<{ slug: string; name: string }>;
-  estimated_total_usd?: number;
+  estimated_total?: number;
+  currency?: string;
   booking_url: string;
 }
 
