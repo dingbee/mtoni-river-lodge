@@ -10,6 +10,7 @@ export type ConciergeMemorySource = "ai_suggested" | "staff" | "guest" | "import
 
 export interface ConciergeMemoryRow {
   id: string;
+  property_id: string | null;
   guest_id: string | null;
   session_id: string | null;
   memory_type: ConciergeMemoryType;
