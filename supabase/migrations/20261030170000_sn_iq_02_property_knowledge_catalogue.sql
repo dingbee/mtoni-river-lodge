@@ -807,3 +807,103 @@ CREATE POLICY "Copilot feedback read and manage in active property"
         )
     )
   );
+
+
+-- Atomic version replacement for existing documents. The caller supplies the
+-- version it read; row locking and the expected-version check prevent concurrent
+-- editors from silently overwriting one another. SECURITY INVOKER preserves RLS.
+CREATE OR REPLACE FUNCTION public.staynas_commit_knowledge_document_version(
+  _property_id uuid,
+  _document_id uuid,
+  _expected_version integer,
+  _metadata jsonb,
+  _content_text text,
+  _language_code text,
+  _chunks jsonb,
+  _change_note text
+)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public, pg_temp
+AS $sn_iq_02_atomic$
+DECLARE
+  _current_version integer;
+  _next_version integer;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+  IF _property_id IS NULL OR _document_id IS NULL OR _content_text IS NULL THEN
+    RAISE EXCEPTION 'Property, document and content are required';
+  END IF;
+  IF length(_content_text) > 500000 THEN
+    RAISE EXCEPTION 'Document content exceeds 500 KB';
+  END IF;
+  IF _language_code NOT IN ('en','sw') THEN
+    RAISE EXCEPTION 'Unsupported knowledge language';
+  END IF;
+  IF NOT public.staynas_ai_property_in_active_context(
+    _property_id, ARRAY['owner','manager','admin']::public.app_role[]
+  ) THEN
+    RAISE EXCEPTION 'Property knowledge management access required';
+  END IF;
+
+  SELECT current_version INTO _current_version
+  FROM public.knowledge_documents
+  WHERE id = _document_id AND property_id = _property_id
+  FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Document not found in active property';
+  END IF;
+  IF _current_version IS DISTINCT FROM _expected_version THEN
+    RAISE EXCEPTION 'Document version conflict; reload before saving';
+  END IF;
+  _next_version := _current_version + 1;
+
+  UPDATE public.knowledge_documents SET
+    title = COALESCE(NULLIF(_metadata->>'title',''), title),
+    summary = CASE WHEN _metadata ? 'summary' THEN _metadata->>'summary' ELSE summary END,
+    category_id = CASE WHEN _metadata ? 'category_id' THEN NULLIF(_metadata->>'category_id','')::uuid ELSE category_id END,
+    source_type = COALESCE(_metadata->>'source_type', source_type),
+    source_url = CASE WHEN _metadata ? 'source_url' THEN _metadata->>'source_url' ELSE source_url END,
+    storage_path = CASE WHEN _metadata ? 'storage_path' THEN _metadata->>'storage_path' ELSE storage_path END,
+    tags = CASE WHEN jsonb_typeof(_metadata->'tags') = 'array'
+      THEN ARRAY(SELECT jsonb_array_elements_text(_metadata->'tags')) ELSE tags END,
+    status = COALESCE(_metadata->>'status', status),
+    allowed_roles = CASE WHEN jsonb_typeof(_metadata->'allowed_roles') = 'array'
+      THEN ARRAY(SELECT jsonb_array_elements_text(_metadata->'allowed_roles'))
+      WHEN _metadata ? 'allowed_roles' THEN NULL ELSE allowed_roles END,
+    language_code = _language_code,
+    is_guest_visible = COALESCE((_metadata->>'is_guest_visible')::boolean, is_guest_visible),
+    source_updated_at = now(),
+    review_due_at = COALESCE(NULLIF(_metadata->>'review_due_at','')::timestamptz, review_due_at),
+    reviewed_by = CASE WHEN _metadata ? 'reviewed_by' THEN NULLIF(_metadata->>'reviewed_by','')::uuid ELSE reviewed_by END,
+    reviewed_at = CASE WHEN _metadata ? 'reviewed_at' THEN NULLIF(_metadata->>'reviewed_at','')::timestamptz ELSE reviewed_at END,
+    current_version = _next_version,
+    byte_size = length(_content_text),
+    updated_by = auth.uid(),
+    updated_at = now()
+  WHERE id = _document_id AND property_id = _property_id;
+
+  INSERT INTO public.knowledge_document_versions
+    (document_id, property_id, version, content_text, byte_size, change_note, created_by)
+  VALUES
+    (_document_id, _property_id, _next_version, _content_text, length(_content_text), _change_note, auth.uid());
+
+  DELETE FROM public.knowledge_chunks
+  WHERE document_id = _document_id AND property_id = _property_id;
+
+  INSERT INTO public.knowledge_chunks
+    (document_id, property_id, language_code, version, chunk_index, content)
+  SELECT _document_id, _property_id, _language_code, _next_version,
+         (item.ordinality - 1)::integer, item.content
+  FROM jsonb_array_elements_text(COALESCE(_chunks, '[]'::jsonb))
+       WITH ORDINALITY AS item(content, ordinality);
+
+  RETURN _next_version;
+END;
+$sn_iq_02_atomic$;
+
+REVOKE ALL ON FUNCTION public.staynas_commit_knowledge_document_version(uuid,uuid,integer,jsonb,text,text,jsonb,text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.staynas_commit_knowledge_document_version(uuid,uuid,integer,jsonb,text,text,jsonb,text) TO authenticated;
