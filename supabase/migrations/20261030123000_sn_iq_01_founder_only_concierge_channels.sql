@@ -3,7 +3,7 @@
 -- until their source property is verified; new sessions must carry property_id.
 ALTER TABLE public.ai_concierge_sessions
   ADD COLUMN IF NOT EXISTS property_id uuid
-  REFERENCES public.staynas_properties(id) ON DELETE SET NULL;
+  REFERENCES public.staynas_properties(id) ON DELETE RESTRICT;
 
 CREATE INDEX IF NOT EXISTS ai_concierge_sessions_property_activity_idx
   ON public.ai_concierge_sessions(property_id, last_active_at DESC);
@@ -12,25 +12,25 @@ CREATE INDEX IF NOT EXISTS ai_concierge_sessions_property_activity_idx
 
 ALTER TABLE public.ai_concierge_leads
   ADD COLUMN IF NOT EXISTS property_id uuid
-  REFERENCES public.staynas_properties(id) ON DELETE SET NULL;
+  REFERENCES public.staynas_properties(id) ON DELETE RESTRICT;
 CREATE INDEX IF NOT EXISTS ai_concierge_leads_property_created_idx
   ON public.ai_concierge_leads(property_id, created_at DESC);
 
 ALTER TABLE public.ai_guest_memories
   ADD COLUMN IF NOT EXISTS property_id uuid
-  REFERENCES public.staynas_properties(id) ON DELETE SET NULL;
+  REFERENCES public.staynas_properties(id) ON DELETE RESTRICT;
 CREATE INDEX IF NOT EXISTS ai_guest_memories_property_guest_idx
   ON public.ai_guest_memories(property_id, guest_id, updated_at DESC);
 
 ALTER TABLE public.ai_personalization_events
   ADD COLUMN IF NOT EXISTS property_id uuid
-  REFERENCES public.staynas_properties(id) ON DELETE SET NULL;
+  REFERENCES public.staynas_properties(id) ON DELETE RESTRICT;
 CREATE INDEX IF NOT EXISTS ai_personalization_events_property_created_idx
   ON public.ai_personalization_events(property_id, created_at DESC);
 
 ALTER TABLE public.knowledge_documents
   ADD COLUMN IF NOT EXISTS property_id uuid
-  REFERENCES public.staynas_properties(id) ON DELETE SET NULL;
+  REFERENCES public.staynas_properties(id) ON DELETE RESTRICT;
 CREATE INDEX IF NOT EXISTS knowledge_documents_property_guest_idx
   ON public.knowledge_documents(property_id, status)
   WHERE is_guest_visible = true;
