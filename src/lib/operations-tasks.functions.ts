@@ -65,6 +65,17 @@ export const createOpsTask = createServerFn({ method: "POST" })
     await assertStaff(context.supabase, context.userId);
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
+    if (data.bookingId) {
+      const { data: booking, error: bookingError } = await sb.from("bookings")
+        .select("id").eq("id", data.bookingId).eq("property_id", propertyId).maybeSingle();
+      if (bookingError || !booking) throw new Error("Booking is not part of the active property.");
+    }
+    if (data.assigneeId) {
+      const { data: member, error: memberError } = await sb.from("staynas_property_members")
+        .select("user_id").eq("property_id", propertyId).eq("user_id", data.assigneeId)
+        .eq("status", "active").maybeSingle();
+      if (memberError || !member) throw new Error("Assignee is not an active member of the selected property.");
+    }
     const { data: row, error } = await sb.from("ops_tasks").insert({
       property_id: propertyId,
       booking_id: data.bookingId ?? null,
@@ -100,6 +111,12 @@ export const updateOpsTask = createServerFn({ method: "POST" })
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
     const patch: any = {};
+    if (data.assigneeId) {
+      const { data: member, error: memberError } = await sb.from("staynas_property_members")
+        .select("user_id").eq("property_id", propertyId).eq("user_id", data.assigneeId)
+        .eq("status", "active").maybeSingle();
+      if (memberError || !member) throw new Error("Assignee is not an active member of the selected property.");
+    }
     if (data.status) {
       patch.status = data.status;
       if (data.status === "completed") patch.completed_at = new Date().toISOString();
