@@ -24,11 +24,7 @@ CREATE TABLE IF NOT EXISTS public.staynas_guest_requests (
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(metadata) = 'object'),
   created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT staynas_guest_requests_session_property_fk
-    FOREIGN KEY (session_id, property_id)
-    REFERENCES public.ai_concierge_sessions(id, property_id)
-    DEFERRABLE INITIALLY IMMEDIATE
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS staynas_guest_requests_property_status_idx
