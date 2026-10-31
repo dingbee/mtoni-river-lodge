@@ -20,7 +20,8 @@ export const Route = createFileRoute("/api/public/webhooks/resend")({
         if (!events.length) return Response.json({ received: true, persisted: 0 });
         const accountId = process.env.RESEND_WEBHOOK_ACCOUNT_ID;
         if (!accountId) return Response.json({ error: "Resend account routing is not configured." }, { status: 503 });
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");\n        const { processProviderWebhookInbox } = await import("@/domains/ai/concierge/webhooks/webhook-processor.server");
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { processProviderWebhookInbox } = await import("@/domains/ai/concierge/webhooks/webhook-processor.server");
         const { data: mapping, error: mappingError } = await (supabaseAdmin as any).from("ai_provider_property_bindings")
           .select("property_id,channel_id,external_account_id,enabled")
           .eq("provider", "resend").eq("external_account_id", accountId).eq("external_endpoint_id", String(events[0].safePayload.from ?? "")).eq("enabled", true).maybeSingle();
@@ -33,7 +34,16 @@ export const Route = createFileRoute("/api/public/webhooks/resend")({
             event_type: event.eventType, normalized_event: event,
           }, { onConflict: "provider,provider_event_id", ignoreDuplicates: true }).select("id");
           if (error) throw new Error(error.message);
-          let inboxId = data?.[0]?.id as string | undefined;\n          if (inboxId) persisted++;\n          else {\n            duplicates++;\n            const { data: existing, error: lookupError } = await (supabaseAdmin as any).from("ai_provider_webhook_inbox")\n              .select("id").eq("provider", "resend").eq("provider_event_id", event.providerEventId).maybeSingle();\n            if (lookupError) throw new Error(lookupError.message);\n            inboxId = existing?.id;\n          }\n          if (inboxId) await processProviderWebhookInbox(supabaseAdmin, inboxId);
+          let inboxId = data?.[0]?.id as string | undefined;
+          if (inboxId) persisted++;
+          else {
+            duplicates++;
+            const { data: existing, error: lookupError } = await (supabaseAdmin as any).from("ai_provider_webhook_inbox")
+              .select("id").eq("provider", "resend").eq("provider_event_id", event.providerEventId).maybeSingle();
+            if (lookupError) throw new Error(lookupError.message);
+            inboxId = existing?.id;
+          }
+          if (inboxId) await processProviderWebhookInbox(supabaseAdmin, inboxId);
         }
         return Response.json({ received: true, persisted, duplicates });
       } catch (error) {
