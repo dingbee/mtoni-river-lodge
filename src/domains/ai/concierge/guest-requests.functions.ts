@@ -58,7 +58,7 @@ export const createGuestRequest = createServerFn({ method: "POST" })
 
     if (data.session_id) {
       const { data: session, error } = await context.supabase
-        .from("ai_concierge_sessions").select("id, property_id, guest_id, guest_name, guest_email")
+        .from("ai_concierge_sessions").select("id, property_id, guest_id")
         .eq("id", data.session_id).eq("property_id", propertyId).maybeSingle();
       if (error || !session) throw new Error("Concierge conversation not found in the active property.");
       if (data.guest_id && session.guest_id && data.guest_id !== session.guest_id) {
@@ -68,7 +68,7 @@ export const createGuestRequest = createServerFn({ method: "POST" })
 
     if (data.booking_id) {
       const { data: booking, error } = await context.supabase
-        .from("bookings").select("id, property_id, guest_id, guest_name, guest_email")
+        .from("bookings").select("id, property_id, guest_id")
         .eq("id", data.booking_id).eq("property_id", propertyId).maybeSingle();
       if (error || !booking) throw new Error("Booking not found in the active property.");
       if (data.guest_id && booking.guest_id && data.guest_id !== booking.guest_id) {
