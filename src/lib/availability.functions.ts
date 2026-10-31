@@ -41,7 +41,7 @@ export const createBookingHold = createServerFn({ method: "POST" })
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in");
     const sb = publicClient();
     const propertyId = await getConfiguredBookingPropertyId(sb);
-    const { data: rows, error } = await bookingRpc(sb).rpc("create_booking_hold", {
+    const { data: rows, error } = await bookingRpc(sb).rpc("create_booking_hold_for_property", {
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
       _check_out: data.checkOut,
@@ -67,7 +67,7 @@ export const releaseBookingHold = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const sb = publicClient();
     const propertyId = await getConfiguredBookingPropertyId(sb);
-    const { data: ok, error } = await bookingRpc(sb).rpc("release_booking_hold", {
+    const { data: ok, error } = await bookingRpc(sb).rpc("release_booking_hold_for_property", {
       _hold_id: data.holdId,
       _session_id: data.sessionId,
       _property_id: propertyId,
@@ -83,7 +83,7 @@ export const getBookingHold = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const sb = publicClient();
     const propertyId = await getConfiguredBookingPropertyId(sb);
-    const { data: rows, error } = await bookingRpc(sb).rpc("get_booking_hold_for_session", {
+    const { data: rows, error } = await bookingRpc(sb).rpc("get_booking_hold_for_property", {
       _hold_id: data.holdId,
       _session_id: data.sessionId,
       _property_id: propertyId,
@@ -196,7 +196,7 @@ export const releaseHoldStaff = createServerFn({ method: "POST" })
       .maybeSingle();
     if (e1 || !row) throw new Error(e1?.message ?? "Hold not found");
     const propertyId = await getConfiguredBookingPropertyId(sb);
-    const { error } = await bookingRpc(sb).rpc("release_booking_hold", {
+    const { error } = await bookingRpc(sb).rpc("release_booking_hold_for_property", {
       _hold_id: data.holdId,
       _session_id: row.session_id,
       _property_id: propertyId,
@@ -248,7 +248,7 @@ export const suggestRoomAssignment = createServerFn({ method: "POST" })
     if (be || !b) throw new Error(be?.message ?? "Booking not found");
 
     const propertyId = await getConfiguredBookingPropertyId(sb);
-    const { data: avail, error: ae } = await bookingRpc(sb).rpc("get_room_availability", {
+    const { data: avail, error: ae } = await bookingRpc(sb).rpc("get_room_availability_for_property", {
       _check_in: b.check_in,
       _check_out: b.check_out,
       _property_id: propertyId,

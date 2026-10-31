@@ -12,7 +12,9 @@ import { BookingPropertyError } from "./booking-property";
 export async function getConfiguredBookingPropertyId(
   sb: SupabaseClient<any>,
 ): Promise<string> {
-  const { data, error } = await bookingRpc(sb).rpc("staynas_booking_property_id");
+  const hostname = process.env.STAYNAS_BOOKING_HOSTNAME?.trim().toLowerCase();
+  if (!hostname) throw new BookingPropertyError("STAYNAS_BOOKING_HOSTNAME is not configured");
+  const { data, error } = await bookingRpc(sb).rpc("staynas_booking_property_id", { _hostname: hostname });
   if (error) {
     throw new BookingPropertyError(`Booking property resolution failed: ${error.message}`);
   }
