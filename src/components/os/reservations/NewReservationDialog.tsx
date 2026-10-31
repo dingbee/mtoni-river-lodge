@@ -105,8 +105,6 @@ export function NewReservationDialog({
   // Room + reservation
   const [roomSlug, setRoomSlug] = useState<string | null>(null);
   const [status, setStatus] = useState<"pending" | "confirmed">("confirmed");
-  const [paymentStatus, setPaymentStatus] = useState<"unpaid" | "deposit_paid" | "paid">("unpaid");
-  const [paymentMethod, setPaymentMethod] = useState("");
   const [source, setSource] = useState<string>("direct");
   const [specialRequests, setSpecialRequests] = useState("");
   const [notes, setNotes] = useState("");
@@ -162,8 +160,6 @@ export function NewReservationDialog({
           childrenBelow6,
           children7Plus,
           status,
-          paymentStatus,
-          paymentMethod,
           source: source as (typeof RESERVATION_SOURCES)[number],
           specialRequests,
           notes,
@@ -192,8 +188,6 @@ export function NewReservationDialog({
     setChildren7Plus(0);
     setRoomSlug(null);
     setStatus("confirmed");
-    setPaymentStatus("unpaid");
-    setPaymentMethod("");
     setSource("direct");
     setSpecialRequests("");
     setNotes("");
@@ -354,9 +348,29 @@ export function NewReservationDialog({
                   </div>
                 </div>
                 <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm sm:col-span-2">
-                  <div className="flex items-center justify-between gap-3"><span className="text-muted-foreground">Length of stay</span><strong>{checkOut > checkIn ? Math.round((new Date(checkOut + "T12:00:00").getTime() - new Date(checkIn + "T12:00:00").getTime()) / 86400000) + " night(s)" : "Select valid dates"}</strong></div>
-                  <div className="mt-1 flex items-center justify-between gap-3"><span className="text-muted-foreground">Guests</span><strong>{totalGuests} total · {adults} adults</strong></div>
-                  {checkOut <= checkIn && <p className="mt-2 text-xs text-destructive">Check-out must be after check-in.</p>}
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Length of stay</span>
+                    <strong>
+                      {checkOut > checkIn
+                        ? Math.round(
+                            (new Date(checkOut + "T12:00:00").getTime() -
+                              new Date(checkIn + "T12:00:00").getTime()) /
+                              86400000,
+                          ) + " night(s)"
+                        : "Select valid dates"}
+                    </strong>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Guests</span>
+                    <strong>
+                      {totalGuests} total · {adults} adults
+                    </strong>
+                  </div>
+                  {checkOut <= checkIn && (
+                    <p className="mt-2 text-xs text-destructive">
+                      Check-out must be after check-in.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -443,28 +457,6 @@ export function NewReservationDialog({
                       <option value="confirmed">Confirmed</option>
                       <option value="pending">Pending</option>
                     </select>
-                  </div>
-                  <div>
-                    <Label htmlFor="r-pay">Payment status</Label>
-                    <select
-                      id="r-pay"
-                      className={selectClass}
-                      value={paymentStatus}
-                      onChange={(e) => setPaymentStatus(e.target.value as typeof paymentStatus)}
-                    >
-                      <option value="unpaid">Unpaid</option>
-                      <option value="deposit_paid">Deposit paid</option>
-                      <option value="paid">Paid in full</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label htmlFor="r-method">Payment method</Label>
-                    <Input
-                      id="r-method"
-                      placeholder="Cash, card, transfer…"
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    />
                   </div>
                   <div className="sm:col-span-2">
                     <Label htmlFor="r-req">Special requests</Label>
