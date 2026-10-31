@@ -31,11 +31,12 @@ export async function searchAvailability(input: {
     return (data as any[]).map((r) => ({
       slug: r.slug,
       name: r.name,
-      base_price_usd: Number(r.base_price),
+      base_price: Number(r.base_price),
+      currency: r.currency,
       max_occupancy: r.max_occupancy,
       is_available: r.is_available,
       min_available: r.min_available,
-      nightly_total_usd: Number(r.nightly_total),
+      nightly_total: Number(r.nightly_total),
       nights: r.nights,
     }));
   } catch {
@@ -81,9 +82,10 @@ export function buildBookingPlan(
     nights,
     adults: intent.detected.adults ?? 2,
     children: intent.detected.children ?? 0,
-    room: room ? { slug: room.slug, name: room.name, nightly_total_usd: room.nightly_total_usd } : undefined,
+    room: room ? { slug: room.slug, name: room.name, total_price: room.nightly_total, currency: room.currency } : undefined,
     experiences,
-    estimated_total_usd: room?.nightly_total_usd,
+    estimated_total: room?.nightly_total,
+    currency: room?.currency,
     booking_url: buildBookingUrl(intent, room?.slug ?? preferredRoomSlug),
   };
 }

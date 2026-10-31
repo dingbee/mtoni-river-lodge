@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
-import { Sparkles, BarChart3, FileText, History, Settings, Users, TrendingUp, Megaphone, LayoutDashboard, ShieldCheck, Activity, Search, MessageCircle, Inbox, Brain, Plane, MessagesSquare, PenSquare, AlertTriangle, Radio, LineChart, ClipboardList, RefreshCw, Bot } from "lucide-react";
+import { Sparkles, BarChart3, FileText, History, Users, TrendingUp, Megaphone, LayoutDashboard, ShieldCheck, Activity, Search, MessageCircle, Inbox, Brain, Plane, MessagesSquare, PenSquare, AlertTriangle, Radio, LineChart, ClipboardList, RefreshCw, Bot } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/ai")({
   head: () => ({ meta: [{ title: "StayNas AI — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -31,7 +31,6 @@ const TABS = [
   { to: "/admin/ai/knowledge", label: "Knowledge Base", icon: FileText },
   { to: "/admin/ai/knowledge/sync", label: "Knowledge Sync", icon: RefreshCw },
   { to: "/admin/ai/activity",  label: "AI Activity",    icon: History },
-  { to: "/admin/ai/settings",  label: "Settings",       icon: Settings },
 ] as const;
 
 function AiLayout() {

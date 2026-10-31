@@ -10,14 +10,18 @@ function clean(v: unknown, max = 200): string | null {
 
 export async function captureLead(input: ConciergeLeadInput) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { getConfiguredBookingPropertyId } = await import("@/lib/booking-property.server");
+  const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+  const db = supabaseAdmin as any;
 
   let sessionId: string | null = null;
   const token = clean(input.session_token, 80);
   if (token) {
-    const { data } = await supabaseAdmin
+    const { data } = await db
       .from("ai_concierge_sessions")
       .select("id")
       .eq("session_token", token)
+      .eq("property_id", propertyId)
       .maybeSingle();
     sessionId = data?.id ?? null;
   }
@@ -39,9 +43,10 @@ export async function captureLead(input: ConciergeLeadInput) {
   // Basic intent level heuristic
   const intent_level = start && email ? "high" : email ? "medium" : "low";
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await db
     .from("ai_concierge_leads")
     .insert({
+      property_id: propertyId,
       session_id: sessionId,
       name,
       email,
@@ -60,10 +65,11 @@ export async function captureLead(input: ConciergeLeadInput) {
   if (error) throw new Error(error.message);
 
   if (sessionId) {
-    await supabaseAdmin
+    await db
       .from("ai_concierge_sessions")
       .update({ escalated: true, escalation_channel: "lead" })
-      .eq("id", sessionId);
+      .eq("id", sessionId)
+      .eq("property_id", propertyId);
   }
 
   return { ok: true, lead_id: data.id, intent_level: data.intent_level };

@@ -58,12 +58,6 @@ function SettingsHub() {
   ];
   const aiAndMessaging: LinkTile[] = [
     {
-      to: "/admin/ai/settings",
-      title: "StayNas AI",
-      description: "Model, tools and role scope for the AI Command Centre.",
-      Icon: Sparkles,
-    },
-    {
       to: "/admin/ai/concierge/analytics",
       title: "Concierge Analytics",
       description: "Web / WhatsApp / Email concierge performance.",
