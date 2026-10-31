@@ -148,7 +148,8 @@ export const createBooking = createServerFn({ method: "POST" })
         await supabaseAdmin
           .from("bookings")
           .update({ visit_purpose: purpose } as never)
-          .eq("id", row.booking_id as string);
+          .eq("id", row.booking_id as string)
+          .eq("property_id", propertyId);
       } catch (e) {
         console.error("booking visit_purpose update failed:", e);
       }
@@ -158,11 +159,12 @@ export const createBooking = createServerFn({ method: "POST" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: full } = await supabaseAdmin
         .from("bookings")
-        .select("reference, guest_name, guest_email, check_in, check_out, nights, adults, children, total, deposit_amount, balance_amount, currency, room_id")
+         .select("reference, guest_name, guest_email, check_in, check_out, nights, adults, children, total, deposit_amount, balance_amount, currency, room_id")
         .eq("id", row.booking_id as string)
+        .eq("property_id", propertyId)
         .maybeSingle();
       if (full) {
-        const { data: room } = await supabaseAdmin.from("rooms").select("name").eq("id", full.room_id).maybeSingle();
+        const { data: room } = await supabaseAdmin.from("rooms").select("name").eq("id", full.room_id).eq("property_id", propertyId).maybeSingle();
         const { sendTransactionalInternal } = await import("./email/send-internal.server");
         const result = await sendTransactionalInternal({
           templateName: "booking-received",
@@ -211,6 +213,7 @@ export const getBookingByReference = createServerFn({ method: "POST" })
         "id, reference, check_in, check_out, nights, adults, children, guest_name, guest_email, total, currency, status, payment_status, room_id, property_id",
       )
       .eq("reference", data.reference)
+      .eq("property_id", propertyId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!row || row.guest_email.toLowerCase() !== data.email.toLowerCase()) {
@@ -222,6 +225,7 @@ export const getBookingByReference = createServerFn({ method: "POST" })
       .from("rooms")
       .select("name, slug")
       .eq("id", row.room_id)
+      .eq("property_id", propertyId)
       .maybeSingle();
     return { ...row, total: Number(row.total), room };
   });
