@@ -2,13 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const requestCategories = [
-  "housekeeping", "room_service", "dining", "airport_transfer",
-  "maintenance", "special_occasion", "private_dining", "complaint",
-  "service_recovery", "other",
-] as const;
+import { GUEST_REQUEST_CATEGORIES, categorizeGuestRequest } from "./request-categorization";
 
-const categorySchema = z.enum(requestCategories);
+const categorySchema = z.enum(GUEST_REQUEST_CATEGORIES);
 const createSchema = z.object({
   request_text: z.string().trim().min(3).max(2000),
   category: categorySchema.optional(),
@@ -21,22 +17,6 @@ const createSchema = z.object({
   guest_contact: z.string().trim().max(200).nullable().optional(),
   requested_for: z.string().datetime().nullable().optional(),
 });
-
-export function categorizeGuestRequest(text: string) {
-  const value = text.toLowerCase();
-  const rules: Array<[typeof requestCategories[number], RegExp]> = [
-    ["service_recovery", /\b(refund|compensation|unacceptable|not resolved|still waiting|manager|service recovery)\b/],
-    ["complaint", /\b(complain|complaint|unhappy|disappointed|dirty|noise|problem|issue)\b/],
-    ["housekeeping", /\b(clean|cleaning|towel|linen|housekeeping|room clean|toilet paper|amenit)\b/],
-    ["room_service", /\b(room service|food to room|bring .* room|in-room dining)\b/],
-    ["dining", /\b(restaurant|dinner|lunch|breakfast|table|reservation|meal)\b/],
-    ["airport_transfer", /\b(airport|transfer|pick.?up|drop.?off|taxi|shuttle)\b/],
-    ["maintenance", /\b(repair|broken|not working|maintenance|leak|electric|plumbing|air.?condition|ac unit)\b/],
-    ["special_occasion", /\b(birthday|anniversary|proposal|celebrat|surprise)\b/],
-    ["private_dining", /\b(private dining|private dinner|candle.?light|dining setup)\b/],
-  ];
-  return rules.find(([, pattern]) => pattern.test(value))?.[0] ?? "other";
-}
 
 async function activePropertyId(supabase: any, userId: string) {
   const { data: propertyId, error } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
