@@ -5,6 +5,7 @@ on:
     branches:
       - feat/sn-iq-04-omnichannel-communications
       - fix/sn-iq-04-*
+      - feat/sn-iq-04-clean
   pull_request:
     branches:
       - main
