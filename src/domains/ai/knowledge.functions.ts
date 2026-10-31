@@ -303,6 +303,41 @@ export const upsertKbDocument = createServerFn({ method: "POST" })
     const supabase = context.supabase;
     const now = new Date().toISOString();
 
+    // Initial document, version and chunks are one database transaction.
+    if (!data.id && data.content_text != null) {
+      const chunks = chunkText(data.content_text);
+      const slug = data.slug ?? slugify(data.title);
+      const { data: createdId, error: createError } = await (supabase as any).rpc(
+        "staynas_create_knowledge_document",
+        {
+          _property_id: propertyId,
+          _metadata: {
+            slug,
+            title: data.title.trim(),
+            summary: data.summary ?? null,
+            category_id: data.category_id ?? null,
+            source_type: data.source_type ?? "markdown",
+            source_url: data.source_url ?? null,
+            storage_path: data.storage_path ?? null,
+            tags: data.tags ?? [],
+            status: data.status ?? "draft",
+            allowed_roles: data.allowed_roles ?? null,
+            is_guest_visible: data.is_guest_visible ?? false,
+            review_due_at: reviewDueAt(data.source_type ?? "markdown"),
+          },
+          _content_text: data.content_text,
+          _language_code: data.language_code ?? "en",
+          _chunks: chunks,
+          _change_note: data.change_note ?? null,
+        },
+      );
+      if (createError) throw new Error(createError.message);
+      if (typeof createdId !== "string" || !createdId) {
+        throw new Error("Atomic knowledge document creation returned no document ID.");
+      }
+      return { id: createdId };
+    }
+
     let docId = data.id;
     let currentVersion = 1;
     let documentPatch: Record<string, unknown> | null = null;
