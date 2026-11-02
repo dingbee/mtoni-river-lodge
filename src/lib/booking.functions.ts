@@ -254,7 +254,10 @@ export const getBookingTaxPreview = createServerFn({ method: "POST" })
       taxTotal: Number(result?.tax_total ?? 0),
       taxAddition: Number(result?.tax_addition ?? 0),
       configured: Boolean(result?.configured),
-      breakdown: Array.isArray(result?.breakdown) ? result.breakdown : [],
+      breakdown: Array.isArray(result?.breakdown) ? result.breakdown.map((line: any) => ({
+        name: String(line.name ?? "Tax"), amount: Number(line.amount ?? 0),
+        inclusive: Boolean(line.inclusive), added_to_total: Number(line.added_to_total ?? 0),
+      })) : [],
     };
   });
 
