@@ -125,7 +125,7 @@ const createBookingSchema = z.object({
   country: z.string().trim().max(100).optional().or(z.literal("")),
   specialRequests: z.string().trim().max(1000).optional().or(z.literal("")),
   visitPurpose: z.string().trim().max(80).optional().or(z.literal("")),
-  extras: z.array(extraSchema).max(20).default([]),
+  extras: z.array(extraSchema).max(20).default([]).refine((items) => new Set(items.map((item) => item.slug)).size === items.length, "Duplicate extras are not allowed"),
   holdId: z.string().uuid().optional(),
   sessionId: z.string().min(6).max(120).optional(),
   paymentMethod: z.enum(["online", "pay_at_property"]).default("online"),
