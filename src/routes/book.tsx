@@ -651,7 +651,8 @@ function BookPage() {
               paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
               onlinePaymentAvailable={onlinePaymentAvailable}
               taxPreview={taxPreview} taxPreviewLoading={taxPreviewLoading} taxPreviewError={taxPreviewError}
-              submitting={submit.isPending || taxPreviewLoading || !taxPreview || !!taxPreviewError || !taxPreview.configured}
+              submitting={submit.isPending}
+              submitDisabled={submit.isPending || taxPreviewLoading || !taxPreview || !!taxPreviewError || !taxPreview.configured}
               onBack={() => goToStep("select", "user_back_from_guest")}
               onSubmit={() => submit.mutate()}
             />
@@ -917,6 +918,7 @@ function GuestStep(props: {
   taxPreviewLoading: boolean;
   taxPreviewError: string | null;
   submitting: boolean;
+  submitDisabled: boolean;
   onBack: () => void; onSubmit: () => void;
 }) {
   const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: props.room.currency, maximumFractionDigits: 0 }).format(n);
@@ -1086,12 +1088,12 @@ function GuestStep(props: {
           )}
         </div>
         <button
-          onClick={props.onSubmit} disabled={props.submitting}
+          onClick={props.onSubmit} disabled={props.submitDisabled}
           className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60"
           style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
         >
           {props.submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          {props.submitting ? (props.paymentMethod === "online" ? "Redirecting to payment…" : "Submitting reservation…") : (props.paymentMethod === "online" ? "Pay 50% Deposit & Confirm" : "Reserve & Pay at Property")}
+          {props.submitting ? (props.paymentMethod === "online" ? "Redirecting to payment…" : "Submitting reservation…") : !props.taxPreview?.configured ? "Tax Setup Required" : props.taxPreviewError ? "Tax Calculation Unavailable" : (props.paymentMethod === "online" ? "Pay 50% Deposit & Confirm" : "Reserve & Pay at Property")}
         </button>
         <p className="text-[0.65rem] text-charcoal/55">{props.paymentMethod === "online" ? "You will be redirected to the property’s configured payment provider to pay the 50% deposit. The remaining balance is payable on arrival." : "No online payment is required now. Your reservation remains pending until the property confirms it; payment is due at check-in."}</p>
       </aside>
