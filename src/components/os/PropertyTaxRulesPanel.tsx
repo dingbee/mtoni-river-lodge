@@ -17,7 +17,7 @@ type TaxRule = {
 
 const emptyForm = (currency: string) => ({
   name: "", taxCode: "", calculationType: "exclusive_percent" as CalculationType,
-  rate: "0", currency, appliesTo: "accommodation" as AppliesTo,
+  rate: "", currency, appliesTo: "accommodation" as AppliesTo,
   isCompound: false, active: true, validFrom: "", validTo: "",
 });
 
@@ -93,7 +93,7 @@ export function PropertyTaxRulesPanel({ currency }: { currency: string }) {
         </select></label>
         <div className="grid grid-cols-2 gap-3">
           <label className="text-xs">Rate / amount<input className={field} type="number" min="0" step="0.01" value={form.rate} onChange={e => setForm({ ...form, rate: e.target.value })} required /></label>
-          <label className="text-xs">Currency<input className={field} value={fixed ? form.currency : form.currency} onChange={e => setForm({ ...form, currency: e.target.value.toUpperCase() })} maxLength={3} placeholder={currency} /></label>
+          <label className="text-xs">Currency<input className={field} value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value.toUpperCase() })} maxLength={3} placeholder={fixed ? currency : "Optional"} required={fixed} /></label>
         </div>
         <label className="text-xs">Applies to<select className={field} value={form.appliesTo} onChange={e => setForm({ ...form, appliesTo: e.target.value as AppliesTo })}>
           <option value="accommodation">Accommodation</option><option value="extras">Extras</option><option value="all">Accommodation + extras</option>
@@ -110,5 +110,6 @@ export function PropertyTaxRulesPanel({ currency }: { currency: string }) {
         </div>
       </form>
     </div>
+    <p className="mt-3 text-xs text-muted-foreground">Only enter tax rates approved for this property. If the property has no applicable tax, record that treatment explicitly rather than leaving tax configuration empty.</p>
   </SectionCard>;
 }
