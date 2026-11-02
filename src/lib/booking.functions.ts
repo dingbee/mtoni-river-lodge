@@ -107,6 +107,7 @@ const createBookingSchema = z.object({
   extras: z.array(extraSchema).max(20).default([]),
   holdId: z.string().uuid().optional(),
   sessionId: z.string().min(6).max(120).optional(),
+  paymentMethod: z.enum(["online", "pay_at_property"]).default("online"),
 });
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
@@ -136,6 +137,7 @@ export const createBooking = createServerFn({ method: "POST" })
       _extras: data.extras,
       ...(data.holdId ? { _hold_id: data.holdId } : {}),
       ...(data.sessionId ? { _session_id: data.sessionId } : {}),
+      _payment_method: data.paymentMethod,
     });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
@@ -198,6 +200,25 @@ export const createBooking = createServerFn({ method: "POST" })
       currency: row.currency as string,
     };
   });
+
+
+
+/** Public booking methods are resolved from the current property, never global provider defaults. */
+export const getBookingPaymentOptions = createServerFn({ method: "GET" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+  const { data, error } = await (supabaseAdmin as any)
+    .from("staynas_property_integrations")
+    .select("provider, credential_reference")
+    .eq("property_id", propertyId)
+    .eq("purpose", "payments")
+    .eq("enabled", true)
+    .not("credential_reference", "is", null)
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (error) throw new Error(`Could not load payment options: ${error.message}`);
+  return { payAtProperty: true, online: Array.isArray(data) && data.length > 0 };
+});
 
 export const getBookingByReference = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
