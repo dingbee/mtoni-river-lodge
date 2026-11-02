@@ -200,7 +200,9 @@ export const createBooking = createServerFn({ method: "POST" })
       reference: row.reference as string,
       total: Number(row.total),
       currency: row.currency as string,
-      taxes: Number((await (await import("@/integrations/supabase/client.server")).supabaseAdmin.from("bookings").select("taxes").eq("id", row.booking_id as string).eq("property_id", propertyId).single()).data?.taxes ?? 0),
+      taxes: Number(row.taxes ?? 0),
+      taxAddition: Number(row.tax_addition ?? 0),
+      taxBreakdown: Array.isArray(row.tax_breakdown) ? row.tax_breakdown : [],
     };
   });
 
