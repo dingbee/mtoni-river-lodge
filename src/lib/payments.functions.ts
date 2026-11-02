@@ -34,7 +34,7 @@ export const initiatePayment = createServerFn({ method: "POST" })
     const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
     const { data: booking, error } = await (supabaseAdmin as any)
       .from("bookings")
-      .select("id, reference, guest_name, guest_email, guest_phone, country, deposit_amount, total, currency, payment_status, payment_provider, payment_integration_id, provider_transaction_id, provider_merchant_reference, pesapal_order_tracking_id, property_id")
+      .select("id, reference, guest_name, guest_email, guest_phone, country, deposit_amount, total, currency, payment_status, payment_provider, payment_method, payment_integration_id, provider_transaction_id, provider_merchant_reference, pesapal_order_tracking_id, property_id")
       .eq("reference", data.reference)
       .eq("property_id", propertyId)
       .maybeSingle();
