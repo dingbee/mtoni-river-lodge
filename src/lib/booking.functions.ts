@@ -215,10 +215,11 @@ export const getBookingPaymentOptions = createServerFn({ method: "GET" }).handle
   const [{ data: property, error: propertyError }, { data, error }] = await Promise.all([
     (supabaseAdmin as any).from("staynas_properties").select("currency").eq("id", propertyId).maybeSingle(),
     (supabaseAdmin as any).from("staynas_property_integrations")
-      .select("provider, credential_reference, supported_currencies")
+      .select("provider, credential_reference, supported_currencies, verification_status")
       .eq("property_id", propertyId)
       .eq("purpose", "payments")
       .eq("enabled", true)
+      .eq("verification_status", "verified")
       .not("credential_reference", "is", null)
       .order("created_at", { ascending: true })
       .limit(10),
