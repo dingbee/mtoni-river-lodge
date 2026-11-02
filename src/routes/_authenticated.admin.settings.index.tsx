@@ -157,7 +157,7 @@ function SettingsHub() {
         </div>
       </SectionCard>
 
-      <PropertyTaxRulesPanel currency={propertyContext.currency} />
+      <PropertyTaxRulesPanel propertyId={propertyContext.id} currency={propertyContext.currency} />
       <TileGrid title="Content" tiles={contentTiles} />
       <TileGrid title="AI & Messaging" tiles={aiAndMessaging} />
       <TileGrid title="Access" tiles={access} />
