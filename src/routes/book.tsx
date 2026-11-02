@@ -178,7 +178,7 @@ function BookPage() {
   const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string; paymentMethod: "online" | "pay_at_property"; taxes: number; taxAddition: number } | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"online" | "pay_at_property">("pay_at_property");
   const [onlinePaymentAvailable, setOnlinePaymentAvailable] = useState(false);
-  const [taxPreview, setTaxPreview] = useState<{ taxTotal: number; taxAddition: number; configured: boolean; breakdown: unknown[] } | null>(null);
+  const [taxPreview, setTaxPreview] = useState<{ taxTotal: number; taxAddition: number; configured: boolean; breakdown: Array<{ name: string; amount: number; inclusive: boolean; added_to_total: number }> } | null>(null);
   const [taxPreviewLoading, setTaxPreviewLoading] = useState(false);
   const [taxPreviewError, setTaxPreviewError] = useState<string | null>(null);
   const [hold, setHold] = useState<{ id: string; expiresAt: string; roomSlug: string } | null>(null);
@@ -909,7 +909,7 @@ function GuestStep(props: {
   paymentMethod: "online" | "pay_at_property";
   setPaymentMethod: (v: "online" | "pay_at_property") => void;
   onlinePaymentAvailable: boolean;
-  taxPreview: { taxTotal: number; taxAddition: number; configured: boolean; breakdown: unknown[] } | null;
+  taxPreview: { taxTotal: number; taxAddition: number; configured: boolean; breakdown: Array<{ name: string; amount: number; inclusive: boolean; added_to_total: number }> } | null;
   taxPreviewLoading: boolean;
   taxPreviewError: string | null;
   submitting: boolean;
@@ -1068,7 +1068,8 @@ function GuestStep(props: {
           {props.extrasTotal > 0 && <div className="flex justify-between"><span>Extras</span><span>{fmt(props.extrasTotal)}</span></div>}
           {props.taxPreviewLoading && <p className="text-xs text-charcoal/55">Calculating property taxes…</p>}
           {props.taxPreviewError && <p className="text-xs text-red-700">Tax calculation is unavailable. Please retry before submitting.</p>}
-          {props.taxPreview && props.taxPreview.taxTotal > 0 && <div className="flex justify-between text-charcoal/70"><span>Taxes {props.taxPreview.taxAddition === 0 ? "(included)" : ""}</span><span>{fmt(props.taxPreview.taxTotal)}</span></div>}
+          {props.taxPreview?.breakdown.map((line, index) => <div key={`${line.name}-${index}`} className="flex justify-between text-charcoal/70"><span>{line.name}{line.inclusive ? " (included)" : ""}</span><span>{fmt(line.amount)}</span></div>)}
+          {props.taxPreview && props.taxPreview.taxTotal > 0 && <div className="flex justify-between border-t border-charcoal/10 pt-2 text-charcoal/70"><span>Total taxes</span><span>{fmt(props.taxPreview.taxTotal)}</span></div>}
           {props.taxPreview && !props.taxPreview.configured && <p className="text-xs text-charcoal/55">No applicable property tax rules are configured. Public booking is disabled until the property records its approved tax treatment.</p>}
           <div className="flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(props.grandTotal)}</span></div>
           {props.paymentMethod === "online" ? (
