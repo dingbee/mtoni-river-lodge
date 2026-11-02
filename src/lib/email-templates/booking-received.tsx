@@ -15,17 +15,20 @@ const Email = (props: BookingEmailProps) => {
     children = 0,
     total,
     deposit,
+    taxes,
+    paymentMethod = 'online',
     currency = 'USD',
   } = props
+  const payAtProperty = paymentMethod === 'pay_at_property'
   return (
-    <Shell preheader={`Your reservation ${reference} is held pending payment.`}>
+    <Shell preheader={payAtProperty ? `Your reservation ${reference} is received; payment is due at the property.` : `Your reservation ${reference} is held pending payment.`}>
       <Heading as="h1" style={styles.h1}>
         Karibu, {guestName}
       </Heading>
       <Text style={styles.p}>
-        We've received your reservation request for <strong>Mtoni River Lodge</strong>. Your
-        booking is held pending payment of the deposit. Once the deposit clears we'll send your
-        full confirmation.
+        We've received your reservation request for <strong>Mtoni River Lodge</strong>. {payAtProperty
+          ? 'Our reservations team will review and confirm your stay. Payment is due directly at the property on arrival.'
+          : 'Your booking is held pending payment of the deposit. Once the deposit clears we will send your full confirmation.'}
       </Text>
       <Hr style={styles.divider} />
       <Row label="Reference" value={reference} />
@@ -34,12 +37,13 @@ const Email = (props: BookingEmailProps) => {
       <Row label="Check-out" value={checkOut} />
       <Row label="Nights" value={String(nights)} />
       <Row label="Guests" value={guestsLine(adults, children)} />
+      {taxes !== undefined && Number(taxes) > 0 ? <Row label="Taxes included in total" value={money(taxes, currency)} /> : null}
       {total !== undefined ? <Row label="Total" value={money(total, currency)} /> : null}
-      {deposit !== undefined ? <Row label="Deposit due" value={money(deposit, currency)} /> : null}
+      {payAtProperty ? <Row label="Payment due at property" value={money(total, currency)} /> : deposit !== undefined ? <Row label="Deposit due" value={money(deposit, currency)} /> : null}
+      <Row label="Payment method" value={payAtProperty ? 'Pay at property' : 'Online payment'} />
       <Hr style={styles.divider} />
       <Text style={styles.p}>
-        If you haven't completed payment yet, you can resume from your booking link. Replies to
-        this email reach our reservations team directly.
+        {payAtProperty ? 'Please keep this reference for your arrival. Replies to this email reach our reservations team directly.' : "If you haven't completed payment yet, you can resume from your booking link. Replies to this email reach our reservations team directly."}
       </Text>
       <Text style={styles.signoff}>— The Mtoni River Lodge Reservations Team</Text>
     </Shell>
