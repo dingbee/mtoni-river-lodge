@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -21,14 +21,17 @@ const emptyForm = (currency: string) => ({
   isCompound: false, active: true, validFrom: "", validTo: "",
 });
 
-export function PropertyTaxRulesPanel({ currency }: { currency: string }) {
+export function PropertyTaxRulesPanel({ propertyId, currency }: { propertyId: string; currency: string }) {
   const qc = useQueryClient();
   const listFn = useServerFn(listPropertyTaxRules);
   const saveFn = useServerFn(savePropertyTaxRule);
   const deactivateFn = useServerFn(deactivatePropertyTaxRule);
   const [form, setForm] = useState(emptyForm(currency));
   const [editingId, setEditingId] = useState<string | null>(null);
-  const rules = useQuery({ queryKey: ["property-tax-rules"], queryFn: () => listFn() });
+  const rules = useQuery({ queryKey: ["property-tax-rules", propertyId], queryFn: () => listFn() });
+  useEffect(() => {
+    if (!editingId) setForm((current) => ({ ...current, currency }));
+  }, [currency, editingId]);
 
   const save = useMutation({
     mutationFn: () => saveFn({ data: {
@@ -42,7 +45,7 @@ export function PropertyTaxRulesPanel({ currency }: { currency: string }) {
     onSuccess: () => {
       setForm(emptyForm(currency)); setEditingId(null);
       toast.success("Property tax rule saved");
-      qc.invalidateQueries({ queryKey: ["property-tax-rules"] });
+      qc.invalidateQueries({ queryKey: ["property-tax-rules", propertyId] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
