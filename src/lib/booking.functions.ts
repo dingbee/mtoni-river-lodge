@@ -161,7 +161,7 @@ export const createBooking = createServerFn({ method: "POST" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: full } = await supabaseAdmin
         .from("bookings")
-        .select("reference, guest_name, guest_email, check_in, check_out, nights, adults, children, total, deposit_amount, balance_amount, currency, room_id")
+        .select("reference, guest_name, guest_email, check_in, check_out, nights, adults, children, total, deposit_amount, balance_amount, taxes, tax_addition, tax_breakdown, payment_method, currency, room_id")
         .eq("id", row.booking_id as string)
         .eq("property_id", propertyId)
         .maybeSingle();
@@ -185,6 +185,8 @@ export const createBooking = createServerFn({ method: "POST" })
             total: full.total,
             deposit: full.deposit_amount,
             balance: full.balance_amount,
+            taxes: full.taxes,
+            paymentMethod: full.payment_method ?? "online",
             currency: full.currency,
           },
         });
@@ -198,6 +200,7 @@ export const createBooking = createServerFn({ method: "POST" })
       reference: row.reference as string,
       total: Number(row.total),
       currency: row.currency as string,
+      taxes: Number((await (await import("@/integrations/supabase/client.server")).supabaseAdmin.from("bookings").select("taxes").eq("id", row.booking_id as string).eq("property_id", propertyId).single()).data?.taxes ?? 0),
     };
   });
 
@@ -219,6 +222,39 @@ export const getBookingPaymentOptions = createServerFn({ method: "GET" }).handle
   if (error) throw new Error(`Could not load payment options: ${error.message}`);
   return { payAtProperty: true, online: Array.isArray(data) && data.length > 0 };
 });
+
+
+
+const bookingTaxPreviewSchema = z.object({
+  checkIn: dateStr,
+  nights: z.number().int().min(1).max(365),
+  accommodationSubtotal: z.number().finite().min(0).max(1000000000),
+  extrasTotal: z.number().finite().min(0).max(1000000000),
+  currency: z.string().trim().length(3).regex(/^[A-Za-z]{3}$/),
+});
+
+/** Preview tax using the same database function used inside create_booking_for_property. */
+export const getBookingTaxPreview = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => bookingTaxPreviewSchema.parse(d))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const { data: result, error } = await (supabaseAdmin as any).rpc("calculate_staynas_booking_taxes", {
+      _property_id: propertyId,
+      _service_date: data.checkIn,
+      _nights: data.nights,
+      _accommodation_subtotal: data.accommodationSubtotal,
+      _extras_total: data.extrasTotal,
+      _currency: data.currency.toUpperCase(),
+    });
+    if (error) throw new Error(`Could not calculate property taxes: ${error.message}`);
+    return {
+      taxTotal: Number(result?.tax_total ?? 0),
+      taxAddition: Number(result?.tax_addition ?? 0),
+      configured: Boolean(result?.configured),
+      breakdown: Array.isArray(result?.breakdown) ? result.breakdown : [],
+    };
+  });
 
 export const getBookingByReference = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
