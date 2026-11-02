@@ -179,7 +179,7 @@ function BookPage() {
   const [paymentMethod, setPaymentMethod] = useState<"online" | "pay_at_property">("pay_at_property");
   const [onlinePaymentAvailable, setOnlinePaymentAvailable] = useState(false);
   const [onlinePaymentProvider, setOnlinePaymentProvider] = useState<string | null>(null);
-  const [taxPreview, setTaxPreview] = useState<{ taxTotal: number; taxAddition: number; configured: boolean; breakdown: Array<{ name: string; amount: number; inclusive: boolean; added_to_total: number }> } | null>(null);
+  const [taxPreview, setTaxPreview] = useState<{ accommodationSubtotal: number; extrasTotal: number; taxTotal: number; taxAddition: number; configured: boolean; breakdown: Array<{ name: string; amount: number; inclusive: boolean; added_to_total: number }> } | null>(null);
   const [taxPreviewLoading, setTaxPreviewLoading] = useState(false);
   const [taxPreviewError, setTaxPreviewError] = useState<string | null>(null);
   const [hold, setHold] = useState<{ id: string; expiresAt: string; roomSlug: string } | null>(null);
@@ -502,11 +502,13 @@ function BookPage() {
     setTaxPreviewLoading(true);
     setTaxPreviewError(null);
     getBookingTaxPreviewFn({ data: {
+      roomSlug: selectedRoom.slug,
       checkIn,
-      nights,
-      accommodationSubtotal: roomTotal,
-      extrasTotal,
-      currency: selectedRoom.currency,
+      checkOut,
+      adults,
+      childrenBelow6,
+      children7Plus,
+      extras: selectedExtras,
     } }).then((result) => {
       if (active) setTaxPreview(result);
     }).catch((error) => {
@@ -519,9 +521,11 @@ function BookPage() {
       if (active) setTaxPreviewLoading(false);
     });
     return () => { active = false; };
-  }, [selectedRoom?.room_id, checkIn, nights, roomTotal, extrasTotal, getBookingTaxPreviewFn]);
+  }, [selectedRoom?.slug, checkIn, checkOut, adults, childrenBelow6, children7Plus, selectedExtras, getBookingTaxPreviewFn]);
 
-  const grandTotal = roomTotal + extrasTotal + (taxPreview?.taxAddition ?? 0);
+  const displayRoomTotal = taxPreview?.accommodationSubtotal ?? roomTotal;
+  const displayExtrasTotal = taxPreview?.extrasTotal ?? extrasTotal;
+  const grandTotal = displayRoomTotal + displayExtrasTotal + (taxPreview?.taxAddition ?? 0);
 
   return (
     <div className="min-h-screen bg-ivory text-charcoal">
@@ -646,7 +650,7 @@ function BookPage() {
               childrenBelow6={childrenBelow6}
               breakdown={priceBreakdown}
               extras={extras} selectedExtras={selectedExtras} setSelectedExtras={setSelectedExtras}
-              roomTotal={roomTotal} extrasTotal={extrasTotal} grandTotal={grandTotal}
+              roomTotal={displayRoomTotal} extrasTotal={displayExtrasTotal} grandTotal={grandTotal}
               guest={guest} setGuest={setGuest}
               paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
               onlinePaymentAvailable={onlinePaymentAvailable}
@@ -914,7 +918,7 @@ function GuestStep(props: {
   paymentMethod: "online" | "pay_at_property";
   setPaymentMethod: (v: "online" | "pay_at_property") => void;
   onlinePaymentAvailable: boolean;
-  taxPreview: { taxTotal: number; taxAddition: number; configured: boolean; breakdown: Array<{ name: string; amount: number; inclusive: boolean; added_to_total: number }> } | null;
+  taxPreview: { accommodationSubtotal: number; extrasTotal: number; taxTotal: number; taxAddition: number; configured: boolean; breakdown: Array<{ name: string; amount: number; inclusive: boolean; added_to_total: number }> } | null;
   taxPreviewLoading: boolean;
   taxPreviewError: string | null;
   submitting: boolean;
