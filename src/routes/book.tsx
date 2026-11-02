@@ -1097,7 +1097,7 @@ function GuestStep(props: {
           style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
         >
           {props.submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          {props.submitting ? (props.paymentMethod === "online" ? "Redirecting to payment…" : "Submitting reservation…") : !props.taxPreview?.configured ? "Tax Setup Required" : props.taxPreviewError ? "Tax Calculation Unavailable" : (props.paymentMethod === "online" ? "Pay 50% Deposit & Confirm" : "Reserve & Pay at Property")}
+          {props.submitting ? (props.paymentMethod === "online" ? "Redirecting to payment…" : "Submitting reservation…") : props.taxPreviewError ? "Tax Calculation Unavailable" : !props.taxPreview?.configured ? "Tax Setup Required" : (props.paymentMethod === "online" ? "Pay 50% Deposit & Confirm" : "Reserve & Pay at Property")}
         </button>
         <p className="text-[0.65rem] text-charcoal/55">{props.paymentMethod === "online" ? "You will be redirected to the property’s configured payment provider to pay the 50% deposit. The remaining balance is payable on arrival." : "No online payment is required now. Your reservation remains pending until the property confirms it; payment is due at check-in."}</p>
       </aside>
