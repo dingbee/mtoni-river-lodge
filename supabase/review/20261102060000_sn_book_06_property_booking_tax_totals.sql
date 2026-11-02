@@ -16,6 +16,7 @@ AS $function$
 DECLARE
   r record;
   v_base numeric;
+  v_scope_base numeric;
   v_tax numeric;
   v_added numeric;
   v_tax_total numeric := 0;
@@ -41,15 +42,19 @@ BEGIN
       AND t.active=true
       AND (t.valid_from IS NULL OR t.valid_from<=_service_date)
       AND (t.valid_to IS NULL OR t.valid_to>=_service_date)
-      AND (t.currency IS NULL OR upper(t.currency)=upper(_currency))
+      AND (
+        (t.calculation_type IN ('inclusive_percent','exclusive_percent') AND (t.currency IS NULL OR upper(t.currency)=upper(_currency)))
+        OR (t.calculation_type IN ('fixed_per_night','fixed_per_booking') AND upper(t.currency)=upper(_currency))
+      )
     ORDER BY t.created_at, t.id
   LOOP
-    v_base := CASE r.applies_to
+    v_scope_base := CASE r.applies_to
       WHEN 'accommodation' THEN _accommodation_subtotal
       WHEN 'extras' THEN _extras_total
       ELSE _accommodation_subtotal + _extras_total
     END;
-    IF r.is_compound THEN
+    v_base := v_scope_base;
+    IF r.is_compound AND v_scope_base > 0 THEN
       v_base := v_base + CASE r.applies_to
         WHEN 'accommodation' THEN v_accommodation_tax + v_all_tax
         WHEN 'extras' THEN v_extras_tax + v_all_tax
@@ -57,13 +62,15 @@ BEGIN
       END;
     END IF;
 
-    v_tax := CASE r.calculation_type
-      WHEN 'inclusive_percent' THEN
-        CASE WHEN COALESCE(r.rate,0)=0 THEN 0 ELSE round(v_base - (v_base / (1 + (r.rate / 100))), 2) END
-      WHEN 'exclusive_percent' THEN round(v_base * r.rate / 100, 2)
-      WHEN 'fixed_per_night' THEN round(r.rate * _nights, 2)
-      WHEN 'fixed_per_booking' THEN round(r.rate, 2)
-      ELSE 0
+    v_tax := CASE WHEN v_scope_base <= 0 THEN 0 ELSE
+      CASE r.calculation_type
+        WHEN 'inclusive_percent' THEN
+          CASE WHEN COALESCE(r.rate,0)=0 THEN 0 ELSE round(v_base - (v_base / (1 + (r.rate / 100))), 2) END
+        WHEN 'exclusive_percent' THEN round(v_base * r.rate / 100, 2)
+        WHEN 'fixed_per_night' THEN round(r.rate * _nights, 2)
+        WHEN 'fixed_per_booking' THEN round(r.rate, 2)
+        ELSE 0
+      END
     END;
     v_added := CASE WHEN r.calculation_type='inclusive_percent' THEN 0 ELSE v_tax END;
     v_tax_total := v_tax_total + v_tax;
