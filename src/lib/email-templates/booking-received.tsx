@@ -37,7 +37,7 @@ const Email = (props: BookingEmailProps) => {
       <Row label="Check-out" value={checkOut} />
       <Row label="Nights" value={String(nights)} />
       <Row label="Guests" value={guestsLine(adults, children)} />
-      {taxes !== undefined && Number(taxes) > 0 ? <Row label="Taxes included in total" value={money(taxes, currency)} /> : null}
+      {taxes !== undefined && Number(taxes) > 0 ? <Row label="Taxes" value={money(taxes, currency)} /> : null}
       {total !== undefined ? <Row label="Total" value={money(total, currency)} /> : null}
       {payAtProperty ? <Row label="Payment due at property" value={money(total, currency)} /> : deposit !== undefined ? <Row label="Deposit due" value={money(deposit, currency)} /> : null}
       <Row label="Payment method" value={payAtProperty ? 'Pay at property' : 'Online payment'} />
