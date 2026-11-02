@@ -43,6 +43,9 @@ export const initiatePayment = createServerFn({ method: "POST" })
     assertSameProperty(booking.property_id, propertyId, "Booking");
     if (booking.guest_email.toLowerCase() !== data.email.toLowerCase()) throw new Error("Email does not match booking");
     if (booking.payment_status === "paid" || booking.payment_status === "deposit_paid") throw new Error("Booking is already paid");
+    if (booking.payment_method === "pay_at_property" || booking.payment_provider === "manual") {
+      throw new Error("This reservation is configured for payment at the property");
+    }
     if (booking.provider_transaction_id || booking.pesapal_order_tracking_id) {
       throw new Error("A payment attempt already exists for this booking; check its status before creating another");
     }
