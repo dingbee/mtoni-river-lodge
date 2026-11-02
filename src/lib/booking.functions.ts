@@ -5,6 +5,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { bookingRpc } from "@/lib/booking-rpc";
 import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 import { assertSameProperty } from "@/lib/booking-property";
+import { buildPriceBreakdownFromConfig } from "@/lib/pricing";
 
 async function getVerifiedOnlineProvider(supabaseAdmin: any, propertyId: string, currency: string): Promise<string | null> {
   const { data, error } = await (supabaseAdmin as any).from("staynas_property_integrations")
@@ -249,11 +250,13 @@ export const getBookingPaymentOptions = createServerFn({ method: "GET" }).handle
 
 
 const bookingTaxPreviewSchema = z.object({
+  roomSlug: z.string().min(1).max(120),
   checkIn: dateStr,
-  nights: z.number().int().min(1).max(365),
-  accommodationSubtotal: z.number().finite().min(0).max(1000000000),
-  extrasTotal: z.number().finite().min(0).max(1000000000),
-  currency: z.string().trim().length(3).regex(/^[A-Za-z]{3}$/),
+  checkOut: dateStr,
+  adults: z.number().int().min(1).max(10),
+  childrenBelow6: z.number().int().min(0).max(10).default(0),
+  children7Plus: z.number().int().min(0).max(10).default(0),
+  extras: z.array(extraSchema).max(20).default([]).refine((items) => new Set(items.map((item) => item.slug)).size === items.length, "Duplicate extras are not allowed"),
 });
 
 /** Preview tax using the same database function used inside create_booking_for_property. */
@@ -262,16 +265,62 @@ export const getBookingTaxPreview = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const nights = Math.round((Date.parse(data.checkOut) - Date.parse(data.checkIn)) / 86_400_000);
+    if (!Number.isFinite(nights) || nights < 1 || nights > 365) throw new Error("Select a valid check-in and check-out date");
+
+    const { data: room, error: roomError } = await (supabaseAdmin as any).from("rooms")
+      .select("base_price,included_guests,max_occupancy,extra_guest_fee,currency")
+      .eq("property_id", propertyId).eq("slug", data.roomSlug).maybeSingle();
+    if (roomError || !room) throw new Error("Selected room could not be resolved for pricing");
+
+    const accommodationSubtotal = Math.round(buildPriceBreakdownFromConfig({
+      basePrice: Number(room.base_price),
+      includedGuests: Number(room.included_guests),
+      maxGuests: Number(room.max_occupancy),
+      extraGuestFee: Number(room.extra_guest_fee),
+      currency: String(room.currency),
+    }, {
+      adults: data.adults,
+      childrenBelow6: data.childrenBelow6,
+      children7Plus: data.children7Plus,
+    }, nights).grandTotal * 100) / 100;
+
+    let extrasTotal = 0;
+    if (data.extras.length > 0) {
+      const slugs = data.extras.map((item) => item.slug);
+      const { data: extraRows, error: extrasError } = await (supabaseAdmin as any).from("extras")
+        .select("slug,price,unit,currency")
+        .eq("property_id", propertyId).eq("active", true).in("slug", slugs);
+      if (extrasError) throw new Error("Unable to resolve selected booking extras");
+      const bySlug = new Map((extraRows ?? []).map((item: any) => [String(item.slug), item]));
+      if (bySlug.size !== slugs.length) throw new Error("One or more selected extras are no longer available");
+      const occupants = data.adults + data.childrenBelow6 + data.children7Plus;
+      for (const selection of data.extras) {
+        const extra = bySlug.get(selection.slug) as any;
+        if (extra.currency && String(extra.currency).toUpperCase() !== String(room.currency).toUpperCase()) {
+          throw new Error("Selected extra currency does not match the room currency");
+        }
+        const multiplier = extra.unit === "per_stay" ? 1
+          : extra.unit === "per_night" ? nights
+          : extra.unit === "per_person" ? occupants
+          : extra.unit === "per_person_per_night" ? occupants * nights : 1;
+        extrasTotal += Number(extra.price) * selection.quantity * multiplier;
+      }
+      extrasTotal = Math.round(extrasTotal * 100) / 100;
+    }
+
     const { data: result, error } = await (supabaseAdmin as any).rpc("calculate_staynas_booking_taxes", {
       _property_id: propertyId,
       _service_date: data.checkIn,
-      _nights: data.nights,
-      _accommodation_subtotal: data.accommodationSubtotal,
-      _extras_total: data.extrasTotal,
-      _currency: data.currency.toUpperCase(),
+      _nights: nights,
+      _accommodation_subtotal: accommodationSubtotal,
+      _extras_total: extrasTotal,
+      _currency: String(room.currency).toUpperCase(),
     });
     if (error) throw new Error(`Could not calculate property taxes: ${error.message}`);
     return {
+      accommodationSubtotal,
+      extrasTotal,
       taxTotal: Number(result?.tax_total ?? 0),
       taxAddition: Number(result?.tax_addition ?? 0),
       configured: Boolean(result?.configured),
