@@ -647,7 +647,7 @@ function BookPage() {
               paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
               onlinePaymentAvailable={onlinePaymentAvailable}
               taxPreview={taxPreview} taxPreviewLoading={taxPreviewLoading} taxPreviewError={taxPreviewError}
-              submitting={submit.isPending || taxPreviewLoading || !taxPreview || !!taxPreviewError}
+              submitting={submit.isPending || taxPreviewLoading || !taxPreview || !!taxPreviewError || !taxPreview.configured}
               onBack={() => goToStep("select", "user_back_from_guest")}
               onSubmit={() => submit.mutate()}
             />
@@ -1069,7 +1069,7 @@ function GuestStep(props: {
           {props.taxPreviewLoading && <p className="text-xs text-charcoal/55">Calculating property taxes…</p>}
           {props.taxPreviewError && <p className="text-xs text-red-700">Tax calculation is unavailable. Please retry before submitting.</p>}
           {props.taxPreview && props.taxPreview.taxTotal > 0 && <div className="flex justify-between text-charcoal/70"><span>Taxes {props.taxPreview.taxAddition === 0 ? "(included)" : ""}</span><span>{fmt(props.taxPreview.taxTotal)}</span></div>}
-          {props.taxPreview && !props.taxPreview.configured && <p className="text-xs text-charcoal/55">No applicable property tax rules are configured.</p>}
+          {props.taxPreview && !props.taxPreview.configured && <p className="text-xs text-charcoal/55">No applicable property tax rules are configured. Public booking is disabled until the property records its approved tax treatment.</p>}
           <div className="flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(props.grandTotal)}</span></div>
           {props.paymentMethod === "online" ? (
             <>
