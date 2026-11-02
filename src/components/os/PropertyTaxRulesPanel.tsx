@@ -68,7 +68,7 @@ export function PropertyTaxRulesPanel({ propertyId, currency }: { propertyId: st
   const fixed = form.calculationType === "fixed_per_night" || form.calculationType === "fixed_per_booking";
   const field = "mt-1 w-full rounded-md border border-[color:var(--os-hairline)] bg-[color:var(--os-surface)] px-3 py-2 text-sm text-[color:var(--os-ink)]";
 
-  return <SectionCard title="Taxes & Charges" description={`Configure the selected property's tax rules. Booking totals use these rules at the service date; compound rules follow creation order. No tax rate is assumed or inserted automatically. Currency: ${currency}.`}>
+  return <SectionCard title="Taxes & Charges" description={`Configure the selected property's tax rules. Booking totals use these rules based on the check-in date; compound rules follow creation order. No tax rate is assumed or inserted automatically. Currency: ${currency}.`}>
     <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <div className="space-y-3">
         {rules.isLoading ? <p className="text-sm text-muted-foreground">Loading tax rules…</p>
