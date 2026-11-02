@@ -23,6 +23,7 @@ import {
 import {
   checkAvailability,
   createBooking,
+  getBookingPaymentOptions,
   listExtras,
   type AvailabilityRoom,
 } from "@/lib/booking.functions";
@@ -173,7 +174,9 @@ function BookPage() {
   const [extras, setExtras] = useState<Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>>(p.extras ?? []);
   const [selectedExtras, setSelectedExtras] = useState<SelectedExtra[]>(p.selectedExtras ?? []);
   const [guest, setGuest] = useState(p.guest ?? { name: "", email: "", phone: "", country: "", requests: "", purpose: "" });
-  const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string } | null>(null);
+  const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string; paymentMethod: "online" | "pay_at_property" } | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"online" | "pay_at_property">("pay_at_property");
+  const [onlinePaymentAvailable, setOnlinePaymentAvailable] = useState(false);
   const [hold, setHold] = useState<{ id: string; expiresAt: string; roomSlug: string } | null>(null);
   const [roomInventory, setRoomInventory] = useState<{ available_units: number; total_units: number } | null>(null);
 
@@ -342,7 +345,19 @@ function BookPage() {
   const checkAvailabilityFn = useServerFn(checkAvailability);
   const listExtrasFn = useServerFn(listExtras);
   const createBookingFn = useServerFn(createBooking);
+  const getBookingPaymentOptionsFn = useServerFn(getBookingPaymentOptions);
   const initiatePaymentFn = useServerFn(initiatePayment);
+
+  useEffect(() => {
+    let active = true;
+    getBookingPaymentOptionsFn().then((options) => {
+      if (active) setOnlinePaymentAvailable(Boolean(options.online));
+    }).catch((error) => {
+      console.error("[book] payment options unavailable", error);
+      if (active) setOnlinePaymentAvailable(false);
+    });
+    return () => { active = false; };
+  }, [getBookingPaymentOptionsFn]);
   const createHoldFn = useServerFn(createBookingHold);
   const releaseHoldFn = useServerFn(releaseBookingHold);
 
@@ -397,20 +412,29 @@ function BookPage() {
           extras: selectedExtras,
           holdId: activeHoldId,
           sessionId,
+          paymentMethod,
         },
       });
-      trackGAEvent("begin_payment", {
+      if (paymentMethod === "online") {
+        trackGAEvent("begin_payment", {
+          transaction_id: created.reference,
+          currency: created.currency,
+          value: Math.round((created.total / 2) * 100) / 100,
+        });
+        const payment = await initiatePaymentFn({
+          data: { reference: created.reference, email: guest.email },
+        });
+        return { ...created, redirectUrl: payment.redirectUrl };
+      }
+      trackGAEvent("booking_pay_at_property", {
         transaction_id: created.reference,
         currency: created.currency,
-        value: Math.round((created.total / 2) * 100) / 100,
+        value: created.total,
       });
-      const payment = await initiatePaymentFn({
-        data: { reference: created.reference, email: guest.email },
-      });
-      return { ...created, redirectUrl: payment.redirectUrl };
+      return { ...created, redirectUrl: null };
     },
     onSuccess: (res) => {
-      setConfirmation({ reference: res.reference, total: res.total, currency: res.currency });
+      setConfirmation({ reference: res.reference, total: res.total, currency: res.currency, paymentMethod });
       // Redirect to Pesapal for deposit payment.
       if (res.redirectUrl) {
         try { window.sessionStorage.removeItem(STORAGE_KEY); } catch {}
@@ -585,6 +609,8 @@ function BookPage() {
               extras={extras} selectedExtras={selectedExtras} setSelectedExtras={setSelectedExtras}
               roomTotal={roomTotal} extrasTotal={extrasTotal} grandTotal={grandTotal}
               guest={guest} setGuest={setGuest}
+              paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
+              onlinePaymentAvailable={onlinePaymentAvailable}
               submitting={submit.isPending}
               onBack={() => goToStep("select", "user_back_from_guest")}
               onSubmit={() => submit.mutate()}
@@ -611,6 +637,7 @@ function BookPage() {
               room={selectedRoom}
               checkIn={checkIn} checkOut={checkOut} nights={nights}
               guestName={guest.name} guestEmail={guest.email}
+              paymentMethod={confirmation.paymentMethod}
             />
           )}
 
@@ -843,6 +870,9 @@ function GuestStep(props: {
   roomTotal: number; extrasTotal: number; grandTotal: number;
   guest: { name: string; email: string; phone: string; country: string; requests: string; purpose: string };
   setGuest: (g: { name: string; email: string; phone: string; country: string; requests: string; purpose: string }) => void;
+  paymentMethod: "online" | "pay_at_property";
+  setPaymentMethod: (v: "online" | "pay_at_property") => void;
+  onlinePaymentAvailable: boolean;
   submitting: boolean;
   onBack: () => void; onSubmit: () => void;
 }) {
@@ -947,6 +977,22 @@ function GuestStep(props: {
             <div className="sm:col-span-2"><label className={labelCls}>Special requests</label><textarea rows={3} className={`mt-2 ${field} resize-none`} value={props.guest.requests} onChange={(e) => props.setGuest({ ...props.guest, requests: e.target.value })} /></div>
           </div>
         </div>
+
+        <div className="rounded-2xl border border-charcoal/10 bg-ivory p-6 sm:p-8">
+          <h3 className="font-display text-xl">Payment Method</h3>
+          <div className="mt-4 space-y-3">
+            {props.onlinePaymentAvailable && (
+              <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 ${props.paymentMethod === "online" ? "border-charcoal/50 bg-bone/40" : "border-charcoal/10"}`}>
+                <input type="radio" name="booking-payment-method" checked={props.paymentMethod === "online"} onChange={() => props.setPaymentMethod("online")} className="mt-1" />
+                <span><span className="block text-sm font-medium">Pay online</span><span className="mt-1 block text-xs text-charcoal/60">Pay a 50% deposit securely through the property’s configured payment provider.</span></span>
+              </label>
+            )}
+            <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 ${props.paymentMethod === "pay_at_property" ? "border-charcoal/50 bg-bone/40" : "border-charcoal/10"}`}>
+              <input type="radio" name="booking-payment-method" checked={props.paymentMethod === "pay_at_property"} onChange={() => props.setPaymentMethod("pay_at_property")} className="mt-1" />
+              <span><span className="block text-sm font-medium">Pay at property</span><span className="mt-1 block text-xs text-charcoal/60">Reserve now and settle the full balance directly with the property at check-in.</span></span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <aside className="space-y-4 self-start rounded-2xl border border-charcoal/10 bg-bone/40 p-6 lg:sticky lg:top-24">
@@ -982,8 +1028,14 @@ function GuestStep(props: {
           <div className="flex justify-between"><span>Room subtotal</span><span>{fmt(props.roomTotal)}</span></div>
           {props.extrasTotal > 0 && <div className="flex justify-between"><span>Extras</span><span>{fmt(props.extrasTotal)}</span></div>}
           <div className="flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(props.grandTotal)}</span></div>
-          <div className="flex justify-between text-charcoal/70"><span>Deposit now (50%)</span><span>{fmt(deposit)}</span></div>
-          <div className="flex justify-between text-charcoal/70"><span>Balance at check-in (50%)</span><span>{fmt(balance)}</span></div>
+          {props.paymentMethod === "online" ? (
+            <>
+              <div className="flex justify-between text-charcoal/70"><span>Deposit now (50%)</span><span>{fmt(deposit)}</span></div>
+              <div className="flex justify-between text-charcoal/70"><span>Balance at check-in (50%)</span><span>{fmt(balance)}</span></div>
+            </>
+          ) : (
+            <div className="flex justify-between text-charcoal/70"><span>Due at property</span><span>{fmt(props.grandTotal)}</span></div>
+          )}
         </div>
         <button
           onClick={props.onSubmit} disabled={props.submitting}
@@ -991,16 +1043,17 @@ function GuestStep(props: {
           style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
         >
           {props.submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          {props.submitting ? "Redirecting to payment…" : "Pay 50% Deposit & Confirm"}
+          {props.submitting ? (props.paymentMethod === "online" ? "Redirecting to payment…" : "Submitting reservation…") : (props.paymentMethod === "online" ? "Pay 50% Deposit & Confirm" : "Reserve & Pay at Property")}
         </button>
-        <p className="text-[0.65rem] text-charcoal/55">You will be securely redirected to Pesapal to pay the 50% deposit. The remaining balance is payable on arrival.</p>
+        <p className="text-[0.65rem] text-charcoal/55">{props.paymentMethod === "online" ? "You will be redirected to the property’s configured payment provider to pay the 50% deposit. The remaining balance is payable on arrival." : "No online payment is required now. Your reservation remains pending until the property confirms it; payment is due at check-in."}</p>
       </aside>
     </div>
   );
 }
 
-function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guestName, guestEmail }: {
+function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guestName, guestEmail, paymentMethod }: {
   confirmation: { reference: string; total: number; currency: string };
+  paymentMethod: "online" | "pay_at_property";
   room: AvailabilityRoom;
   checkIn: string; checkOut: string; nights: number;
   guestName: string; guestEmail: string;
@@ -1019,11 +1072,18 @@ function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guest
         <div className="mt-2 flex justify-between"><span className="text-charcoal/60">Check-in</span><span>{checkIn}</span></div>
         <div className="mt-2 flex justify-between"><span className="text-charcoal/60">Check-out</span><span>{checkOut}</span></div>
         <div className="mt-2 flex justify-between"><span className="text-charcoal/60">Nights</span><span>{nights}</span></div>
+        <div className="mt-2 flex justify-between text-charcoal/70"><span>Payment method</span><span>{paymentMethod === "pay_at_property" ? "Pay at property" : "Online payment"}</span></div>
         <div className="mt-3 flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(confirmation.total)}</span></div>
-        <div className="mt-2 flex justify-between text-charcoal/70"><span>Deposit (50%)</span><span>{fmt(Math.round(confirmation.total * 0.5))}</span></div>
-        <div className="mt-1 flex justify-between text-charcoal/70"><span>Balance at check-in</span><span>{fmt(confirmation.total - Math.round(confirmation.total * 0.5))}</span></div>
+        {paymentMethod === "online" ? (
+          <>
+            <div className="mt-2 flex justify-between text-charcoal/70"><span>Deposit (50%)</span><span>{fmt(Math.round(confirmation.total * 0.5))}</span></div>
+            <div className="mt-1 flex justify-between text-charcoal/70"><span>Balance at check-in</span><span>{fmt(confirmation.total - Math.round(confirmation.total * 0.5))}</span></div>
+          </>
+        ) : (
+          <div className="mt-2 flex justify-between text-charcoal/70"><span>Due at property</span><span>{fmt(confirmation.total)}</span></div>
+        )}
       </div>
-      <p className="mt-6 text-xs text-charcoal/55">Status: <span className="font-medium text-charcoal">Pending</span> — our team will reach out within 24 hours to finalise payment.</p>
+      <p className="mt-6 text-xs text-charcoal/55">Status: <span className="font-medium text-charcoal">Pending</span> — {paymentMethod === "pay_at_property" ? "our team will confirm your reservation; payment is due at check-in." : "our team will reach out within 24 hours if any payment follow-up is required."}</p>
     </div>
   );
 }
