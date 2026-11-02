@@ -76,11 +76,11 @@ BEGIN
     v_tax_total := v_tax_total + v_tax;
     v_tax_addition := v_tax_addition + v_added;
     IF r.applies_to='accommodation' THEN
-      v_accommodation_tax := v_accommodation_tax + v_tax;
+      v_accommodation_tax := v_accommodation_tax + v_added;
     ELSIF r.applies_to='extras' THEN
-      v_extras_tax := v_extras_tax + v_tax;
+      v_extras_tax := v_extras_tax + v_added;
     ELSE
-      v_all_tax := v_all_tax + v_tax;
+      v_all_tax := v_all_tax + v_added;
     END IF;
     v_breakdown := v_breakdown || jsonb_build_array(jsonb_build_object(
       'name', r.name,
