@@ -13,7 +13,7 @@ export interface HoldCreatedRow { hold_id: string; expires_at: string; room_id: 
 export interface HoldSessionRow {
   id: string; room_id: string; check_in: string; check_out: string; expires_at: string; status: string;
 }
-export interface CreateBookingRow { booking_id: string; reference: string; total: number; currency: string }
+export interface CreateBookingRow { booking_id: string; reference: string; total: number; currency: string; taxes: number; tax_addition: number; tax_breakdown: unknown[] }
 export interface CreateBookingArgs {
   _room_slug: string; _check_in: string; _check_out: string; _adults: number; _children: number;
   _guest_name: string; _guest_email: string; _guest_phone: string | null; _country: string | null;
