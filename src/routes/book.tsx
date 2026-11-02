@@ -24,6 +24,7 @@ import {
   checkAvailability,
   createBooking,
   getBookingPaymentOptions,
+  getBookingTaxPreview,
   listExtras,
   type AvailabilityRoom,
 } from "@/lib/booking.functions";
@@ -174,9 +175,13 @@ function BookPage() {
   const [extras, setExtras] = useState<Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>>(p.extras ?? []);
   const [selectedExtras, setSelectedExtras] = useState<SelectedExtra[]>(p.selectedExtras ?? []);
   const [guest, setGuest] = useState(p.guest ?? { name: "", email: "", phone: "", country: "", requests: "", purpose: "" });
-  const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string; paymentMethod: "online" | "pay_at_property" } | null>(null);
+  const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string; paymentMethod: "online" | "pay_at_property"; taxes: number; taxAddition: number } | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"online" | "pay_at_property">("pay_at_property");
   const [onlinePaymentAvailable, setOnlinePaymentAvailable] = useState(false);
+  const [onlinePaymentProvider, setOnlinePaymentProvider] = useState<string | null>(null);
+  const [taxPreview, setTaxPreview] = useState<{ accommodationSubtotal: number; extrasTotal: number; taxTotal: number; taxAddition: number; configured: boolean; breakdown: Array<{ name: string; amount: number; inclusive: boolean; added_to_total: number }> } | null>(null);
+  const [taxPreviewLoading, setTaxPreviewLoading] = useState(false);
+  const [taxPreviewError, setTaxPreviewError] = useState<string | null>(null);
   const [hold, setHold] = useState<{ id: string; expiresAt: string; roomSlug: string } | null>(null);
   const [roomInventory, setRoomInventory] = useState<{ available_units: number; total_units: number } | null>(null);
 
@@ -346,12 +351,16 @@ function BookPage() {
   const listExtrasFn = useServerFn(listExtras);
   const createBookingFn = useServerFn(createBooking);
   const getBookingPaymentOptionsFn = useServerFn(getBookingPaymentOptions);
+  const getBookingTaxPreviewFn = useServerFn(getBookingTaxPreview);
   const initiatePaymentFn = useServerFn(initiatePayment);
 
   useEffect(() => {
     let active = true;
     getBookingPaymentOptionsFn().then((options) => {
-      if (active) setOnlinePaymentAvailable(Boolean(options.online));
+      if (active) {
+        setOnlinePaymentAvailable(Boolean(options.online));
+        setOnlinePaymentProvider(options.onlineProvider ?? null);
+      }
     }).catch((error) => {
       console.error("[book] payment options unavailable", error);
       if (active) setOnlinePaymentAvailable(false);
@@ -422,7 +431,7 @@ function BookPage() {
           value: Math.round((created.total / 2) * 100) / 100,
         });
         const payment = await initiatePaymentFn({
-          data: { reference: created.reference, email: guest.email },
+          data: { reference: created.reference, email: guest.email, provider: onlinePaymentProvider ?? undefined },
         });
         return { ...created, redirectUrl: payment.redirectUrl };
       }
@@ -434,7 +443,7 @@ function BookPage() {
       return { ...created, redirectUrl: null };
     },
     onSuccess: (res) => {
-      setConfirmation({ reference: res.reference, total: res.total, currency: res.currency, paymentMethod });
+      setConfirmation({ reference: res.reference, total: res.total, currency: res.currency, paymentMethod, taxes: Number(res.taxes ?? 0), taxAddition: Number(res.taxAddition ?? 0) });
       // Redirect to Pesapal for deposit payment.
       if (res.redirectUrl) {
         try { window.sessionStorage.removeItem(STORAGE_KEY); } catch {}
@@ -482,7 +491,41 @@ function BookPage() {
   const roomTotal = priceBreakdown?.grandTotal
     ?? (selectedRoom ? Number(selectedRoom.nightly_total) || 0 : 0);
 
-  const grandTotal = roomTotal + extrasTotal;
+  useEffect(() => {
+    if (!selectedRoom || nights < 1) {
+      setTaxPreview(null);
+      setTaxPreviewLoading(false);
+      setTaxPreviewError(null);
+      return;
+    }
+    let active = true;
+    setTaxPreviewLoading(true);
+    setTaxPreviewError(null);
+    getBookingTaxPreviewFn({ data: {
+      roomSlug: selectedRoom.slug,
+      checkIn,
+      checkOut,
+      adults,
+      childrenBelow6,
+      children7Plus,
+      extras: selectedExtras,
+    } }).then((result) => {
+      if (active) setTaxPreview(result);
+    }).catch((error) => {
+      console.error("[book] tax preview failed", error);
+      if (active) {
+        setTaxPreview(null);
+        setTaxPreviewError(error instanceof Error ? error.message : "Tax calculation unavailable");
+      }
+    }).finally(() => {
+      if (active) setTaxPreviewLoading(false);
+    });
+    return () => { active = false; };
+  }, [selectedRoom?.slug, checkIn, checkOut, adults, childrenBelow6, children7Plus, selectedExtras, getBookingTaxPreviewFn]);
+
+  const displayRoomTotal = taxPreview?.accommodationSubtotal ?? roomTotal;
+  const displayExtrasTotal = taxPreview?.extrasTotal ?? extrasTotal;
+  const grandTotal = displayRoomTotal + displayExtrasTotal + (taxPreview?.taxAddition ?? 0);
 
   return (
     <div className="min-h-screen bg-ivory text-charcoal">
@@ -607,11 +650,13 @@ function BookPage() {
               childrenBelow6={childrenBelow6}
               breakdown={priceBreakdown}
               extras={extras} selectedExtras={selectedExtras} setSelectedExtras={setSelectedExtras}
-              roomTotal={roomTotal} extrasTotal={extrasTotal} grandTotal={grandTotal}
+              roomTotal={displayRoomTotal} extrasTotal={displayExtrasTotal} grandTotal={grandTotal}
               guest={guest} setGuest={setGuest}
               paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
               onlinePaymentAvailable={onlinePaymentAvailable}
+              taxPreview={taxPreview} taxPreviewLoading={taxPreviewLoading} taxPreviewError={taxPreviewError}
               submitting={submit.isPending}
+              submitDisabled={submit.isPending || taxPreviewLoading || !taxPreview || !!taxPreviewError}
               onBack={() => goToStep("select", "user_back_from_guest")}
               onSubmit={() => submit.mutate()}
             />
@@ -873,7 +918,11 @@ function GuestStep(props: {
   paymentMethod: "online" | "pay_at_property";
   setPaymentMethod: (v: "online" | "pay_at_property") => void;
   onlinePaymentAvailable: boolean;
+  taxPreview: { accommodationSubtotal: number; extrasTotal: number; taxTotal: number; taxAddition: number; configured: boolean; breakdown: Array<{ name: string; amount: number; inclusive: boolean; added_to_total: number }> } | null;
+  taxPreviewLoading: boolean;
+  taxPreviewError: string | null;
   submitting: boolean;
+  submitDisabled: boolean;
   onBack: () => void; onSubmit: () => void;
 }) {
   const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: props.room.currency, maximumFractionDigits: 0 }).format(n);
@@ -1027,6 +1076,11 @@ function GuestStep(props: {
           )}
           <div className="flex justify-between"><span>Room subtotal</span><span>{fmt(props.roomTotal)}</span></div>
           {props.extrasTotal > 0 && <div className="flex justify-between"><span>Extras</span><span>{fmt(props.extrasTotal)}</span></div>}
+          {props.taxPreviewLoading && <p className="text-xs text-charcoal/55">Calculating property taxes…</p>}
+          {props.taxPreviewError && <p className="text-xs text-red-700">Tax calculation is unavailable. Please retry before submitting.</p>}
+          {props.taxPreview?.breakdown.map((line, index) => <div key={`${line.name}-${index}`} className="flex justify-between text-charcoal/70"><span>{line.name}{line.inclusive ? " (included)" : ""}</span><span>{fmt(line.amount)}</span></div>)}
+          {props.taxPreview && props.taxPreview.taxTotal > 0 && <div className="flex justify-between border-t border-charcoal/10 pt-2 text-charcoal/70"><span>Total taxes</span><span>{fmt(props.taxPreview.taxTotal)}</span></div>}
+          {props.taxPreview && !props.taxPreview.configured && <p className="text-xs text-charcoal/55">No applicable tax rules are configured for this property. No tax is added; the property can configure its approved treatment in Settings.</p>}
           <div className="flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(props.grandTotal)}</span></div>
           {props.paymentMethod === "online" ? (
             <>
@@ -1038,12 +1092,12 @@ function GuestStep(props: {
           )}
         </div>
         <button
-          onClick={props.onSubmit} disabled={props.submitting}
+          onClick={props.onSubmit} disabled={props.submitDisabled}
           className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60"
           style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
         >
           {props.submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          {props.submitting ? (props.paymentMethod === "online" ? "Redirecting to payment…" : "Submitting reservation…") : (props.paymentMethod === "online" ? "Pay 50% Deposit & Confirm" : "Reserve & Pay at Property")}
+          {props.submitting ? (props.paymentMethod === "online" ? "Redirecting to payment…" : "Submitting reservation…") : props.taxPreviewError ? "Tax Calculation Unavailable" : (props.paymentMethod === "online" ? "Pay 50% Deposit & Confirm" : "Reserve & Pay at Property")}
         </button>
         <p className="text-[0.65rem] text-charcoal/55">{props.paymentMethod === "online" ? "You will be redirected to the property’s configured payment provider to pay the 50% deposit. The remaining balance is payable on arrival." : "No online payment is required now. Your reservation remains pending until the property confirms it; payment is due at check-in."}</p>
       </aside>
@@ -1052,7 +1106,7 @@ function GuestStep(props: {
 }
 
 function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guestName, guestEmail, paymentMethod }: {
-  confirmation: { reference: string; total: number; currency: string };
+  confirmation: { reference: string; total: number; currency: string; taxes: number; taxAddition: number };
   paymentMethod: "online" | "pay_at_property";
   room: AvailabilityRoom;
   checkIn: string; checkOut: string; nights: number;
@@ -1083,6 +1137,7 @@ function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guest
           <div className="mt-2 flex justify-between text-charcoal/70"><span>Due at property</span><span>{fmt(confirmation.total)}</span></div>
         )}
       </div>
+      {confirmation.taxes > 0 && <p className="mt-2 text-xs text-charcoal/55">Taxes{confirmation.taxAddition === 0 ? " (included)" : ""}: {fmt(confirmation.taxes)}</p>}
       <p className="mt-6 text-xs text-charcoal/55">Status: <span className="font-medium text-charcoal">Pending</span> — {paymentMethod === "pay_at_property" ? "our team will confirm your reservation; payment is due at check-in." : "our team will reach out within 24 hours if any payment follow-up is required."}</p>
     </div>
   );

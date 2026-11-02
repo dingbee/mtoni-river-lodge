@@ -165,6 +165,8 @@ export interface BookingEmailProps {
   total?: number | string
   deposit?: number | string
   balance?: number | string
+  taxes?: number | string
+  paymentMethod?: string
   currency?: string
 }
 

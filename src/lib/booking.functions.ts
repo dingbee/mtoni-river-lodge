@@ -5,6 +5,27 @@ import type { Database } from "@/integrations/supabase/types";
 import { bookingRpc } from "@/lib/booking-rpc";
 import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 import { assertSameProperty } from "@/lib/booking-property";
+import { buildPriceBreakdownFromConfig } from "@/lib/pricing";
+
+async function getVerifiedOnlineProvider(supabaseAdmin: any, propertyId: string, currency: string): Promise<string | null> {
+  const { data, error } = await (supabaseAdmin as any).from("staynas_property_integrations")
+    .select("provider, credential_reference, supported_currencies")
+    .eq("property_id", propertyId)
+    .eq("purpose", "payments")
+    .eq("enabled", true)
+    .eq("verification_status", "verified")
+    .not("credential_reference", "is", null)
+    .order("created_at", { ascending: true })
+    .limit(10);
+  if (error) throw new Error("Could not resolve a verified property payment provider");
+  const normalizedCurrency = String(currency ?? "").toUpperCase();
+  const integration = (data ?? []).find((item: any) => {
+    const supported = Array.isArray(item.supported_currencies) ? item.supported_currencies.map((v: string) => String(v).toUpperCase()) : [];
+    return !normalizedCurrency || supported.length === 0 || supported.includes(normalizedCurrency);
+  });
+  return integration?.provider ? String(integration.provider) : null;
+}
+
 
 function getPublicClient() {
   return createClient<Database>(
@@ -104,7 +125,7 @@ const createBookingSchema = z.object({
   country: z.string().trim().max(100).optional().or(z.literal("")),
   specialRequests: z.string().trim().max(1000).optional().or(z.literal("")),
   visitPurpose: z.string().trim().max(80).optional().or(z.literal("")),
-  extras: z.array(extraSchema).max(20).default([]),
+  extras: z.array(extraSchema).max(20).default([]).refine((items) => new Set(items.map((item) => item.slug)).size === items.length, "Duplicate extras are not allowed"),
   holdId: z.string().uuid().optional(),
   sessionId: z.string().min(6).max(120).optional(),
   paymentMethod: z.enum(["online", "pay_at_property"]).default("online"),
@@ -120,6 +141,14 @@ export const createBooking = createServerFn({ method: "POST" })
     const below6 = data.childrenBelow6 ?? 0;
     const plus7 = data.children7Plus ?? Math.max(0, (data.children ?? 0) - below6);
     const totalChildren = below6 + plus7;
+    if (data.paymentMethod === "online") {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: room, error: roomError } = await (supabaseAdmin as any).from("rooms")
+        .select("currency").eq("property_id", propertyId).eq("slug", data.roomSlug).maybeSingle();
+      if (roomError || !room) throw new Error("Selected room could not be resolved for online payment");
+      const verifiedProvider = await getVerifiedOnlineProvider(supabaseAdmin, propertyId, room.currency);
+      if (!verifiedProvider) throw new Error("Online payment is not enabled for this property and currency. Choose Pay at Property.");
+    }
     const { data: result, error } = await bookingRpc(sb).rpc("create_booking_for_property", {
       _property_id: propertyId,
       _room_slug: data.roomSlug,
@@ -159,9 +188,9 @@ export const createBooking = createServerFn({ method: "POST" })
     // Send "reservation received" email via Lovable Emails. Never let email failure block booking.
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: full } = await supabaseAdmin
+      const { data: full } = await (supabaseAdmin as any)
         .from("bookings")
-        .select("reference, guest_name, guest_email, check_in, check_out, nights, adults, children, total, deposit_amount, balance_amount, currency, room_id")
+        .select("reference, guest_name, guest_email, check_in, check_out, nights, adults, children, total, deposit_amount, balance_amount, taxes, tax_addition, tax_breakdown, payment_method, currency, room_id")
         .eq("id", row.booking_id as string)
         .eq("property_id", propertyId)
         .maybeSingle();
@@ -185,6 +214,8 @@ export const createBooking = createServerFn({ method: "POST" })
             total: full.total,
             deposit: full.deposit_amount,
             balance: full.balance_amount,
+            taxes: full.taxes,
+            paymentMethod: full.payment_method ?? "online",
             currency: full.currency,
           },
         });
@@ -198,6 +229,9 @@ export const createBooking = createServerFn({ method: "POST" })
       reference: row.reference as string,
       total: Number(row.total),
       currency: row.currency as string,
+      taxes: Number(row.taxes ?? 0),
+      taxAddition: Number(row.tax_addition ?? 0),
+      taxBreakdown: Array.isArray(row.tax_breakdown) ? row.tax_breakdown : [],
     };
   });
 
@@ -207,18 +241,95 @@ export const createBooking = createServerFn({ method: "POST" })
 export const getBookingPaymentOptions = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
-  const { data, error } = await (supabaseAdmin as any)
-    .from("staynas_property_integrations")
-    .select("provider, credential_reference")
-    .eq("property_id", propertyId)
-    .eq("purpose", "payments")
-    .eq("enabled", true)
-    .not("credential_reference", "is", null)
-    .order("created_at", { ascending: true })
-    .limit(1);
-  if (error) throw new Error(`Could not load payment options: ${error.message}`);
-  return { payAtProperty: true, online: Array.isArray(data) && data.length > 0 };
+  const { data: property, error } = await (supabaseAdmin as any).from("staynas_properties")
+    .select("currency").eq("id", propertyId).maybeSingle();
+  if (error || !property) throw new Error("Could not load property payment options");
+  const onlineProvider = await getVerifiedOnlineProvider(supabaseAdmin, propertyId, property.currency);
+  return { payAtProperty: true, online: Boolean(onlineProvider), onlineProvider };
 });
+
+
+const bookingTaxPreviewSchema = z.object({
+  roomSlug: z.string().min(1).max(120),
+  checkIn: dateStr,
+  checkOut: dateStr,
+  adults: z.number().int().min(1).max(10),
+  childrenBelow6: z.number().int().min(0).max(10).default(0),
+  children7Plus: z.number().int().min(0).max(10).default(0),
+  extras: z.array(extraSchema).max(20).default([]).refine((items) => new Set(items.map((item) => item.slug)).size === items.length, "Duplicate extras are not allowed"),
+});
+
+/** Preview tax using the same database function used inside create_booking_for_property. */
+export const getBookingTaxPreview = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => bookingTaxPreviewSchema.parse(d))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const nights = Math.round((Date.parse(data.checkOut) - Date.parse(data.checkIn)) / 86_400_000);
+    if (!Number.isFinite(nights) || nights < 1 || nights > 365) throw new Error("Select a valid check-in and check-out date");
+
+    const { data: room, error: roomError } = await (supabaseAdmin as any).from("rooms")
+      .select("base_price,included_guests,max_occupancy,extra_guest_fee,currency")
+      .eq("property_id", propertyId).eq("slug", data.roomSlug).maybeSingle();
+    if (roomError || !room) throw new Error("Selected room could not be resolved for pricing");
+
+    const accommodationSubtotal = Math.round(buildPriceBreakdownFromConfig({
+      basePrice: Number(room.base_price),
+      includedGuests: Number(room.included_guests),
+      maxGuests: Number(room.max_occupancy),
+      extraGuestFee: Number(room.extra_guest_fee),
+      currency: String(room.currency),
+    }, {
+      adults: data.adults,
+      childrenBelow6: data.childrenBelow6,
+      children7Plus: data.children7Plus,
+    }, nights).grandTotal * 100) / 100;
+
+    let extrasTotal = 0;
+    if (data.extras.length > 0) {
+      const slugs = data.extras.map((item) => item.slug);
+      const { data: extraRows, error: extrasError } = await (supabaseAdmin as any).from("extras")
+        .select("slug,price,unit,currency")
+        .eq("property_id", propertyId).eq("active", true).in("slug", slugs);
+      if (extrasError) throw new Error("Unable to resolve selected booking extras");
+      const bySlug = new Map((extraRows ?? []).map((item: any) => [String(item.slug), item]));
+      if (bySlug.size !== slugs.length) throw new Error("One or more selected extras are no longer available");
+      const occupants = data.adults + data.childrenBelow6 + data.children7Plus;
+      for (const selection of data.extras) {
+        const extra = bySlug.get(selection.slug) as any;
+        if (extra.currency && String(extra.currency).toUpperCase() !== String(room.currency).toUpperCase()) {
+          throw new Error("Selected extra currency does not match the room currency");
+        }
+        const multiplier = extra.unit === "per_stay" ? 1
+          : extra.unit === "per_night" ? nights
+          : extra.unit === "per_person" ? occupants
+          : extra.unit === "per_person_per_night" ? occupants * nights : 1;
+        extrasTotal += Number(extra.price) * selection.quantity * multiplier;
+      }
+      extrasTotal = Math.round(extrasTotal * 100) / 100;
+    }
+
+    const { data: result, error } = await (supabaseAdmin as any).rpc("calculate_staynas_booking_taxes", {
+      _property_id: propertyId,
+      _service_date: data.checkIn,
+      _nights: nights,
+      _accommodation_subtotal: accommodationSubtotal,
+      _extras_total: extrasTotal,
+      _currency: String(room.currency).toUpperCase(),
+    });
+    if (error) throw new Error(`Could not calculate property taxes: ${error.message}`);
+    return {
+      accommodationSubtotal,
+      extrasTotal,
+      taxTotal: Number(result?.tax_total ?? 0),
+      taxAddition: Number(result?.tax_addition ?? 0),
+      configured: Boolean(result?.configured),
+      breakdown: Array.isArray(result?.breakdown) ? result.breakdown.map((line: any) => ({
+        name: String(line.name ?? "Tax"), amount: Number(line.amount ?? 0),
+        inclusive: Boolean(line.inclusive), added_to_total: Number(line.added_to_total ?? 0),
+      })) : [],
+    };
+  });
 
 export const getBookingByReference = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>

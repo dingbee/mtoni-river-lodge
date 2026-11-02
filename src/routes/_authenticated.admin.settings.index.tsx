@@ -18,6 +18,7 @@ import { AppearanceControl } from "@/components/os/AppearanceControl";
 import { Badge } from "@/components/ui/badge";
 import { getBrandContext } from "@/domains/content/brand/brand.functions";
 import { usePropertyContext } from "@/modules/property/PropertyContext";
+import { PropertyTaxRulesPanel } from "@/components/os/PropertyTaxRulesPanel";
 
 export const Route = createFileRoute("/_authenticated/admin/settings/")({
   head: () => ({
@@ -156,6 +157,7 @@ function SettingsHub() {
         </div>
       </SectionCard>
 
+      <PropertyTaxRulesPanel propertyId={propertyContext.id} currency={propertyContext.currency} />
       <TileGrid title="Content" tiles={contentTiles} />
       <TileGrid title="AI & Messaging" tiles={aiAndMessaging} />
       <TileGrid title="Access" tiles={access} />
