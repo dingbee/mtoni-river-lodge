@@ -656,7 +656,7 @@ function BookPage() {
               onlinePaymentAvailable={onlinePaymentAvailable}
               taxPreview={taxPreview} taxPreviewLoading={taxPreviewLoading} taxPreviewError={taxPreviewError}
               submitting={submit.isPending}
-              submitDisabled={submit.isPending || taxPreviewLoading || !taxPreview || !!taxPreviewError || !taxPreview.configured}
+              submitDisabled={submit.isPending || taxPreviewLoading || !taxPreview || !!taxPreviewError}
               onBack={() => goToStep("select", "user_back_from_guest")}
               onSubmit={() => submit.mutate()}
             />
@@ -1080,7 +1080,7 @@ function GuestStep(props: {
           {props.taxPreviewError && <p className="text-xs text-red-700">Tax calculation is unavailable. Please retry before submitting.</p>}
           {props.taxPreview?.breakdown.map((line, index) => <div key={`${line.name}-${index}`} className="flex justify-between text-charcoal/70"><span>{line.name}{line.inclusive ? " (included)" : ""}</span><span>{fmt(line.amount)}</span></div>)}
           {props.taxPreview && props.taxPreview.taxTotal > 0 && <div className="flex justify-between border-t border-charcoal/10 pt-2 text-charcoal/70"><span>Total taxes</span><span>{fmt(props.taxPreview.taxTotal)}</span></div>}
-          {props.taxPreview && !props.taxPreview.configured && <p className="text-xs text-charcoal/55">No applicable property tax rules are configured. Public booking is disabled until the property records its approved tax treatment.</p>}
+          {props.taxPreview && !props.taxPreview.configured && <p className="text-xs text-charcoal/55">No applicable tax rules are configured for this property. No tax is added; the property can configure its approved treatment in Settings.</p>}
           <div className="flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(props.grandTotal)}</span></div>
           {props.paymentMethod === "online" ? (
             <>
@@ -1097,7 +1097,7 @@ function GuestStep(props: {
           style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
         >
           {props.submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          {props.submitting ? (props.paymentMethod === "online" ? "Redirecting to payment…" : "Submitting reservation…") : props.taxPreviewError ? "Tax Calculation Unavailable" : !props.taxPreview?.configured ? "Tax Setup Required" : (props.paymentMethod === "online" ? "Pay 50% Deposit & Confirm" : "Reserve & Pay at Property")}
+          {props.submitting ? (props.paymentMethod === "online" ? "Redirecting to payment…" : "Submitting reservation…") : props.taxPreviewError ? "Tax Calculation Unavailable" : (props.paymentMethod === "online" ? "Pay 50% Deposit & Confirm" : "Reserve & Pay at Property")}
         </button>
         <p className="text-[0.65rem] text-charcoal/55">{props.paymentMethod === "online" ? "You will be redirected to the property’s configured payment provider to pay the 50% deposit. The remaining balance is payable on arrival." : "No online payment is required now. Your reservation remains pending until the property confirms it; payment is due at check-in."}</p>
       </aside>
