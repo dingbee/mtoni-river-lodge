@@ -58,7 +58,7 @@ BEGIN
       v_base := v_base + CASE r.applies_to
         WHEN 'accommodation' THEN v_accommodation_tax + v_all_tax
         WHEN 'extras' THEN v_extras_tax + v_all_tax
-        ELSE v_tax_total
+        ELSE v_tax_addition
       END;
     END IF;
 
