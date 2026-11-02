@@ -188,7 +188,7 @@ export const createBooking = createServerFn({ method: "POST" })
     // Send "reservation received" email via Lovable Emails. Never let email failure block booking.
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: full } = await supabaseAdmin
+      const { data: full } = await (supabaseAdmin as any)
         .from("bookings")
         .select("reference, guest_name, guest_email, check_in, check_out, nights, adults, children, total, deposit_amount, balance_amount, taxes, tax_addition, tax_breakdown, payment_method, currency, room_id")
         .eq("id", row.booking_id as string)
