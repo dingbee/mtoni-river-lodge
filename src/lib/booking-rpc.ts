@@ -18,7 +18,7 @@ export interface CreateBookingArgs {
   _room_slug: string; _check_in: string; _check_out: string; _adults: number; _children: number;
   _guest_name: string; _guest_email: string; _guest_phone: string | null; _country: string | null;
   _special_requests: string | null; _property_id: string; _extras: unknown;
-  _children_below_6?: number; _children_7_plus?: number; _hold_id?: string | null; _session_id?: string | null;
+  _children_below_6?: number; _children_7_plus?: number; _hold_id?: string | null; _session_id?: string | null; _payment_method?: "online" | "pay_at_property";
 }
 
 export interface BookingPropertyRpc {
