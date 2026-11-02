@@ -6,6 +6,26 @@ import { bookingRpc } from "@/lib/booking-rpc";
 import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 import { assertSameProperty } from "@/lib/booking-property";
 
+async function getVerifiedOnlineProvider(supabaseAdmin: any, propertyId: string, currency: string): Promise<string | null> {
+  const { data, error } = await (supabaseAdmin as any).from("staynas_property_integrations")
+    .select("provider, credential_reference, supported_currencies")
+    .eq("property_id", propertyId)
+    .eq("purpose", "payments")
+    .eq("enabled", true)
+    .eq("verification_status", "verified")
+    .not("credential_reference", "is", null)
+    .order("created_at", { ascending: true })
+    .limit(10);
+  if (error) throw new Error("Could not resolve a verified property payment provider");
+  const normalizedCurrency = String(currency ?? "").toUpperCase();
+  const integration = (data ?? []).find((item: any) => {
+    const supported = Array.isArray(item.supported_currencies) ? item.supported_currencies.map((v: string) => String(v).toUpperCase()) : [];
+    return !normalizedCurrency || supported.length === 0 || supported.includes(normalizedCurrency);
+  });
+  return integration?.provider ? String(integration.provider) : null;
+}
+
+
 function getPublicClient() {
   return createClient<Database>(
     process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL!,
@@ -120,6 +140,14 @@ export const createBooking = createServerFn({ method: "POST" })
     const below6 = data.childrenBelow6 ?? 0;
     const plus7 = data.children7Plus ?? Math.max(0, (data.children ?? 0) - below6);
     const totalChildren = below6 + plus7;
+    if (data.paymentMethod === "online") {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: room, error: roomError } = await (supabaseAdmin as any).from("rooms")
+        .select("currency").eq("property_id", propertyId).eq("slug", data.roomSlug).maybeSingle();
+      if (roomError || !room) throw new Error("Selected room could not be resolved for online payment");
+      const verifiedProvider = await getVerifiedOnlineProvider(supabaseAdmin, propertyId, room.currency);
+      if (!verifiedProvider) throw new Error("Online payment is not enabled for this property and currency. Choose Pay at Property.");
+    }
     const { data: result, error } = await bookingRpc(sb).rpc("create_booking_for_property", {
       _property_id: propertyId,
       _room_slug: data.roomSlug,
@@ -212,27 +240,12 @@ export const createBooking = createServerFn({ method: "POST" })
 export const getBookingPaymentOptions = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
-  const [{ data: property, error: propertyError }, { data, error }] = await Promise.all([
-    (supabaseAdmin as any).from("staynas_properties").select("currency").eq("id", propertyId).maybeSingle(),
-    (supabaseAdmin as any).from("staynas_property_integrations")
-      .select("provider, credential_reference, supported_currencies, verification_status")
-      .eq("property_id", propertyId)
-      .eq("purpose", "payments")
-      .eq("enabled", true)
-      .eq("verification_status", "verified")
-      .not("credential_reference", "is", null)
-      .order("created_at", { ascending: true })
-      .limit(10),
-  ]);
-  if (propertyError || error) throw new Error("Could not load property payment options");
-  const currency = String(property?.currency ?? "").toUpperCase();
-  const integration = (data ?? []).find((item: any) => {
-    const supported = Array.isArray(item.supported_currencies) ? item.supported_currencies.map((v: string) => String(v).toUpperCase()) : [];
-    return !currency || supported.length === 0 || supported.includes(currency);
-  });
-  return { payAtProperty: true, online: Boolean(integration), onlineProvider: integration?.provider ?? null };
+  const { data: property, error } = await (supabaseAdmin as any).from("staynas_properties")
+    .select("currency").eq("id", propertyId).maybeSingle();
+  if (error || !property) throw new Error("Could not load property payment options");
+  const onlineProvider = await getVerifiedOnlineProvider(supabaseAdmin, propertyId, property.currency);
+  return { payAtProperty: true, online: Boolean(onlineProvider), onlineProvider };
 });
-
 
 
 const bookingTaxPreviewSchema = z.object({
