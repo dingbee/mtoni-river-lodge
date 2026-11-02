@@ -175,7 +175,7 @@ function BookPage() {
   const [extras, setExtras] = useState<Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>>(p.extras ?? []);
   const [selectedExtras, setSelectedExtras] = useState<SelectedExtra[]>(p.selectedExtras ?? []);
   const [guest, setGuest] = useState(p.guest ?? { name: "", email: "", phone: "", country: "", requests: "", purpose: "" });
-  const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string; paymentMethod: "online" | "pay_at_property"; taxes: number } | null>(null);
+  const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string; paymentMethod: "online" | "pay_at_property"; taxes: number; taxAddition: number } | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"online" | "pay_at_property">("pay_at_property");
   const [onlinePaymentAvailable, setOnlinePaymentAvailable] = useState(false);
   const [taxPreview, setTaxPreview] = useState<{ taxTotal: number; taxAddition: number; configured: boolean; breakdown: unknown[] } | null>(null);
@@ -439,7 +439,7 @@ function BookPage() {
       return { ...created, redirectUrl: null };
     },
     onSuccess: (res) => {
-      setConfirmation({ reference: res.reference, total: res.total, currency: res.currency, paymentMethod, taxes: Number(res.taxes ?? 0) });
+      setConfirmation({ reference: res.reference, total: res.total, currency: res.currency, paymentMethod, taxes: Number(res.taxes ?? 0), taxAddition: Number(res.taxAddition ?? 0) });
       // Redirect to Pesapal for deposit payment.
       if (res.redirectUrl) {
         try { window.sessionStorage.removeItem(STORAGE_KEY); } catch {}
@@ -1095,7 +1095,7 @@ function GuestStep(props: {
 }
 
 function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guestName, guestEmail, paymentMethod }: {
-  confirmation: { reference: string; total: number; currency: string; taxes: number };
+  confirmation: { reference: string; total: number; currency: string; taxes: number; taxAddition: number };
   paymentMethod: "online" | "pay_at_property";
   room: AvailabilityRoom;
   checkIn: string; checkOut: string; nights: number;
@@ -1126,7 +1126,7 @@ function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guest
           <div className="mt-2 flex justify-between text-charcoal/70"><span>Due at property</span><span>{fmt(confirmation.total)}</span></div>
         )}
       </div>
-      {confirmation.taxes > 0 && <p className="mt-2 text-xs text-charcoal/55">Tax included in total: {fmt(confirmation.taxes)}</p>}
+      {confirmation.taxes > 0 && <p className="mt-2 text-xs text-charcoal/55">Taxes{confirmation.taxAddition === 0 ? " (included)" : ""}: {fmt(confirmation.taxes)}</p>}
       <p className="mt-6 text-xs text-charcoal/55">Status: <span className="font-medium text-charcoal">Pending</span> — {paymentMethod === "pay_at_property" ? "our team will confirm your reservation; payment is due at check-in." : "our team will reach out within 24 hours if any payment follow-up is required."}</p>
     </div>
   );
