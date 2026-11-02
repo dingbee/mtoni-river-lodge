@@ -30,8 +30,9 @@ export function PropertyTaxRulesPanel({ propertyId, currency }: { propertyId: st
   const [editingId, setEditingId] = useState<string | null>(null);
   const rules = useQuery({ queryKey: ["property-tax-rules", propertyId], queryFn: () => listFn() });
   useEffect(() => {
-    if (!editingId) setForm((current) => ({ ...current, currency }));
-  }, [currency, editingId]);
+    setEditingId(null);
+    setForm(emptyForm(currency));
+  }, [propertyId, currency]);
 
   const save = useMutation({
     mutationFn: () => saveFn({ data: {
@@ -51,7 +52,7 @@ export function PropertyTaxRulesPanel({ propertyId, currency }: { propertyId: st
   });
   const deactivate = useMutation({
     mutationFn: (id: string) => deactivateFn({ data: { id } }),
-    onSuccess: () => { toast.success("Tax rule deactivated"); qc.invalidateQueries({ queryKey: ["property-tax-rules"] }); },
+    onSuccess: () => { toast.success("Tax rule deactivated"); qc.invalidateQueries({ queryKey: ["property-tax-rules", propertyId] }); },
     onError: (error: Error) => toast.error(error.message),
   });
 
