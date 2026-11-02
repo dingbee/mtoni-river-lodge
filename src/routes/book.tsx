@@ -178,6 +178,7 @@ function BookPage() {
   const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string; paymentMethod: "online" | "pay_at_property"; taxes: number; taxAddition: number } | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"online" | "pay_at_property">("pay_at_property");
   const [onlinePaymentAvailable, setOnlinePaymentAvailable] = useState(false);
+  const [onlinePaymentProvider, setOnlinePaymentProvider] = useState<string | null>(null);
   const [taxPreview, setTaxPreview] = useState<{ taxTotal: number; taxAddition: number; configured: boolean; breakdown: Array<{ name: string; amount: number; inclusive: boolean; added_to_total: number }> } | null>(null);
   const [taxPreviewLoading, setTaxPreviewLoading] = useState(false);
   const [taxPreviewError, setTaxPreviewError] = useState<string | null>(null);
@@ -356,7 +357,10 @@ function BookPage() {
   useEffect(() => {
     let active = true;
     getBookingPaymentOptionsFn().then((options) => {
-      if (active) setOnlinePaymentAvailable(Boolean(options.online));
+      if (active) {
+        setOnlinePaymentAvailable(Boolean(options.online));
+        setOnlinePaymentProvider(options.onlineProvider ?? null);
+      }
     }).catch((error) => {
       console.error("[book] payment options unavailable", error);
       if (active) setOnlinePaymentAvailable(false);
@@ -427,7 +431,7 @@ function BookPage() {
           value: Math.round((created.total / 2) * 100) / 100,
         });
         const payment = await initiatePaymentFn({
-          data: { reference: created.reference, email: guest.email },
+          data: { reference: created.reference, email: guest.email, provider: onlinePaymentProvider ?? undefined },
         });
         return { ...created, redirectUrl: payment.redirectUrl };
       }
