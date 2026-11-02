@@ -212,17 +212,24 @@ export const createBooking = createServerFn({ method: "POST" })
 export const getBookingPaymentOptions = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
-  const { data, error } = await (supabaseAdmin as any)
-    .from("staynas_property_integrations")
-    .select("provider, credential_reference")
-    .eq("property_id", propertyId)
-    .eq("purpose", "payments")
-    .eq("enabled", true)
-    .not("credential_reference", "is", null)
-    .order("created_at", { ascending: true })
-    .limit(1);
-  if (error) throw new Error(`Could not load payment options: ${error.message}`);
-  return { payAtProperty: true, online: Array.isArray(data) && data.length > 0 };
+  const [{ data: property, error: propertyError }, { data, error }] = await Promise.all([
+    (supabaseAdmin as any).from("staynas_properties").select("currency").eq("id", propertyId).maybeSingle(),
+    (supabaseAdmin as any).from("staynas_property_integrations")
+      .select("provider, credential_reference, supported_currencies")
+      .eq("property_id", propertyId)
+      .eq("purpose", "payments")
+      .eq("enabled", true)
+      .not("credential_reference", "is", null)
+      .order("created_at", { ascending: true })
+      .limit(10),
+  ]);
+  if (propertyError || error) throw new Error("Could not load property payment options");
+  const currency = String(property?.currency ?? "").toUpperCase();
+  const integration = (data ?? []).find((item: any) => {
+    const supported = Array.isArray(item.supported_currencies) ? item.supported_currencies.map((v: string) => String(v).toUpperCase()) : [];
+    return !currency || supported.length === 0 || supported.includes(currency);
+  });
+  return { payAtProperty: true, online: Boolean(integration), onlineProvider: integration?.provider ?? null };
 });
 
 
