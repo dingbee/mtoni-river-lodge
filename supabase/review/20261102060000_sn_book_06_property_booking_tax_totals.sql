@@ -167,6 +167,9 @@ BEGIN
     IF _item.quantity<1 THEN RAISE EXCEPTION 'Extra quantity must be positive'; END IF;
     SELECT e.* INTO _extra FROM public.extras e WHERE e.slug=_item.slug AND e.active AND e.property_id=_property_id;
     IF NOT FOUND THEN RAISE EXCEPTION 'Extra not found for property: %',_item.slug; END IF;
+    IF _extra.currency IS NOT NULL AND upper(_extra.currency)<>upper(_room.currency) THEN
+      RAISE EXCEPTION 'Extra currency % does not match room currency %',_extra.currency,_room.currency;
+    END IF;
     _line:=_extra.price*_item.quantity*CASE _extra.unit
       WHEN 'per_stay' THEN 1 WHEN 'per_night' THEN _nights WHEN 'per_person' THEN _occupants
       WHEN 'per_person_per_night' THEN _occupants*_nights ELSE 1 END;
