@@ -25,25 +25,31 @@ def main():
             errors=[]; page.on('pageerror',lambda e:errors.append(str(e)))
             response=page.goto(BASE_URL+'/rooms',wait_until='domcontentloaded')
             assert response and response.status<400,'Public rooms page did not load'
-            page.get_by_role('button',name='Open StayNas menu').click()
-            page.get_by_role('link',name='Rooms').wait_for(state='visible')
-            page.get_by_role('link',name='Availability').wait_for(state='visible')
-            staff=page.locator('a[href="/admin"]')
-            if staff.count() == 0 or not staff.first.is_visible():
-                print('DIAGNOSTIC URL:', page.url, flush=True)
-                print('DIAGNOSTIC TITLE:', page.title(), flush=True)
-                print('DIAGNOSTIC BODY:', page.locator('body').inner_text(), flush=True)
-                print('DIAGNOSTIC LINKS:', page.locator('a').evaluate_all("els => els.map(a => ({text:a.innerText, href:a.getAttribute('href')}))"), flush=True)
-                print('DIAGNOSTIC NAV:', page.locator('nav').evaluate_all("els => els.map(n => n.outerHTML)"), flush=True)
-                page.screenshot(path='staynas-mobile-navigation-failure.png', full_page=True)
-                raise AssertionError('Rendered mobile menu does not expose a visible /admin link')
+            menu_button = page.get_by_role('button', name='Open StayNas menu')
+            menu_button.wait_for(state='visible')
+            menu_button.click()
+            page.wait_for_function("""() => {
+                const button = document.querySelector('button[aria-label="Open StayNas menu"]');
+                return button?.getAttribute('aria-expanded') === 'true';
+            }""", timeout=15000)
+
+            drawer = page.locator('header div.fixed.inset-0')
+            drawer.wait_for(state='visible')
+            drawer.get_by_role('link', name='Rooms').wait_for(state='visible')
+            drawer.get_by_role('link', name='Availability').wait_for(state='visible')
+            staff = drawer.locator('a[href="/admin"]')
             staff.wait_for(state='visible')
-            assert 'Staff & administration' in staff.inner_text(),'Staff administration label missing'
-            assert 'Sign in to StayNas' in staff.inner_text(),'Staff helper text missing'
-            assert page.get_by_text('Smarter hospitality. Brighter guest journeys.').is_visible(),'StayNas AI panel missing'
-            assert page.locator('nav').get_by_role('link').last.get_attribute('href')=='/admin','Staff access must remain final mobile navigation action'
-            page.get_by_role('button',name='Close StayNas menu').click()
-            assert not staff.is_visible(),'Mobile drawer should close'
+            assert 'Staff & administration' in staff.inner_text(), 'Staff administration label missing'
+            assert 'Sign in to StayNas' in staff.inner_text(), 'Staff helper text missing'
+            assert drawer.get_by_text('Smarter hospitality. Brighter guest journeys.').is_visible(), 'StayNas AI panel missing'
+            assert drawer.get_by_role('link').last.get_attribute('href') == '/admin', 'Staff access must remain final mobile navigation action'
+
+            drawer.get_by_role('button', name='Close StayNas menu').click()
+            page.wait_for_function("""() => {
+                const button = document.querySelector('button[aria-label="Open StayNas menu"]');
+                return button?.getAttribute('aria-expanded') === 'false';
+            }""", timeout=10000)
+            assert not drawer.is_visible(), 'Mobile drawer should close'
             assert not errors,'Browser runtime errors: '+'; '.join(errors)
             page.set_viewport_size({'width':1280,'height':900}); page.reload(wait_until='domcontentloaded')
             page.get_by_role('link',name='Book now').first.wait_for(state='visible')
