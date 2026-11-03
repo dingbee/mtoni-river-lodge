@@ -1,5 +1,6 @@
 import {
   Activity,
+  BarChart3,
   Bed,
   Bot,
   Calendar,
@@ -82,7 +83,7 @@ export const NAV: NavEntry[] = [
   },
   { kind: "item", item: { id: "guests", label: "Guests", href: "/admin/guests/crm", icon: Users } },
   { kind: "item", item: { id: "finance", label: "Finance", href: "/admin/finance", icon: CreditCard } },
-  { kind: "item", item: { id: "revenue", label: "Revenue", href: "/admin/analytics/revenue", icon: TrendingUp } },
+  { kind: "item", item: { id: "revenue", label: "Analytics", href: "/admin/analytics/revenue", icon: BarChart3 } },
   { kind: "item", item: { id: "automation", label: "Automation", href: "/admin/automation", icon: Bot } },
   {
     kind: "group",
