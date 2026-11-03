@@ -101,7 +101,7 @@ export async function verifyAndFinalizePayment(opts: {
     }
 
     const invoiceNumber = booking.invoice_number ?? makeInvoiceNumber(booking.reference);
-    const { data: result, error: finalizeError } = await supabaseAdmin.rpc(
+    const { data: result, error: finalizeError } = await (supabaseAdmin as any).rpc(
       "finalize_pesapal_payment",
       {
         _booking_id: booking.id,
