@@ -18,6 +18,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [recoveryCode, setRecoveryCode] = useState("");
+  const [recoveryError, setRecoveryError] = useState("");
   const [recoverySent, setRecoverySent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -112,15 +113,28 @@ function AuthPage() {
       return;
     }
     setResetting(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
-    setResetting(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const normalizedEmail = email.trim().toLowerCase();
+      const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+        // OTP remains the primary recovery method. This allow-listed callback also
+        // safely handles providers that render the recovery token as a link.
+        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+      });
+      if (error) throw error;
+
+      setEmail(normalizedEmail);
+      setRecoverySent(true);
+      setRecoveryVerified(false);
+      setRecoveryCode("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      toast.success("If that staff account exists, a password-reset code has been sent.");
+    } catch (error) {
+      console.error("[StayNas auth] Password reset request failed", error);
+      toast.error(error instanceof Error ? error.message : "Could not send a reset code. Please retry.");
+    } finally {
+      setResetting(false);
     }
-    setRecoverySent(true);
-    setRecoveryCode("");
-    toast.success("If that staff account exists, a password-reset code has been sent.");
   };
 
   const saveRecoveredPassword = async (e: React.FormEvent) => {
@@ -161,9 +175,10 @@ function AuthPage() {
 
     recoveryVerificationStarted.current = true;
     setVerifyingRecovery(true);
+    setRecoveryError("");
     try {
       const { data, error } = await supabase.auth.verifyOtp({
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         token,
         type: "recovery",
       });
@@ -179,9 +194,12 @@ function AuthPage() {
       // Keep the verified recovery session and reveal the password form in-place.
       // This avoids losing the session across route/document transitions on mobile.
       setRecoveryVerified(true);
+      setRecoveryCode("");
     } catch (error) {
       console.error("[StayNas auth] Recovery code verification failed", error);
-      toast.error(error instanceof Error ? error.message : "The code is invalid or expired. Request a new one.");
+      const message = error instanceof Error ? error.message : "The code is invalid or expired. Request a new one.";
+      setRecoveryError(message);
+      toast.error(message);
     } finally {
       setVerifyingRecovery(false);
       recoveryVerificationStarted.current = false;
@@ -235,12 +253,13 @@ function AuthPage() {
                 inputMode="numeric"
                 maxLength={12}
                 value={recoveryCode}
-                onChange={(e) => setRecoveryCode(e.target.value)}
+                onChange={(e) => { setRecoveryCode(e.target.value); setRecoveryError(""); }}
                 className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-center text-xl tracking-[0.35em] outline-none focus:border-charcoal"
                 placeholder="••••••"
                 autoFocus
               />
             </div>
+            {recoveryError && <p role="alert" aria-live="polite" className="mt-3 text-xs text-red-700">{recoveryError}</p>}
             <button
               type="submit"
               disabled={verifyingRecovery || !recoveryCode.trim()}
@@ -248,7 +267,7 @@ function AuthPage() {
               style={{ background: "#171717" }}
             >
               {verifyingRecovery && <Loader2 className="h-4 w-4 animate-spin" />}
-              Verify code
+              {verifyingRecovery ? "Verifying code…" : "Verify code"}
             </button>
             <button
               type="button"
