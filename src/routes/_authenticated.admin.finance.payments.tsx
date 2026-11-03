@@ -61,8 +61,16 @@ function Payments() {
   const [originalPaymentEventId, setOriginalPaymentEventId] = useState("");
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
+  const providerReversedEventIds = new Set(
+    (timeline?.events ?? [])
+      .filter((e) => e.event_type === "provider_reversal")
+      .map((e) => (e as typeof e & { provider_reverses_event_id?: string | null }).provider_reverses_event_id)
+      .filter((id): id is string => Boolean(id)),
+  );
   const refundableEvents = (timeline?.events ?? []).filter(
-    (e) => ["manual_payment", "payment_completed"].includes(e.event_type) && Number(e.amount ?? 0) > 0,
+    (e) => ["manual_payment", "payment_completed"].includes(e.event_type)
+      && Number(e.amount ?? 0) > 0
+      && !providerReversedEventIds.has(e.id),
   );
 
   const record = useMutation({
@@ -193,9 +201,9 @@ function Payments() {
                     </select>
                   )}
                   <Input placeholder="Method (cash, transfer…)" value={method} onChange={(e) => setMethod(e.target.value)} />
-                  <Input placeholder="Note" value={note} onChange={(e) => setNote(e.target.value)} />
+                  <Input placeholder={eventType === "refund" ? "Refund reason (required)" : "Note"} required={eventType === "refund"} value={note} onChange={(e) => setNote(e.target.value)} />
                 </div>
-                <Button size="sm" className="mt-2" onClick={() => record.mutate()} disabled={record.isPending || !amount || (eventType === "refund" && !originalPaymentEventId)}>
+                <Button size="sm" className="mt-2" onClick={() => record.mutate()} disabled={record.isPending || !amount || (eventType === "refund" && (!originalPaymentEventId || !note.trim()))}>
                   Record
                 </Button>
               </div>
