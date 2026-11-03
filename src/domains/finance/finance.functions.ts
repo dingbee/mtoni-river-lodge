@@ -57,115 +57,91 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const from = data.from ?? daysAgo(30);
     const to = data.to ?? todayISO();
+    const propertyId = await (await import("@/lib/booking-property.server"))
+      .getConfiguredBookingPropertyId(context.supabase, context.userId);
 
-    let q = context.supabase
-      .from("bookings")
-      .select(
-        "id, reference, room_id, check_in, check_out, nights, adults, children, total, paid_amount, deposit_amount, balance_amount, currency, source, country, payment_method, payment_status, status, created_at",
-      )
-      .gte("check_in", from)
-      .lte("check_in", to);
-    if (data.roomId) q = q.eq("room_id", data.roomId);
-    if (data.source) q = q.eq("source", data.source);
-    if (data.country) q = q.eq("country", data.country);
-    if (data.paymentMethod) q = q.eq("payment_method", data.paymentMethod);
-    const { data: bookings, error } = await q;
+    const [{ data: bookings, error }, { data: rooms, error: roomsError }, { data: property, error: propertyError }] = await Promise.all([
+      context.supabase.from("bookings")
+        .select("id, reference, room_id, check_in, check_out, nights, total, paid_amount, balance_amount, currency, source, country, payment_method, payment_status, status, created_at")
+        .eq("property_id", propertyId).gte("check_in", from).lte("check_in", to),
+      context.supabase.from("rooms").select("id, name, total_units").eq("property_id", propertyId),
+      context.supabase.from("staynas_properties").select("name, currency").eq("id", propertyId).maybeSingle(),
+    ]);
     if (error) throw error;
+    if (roomsError) throw roomsError;
+    if (propertyError) throw propertyError;
 
-    const active = (bookings ?? []).filter((b) => b.status !== "cancelled");
+    const rows = bookings ?? [];
+    const active = rows.filter((b) => b.status !== "cancelled");
+    const bookingIds = active.map((b) => b.id);
+    const { data: paymentEvents, error: paymentError } = bookingIds.length
+      ? await context.supabase.from("payment_events")
+          .select("booking_id, amount, event_type, currency, created_at")
+          .in("booking_id", bookingIds)
+          .gte("created_at", `${from}T00:00:00Z`)
+          .lte("created_at", `${to}T23:59:59Z`)
+      : { data: [], error: null };
+    if (paymentError) throw paymentError;
 
-    const [{ data: today }, { data: mtd }, { data: ytd }, { data: rooms }] =
-      await Promise.all([
-        context.supabase
-          .from("bookings")
-          .select("total, currency, status")
-          .eq("check_in", todayISO()),
-        context.supabase
-          .from("bookings")
-          .select("total, currency, status")
-          .gte("check_in", firstOfMonth())
-          .lte("check_in", todayISO()),
-        context.supabase
-          .from("bookings")
-          .select("total, currency, status")
-          .gte("check_in", firstOfYear())
-          .lte("check_in", todayISO()),
-        context.supabase.from("rooms").select("id, slug, name, total_units"),
-      ]);
+    const isCompletedStay = (b: (typeof active)[number]) =>
+      ["checked_out", "completed"].includes(String(b.status)) && String(b.check_out) <= todayISO();
+    const earned = active.filter(isCompletedStay);
+    const sum = (list: typeof active) => list.reduce((n, b) => n + Number(b.total ?? 0), 0);
+    const actualPaymentEvents = (paymentEvents ?? []).filter((e) =>
+      ["completed", "manual_payment"].includes(String(e.event_type)));
+    const depositsReceived = actualPaymentEvents.reduce((n, e) => n + Math.max(0, Number(e.amount ?? 0)), 0);
+    const refunds = (paymentEvents ?? []).filter((e) =>
+      ["refund", "refund_issued", "reversed"].includes(String(e.event_type)))
+      .reduce((n, e) => n + Math.abs(Number(e.amount ?? 0)), 0);
+    const outstanding = active.reduce((n, b) => n + Math.max(0, Number(b.total ?? 0) - Number(b.paid_amount ?? 0)), 0);
 
-    const sum = (rows: Array<{ total: number | string; status?: string }> | null) =>
-      (rows ?? [])
-        .filter((r) => r.status !== "cancelled")
-        .reduce((acc, r) => acc + Number(r.total ?? 0), 0);
-
-    const totalUnits = (rooms ?? []).reduce((a, r) => a + Number(r.total_units ?? 1), 0) || 1;
-
-    const nightsSold = active.reduce((a, b) => a + Number(b.nights ?? 0), 0);
-    const revenue = active.reduce((a, b) => a + Number(b.total ?? 0), 0);
-    const outstanding = active.reduce((a, b) => a + Number(b.balance_amount ?? 0), 0);
-    const deposits = active.reduce((a, b) => a + Number(b.deposit_amount ?? 0), 0);
-
-    // Refunds via payment_events
-    const { data: refundEvents } = await context.supabase
-      .from("payment_events")
-      .select("amount, created_at, event_type")
-      .in("event_type", ["refund", "refund_issued", "reversed"])
-      .gte("created_at", `${from}T00:00:00Z`)
-      .lte("created_at", `${to}T23:59:59Z`);
-    const refunds = (refundEvents ?? []).reduce((a, r) => a + Math.abs(Number(r.amount ?? 0)), 0);
-
-    const rangeDays =
-      Math.max(1, Math.ceil((+new Date(to) - +new Date(from)) / 86_400_000) + 1);
-    const adr = nightsSold > 0 ? revenue / nightsSold : 0;
+    const totalUnits = (rooms ?? []).reduce((n, r) => n + Number(r.total_units ?? 1), 0);
+    const rangeDays = Math.max(1, Math.ceil((+new Date(to) - +new Date(from)) / 86_400_000) + 1);
+    const completedNights = earned.reduce((n, b) => n + Number(b.nights ?? 0), 0);
     const availableRoomNights = totalUnits * rangeDays;
-    const occupancy = availableRoomNights > 0 ? nightsSold / availableRoomNights : 0;
-    const revpar = availableRoomNights > 0 ? revenue / availableRoomNights : 0;
-
-    // Breakdowns
+    const occupancy = availableRoomNights > 0 ? completedNights / availableRoomNights : 0;
+    const earnedRevenue = sum(earned);
     const byRoom = new Map<string, number>();
     const bySource = new Map<string, number>();
     const byCountry = new Map<string, number>();
     const byMonth = new Map<string, number>();
-    for (const b of active) {
+    for (const b of earned) {
       byRoom.set(b.room_id, (byRoom.get(b.room_id) ?? 0) + Number(b.total ?? 0));
-      bySource.set(b.source ?? "unknown", (bySource.get(b.source ?? "unknown") ?? 0) + Number(b.total ?? 0));
-      byCountry.set(b.country ?? "—", (byCountry.get(b.country ?? "—") ?? 0) + Number(b.total ?? 0));
-      const mk = String(b.check_in).slice(0, 7);
-      byMonth.set(mk, (byMonth.get(mk) ?? 0) + Number(b.total ?? 0));
+      const source = b.source ?? "unknown";
+      bySource.set(source, (bySource.get(source) ?? 0) + Number(b.total ?? 0));
+      const country = b.country ?? "—";
+      byCountry.set(country, (byCountry.get(country) ?? 0) + Number(b.total ?? 0));
+      const month = String(b.check_in).slice(0, 7);
+      byMonth.set(month, (byMonth.get(month) ?? 0) + Number(b.total ?? 0));
     }
     const roomMap = new Map((rooms ?? []).map((r) => [r.id, r]));
+    const todayEarned = earned.filter((b) => b.check_out === todayISO());
+    const monthEarned = earned.filter((b) => String(b.check_out).slice(0, 7) === todayISO().slice(0, 7));
+    const yearEarned = earned.filter((b) => String(b.check_out).slice(0, 4) === todayISO().slice(0, 4));
 
     return {
       range: { from, to },
-      todayRevenue: sum(today),
-      mtdRevenue: sum(mtd),
-      ytdRevenue: sum(ytd),
+      todayRevenue: sum(todayEarned),
+      mtdRevenue: sum(monthEarned),
+      ytdRevenue: sum(yearEarned),
+      bookedValue: sum(active),
+      earnedRevenue,
       outstanding,
-      deposits,
+      deposits: depositsReceived,
       refunds,
-      adr,
-      revpar,
+      adr: completedNights > 0 ? earnedRevenue / completedNights : 0,
+      revpar: availableRoomNights > 0 ? earnedRevenue / availableRoomNights : 0,
       occupancy,
-      nightsSold,
+      nightsSold: completedNights,
       availableRoomNights,
-      revenueByRoom: Array.from(byRoom.entries())
-        .map(([room_id, total]) => ({
-          room_id,
-          name: roomMap.get(room_id)?.name ?? "Unknown",
-          total,
-        }))
-        .sort((a, b) => b.total - a.total),
-      revenueBySource: Array.from(bySource.entries())
-        .map(([source, total]) => ({ source, total }))
-        .sort((a, b) => b.total - a.total),
-      revenueByCountry: Array.from(byCountry.entries())
-        .map(([country, total]) => ({ country, total }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 10),
-      revenueTrend: Array.from(byMonth.entries())
-        .map(([month, total]) => ({ month, total }))
-        .sort((a, b) => a.month.localeCompare(b.month)),
-      currency: active[0]?.currency ?? "USD",
+      revenueByRoom: Array.from(byRoom.entries()).map(([room_id, total]) => ({
+        room_id, name: roomMap.get(room_id)?.name ?? "Unknown", total,
+      })).sort((a, b) => b.total - a.total),
+      revenueBySource: Array.from(bySource.entries()).map(([source, total]) => ({ source, total })).sort((a, b) => b.total - a.total),
+      revenueByCountry: Array.from(byCountry.entries()).map(([country, total]) => ({ country, total })).sort((a, b) => b.total - a.total).slice(0, 10),
+      revenueTrend: Array.from(byMonth.entries()).map(([month, total]) => ({ month, total })).sort((a, b) => a.month.localeCompare(b.month)),
+      currency: property?.currency ?? active[0]?.currency ?? "USD",
+      propertyName: property?.name ?? "Property",
     };
   });
 
