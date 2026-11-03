@@ -6,6 +6,10 @@ on:
       - feat/sn-iq-04-omnichannel-communications
       - fix/sn-iq-04-*
       - feat/sn-iq-04-clean
+    paths:
+      - "src/domains/ai/concierge/**"
+      - "src/routes/_authenticated.admin.ai.concierge.conversations.tsx"
+      - "src/routes/api/public/*webhook*"
   pull_request:
     branches:
       - main
