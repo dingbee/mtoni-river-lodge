@@ -253,7 +253,7 @@ SELECT r.id,r.property_id,
  WHEN 'demo-family-suite' THEN 'NOL-FAM-'||lpad(g.n::text,2,'0') END,
  'vacant_dirty'::public.room_state,'Nolmark UAT housekeeping fixture for TestHK'
 FROM public.rooms r CROSS JOIN LATERAL generate_series(1,r.total_units) g(n)
-WHERE r.property_id='f44ff48a-5449-4464-b0cb-83295fadb468'
+WHERE r.property_id=(SELECT id FROM public.staynas_properties WHERE code='NOLMARK')
 AND r.slug IN('demo-standard-room','demo-deluxe-room','demo-family-suite')
 AND NOT EXISTS (SELECT 1 FROM public.room_states rs WHERE rs.room_id=r.id AND rs.unit_label=
  CASE r.slug WHEN 'demo-standard-room' THEN 'NOL-STD-'||lpad(g.n::text,2,'0')
@@ -264,8 +264,10 @@ INSERT INTO public.ops_tasks(property_id,room_state_id,task_type,category,title,
 SELECT rs.property_id,rs.id,'uat_room_turnover','housekeeping','UAT cleaning — '||rs.unit_label,
  'TestHK workflow test: clean room, start task, complete cleaning, then submit supervisor inspection. No guest booking is attached.',
  CASE WHEN rs.unit_label LIKE 'NOL-FAM-%' THEN 1 ELSE 2 END,'pending'::public.ops_task_status,
- now()+interval '4 hours','f72c9c21-2ee5-45b5-a6b4-3e021f905dcf','f72c9c21-2ee5-45b5-a6b4-3e021f905dcf'
+ now()+interval '4 hours',u.id,u.id
 FROM public.room_states rs
-WHERE rs.property_id='f44ff48a-5449-4464-b0cb-83295fadb468' AND rs.unit_label LIKE 'NOL-%'
+JOIN public.staynas_property_members pm ON pm.property_id=rs.property_id AND pm.role='housekeeping'::public.app_role AND pm.status='active'
+JOIN auth.users u ON u.id=pm.user_id AND lower(u.email)=lower('test1nolmark@gmail.com')
+WHERE rs.property_id=(SELECT id FROM public.staynas_properties WHERE code='NOLMARK') AND rs.unit_label LIKE 'NOL-%'
 AND NOT EXISTS (SELECT 1 FROM public.ops_tasks t WHERE t.property_id=rs.property_id
  AND t.room_state_id=rs.id AND t.category='housekeeping' AND t.title='UAT cleaning — '||rs.unit_label);
