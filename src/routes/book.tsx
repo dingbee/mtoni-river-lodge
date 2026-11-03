@@ -30,6 +30,7 @@ import { initiatePayment } from "@/lib/payments.functions";
 import { newBookingSessionId } from "@/lib/booking-session";
 import { createBookingHold, releaseBookingHold } from "@/lib/availability.functions";
 import { buildPriceBreakdownFromConfig, type PriceBreakdown } from "@/lib/pricing";
+import { DatePickerField } from "@/components/os/DatePickerField";
 
 export const Route = createFileRoute("/book")({
   validateSearch: (
@@ -706,11 +707,23 @@ function SearchStep(props: {
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label className={labelCls}>Check-in</label>
-          <input type="date" min={today()} className={`mt-2 ${field}`} value={props.checkIn} onChange={(e) => props.setCheckIn(e.target.value)} />
+          <DatePickerField
+            value={props.checkIn}
+            minDate={today()}
+            onChange={props.setCheckIn}
+            placeholder="Select check-in"
+            className={`mt-2 h-auto ${field}`}
+          />
         </div>
         <div>
           <label className={labelCls}>Check-out</label>
-          <input type="date" min={props.checkIn || today()} className={`mt-2 ${field}`} value={props.checkOut} onChange={(e) => props.setCheckOut(e.target.value)} />
+          <DatePickerField
+            value={props.checkOut}
+            minDate={props.checkIn || today()}
+            onChange={props.setCheckOut}
+            placeholder="Select check-out"
+            className={`mt-2 h-auto ${field}`}
+          />
         </div>
       </div>
       <div className="grid gap-5 sm:grid-cols-3">
