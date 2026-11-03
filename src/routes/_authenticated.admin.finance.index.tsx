@@ -139,7 +139,7 @@ function RevenueDashboard() {
                   <StatCard label="Year-to-date" value={money(s.ytdRevenue, s.currency)} icon={TrendingUp} />
                   <StatCard label="Revenue in range" value={money(s.revenue, s.currency)} icon={TrendingUp} />
                   <StatCard label="Outstanding" value={money(s.outstanding, s.currency)} icon={AlertCircle} />
-                  <StatCard label="Deposits received" value={money(s.deposits, s.currency)} icon={Wallet} />
+                  <StatCard label="Payments received" value={money(s.paymentsReceived, s.currency)} icon={Wallet} />
                   <StatCard label="Refunds" value={money(s.refunds, s.currency)} icon={RefreshCw} />
                   <StatCard label="ADR / RevPAR" value={`${money(s.adr, s.currency)} / ${money(s.revpar, s.currency)}`} icon={Activity} />
                 </div>
