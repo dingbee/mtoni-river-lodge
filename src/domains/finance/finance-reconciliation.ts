@@ -23,10 +23,16 @@ const REFUND_EVENT_TYPES = new Set(["refund", "refund_issued"]);
  * excluded: a status callback is not proof that money was refunded.
  */
 export function getReconciliationEventAmount(event: ReconciliationEvent): number | null {
-  const amount = Number(event.amount ?? 0);
-  if (!Number.isFinite(amount)) return null;
+  if (event.amount === null || event.amount === undefined) return null;
+  const amount = Number(event.amount);
+  if (!Number.isFinite(amount) || amount === 0) return null;
 
-  if (CREDIT_EVENT_TYPES.has(event.event_type)) return amount;
+  if (CREDIT_EVENT_TYPES.has(event.event_type)) {
+    if ((event.event_type === "payment_completed" || event.event_type === "manual_payment") && amount < 0) {
+      return null;
+    }
+    return amount;
+  }
   if (REFUND_EVENT_TYPES.has(event.event_type)) {
     return amount > 0 ? -amount : amount;
   }
