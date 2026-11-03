@@ -101,13 +101,15 @@ begin
     raise exception using errcode = '42501', message = 'Booking not found or property access denied';
   end if;
 
+  -- The booking row is already locked above. That lock serializes every
+  -- refund on this booking, so do not request UPDATE privilege on the
+  -- tenant-readable payment_events table just to lock the source event.
   select e.* into v_payment
   from public.payment_events e
   where e.id = _payment_event_id
     and e.booking_id = _booking_id
     and e.amount > 0
-    and e.event_type in ('manual_payment','payment_completed')
-  for update;
+    and e.event_type in ('manual_payment','payment_completed');
   if not found then
     raise exception using errcode = '22023', message = 'Original payment event is not refundable';
   end if;
