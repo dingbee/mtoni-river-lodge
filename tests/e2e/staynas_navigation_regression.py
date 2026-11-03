@@ -23,18 +23,16 @@ def main():
             browser=p.chromium.launch()
             page=browser.new_page(viewport={'width':390,'height':844},device_scale_factor=1)
             errors=[]; page.on('pageerror',lambda e:errors.append(str(e)))
-            response=page.goto(BASE_URL+'/rooms',wait_until='domcontentloaded')
+            response=page.goto(BASE_URL+'/rooms',wait_until='networkidle')
             assert response and response.status<400,'Public rooms page did not load'
             menu_button = page.get_by_role('button', name='Open StayNas menu')
             menu_button.wait_for(state='visible')
+            # The route HTML can arrive before React attaches the menu click handler.
+            # Wait for network idle above, then verify the real drawer opens after interaction.
             menu_button.click()
-            page.wait_for_function("""() => {
-                const button = document.querySelector('button[aria-label="Open StayNas menu"]');
-                return button?.getAttribute('aria-expanded') === 'true';
-            }""", timeout=15000)
-
             drawer = page.locator('header div.fixed.inset-0')
-            drawer.wait_for(state='visible')
+            drawer.wait_for(state='visible', timeout=15000)
+            assert menu_button.get_attribute('aria-expanded') == 'true', 'Mobile menu button did not enter expanded state'
             drawer.get_by_role('link', name='Rooms').wait_for(state='visible')
             drawer.get_by_role('link', name='Availability').wait_for(state='visible')
             staff = drawer.locator('a[href="/admin"]')
@@ -43,15 +41,11 @@ def main():
             assert 'Sign in to StayNas' in staff.inner_text(), 'Staff helper text missing'
             assert drawer.get_by_text('Smarter hospitality. Brighter guest journeys.').is_visible(), 'StayNas AI panel missing'
             assert drawer.get_by_role('link').last.get_attribute('href') == '/admin', 'Staff access must remain final mobile navigation action'
-
             drawer.get_by_role('button', name='Close StayNas menu').click()
-            page.wait_for_function("""() => {
-                const button = document.querySelector('button[aria-label="Open StayNas menu"]');
-                return button?.getAttribute('aria-expanded') === 'false';
-            }""", timeout=10000)
-            assert not drawer.is_visible(), 'Mobile drawer should close'
+            drawer.wait_for(state='hidden', timeout=10000)
+            assert menu_button.get_attribute('aria-expanded') == 'false', 'Mobile menu button did not collapse'
             assert not errors,'Browser runtime errors: '+'; '.join(errors)
-            page.set_viewport_size({'width':1280,'height':900}); page.reload(wait_until='domcontentloaded')
+            page.set_viewport_size({'width':1280,'height':900}); page.reload(wait_until='networkidle')
             page.get_by_role('link',name='Book now').first.wait_for(state='visible')
             assert not errors,'Browser runtime errors: '+'; '.join(errors)
             browser.close()
