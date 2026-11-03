@@ -22,7 +22,9 @@ def main():
         with sync_playwright() as p:
             browser=p.chromium.launch()
             page=browser.new_page(viewport={'width':390,'height':844},device_scale_factor=1)
-            errors=[]; page.on('pageerror',lambda e:errors.append(str(e)))
+            errors=[]; console_errors=[]
+            page.on('pageerror',lambda e:errors.append(str(e)))
+            page.on('console',lambda msg:console_errors.append(msg.text) if msg.type == 'error' else None)
             response=page.goto(BASE_URL+'/rooms',wait_until='load')
             assert response and response.status<400,'Public rooms page did not load'
             menu_button = page.get_by_role('button', name='Open StayNas menu')
@@ -33,7 +35,11 @@ def main():
             # Assert the React state transition first; this distinguishes a hydration/click issue
             # from a drawer selector issue and avoids assuming the drawer's DOM ancestry.
             page.get_by_role('button', name='Open StayNas menu').wait_for(state='visible')
-            page.wait_for_function("() => document.querySelector('button[aria-label=\\\"Open StayNas menu\\\"]')?.getAttribute('aria-expanded') === 'true'", timeout=15000)
+            try:
+                page.wait_for_function("() => document.querySelector('button[aria-label=\\\"Open StayNas menu\\\"]')?.getAttribute('aria-expanded') === 'true'", timeout=15000)
+            except Exception:
+                print('MENU_DIAGNOSTICS:', {'url': page.url, 'ready_state': page.evaluate('document.readyState'), 'button': page.locator('button[aria-label=\\\"Open StayNas menu\\\"]').first.evaluate('(el) => el.outerHTML') if page.locator('button[aria-label=\\\"Open StayNas menu\\\"]').count() else 'MISSING', 'root': page.locator('#root').inner_text()[:1000] if page.locator('#root').count() else 'NO #root', 'page_errors': errors, 'console_errors': console_errors})
+                raise
             drawer = page.locator('div.fixed.inset-0').filter(has=page.get_by_role('button', name='Close StayNas menu'))
             drawer.wait_for(state='visible', timeout=10000)
             assert menu_button.get_attribute('aria-expanded') == 'true', 'Mobile menu button did not enter expanded state'
