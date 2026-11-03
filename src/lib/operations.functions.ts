@@ -307,7 +307,7 @@ export const getOpsCalendar = createServerFn({ method: "POST" })
       sb.from("rooms").select("id, slug, name, total_units").order("sort_order"),
       sb.from("bookings")
         .select("id, reference, guest_name, check_in, check_out, status, room_id")
-        .in("status", ["confirmed", "checked_in", "completed"])
+        .in("status", ["pending", "confirmed", "checked_in", "completed"])
         .lte("check_in", data.to)
         .gte("check_out", data.from)
         .order("check_in"),
