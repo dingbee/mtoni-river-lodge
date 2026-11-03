@@ -101,7 +101,7 @@ function RoomConfigurationPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Room Configuration" description="Configure room types, physical inventory quantity, pricing, currency and guest-facing category content."
-        actions={<Link to="/admin/operations/rooms"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" />Room Board</Button></Link>} />
+        actions={<div className="flex flex-wrap gap-2"><Link to="/admin/operations/room-catalogue"><Button variant="outline">Platform Catalogue</Button></Link><Link to="/admin/operations/rooms"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" />Room Board</Button></Link></div>} />
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="rounded-xl border bg-card p-5">
           <div className="flex items-center justify-between">
