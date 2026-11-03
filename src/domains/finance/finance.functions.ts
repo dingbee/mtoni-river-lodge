@@ -173,6 +173,7 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
       nightsSold,
       availableRoomNights,
       balanceFieldMismatches: active.filter((b) => Math.abs(Number(b.balance_amount ?? 0) - Number(b.balance_due ?? 0)) > 0.01).length,
+      derivedBalanceMismatches: active.filter((b) => Math.abs(Number(b.balance_amount ?? 0) - Math.max(0, Number(b.total ?? 0) - Number(b.paid_amount ?? 0))) > 0.01).length,
       revenueByRoom: Array.from(byRoom.entries()).map(([key, total]) => {
         const [currency, room_id] = splitKey(key);
         return { currency, room_id, name: roomMap.get(room_id)?.name ?? "Unknown", total };
