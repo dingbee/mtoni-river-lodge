@@ -53,14 +53,13 @@ export function reconcileBookingLedger(
   const variance = Math.round((eventTotal - paidAmount) * 100) / 100;
   const derivedBalance = Math.max(0, Math.round((total - paidAmount) * 100) / 100);
 
+  const recognizedCurrencies = recognizedEvents.map(({ event }) => event.currency?.toUpperCase());
   const currencies = new Set(
-    recognizedEvents
-      .map(({ event }) => event.currency?.toUpperCase())
-      .filter((currency): currency is string => Boolean(currency)),
+    recognizedCurrencies.filter((currency): currency is string => Boolean(currency)),
   );
-  const currencyMismatch = [...currencies].some(
-    (currency) => currency !== booking.currency.toUpperCase(),
-  );
+  const currencyMismatch =
+    recognizedCurrencies.some((currency) => !currency) ||
+    [...currencies].some((currency) => currency !== booking.currency.toUpperCase());
 
   return {
     events_total: eventTotal,
