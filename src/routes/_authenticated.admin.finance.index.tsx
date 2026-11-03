@@ -66,7 +66,7 @@ function RevenueDashboard() {
     <div className="space-y-6">
       <PageHeader
         title="Revenue Dashboard"
-        description="Live financial performance for Mtoni River Lodge."
+        description={`Live financial performance for ${data?.propertyName ?? "your property"}.`}
         actions={
           <div className="flex gap-2">
             <Link to="/admin/finance/payments" className="text-sm text-primary hover:underline">
@@ -117,9 +117,10 @@ function RevenueDashboard() {
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Today" value={money(data.todayRevenue, data.currency)} icon={DollarSign} />
-            <StatCard label="Month-to-date" value={money(data.mtdRevenue, data.currency)} icon={TrendingUp} />
-            <StatCard label="Year-to-date" value={money(data.ytdRevenue, data.currency)} icon={TrendingUp} />
+            <StatCard label="Earned today" value={money(data.todayRevenue, data.currency)} icon={DollarSign} />
+            <StatCard label="Earned MTD" value={money(data.mtdRevenue, data.currency)} icon={TrendingUp} />
+            <StatCard label="Earned YTD" value={money(data.ytdRevenue, data.currency)} icon={TrendingUp} />
+            <StatCard label="Booked value" value={money(data.bookedValue, data.currency)} icon={AlertCircle} />
             <StatCard label="Outstanding" value={money(data.outstanding, data.currency)} icon={AlertCircle} />
             <StatCard label="Deposits received" value={money(data.deposits, data.currency)} icon={Wallet} />
             <StatCard label="Refunds" value={money(data.refunds, data.currency)} icon={RefreshCw} />
