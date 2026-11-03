@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { financeRpc } from "@/lib/finance-rpc";
+import { recordManualPaymentInputSchema } from "./payment-contract";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -300,18 +301,7 @@ export const getPaymentTimeline = createServerFn({ method: "POST" })
 
 export const recordManualPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z
-      .object({
-        bookingId: z.string().uuid(),
-        amount: z.number().positive(),
-        method: z.string().trim().min(2).max(40),
-        note: z.string().max(500).optional(),
-        idempotencyKey: z.string().uuid(),
-        eventType: z.enum(["manual_payment", "refund"]).default("manual_payment"),
-      })
-      .parse(d),
-  )
+  .inputValidator((d: unknown) => recordManualPaymentInputSchema.parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const { data: result, error } = await financeRpc(context.supabase).rpc(
