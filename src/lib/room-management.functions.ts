@@ -81,6 +81,9 @@ const roomSchema = z.object({
   capacityAdults: z.number().int().min(1).max(20),
   capacityChildren: z.number().int().min(0).max(20),
   maxOccupancy: z.number().int().min(1).max(30),
+  description: z.array(z.string().trim().min(1).max(1000)).max(20).default([]),
+  details: z.array(z.object({ label: z.string().trim().min(1).max(100), value: z.string().trim().min(1).max(300) })).max(30).default([]),
+  ctaLine: z.string().trim().max(300).optional().default(""),
   quantity: z.number().int().min(1).max(1000),
   basePrice: z.number().min(0).max(100000000),
   currency: z.string().regex(/^[A-Z]{3}$/),
@@ -166,7 +169,7 @@ export const listPlatformRoomCatalogue = createServerFn({ method: "GET" })
         .select("id,slug,name,description,features,specifications,sort_order,status")
         .order("sort_order").order("name"),
       sb.from("staynas_room_catalogue_types")
-        .select("id,category_id,slug,name,short_description,capacity_adults,capacity_children,max_occupancy,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,status,sort_order")
+        .select("id,category_id,slug,name,short_description,capacity_adults,capacity_children,max_occupancy,description,details,cta_line,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,status,sort_order")
         .order("sort_order").order("name"),
     ]);
     if (categories.error) throw new Error(categories.error.message);
@@ -203,7 +206,7 @@ export const savePlatformRoomCatalogueType = createServerFn({ method: "POST" })
       category_id: data.catalogueCategoryId ?? null,
       slug: data.slug, name: data.name, short_description: data.shortDescription || null,
       capacity_adults: data.capacityAdults, capacity_children: data.capacityChildren,
-      max_occupancy: data.maxOccupancy, hero_line: data.heroLine || null,
+      max_occupancy: data.maxOccupancy, description: data.description, details: data.details, cta_line: data.ctaLine || null, hero_line: data.heroLine || null,
       image_url: data.imageUrl || null, gallery_urls: data.galleryUrls,
       size_label: data.sizeLabel || null, view_label: data.viewLabel || null,
       bed_label: data.bedLabel || null, bathroom_label: data.bathroomLabel || null,
