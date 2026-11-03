@@ -5,6 +5,30 @@
 
 begin;
 
+-- Finance audit entries contain payment/refund details. Keep their read scope
+-- aligned with the booking's property instead of the generic staff-wide log
+-- policy. Other activity-log modules retain the existing staff visibility.
+drop policy if exists "Staff can view activity logs" on public.activity_logs;
+create policy "Staff can view activity logs"
+on public.activity_logs
+for select
+to authenticated
+using (
+  public.is_staff(auth.uid())
+  and (
+    coalesce(module, '') <> 'finance.payments'
+    or (
+      entity_type = 'booking'
+      and exists (
+        select 1
+        from public.bookings b
+        where b.id = activity_logs.entity_id
+          and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+      )
+    )
+  )
+);
+
 create or replace function public.enforce_payment_refund_event_integrity()
 returns trigger
 language plpgsql
