@@ -10,7 +10,7 @@ import { useCallback, useSyncExternalStore } from "react";
 export type ThemePreference = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
 
-export const THEME_STORAGE_KEY = "mtoni-os.theme";
+export const THEME_STORAGE_KEY = "staynas-os.theme";
 
 let preference: ThemePreference = "system";
 let hydrated = false;
