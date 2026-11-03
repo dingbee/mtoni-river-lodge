@@ -207,43 +207,43 @@ function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-ivory text-charcoal flex items-center justify-center px-4">
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4 py-8">
       <form
         onSubmit={recoveryVerified ? saveRecoveredPassword : recoverySent ? verifyRecoveryCode : submit}
-        className="w-full max-w-sm rounded-2xl border border-charcoal/10 bg-ivory p-8 shadow-[0_24px_60px_-30px_rgba(30,45,30,0.35)]"
+        className="w-full max-w-sm rounded-lg border border-border bg-card p-6 shadow-sm sm:p-8"
       >
-        <p className="inline-flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-charcoal/60">
-          <Leaf className="h-3 w-3" style={{ color: "#0F3D3A" }} /> Staff Portal
+        <p className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          <Leaf className="h-4 w-4 text-primary" /> Staff Portal
         </p>
 
         {recoveryVerified ? (
           <>
-            <h1 className="mt-3 font-display text-2xl">Reset your password</h1>
-            <p className="mt-1 text-xs leading-5 text-charcoal/60">Your email is verified. Choose a new password to continue.</p>
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight">Reset your password</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Your email is verified. Choose a new password to continue.</p>
             <div className="mt-6 space-y-4">
               <div>
-                <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">New password</label>
-                <input type="password" required minLength={8} autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal" />
+                <label className="text-sm font-medium text-foreground">New password</label>
+                <input type="password" required minLength={8} autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring" />
               </div>
               <div>
-                <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">Confirm new password</label>
-                <input type="password" required minLength={8} autoComplete="new-password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal" />
+                <label className="text-sm font-medium text-foreground">Confirm new password</label>
+                <input type="password" required minLength={8} autoComplete="new-password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring" />
               </div>
             </div>
-            <button type="submit" disabled={savingNewPassword || !newPassword || !confirmNewPassword} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60" style={{ background: "#171717" }}>
+            <button type="submit" disabled={savingNewPassword || !newPassword || !confirmNewPassword} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60">
               {savingNewPassword && <Loader2 className="h-4 w-4 animate-spin" />}
               Save new password
             </button>
           </>
         ) : recoverySent ? (
           <>
-            <h1 className="mt-3 font-display text-2xl">Enter reset code</h1>
-            <p className="mt-1 text-xs leading-5 text-charcoal/60">
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight">Enter reset code</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Enter the one-time code sent to <span className="font-medium text-charcoal">{email}</span>.
               Keep this page open while you retrieve the email.
             </p>
             <div className="mt-6">
-              <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">
+              <label className="text-sm font-medium text-foreground">
                 Email verification code
               </label>
               <input
@@ -254,7 +254,7 @@ function AuthPage() {
                 maxLength={12}
                 value={recoveryCode}
                 onChange={(e) => { setRecoveryCode(e.target.value); setRecoveryError(""); }}
-                className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-center text-xl tracking-[0.35em] outline-none focus:border-charcoal"
+                className="mt-2 w-full rounded-md border border-input bg-background px-3 py-3 text-center text-xl tracking-[0.35em] text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
                 placeholder="••••••"
                 autoFocus
               />
@@ -263,8 +263,7 @@ function AuthPage() {
             <button
               type="submit"
               disabled={verifyingRecovery || !recoveryCode.trim()}
-              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60"
-              style={{ background: "#171717" }}
+              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
             >
               {verifyingRecovery && <Loader2 className="h-4 w-4 animate-spin" />}
               {verifyingRecovery ? "Verifying code…" : "Verify code"}
@@ -273,26 +272,26 @@ function AuthPage() {
               type="button"
               onClick={resetPassword}
               disabled={resetting || verifyingRecovery}
-              className="mt-3 block w-full text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal disabled:opacity-60"
+              className="mt-3 block w-full text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-60"
             >
               {resetting ? "Sending…" : "Send a new code"}
             </button>
             <button
               type="button"
               onClick={() => { setRecoverySent(false); setRecoveryCode(""); }}
-              className="mt-3 inline-flex w-full items-center justify-center gap-2 text-[0.65rem] uppercase tracking-[0.18em] text-charcoal/50 hover:text-charcoal"
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
             >
               <ArrowLeft className="h-3 w-3" /> Back to sign in
             </button>
           </>
         ) : (
           <>
-            <h1 className="mt-3 font-display text-2xl">Sign in</h1>
-            <p className="mt-1 text-xs text-charcoal/60">Reservations & admin access only.</p>
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight">Sign in</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Reservations & admin access only.</p>
 
             <div className="mt-6 space-y-4">
               <div>
-                <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">
+                <label className="text-sm font-medium text-foreground">
                   Email
                 </label>
                 <input
@@ -301,12 +300,12 @@ function AuthPage() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal"
+                  className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </div>
 
               <div>
-                <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">
+                <label className="text-sm font-medium text-foreground">
                   Password
                 </label>
                 <input
@@ -315,7 +314,7 @@ function AuthPage() {
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal"
+                  className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </div>
             </div>
@@ -323,8 +322,7 @@ function AuthPage() {
             <button
               type="submit"
               disabled={loading || resetting}
-              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60"
-              style={{ background: "#171717" }}
+              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               Sign in
@@ -334,7 +332,7 @@ function AuthPage() {
               type="button"
               onClick={resetPassword}
               disabled={loading || resetting}
-              className="mt-4 block w-full text-center text-[0.65rem] uppercase tracking-[0.18em] text-charcoal/55 hover:text-charcoal disabled:opacity-60"
+              className="mt-3 block w-full text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-60"
             >
               {resetting ? "Sending reset code…" : "Forgot password?"}
             </button>
@@ -343,7 +341,7 @@ function AuthPage() {
 
         <Link
           to="/"
-          className="mt-5 block text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal"
+          className="mt-4 block text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
         >
           ← Back to website
         </Link>
