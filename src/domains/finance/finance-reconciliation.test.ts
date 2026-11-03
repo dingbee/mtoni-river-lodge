@@ -55,6 +55,17 @@ describe("finance ledger reconciliation", () => {
     ).toBe(-15);
   });
 
+  it("reconciles a verified provider reversal as a signed ledger debit", () => {
+    const events: ReconciliationEvent[] = [
+      { id: "settlement", booking_id: booking.id, event_type: "payment_completed", amount: 60, currency: "USD" },
+      { id: "reversal", booking_id: booking.id, event_type: "provider_reversal", amount: -60, currency: "USD" },
+    ];
+    expect(events.map(getReconciliationEventAmount)).toEqual([60, -60]);
+    expect(
+      reconcileBookingLedger({ ...booking, paid_amount: 0, balance_amount: 120 }, events),
+    ).toMatchObject({ events_total: 0, variance: 0, derived_balance: 120, balance_variance: 0, matched: true });
+  });
+
   it("does not treat a provider reversed status callback as a cash refund", () => {
     expect(
       getReconciliationEventAmount({
