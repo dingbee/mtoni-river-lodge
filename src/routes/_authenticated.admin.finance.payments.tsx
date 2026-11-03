@@ -58,7 +58,12 @@ function Payments() {
   const [method, setMethod] = useState("cash");
   const [note, setNote] = useState("");
   const [eventType, setEventType] = useState<"manual_payment" | "refund">("manual_payment");
+  const [originalPaymentEventId, setOriginalPaymentEventId] = useState("");
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
+
+  const refundableEvents = (timeline?.events ?? []).filter(
+    (e) => ["manual_payment", "payment_completed"].includes(e.event_type) && Number(e.amount ?? 0) > 0,
+  );
 
   const record = useMutation({
     mutationFn: () =>
@@ -69,6 +74,7 @@ function Payments() {
           method,
           note: note || undefined,
           eventType,
+          originalPaymentEventId: eventType === "refund" ? originalPaymentEventId : undefined,
           idempotencyKey,
         },
       }),
@@ -161,15 +167,35 @@ function Payments() {
               <div className="rounded border border-border p-3">
                 <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Record payment / refund</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <select className="rounded border border-border bg-background px-2 py-1 text-sm" value={eventType} onChange={(e) => setEventType(e.target.value as never)}>
+                  <select className="rounded border border-border bg-background px-2 py-1 text-sm" value={eventType} onChange={(e) => { setEventType(e.target.value as "manual_payment" | "refund"); setOriginalPaymentEventId(""); }}>
                     <option value="manual_payment">Manual payment</option>
                     <option value="refund">Refund</option>
                   </select>
-                  <Input placeholder="Amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                  <Input placeholder="Amount" type="number" min="0.01" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                  {eventType === "refund" && (
+                    <select
+                      className="col-span-2 rounded border border-border bg-background px-2 py-2 text-sm"
+                      value={originalPaymentEventId}
+                      onChange={(e) => setOriginalPaymentEventId(e.target.value)}
+                    >
+                      <option value="">Select original payment to refund</option>
+                      {refundableEvents.map((event) => {
+                        const refunded = (timeline?.events ?? [])
+                          .filter((candidate) => candidate.event_type === "refund" && candidate.reverses_event_id === event.id)
+                          .reduce((sum, candidate) => sum + Math.abs(Number(candidate.amount ?? 0)), 0);
+                        const remaining = Math.max(0, Number(event.amount) - refunded);
+                        return remaining > 0 ? (
+                          <option key={event.id} value={event.id}>
+                            {event.event_type} · {event.currency ?? selected.currency} {remaining.toFixed(2)} remaining · {new Date(event.created_at).toLocaleDateString()}
+                          </option>
+                        ) : null;
+                      })}
+                    </select>
+                  )}
                   <Input placeholder="Method (cash, transfer…)" value={method} onChange={(e) => setMethod(e.target.value)} />
                   <Input placeholder="Note" value={note} onChange={(e) => setNote(e.target.value)} />
                 </div>
-                <Button size="sm" className="mt-2" onClick={() => record.mutate()} disabled={record.isPending || !amount}>
+                <Button size="sm" className="mt-2" onClick={() => record.mutate()} disabled={record.isPending || !amount || (eventType === "refund" && !originalPaymentEventId)}>
                   Record
                 </Button>
               </div>
