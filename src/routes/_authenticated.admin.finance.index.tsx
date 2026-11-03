@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   DollarSign,
   TrendingUp,
@@ -54,13 +54,6 @@ function RevenueDashboard() {
     queryKey: ["finance.health"],
     queryFn: () => healthFn(),
   });
-
-  const healthColor = useMemo(() => {
-    if (!health) return "bg-muted";
-    if (health.status === "healthy") return "bg-emerald-500";
-    if (health.status === "attention") return "bg-amber-500";
-    return "bg-red-500";
-  }, [health]);
 
   return (
     <div className="space-y-6">
@@ -121,7 +114,7 @@ function RevenueDashboard() {
         <LoadingState />
       ) : (
         <>
-          <SectionCard title="Financial Position by Currency" description="Amounts are never combined across currencies. Outstanding uses the booking balance_amount source of truth.">
+          <SectionCard title="Financial Position by Currency" >
             <div className="space-y-4">
               {data.currencyBreakdown.map((item) => {
                 const refunds = data.refundsByCurrency.find((r) => r.currency === item.currency)?.amount ?? 0;
