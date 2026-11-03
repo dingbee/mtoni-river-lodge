@@ -8,7 +8,6 @@ import {
   AlertCircle,
   Wallet,
   RefreshCw,
-  Percent,
   Activity,
 } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
@@ -154,7 +153,7 @@ function RevenueDashboard() {
                   <p className="text-sm text-muted-foreground">No revenue in this range.</p>
                 )}
                 {data.revenueByRoom.map((r) => (
-                  <div key={r.room_id} className="flex items-center justify-between text-sm">
+                  <div key={`${r.currency}-${r.room_id}`} className="flex items-center justify-between text-sm">
                     <span>{r.name}</span>
                     <span className="font-medium">{money(r.total, r.currency)}</span>
                   </div>
@@ -165,7 +164,7 @@ function RevenueDashboard() {
             <SectionCard title="Revenue by Source">
               <div className="space-y-2">
                 {data.revenueBySource.map((r) => (
-                  <div key={r.source} className="flex items-center justify-between text-sm">
+                  <div key={`${r.currency}-${r.source}`} className="flex items-center justify-between text-sm">
                     <span className="capitalize">{r.source} · {r.currency}</span>
                     <span className="font-medium">{money(r.total, r.currency)}</span>
                   </div>
@@ -176,9 +175,9 @@ function RevenueDashboard() {
             <SectionCard title="Top Guest Nationalities">
               <div className="space-y-2">
                 {data.revenueByCountry.map((r) => (
-                  <div key={r.country} className="flex items-center justify-between text-sm">
+                  <div key={`${r.currency}-${r.country}`} className="flex items-center justify-between text-sm">
                     <span>{r.country} · {r.currency}</span>
-                    <span className="font-medium">{money(r.total, data.currency)}</span>
+                    <span className="font-medium">{money(r.total, r.currency)}</span>
                   </div>
                 ))}
               </div>
@@ -187,7 +186,7 @@ function RevenueDashboard() {
             <SectionCard title="Revenue Trend by Month">
               <div className="space-y-2">
                 {data.revenueTrend.map((r) => (
-                  <div key={r.month} className="flex items-center justify-between text-sm">
+                  <div key={`${r.currency}-${r.month}`} className="flex items-center justify-between text-sm">
                     <span>{r.month} · {r.currency}</span>
                     <Badge variant="secondary">{money(r.total, data.currency)}</Badge>
                   </div>
