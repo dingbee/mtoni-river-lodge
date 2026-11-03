@@ -20,8 +20,8 @@ describe("manual payment request contract", () => {
     expect(recordManualPaymentInputSchema.parse({ ...valid, eventType: "refund" }).eventType).toBe("refund");
   });
 
-  it("rejects zero, negative, and non-finite amounts", () => {
-    for (const amount of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+  it("rejects zero, negative, non-finite, and sub-cent amounts", () => {
+    for (const amount of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, 60.001]) {
       expect(recordManualPaymentInputSchema.safeParse({ ...valid, amount }).success).toBe(false);
     }
   });
