@@ -85,9 +85,9 @@ function Analytics() {
             <SectionCard title="Revenue by Month">
               <div className="space-y-2 text-sm">
                 {data.byMonth.map((r) => (
-                  <div key={r.month} className="flex justify-between">
+                  <div key={`${r.currency}-${r.month}`} className="flex justify-between">
                     <span>{r.month}</span>
-                    <span className="font-medium">${Math.round(r.total).toLocaleString()}</span>
+                    <span className="font-medium">{money(r.total, r.currency)}</span>
                   </div>
                 ))}
               </div>
@@ -95,11 +95,11 @@ function Analytics() {
             <SectionCard title="Booking Source Performance">
               <div className="space-y-2 text-sm">
                 {data.bySource.map((r) => (
-                  <div key={r.source} className="flex justify-between">
+                  <div key={`${r.currency}-${r.source}`} className="flex justify-between">
                     <span className="capitalize">{r.source}</span>
                     <span>
                       <Badge variant="secondary" className="mr-2">{r.count}</Badge>
-                      ${Math.round(r.total).toLocaleString()}
+                      {money(r.total, r.currency)}
                     </span>
                   </div>
                 ))}
@@ -108,11 +108,11 @@ function Analytics() {
             <SectionCard title="Top Guests by Spend">
               <div className="space-y-2 text-sm">
                 {data.topGuests.map((g) => (
-                  <div key={g.key} className="flex justify-between">
+                  <div key={`${g.currency}-${g.key}`} className="flex justify-between">
                     <span className="truncate pr-2">{g.key}</span>
                     <span>
                       <Badge variant="outline" className="mr-2">{g.stays} stays</Badge>
-                      ${Math.round(g.total).toLocaleString()}
+                      {money(g.total, g.currency)}
                     </span>
                   </div>
                 ))}
