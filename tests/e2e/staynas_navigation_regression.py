@@ -29,6 +29,14 @@ def main():
             page.get_by_role('link',name='Rooms').wait_for(state='visible')
             page.get_by_role('link',name='Availability').wait_for(state='visible')
             staff=page.locator('a[href="/admin"]')
+            if staff.count() == 0 or not staff.first.is_visible():
+                print('DIAGNOSTIC URL:', page.url, flush=True)
+                print('DIAGNOSTIC TITLE:', page.title(), flush=True)
+                print('DIAGNOSTIC BODY:', page.locator('body').inner_text(), flush=True)
+                print('DIAGNOSTIC LINKS:', page.locator('a').evaluate_all("els => els.map(a => ({text:a.innerText, href:a.getAttribute('href')}))"), flush=True)
+                print('DIAGNOSTIC NAV:', page.locator('nav').evaluate_all("els => els.map(n => n.outerHTML)"), flush=True)
+                page.screenshot(path='staynas-mobile-navigation-failure.png', full_page=True)
+                raise AssertionError('Rendered mobile menu does not expose a visible /admin link')
             staff.wait_for(state='visible')
             assert 'Staff & administration' in staff.inner_text(),'Staff administration label missing'
             assert 'Sign in to StayNas' in staff.inner_text(),'Staff helper text missing'
