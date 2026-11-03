@@ -111,7 +111,7 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
       }
       return Array.from(totals, ([key, total]) => {
         const [currency, value] = key.split("::");
-        return { currency, key: value, total };
+        return { currency, key: value ?? "", total };
       }).sort((a, b) => a.currency.localeCompare(b.currency) || b.total - a.total);
     };
     const roomMap = new Map((roomsResult.data ?? []).map((r) => [r.id, r]));
