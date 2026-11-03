@@ -4,10 +4,6 @@
 
 begin;
 
-alter table public.payment_events
-  add column if not exists provider_reverses_event_id uuid
-    references public.payment_events(id) on delete restrict;
-
 create unique index if not exists payment_events_provider_reversal_once_idx
   on public.payment_events (provider_reverses_event_id)
   where provider_reverses_event_id is not null;
