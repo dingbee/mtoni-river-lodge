@@ -207,30 +207,30 @@ function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-ivory text-charcoal flex items-center justify-center px-4">
+    <div className="staynas-auth min-h-screen flex items-center justify-center px-4 py-10">
       <form
         onSubmit={recoveryVerified ? saveRecoveredPassword : recoverySent ? verifyRecoveryCode : submit}
-        className="w-full max-w-sm rounded-2xl border border-charcoal/10 bg-ivory p-8 shadow-[0_24px_60px_-30px_rgba(30,45,30,0.35)]"
+        className="staynas-auth__card w-full max-w-md p-8 sm:p-10"
       >
-        <p className="inline-flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-charcoal/60">
+        <p className="staynas-auth__eyebrow inline-flex items-center gap-3">
           <Leaf className="h-3 w-3" style={{ color: "#0F3D3A" }} /> Staff Portal
         </p>
 
         {recoveryVerified ? (
           <>
-            <h1 className="mt-3 font-display text-2xl">Reset your password</h1>
-            <p className="mt-1 text-xs leading-5 text-charcoal/60">Your email is verified. Choose a new password to continue.</p>
-            <div className="mt-6 space-y-4">
+            <h1 className="staynas-auth__heading mt-8 text-3xl">Reset your password</h1>
+            <p className="staynas-auth__description mt-2 text-sm leading-6">Your email is verified. Choose a new password to continue.</p>
+            <div className="mt-8 space-y-5">
               <div>
-                <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">New password</label>
-                <input type="password" required minLength={8} autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal" />
+                <label className="staynas-auth__label">New password</label>
+                <input type="password" required minLength={8} autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="staynas-auth__input mt-2 w-full px-4 py-3 text-sm outline-none" />
               </div>
               <div>
                 <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">Confirm new password</label>
                 <input type="password" required minLength={8} autoComplete="new-password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal" />
               </div>
             </div>
-            <button type="submit" disabled={savingNewPassword || !newPassword || !confirmNewPassword} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60" style={{ background: "#171717" }}>
+            <button type="submit" disabled={savingNewPassword || !newPassword || !confirmNewPassword} className="staynas-auth__submit mt-8 inline-flex w-full items-center justify-center gap-2 px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.16em] transition-all disabled:opacity-60" style={{ background: "#171717" }}>
               {savingNewPassword && <Loader2 className="h-4 w-4 animate-spin" />}
               Save new password
             </button>
@@ -242,7 +242,7 @@ function AuthPage() {
               Enter the one-time code sent to <span className="font-medium text-charcoal">{email}</span>.
               Keep this page open while you retrieve the email.
             </p>
-            <div className="mt-6">
+            <div className="mt-8">
               <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">
                 Email verification code
               </label>
@@ -254,7 +254,7 @@ function AuthPage() {
                 maxLength={12}
                 value={recoveryCode}
                 onChange={(e) => { setRecoveryCode(e.target.value); setRecoveryError(""); }}
-                className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-center text-xl tracking-[0.35em] outline-none focus:border-charcoal"
+                className="staynas-auth__input mt-2 w-full px-4 py-3 text-center text-xl tracking-[0.35em] outline-none"
                 placeholder="••••••"
                 autoFocus
               />
@@ -273,14 +273,14 @@ function AuthPage() {
               type="button"
               onClick={resetPassword}
               disabled={resetting || verifyingRecovery}
-              className="mt-4 block w-full text-center text-[0.65rem] uppercase tracking-[0.18em] text-charcoal/55 hover:text-charcoal disabled:opacity-60"
+              className="staynas-auth__text-action mt-4 block w-full text-center text-xs uppercase tracking-[0.12em] disabled:opacity-60"
             >
               {resetting ? "Sending…" : "Send a new code"}
             </button>
             <button
               type="button"
               onClick={() => { setRecoverySent(false); setRecoveryCode(""); }}
-              className="mt-3 inline-flex w-full items-center justify-center gap-2 text-[0.65rem] uppercase tracking-[0.18em] text-charcoal/50 hover:text-charcoal"
+              className="staynas-auth__text-action mt-4 inline-flex w-full items-center justify-center gap-2 text-xs uppercase tracking-[0.12em]"
             >
               <ArrowLeft className="h-3 w-3" /> Back to sign in
             </button>
@@ -288,7 +288,7 @@ function AuthPage() {
         ) : (
           <>
             <h1 className="mt-3 font-display text-2xl">Sign in</h1>
-            <p className="mt-1 text-xs text-charcoal/60">Reservations & admin access only.</p>
+            <p className="staynas-auth__description mt-2 text-sm">Reservations & admin access only.</p>
 
             <div className="mt-6 space-y-4">
               <div>
@@ -334,7 +334,7 @@ function AuthPage() {
               type="button"
               onClick={resetPassword}
               disabled={loading || resetting}
-              className="mt-3 block w-full text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal disabled:opacity-60"
+              className="staynas-auth__text-action mt-4 block w-full text-center text-xs uppercase tracking-[0.12em] disabled:opacity-60"
             >
               {resetting ? "Sending reset code…" : "Forgot password?"}
             </button>
@@ -343,7 +343,7 @@ function AuthPage() {
 
         <Link
           to="/"
-          className="mt-5 block text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal"
+          className="staynas-auth__back mt-8 block text-center text-xs uppercase tracking-[0.12em]"
         >
           ← Back to website
         </Link>
