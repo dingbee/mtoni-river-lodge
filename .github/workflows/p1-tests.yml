@@ -22,3 +22,7 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - run: bunx vitest run src/lib/housekeeping-state-machine.test.ts src/lib/housekeeping-offline.test.ts src/domains/ai/concierge/request-categorization.test.ts src/domains/finance/payment-contract.test.ts
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Finance changed-file lint
+        run: bunx eslint src/domains/finance/finance.functions.ts src/domains/finance/payment-contract.ts src/domains/finance/payment-contract.test.ts src/lib/finance-rpc.ts src/routes/_authenticated.admin.finance.payments.tsx --rule 'prettier/prettier: off'
