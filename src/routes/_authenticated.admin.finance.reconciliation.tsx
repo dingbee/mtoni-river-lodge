@@ -52,7 +52,8 @@ function Reconciliation() {
                     <th className="py-2">Reference</th>
                     <th>Booking paid</th>
                     <th>Events total</th>
-                    <th>Variance</th>
+                    <th>Paid variance</th>
+                    <th>Balance variance</th>
                     <th>Status</th>
                   </tr>
                 </thead>
