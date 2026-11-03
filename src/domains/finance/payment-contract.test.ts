@@ -16,8 +16,24 @@ describe("manual payment request contract", () => {
     });
   });
 
-  it("accepts an explicit refund event", () => {
-    expect(recordManualPaymentInputSchema.parse({ ...valid, eventType: "refund" }).eventType).toBe("refund");
+  it("accepts a refund only when an audit reason is supplied", () => {
+    expect(
+      recordManualPaymentInputSchema.parse({
+        ...valid,
+        eventType: "refund",
+        note: "Guest cancellation approved",
+      }).eventType,
+    ).toBe("refund");
+    expect(
+      recordManualPaymentInputSchema.safeParse({ ...valid, eventType: "refund" }).success,
+    ).toBe(false);
+    expect(
+      recordManualPaymentInputSchema.safeParse({
+        ...valid,
+        eventType: "refund",
+        note: "   ",
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects zero, negative, non-finite, and sub-cent amounts", () => {
