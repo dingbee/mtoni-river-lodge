@@ -77,7 +77,7 @@ function Reconciliation() {
                 </tbody>
               </table>
             </div>
-            <p className="mt-4 text-xs text-muted-foreground">Matched: {data.matched} · Unmatched Pesapal events: {data.unmatchedEvents.length}</p>
+            <p className="mt-4 text-xs text-muted-foreground">Matched: {data.matched} · Orphan payment events: {data.unmatchedEvents.length}</p>
           </SectionCard>
           {data.unmatchedEvents.length > 0 && (
             <SectionCard title="Orphan Payment Events">
