@@ -83,6 +83,18 @@ describe("finance ledger reconciliation", () => {
     expect(result.matched).toBe(false);
   });
 
+  it("does not count an event with a missing amount", () => {
+    expect(
+      getReconciliationEventAmount({
+        id: "missing-amount",
+        booking_id: booking.id,
+        event_type: "payment_completed",
+        amount: null,
+        currency: "USD",
+      }),
+    ).toBeNull();
+  });
+
   it("does not mark an event with missing currency as reconciled", () => {
     const result = reconcileBookingLedger(booking, [{
       id: "p3",
