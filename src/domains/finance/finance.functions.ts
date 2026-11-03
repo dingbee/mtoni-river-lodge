@@ -393,60 +393,34 @@ export const getRevenueAnalytics = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => filtersSchema.parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
-    const from = data.from ?? firstOfYear();
-    const to = data.to ?? todayISO();
-    const { data: rows } = await context.supabase
-      .from("bookings")
-      .select(
-        "id, guest_id, guest_email, room_id, total, nights, status, source, country, check_in, cancelled_at",
-      )
-      .gte("check_in", from)
-      .lte("check_in", to);
-    const active = (rows ?? []).filter((b) => b.status !== "cancelled");
-    const cancelled = (rows ?? []).filter((b) => b.status === "cancelled");
-
-    const byMonth = new Map<string, number>();
-    const bySource = new Map<string, { total: number; count: number }>();
-    const guestSpend = new Map<string, { total: number; stays: number }>();
-    for (const b of active) {
-      const m = String(b.check_in).slice(0, 7);
-      byMonth.set(m, (byMonth.get(m) ?? 0) + Number(b.total ?? 0));
-      const s = b.source ?? "unknown";
-      const cur = bySource.get(s) ?? { total: 0, count: 0 };
-      cur.total += Number(b.total ?? 0);
-      cur.count += 1;
-      bySource.set(s, cur);
-      const key = b.guest_id ?? b.guest_email;
-      const g = guestSpend.get(key) ?? { total: 0, stays: 0 };
-      g.total += Number(b.total ?? 0);
-      g.stays += 1;
-      guestSpend.set(key, g);
+    const from=data.from??firstOfYear(), to=data.to??todayISO();
+    const propertyId=await (await import("@/lib/booking-property.server")).getConfiguredBookingPropertyId(context.supabase,context.userId);
+    const {data:rows,error}=await context.supabase.from("bookings")
+      .select("id,guest_id,guest_email,room_id,total,nights,status,source,country,check_in,check_out,cancelled_at,currency")
+      .eq("property_id",propertyId).gte("check_in",from).lte("check_in",to);
+    if(error) throw error;
+    const active=(rows??[]).filter(b=>b.status!=="cancelled");
+    const cancelled=(rows??[]).filter(b=>b.status==="cancelled");
+    const earned=active.filter(b=>["checked_out","completed"].includes(String(b.status)) && String(b.check_out)<=todayISO());
+    const byMonth=new Map<string,number>(), bySource=new Map<string,{total:number;count:number}>(), guestSpend=new Map<string,{total:number;stays:number}>();
+    for(const b of earned){
+      const m=String(b.check_in).slice(0,7); byMonth.set(m,(byMonth.get(m)??0)+Number(b.total??0));
+      const src=b.source??"unknown", cur=bySource.get(src)??{total:0,count:0}; cur.total+=Number(b.total??0);cur.count++;bySource.set(src,cur);
+      const key=b.guest_id??b.guest_email??"unknown",g=guestSpend.get(key)??{total:0,stays:0};g.total+=Number(b.total??0);g.stays++;guestSpend.set(key,g);
     }
-
-    const stays = active.length || 1;
-    const totalRevenue = active.reduce((a, b) => a + Number(b.total ?? 0), 0);
-    const lifetimeValues = Array.from(guestSpend.values());
-    const avgLtv =
-      lifetimeValues.length > 0
-        ? lifetimeValues.reduce((a, g) => a + g.total, 0) / lifetimeValues.length
-        : 0;
-
+    const totalRevenue=earned.reduce((n,b)=>n+Number(b.total??0),0);
+    const bookedValue=active.reduce((n,b)=>n+Number(b.total??0),0);
+    const guests=[...guestSpend.values()];
+    const avgLtv=guests.length?guests.reduce((n,g)=>n+g.total,0)/guests.length:0;
     return {
-      range: { from, to },
-      totalRevenue,
-      avgSpendPerStay: totalRevenue / stays,
-      cancellationsCount: cancelled.length,
-      cancellationImpact: cancelled.reduce((a, b) => a + Number(b.total ?? 0), 0),
-      guestCount: guestSpend.size,
-      avgLifetimeValue: avgLtv,
-      byMonth: Array.from(byMonth.entries())
-        .map(([month, total]) => ({ month, total }))
-        .sort((a, b) => a.month.localeCompare(b.month)),
-      bySource: Array.from(bySource.entries()).map(([source, v]) => ({ source, ...v })),
-      topGuests: Array.from(guestSpend.entries())
-        .map(([key, v]) => ({ key, ...v }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 10),
+      range:{from,to}, totalRevenue, bookedValue,
+      avgSpendPerStay:earned.length?totalRevenue/earned.length:0,
+      cancellationsCount:cancelled.length,
+      cancellationImpact:cancelled.reduce((n,b)=>n+Number(b.total??0),0),
+      guestCount:guestSpend.size,avgLifetimeValue:avgLtv,
+      byMonth:[...byMonth.entries()].map(([month,total])=>({month,total})).sort((a,b)=>a.month.localeCompare(b.month)),
+      bySource:[...bySource.entries()].map(([source,v])=>({source,...v})),
+      topGuests:[...guestSpend.entries()].map(([key,v])=>({key,...v})).sort((a,b)=>b.total-a.total).slice(0,10),
     };
   });
 
