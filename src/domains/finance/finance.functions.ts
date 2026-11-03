@@ -128,6 +128,9 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
     const todayTotals = sumByCurrency(today);
     const mtdTotals = sumByCurrency(mtd);
     const ytdTotals = sumByCurrency(ytd);
+    for (const currency of new Set([...todayTotals.keys(), ...mtdTotals.keys(), ...ytdTotals.keys()])) {
+      ensureCurrency(currency);
+    }
     for (const [currency, totals] of currencyTotals) {
       totals.todayRevenue = todayTotals.get(currency) ?? 0;
       totals.mtdRevenue = mtdTotals.get(currency) ?? 0;
@@ -233,7 +236,7 @@ export const getRevenueHealth = createServerFn({ method: "GET" })
     if (currencySignals.length && worstOutstandingRate < 0.1) score += 15;
     else if (worstOutstandingRate > 0.3) score -= 15;
     if (forwardBookings > 0) score += 10;
-    if (pastActive.length > 0 && cancelled > pastActive.length * 0.2) score -= 10;
+    if (pastRows.length > 0 && cancelled > pastRows.length * 0.2) score -= 10;
     score = Math.max(0, Math.min(100, score));
     const status: "healthy" | "attention" | "critical" = score >= 70 ? "healthy" : score >= 45 ? "attention" : "critical";
 
