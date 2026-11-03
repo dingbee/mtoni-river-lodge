@@ -110,6 +110,13 @@ begin
   if upper(coalesce(v_payment.currency,'')) <> upper(coalesce(v_booking.currency,'')) then
     raise exception using errcode = '22023', message = 'Original payment currency does not match booking currency';
   end if;
+  if exists (
+    select 1 from public.payment_events e
+    where e.provider_reverses_event_id = _payment_event_id
+  ) then
+    raise exception using errcode = '55000',
+      message = 'This Pesapal settlement was provider-reversed and cannot receive a cash refund';
+  end if;
 
   perform set_config('staynas.payment_rpc', 'on', true);
 
