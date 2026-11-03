@@ -12,6 +12,7 @@ export const recordManualPaymentInputSchema = z
     note: z.string().trim().max(500).optional(),
     idempotencyKey: z.string().uuid(),
     eventType: z.enum(["manual_payment", "refund"]).default("manual_payment"),
+    originalPaymentEventId: z.string().uuid().optional(),
   })
   .superRefine((value, ctx) => {
     if (value.eventType === "refund" && !value.note) {
@@ -19,6 +20,20 @@ export const recordManualPaymentInputSchema = z
         code: z.ZodIssueCode.custom,
         path: ["note"],
         message: "A refund reason is required",
+      });
+    }
+    if (value.eventType === "refund" && !value.originalPaymentEventId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["originalPaymentEventId"],
+        message: "Select the original successful payment being refunded",
+      });
+    }
+    if (value.eventType === "manual_payment" && value.originalPaymentEventId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["originalPaymentEventId"],
+        message: "Original payment reference is only valid for refunds",
       });
     }
   });
