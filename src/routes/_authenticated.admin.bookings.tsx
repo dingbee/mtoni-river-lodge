@@ -1,10 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { listBookings, getBookingDetail, updateBookingStatus } from "@/lib/admin.functions";
-import { Loader2, Plus } from "lucide-react";
+import { CalendarDays, Loader2, Plus } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { Button } from "@/components/ui/button";
@@ -85,9 +85,16 @@ function AdminBookings() {
         title="Bookings"
         description="Every direct reservation, its payment state and status history."
         actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> New reservation
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/admin/calendar">
+                <CalendarDays className="mr-2 h-4 w-4" /> Calendar
+              </Link>
+            </Button>
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> New reservation
+            </Button>
+          </div>
         }
       />
 
