@@ -132,7 +132,15 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
       todayRevenueByCurrency: currencyTotals(todayResult.data ?? []),
       mtdRevenueByCurrency: currencyTotals(mtdResult.data ?? []),
       ytdRevenueByCurrency: currencyTotals(ytdResult.data ?? []),
-      currencyBreakdown: Array.from(revenueByCurrency.values()).sort((a, b) => a.currency.localeCompare(b.currency)),
+      currencyBreakdown: Array.from(new Set([
+        ...revenueByCurrency.keys(),
+        ...(todayResult.data ?? []).map((r) => r.currency || "UNKNOWN"),
+        ...(mtdResult.data ?? []).map((r) => r.currency || "UNKNOWN"),
+        ...(ytdResult.data ?? []).map((r) => r.currency || "UNKNOWN"),
+        ...refundsByCurrency.map((r) => r.currency),
+      ])).sort().map((currency) => revenueByCurrency.get(currency) ?? {
+        currency, revenue: 0, paid: 0, outstanding: 0, deposits: 0, nightsSold: 0, adr: 0, revpar: 0,
+      }),
       refundsByCurrency,
       revenueByRoom, revenueBySource, revenueByCountry, revenueTrend,
     };
@@ -175,7 +183,8 @@ export const getRevenueHealth = createServerFn({ method: "GET" })
       if (occupancy30d >= 0.7) score += 20; else if (occupancy30d >= 0.5) score += 10; else if (occupancy30d < 0.3) score -= 15;
       if (outstanding < revenue30d * 0.1) score += 15; else if (outstanding > revenue30d * 0.3) score -= 15;
       if (forwardRevenue30d > revenue30d * 0.6) score += 15; else if (forwardRevenue30d < revenue30d * 0.3) score -= 10;
-      if (cancelled > current.length * 0.2) score -= 10;
+      const cancelledForCurrency = past.filter((b) => b.status === "cancelled" && (b.currency || "UNKNOWN") === currency).length;
+      if (cancelledForCurrency > current.length * 0.2) score -= 10;
       score = Math.max(0, Math.min(100, score));
       return {
         currency, score,
