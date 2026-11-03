@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/admin/finance/analytics")(
   component: Analytics,
 });
 
-function toCsv(rows: Record<string, unknown>[]): string {
+function money(value: number, currency: string) {\n  return `${currency} ${Math.round(Number(value || 0)).toLocaleString()}\`;\n}\n\nfunction toCsv(rows: Record<string, unknown>[]): string {
   if (!rows.length) return "";
   const cols = Object.keys(rows[0]);
   const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
@@ -74,12 +74,11 @@ function Analytics() {
         <LoadingState />
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-4">
-            <StatCard label="Revenue" value={`$${Math.round(data.totalRevenue).toLocaleString()}`} />
-            <StatCard label="Avg. spend / stay" value={`$${Math.round(data.avgSpendPerStay).toLocaleString()}`} />
-            <StatCard label="Guests" value={data.guestCount} />
-            <StatCard label="Avg. lifetime value" value={`$${Math.round(data.avgLifetimeValue).toLocaleString()}`} />
-            <StatCard label="Cancellations" value={data.cancellationsCount} hint={`Impact $${Math.round(data.cancellationImpact).toLocaleString()}`} />
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Cancellations" value={data.cancellationsCount} />
+            {data.currencyBreakdown.map((item) => (
+              <StatCard key={item.currency} label={`Revenue · ${item.currency}`} value={money(item.totalRevenue, item.currency)} hint={`Avg. spend/stay ${money(item.avgSpendPerStay, item.currency)} · LTV ${money(item.avgLifetimeValue, item.currency)} · cancellations ${money(item.cancellationImpact, item.currency)}`} />
+            ))}
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
