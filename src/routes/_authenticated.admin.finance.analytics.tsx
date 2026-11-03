@@ -75,7 +75,8 @@ function Analytics() {
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-4">
-            <StatCard label="Revenue" value={`$${Math.round(data.totalRevenue).toLocaleString()}`} />
+            <StatCard label="Earned revenue" value={`${Math.round(data.totalRevenue).toLocaleString()}`} />
+            <StatCard label="Booked value" value={`${Math.round(data.bookedValue).toLocaleString()}`} />
             <StatCard label="Avg. spend / stay" value={`$${Math.round(data.avgSpendPerStay).toLocaleString()}`} />
             <StatCard label="Guests" value={data.guestCount} />
             <StatCard label="Avg. lifetime value" value={`$${Math.round(data.avgLifetimeValue).toLocaleString()}`} />
