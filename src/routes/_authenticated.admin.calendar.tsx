@@ -7,7 +7,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { formatDistanceToNow } from "date-fns";
-import { Ban, CalendarDays, RefreshCw, ShieldOff, Sparkles, Timer, Wrench } from "lucide-react";
+import { Ban, CalendarDays, RefreshCw, ShieldOff, Timer } from "lucide-react";
 import { toast } from "sonner";
 
 import { getOpsCalendar } from "@/lib/operations.functions";
@@ -119,7 +119,6 @@ function UnifiedCalendarPage() {
     arrivalsToday: false,
     departuresToday: false,
     vip: false,
-    blocked: false,
     holds: false,
     roomSlugs: new Set<string>(),
   });
@@ -202,19 +201,6 @@ function UnifiedCalendarPage() {
   const d: any = ops.data ?? { rooms: [], bookings: [], inventory: [] };
 
   const activeHolds = holds.data ?? [];
-  const activeHoldsByRoomDate = useMemo(() => {
-    const map: Record<string, Set<string>> = {};
-    for (const h of activeHolds) {
-      const s = new Date(h.check_in);
-      const e = new Date(h.check_out);
-      for (let dd = new Date(s); dd < e; dd.setDate(dd.getDate() + 1)) {
-        const key = `${h.room_id}:${iso(dd)}`;
-        (map[key] ??= new Set<string>()).add(h.id);
-      }
-    }
-    return map;
-  }, [activeHolds]);
-
   const bookingsToday = useMemo(() => {
     const today = iso(new Date());
     return (d.bookings as any[]).filter((b) => b.check_in <= today && b.check_out > today).length;
@@ -382,8 +368,8 @@ function UnifiedCalendarPage() {
                     kind: "hold" as const,
                     items: [{
                       booking: { ...hold, guest_name: hold.guest_email || "Temporary hold", reference: "HOLD", status: "hold" },
-                      start: Math.max(0, days.indexOf(hold.check_in)),
-                      end: Math.min(days.length, days.indexOf(hold.check_out) < 0 ? days.length : days.indexOf(hold.check_out)),
+                      start: Math.max(0, Math.floor((Date.parse(`${hold.check_in}T00:00:00Z`) - Date.parse(`${range.from}T00:00:00Z`)) / 86_400_000)),
+                      end: Math.min(days.length, Math.ceil((Date.parse(`${hold.check_out}T00:00:00Z`) - Date.parse(`${range.from}T00:00:00Z`)) / 86_400_000)),
                     }],
                   })),
                 ].filter((lane) => lane.items.some((item) => item.end > item.start));
@@ -392,7 +378,7 @@ function UnifiedCalendarPage() {
                   <div
                     key={room.id}
                     className="grid border-b last:border-b-0"
-                    style={{ gridTemplateColumns: "180px minmax(0, 1fr)" }}
+                    style={{ gridTemplateColumns: `180px minmax(${days.length * 64}px, 1fr)` }}
                     onDragOver={(event) => { if (dragBookingId) event.preventDefault(); }}
                     onDrop={(event) => {
                       event.preventDefault();
