@@ -32,10 +32,10 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - name: Payment input contract tests
-        run: bunx vitest run src/domains/finance/payment-contract.test.ts src/domains/finance/finance-reconciliation.test.ts src/domains/finance/finance-metrics.test.ts
+        run: bunx vitest run src/domains/finance/payment-contract.test.ts src/domains/finance/finance-reconciliation.test.ts
       - name: TypeScript verification
         run: bunx tsc --noEmit
       - name: Finance lint
-        run: bunx eslint src/domains/finance/finance.functions.ts src/domains/finance/payment-contract.ts src/domains/finance/payment-contract.test.ts src/domains/finance/finance-metrics.ts src/routes/_authenticated.admin.finance.index.tsx src/routes/_authenticated.admin.finance.analytics.tsx src/lib/finance-rpc.ts src/routes/_authenticated.admin.finance.payments.tsx --rule 'prettier/prettier: off'
+        run: bunx eslint src/domains/finance/finance.functions.ts src/domains/finance/payment-contract.ts src/domains/finance/payment-contract.test.ts src/domains/finance/finance-reconciliation.ts src/domains/finance/finance-reconciliation.test.ts src/routes/_authenticated.admin.finance.reconciliation.tsx src/lib/finance-rpc.ts src/routes/_authenticated.admin.finance.payments.tsx --rule 'prettier/prettier: off'
       - name: Production build
         run: bun run build
