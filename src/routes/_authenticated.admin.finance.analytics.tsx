@@ -22,7 +22,11 @@ export const Route = createFileRoute("/_authenticated/admin/finance/analytics")(
   component: Analytics,
 });
 
-function money(value: number, currency: string) {\n  return `${currency} ${Math.round(Number(value || 0)).toLocaleString()}\`;\n}\n\nfunction toCsv(rows: Record<string, unknown>[]): string {
+function money(value: number, currency: string) {
+  return `${currency} ${Math.round(Number(value || 0)).toLocaleString()}`;
+}
+
+function toCsv(rows: Record<string, unknown>[]): string {
   if (!rows.length) return "";
   const cols = Object.keys(rows[0]);
   const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
