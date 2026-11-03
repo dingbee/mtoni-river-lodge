@@ -96,7 +96,7 @@ export const getRoomBoard = createServerFn({ method: "GET" })
       sb.from("room_states").select("id, room_id, unit_label, state, state_note, booking_id, updated_at").order("unit_label"),
       sb.from("rooms").select("id, slug, name").order("sort_order"),
       sb.from("bookings")
-        .select("id, reference, guest_name, check_in, check_out, status, room_id")
+        .select("id, reference, guest_name, guest_type, check_in, check_out, status, room_id")
         .in("status", ["confirmed", "checked_in"])
         .lte("check_in", new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10)),
     ]);
