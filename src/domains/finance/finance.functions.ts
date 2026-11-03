@@ -431,33 +431,63 @@ export const getReconciliation = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const from = data.from ?? daysAgo(30);
     const to = data.to ?? todayISO();
-    // The selected window scopes bookings by creation date; all their ledger events are then reconciled regardless of event date.
-    const { data: bookings, error: bookingsError } = await context.supabase
-      .from("bookings")
-      .select(
-        "id, reference, total, deposit_amount, balance_amount, paid_amount, currency, payment_status, payment_method, pesapal_order_tracking_id, payment_mismatch_at, created_at",
-      )
-      .gte("created_at", `${from}T00:00:00Z`)
-      .lte("created_at", `${to}T23:59:59Z`);
-    if (bookingsError) throw bookingsError;
-
-    const bookingIds = (bookings ?? []).map((booking) => booking.id);
-    const [ledgerResult, orphanResult] = await Promise.all([
-      bookingIds.length > 0
-        ? context.supabase
-            .from("payment_events")
-            .select("*")
-            .in("booking_id", bookingIds)
-        : Promise.resolve({ data: [], error: null }),
+    // Paginate every result set. Supabase's default row cap must not silently
+    // truncate bookings or payment events and produce a false reconciliation.
+    const pageSize = 500;
+    const fetchBookingPage = (offset: number) =>
       context.supabase
+        .from("bookings")
+        .select(
+          "id, reference, total, deposit_amount, balance_amount, paid_amount, currency, payment_status, payment_method, pesapal_order_tracking_id, payment_mismatch_at, created_at",
+        )
+        .gte("created_at", `${from}T00:00:00Z`)
+        .lte("created_at", `${to}T23:59:59Z`)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+
+    const firstBookingPage = await fetchBookingPage(0);
+    if (firstBookingPage.error) throw firstBookingPage.error;
+    const bookings = [...(firstBookingPage.data ?? [])];
+    for (let offset = pageSize; (firstBookingPage.data ?? []).length === pageSize; offset += pageSize) {
+      const page = await fetchBookingPage(offset);
+      if (page.error) throw page.error;
+      bookings.push(...(page.data ?? []));
+      if ((page.data ?? []).length < pageSize) break;
+    }
+
+    const bookingIds = bookings.map((booking) => booking.id);
+    const ledgerEvents: Array<{ id: string; booking_id: string | null; event_type: string; amount: number | string | null; currency: string | null }> = [];
+    for (let index = 0; index < bookingIds.length; index += 100) {
+      const bookingIdChunk = bookingIds.slice(index, index + 100);
+      const firstPage = await context.supabase
         .from("payment_events")
         .select("*")
-        .is("booking_id", null)
-        .gte("created_at", `${from}T00:00:00Z`)
-        .lte("created_at", `${to}T23:59:59Z`),
-    ]);
-    if (ledgerResult.error) throw ledgerResult.error;
-    if (orphanResult.error) throw orphanResult.error;
+        .in("booking_id", bookingIdChunk)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(0, pageSize - 1);
+      if (firstPage.error) throw firstPage.error;
+      ledgerEvents.push(...(firstPage.data ?? []));
+      for (let offset = pageSize; (firstPage.data ?? []).length === pageSize; offset += pageSize) {
+        const page = await context.supabase
+          .from("payment_events")
+          .select("*")
+          .in("booking_id", bookingIdChunk)
+          .order("created_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(offset, offset + pageSize - 1);
+        if (page.error) throw page.error;
+        ledgerEvents.push(...(page.data ?? []));
+        if ((page.data ?? []).length < pageSize) break;
+      }
+    }
+
+    // Unlinked payment events cannot be safely assigned to a tenant/property.
+    // The tenant-scoped client is intentionally not allowed to read those rows;
+    // they require a separate founder-level audit.
+
+
 
     const { reconcileBookingLedger, getReconciliationEventAmount } = await import(
       "./finance-reconciliation"
