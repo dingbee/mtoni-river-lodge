@@ -15,9 +15,9 @@ export function SectionCard({
   className?: string;
 }) {
   return (
-    <section className={cn("os-card os-fade-in p-6", className)}>
+    <section className={cn("os-card os-fade-in p-4 sm:p-6", className)}>
       {(title || actions) && (
-        <header className="mb-4 flex items-start justify-between gap-4">
+        <header className="mb-4 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="min-w-0">
             {title && (
               <h2 className="font-display text-xl leading-tight tracking-tight text-[color:var(--os-ink)]">
@@ -28,7 +28,7 @@ export function SectionCard({
               <p className="mt-1 text-xs text-[color:var(--os-ink-3)]">{description}</p>
             )}
           </div>
-          {actions && <div className="shrink-0">{actions}</div>}
+          {actions && <div className="flex min-w-0 flex-wrap items-center gap-2 sm:shrink-0">{actions}</div>}
         </header>
       )}
       {children}
