@@ -16,7 +16,7 @@ def wait_for_server(process):
 def main():
     env=os.environ.copy()
     for k,v in {'VITE_SUPABASE_PROJECT_ID':'ci-placeholder','VITE_SUPABASE_PUBLISHABLE_KEY':'ci-placeholder','VITE_SUPABASE_URL':'https://ci-placeholder.supabase.co','SUPABASE_PROJECT_ID':'ci-placeholder','SUPABASE_PUBLISHABLE_KEY':'ci-placeholder','SUPABASE_URL':'https://ci-placeholder.supabase.co'}.items(): env.setdefault(k,v)
-    server=subprocess.Popen(['bun','run','dev','--','--host','127.0.0.1','--port','8080'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT) if START_SERVER else None
+    server=subprocess.Popen(['bun','run','preview','--','--host','127.0.0.1','--port','8080'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT) if START_SERVER else None
     try:
         wait_for_server(server)
         with sync_playwright() as p:
