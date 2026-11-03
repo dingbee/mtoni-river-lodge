@@ -344,6 +344,7 @@ function UnifiedCalendarPage() {
             </Button>
           </div>
         ) : (
+          <>
           <div className="overflow-x-auto rounded-lg border">
             <div className="min-w-max">
               <div
@@ -484,6 +485,7 @@ function UnifiedCalendarPage() {
             <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-sm border border-amber-600/40 bg-amber-500/20" /> Active hold</span>
             <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-sm border border-rose-600/30 bg-rose-500/20" /> Blocked date</span>
           </div>
+          </>
         )}
       </SectionCard>
 
