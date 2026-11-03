@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - fix/pesapal-atomic-finance-finalization
+      - main
       - feat/finance-*
   pull_request:
     branches:
