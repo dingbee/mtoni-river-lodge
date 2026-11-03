@@ -24,4 +24,8 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Finance and reservation lint
+        run: bunx eslint src/domains/finance/finance.functions.ts src/domains/finance/payment-contract.ts src/domains/finance/payment-contract.test.ts src/lib/finance-rpc.ts src/routes/_authenticated.admin.finance.payments.tsx src/lib/staff-reservations.functions.ts src/components/os/reservations/NewReservationDialog.tsx --rule 'prettier/prettier: off'
       - run: bun run build
