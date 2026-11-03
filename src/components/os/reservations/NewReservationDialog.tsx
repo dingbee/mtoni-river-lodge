@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { checkAvailability, type AvailabilityRoom } from "@/lib/booking.functions";
+import { checkStaffAvailability as checkAvailability, type AvailabilityRoom } from "@/lib/booking.functions";
 import { listGuests } from "@/lib/guests.functions";
 import { createStaffReservation, RESERVATION_SOURCES } from "@/lib/staff-reservations.functions";
 import { cn } from "@/lib/utils";
@@ -490,39 +490,20 @@ export function NewReservationDialog({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="r-source">Booking source</Label>
-                    <select
-                      id="r-source"
-                      className={selectClass}
-                      value={source}
-                      onChange={(e) => setSource(e.target.value)}
-                    >
-                      {RESERVATION_SOURCES.map((s) => (
-                        <option key={s} value={s}>
-                          {SOURCE_LABEL[s] ?? s}
-                        </option>
-                      ))}
+                    <select id="r-source" className={selectClass} value={source} onChange={(e) => setSource(e.target.value)}>
+                      {RESERVATION_SOURCES.map((s) => <option key={s} value={s}>{SOURCE_LABEL[s] ?? s}</option>)}
                     </select>
                   </div>
                   <div>
                     <Label htmlFor="r-status">Reservation status</Label>
-                    <select
-                      id="r-status"
-                      className={selectClass}
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value as "pending" | "confirmed")}
-                    >
+                    <select id="r-status" className={selectClass} value={status} onChange={(e) => setStatus(e.target.value as "pending" | "confirmed")}>
                       <option value="confirmed">Confirmed</option>
                       <option value="pending">Pending</option>
                     </select>
                   </div>
                   <div>
                     <Label htmlFor="r-pay">Payment status</Label>
-                    <select
-                      id="r-pay"
-                      className={selectClass}
-                      value={paymentStatus}
-                      onChange={(e) => setPaymentStatus(e.target.value as typeof paymentStatus)}
-                    >
+                    <select id="r-pay" className={selectClass} value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value as typeof paymentStatus)}>
                       <option value="unpaid">Unpaid</option>
                       <option value="deposit_paid">Deposit paid</option>
                       <option value="paid">Paid in full</option>
@@ -530,30 +511,15 @@ export function NewReservationDialog({
                   </div>
                   <div>
                     <Label htmlFor="r-method">Payment method</Label>
-                    <Input
-                      id="r-method"
-                      placeholder="Cash, card, transfer…"
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    />
+                    <Input id="r-method" placeholder="Cash, card, transfer…" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} />
                   </div>
                   <div className="sm:col-span-2">
                     <Label htmlFor="r-req">Special requests</Label>
-                    <Textarea
-                      id="r-req"
-                      rows={2}
-                      value={specialRequests}
-                      onChange={(e) => setSpecialRequests(e.target.value)}
-                    />
+                    <Textarea id="r-req" rows={2} value={specialRequests} onChange={(e) => setSpecialRequests(e.target.value)} />
                   </div>
                   <div className="sm:col-span-2">
                     <Label htmlFor="r-notes">Internal notes</Label>
-                    <Textarea
-                      id="r-notes"
-                      rows={2}
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                    />
+                    <Textarea id="r-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
                   </div>
                 </div>
               </div>
@@ -561,86 +527,33 @@ export function NewReservationDialog({
 
             {step === 4 && (
               <dl className="grid gap-2 rounded-lg border border-border bg-muted/30 p-4 text-sm sm:grid-cols-2">
-                <div>
-                  <dt className="inline text-muted-foreground">Guest: </dt>
-                  <dd className="inline">{guestName}</dd>
-                </div>
-                <div>
-                  <dt className="inline text-muted-foreground">Email: </dt>
-                  <dd className="inline">{guestEmail}</dd>
-                </div>
-                <div>
-                  <dt className="inline text-muted-foreground">Phone: </dt>
-                  <dd className="inline">{guestPhone || "—"}</dd>
-                </div>
-                <div>
-                  <dt className="inline text-muted-foreground">Country: </dt>
-                  <dd className="inline">{country || "—"}</dd>
-                </div>
-                <div>
-                  <dt className="inline text-muted-foreground">Room: </dt>
-                  <dd className="inline">{selectedRoom?.name ?? "—"}</dd>
-                </div>
-                <div>
-                  <dt className="inline text-muted-foreground">Nights: </dt>
-                  <dd className="inline">{selectedRoom?.nights ?? "—"}</dd>
-                </div>
-                <div>
-                  <dt className="inline text-muted-foreground">Stay: </dt>
-                  <dd className="inline">
-                    {checkIn} → {checkOut}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="inline text-muted-foreground">Party: </dt>
-                  <dd className="inline">
-                    {adults} adult{adults === 1 ? "" : "s"}, {childrenBelow6 + children7Plus} child
-                  </dd>
-                </div>
-                <div>
-                  <dt className="inline text-muted-foreground">Source: </dt>
-                  <dd className="inline">{SOURCE_LABEL[source]}</dd>
-                </div>
-                <div>
-                  <dt className="inline text-muted-foreground">Status: </dt>
-                  <dd className="inline">{status}</dd>
-                </div>
-                <div>
-                  <dt className="inline text-muted-foreground">Payment: </dt>
-                  <dd className="inline">
-                    {paymentStatus.replace("_", " ")}
-                    {paymentMethod ? ` · ${paymentMethod}` : ""}
-                  </dd>
-                </div>
+                <div><dt className="inline text-muted-foreground">Guest: </dt><dd className="inline">{guestName}</dd></div>
+                <div><dt className="inline text-muted-foreground">Email: </dt><dd className="inline">{guestEmail}</dd></div>
+                <div><dt className="inline text-muted-foreground">Phone: </dt><dd className="inline">{guestPhone || "—"}</dd></div>
+                <div><dt className="inline text-muted-foreground">Country: </dt><dd className="inline">{country || "—"}</dd></div>
+                <div><dt className="inline text-muted-foreground">Room: </dt><dd className="inline">{selectedRoom?.name ?? "—"}</dd></div>
+                <div><dt className="inline text-muted-foreground">Nights: </dt><dd className="inline">{selectedRoom?.nights ?? "—"}</dd></div>
+                <div><dt className="inline text-muted-foreground">Stay: </dt><dd className="inline">{checkIn} → {checkOut}</dd></div>
+                <div><dt className="inline text-muted-foreground">Party: </dt><dd className="inline">{adults} adult{adults === 1 ? "" : "s"}, {childrenBelow6 + children7Plus} child</dd></div>
+                <div><dt className="inline text-muted-foreground">Source: </dt><dd className="inline">{SOURCE_LABEL[source]}</dd></div>
+                <div><dt className="inline text-muted-foreground">Status: </dt><dd className="inline">{status}</dd></div>
+                <div><dt className="inline text-muted-foreground">Payment: </dt><dd className="inline">{paymentStatus.replace("_", " ")}{paymentMethod ? ` · ${paymentMethod}` : ""}</dd></div>
                 <div className="sm:col-span-2 border-t border-border pt-2 text-base">
                   <dt className="inline text-muted-foreground">Total: </dt>
                   <dd className="inline">
                     {selectedRoom ? money(selectedRoom.nightly_total, selectedRoom.currency) : "—"}
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      (final total calculated by the reservation engine)
-                    </span>
+                    <span className="ml-2 text-xs text-muted-foreground">(final total calculated by the reservation engine)</span>
                   </dd>
                 </div>
               </dl>
             )}
 
             <div className="flex items-center justify-between gap-2 border-t border-border pt-4">
-              <Button
-                variant="ghost"
-                onClick={() => (step === 1 ? close(false) : setStep((step - 1) as Step))}
-                disabled={create.isPending}
-              >
+              <Button variant="ghost" onClick={() => (step === 1 ? close(false) : setStep((step - 1) as Step))} disabled={create.isPending}>
                 {step === 1 ? "Cancel" : "Back"}
               </Button>
               {step < 4 ? (
-                <Button
-                  onClick={() => setStep((step + 1) as Step)}
-                  disabled={
-                    (step === 1 && !guestValid) ||
-                    (step === 2 && !stayValid) ||
-                    (step === 3 && !roomSlug)
-                  }
-                >
+                <Button onClick={() => setStep((step + 1) as Step)} disabled={(step === 1 && !guestValid) || (step === 2 && !stayValid) || (step === 3 && !roomSlug)}>
                   Continue
                 </Button>
               ) : (
