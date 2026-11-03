@@ -120,6 +120,15 @@ begin
       message = 'The original Pesapal settlement has already been reversed';
   end if;
 
+  if exists (
+    select 1 from public.payment_events e
+    where e.event_type = 'refund'
+      and e.reverses_event_id = v_payment.id
+  ) then
+    raise exception using errcode = '55000',
+      message = 'The Pesapal settlement has a cash refund; provider reversal requires manual reconciliation';
+  end if;
+
   v_paid := round(coalesce(v_booking.paid_amount,0) - v_payment.amount, 2);
   if v_paid < 0 then
     raise exception using errcode = '55000',
