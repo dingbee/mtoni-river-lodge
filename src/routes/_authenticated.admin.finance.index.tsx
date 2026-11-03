@@ -123,9 +123,10 @@ function RevenueDashboard() {
               <span>Occupancy: <strong>{pct(data.occupancy)}</strong></span>
               <span>Nights sold: <strong>{data.nightsSold}</strong></span>
               <span>Room nights available: <strong>{data.availableRoomNights}</strong></span>
-              {data.balanceFieldMismatches > 0 && (
-                <Badge variant="destructive">{data.balanceFieldMismatches} balance-field mismatch(es)</Badge>
+              {(data.balanceFieldMismatches > 0 || data.derivedBalanceMismatches > 0) && (
+                <Badge variant="destructive">{data.balanceFieldMismatches} legacy/current balance mismatch(es)</Badge>
               )}
+              {data.derivedBalanceMismatches > 0 && <Badge variant="destructive">{data.derivedBalanceMismatches} derived balance mismatch(es)</Badge>}
             </div>
             {data.currencySummaries.length === 0 ? (
               <p className="text-sm text-muted-foreground">No bookings in this range.</p>
