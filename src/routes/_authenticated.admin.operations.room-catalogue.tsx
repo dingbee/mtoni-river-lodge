@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/admin/operations/room-cata
 const blankCategory = () => ({ id: undefined as string | undefined, slug: "", name: "", description: "", features: "", specifications: "", sortOrder: 0, status: "active" as "active" | "archived" });
 const blankType = () => ({
   id: undefined as string | undefined, slug: "", name: "", catalogueCategoryId: "none", shortDescription: "", capacityAdults: 2,
-  capacityChildren: 0, maxOccupancy: 2, heroLine: "", imageUrl: "", galleryUrls: "",
+  capacityChildren: 0, maxOccupancy: 2, description: "", details: "", ctaLine: "", heroLine: "", imageUrl: "", galleryUrls: "",
   sizeLabel: "", viewLabel: "", bedLabel: "", bathroomLabel: "", sortOrder: 0, status: "active" as "active" | "inactive",
 });
 const toLines = (value: Record<string, string> | null | undefined) => Object.entries(value ?? {}).map(([k, v]) => k + ": " + v).join("\n");
@@ -53,6 +53,9 @@ function PlatformRoomCataloguePage() {
       catalogueCategoryId: roomType.catalogueCategoryId === "none" ? null : roomType.catalogueCategoryId,
       shortDescription: roomType.shortDescription, capacityAdults: Number(roomType.capacityAdults),
       capacityChildren: Number(roomType.capacityChildren), maxOccupancy: Number(roomType.maxOccupancy),
+      description: roomType.description.split("\\n\\n").map(v => v.trim()).filter(Boolean),
+      details: roomType.details.split("\\n").map(v => v.trim()).filter(Boolean).map(line => { const i=line.indexOf(":"); return i>0 ? {label:line.slice(0,i).trim(),value:line.slice(i+1).trim()} : null; }).filter(Boolean),
+      ctaLine: roomType.ctaLine,
       status: roomType.status, sortOrder: Number(roomType.sortOrder), heroLine: roomType.heroLine, imageUrl: roomType.imageUrl,
       galleryUrls: roomType.galleryUrls.split("\n").map(v => v.trim()).filter(Boolean),
       sizeLabel: roomType.sizeLabel, viewLabel: roomType.viewLabel, bedLabel: roomType.bedLabel,
@@ -72,7 +75,8 @@ function PlatformRoomCataloguePage() {
   const editType = (r: any) => setRoomType({
     id: r.id, slug: r.slug, name: r.name, catalogueCategoryId: r.category_id ?? "none",
     shortDescription: r.short_description ?? "", capacityAdults: r.capacity_adults,
-    capacityChildren: r.capacity_children, maxOccupancy: r.max_occupancy, heroLine: r.hero_line ?? "",
+    capacityChildren: r.capacity_children, maxOccupancy: r.max_occupancy,
+    description: (r.description ?? []).join("\\n\\n"), details: (r.details ?? []).map((d: any) => `${d.label}: ${d.value}`).join("\\n"), ctaLine: r.cta_line ?? "", heroLine: r.hero_line ?? "",
     imageUrl: r.image_url ?? "", galleryUrls: (r.gallery_urls ?? []).join("\n"),
     sizeLabel: r.size_label ?? "", viewLabel: r.view_label ?? "", bedLabel: r.bed_label ?? "",
     bathroomLabel: r.bathroom_label ?? "", sortOrder: r.sort_order ?? 0,
@@ -128,6 +132,9 @@ function PlatformRoomCataloguePage() {
               <Input type="number" min="0" placeholder="Children" value={roomType.capacityChildren} onChange={e => setRoomType({ ...roomType, capacityChildren: Number(e.target.value) })} />
               <Input type="number" min="1" placeholder="Maximum occupancy" value={roomType.maxOccupancy} onChange={e => setRoomType({ ...roomType, maxOccupancy: Number(e.target.value) })} />
             </div>
+            <Textarea placeholder="Full guest-facing description — separate paragraphs with a blank line" value={roomType.description} onChange={e => setRoomType({ ...roomType, description: e.target.value })} />
+            <Textarea placeholder="Guest-facing detail rows — Label: value, one per line" value={roomType.details} onChange={e => setRoomType({ ...roomType, details: e.target.value })} />
+            <Input placeholder="Guest-facing call-to-action line" value={roomType.ctaLine} onChange={e => setRoomType({ ...roomType, ctaLine: e.target.value })} />
             <Input placeholder="Guest-facing hero line" value={roomType.heroLine} onChange={e => setRoomType({ ...roomType, heroLine: e.target.value })} />
             <Input placeholder="Primary image URL" value={roomType.imageUrl} onChange={e => setRoomType({ ...roomType, imageUrl: e.target.value })} />
             <div className="grid gap-3 sm:grid-cols-2">
