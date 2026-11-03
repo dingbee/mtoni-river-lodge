@@ -108,17 +108,17 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
     if (refundError) throw refundError;
 
     const bookingCurrency = new Map(active.map((booking) => [booking.id, String(booking.currency || "UNKNOWN").toUpperCase()]));
-    const currencyTotals = new Map<string, { revenue: number; outstanding: number; deposits: number; refunds: number; nights: number; todayRevenue: number; mtdRevenue: number; ytdRevenue: number }>();
+    const currencyTotals = new Map<string, { revenue: number; outstanding: number; paymentsReceived: number; refunds: number; nights: number; todayRevenue: number; mtdRevenue: number; ytdRevenue: number }>();
     const ensureCurrency = (currency: string) => {
       const key = String(currency || "UNKNOWN").toUpperCase();
-      if (!currencyTotals.has(key)) currencyTotals.set(key, { revenue: 0, outstanding: 0, deposits: 0, refunds: 0, nights: 0, todayRevenue: 0, mtdRevenue: 0, ytdRevenue: 0 });
+      if (!currencyTotals.has(key)) currencyTotals.set(key, { revenue: 0, outstanding: 0, paymentsReceived: 0, refunds: 0, nights: 0, todayRevenue: 0, mtdRevenue: 0, ytdRevenue: 0 });
       return currencyTotals.get(key)!;
     };
     for (const booking of active) {
       const totals = ensureCurrency(booking.currency);
       totals.revenue += Number(booking.total ?? 0);
       totals.outstanding += Number(booking.balance_amount ?? 0);
-      totals.deposits += Number(booking.deposit_amount ?? 0);
+      totals.paymentsReceived += Number(booking.paid_amount ?? 0);
       totals.nights += Number(booking.nights ?? 0);
     }
     for (const event of refundEvents ?? []) {
