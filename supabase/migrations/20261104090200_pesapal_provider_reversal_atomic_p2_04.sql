@@ -157,8 +157,7 @@ begin
   update public.bookings
   set paid_amount = v_paid,
       balance_amount = v_balance,
-      payment_status = v_status,
-      payment_failed_at = now()
+      payment_status = v_status
   where id = _booking_id;
 
   return jsonb_build_object(
