@@ -12,7 +12,7 @@ export default defineConfig({
     VitePWA({
       // Use existing site.webmanifest (do not regenerate or override branding).
       manifest: false,
-      registerType: "prompt",
+      registerType: "autoUpdate",
       injectRegister: null,
       filename: "sw.js",
       devOptions: { enabled: false },
@@ -31,8 +31,8 @@ export default defineConfig({
           /^\/robots\.txt$/,
         ],
         cleanupOutdatedCaches: true,
-        clientsClaim: false,
-        skipWaiting: false,
+        clientsClaim: true,
+        skipWaiting: true,
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         runtimeCaching: [
           // Page navigations — NetworkFirst so fresh content wins online,
@@ -48,8 +48,7 @@ export default defineConfig({
             handler: "NetworkFirst",
             options: {
               cacheName: "mtoni-pages",
-              networkTimeoutSeconds: 4,
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
