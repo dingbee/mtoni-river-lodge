@@ -189,111 +189,131 @@ function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-ivory text-charcoal flex items-center justify-center px-4">
-      <form
-        onSubmit={recoveryVerified ? saveRecoveredPassword : recoverySent ? verifyRecoveryCode : submit}
-        className="w-full max-w-sm rounded-2xl border border-charcoal/10 bg-ivory p-8 shadow-[0_24px_60px_-30px_rgba(30,45,30,0.35)]"
-      >
-        <p className="inline-flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-charcoal/60">
-          <Leaf className="h-3 w-3" style={{ color: "#0F3D3A" }} /> Staff Portal
-        </p>
-
-        {recoveryVerified ? (
-          <>
-            <h1 className="mt-3 font-display text-2xl">Reset your password</h1>
-            <p className="mt-1 text-xs leading-5 text-charcoal/60">Your email is verified. Choose a new password to continue.</p>
-            <div className="mt-6 space-y-4">
-              <div>
-                <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">New password</label>
-                <input type="password" required minLength={8} autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal" />
-              </div>
-              <div>
-                <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">Confirm new password</label>
-                <input type="password" required minLength={8} autoComplete="new-password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal" />
-              </div>
+    <main className="min-h-screen bg-[#f4f6f5] text-[#172b2a]">
+      <div className="grid min-h-screen lg:grid-cols-[minmax(0,1.05fr)_minmax(460px,0.95fr)]">
+        <section className="relative hidden overflow-hidden bg-[#102f2d] px-12 py-14 text-white lg:flex lg:flex-col lg:justify-between xl:px-20">
+          <div className="pointer-events-none absolute -right-40 -top-40 h-[34rem] w-[34rem] rounded-full border border-white/10" />
+          <div className="pointer-events-none absolute -right-16 -top-16 h-[26rem] w-[26rem] rounded-full border border-white/10" />
+          <div className="pointer-events-none absolute -bottom-48 -left-32 h-[34rem] w-[34rem] rounded-full bg-[#1e514b]/70 blur-3xl" />
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-white/10">
+              <Leaf className="h-5 w-5 text-[#b8d6c8]" />
             </div>
-            <button type="submit" disabled={savingNewPassword || !newPassword || !confirmNewPassword} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60" style={{ background: "#171717" }}>
-              {savingNewPassword && <Loader2 className="h-4 w-4 animate-spin" />}
-              Save new password
-            </button>
-          </>
-        ) : recoverySent ? (
-          <>
-            <h1 className="mt-3 font-display text-2xl">Enter reset code</h1>
-            <p className="mt-1 text-xs leading-5 text-charcoal/60">
-              Enter the one-time code sent to <span className="font-medium text-charcoal">{email}</span>.
-              Keep this page open while you retrieve the email.
+            <div>
+              <div className="text-lg font-semibold tracking-[0.16em]">STAYNAS</div>
+              <div className="text-[10px] uppercase tracking-[0.28em] text-white/55">Hospitality operating system</div>
+            </div>
+          </div>
+          <div className="relative z-10 max-w-xl py-16">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.2em] text-[#c5ddd2]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#8cc4a8]" /> Secure staff workspace
+            </div>
+            <h1 className="max-w-lg text-5xl font-semibold leading-[1.12] tracking-[-0.04em] xl:text-6xl">
+              Hospitality operations, connected.
+            </h1>
+            <p className="mt-6 max-w-md text-base leading-7 text-white/65">
+              One workspace for your property teams, guest operations and business performance.
             </p>
-            <div className="mt-6">
-              <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">
-                Email verification code
-              </label>
-              <input
-                type="text"
-                required
-                autoComplete="one-time-code"
-                inputMode="numeric"
-                maxLength={12}
-                value={recoveryCode}
-                onChange={(e) => setRecoveryCode(e.target.value)}
-                className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-center text-xl tracking-[0.35em] outline-none focus:border-charcoal"
-                placeholder="••••••"
-                autoFocus
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={verifyingRecovery || !recoveryCode.trim()}
-              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60"
-              style={{ background: "#171717" }}
-            >
-              {verifyingRecovery && <Loader2 className="h-4 w-4 animate-spin" />}
-              Verify code
-            </button>
-            <button
-              type="button"
-              onClick={resetPassword}
-              disabled={resetting || verifyingRecovery}
-              className="mt-4 block w-full text-center text-[0.65rem] uppercase tracking-[0.18em] text-charcoal/55 hover:text-charcoal disabled:opacity-60"
-            >
-              {resetting ? "Sending…" : "Send a new code"}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setRecoverySent(false); setRecoveryCode(""); }}
-              className="mt-3 inline-flex w-full items-center justify-center gap-2 text-[0.65rem] uppercase tracking-[0.18em] text-charcoal/50 hover:text-charcoal"
-            >
-              <ArrowLeft className="h-3 w-3" /> Back to sign in
-            </button>
-          </>
-        ) : (
-          <>
-            <h1 className="mt-3 font-display text-2xl">Sign in</h1>
-            <p className="mt-1 text-xs text-charcoal/60">Reservations & admin access only.</p>
-            <div className="mt-6 space-y-4">
-              <div>
-                <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">Email</label>
-                <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal" />
-              </div>
-              <div>
-                <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">Password</label>
-                <input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal" />
-              </div>
-            </div>
-            <button type="submit" disabled={loading || resetting} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60" style={{ background: "#171717" }}>
-              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Sign in
-            </button>
-            <button type="button" onClick={resetPassword} disabled={loading || resetting} className="mt-3 block w-full text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal disabled:opacity-60">
-              {resetting ? "Sending reset code…" : "Forgot password?"}
-            </button>
-          </>
-        )}
+          </div>
+          <div className="relative z-10 flex items-center justify-between border-t border-white/15 pt-6 text-xs text-white/45">
+            <span>StayNas · Staff access</span>
+            <span>Secure by design</span>
+          </div>
+        </section>
 
-        <Link to="/" className="mt-5 block text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal">
-          ← Back to website
-        </Link>
-      </form>
-    </div>
+        <section className="flex min-h-screen flex-col bg-[#f8faf9]">
+          <header className="flex items-center justify-between px-6 py-6 lg:hidden">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#123c38] text-white"><Leaf className="h-4 w-4" /></div>
+              <span className="text-sm font-semibold tracking-[0.16em]">STAYNAS</span>
+            </div>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#71817d]">Staff portal</span>
+          </header>
+
+          <div className="flex flex-1 items-center justify-center px-5 py-10 sm:px-10">
+            <div className="w-full max-w-[440px]">
+              <div className="mb-9 hidden items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#52716b] lg:flex">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#1e7566]" /> Staff portal
+              </div>
+              <div className="mb-8">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#638079]">
+                  {recoveryVerified ? "Account security" : recoverySent ? "Identity verification" : "Welcome back"}
+                </p>
+                <h2 className="mt-3 text-3xl font-semibold tracking-[-0.035em] text-[#173331] sm:text-[2.15rem]">
+                  {recoveryVerified ? "Create a new password" : recoverySent ? "Verify your email" : "Sign in to StayNas"}
+                </h2>
+                <p className="mt-3 max-w-md text-sm leading-6 text-[#687b77]">
+                  {recoveryVerified
+                    ? "Your email has been verified. Set a secure password to finish recovering your account."
+                    : recoverySent
+                      ? `Enter the one-time verification code sent to ${email}. Keep this page open while you retrieve it.`
+                      : "Access your property's operations and management workspace."}
+                </p>
+              </div>
+
+              <form
+                onSubmit={recoveryVerified ? saveRecoveredPassword : recoverySent ? verifyRecoveryCode : submit}
+                className="rounded-2xl border border-[#e1e9e6] bg-white p-6 shadow-[0_18px_50px_-32px_rgba(18,60,56,0.28)] sm:p-8"
+              >
+                {recoveryVerified ? (
+                  <div className="space-y-5">
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.12em] text-[#48625d]">New password</label>
+                      <input type="password" required minLength={8} autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="At least 8 characters" className="w-full rounded-xl border border-[#dce6e2] bg-[#fbfcfb] px-4 py-3.5 text-sm text-[#173331] outline-none transition focus:border-[#397b70] focus:ring-4 focus:ring-[#397b70]/10" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.12em] text-[#48625d]">Confirm new password</label>
+                      <input type="password" required minLength={8} autoComplete="new-password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} placeholder="Enter the password again" className="w-full rounded-xl border border-[#dce6e2] bg-[#fbfcfb] px-4 py-3.5 text-sm text-[#173331] outline-none transition focus:border-[#397b70] focus:ring-4 focus:ring-[#397b70]/10" />
+                    </div>
+                    <div className="rounded-xl bg-[#f0f6f3] px-4 py-3 text-xs leading-5 text-[#54736a]">Use at least 8 characters. Avoid reusing a password from another service.</div>
+                    <button type="submit" disabled={savingNewPassword || !newPassword || !confirmNewPassword} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#123c38] px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1b514a] disabled:cursor-not-allowed disabled:opacity-50">
+                      {savingNewPassword && <Loader2 className="h-4 w-4 animate-spin" />} Save new password
+                    </button>
+                  </div>
+                ) : recoverySent ? (
+                  <div className="space-y-5">
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.12em] text-[#48625d]">Email verification code</label>
+                      <input type="text" required autoComplete="one-time-code" inputMode="numeric" maxLength={12} value={recoveryCode} onChange={(e) => setRecoveryCode(e.target.value.replace(/\s/g, ""))} placeholder="Enter your code" autoFocus className="w-full rounded-xl border border-[#dce6e2] bg-[#fbfcfb] px-4 py-4 text-center text-xl font-semibold tracking-[0.32em] text-[#173331] outline-none transition focus:border-[#397b70] focus:ring-4 focus:ring-[#397b70]/10" />
+                      <p className="mt-2 text-xs text-[#7b8b86]">Check your inbox and spam folder. The code is valid for a limited time.</p>
+                    </div>
+                    <button type="button" onClick={() => { void verifyRecoveryCode(); }} disabled={verifyingRecovery || !recoveryCode.trim()} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#123c38] px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1b514a] disabled:cursor-not-allowed disabled:opacity-50">
+                      {verifyingRecovery ? <><Loader2 className="h-4 w-4 animate-spin" /> Verifying code…</> : "Verify and continue"}
+                    </button>
+                    <div className="flex items-center justify-between border-t border-[#edf1ef] pt-4">
+                      <button type="button" onClick={() => { setRecoverySent(false); setRecoveryCode(""); }} className="inline-flex items-center gap-2 text-xs font-medium text-[#617772] hover:text-[#173331]"><ArrowLeft className="h-3.5 w-3.5" /> Back to sign in</button>
+                      <button type="button" onClick={resetPassword} disabled={resetting || verifyingRecovery} className="text-xs font-semibold text-[#267064] hover:text-[#123c38] disabled:opacity-50">{resetting ? "Sending…" : "Resend code"}</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-5">
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.12em] text-[#48625d]">Work email</label>
+                      <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@company.com" className="w-full rounded-xl border border-[#dce6e2] bg-[#fbfcfb] px-4 py-3.5 text-sm text-[#173331] outline-none transition focus:border-[#397b70] focus:ring-4 focus:ring-[#397b70]/10" />
+                    </div>
+                    <div>
+                      <div className="mb-2 flex items-center justify-between">
+                        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#48625d]">Password</label>
+                        <button type="button" onClick={resetPassword} disabled={loading || resetting} className="text-xs font-semibold text-[#267064] hover:text-[#123c38] disabled:opacity-50">Forgot password?</button>
+                      </div>
+                      <input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" className="w-full rounded-xl border border-[#dce6e2] bg-[#fbfcfb] px-4 py-3.5 text-sm text-[#173331] outline-none transition focus:border-[#397b70] focus:ring-4 focus:ring-[#397b70]/10" />
+                    </div>
+                    <button type="submit" disabled={loading || resetting} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#123c38] px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1b514a] disabled:cursor-not-allowed disabled:opacity-50">
+                      {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Signing in…</> : "Sign in securely"}
+                    </button>
+                  </div>
+                )}
+              </form>
+
+              <div className="mt-6 flex items-center justify-between text-xs text-[#82908c]">
+                <Link to="/" className="font-medium transition hover:text-[#173331]">← Back to website</Link>
+                <span>Protected staff access</span>
+              </div>
+            </div>
+          </div>
+          <footer className="px-6 py-5 text-center text-[11px] text-[#9aa7a2]">© {new Date().getFullYear()} StayNas. All rights reserved.</footer>
+        </section>
+      </div>
+    </main>
   );
 }
