@@ -136,7 +136,7 @@ export const listCalendarEvents = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
+    await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     let q: any = context.supabase.from("calendar_events").select(
       "id, event_type, room_id, booking_id, hold_id, date_from, date_to, actor_id, payload, created_at",
     );
