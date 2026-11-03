@@ -334,7 +334,7 @@ function AuthPage() {
               type="button"
               onClick={resetPassword}
               disabled={loading || resetting}
-              className="staynas-auth__text-action mt-4 block w-full text-center text-xs uppercase tracking-[0.12em] disabled:opacity-60"
+              className="mt-4 block w-full text-center text-[0.65rem] uppercase tracking-[0.18em] text-charcoal/55 hover:text-charcoal disabled:opacity-60"
             >
               {resetting ? "Sending reset code…" : "Forgot password?"}
             </button>
