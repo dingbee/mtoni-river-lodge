@@ -106,7 +106,7 @@ function Analytics() {
                     <span className="capitalize">{r.source} · {r.currency}</span>
                     <span>
                       <Badge variant="secondary" className="mr-2">{r.count}</Badge>
-                      ${r.currency} ${Math.round(r.total).toLocaleString()}
+                      {r.currency} {Math.round(r.total).toLocaleString()}
                     </span>
                   </div>
                 ))}
@@ -119,7 +119,7 @@ function Analytics() {
                     <span className="truncate pr-2">{g.key}</span>
                     <span>
                       <Badge variant="outline" className="mr-2">{g.stays} stays</Badge>
-                      ${g.currency} ${Math.round(g.total).toLocaleString()}
+                      {g.currency} {Math.round(g.total).toLocaleString()}
                     </span>
                   </div>
                 ))}
