@@ -53,7 +53,7 @@ export const upsertGuestPreference = createServerFn({ method: "POST" })
         source: "manual",
         updated_by: context.userId,
       },
-      { onConflict: "guest_id,key" },
+      { onConflict: "guest_id,property_id,key" },
     );
     if (error) throw new Error(error.message);
     return { ok: true };
