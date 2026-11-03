@@ -85,8 +85,6 @@ export function NewReservationDialog({
   // Room + reservation
   const [roomSlug, setRoomSlug] = useState<string | null>(null);
   const [status, setStatus] = useState<"pending" | "confirmed">("confirmed");
-  const [paymentStatus, setPaymentStatus] = useState<"unpaid" | "deposit_paid" | "paid">("unpaid");
-  const [paymentMethod, setPaymentMethod] = useState("");
   const [source, setSource] = useState<string>("direct");
   const [specialRequests, setSpecialRequests] = useState("");
   const [notes, setNotes] = useState("");
@@ -142,8 +140,6 @@ export function NewReservationDialog({
           childrenBelow6,
           children7Plus,
           status,
-          paymentStatus,
-          paymentMethod,
           source: source as (typeof RESERVATION_SOURCES)[number],
           specialRequests,
           notes,
@@ -172,8 +168,6 @@ export function NewReservationDialog({
     setChildren7Plus(0);
     setRoomSlug(null);
     setStatus("confirmed");
-    setPaymentStatus("unpaid");
-    setPaymentMethod("");
     setSource("direct");
     setSpecialRequests("");
     setNotes("");
@@ -206,7 +200,7 @@ export function NewReservationDialog({
           <DialogDescription>
             {created
               ? "Created through the Mtoni reservation engine. No guest email has been sent."
-              : "Guest, stay, room and payment state — booked through the existing reservation engine."}
+              : "Guest, stay and room — payments are recorded separately through Finance."}
           </DialogDescription>
         </DialogHeader>
 
@@ -518,27 +512,11 @@ export function NewReservationDialog({
                       <option value="pending">Pending</option>
                     </select>
                   </div>
-                  <div>
-                    <Label htmlFor="r-pay">Payment status</Label>
-                    <select
-                      id="r-pay"
-                      className={selectClass}
-                      value={paymentStatus}
-                      onChange={(e) => setPaymentStatus(e.target.value as typeof paymentStatus)}
-                    >
-                      <option value="unpaid">Unpaid</option>
-                      <option value="deposit_paid">Deposit paid</option>
-                      <option value="paid">Paid in full</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label htmlFor="r-method">Payment method</Label>
-                    <Input
-                      id="r-method"
-                      placeholder="Cash, card, transfer…"
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    />
+                  <div className="sm:col-span-2 rounded-md border border-border bg-muted/30 p-3 text-sm">
+                    <p className="font-medium">Payment status: Unpaid</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Record deposits and payments after creating the reservation in Finance. Payment status cannot be manually assigned here.
+                    </p>
                   </div>
                   <div className="sm:col-span-2">
                     <Label htmlFor="r-req">Special requests</Label>
@@ -610,10 +588,7 @@ export function NewReservationDialog({
                 </div>
                 <div>
                   <dt className="inline text-muted-foreground">Payment: </dt>
-                  <dd className="inline">
-                    {paymentStatus.replace("_", " ")}
-                    {paymentMethod ? ` · ${paymentMethod}` : ""}
-                  </dd>
+                  <dd className="inline">Unpaid — record through Finance</dd>
                 </div>
                 <div className="sm:col-span-2 border-t border-border pt-2 text-base">
                   <dt className="inline text-muted-foreground">Total: </dt>
