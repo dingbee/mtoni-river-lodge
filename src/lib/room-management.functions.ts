@@ -140,3 +140,79 @@ export const saveRoomType = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { id };
   });
+
+
+const platformCategorySchema = categorySchema.omit({ id: true });
+const platformRoomSchema = roomSchema.omit({
+  quantity: true, basePrice: true, currency: true, includedGuests: true, extraGuestFee: true,
+}).extend({ catalogueCategoryId: z.string().uuid().nullable().optional() });
+
+async function requirePlatformRoomAdmin(supabase: any) {
+  const { data, error } = await supabase
+    .from("staynas_platform_admins")
+    .select("user_id")
+    .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
+    .maybeSingle();
+  if (error || !data) throw new Error("Platform administrator access required");
+}
+
+export const listPlatformRoomCatalogue = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await requirePlatformRoomAdmin(context.supabase);
+    const sb: any = context.supabase;
+    const [categories, types] = await Promise.all([
+      sb.from("staynas_room_catalogue_categories")
+        .select("id,slug,name,description,features,specifications,sort_order,status")
+        .order("sort_order").order("name"),
+      sb.from("staynas_room_catalogue_types")
+        .select("id,category_id,slug,name,short_description,capacity_adults,capacity_children,max_occupancy,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,status,sort_order")
+        .order("sort_order").order("name"),
+    ]);
+    if (categories.error) throw new Error(categories.error.message);
+    if (types.error) throw new Error(types.error.message);
+    return { categories: categories.data ?? [], types: types.data ?? [] };
+  });
+
+export const savePlatformRoomCatalogueCategory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => platformCategorySchema.extend({ id: z.string().uuid().optional() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await requirePlatformRoomAdmin(context.supabase);
+    const sb: any = context.supabase;
+    const payload = {
+      slug: data.slug, name: data.name, description: data.description || null,
+      features: data.features, specifications: data.specifications,
+      sort_order: data.sortOrder, status: data.status,
+    };
+    const q = data.id
+      ? sb.from("staynas_room_catalogue_categories").update(payload).eq("id", data.id).select("id").single()
+      : sb.from("staynas_room_catalogue_categories").insert(payload).select("id").single();
+    const { data: row, error } = await q;
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const savePlatformRoomCatalogueType = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => platformRoomSchema.extend({ id: z.string().uuid().optional() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await requirePlatformRoomAdmin(context.supabase);
+    const sb: any = context.supabase;
+    const payload = {
+      category_id: data.catalogueCategoryId ?? null,
+      slug: data.slug, name: data.name, short_description: data.shortDescription || null,
+      capacity_adults: data.capacityAdults, capacity_children: data.capacityChildren,
+      max_occupancy: data.maxOccupancy, hero_line: data.heroLine || null,
+      image_url: data.imageUrl || null, gallery_urls: data.galleryUrls,
+      size_label: data.sizeLabel || null, view_label: data.viewLabel || null,
+      bed_label: data.bedLabel || null, bathroom_label: data.bathroomLabel || null,
+      status: data.status === "inactive" ? "archived" : "active", sort_order: data.sortOrder,
+    };
+    const q = data.id
+      ? sb.from("staynas_room_catalogue_types").update(payload).eq("id", data.id).select("id").single()
+      : sb.from("staynas_room_catalogue_types").insert(payload).select("id").single();
+    const { data: row, error } = await q;
+    if (error) throw new Error(error.message);
+    return row;
+  });
