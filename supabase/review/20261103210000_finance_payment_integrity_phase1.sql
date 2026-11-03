@@ -14,7 +14,7 @@ create unique index if not exists payment_events_booking_idempotency_uidx
 -- Keep privileges narrow: authenticated users can only update the four
 -- financial summary columns used by the RPC, not arbitrary booking fields.
 grant select on public.bookings to authenticated;
-grant update (paid_amount, balance_amount, payment_status, payment_method, updated_at)
+grant update (paid_amount, balance_amount, payment_status, payment_method)
   on public.bookings to authenticated;
 grant select, insert on public.payment_events to authenticated;
 grant insert on public.activity_logs to authenticated;
@@ -77,15 +77,43 @@ create policy "Finance staff insert payment events for accessible properties"
 
 drop policy if exists "Finance staff insert own payment audit logs"
   on public.activity_logs;
-create policy "Atomic payment RPC required for finance audit inserts"
-  on public.activity_logs
-  as restrictive
-  for insert to authenticated
-  with check (
-    current_setting('staynas.payment_rpc', true) = 'on'
-    and entity_type = 'booking'
-    and module = 'finance.payments'
-  );
+-- Gate only finance payment audit rows. Do not apply a restrictive RLS
+-- policy to activity_logs globally: other modules must continue logging.
+create or replace function public.enforce_finance_payment_audit_context()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $trigger$
+begin
+  if (new.module = 'finance.payments' or new.action like 'finance.%')
+     and current_user <> 'service_role' then
+    if current_setting('staynas.payment_rpc', true) is distinct from 'on' then
+      raise exception using errcode = '42501',
+        message = 'Finance payment audit rows must be written by the atomic payment RPC';
+    end if;
+    if new.actor_id is distinct from auth.uid()
+       or new.entity_type <> 'booking'
+       or not public.has_any_role(
+         auth.uid(), array['owner','manager','finance']::public.app_role[]
+       )
+       or not exists (
+         select 1 from public.bookings b
+         where b.id = new.entity_id
+           and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+       ) then
+      raise exception using errcode = '42501',
+        message = 'Finance audit actor or property scope is invalid';
+    end if;
+  end if;
+  return new;
+end;
+$trigger$;
+
+drop trigger if exists enforce_finance_payment_audit_context on public.activity_logs;
+create trigger enforce_finance_payment_audit_context
+before insert on public.activity_logs
+for each row execute function public.enforce_finance_payment_audit_context();
 
 create policy "Finance staff insert own payment audit logs"
   on public.activity_logs
@@ -226,8 +254,7 @@ begin
   set paid_amount = v_new_paid,
       balance_amount = v_new_balance,
       payment_status = v_new_status,
-      payment_method = _method,
-      updated_at = now()
+      payment_method = _method
   where id = _booking_id;
 
   insert into public.activity_logs (
