@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
@@ -56,6 +58,31 @@ export const checkAvailability = createServerFn({ method: "POST" })
     const guests = data.guests ?? 1;
     const rooms = (rows ?? []) as AvailabilityRoom[];
     return rooms
+      .map((r) => ({
+        ...r,
+        nightly_total: Number(r.nightly_total),
+        base_price: Number(r.base_price),
+        fits_guests: guests <= r.max_occupancy,
+      }))
+      .sort((a, b) => a.base_price - b.base_price);
+  });
+
+// Authenticated staff availability uses the user's active property context.
+export const checkStaffAvailability = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => availabilitySchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
+    if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in");
+    const propertyId = await getConfiguredBookingPropertyId(context.supabase, context.userId);
+    const { data: rows, error } = await bookingRpc(context.supabase).rpc("get_room_availability", {
+      _check_in: data.checkIn,
+      _check_out: data.checkOut,
+      _property_id: propertyId,
+    });
+    if (error) throw new Error(error.message);
+    const guests = data.guests ?? 1;
+    return ((rows ?? []) as AvailabilityRoom[])
       .map((r) => ({
         ...r,
         nightly_total: Number(r.nightly_total),
