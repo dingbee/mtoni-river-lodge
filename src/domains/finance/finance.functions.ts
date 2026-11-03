@@ -76,24 +76,20 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
 
     const active = (bookings ?? []).filter((b) => b.status !== "cancelled");
 
-    const [{ data: today }, { data: mtd }, { data: ytd }, { data: rooms }] =
-      await Promise.all([
-        context.supabase
-          .from("bookings")
-          .select("total, currency, status")
-          .eq("check_in", todayISO()),
-        context.supabase
-          .from("bookings")
-          .select("total, currency, status")
-          .gte("check_in", firstOfMonth())
-          .lte("check_in", todayISO()),
-        context.supabase
-          .from("bookings")
-          .select("total, currency, status")
-          .gte("check_in", firstOfYear())
-          .lte("check_in", todayISO()),
-        context.supabase.from("rooms").select("id, slug, name, total_units"),
-      ]);
+    const [todayResult, mtdResult, ytdResult, roomsResult] = await Promise.all([
+      context.supabase.from("bookings").select("total, currency, status").eq("check_in", todayISO()),
+      context.supabase.from("bookings").select("total, currency, status").gte("check_in", firstOfMonth()).lte("check_in", todayISO()),
+      context.supabase.from("bookings").select("total, currency, status").gte("check_in", firstOfYear()).lte("check_in", todayISO()),
+      context.supabase.from("rooms").select("id, slug, name, total_units"),
+    ]);
+    if (todayResult.error) throw todayResult.error;
+    if (mtdResult.error) throw mtdResult.error;
+    if (ytdResult.error) throw ytdResult.error;
+    if (roomsResult.error) throw roomsResult.error;
+    const today = todayResult.data;
+    const mtd = mtdResult.data;
+    const ytd = ytdResult.data;
+    const rooms = roomsResult.data;
 
     const sumByCurrency = (rows: Array<{ total: number | string; currency: string; status?: string }> | null) => {
       const totals = new Map<string, number>();
