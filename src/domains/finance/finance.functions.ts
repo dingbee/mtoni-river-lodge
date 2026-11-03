@@ -63,7 +63,7 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
     let q = context.supabase
       .from("bookings")
       .select(
-        "id, reference, room_id, check_in, check_out, nights, adults, children, total, paid_amount, deposit_amount, balance_amount, currency, source, country, payment_method, payment_status, status, created_at",
+        "id, reference, room_id, check_in, check_out, nights, adults, children, total, paid_amount, deposit_amount, balance_amount, balance_due, currency, source, country, payment_method, payment_status, status, created_at",
       )
       .gte("check_in", from)
       .lte("check_in", to);
@@ -201,58 +201,60 @@ export const getRevenueHealth = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const from = daysAgo(30);
-    const to = daysAgo(-30); // next 30 days
-    const [{ data: past }, { data: future }, { data: rooms }] = await Promise.all([
-      context.supabase
-        .from("bookings")
-        .select("total, nights, status, balance_amount, created_at, check_in, payment_status")
-        .gte("check_in", from)
-        .lte("check_in", todayISO()),
-      context.supabase
-        .from("bookings")
-        .select("total, nights, status, check_in, created_at")
-        .gt("check_in", todayISO())
-        .lte("check_in", to),
+    const to = daysAgo(-30);
+    const [{ data: past, error: pastError }, { data: future, error: futureError }, { data: rooms, error: roomsError }] = await Promise.all([
+      context.supabase.from("bookings")
+        .select("total, currency, nights, status, balance_amount, check_in, payment_status")
+        .gte("check_in", from).lte("check_in", todayISO()),
+      context.supabase.from("bookings")
+        .select("currency, status, check_in")
+        .gt("check_in", todayISO()).lte("check_in", to),
       context.supabase.from("rooms").select("id, total_units"),
     ]);
-    const totalUnits = (rooms ?? []).reduce((a, r) => a + Number(r.total_units ?? 1), 0) || 1;
+    if (pastError) throw pastError;
+    if (futureError) throw futureError;
+    if (roomsError) throw roomsError;
 
-    const pastActive = (past ?? []).filter((b) => b.status !== "cancelled");
-    const cancelled = (past ?? []).filter((b) => b.status === "cancelled").length;
+    const totalUnits = (rooms ?? []).reduce((a, r) => a + Number(r.total_units ?? 1), 0) || 1;
+    const pastRows = past ?? [];
+    const pastActive = pastRows.filter((b) => b.status !== "cancelled");
+    const cancelled = pastRows.filter((b) => b.status === "cancelled").length;
     const nights = pastActive.reduce((a, b) => a + Number(b.nights ?? 0), 0);
     const occupancy = nights / (totalUnits * 30);
-    const outstanding = pastActive.reduce((a, b) => a + Number(b.balance_amount ?? 0), 0);
-    const revenue = pastActive.reduce((a, b) => a + Number(b.total ?? 0), 0);
-    const forwardRevenue = (future ?? [])
-      .filter((b) => b.status !== "cancelled")
-      .reduce((a, b) => a + Number(b.total ?? 0), 0);
+    const byCurrency = new Map<string, { revenue: number; outstanding: number; bookingCount: number }>();
+    for (const booking of pastActive) {
+      const currency = String(booking.currency || "UNKNOWN").toUpperCase();
+      const totals = byCurrency.get(currency) ?? { revenue: 0, outstanding: 0, bookingCount: 0 };
+      totals.revenue += Number(booking.total ?? 0);
+      totals.outstanding += Number(booking.balance_amount ?? 0);
+      totals.bookingCount += 1;
+      byCurrency.set(currency, totals);
+    }
+    const currencySignals = Array.from(byCurrency.entries()).map(([currency, totals]) => ({
+      currency, ...totals,
+      outstandingRate: totals.revenue > 0 ? totals.outstanding / totals.revenue : (totals.outstanding > 0 ? 1 : 0),
+    }));
+    const worstOutstandingRate = currencySignals.reduce((max, row) => Math.max(max, row.outstandingRate), 0);
+    const forwardBookings = (future ?? []).filter((b) => b.status !== "cancelled").length;
 
-    // Simple scoring — 0..100
+    // Score uses currency-neutral ratios only; unlike raw amounts, ratios are comparable.
     let score = 50;
     if (occupancy >= 0.7) score += 20;
     else if (occupancy >= 0.5) score += 10;
     else if (occupancy < 0.3) score -= 15;
-
-    if (outstanding < revenue * 0.1) score += 15;
-    else if (outstanding > revenue * 0.3) score -= 15;
-
-    if (forwardRevenue > revenue * 0.6) score += 15;
-    else if (forwardRevenue < revenue * 0.3) score -= 10;
-
-    if (cancelled > pastActive.length * 0.2) score -= 10;
+    if (currencySignals.length && worstOutstandingRate < 0.1) score += 15;
+    else if (worstOutstandingRate > 0.3) score -= 15;
+    if (forwardBookings > 0) score += 10;
+    if (pastActive.length > 0 && cancelled > pastActive.length * 0.2) score -= 10;
     score = Math.max(0, Math.min(100, score));
-
-    const status: "healthy" | "attention" | "critical" =
-      score >= 70 ? "healthy" : score >= 45 ? "attention" : "critical";
+    const status: "healthy" | "attention" | "critical" = score >= 70 ? "healthy" : score >= 45 ? "attention" : "critical";
 
     return {
-      score,
-      status,
+      score, status,
       signals: {
         occupancy30d: occupancy,
-        outstanding,
-        revenue30d: revenue,
-        forwardRevenue30d: forwardRevenue,
+        byCurrency: currencySignals,
+        forwardBookings30d: forwardBookings,
         cancellations30d: cancelled,
       },
     };
