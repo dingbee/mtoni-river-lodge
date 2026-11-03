@@ -16,11 +16,13 @@ export type ReconciliationBooking = {
 
 const CREDIT_EVENT_TYPES = new Set(["payment_completed", "manual_payment", "adjustment"]);
 const REFUND_EVENT_TYPES = new Set(["refund", "refund_issued"]);
+const PROVIDER_REVERSAL_EVENT_TYPES = new Set(["provider_reversal"]);
 
 /**
  * Only events that represent an actual ledger movement affect the paid total.
  * Provider status notifications (including ipn:reversed) are deliberately
- * excluded: a status callback is not proof that money was refunded.
+ * excluded. A provider_reversal event is different: it is an atomic, verified
+ * ledger debit linked to the original Pesapal settlement.
  */
 export function getReconciliationEventAmount(event: ReconciliationEvent): number | null {
   if (event.amount === null || event.amount === undefined) return null;
@@ -33,7 +35,7 @@ export function getReconciliationEventAmount(event: ReconciliationEvent): number
     }
     return amount;
   }
-  if (REFUND_EVENT_TYPES.has(event.event_type)) {
+  if (REFUND_EVENT_TYPES.has(event.event_type) || PROVIDER_REVERSAL_EVENT_TYPES.has(event.event_type)) {
     return amount > 0 ? -amount : amount;
   }
   return null;
