@@ -40,8 +40,6 @@ const createSchema = z.object({
   childrenBelow6: z.number().int().min(0).max(10).default(0),
   children7Plus: z.number().int().min(0).max(10).default(0),
   status: z.enum(["pending", "confirmed"]).default("confirmed"),
-  paymentStatus: z.enum(["unpaid", "deposit_paid", "paid"]).default("unpaid"),
-  paymentMethod: z.string().trim().max(60).optional().or(z.literal("")),
   source: z.enum(STAFF_SOURCES).default("direct"),
   specialRequests: z.string().trim().max(1000).optional().or(z.literal("")),
   notes: z.string().trim().max(2000).optional().or(z.literal("")),
@@ -90,10 +88,8 @@ export const createStaffReservation = createServerFn({ method: "POST" })
     const patch: Record<string, unknown> = {
       source: data.source,
       status: data.status,
-      payment_status: data.paymentStatus,
     };
     if (data.status === "confirmed") patch["confirmed_at"] = new Date().toISOString();
-    if (data.paymentMethod) patch["payment_method"] = data.paymentMethod;
     if (data.notes) patch["notes"] = data.notes;
     const { error: patchError } = await sb.from("bookings").update(patch).eq("id", bookingId);
     if (patchError) throw new Error(patchError.message);
@@ -121,7 +117,7 @@ export const createStaffReservation = createServerFn({ method: "POST" })
       entityType: "booking",
       entityId: bookingId,
       entityLabel: row.reference as string,
-      metadata: { channel: "staff_console", source: data.source, room_slug: data.roomSlug, check_in: data.checkIn, check_out: data.checkOut, status: data.status, payment_status: data.paymentStatus, guest_id: data.guestId ?? null, moci_created: Boolean(checkin.token) },
+      metadata: { channel: "staff_console", source: data.source, room_slug: data.roomSlug, check_in: data.checkIn, check_out: data.checkOut, status: data.status, payment_status: "unpaid", guest_id: data.guestId ?? null, moci_created: Boolean(checkin.token) },
       newValue: { reference: row.reference, total: Number(row.total), currency: row.currency },
     });
 
