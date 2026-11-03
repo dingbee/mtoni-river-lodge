@@ -112,11 +112,7 @@ function AuthPage() {
       return;
     }
     setResetting(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      // Route recovery through the StayNas callback so the recovery session is
-      // exchanged before the password form is opened (including mobile clients).
-      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
-    });
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
     setResetting(false);
     if (error) {
       toast.error(error.message);
@@ -173,11 +169,15 @@ function AuthPage() {
       });
       if (error) throw error;
 
+      // verifyOtp persists the recovery session through the configured Supabase client.
+      // Confirm it is usable before allowing the password update screen to open.
       const { data: verifiedUser, error: userError } = await supabase.auth.getUser();
       if (userError || !verifiedUser.user || !data.session) {
         throw userError ?? new Error("Recovery session could not be established. Request a new code.");
       }
 
+      // Keep the verified recovery session and reveal the password form in-place.
+      // This avoids losing the session across route/document transitions on mobile.
       setRecoveryVerified(true);
     } catch (error) {
       console.error("[StayNas auth] Recovery code verification failed", error);
@@ -270,27 +270,62 @@ function AuthPage() {
           <>
             <h1 className="mt-3 font-display text-2xl">Sign in</h1>
             <p className="mt-1 text-xs text-charcoal/60">Reservations & admin access only.</p>
+
             <div className="mt-6 space-y-4">
               <div>
-                <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">Email</label>
-                <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal" />
+                <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal"
+                />
               </div>
+
               <div>
-                <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">Password</label>
-                <input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal" />
+                <label className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm outline-none focus:border-charcoal"
+                />
               </div>
             </div>
-            <button type="submit" disabled={loading || resetting} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60" style={{ background: "#171717" }}>
+
+            <button
+              type="submit"
+              disabled={loading || resetting}
+              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60"
+              style={{ background: "#171717" }}
+            >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               Sign in
             </button>
-            <button type="button" onClick={resetPassword} disabled={loading || resetting} className="mt-3 block w-full text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal disabled:opacity-60">
+
+            <button
+              type="button"
+              onClick={resetPassword}
+              disabled={loading || resetting}
+              className="mt-3 block w-full text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal disabled:opacity-60"
+            >
               {resetting ? "Sending reset code…" : "Forgot password?"}
             </button>
           </>
         )}
 
-        <Link to="/" className="mt-5 block text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal">
+        <Link
+          to="/"
+          className="mt-5 block text-center text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/50 hover:text-charcoal"
+        >
           ← Back to website
         </Link>
       </form>
