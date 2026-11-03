@@ -147,7 +147,11 @@ export async function verifyAndFinalizePayment(opts: {
   });
   if (eventError) throw new Error(`Unable to record Pesapal status event: ${eventError.message}`);
 
-  if (outcome === "failed" || outcome === "reversed") {
+  if (
+    outcome === "failed" &&
+    booking.payment_status !== "paid" &&
+    booking.payment_status !== "deposit_paid"
+  ) {
     const { error: failedUpdateError } = await supabaseAdmin
       .from("bookings")
       .update({ payment_failed_at: new Date().toISOString() })
