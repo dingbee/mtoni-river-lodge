@@ -77,20 +77,9 @@ function Reconciliation() {
                 </tbody>
               </table>
             </div>
-            <p className="mt-4 text-xs text-muted-foreground">Matched: {data.matched} · Orphan payment events: {data.unmatchedEvents.length}</p>
+            <p className="mt-4 text-xs text-muted-foreground">Matched: {data.matched} · Unlinked provider events require founder-level audit and are excluded from tenant scope.</p>
           </SectionCard>
-          {data.unmatchedEvents.length > 0 && (
-            <SectionCard title="Orphan Payment Events">
-              <div className="space-y-1 text-xs">
-                {data.unmatchedEvents.slice(0, 30).map((e) => (
-                  <div key={e.id} className="flex justify-between border-b border-border/40 py-1">
-                    <span>{e.event_type} · {e.merchant_reference}</span>
-                    <span>{e.currency ?? ""} {e.amount ?? ""} · {new Date(e.created_at).toLocaleString()}</span>
-                  </div>
-                ))}
-              </div>
-            </SectionCard>
-          )}
+
         </>
       )}
     </div>
