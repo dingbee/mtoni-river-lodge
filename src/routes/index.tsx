@@ -8,7 +8,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { TrustedByGuestsSection } from "@/components/site/TrustedByGuestsSection";
 import { WlhaAwarenessBanner } from "@/components/site/WlhaAwarenessBanner";
 import { WhyMtoni } from "@/components/site/WhyMtoni";
-import heroPoster from "@/assets/hero-forest-cottage-1600w.webp";
+import heroPoster from "@/assets/hero-cottage-exterior-1600w.webp";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
