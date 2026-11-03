@@ -14,10 +14,40 @@ create unique index if not exists payment_events_booking_idempotency_uidx
 -- Keep privileges narrow: authenticated users can only update the four
 -- financial summary columns used by the RPC, not arbitrary booking fields.
 grant select on public.bookings to authenticated;
-grant update (paid_amount, balance_amount, payment_status, payment_method)
+grant update (paid_amount, balance_amount, payment_status, payment_method, updated_at)
   on public.bookings to authenticated;
 grant select, insert on public.payment_events to authenticated;
 grant insert on public.activity_logs to authenticated;
+
+-- Authenticated direct writes must not bypass the atomic RPC. The transaction-
+-- local flag is set only inside record_booking_payment; service-role provider
+-- callbacks retain their existing server-only path.
+create or replace function public.enforce_finance_rpc_booking_update()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $trigger$
+begin
+  if (
+    new.paid_amount is distinct from old.paid_amount
+    or new.balance_amount is distinct from old.balance_amount
+    or new.payment_status is distinct from old.payment_status
+    or new.payment_method is distinct from old.payment_method
+  ) and current_setting('staynas.payment_rpc', true) is distinct from 'on'
+    and current_user <> 'service_role' then
+    raise exception using errcode = '42501',
+      message = 'Financial booking fields must be changed through the atomic payment RPC';
+  end if;
+  return new;
+end;
+$trigger$;
+
+drop trigger if exists enforce_finance_rpc_booking_update on public.bookings;
+create trigger enforce_finance_rpc_booking_update
+before update of paid_amount, balance_amount, payment_status, payment_method
+on public.bookings
+for each row execute function public.enforce_finance_rpc_booking_update();
 
 drop policy if exists "Finance staff insert payment events for accessible properties"
   on public.payment_events;
@@ -32,6 +62,7 @@ create policy "Finance staff insert payment events for accessible properties"
       where b.id = payment_events.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
     )
+    and current_setting('staynas.payment_rpc', true) = 'on'
     and public.has_any_role(
       auth.uid(),
       array['owner','manager','finance']::public.app_role[]
@@ -45,6 +76,14 @@ create policy "Finance staff insert own payment audit logs"
   for insert to authenticated
   with check (
     actor_id = auth.uid()
+    and entity_type = 'booking'
+    and module = 'finance.payments'
+    and exists (
+      select 1 from public.bookings b
+      where b.id = activity_logs.entity_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+    )
+    and current_setting('staynas.payment_rpc', true) = 'on'
     and public.has_any_role(
       auth.uid(),
       array['owner','manager','finance']::public.app_role[]
@@ -87,13 +126,16 @@ begin
   if _amount is null or _amount <= 0 or _amount <> round(_amount, 2) then
     raise exception using errcode = '22023', message = 'Amount must be positive and limited to two decimal places';
   end if;
-  if _event_type not in ('manual_payment','refund') then
+  if _event_type is null or _event_type not in ('manual_payment','refund') then
     raise exception using errcode = '22023', message = 'Unsupported payment event type';
   end if;
-  if nullif(trim(_method), '') is null or length(_method) > 40 then
+  if nullif(btrim(_method), '') is null or _method <> btrim(_method) or length(_method) > 40 then
     raise exception using errcode = '22023', message = 'A valid payment method is required';
   end if;
-  if nullif(trim(_idempotency_key), '') is null
+  if _note is not null and length(_note) > 500 then
+    raise exception using errcode = '22023', message = 'Note must be 500 characters or fewer';
+  end if;
+  if nullif(btrim(_idempotency_key), '') is null
      or length(_idempotency_key) < 8
      or length(_idempotency_key) > 128 then
     raise exception using errcode = '22023', message = 'A valid idempotency key is required';
@@ -108,6 +150,9 @@ begin
   if not found then
     raise exception using errcode = '42501', message = 'Booking not found or property access denied';
   end if;
+
+  -- Restrict the transaction-local write context to this atomic RPC.
+  perform set_config('staynas.payment_rpc', 'on', true);
 
   -- Retries with the same key and same payload return the original result.
   select e.* into v_event
