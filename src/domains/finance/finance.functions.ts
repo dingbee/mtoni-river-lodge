@@ -497,7 +497,7 @@ export const getReconciliation = createServerFn({ method: "POST" })
     }
 
     const bookingIds = bookings.map((booking) => booking.id);
-    const ledgerEvents = [] as NonNullable<Awaited<ReturnType<typeof context.supabase.from<"payment_events">>>["data"]>;
+    const ledgerEvents: Array<{ id: string; booking_id: string | null; event_type: string; amount: number | string | null; currency: string | null }> = [];
     for (let index = 0; index < bookingIds.length; index += 100) {
       const bookingIdChunk = bookingIds.slice(index, index + 100);
       const firstPage = await context.supabase
@@ -546,7 +546,6 @@ export const getReconciliation = createServerFn({ method: "POST" })
     const { reconcileBookingLedger, getReconciliationEventAmount } = await import(
       "./finance-reconciliation"
     );
-    const ledgerEvents = ledgerResult.data ?? [];
     const rows = (bookings ?? []).map((booking) => ({
       ...booking,
       ...reconcileBookingLedger(booking, ledgerEvents),
