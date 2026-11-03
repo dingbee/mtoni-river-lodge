@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/admin/finance/")({
   component: RevenueDashboard,
 });
 
-function money(v: number, currency = "USD") {
+function money(v: number, currency: string) {
   return `${currency} ${Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 function pct(v: number) {
@@ -188,7 +188,7 @@ function RevenueDashboard() {
                 {data.revenueTrend.map((r) => (
                   <div key={`${r.currency}-${r.month}`} className="flex items-center justify-between text-sm">
                     <span>{r.month} · {r.currency}</span>
-                    <Badge variant="secondary">{money(r.total, data.currency)}</Badge>
+                    <Badge variant="secondary">{money(r.total, r.currency)}</Badge>
                   </div>
                 ))}
               </div>
