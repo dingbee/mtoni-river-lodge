@@ -110,6 +110,12 @@ export const updateOpsTask = createServerFn({ method: "POST" })
     await assertStaff(context.supabase, context.userId);
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: existingTask, error: taskReadError } = await sb.from("ops_tasks")
+      .select("category").eq("id", data.id).eq("property_id", propertyId).maybeSingle();
+    if (taskReadError || !existingTask) throw new Error("Operational task not found in active property.");
+    if (existingTask.category === "housekeeping" && data.status !== undefined) {
+      throw new Error("Housekeeping task status is governed by the HK-X execution workflow.");
+    }
     const patch: any = {};
     if (data.assigneeId) {
       const { data: member, error: memberError } = await sb.from("staynas_property_members")
@@ -139,6 +145,12 @@ export const completeOpsTask = createServerFn({ method: "POST" })
     await assertStaff(context.supabase, context.userId);
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: existingTask, error: taskReadError } = await sb.from("ops_tasks")
+      .select("category").eq("id", data.id).eq("property_id", propertyId).maybeSingle();
+    if (taskReadError || !existingTask) throw new Error("Operational task not found in active property.");
+    if (existingTask.category === "housekeeping") {
+      throw new Error("Housekeeping completion must use the HK-X execution and inspection workflow.");
+    }
     const { error } = await sb.from("ops_tasks")
       .update({ status: "completed", completed_at: new Date().toISOString() })
       .eq("id", data.id)
