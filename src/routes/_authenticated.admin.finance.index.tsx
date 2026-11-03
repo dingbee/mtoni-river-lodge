@@ -90,9 +90,12 @@ function RevenueDashboard() {
             </div>
             <div className="ml-auto grid grid-cols-2 gap-x-6 gap-y-1 text-xs sm:grid-cols-4">
               <div>Occupancy 30d: <span className="font-medium">{pct(health.signals.occupancy30d)}</span></div>
-              <div>Outstanding: <span className="font-medium">{money(health.signals.outstanding)}</span></div>
-              <div>Rev 30d: <span className="font-medium">{money(health.signals.revenue30d)}</span></div>
-              <div>Forward 30d: <span className="font-medium">{money(health.signals.forwardRevenue30d)}</span></div>
+              <div>Forward bookings: <span className="font-medium">{health.signals.forwardBookings30d}</span></div>
+              <div className="col-span-2 sm:col-span-3">
+                Collection exposure: {health.signals.byCurrency.length
+                  ? health.signals.byCurrency.map((s) => `${s.currency} ${Math.round(s.outstandingRate * 100)}% outstanding`).join(" · ")
+                  : "No booking data"}
+              </div>
             </div>
           </div>
         </SectionCard>
@@ -116,16 +119,33 @@ function RevenueDashboard() {
         <LoadingState />
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Today" value={money(data.todayRevenue, data.currency)} icon={DollarSign} />
-            <StatCard label="Month-to-date" value={money(data.mtdRevenue, data.currency)} icon={TrendingUp} />
-            <StatCard label="Year-to-date" value={money(data.ytdRevenue, data.currency)} icon={TrendingUp} />
-            <StatCard label="Outstanding" value={money(data.outstanding, data.currency)} icon={AlertCircle} />
-            <StatCard label="Deposits received" value={money(data.deposits, data.currency)} icon={Wallet} />
-            <StatCard label="Refunds" value={money(data.refunds, data.currency)} icon={RefreshCw} />
-            <StatCard label="ADR" value={money(data.adr, data.currency)} icon={Percent} hint="Average daily rate" />
-            <StatCard label="RevPAR" value={money(data.revpar, data.currency)} icon={Activity} hint={`Occupancy ${pct(data.occupancy)}`} />
-          </div>
+          <SectionCard title="Currency-separated financial position">
+            <div className="mb-3 flex flex-wrap gap-4 text-sm">
+              <span>Occupancy: <strong>{pct(data.occupancy)}</strong></span>
+              <span>Nights sold: <strong>{data.nightsSold}</strong></span>
+              <span>Room nights available: <strong>{data.availableRoomNights}</strong></span>
+              {data.balanceFieldMismatches > 0 && (
+                <Badge variant="destructive">{data.balanceFieldMismatches} balance-field mismatch(es)</Badge>
+              )}
+            </div>
+            {data.currencySummaries.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No bookings in this range.</p>
+            ) : data.currencySummaries.map((s) => (
+              <div key={s.currency} className="mb-4 last:mb-0">
+                <h3 className="mb-2 text-sm font-semibold">{s.currency}</h3>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <StatCard label="Today" value={money(s.todayRevenue, s.currency)} icon={DollarSign} />
+                  <StatCard label="Month-to-date" value={money(s.mtdRevenue, s.currency)} icon={TrendingUp} />
+                  <StatCard label="Year-to-date" value={money(s.ytdRevenue, s.currency)} icon={TrendingUp} />
+                  <StatCard label="Revenue in range" value={money(s.revenue, s.currency)} icon={TrendingUp} />
+                  <StatCard label="Outstanding" value={money(s.outstanding, s.currency)} icon={AlertCircle} />
+                  <StatCard label="Deposits received" value={money(s.deposits, s.currency)} icon={Wallet} />
+                  <StatCard label="Refunds" value={money(s.refunds, s.currency)} icon={RefreshCw} />
+                  <StatCard label="ADR / RevPAR" value={`${money(s.adr, s.currency)} / ${money(s.revpar, s.currency)}`} icon={Activity} />
+                </div>
+              </div>
+            ))}
+          </SectionCard>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <SectionCard title="Revenue by Room">
@@ -136,7 +156,7 @@ function RevenueDashboard() {
                 {data.revenueByRoom.map((r) => (
                   <div key={r.room_id} className="flex items-center justify-between text-sm">
                     <span>{r.name}</span>
-                    <span className="font-medium">{money(r.total, data.currency)}</span>
+                    <span className="font-medium">{money(r.total, r.currency)}</span>
                   </div>
                 ))}
               </div>
@@ -146,8 +166,8 @@ function RevenueDashboard() {
               <div className="space-y-2">
                 {data.revenueBySource.map((r) => (
                   <div key={r.source} className="flex items-center justify-between text-sm">
-                    <span className="capitalize">{r.source}</span>
-                    <span className="font-medium">{money(r.total, data.currency)}</span>
+                    <span className="capitalize">{r.source} · {r.currency}</span>
+                    <span className="font-medium">{money(r.total, r.currency)}</span>
                   </div>
                 ))}
               </div>
@@ -157,7 +177,7 @@ function RevenueDashboard() {
               <div className="space-y-2">
                 {data.revenueByCountry.map((r) => (
                   <div key={r.country} className="flex items-center justify-between text-sm">
-                    <span>{r.country}</span>
+                    <span>{r.country} · {r.currency}</span>
                     <span className="font-medium">{money(r.total, data.currency)}</span>
                   </div>
                 ))}
@@ -168,7 +188,7 @@ function RevenueDashboard() {
               <div className="space-y-2">
                 {data.revenueTrend.map((r) => (
                   <div key={r.month} className="flex items-center justify-between text-sm">
-                    <span>{r.month}</span>
+                    <span>{r.month} · {r.currency}</span>
                     <Badge variant="secondary">{money(r.total, data.currency)}</Badge>
                   </div>
                 ))}
