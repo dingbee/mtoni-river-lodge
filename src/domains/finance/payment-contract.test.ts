@@ -36,6 +36,23 @@ describe("manual payment request contract", () => {
     ).toBe(false);
   });
 
+
+  it("requires an original successful payment reference for refunds", () => {
+    const refund = { ...valid, eventType: "refund" as const, note: "Approved guest refund" };
+    expect(recordManualPaymentInputSchema.safeParse(refund).success).toBe(false);
+    expect(recordManualPaymentInputSchema.safeParse({
+      ...refund,
+      originalPaymentEventId: "00000000-0000-4000-8000-000000000003",
+    }).success).toBe(true);
+  });
+
+  it("does not accept an original payment reference for a new payment", () => {
+    expect(recordManualPaymentInputSchema.safeParse({
+      ...valid,
+      originalPaymentEventId: "00000000-0000-4000-8000-000000000003",
+    }).success).toBe(false);
+  });
+
   it("rejects zero, negative, non-finite, and sub-cent amounts", () => {
     for (const amount of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, 60.001]) {
       expect(recordManualPaymentInputSchema.safeParse({ ...valid, amount }).success).toBe(false);
