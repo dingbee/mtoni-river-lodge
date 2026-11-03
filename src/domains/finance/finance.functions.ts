@@ -523,25 +523,10 @@ export const getReconciliation = createServerFn({ method: "POST" })
       }
     }
 
-    const fetchOrphanPage = (offset: number) =>
-      context.supabase
-        .from("payment_events")
-        .select("*")
-        .is("booking_id", null)
-        .gte("created_at", `${from}T00:00:00Z`)
-        .lte("created_at", `${to}T23:59:59Z`)
-        .order("created_at", { ascending: true })
-        .order("id", { ascending: true })
-        .range(offset, offset + pageSize - 1);
-    const firstOrphanPage = await fetchOrphanPage(0);
-    if (firstOrphanPage.error) throw firstOrphanPage.error;
-    const orphanEvents = [...(firstOrphanPage.data ?? [])];
-    for (let offset = pageSize; (firstOrphanPage.data ?? []).length === pageSize; offset += pageSize) {
-      const page = await fetchOrphanPage(offset);
-      if (page.error) throw page.error;
-      orphanEvents.push(...(page.data ?? []));
-      if ((page.data ?? []).length < pageSize) break;
-    }
+    // Unlinked payment events cannot be safely assigned to a tenant/property.
+    // The tenant-scoped client is intentionally not allowed to read those rows;
+    // they require a separate founder-level audit.
+
 
     const { reconcileBookingLedger, getReconciliationEventAmount } = await import(
       "./finance-reconciliation"
@@ -577,7 +562,7 @@ export const getReconciliation = createServerFn({ method: "POST" })
       range: { from, to },
       matched: rows.filter((row) => row.matched).length,
       unmatched: rows.filter((row) => !row.matched),
-      unmatchedEvents: orphanEvents,
+      orphanEventsScope: "founder_audit_only" as const,
       unclassifiedEvents,
       currencySummary: Array.from(currencySummary.entries()).map(([currency, totals]) => ({
         currency,
