@@ -30,8 +30,12 @@ def main():
             # The route HTML can arrive before React attaches the menu click handler.
             # Wait for network idle above, then verify the real drawer opens after interaction.
             menu_button.click()
-            drawer = page.locator('header div.fixed.inset-0')
-            drawer.wait_for(state='visible', timeout=15000)
+            # Assert the React state transition first; this distinguishes a hydration/click issue
+            # from a drawer selector issue and avoids assuming the drawer's DOM ancestry.
+            page.get_by_role('button', name='Open StayNas menu').wait_for(state='visible')
+            page.wait_for_function("() => document.querySelector('button[aria-label=\\\"Open StayNas menu\\\"]')?.getAttribute('aria-expanded') === 'true'", timeout=15000)
+            drawer = page.locator('div.fixed.inset-0').filter(has=page.get_by_role('button', name='Close StayNas menu'))
+            drawer.wait_for(state='visible', timeout=10000)
             assert menu_button.get_attribute('aria-expanded') == 'true', 'Mobile menu button did not enter expanded state'
             drawer.get_by_role('link', name='Rooms').wait_for(state='visible')
             drawer.get_by_role('link', name='Availability').wait_for(state='visible')
@@ -45,7 +49,7 @@ def main():
             drawer.wait_for(state='hidden', timeout=10000)
             assert menu_button.get_attribute('aria-expanded') == 'false', 'Mobile menu button did not collapse'
             assert not errors,'Browser runtime errors: '+'; '.join(errors)
-            page.set_viewport_size({'width':1280,'height':900}); page.reload(wait_until='networkidle')
+            page.set_viewport_size({'width':1280,'height':900}); page.reload(wait_until='load')
             page.get_by_role('link',name='Book now').first.wait_for(state='visible')
             assert not errors,'Browser runtime errors: '+'; '.join(errors)
             browser.close()
