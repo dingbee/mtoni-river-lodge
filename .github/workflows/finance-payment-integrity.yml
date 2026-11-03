@@ -8,15 +8,13 @@ on:
       - "src/lib/finance-rpc.ts"
       - "src/lib/payment-finalize.server.ts"
       - "supabase/migrations/*pesapal_atomic_finance*"
-      - "supabase/migrations/*finance_refund_reversal*"
-      - "supabase/migrations/*finance_refund_integrity*"
-      - "supabase/migrations/*pesapal_provider_reversal*"
       - "src/routes/_authenticated.admin.finance.payments.tsx"
       - "supabase/review/*finance_payment_integrity*"
       - ".github/workflows/finance-payment-integrity.yml"
   push:
     branches:
       - fix/pesapal-atomic-finance-finalization
+      - main
       - feat/finance-*
 
 jobs:
