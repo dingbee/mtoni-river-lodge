@@ -230,7 +230,7 @@ function AuthPage() {
                 <input type="password" required minLength={8} autoComplete="new-password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} className="mt-2 w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none focus:border-charcoal" />
               </div>
             </div>
-            <button type="submit" disabled={savingNewPassword || !newPassword || !confirmNewPassword} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-primary-foreground transition-all hover:brightness-110 disabled:opacity-60" className="bg-primary">
+            <button type="submit" disabled={savingNewPassword || !newPassword || !confirmNewPassword} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-primary-foreground transition-all hover:brightness-110 disabled:opacity-60 bg-primary">
               {savingNewPassword && <Loader2 className="h-4 w-4 animate-spin" />}
               Save new password
             </button>
