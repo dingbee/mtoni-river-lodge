@@ -153,7 +153,7 @@ function RevenueDashboard() {
                   <p className="text-sm text-muted-foreground">No revenue in this range.</p>
                 )}
                 {data.revenueByRoom.map((r) => (
-                  <div key={r.room_id} className="flex items-center justify-between text-sm">
+                  <div key={`${r.currency}-${r.room_id}`} className="flex items-center justify-between text-sm">
                     <span>{r.name}</span>
                     <span className="font-medium">{money(r.total, r.currency)}</span>
                   </div>
@@ -177,7 +177,7 @@ function RevenueDashboard() {
                 {data.revenueByCountry.map((r) => (
                   <div key={`${r.currency}-${r.country}`} className="flex items-center justify-between text-sm">
                     <span>{r.country}</span>
-                    <span className="font-medium">{money(r.total, data.currency)}</span>
+                    <span className="font-medium">{money(r.total, r.currency)}</span>
                   </div>
                 ))}
               </div>
