@@ -12,6 +12,33 @@ create index if not exists payment_events_reverses_event_idx
   on public.payment_events (reverses_event_id)
   where reverses_event_id is not null;
 
+-- Prevent the legacy general payment RPC from creating unlinked refunds.
+-- A refund event must identify the original successful payment event.
+create or replace function public.enforce_linked_refund_event()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $trigger$
+begin
+  if new.event_type = 'refund' and new.reverses_event_id is null then
+    raise exception using errcode = '22023',
+      message = 'Refund events must reference the original payment event';
+  end if;
+  if new.reverses_event_id is not null and new.event_type <> 'refund' then
+    raise exception using errcode = '22023',
+      message = 'Only refund events may reference an original payment event';
+  end if;
+  return new;
+end;
+$trigger$;
+
+drop trigger if exists enforce_linked_refund_event on public.payment_events;
+create trigger enforce_linked_refund_event
+before insert or update of event_type, reverses_event_id
+on public.payment_events
+for each row execute function public.enforce_linked_refund_event();
+
 create or replace function public.record_booking_refund(
   _booking_id uuid,
   _payment_event_id uuid,
