@@ -112,15 +112,28 @@ function AuthPage() {
       return;
     }
     setResetting(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
-    setResetting(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const normalizedEmail = email.trim().toLowerCase();
+      const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+        // OTP remains the primary recovery method. This allow-listed callback also
+        // safely handles providers that render the recovery token as a link.
+        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+      });
+      if (error) throw error;
+
+      setEmail(normalizedEmail);
+      setRecoverySent(true);
+      setRecoveryVerified(false);
+      setRecoveryCode("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      toast.success("If that staff account exists, a password-reset code has been sent.");
+    } catch (error) {
+      console.error("[StayNas auth] Password reset request failed", error);
+      toast.error(error instanceof Error ? error.message : "Could not send a reset code. Please retry.");
+    } finally {
+      setResetting(false);
     }
-    setRecoverySent(true);
-    setRecoveryCode("");
-    toast.success("If that staff account exists, a password-reset code has been sent.");
   };
 
   const saveRecoveredPassword = async (e: React.FormEvent) => {
@@ -163,7 +176,7 @@ function AuthPage() {
     setVerifyingRecovery(true);
     try {
       const { data, error } = await supabase.auth.verifyOtp({
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         token,
         type: "recovery",
       });
