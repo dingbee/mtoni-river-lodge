@@ -164,9 +164,9 @@ function RevenueDashboard() {
             <SectionCard title="Revenue by Source">
               <div className="space-y-2">
                 {data.revenueBySource.map((r) => (
-                  <div key={r.source} className="flex items-center justify-between text-sm">
+                  <div key={`${r.currency}-${r.source}`} className="flex items-center justify-between text-sm">
                     <span className="capitalize">{r.source}</span>
-                    <span className="font-medium">{money(r.total, data.currency)}</span>
+                    <span className="font-medium">{money(r.total, r.currency)}</span>
                   </div>
                 ))}
               </div>
@@ -175,7 +175,7 @@ function RevenueDashboard() {
             <SectionCard title="Top Guest Nationalities">
               <div className="space-y-2">
                 {data.revenueByCountry.map((r) => (
-                  <div key={r.country} className="flex items-center justify-between text-sm">
+                  <div key={`${r.currency}-${r.country}`} className="flex items-center justify-between text-sm">
                     <span>{r.country}</span>
                     <span className="font-medium">{money(r.total, data.currency)}</span>
                   </div>
@@ -186,7 +186,7 @@ function RevenueDashboard() {
             <SectionCard title="Revenue Trend by Month">
               <div className="space-y-2">
                 {data.revenueTrend.map((r) => (
-                  <div key={r.month} className="flex items-center justify-between text-sm">
+                  <div key={`${r.currency}-${r.month}`} className="flex items-center justify-between text-sm">
                     <span>{r.month}</span>
                     <Badge variant="secondary">{money(r.total, data.currency)}</Badge>
                   </div>
