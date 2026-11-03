@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Critical public-navigation regression checks for StayNas."""
 import os, subprocess, sys, time, urllib.error, urllib.request
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 BASE_URL = os.getenv('STAYNAS_TEST_BASE', 'http://127.0.0.1:8080')
 START_SERVER = os.getenv('STAYNAS_TEST_START_SERVER', '1') == '1'
 def wait_for_server(process):
@@ -29,16 +29,22 @@ def main():
             assert response and response.status<400,'Public rooms page did not load'
             menu_button = page.get_by_role('button', name='Open StayNas menu')
             menu_button.wait_for(state='visible')
-            # The route HTML can arrive before React attaches the menu click handler.
-            # Wait for network idle above, then verify the real drawer opens after interaction.
+            # Playwright's locator assertion observes the actual button attribute.
+            # Avoid raw querySelector CSS here: escaped quotes made the previous diagnostic
+            # selector invalid, producing a false timeout unrelated to the application.
             menu_button.click()
-            # Assert the React state transition first; this distinguishes a hydration/click issue
-            # from a drawer selector issue and avoids assuming the drawer's DOM ancestry.
-            page.get_by_role('button', name='Open StayNas menu').wait_for(state='visible')
             try:
-                page.wait_for_function("() => document.querySelector('button[aria-label=\\\"Open StayNas menu\\\"]')?.getAttribute('aria-expanded') === 'true'", timeout=15000)
+                expect(menu_button).to_have_attribute('aria-expanded', 'true', timeout=10000)
             except Exception:
-                print('MENU_DIAGNOSTICS:', {'url': page.url, 'ready_state': page.evaluate('document.readyState'), 'button': page.locator('button[aria-label=\\\"Open StayNas menu\\\"]').first.evaluate('(el) => el.outerHTML') if page.locator('button[aria-label=\\\"Open StayNas menu\\\"]').count() else 'MISSING', 'root': page.locator('#root').inner_text()[:1000] if page.locator('#root').count() else 'NO #root', 'page_errors': errors, 'console_errors': console_errors})
+                button_html = menu_button.evaluate('(el) => el.outerHTML') if menu_button.count() else 'MISSING'
+                print('MENU_DIAGNOSTICS:', {
+                    'url': page.url,
+                    'ready_state': page.evaluate('document.readyState'),
+                    'button': button_html,
+                    'body_excerpt': page.locator('body').inner_text()[:1500],
+                    'page_errors': errors,
+                    'console_errors': console_errors,
+                })
                 raise
             drawer = page.locator('div.fixed.inset-0').filter(has=page.get_by_role('button', name='Close StayNas menu'))
             drawer.wait_for(state='visible', timeout=10000)
