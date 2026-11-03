@@ -1,6 +1,9 @@
 name: P1 test verification
 
 on:
+  push:
+    branches:
+      - fix/finance-transaction-integrity-phase1
   pull_request:
     branches:
       - main
