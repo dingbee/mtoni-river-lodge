@@ -154,13 +154,13 @@ export const getReservationWorkspace = createServerFn({ method: "POST" })
     const sb: any = context.supabase;
     const { data: booking, error } = await sb
       .from("bookings")
-      .select("*, room:rooms(id, slug, name, base_price, currency), guest:guests(id, full_name, email, phone_e164, country, status, total_stays, lifetime_spend, ai_summary, marketing_consent)")
+      .select("*, room:rooms(id, slug, name, base_price, currency), guest:guests(id, full_name, email, phone_e164, country, status, ai_summary, marketing_consent)")
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!booking) throw new Error("Reservation not found");
 
-    const [nightsRes, extrasRes, paymentsRes, tasksRes, notesRes, roomStatesRes] = await Promise.all([
+    const [nightsRes, extrasRes, paymentsRes, tasksRes, notesRes, roomStatesRes, guestStatsRes] = await Promise.all([
       sb.from("booking_nights").select("date, nightly_rate").eq("booking_id", data.id).order("date"),
       sb.from("booking_extras").select("id, quantity, unit_price, line_total, extra:extras(id, slug, name, unit)").eq("booking_id", data.id),
       sb.from("payment_events").select("*").eq("booking_id", data.id).order("created_at", { ascending: false }),
@@ -169,11 +169,19 @@ export const getReservationWorkspace = createServerFn({ method: "POST" })
         ? sb.from("guest_notes").select("*").eq("guest_id", booking.guest_id).order("created_at", { ascending: false }).limit(10)
         : Promise.resolve({ data: [] }),
       sb.from("room_states").select("id, unit_label, state").eq("room_id", booking.room_id).order("unit_label"),
+      booking.guest_id
+        ? sb.from("guest_directory").select("total_stays, lifetime_spend").eq("id", booking.guest_id).maybeSingle()
+        : Promise.resolve({ data: null }),
     ]);
 
     return {
       booking: {
         ...booking,
+        guest: booking.guest ? {
+          ...booking.guest,
+          total_stays: Number(guestStatsRes.data?.total_stays ?? 0),
+          lifetime_spend: Number(guestStatsRes.data?.lifetime_spend ?? 0),
+        } : null,
         total: Number(booking.total ?? 0),
         balance_amount: Number(booking.balance_amount ?? 0),
         deposit_amount: Number(booking.deposit_amount ?? 0),
