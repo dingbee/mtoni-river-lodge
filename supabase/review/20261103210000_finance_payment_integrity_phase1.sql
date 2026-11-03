@@ -51,6 +51,12 @@ for each row execute function public.enforce_finance_rpc_booking_update();
 
 drop policy if exists "Finance staff insert payment events for accessible properties"
   on public.payment_events;
+create policy "Atomic payment RPC required for payment event inserts"
+  on public.payment_events
+  as restrictive
+  for insert to authenticated
+  with check (current_setting('staynas.payment_rpc', true) = 'on');
+
 create policy "Finance staff insert payment events for accessible properties"
   on public.payment_events
   for insert to authenticated
@@ -71,6 +77,16 @@ create policy "Finance staff insert payment events for accessible properties"
 
 drop policy if exists "Finance staff insert own payment audit logs"
   on public.activity_logs;
+create policy "Atomic payment RPC required for finance audit inserts"
+  on public.activity_logs
+  as restrictive
+  for insert to authenticated
+  with check (
+    current_setting('staynas.payment_rpc', true) = 'on'
+    and entity_type = 'booking'
+    and module = 'finance.payments'
+  );
+
 create policy "Finance staff insert own payment audit logs"
   on public.activity_logs
   for insert to authenticated
