@@ -7,7 +7,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { formatDistanceToNow } from "date-fns";
-import { Ban, CalendarDays, RefreshCw, ShieldOff, Sparkles, Timer, Wrench } from "lucide-react";
+import { Ban, CalendarDays, RefreshCw, ShieldOff, Timer } from "lucide-react";
 import { toast } from "sonner";
 
 import { getOpsCalendar } from "@/lib/operations.functions";
@@ -38,7 +38,7 @@ import { DatePickerField } from "@/components/os/DatePickerField";
 export const Route = createFileRoute("/_authenticated/admin/calendar")({
   head: () => ({
     meta: [
-      { title: "Availability Calendar — Mtoni OS" },
+      { title: "Reservations Calendar — StayNas" },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
@@ -46,7 +46,28 @@ export const Route = createFileRoute("/_authenticated/admin/calendar")({
 });
 
 type View = "week" | "month";
-type Cell = { date: string; booking?: { id: string; guest_name: string; reference: string }; blocked?: boolean; units?: number; hold?: boolean };
+
+type BookingLaneItem = { booking: any; start: number; end: number };
+function buildBookingLanes(bookings: any[], from: string, dayCount: number): BookingLaneItem[][] {
+  const startMs = Date.parse(`${from}T00:00:00Z`);
+  const lanes: Array<{ end: number; items: BookingLaneItem[] }> = [];
+  const ordered = [...bookings].sort((a, b) =>
+    a.check_in.localeCompare(b.check_in) || a.check_out.localeCompare(b.check_out),
+  );
+  for (const booking of ordered) {
+    const start = Math.max(0, Math.floor((Date.parse(`${booking.check_in}T00:00:00Z`) - startMs) / 86_400_000));
+    const end = Math.min(dayCount, Math.ceil((Date.parse(`${booking.check_out}T00:00:00Z`) - startMs) / 86_400_000));
+    if (end <= start) continue;
+    let lane = lanes.find((candidate) => candidate.end <= start);
+    if (!lane) {
+      lane = { end: 0, items: [] };
+      lanes.push(lane);
+    }
+    lane.end = end;
+    lane.items.push({ booking, start, end });
+  }
+  return lanes.map((lane) => lane.items);
+}
 
 function iso(d: Date) { return d.toISOString().slice(0, 10); }
 function shift(d: Date, view: View, dir: number) {
@@ -98,7 +119,6 @@ function UnifiedCalendarPage() {
     arrivalsToday: false,
     departuresToday: false,
     vip: false,
-    blocked: false,
     holds: false,
     roomSlugs: new Set<string>(),
   });
@@ -181,19 +201,6 @@ function UnifiedCalendarPage() {
   const d: any = ops.data ?? { rooms: [], bookings: [], inventory: [] };
 
   const activeHolds = holds.data ?? [];
-  const activeHoldsByRoomDate = useMemo(() => {
-    const map: Record<string, Set<string>> = {};
-    for (const h of activeHolds) {
-      const s = new Date(h.check_in);
-      const e = new Date(h.check_out);
-      for (let dd = new Date(s); dd < e; dd.setDate(dd.getDate() + 1)) {
-        const key = `${h.room_id}:${iso(dd)}`;
-        (map[key] ??= new Set<string>()).add(h.id);
-      }
-    }
-    return map;
-  }, [activeHolds]);
-
   const bookingsToday = useMemo(() => {
     const today = iso(new Date());
     return (d.bookings as any[]).filter((b) => b.check_in <= today && b.check_out > today).length;
@@ -203,6 +210,7 @@ function UnifiedCalendarPage() {
   const today = iso(new Date());
   const visibleBookings = useMemo(() => {
     return (d.bookings as any[]).filter((b) => {
+      if (filters.holds) return false;
       if (filters.arrivalsToday && b.check_in !== today) return false;
       if (filters.departuresToday && b.check_out !== today) return false;
       if (filters.vip) {
@@ -225,7 +233,7 @@ function UnifiedCalendarPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Availability Calendar"
+        title="Reservations Calendar"
         description="Unified view of reservations, holds, and room blocks. Single source of truth for /book and admin."
         actions={
           <div className="flex items-center gap-2">
@@ -300,8 +308,8 @@ function UnifiedCalendarPage() {
       </SectionCard>
 
       <SectionCard
-        title="Reservation timeline"
-        description="Reservations are blue, blocks are red, active holds are amber. Drag a reservation onto another room row to reassign it. Click a room name to block/unblock a range."
+        title="Room-by-room reservation schedule"
+        description="Reservations span their actual check-in and check-out dates. Overlapping stays occupy separate lanes. Select a booking for details, or drag it to another room."
       >
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-md border p-0.5 text-xs">
@@ -336,119 +344,148 @@ function UnifiedCalendarPage() {
             </Button>
           </div>
         ) : (
+          <>
           <div className="overflow-x-auto rounded-lg border">
-            <table className="min-w-full text-xs">
-              <thead>
-                <tr className="bg-muted/40">
-                  <th className="sticky left-0 z-10 border-r bg-muted/40 px-2 py-1 text-left">Room</th>
-                  {days.map((day) => (
-                    <th key={day} className="border-r px-2 py-1 text-center whitespace-nowrap">
-                      {day.slice(5)}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {visibleRooms.map((r: any) => (
-                  <tr
-                    key={r.id}
-                    onDragOver={(e) => { if (dragBookingId) e.preventDefault(); }}
-                    onDrop={(e) => {
-                      e.preventDefault();
+            <div className="min-w-max">
+              <div
+                className="grid border-b bg-muted/40 text-xs font-medium"
+                style={{ gridTemplateColumns: `180px repeat(${days.length}, minmax(64px, 1fr))` }}
+              >
+                <div className="sticky left-0 z-20 border-r bg-muted/40 px-3 py-2">Room</div>
+                {days.map((day) => (
+                  <div key={day} className={`border-r px-2 py-2 text-center ${day === today ? "bg-primary/10 text-primary" : ""}`}>
+                    <div>{new Date(`${day}T00:00:00`).toLocaleDateString(undefined, { weekday: "short" })}</div>
+                    <div className="font-semibold">{day.slice(8, 10)}</div>
+                  </div>
+                ))}
+              </div>
+              {visibleRooms.map((room: any) => {
+                const roomBookings = visibleBookings.filter((booking) => booking.room_id === room.id);
+                const bookingLanes = buildBookingLanes(roomBookings, range.from, days.length);
+                const roomHolds = activeHolds.filter((hold) => hold.room_id === room.id);
+                const lanes = [
+                  ...bookingLanes.map((items) => ({ kind: "bookings" as const, items })),
+                  ...roomHolds.map((hold) => ({
+                    kind: "hold" as const,
+                    items: [{
+                      booking: { ...hold, guest_name: hold.guest_email || "Temporary hold", reference: "HOLD", status: "hold" },
+                      start: Math.max(0, Math.floor((Date.parse(`${hold.check_in}T00:00:00Z`) - Date.parse(`${range.from}T00:00:00Z`)) / 86_400_000)),
+                      end: Math.min(days.length, Math.ceil((Date.parse(`${hold.check_out}T00:00:00Z`) - Date.parse(`${range.from}T00:00:00Z`)) / 86_400_000)),
+                    }],
+                  })),
+                ].filter((lane) => lane.items.some((item) => item.end > item.start));
+                if (!lanes.length) lanes.push({ kind: "bookings" as const, items: [] });
+                return (
+                  <div
+                    key={room.id}
+                    className="grid border-b last:border-b-0"
+                    style={{ gridTemplateColumns: `180px minmax(${days.length * 64}px, 1fr)` }}
+                    onDragOver={(event) => { if (dragBookingId) event.preventDefault(); }}
+                    onDrop={(event) => {
+                      event.preventDefault();
                       if (!dragBookingId) return;
-                      const src = (d.bookings as any[]).find((x) => x.id === dragBookingId);
-                      if (!src || src.room_id === r.id) return;
-                      const fromRoom = (d.rooms as any[]).find((x) => x.id === src.room_id);
+                      const source = (d.bookings as any[]).find((booking) => booking.id === dragBookingId);
+                      if (!source || source.room_id === room.id) return;
+                      const fromRoom = (d.rooms as any[]).find((candidate) => candidate.id === source.room_id);
                       setReassignCtx({
-                        bookingId: src.id,
+                        bookingId: source.id,
                         fromRoomName: fromRoom?.name ?? "current room",
-                        toRoomId: r.id,
-                        toRoomName: r.name,
+                        toRoomId: room.id,
+                        toRoomName: room.name,
                       });
                       setDragBookingId(null);
                     }}
                   >
-                    <td className="sticky left-0 z-10 border-r bg-card px-2 py-1 font-medium">
+                    <div className="sticky left-0 z-10 flex items-start border-r bg-card px-3 py-3 text-xs font-semibold">
                       <button
-                        className="text-left hover:underline"
+                        className="text-left hover:text-primary hover:underline"
                         onClick={() => {
-                          setBlockCtx({ roomId: r.id, roomName: r.name, from: range.from, to: range.to });
+                          setBlockCtx({ roomId: room.id, roomName: room.name, from: range.from, to: range.to });
                           setBlockOpen(true);
                         }}
+                        title="Click to block or unblock this room for the displayed range"
                       >
-                        {r.name}
+                        {room.name}
+                        <span className="mt-1 block font-normal text-muted-foreground">{room.total_units} unit(s)</span>
                       </button>
-                    </td>
-                    {days.map((day) => {
-                      const b = visibleBookings.find(
-                        (bk) => bk.room_id === r.id && bk.check_in <= day && bk.check_out > day,
-                      );
-                      const inv = (d.inventory as any[]).find((i) => i.room_id === r.id && i.date === day);
-                      const blocked = inv?.is_blocked;
-                      const held = activeHoldsByRoomDate[`${r.id}:${day}`]?.size ?? 0;
-                      if (filters.holds && !held) {
-                        return <td key={day} className="border-r px-1 py-1 text-center opacity-30">·</td>;
-                      }
-                      return (
-                        <td
-                          key={day}
-                          className={`border-r px-1 py-1 text-center ${
-                            blocked ? "bg-rose-500/15" : b ? "bg-blue-500/15" : held ? "bg-amber-500/15" : ""
-                          }`}
-                          title={
-                            b
-                              ? `${b.guest_name} · ${b.reference}`
-                              : blocked
-                                ? "Blocked"
-                                : held
-                                  ? `${held} active hold(s)`
-                                  : `${inv?.available_units ?? r.total_units} available`
-                          }
+                    </div>
+                    <div className="min-w-0">
+                      {lanes.map((lane, laneIndex) => (
+                        <div
+                          key={`${room.id}-lane-${laneIndex}`}
+                          className="grid min-h-[42px] border-b last:border-b-0"
+                          style={{ gridTemplateColumns: `repeat(${days.length}, minmax(64px, 1fr))` }}
                         >
-                          {b ? (
-                            <div
-                              draggable
-                              onDragStart={(e) => {
-                                setDragBookingId(b.id);
-                                e.dataTransfer.setData("text/plain", b.id);
-                                e.dataTransfer.effectAllowed = "move";
-                              }}
-                              onDragEnd={() => setDragBookingId(null)}
-                              className="group flex items-center justify-center gap-1 cursor-grab active:cursor-grabbing"
-                              title={`Drag to reassign · ${b.guest_name} · ${b.reference}`}
-                            >
+                          {days.map((day, dayIndex) => {
+                            const inventory = (d.inventory as any[]).find((item) => item.room_id === room.id && item.date === day);
+                            return (
+                              <div
+                                key={day}
+                                className={`border-r ${inventory?.is_blocked ? "bg-rose-500/15" : day === today ? "bg-primary/[0.035]" : ""}`}
+                                style={{ gridColumn: dayIndex + 1, gridRow: 1 }}
+                                title={inventory?.is_blocked ? "Room blocked" : `${inventory?.available_units ?? room.total_units} unit(s) available`}
+                              />
+                            );
+                          })}
+                          {lane.items.map(({ booking, start, end }) => {
+                            const isHold = booking.status === "hold";
+                            const statusClass = isHold
+                              ? "border-amber-600/40 bg-amber-500/20 text-amber-950 dark:text-amber-100"
+                              : booking.status === "checked_in"
+                                ? "border-emerald-700/30 bg-emerald-600/20 text-emerald-950 dark:text-emerald-100"
+                                : booking.status === "pending"
+                                  ? "border-orange-600/30 bg-orange-500/20 text-orange-950 dark:text-orange-100"
+                                  : booking.status === "completed"
+                                    ? "border-slate-500/30 bg-slate-500/15 text-foreground"
+                                    : "border-blue-600/30 bg-blue-500/20 text-blue-950 dark:text-blue-100";
+                            const label = `${booking.guest_name} · ${booking.reference}`;
+                            return isHold ? (
+                              <div
+                                key={booking.id}
+                                className={`z-10 m-1 flex min-w-0 items-center overflow-hidden rounded-md border px-2 text-[11px] font-medium ${statusClass}`}
+                                style={{ gridColumn: `${start + 1} / ${end + 1}`, gridRow: 1 }}
+                                title={`${label} · ${booking.check_in} to ${booking.check_out}`}
+                              >
+                                <Timer className="mr-1 h-3 w-3 shrink-0" />
+                                <span className="truncate">{label}</span>
+                              </div>
+                            ) : (
                               <Link
+                                key={booking.id}
                                 to="/admin/operations/reservations/$id"
-                                params={{ id: b.id }}
-                                className="truncate text-[10px] hover:underline"
-                                onClick={(e) => { if (dragBookingId) e.preventDefault(); }}
+                                params={{ id: booking.id }}
+                                draggable
+                                onDragStart={(event) => {
+                                  setDragBookingId(booking.id);
+                                  event.dataTransfer.setData("text/plain", booking.id);
+                                  event.dataTransfer.effectAllowed = "move";
+                                }}
+                                onDragEnd={() => setDragBookingId(null)}
+                                className={`z-10 m-1 flex min-w-0 cursor-grab items-center overflow-hidden rounded-md border px-2 text-[11px] font-medium shadow-sm hover:brightness-95 active:cursor-grabbing ${statusClass}`}
+                                style={{ gridColumn: `${start + 1} / ${end + 1}`, gridRow: 1 }}
+                                title={`${label} · ${booking.status} · ${booking.check_in} → ${booking.check_out}. Drag to another room to reassign.`}
                               >
-                                {b.guest_name.split(" ")[0]}
+                                <span className="truncate">{booking.guest_name}</span>
+                                <span className="ml-1 shrink-0 opacity-70">{booking.reference}</span>
                               </Link>
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); setSuggestForBooking(b.id); }}
-                                className="opacity-0 group-hover:opacity-100 text-primary"
-                                title="Suggest a better room"
-                              >
-                                <Sparkles className="h-3 w-3" />
-                              </button>
-                            </div>
-                          ) : blocked ? (
-                            "×"
-                          ) : held ? (
-                            `⏱${held}`
-                          ) : (
-                            inv?.available_units ?? r.total_units
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-sm border border-blue-600/30 bg-blue-500/20" /> Confirmed</span>
+            <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-sm border border-emerald-700/30 bg-emerald-600/20" /> Checked in</span>
+            <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-sm border border-orange-600/30 bg-orange-500/20" /> Pending</span>
+            <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-sm border border-amber-600/40 bg-amber-500/20" /> Active hold</span>
+            <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-sm border border-rose-600/30 bg-rose-500/20" /> Blocked date</span>
+          </div>
+          </>
         )}
       </SectionCard>
 

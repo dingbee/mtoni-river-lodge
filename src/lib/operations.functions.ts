@@ -306,7 +306,7 @@ export const getOpsCalendar = createServerFn({ method: "POST" })
     const [roomsRes, bookingsRes, invRes] = await Promise.all([
       sb.from("rooms").select("id, slug, name, total_units").order("sort_order"),
       sb.from("bookings")
-        .select("id, reference, guest_name, check_in, check_out, status, room_id")
+        .select("id, reference, guest_name, guest_type, check_in, check_out, status, room_id")
         .in("status", ["pending", "confirmed", "checked_in", "completed"])
         .lte("check_in", data.to)
         .gte("check_out", data.from)
