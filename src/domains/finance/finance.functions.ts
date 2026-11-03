@@ -471,7 +471,8 @@ export const getReconciliation = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const from = data.from ?? daysAgo(30);
     const to = data.to ?? todayISO();
-    // The selected window scopes bookings by creation date; all their ledger events are then reconciled regardless of event date.\n    const { data: bookings, error: bookingsError } = await context.supabase
+    // The selected window scopes bookings by creation date; all their ledger events are then reconciled regardless of event date.
+    const { data: bookings, error: bookingsError } = await context.supabase
       .from("bookings")
       .select(
         "id, reference, total, deposit_amount, balance_amount, paid_amount, currency, payment_status, payment_method, pesapal_order_tracking_id, payment_mismatch_at, created_at",
