@@ -87,9 +87,7 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
       ["checked_out", "completed"].includes(String(b.status)) && String(b.check_out) <= todayISO();
     const earned = active.filter(isCompletedStay);
     const sum = (list: typeof active) => list.reduce((n, b) => n + Number(b.total ?? 0), 0);
-    const actualPaymentEvents = (paymentEvents ?? []).filter((e) =>
-      ["completed", "manual_payment"].includes(String(e.event_type)));
-    const depositsReceived = actualPaymentEvents.reduce((n, e) => n + Math.max(0, Number(e.amount ?? 0)), 0);
+    const paymentsReceived = active.reduce((n, b) => n + Math.max(0, Number(b.paid_amount ?? 0)), 0);
     const refunds = (paymentEvents ?? []).filter((e) =>
       ["refund", "refund_issued", "reversed"].includes(String(e.event_type)))
       .reduce((n, e) => n + Math.abs(Number(e.amount ?? 0)), 0);
@@ -127,7 +125,7 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
       bookedValue: sum(active),
       earnedRevenue,
       outstanding,
-      deposits: depositsReceived,
+      deposits: paymentsReceived,
       refunds,
       adr: completedNights > 0 ? earnedRevenue / completedNights : 0,
       revpar: availableRoomNights > 0 ? earnedRevenue / availableRoomNights : 0,
