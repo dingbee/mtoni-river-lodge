@@ -111,7 +111,7 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
     const { data: refundEvents } = await context.supabase
       .from("payment_events")
       .select("amount, created_at, event_type")
-      .in("event_type", ["refund", "refund_issued", "reversed"])
+      .in("event_type", ["refund", "refund_issued"])
       .gte("created_at", `${from}T00:00:00Z`)
       .lte("created_at", `${to}T23:59:59Z`);
     const refunds = (refundEvents ?? []).reduce((a, r) => a + Math.abs(Number(r.amount ?? 0)), 0);
@@ -304,17 +304,25 @@ export const recordManualPayment = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => recordManualPaymentInputSchema.parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
-    const { data: result, error } = await financeRpc(context.supabase).rpc(
-      "record_booking_payment",
-      {
-        _booking_id: data.bookingId,
-        _amount: data.amount,
-        _event_type: data.eventType,
-        _method: data.method,
-        _note: data.note ?? null,
-        _idempotency_key: data.idempotencyKey,
-      },
-    );
+    const rpc = financeRpc(context.supabase);
+    const { data: result, error } =
+      data.eventType === "refund"
+        ? await rpc.rpc("record_booking_refund", {
+            _booking_id: data.bookingId,
+            _payment_event_id: data.originalPaymentEventId!,
+            _amount: data.amount,
+            _method: data.method,
+            _note: data.note ?? null,
+            _idempotency_key: data.idempotencyKey,
+          })
+        : await rpc.rpc("record_booking_payment", {
+            _booking_id: data.bookingId,
+            _amount: data.amount,
+            _event_type: "manual_payment",
+            _method: data.method,
+            _note: data.note ?? null,
+            _idempotency_key: data.idempotencyKey,
+          });
     if (error) throw new Error(`Payment was not recorded: ${error.message}`);
     if (!result?.ok) throw new Error("Payment transaction did not complete");
     return {
