@@ -74,21 +74,27 @@ function Analytics() {
         <LoadingState />
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-4">
-            <StatCard label="Revenue" value={`$${Math.round(data.totalRevenue).toLocaleString()}`} />
-            <StatCard label="Avg. spend / stay" value={`$${Math.round(data.avgSpendPerStay).toLocaleString()}`} />
-            <StatCard label="Guests" value={data.guestCount} />
-            <StatCard label="Avg. lifetime value" value={`$${Math.round(data.avgLifetimeValue).toLocaleString()}`} />
-            <StatCard label="Cancellations" value={data.cancellationsCount} hint={`Impact $${Math.round(data.cancellationImpact).toLocaleString()}`} />
+          <div className="space-y-4">
+            {data.currencySummaries.map((summary) => (
+              <SectionCard key={summary.currency} title={`Financial performance · ${summary.currency}`}>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <StatCard label="Revenue" value={`${summary.currency} ${Math.round(summary.totalRevenue).toLocaleString()}`} />
+                  <StatCard label="Avg. spend / stay" value={`${summary.currency} ${Math.round(summary.avgSpendPerStay).toLocaleString()}`} />
+                  <StatCard label="Guests" value={summary.guestCount} />
+                  <StatCard label="Avg. lifetime value" value={`${summary.currency} ${Math.round(summary.avgLifetimeValue).toLocaleString()}`} />
+                  <StatCard label="Cancellations" value={summary.cancellationsCount} hint={`Impact ${summary.currency} ${Math.round(summary.cancellationImpact).toLocaleString()}`} />
+                </div>
+              </SectionCard>
+            ))}
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <SectionCard title="Revenue by Month">
               <div className="space-y-2 text-sm">
                 {data.byMonth.map((r) => (
-                  <div key={r.month} className="flex justify-between">
-                    <span>{r.month}</span>
-                    <span className="font-medium">${Math.round(r.total).toLocaleString()}</span>
+                  <div key={`${r.currency}-${r.month}`} className="flex justify-between">
+                    <span>{r.month} · {r.currency}</span>
+                    <span className="font-medium">{r.currency} {Math.round(r.total).toLocaleString()}</span>
                   </div>
                 ))}
               </div>
@@ -96,8 +102,8 @@ function Analytics() {
             <SectionCard title="Booking Source Performance">
               <div className="space-y-2 text-sm">
                 {data.bySource.map((r) => (
-                  <div key={r.source} className="flex justify-between">
-                    <span className="capitalize">{r.source}</span>
+                  <div key={`${r.currency}-${r.source}`} className="flex justify-between">
+                    <span className="capitalize">{r.source} · {r.currency}</span>
                     <span>
                       <Badge variant="secondary" className="mr-2">{r.count}</Badge>
                       ${Math.round(r.total).toLocaleString()}
@@ -109,7 +115,7 @@ function Analytics() {
             <SectionCard title="Top Guests by Spend">
               <div className="space-y-2 text-sm">
                 {data.topGuests.map((g) => (
-                  <div key={g.key} className="flex justify-between">
+                  <div key={`${g.currency}-${g.key}`} className="flex justify-between">
                     <span className="truncate pr-2">{g.key}</span>
                     <span>
                       <Badge variant="outline" className="mr-2">{g.stays} stays</Badge>
