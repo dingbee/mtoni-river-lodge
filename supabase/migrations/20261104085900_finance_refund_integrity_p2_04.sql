@@ -29,6 +29,8 @@ using (
   )
 );
 
+grant select on public.activity_logs to authenticated;
+
 create or replace function public.enforce_payment_refund_event_integrity()
 returns trigger
 language plpgsql
