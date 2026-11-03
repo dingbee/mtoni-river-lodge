@@ -71,15 +71,15 @@
      Token names retained for backward compatibility with existing
      class names (bg-ivory, bg-bone, text-charcoal, bg-charcoal,
      text-ivory, etc.) — only the values are refreshed. */
-  --ivory: #F5DABF;        /* dominant background + light text on dark */
-  --bone: #F9E8D5;         /* alternate sections, cards, content blocks */
-  --clay: #6C151E;         /* StayNas burgundy accent */
-  --ember: #6C151E;        /* accent alias */
-  --gold: #6C151E;         /* accent alias */
-  --river: #5C5854;        /* muted secondary text */
-  --forest: #0F3D3A;       /* deep green hover */
-  --charcoal: #171514;     /* primary text + black luxe surfaces */
-  --green: #0F3D3A;        /* StayNas primary deep green */
+  --ivory: #FFFFFF;        /* enterprise white surface */
+  --bone: #F3F4F6;         /* enterprise light-grey surface */
+  --clay: #374151;         /* neutral charcoal accent */
+  --ember: #374151;        /* neutral accent alias */
+  --gold: #374151;         /* neutral accent alias */
+  --river: #6B7280;        /* muted secondary text */
+  --forest: #111827;       /* charcoal action hover */
+  --charcoal: #374151;     /* enterprise charcoal text */
+  --green: #111827;        /* near-black primary actions */
 
   --background: var(--ivory);
   --foreground: var(--charcoal);
@@ -97,8 +97,8 @@
   --accent-foreground: var(--charcoal);
   --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: #FFFFFF;
-  --border: rgba(26, 26, 26, 0.10);
-  --input: rgba(26, 26, 26, 0.14);
+  --border: #D1D5DB;
+  --input: #D1D5DB;
   --ring: var(--green);
 }
 
@@ -1916,77 +1916,3 @@ html[data-os-theme] :is(
   background-color: var(--popover);
 }
 
-
-/* StayNas staff authentication — separate enterprise surface, not guest-site styling. */
-.staynas-auth {
-  background: #eef1f4;
-  color: #17212b;
-  font-family: Inter, "Helvetica Neue", system-ui, sans-serif;
-}
-.staynas-auth__card {
-  max-width: 440px;
-  background: #ffffff;
-  border: 1px solid #d7dde3;
-  border-radius: 10px;
-  box-shadow: 0 12px 32px rgba(20, 32, 44, 0.08);
-}
-.staynas-auth__eyebrow {
-  color: #263746;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: .24em;
-}
-.staynas-auth__eyebrow svg { color: #526b7c !important; width: 16px; height: 16px; }
-.staynas-auth__eyebrow-sub {
-  display: block;
-  margin-left: 2px;
-  color: #7b8792;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: .16em;
-}
-.staynas-auth__heading {
-  color: #17212b;
-  font-family: Inter, "Helvetica Neue", system-ui, sans-serif;
-  font-weight: 650;
-  letter-spacing: -.035em;
-  line-height: 1.15;
-}
-.staynas-auth__description { color: #667482; }
-.staynas-auth__label {
-  display: block;
-  color: #43515e;
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-}
-.staynas-auth__input {
-  min-height: 48px;
-  border: 1px solid #cbd3da;
-  border-radius: 6px;
-  background: #fff;
-  color: #17212b;
-  box-shadow: inset 0 1px 2px rgba(20,32,44,.03);
-}
-.staynas-auth__input:focus {
-  border-color: #526b7c;
-  outline: 2px solid rgba(82,107,124,.16);
-  outline-offset: 1px;
-}
-.staynas-auth__submit {
-  min-height: 48px;
-  border: 1px solid #243746;
-  border-radius: 6px;
-  background: #243746 !important;
-  color: #fff !important;
-}
-.staynas-auth__submit:hover { background: #314b5e !important; }
-.staynas-auth__text-action,
-.staynas-auth__back { color: #647482; text-decoration: none; }
-.staynas-auth__text-action:hover,
-.staynas-auth__back:hover { color: #243746; text-decoration: underline; }
-@media (max-width: 480px) {
-  .staynas-auth { align-items: center; padding: 24px 16px; }
-  .staynas-auth__card { padding: 28px 24px; }
-}
