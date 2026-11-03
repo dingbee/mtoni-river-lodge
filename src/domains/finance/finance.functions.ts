@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { financeRpc } from "@/lib/finance-rpc";
 import { recordManualPaymentInputSchema } from "./payment-contract";
+import { deriveOutstandingBalance, hasBalanceMismatch, sumByCurrency } from "./finance-metrics";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -91,16 +92,6 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
     const ytd = ytdResult.data;
     const rooms = roomsResult.data;
 
-    const sumByCurrency = (rows: Array<{ total: number | string; currency: string; status?: string }> | null) => {
-      const totals = new Map<string, number>();
-      for (const row of rows ?? []) {
-        if (row.status === "cancelled") continue;
-        const currency = String(row.currency || "UNKNOWN").toUpperCase();
-        totals.set(currency, (totals.get(currency) ?? 0) + Number(row.total ?? 0));
-      }
-      return totals;
-    };
-
     const totalUnits = (rooms ?? []).reduce((a, r) => a + Number(r.total_units ?? 1), 0) || 1;
     const nightsSold = active.reduce((a, b) => a + Number(b.nights ?? 0), 0);
     const rangeDays = Math.max(1, Math.ceil((+new Date(to) - +new Date(from)) / 86_400_000) + 1);
@@ -168,8 +159,8 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
       occupancy,
       nightsSold,
       availableRoomNights,
-      balanceFieldMismatches: active.filter((b) => Math.abs(Number(b.balance_amount ?? 0) - Number(b.balance_due ?? 0)) > 0.01).length,
-      derivedBalanceMismatches: active.filter((b) => Math.abs(Number(b.balance_amount ?? 0) - Math.max(0, Number(b.total ?? 0) - Number(b.paid_amount ?? 0))) > 0.01).length,
+      balanceFieldMismatches: active.filter((b) => hasBalanceMismatch(b.balance_amount, Number(b.balance_due ?? 0))).length,
+      derivedBalanceMismatches: active.filter((b) => hasBalanceMismatch(b.balance_amount, deriveOutstandingBalance(b.total, b.paid_amount))).length,
       revenueByRoom: Array.from(byRoom.entries()).map(([key, total]) => {
         const [currency, room_id] = splitKey(key);
         return { currency, room_id, name: roomMap.get(room_id)?.name ?? "Unknown", total };
