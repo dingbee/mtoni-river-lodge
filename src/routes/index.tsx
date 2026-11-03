@@ -1,21 +1,13 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { HeroCinematic } from "@/components/site/HeroCinematic";
-import { GuestReviews } from "@/components/site/GuestReviews";
-import { LocationMap } from "@/components/site/LocationMap";
-import { SiteFooter } from "@/components/site/SiteFooter";
-import { SiteHeader } from "@/components/site/SiteHeader";
-import { TrustedByGuestsSection } from "@/components/site/TrustedByGuestsSection";
-import { WlhaAwarenessBanner } from "@/components/site/WlhaAwarenessBanner";
-import { WhyMtoni } from "@/components/site/WhyMtoni";
-import heroPoster from "@/assets/hero-cottage-exterior-1600w.webp";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
-  // Keep auth callback payloads on the root URL working while allowing the
-  // anonymous root route to render the public property homepage.
+  // Auth state is persisted in browser storage; resolve the staff destination on
+  // the client so public visitors and authenticated staff receive different roots.
   ssr: false,
   beforeLoad: async ({ location }) => {
+    // Supabase email templates may return auth payloads to the configured Site URL
+    // ("/") instead of the explicit redirectTo URL. Preserve credentials first.
     const query = new URLSearchParams(location.searchStr);
     const hash = new URLSearchParams(
       location.hash.startsWith("#") ? location.hash.slice(1) : location.hash,
@@ -34,44 +26,12 @@ export const Route = createFileRoute("/")({
         href: `/auth/callback${location.searchStr}${location.hash}`,
       });
     }
+
+    const { data, error } = await supabase.auth.getUser();
+    if (!error && data.user) {
+      throw redirect({ to: "/admin" });
+    }
+
+    throw redirect({ to: "/rooms" });
   },
-  component: PublicHomePage,
 });
-
-function PublicHomePage() {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    let cancelled = false;
-
-    // Staff landing behaviour is retained, but anonymous visitors now stay
-    // on "/" and receive the actual public homepage.
-    void supabase.auth.getUser().then(({ data, error }) => {
-      if (!cancelled && !error && data.user) {
-        void navigate({ to: "/admin", replace: true });
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [navigate]);
-
-  return (
-    <div className="min-h-screen bg-ivory text-charcoal">
-      <SiteHeader />
-      <main>
-        <HeroCinematic
-          poster={heroPoster}
-          posterAlt="Forest cottage at Mtoni River Lodge in Arusha, Tanzania"
-        />
-        <WlhaAwarenessBanner />
-        <WhyMtoni />
-        <TrustedByGuestsSection />
-        <GuestReviews />
-        <LocationMap />
-      </main>
-      <SiteFooter />
-    </div>
-  );
-}
