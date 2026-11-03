@@ -169,7 +169,7 @@ BEGIN
   SELECT * INTO _task FROM public.ops_tasks
   WHERE id = _task_id AND property_id = _property_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Operational task not found'; END IF;
-  IF _task.category = 'housekeeping' AND _action <> 'assign' AND _action <> 'note' THEN
+  IF _task.category = 'housekeeping' AND _action <> 'note' THEN
     RAISE EXCEPTION 'Housekeeping execution is governed exclusively by the HK-X workflow';
   END IF;
 
