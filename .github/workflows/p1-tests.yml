@@ -21,4 +21,4 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - run: bunx vitest run src/lib/housekeeping-state-machine.test.ts src/lib/housekeeping-offline.test.ts
+      - run: bunx vitest run src/lib/housekeeping-state-machine.test.ts src/lib/housekeeping-offline.test.ts src/domains/ai/concierge/request-categorization.test.ts
