@@ -154,8 +154,8 @@ function AuthPage() {
     }
   };
 
-  const verifyRecoveryCode = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const verifyRecoveryCode = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     const token = recoveryCode.replace(/\s/g, "");
     if (!email.trim() || !token) {
       toast.error("Enter the email address and the code from your reset email.");
@@ -242,13 +242,13 @@ function AuthPage() {
               />
             </div>
             <button
-              type="submit"
+              type="button"
+              onClick={() => { void verifyRecoveryCode(); }}
               disabled={verifyingRecovery || !recoveryCode.trim()}
               className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60"
               style={{ background: "#171717" }}
             >
-              {verifyingRecovery && <Loader2 className="h-4 w-4 animate-spin" />}
-              Verify code
+              {verifyingRecovery ? <><Loader2 className="h-4 w-4 animate-spin" /> Verifying code…</> : "Verify code"}
             </button>
             <button
               type="button"
