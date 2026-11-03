@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { financeRpc } from "@/lib/finance-rpc";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -277,7 +278,7 @@ export const getPaymentTimeline = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
-    const [{ data: booking }, { data: events }] = await Promise.all([
+    const [bookingResult, eventsResult] = await Promise.all([
       context.supabase
         .from("bookings")
         .select(
@@ -291,7 +292,10 @@ export const getPaymentTimeline = createServerFn({ method: "POST" })
         .eq("booking_id", data.bookingId)
         .order("created_at", { ascending: false }),
     ]);
-    return { booking, events: events ?? [] };
+    if (bookingResult.error) throw new Error(`Unable to load booking payment summary: ${bookingResult.error.message}`);
+    if (eventsResult.error) throw new Error(`Unable to load payment timeline: ${eventsResult.error.message}`);
+    if (!bookingResult.data) throw new Error("Booking not found or property access denied");
+    return { booking: bookingResult.data, events: eventsResult.data ?? [] };
   });
 
 export const recordManualPayment = createServerFn({ method: "POST" })
@@ -301,70 +305,36 @@ export const recordManualPayment = createServerFn({ method: "POST" })
       .object({
         bookingId: z.string().uuid(),
         amount: z.number().positive(),
-        method: z.string().min(2).max(40),
+        method: z.string().trim().min(2).max(40),
         note: z.string().max(500).optional(),
-        eventType: z.enum(["manual_payment", "refund", "adjustment"]).default("manual_payment"),
+        idempotencyKey: z.string().uuid(),
+        eventType: z.enum(["manual_payment", "refund"]).default("manual_payment"),
       })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
-    // Guardrail: only finance-capable roles.
-    const { data: allowed } = await context.supabase.rpc("has_any_role", {
-      _user_id: context.userId,
-      _roles: ["owner", "manager", "finance"] as never,
-    });
-    if (!allowed) throw new Error("Forbidden");
-
-    const { data: booking } = await context.supabase
-      .from("bookings")
-      .select("id, reference, currency, total, deposit_amount, balance_amount, paid_amount, payment_status")
-      .eq("id", data.bookingId)
-      .maybeSingle();
-    if (!booking) throw new Error("Booking not found");
-
-    const signed = data.eventType === "refund" ? -Math.abs(data.amount) : Math.abs(data.amount);
-    await context.supabase.from("payment_events").insert({
-      booking_id: data.bookingId,
-      provider: "manual",
-      event_type: data.eventType,
-      amount: signed,
-      currency: booking.currency,
-      payment_method: data.method,
-      raw: { note: data.note ?? null, actor: context.userId },
-    });
-
-    const newPaid = Number(booking.paid_amount ?? 0) + signed;
-    const total = Number(booking.total ?? 0);
-    const balance = Math.max(0, total - newPaid);
-    let newStatus: "unpaid" | "paid" | "deposit_paid" | "payment_mismatch" | "refunded" =
-      booking.payment_status;
-    if (newPaid <= 0) newStatus = "unpaid";
-    else if (newPaid >= total) newStatus = "paid";
-    else if (newPaid >= Number(booking.deposit_amount ?? 0)) newStatus = "deposit_paid";
-
-    await context.supabase
-      .from("bookings")
-      .update({
-        paid_amount: newPaid,
-        balance_amount: balance,
-        payment_status: newStatus,
-        payment_method: data.method,
-      })
-      .eq("id", data.bookingId);
-
-    await context.supabase.from("activity_logs").insert({
-      actor_id: context.userId,
-      action: `finance.${data.eventType}`,
-      entity_type: "booking",
-      entity_id: data.bookingId,
-      entity_label: booking.reference,
-      module: "finance.payments",
-      metadata: { amount: signed, method: data.method, note: data.note ?? null },
-      severity: "audit",
-    });
-
-    return { ok: true, newBalance: balance, newStatus };
+    const { data: result, error } = await financeRpc(context.supabase).rpc(
+      "record_booking_payment",
+      {
+        _booking_id: data.bookingId,
+        _amount: data.amount,
+        _event_type: data.eventType,
+        _method: data.method,
+        _note: data.note ?? null,
+        _idempotency_key: data.idempotencyKey,
+      },
+    );
+    if (error) throw new Error(`Payment was not recorded: ${error.message}`);
+    if (!result?.ok) throw new Error("Payment transaction did not complete");
+    return {
+      ok: true,
+      duplicate: result.duplicate,
+      eventId: result.event_id,
+      paidAmount: Number(result.paid_amount),
+      newBalance: Number(result.balance_amount),
+      newStatus: result.payment_status,
+    };
   });
 
 // ---------------------------------------------------------------------------
