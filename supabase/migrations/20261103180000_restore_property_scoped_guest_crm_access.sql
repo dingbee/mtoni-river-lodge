@@ -18,7 +18,7 @@ ALTER TABLE public.guest_tag_assignments
 -- Ambiguous or orphaned records intentionally stop this migration rather than leak
 -- historical guest information across tenants.
 WITH guest_property AS (
-  SELECT guest_id, min(property_id) AS property_id
+  SELECT guest_id, min(property_id::text)::uuid AS property_id
   FROM public.bookings
   WHERE guest_id IS NOT NULL AND property_id IS NOT NULL
   GROUP BY guest_id
@@ -30,7 +30,7 @@ FROM guest_property gp
 WHERE n.property_id IS NULL AND n.guest_id = gp.guest_id;
 
 WITH guest_property AS (
-  SELECT guest_id, min(property_id) AS property_id
+  SELECT guest_id, min(property_id::text)::uuid AS property_id
   FROM public.bookings
   WHERE guest_id IS NOT NULL AND property_id IS NOT NULL
   GROUP BY guest_id
@@ -42,7 +42,7 @@ FROM guest_property gp
 WHERE p.property_id IS NULL AND p.guest_id = gp.guest_id;
 
 WITH guest_property AS (
-  SELECT guest_id, min(property_id) AS property_id
+  SELECT guest_id, min(property_id::text)::uuid AS property_id
   FROM public.bookings
   WHERE guest_id IS NOT NULL AND property_id IS NOT NULL
   GROUP BY guest_id
@@ -54,39 +54,62 @@ FROM guest_property gp
 WHERE a.property_id IS NULL AND a.guest_id = gp.guest_id;
 
 WITH guest_property AS (
-  SELECT guest_id, min(property_id) AS property_id
+  SELECT guest_id, min(property_id::text)::uuid AS property_id
   FROM public.bookings
   WHERE guest_id IS NOT NULL AND property_id IS NOT NULL
   GROUP BY guest_id
   HAVING count(DISTINCT property_id) = 1
 )
 UPDATE public.guest_communications c
-SET property_id = CASE
-  WHEN c.booking_id IS NOT NULL THEN b.property_id
-  ELSE gp.property_id
-END
-FROM guest_property gp
-LEFT JOIN public.bookings b ON b.id = c.booking_id AND b.guest_id = c.guest_id
-WHERE c.property_id IS NULL AND c.guest_id = gp.guest_id;
+SET property_id = b.property_id
+FROM public.bookings b
+WHERE c.property_id IS NULL
+  AND c.booking_id = b.id
+  AND b.guest_id = c.guest_id;
 
 WITH guest_property AS (
-  SELECT guest_id, min(property_id) AS property_id
+  SELECT guest_id, min(property_id::text)::uuid AS property_id
+  FROM public.bookings
+  WHERE guest_id IS NOT NULL AND property_id IS NOT NULL
+  GROUP BY guest_id
+  HAVING count(DISTINCT property_id) = 1
+)
+UPDATE public.guest_communications c
+SET property_id = gp.property_id
+FROM guest_property gp
+WHERE c.property_id IS NULL
+  AND c.booking_id IS NULL
+  AND c.guest_id = gp.guest_id;
+
+UPDATE public.guest_documents d
+SET property_id = b.property_id
+FROM public.bookings b
+WHERE d.property_id IS NULL
+  AND d.booking_id = b.id
+  AND b.guest_id = d.guest_id;
+
+UPDATE public.guest_documents d
+SET property_id = b.property_id
+FROM public.guest_checkins gc
+JOIN public.bookings b ON b.id = gc.booking_id
+WHERE d.property_id IS NULL
+  AND d.checkin_id = gc.id
+  AND gc.guest_id = d.guest_id;
+
+WITH guest_property AS (
+  SELECT guest_id, min(property_id::text)::uuid AS property_id
   FROM public.bookings
   WHERE guest_id IS NOT NULL AND property_id IS NOT NULL
   GROUP BY guest_id
   HAVING count(DISTINCT property_id) = 1
 )
 UPDATE public.guest_documents d
-SET property_id = CASE
-  WHEN d.booking_id IS NOT NULL THEN b.property_id
-  WHEN d.checkin_id IS NOT NULL THEN cb.property_id
-  ELSE gp.property_id
-END
+SET property_id = gp.property_id
 FROM guest_property gp
-LEFT JOIN public.bookings b ON b.id = d.booking_id AND b.guest_id = d.guest_id
-LEFT JOIN public.guest_checkins gc ON gc.id = d.checkin_id AND gc.guest_id = d.guest_id
-LEFT JOIN public.bookings cb ON cb.id = gc.booking_id
-WHERE d.property_id IS NULL AND d.guest_id = gp.guest_id;
+WHERE d.property_id IS NULL
+  AND d.booking_id IS NULL
+  AND d.checkin_id IS NULL
+  AND d.guest_id = gp.guest_id;
 
 ALTER TABLE public.guest_notes ALTER COLUMN property_id SET NOT NULL;
 ALTER TABLE public.guest_preferences ALTER COLUMN property_id SET NOT NULL;
