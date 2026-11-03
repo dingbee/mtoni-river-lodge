@@ -363,9 +363,7 @@ export const getInvoicePdf = createServerFn({ method: "POST" })
   });
 
 // ---------------------------------------------------------------------------
-// Module 4 — Revenue Analytics
-// ---------------------------------------------------------------------------
-
+// Module 4 — Revenue Analytics (currency-safe)
 export const getRevenueAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => filtersSchema.parse(d))
@@ -373,62 +371,67 @@ export const getRevenueAnalytics = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const from = data.from ?? firstOfYear();
     const to = data.to ?? todayISO();
-    const { data: rows } = await context.supabase
+    const { data: rows, error } = await context.supabase
       .from("bookings")
-      .select(
-        "id, guest_id, guest_email, room_id, total, nights, status, source, country, check_in, cancelled_at",
-      )
-      .gte("check_in", from)
-      .lte("check_in", to);
+      .select("id, guest_id, guest_email, room_id, total, nights, status, source, country, check_in, cancelled_at, currency")
+      .gte("check_in", from).lte("check_in", to);
+    if (error) throw error;
     const active = (rows ?? []).filter((b) => b.status !== "cancelled");
     const cancelled = (rows ?? []).filter((b) => b.status === "cancelled");
-
     const byMonth = new Map<string, number>();
-    const bySource = new Map<string, { total: number; count: number }>();
-    const guestSpend = new Map<string, { total: number; stays: number }>();
+    const bySource = new Map<string, { currency: string; source: string; total: number; count: number }>();
+    const guests = new Map<string, { currency: string; key: string; total: number; stays: number }>();
+    const totals = new Map<string, { currency: string; totalRevenue: number; stays: number; cancellationImpact: number }>();
     for (const b of active) {
-      const m = String(b.check_in).slice(0, 7);
-      byMonth.set(m, (byMonth.get(m) ?? 0) + Number(b.total ?? 0));
-      const s = b.source ?? "unknown";
-      const cur = bySource.get(s) ?? { total: 0, count: 0 };
-      cur.total += Number(b.total ?? 0);
-      cur.count += 1;
-      bySource.set(s, cur);
-      const key = b.guest_id ?? b.guest_email;
-      const g = guestSpend.get(key) ?? { total: 0, stays: 0 };
-      g.total += Number(b.total ?? 0);
-      g.stays += 1;
-      guestSpend.set(key, g);
+      const currency = b.currency || "UNKNOWN";
+      const summary = totals.get(currency) ?? { currency, totalRevenue: 0, stays: 0, cancellationImpact: 0 };
+      summary.totalRevenue += Number(b.total ?? 0);
+      summary.stays += 1;
+      totals.set(currency, summary);
+      const month = String(b.check_in).slice(0, 7);
+      const monthKey = currency + "::" + month;
+      byMonth.set(monthKey, (byMonth.get(monthKey) ?? 0) + Number(b.total ?? 0));
+      const sourceName = b.source ?? "unknown";
+      const sourceKey = currency + "::" + sourceName;
+      const source = bySource.get(sourceKey) ?? { currency, source: sourceName, total: 0, count: 0 };
+      source.total += Number(b.total ?? 0);
+      source.count += 1;
+      bySource.set(sourceKey, source);
+      const guestKey = String(b.guest_id ?? b.guest_email ?? "unknown");
+      const spendKey = currency + "::" + guestKey;
+      const guest = guests.get(spendKey) ?? { currency, key: guestKey, total: 0, stays: 0 };
+      guest.total += Number(b.total ?? 0);
+      guest.stays += 1;
+      guests.set(spendKey, guest);
     }
-
-    const stays = active.length || 1;
-    const totalRevenue = active.reduce((a, b) => a + Number(b.total ?? 0), 0);
-    const lifetimeValues = Array.from(guestSpend.values());
-    const avgLtv =
-      lifetimeValues.length > 0
-        ? lifetimeValues.reduce((a, g) => a + g.total, 0) / lifetimeValues.length
-        : 0;
-
+    for (const b of cancelled) {
+      const currency = b.currency || "UNKNOWN";
+      const summary = totals.get(currency) ?? { currency, totalRevenue: 0, stays: 0, cancellationImpact: 0 };
+      summary.cancellationImpact += Number(b.total ?? 0);
+      totals.set(currency, summary);
+    }
+    const currencyBreakdown = Array.from(totals.values()).map((item) => {
+      const currencyGuests = Array.from(guests.values()).filter((g) => g.currency === item.currency);
+      return {
+        ...item,
+        avgSpendPerStay: item.stays ? item.totalRevenue / item.stays : 0,
+        guestCount: currencyGuests.length,
+        avgLifetimeValue: currencyGuests.length ? currencyGuests.reduce((sum, g) => sum + g.total, 0) / currencyGuests.length : 0,
+      };
+    }).sort((a, b) => a.currency.localeCompare(b.currency));
     return {
       range: { from, to },
-      totalRevenue,
-      avgSpendPerStay: totalRevenue / stays,
       cancellationsCount: cancelled.length,
-      cancellationImpact: cancelled.reduce((a, b) => a + Number(b.total ?? 0), 0),
-      guestCount: guestSpend.size,
-      avgLifetimeValue: avgLtv,
-      byMonth: Array.from(byMonth.entries())
-        .map(([month, total]) => ({ month, total }))
-        .sort((a, b) => a.month.localeCompare(b.month)),
-      bySource: Array.from(bySource.entries()).map(([source, v]) => ({ source, ...v })),
-      topGuests: Array.from(guestSpend.entries())
-        .map(([key, v]) => ({ key, ...v }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 10),
+      currencyBreakdown,
+      byMonth: Array.from(byMonth.entries()).map(([key, total]) => {
+        const [currency, month] = key.split("::");
+        return { currency, month, total };
+      }).sort((a, b) => a.currency.localeCompare(b.currency) || a.month.localeCompare(b.month)),
+      bySource: Array.from(bySource.values()).sort((a, b) => a.currency.localeCompare(b.currency) || b.total - a.total),
+      topGuests: Array.from(guests.values()).sort((a, b) => a.currency.localeCompare(b.currency) || b.total - a.total).slice(0, 20),
     };
   });
 
-// ---------------------------------------------------------------------------
 // Module 5 — Financial Reconciliation
 // ---------------------------------------------------------------------------
 
