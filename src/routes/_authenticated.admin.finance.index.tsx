@@ -188,7 +188,7 @@ function RevenueDashboard() {
                 {data.revenueTrend.map((r) => (
                   <div key={`${r.currency}-${r.month}`} className="flex items-center justify-between text-sm">
                     <span>{r.month}</span>
-                    <Badge variant="secondary">{money(r.total, data.currency)}</Badge>
+                    <Badge variant="secondary">{money(r.total, r.currency)}</Badge>
                   </div>
                 ))}
               </div>
