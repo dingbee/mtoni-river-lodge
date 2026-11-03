@@ -73,7 +73,7 @@ export function DatePickerField({
             setOpen(false);
           }}
           disabled={earliest ? { before: earliest } : undefined}
-          initialFocus
+          autoFocus
         />
       </PopoverContent>
     </Popover>
