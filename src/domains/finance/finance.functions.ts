@@ -171,11 +171,11 @@ export const getRevenueHealth = createServerFn({ method: "GET" })
     const active = past.filter((b) => b.status !== "cancelled");
     const cancelled = past.filter((b) => b.status === "cancelled").length;
     const currencies = new Set([...active.map((b) => b.currency || "UNKNOWN"), ...(futureResult.data ?? []).map((b) => b.currency || "UNKNOWN")]);
+    const totalNights30d = active.reduce((sum, b) => sum + Number(b.nights ?? 0), 0);
+    const occupancy30d = totalNights30d / (totalUnits * 30);
     const healthByCurrency = Array.from(currencies).sort().map((currency) => {
       const current = active.filter((b) => (b.currency || "UNKNOWN") === currency);
       const future = (futureResult.data ?? []).filter((b) => b.status !== "cancelled" && (b.currency || "UNKNOWN") === currency);
-      const nights = current.reduce((a, b) => a + Number(b.nights ?? 0), 0);
-      const occupancy30d = nights / (totalUnits * 30);
       const outstanding = current.reduce((a, b) => a + Number(b.balance_amount ?? 0), 0);
       const revenue30d = current.reduce((a, b) => a + Number(b.total ?? 0), 0);
       const forwardRevenue30d = future.reduce((a, b) => a + Number(b.total ?? 0), 0);
@@ -431,7 +431,8 @@ export const getReconciliation = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const from = data.from ?? daysAgo(30);
     const to = data.to ?? todayISO();
-    // The selected window scopes bookings by creation date; all their ledger events are then reconciled regardless of event date.\n    const { data: bookings, error: bookingsError } = await context.supabase
+    // The selected window scopes bookings by creation date; all their ledger events are then reconciled regardless of event date.
+    const { data: bookings, error: bookingsError } = await context.supabase
       .from("bookings")
       .select(
         "id, reference, total, deposit_amount, balance_amount, paid_amount, currency, payment_status, payment_method, pesapal_order_tracking_id, payment_mismatch_at, created_at",
