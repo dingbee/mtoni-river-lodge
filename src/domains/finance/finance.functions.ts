@@ -471,48 +471,74 @@ export const getReconciliation = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const from = data.from ?? daysAgo(30);
     const to = data.to ?? todayISO();
-    const [{ data: bookings }, { data: events }] = await Promise.all([
-      context.supabase
-        .from("bookings")
-        .select(
-          "id, reference, total, deposit_amount, balance_amount, paid_amount, currency, payment_status, payment_method, pesapal_order_tracking_id, payment_mismatch_at, created_at",
-        )
-        .gte("created_at", `${from}T00:00:00Z`)
-        .lte("created_at", `${to}T23:59:59Z`),
+    const { data: bookings, error: bookingsError } = await context.supabase
+      .from("bookings")
+      .select(
+        "id, reference, total, deposit_amount, balance_amount, paid_amount, currency, payment_status, payment_method, pesapal_order_tracking_id, payment_mismatch_at, created_at",
+      )
+      .gte("created_at", `${from}T00:00:00Z`)
+      .lte("created_at", `${to}T23:59:59Z`);
+    if (bookingsError) throw bookingsError;
+
+    const bookingIds = (bookings ?? []).map((booking) => booking.id);
+    const [ledgerResult, orphanResult] = await Promise.all([
+      bookingIds.length > 0
+        ? context.supabase
+            .from("payment_events")
+            .select("*")
+            .in("booking_id", bookingIds)
+        : Promise.resolve({ data: [], error: null }),
       context.supabase
         .from("payment_events")
         .select("*")
+        .is("booking_id", null)
         .gte("created_at", `${from}T00:00:00Z`)
         .lte("created_at", `${to}T23:59:59Z`),
     ]);
+    if (ledgerResult.error) throw ledgerResult.error;
+    if (orphanResult.error) throw orphanResult.error;
 
-    const eventsByBooking = new Map<string, number>();
-    for (const e of events ?? []) {
-      if (!e.booking_id) continue;
-      if (["completed", "manual_payment", "adjustment"].includes(e.event_type)) {
-        eventsByBooking.set(e.booking_id, (eventsByBooking.get(e.booking_id) ?? 0) + Number(e.amount ?? 0));
-      } else if (["refund", "reversed"].includes(e.event_type)) {
-        eventsByBooking.set(e.booking_id, (eventsByBooking.get(e.booking_id) ?? 0) - Math.abs(Number(e.amount ?? 0)));
-      }
-    }
+    const { reconcileBookingLedger, getReconciliationEventAmount } = await import(
+      "./finance-reconciliation"
+    );
+    const ledgerEvents = ledgerResult.data ?? [];
+    const rows = (bookings ?? []).map((booking) => ({
+      ...booking,
+      ...reconcileBookingLedger(booking, ledgerEvents),
+    }));
 
-    const rows = (bookings ?? []).map((b) => {
-      const eventsTotal = eventsByBooking.get(b.id) ?? 0;
-      const bookingPaid = Number(b.paid_amount ?? 0);
-      const diff = Math.round((eventsTotal - bookingPaid) * 100) / 100;
-      return {
-        ...b,
-        events_total: eventsTotal,
-        variance: diff,
-        matched: Math.abs(diff) < 0.5,
+    const unclassifiedEvents = ledgerEvents.filter(
+      (event) => getReconciliationEventAmount(event) === null,
+    );
+    const currencySummary = new Map<
+      string,
+      { bookings: number; booking_paid: number; event_paid: number; outstanding: number }
+    >();
+    for (const row of rows) {
+      const currency = row.currency || "UNKNOWN";
+      const summary = currencySummary.get(currency) ?? {
+        bookings: 0,
+        booking_paid: 0,
+        event_paid: 0,
+        outstanding: 0,
       };
-    });
+      summary.bookings += 1;
+      summary.booking_paid += Number(row.paid_amount ?? 0);
+      summary.event_paid += row.events_total;
+      summary.outstanding += Number(row.balance_amount ?? 0);
+      currencySummary.set(currency, summary);
+    }
 
     return {
       range: { from, to },
-      matched: rows.filter((r) => r.matched).length,
-      unmatched: rows.filter((r) => !r.matched),
-      unmatchedEvents: (events ?? []).filter((e) => !e.booking_id),
+      matched: rows.filter((row) => row.matched).length,
+      unmatched: rows.filter((row) => !row.matched),
+      unmatchedEvents: orphanResult.data ?? [],
+      unclassifiedEvents,
+      currencySummary: Array.from(currencySummary.entries()).map(([currency, totals]) => ({
+        currency,
+        ...totals,
+      })),
     };
   });
 
