@@ -130,6 +130,18 @@ begin
     );
   end if;
 
+  -- Legacy refunds without an original-event link cannot safely be allocated
+  -- to this payment. Fail closed instead of risking a duplicate cash refund.
+  if exists (
+    select 1 from public.payment_events e
+    where e.booking_id = _booking_id
+      and e.event_type = 'refund'
+      and e.reverses_event_id is null
+  ) then
+    raise exception using errcode = '55000',
+      message = 'This booking has legacy unlinked refunds; reconcile them before issuing another refund';
+  end if;
+
   select coalesce(sum(abs(e.amount)),0) into v_already_refunded
   from public.payment_events e
   where e.reverses_event_id = _payment_event_id
