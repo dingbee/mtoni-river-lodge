@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - p1-hos-boundary
+      - main
+      - feat/finance-*
   pull_request:
     branches:
       - main
