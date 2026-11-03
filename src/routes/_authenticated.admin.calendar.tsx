@@ -33,6 +33,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DatePickerField } from "@/components/os/DatePickerField";
 
 export const Route = createFileRoute("/_authenticated/admin/calendar")({
   head: () => ({
@@ -326,6 +327,14 @@ function UnifiedCalendarPage() {
 
         {ops.isLoading ? (
           <LoadingState label="Loading calendar…" />
+        ) : ops.error ? (
+          <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+            <p className="font-medium">Calendar data could not be loaded.</p>
+            <p className="mt-1">{(ops.error as Error).message}</p>
+            <Button className="mt-3" size="sm" variant="outline" onClick={() => void ops.refetch()}>
+              Retry calendar
+            </Button>
+          </div>
         ) : (
           <div className="overflow-x-auto rounded-lg border">
             <table className="min-w-full text-xs">
@@ -523,18 +532,19 @@ function UnifiedCalendarPage() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>From</Label>
-                <Input
-                  type="date"
+                <DatePickerField
                   value={blockCtx?.from ?? ""}
-                  onChange={(ev) => setBlockCtx((c) => c && { ...c, from: ev.target.value })}
+                  onChange={(value) => setBlockCtx((c) => c && { ...c, from: value })}
+                  placeholder="Start date"
                 />
               </div>
               <div>
                 <Label>To (exclusive)</Label>
-                <Input
-                  type="date"
+                <DatePickerField
                   value={blockCtx?.to ?? ""}
-                  onChange={(ev) => setBlockCtx((c) => c && { ...c, to: ev.target.value })}
+                  minDate={blockCtx?.from}
+                  onChange={(value) => setBlockCtx((c) => c && { ...c, to: value })}
+                  placeholder="End date"
                 />
               </div>
             </div>

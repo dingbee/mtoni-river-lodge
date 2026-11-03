@@ -300,21 +300,23 @@ export const getOpsCalendar = createServerFn({ method: "POST" })
     to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   }).parse(d))
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
+    await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const [roomsRes, bookingsRes, invRes] = await Promise.all([
       sb.from("rooms").select("id, slug, name, total_units").order("sort_order"),
       sb.from("bookings")
         .select("id, reference, guest_name, check_in, check_out, status, room_id")
-        .in("status", ["confirmed", "checked_in", "completed"])
+        .in("status", ["pending", "confirmed", "checked_in", "completed"])
         .lte("check_in", data.to)
         .gte("check_out", data.from)
         .order("check_in"),
       sb.from("room_inventory")
         .select("room_id, date, available_units, is_blocked, price_override")
-        .gte("date", data.from).lte("date", data.to),
+        .gte("date", data.from).lt("date", data.to),
     ]);
+    const failed = [roomsRes, bookingsRes, invRes].find((result) => result.error);
+    if (failed?.error) throw new Error(`Calendar data load failed: ${failed.error.message}`);
     return {
       rooms: roomsRes.data ?? [],
       bookings: bookingsRes.data ?? [],

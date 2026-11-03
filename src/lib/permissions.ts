@@ -130,6 +130,7 @@ export function getModuleAccessState(
 const STAYNAS_MODULE_ALIASES: Record<string, StayNasModuleId> = {
   overview: "overview",
   reservations: "reservations",
+  "reservations.calendar": "reservations",
   rooms: "rooms",
   "rooms.configure": "rooms.configure",
   "front-desk": "front-desk",

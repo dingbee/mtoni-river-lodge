@@ -18,6 +18,7 @@ import { checkAvailability, type AvailabilityRoom } from "@/lib/booking.function
 import { listGuests } from "@/lib/guests.functions";
 import { createStaffReservation, RESERVATION_SOURCES } from "@/lib/staff-reservations.functions";
 import { cn } from "@/lib/utils";
+import { DatePickerField } from "@/components/os/DatePickerField";
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -373,20 +374,22 @@ export function NewReservationDialog({
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="s-in">Check-in</Label>
-                  <Input
+                  <DatePickerField
                     id="s-in"
-                    type="date"
                     value={checkIn}
-                    onChange={(e) => setCheckIn(e.target.value)}
+                    minDate={todayISO()}
+                    onChange={setCheckIn}
+                    placeholder="Select check-in"
                   />
                 </div>
                 <div>
                   <Label htmlFor="s-out">Check-out</Label>
-                  <Input
+                  <DatePickerField
                     id="s-out"
-                    type="date"
                     value={checkOut}
-                    onChange={(e) => setCheckOut(e.target.value)}
+                    minDate={checkIn}
+                    onChange={setCheckOut}
+                    placeholder="Select check-out"
                   />
                 </div>
                 <div>
