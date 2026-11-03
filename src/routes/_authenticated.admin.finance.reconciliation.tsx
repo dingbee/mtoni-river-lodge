@@ -64,11 +64,15 @@ function Reconciliation() {
                       <td>{r.currency} {Number(r.paid_amount ?? 0).toFixed(2)}</td>
                       <td>{r.currency} {Number(r.events_total).toFixed(2)}</td>
                       <td className={r.variance !== 0 ? "text-[color:var(--os-warn)]" : ""}>{r.variance.toFixed(2)}</td>
-                      <td><Badge variant="secondary">{r.payment_status}</Badge></td>
+                      <td className={r.balance_variance !== 0 ? "text-[color:var(--os-warn)]" : ""}>{r.currency} {r.balance_variance.toFixed(2)}</td>
+                      <td>
+                        <Badge variant="secondary">{r.payment_status}</Badge>
+                        {r.currency_mismatch && <Badge variant="destructive" className="ml-1">Currency</Badge>}
+                      </td>
                     </tr>
                   ))}
                   {!data.unmatched.length && (
-                    <tr><td colSpan={5} className="py-4 text-center text-muted-foreground">All bookings reconciled ✓</td></tr>
+                    <tr><td colSpan={6} className="py-4 text-center text-muted-foreground">All bookings reconciled ✓</td></tr>
                   )}
                 </tbody>
               </table>
