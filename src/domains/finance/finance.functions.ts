@@ -3,7 +3,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { financeRpc } from "@/lib/finance-rpc";
-import { recordManualPaymentInputSchema } from "./payment-contract";\nimport { moneyByCurrency, sumCurrency } from "./finance-currency";
+import { recordManualPaymentInputSchema } from "./payment-contract";
+import { moneyByCurrency, sumCurrency } from "./finance-currency";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -51,7 +52,6 @@ function firstOfYear() {
 // ---------------------------------------------------------------------------
 // Module 1 — Revenue Dashboard KPIs
 // Monetary values are always grouped by currency. Never aggregate unlike currencies.
-type CurrencyMoney = { currency: string; amount: number };
 export const getRevenueDashboard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => filtersSchema.parse(d))
