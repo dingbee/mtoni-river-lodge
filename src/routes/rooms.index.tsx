@@ -1,10 +1,12 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { ArrowRight, BedDouble, Maximize2, Users } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { ConciergeWidget } from "@/components/site/ConciergeWidget";
+import { supabase } from "@/integrations/supabase/client";
+import { staynasRpc } from "@/lib/staynas-rpc";
 
 export const Route = createFileRoute("/rooms/")({ component: RoomsIndexPage });
 
@@ -16,8 +18,26 @@ type PublicRoom = {
 };
 
 function RoomsIndexPage() {
+  const navigate = useNavigate();
   const [rooms,setRooms] = useState<PublicRoom[]>([]);
   const [loading,setLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (cancelled || error || !data.user) return;
+      const [{ data: roles, error: roleError }, { data: properties, error: propertyError }] = await Promise.all([
+        supabase.rpc("current_user_roles"),
+        staynasRpc(supabase).rpc("staynas_list_properties"),
+      ]);
+      const hasStaffRole = !roleError && Array.isArray(roles) && roles.length > 0;
+      const hasPropertyAccess = !propertyError && Array.isArray(properties) && properties.length > 0;
+      if (!cancelled && (hasStaffRole || hasPropertyAccess)) {
+        await navigate({ to: "/admin" });
+      }
+    })().catch((error) => console.error("[StayNas public rooms] Staff session routing failed", error));
+    return () => { cancelled = true; };
+  }, [navigate]);
   useEffect(() => {
     fetch("/api/public/rooms/catalog")
       .then(r => r.ok ? r.json() : Promise.reject())
