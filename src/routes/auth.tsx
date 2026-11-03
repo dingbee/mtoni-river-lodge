@@ -18,6 +18,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [recoveryCode, setRecoveryCode] = useState("");
+  const [recoveryError, setRecoveryError] = useState("");
   const [recoverySent, setRecoverySent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -174,6 +175,7 @@ function AuthPage() {
 
     recoveryVerificationStarted.current = true;
     setVerifyingRecovery(true);
+    setRecoveryError("");
     try {
       const { data, error } = await supabase.auth.verifyOtp({
         email: email.trim().toLowerCase(),
@@ -192,9 +194,12 @@ function AuthPage() {
       // Keep the verified recovery session and reveal the password form in-place.
       // This avoids losing the session across route/document transitions on mobile.
       setRecoveryVerified(true);
+      setRecoveryCode("");
     } catch (error) {
       console.error("[StayNas auth] Recovery code verification failed", error);
-      toast.error(error instanceof Error ? error.message : "The code is invalid or expired. Request a new one.");
+      const message = error instanceof Error ? error.message : "The code is invalid or expired. Request a new one.";
+      setRecoveryError(message);
+      toast.error(message);
     } finally {
       setVerifyingRecovery(false);
       recoveryVerificationStarted.current = false;
@@ -248,12 +253,13 @@ function AuthPage() {
                 inputMode="numeric"
                 maxLength={12}
                 value={recoveryCode}
-                onChange={(e) => setRecoveryCode(e.target.value)}
+                onChange={(e) => { setRecoveryCode(e.target.value); setRecoveryError(""); }}
                 className="mt-2 w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-center text-xl tracking-[0.35em] outline-none focus:border-charcoal"
                 placeholder="••••••"
                 autoFocus
               />
             </div>
+            {recoveryError && <p role="alert" aria-live="polite" className="mt-3 text-xs text-red-700">{recoveryError}</p>}
             <button
               type="submit"
               disabled={verifyingRecovery || !recoveryCode.trim()}
@@ -261,7 +267,7 @@ function AuthPage() {
               style={{ background: "#171717" }}
             >
               {verifyingRecovery && <Loader2 className="h-4 w-4 animate-spin" />}
-              Verify code
+              {verifyingRecovery ? "Verifying code…" : "Verify code"}
             </button>
             <button
               type="button"
