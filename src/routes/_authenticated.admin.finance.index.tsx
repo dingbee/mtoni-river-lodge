@@ -122,7 +122,7 @@ function RevenueDashboard() {
             <StatCard label="Earned YTD" value={money(data.ytdRevenue, data.currency)} icon={TrendingUp} />
             <StatCard label="Booked value" value={money(data.bookedValue, data.currency)} icon={AlertCircle} />
             <StatCard label="Outstanding" value={money(data.outstanding, data.currency)} icon={AlertCircle} />
-            <StatCard label="Deposits received" value={money(data.deposits, data.currency)} icon={Wallet} />
+            <StatCard label="Payments received" value={money(data.deposits, data.currency)} icon={Wallet} />
             <StatCard label="Refunds" value={money(data.refunds, data.currency)} icon={RefreshCw} />
             <StatCard label="ADR" value={money(data.adr, data.currency)} icon={Percent} hint="Average daily rate" />
             <StatCard label="RevPAR" value={money(data.revpar, data.currency)} icon={Activity} hint={`Occupancy ${pct(data.occupancy)}`} />
