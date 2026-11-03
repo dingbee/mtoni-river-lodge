@@ -28,25 +28,98 @@ export async function verifyAndFinalizePayment(opts: {
   orderTrackingId: string;
   source: "ipn" | "status_check";
 }): Promise<{ outcome: FinalizeOutcome; paymentMethod: string | null }> {
-  const { data: booking } = await supabaseAdmin
+  const { data: booking, error: bookingError } = await supabaseAdmin
     .from("bookings")
-    .select("id, reference, payment_status, status, deposit_amount, currency, invoice_number")
+    .select("id, reference, payment_status, status, deposit_amount, total, paid_amount, currency, invoice_number, pesapal_order_tracking_id")
     .eq("id", opts.bookingId)
+    .eq("pesapal_order_tracking_id", opts.orderTrackingId)
     .maybeSingle();
+  if (bookingError) throw new Error(`Unable to load booking for Pesapal finalization: ${bookingError.message}`);
   if (!booking) return { outcome: "pending", paymentMethod: null };
 
-  if (
-    booking.payment_status === "paid" ||
-    booking.payment_status === "deposit_paid"
-  ) {
+  if (booking.payment_status === "paid" || booking.payment_status === "deposit_paid") {
     return { outcome: "already_finalized", paymentMethod: null };
   }
 
   const status = await getPesapalTransactionStatus(opts.orderTrackingId);
   const outcome = classifyStatus(status.status_code);
   const paymentMethod = status.payment_method ?? null;
+  const raw = JSON.parse(JSON.stringify(status));
 
-  await supabaseAdmin.from("payment_events").insert({
+  if (outcome === "completed") {
+    const expected = Number(booking.deposit_amount);
+    const paid = Number(status.amount ?? 0);
+    const amountsMatch = Math.round(expected * 100) === Math.round(paid * 100);
+    const currency = status.currency ?? booking.currency ?? "USD";
+    const currencyMatches =
+      currency.toUpperCase() === (booking.currency || "USD").toUpperCase();
+
+    if (!amountsMatch || !currencyMatches) {
+      const nowIso = new Date().toISOString();
+      const { error: eventError } = await supabaseAdmin.from("payment_events").insert({
+        booking_id: booking.id,
+        provider: "pesapal",
+        event_type: `${opts.source}:completed`,
+        order_tracking_id: opts.orderTrackingId,
+        status_code: status.status_code ?? null,
+        payment_method: paymentMethod,
+        amount: paid,
+        currency: status.currency ?? null,
+        raw,
+      });
+      if (eventError) throw new Error(`Unable to record Pesapal mismatch event: ${eventError.message}`);
+
+      const { error: bookingUpdateError } = await supabaseAdmin
+        .from("bookings")
+        .update({
+          payment_status: "payment_mismatch",
+          payment_mismatch_at: nowIso,
+        })
+        .eq("id", booking.id);
+      if (bookingUpdateError) throw new Error(`Unable to mark Pesapal payment mismatch: ${bookingUpdateError.message}`);
+
+      const { error: mismatchEventError } = await supabaseAdmin.from("payment_events").insert({
+        booking_id: booking.id,
+        provider: "pesapal",
+        event_type: "security:payment_mismatch",
+        order_tracking_id: opts.orderTrackingId,
+        status_code: status.status_code ?? null,
+        amount: paid,
+        currency: status.currency ?? null,
+        raw: {
+          expectedAmount: expected,
+          paidAmount: paid,
+          expectedCurrency: booking.currency,
+          paidCurrency: status.currency,
+        },
+      });
+      if (mismatchEventError) throw new Error(`Unable to record Pesapal mismatch audit event: ${mismatchEventError.message}`);
+      console.error(
+        `PAYMENT MISMATCH booking=${booking.reference} expected=${expected} ${booking.currency} paid=${paid} ${status.currency}`,
+      );
+      return { outcome: "mismatch", paymentMethod };
+    }
+
+    const invoiceNumber = booking.invoice_number ?? makeInvoiceNumber(booking.reference);
+    const { data: result, error: finalizeError } = await (supabaseAdmin as any).rpc(
+      "finalize_pesapal_payment",
+      {
+        _booking_id: booking.id,
+        _order_tracking_id: opts.orderTrackingId,
+        _amount: paid,
+        _currency: currency,
+        _method: paymentMethod,
+        _source: opts.source,
+        _invoice_number: invoiceNumber,
+        _raw: raw,
+      },
+    );
+    if (finalizeError) throw new Error(`Unable to finalize Pesapal settlement: ${finalizeError.message}`);
+    if (!result?.ok) throw new Error("Pesapal settlement transaction did not complete");
+    return { outcome: result.duplicate ? "already_finalized" : "completed", paymentMethod };
+  }
+
+  const { error: eventError } = await supabaseAdmin.from("payment_events").insert({
     booking_id: booking.id,
     provider: "pesapal",
     event_type: `${opts.source}:${outcome}`,
@@ -55,85 +128,17 @@ export async function verifyAndFinalizePayment(opts: {
     payment_method: paymentMethod,
     amount: status.amount ?? null,
     currency: status.currency ?? null,
-    raw: JSON.parse(JSON.stringify(status)),
+    raw,
   });
+  if (eventError) throw new Error(`Unable to record Pesapal status event: ${eventError.message}`);
 
   if (outcome === "failed" || outcome === "reversed") {
-    await supabaseAdmin
+    const { error: failedUpdateError } = await supabaseAdmin
       .from("bookings")
       .update({ payment_failed_at: new Date().toISOString() })
       .eq("id", booking.id);
-    return { outcome, paymentMethod };
+    if (failedUpdateError) throw new Error(`Unable to update failed Pesapal payment status: ${failedUpdateError.message}`);
   }
 
-  if (outcome !== "completed") {
-    return { outcome, paymentMethod };
-  }
-
-  // === Strict amount verification ===
-  const expected = Number(booking.deposit_amount);
-  const paid = Number(status.amount ?? 0);
-  const amountsMatch = Math.round(expected * 100) === Math.round(paid * 100);
-  const currencyMatches =
-    !status.currency || status.currency.toUpperCase() === (booking.currency || "USD").toUpperCase();
-
-  if (!amountsMatch || !currencyMatches) {
-    const nowIso = new Date().toISOString();
-    await supabaseAdmin
-      .from("bookings")
-      .update({
-        payment_status: "payment_mismatch",
-        payment_mismatch_at: nowIso,
-        paid_amount: paid,
-        payment_method: paymentMethod,
-      })
-      .eq("id", booking.id);
-    await supabaseAdmin.from("payment_events").insert({
-      booking_id: booking.id,
-      provider: "pesapal",
-      event_type: "security:payment_mismatch",
-      order_tracking_id: opts.orderTrackingId,
-      amount: paid,
-      currency: status.currency ?? null,
-      raw: {
-        expectedAmount: expected,
-        paidAmount: paid,
-        expectedCurrency: booking.currency,
-        paidCurrency: status.currency,
-      },
-    });
-    console.error(
-      `PAYMENT MISMATCH booking=${booking.reference} expected=${expected} ${booking.currency} paid=${paid} ${status.currency}`,
-    );
-    return { outcome: "mismatch", paymentMethod };
-  }
-
-  // Valid payment — confirm booking, mint invoice number.
-  const nowIso = new Date().toISOString();
-  const invoiceNumber = booking.invoice_number ?? makeInvoiceNumber(booking.reference);
-
-  await supabaseAdmin
-    .from("bookings")
-    .update({
-      payment_status: "deposit_paid",
-      status: "confirmed",
-      payment_method: paymentMethod,
-      payment_completed_at: nowIso,
-      confirmed_at: nowIso,
-      paid_amount: paid,
-      invoice_number: invoiceNumber,
-    })
-    .eq("id", booking.id)
-    .neq("payment_status", "deposit_paid")
-    .neq("payment_status", "paid");
-
-  try {
-    const { sendBookingConfirmedEmail } = await import("./booking-confirmation-email.server");
-    const r = await sendBookingConfirmedEmail(booking.id);
-    if (!r.ok) console.error("confirmation email failed:", "error" in r ? r.error : "unknown");
-  } catch (e) {
-    console.error("confirmation email error:", e);
-  }
-
-  return { outcome: "completed", paymentMethod };
+  return { outcome, paymentMethod };
 }

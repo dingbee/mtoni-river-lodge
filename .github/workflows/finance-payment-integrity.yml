@@ -6,12 +6,14 @@ on:
     paths:
       - "src/domains/finance/**"
       - "src/lib/finance-rpc.ts"
+      - "src/lib/payment-finalize.server.ts"
+      - "supabase/migrations/*pesapal_atomic_finance*"
       - "src/routes/_authenticated.admin.finance.payments.tsx"
       - "supabase/review/*finance_payment_integrity*"
       - ".github/workflows/finance-payment-integrity.yml"
   push:
     branches:
-      - fix/finance-transaction-integrity-phase1
+      - fix/pesapal-atomic-finance-finalization
 
 jobs:
   finance-payment-integrity:
