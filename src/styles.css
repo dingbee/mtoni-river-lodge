@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-display: "Cormorant Garamond", "Playfair Display", Georgia, serif;
-  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-display: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  --font-serif: "Inter", "Helvetica Neue", system-ui, sans-serif;
   --font-sans: "Inter", "Helvetica Neue", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
@@ -51,7 +51,7 @@
   --color-focus: var(--focus);
 
   --color-ivory: var(--ivory);
-  --color-burgundy: #6C151E;
+  --color-burgundy: #B47A45;
   --color-bone: var(--bone);
   --color-clay: var(--clay);
   --color-ember: var(--ember);
@@ -277,18 +277,18 @@
      unaffected.
      ============================================================ */
   :root {
-    --os-canvas: #F7F7F5;          /* soft graphite-tinted warm off-white */
+    --os-canvas: #F3F4F6;          /* enterprise light-grey canvas */
     --os-surface: #FFFFFF;         /* card / panel surface */
-    --os-surface-2: #FAFAF8;       /* subtle nested surface */
-    --os-hairline: rgba(26,26,26,0.06);
-    --os-hairline-strong: rgba(26,26,26,0.10);
-    --os-ink: #0F1210;             /* primary ink */
-    --os-ink-2: #4A4E4B;           /* secondary ink */
-    --os-ink-3: #6B6F6C;           /* muted ink */
-    --os-green: #0F3D3A;
-    --os-green-soft: rgba(52,103,57,0.08);
-    --os-gold: #6C151E;
-    --os-gold-soft: rgba(192,184,122,0.14);
+    --os-surface-2: #FFFFFF;       /* white nested surface */
+    --os-hairline: #D1D5DB;
+    --os-hairline-strong: #9CA3AF;
+    --os-ink: #111827;             /* near-black primary ink */
+    --os-ink-2: #374151;           /* charcoal secondary ink */
+    --os-ink-3: #6B7280;           /* muted ink */
+    --os-green: #111827;
+    --os-green-soft: #F3F4F6;
+    --os-gold: #4B5563;
+    --os-gold-soft: #F3F4F6;
     --os-info: #3D6FA8;
     --os-info-soft: rgba(61,111,168,0.10);
     --os-warn: #B7791F;
@@ -298,8 +298,8 @@
     --os-success: #2F8F55;
     --os-success-soft: rgba(47,143,85,0.10);
 
-    --os-shadow-card: 0 1px 0 rgba(26,26,26,0.02), 0 2px 8px -4px rgba(26,26,26,0.06), 0 12px 32px -20px rgba(26,26,26,0.10);
-    --os-shadow-float: 0 1px 0 rgba(26,26,26,0.02), 0 12px 32px -12px rgba(26,26,26,0.12), 0 30px 60px -30px rgba(26,26,26,0.18);
+    --os-shadow-card: 0 1px 2px rgba(17,24,39,0.04);
+    --os-shadow-float: 0 4px 12px rgba(17,24,39,0.08);
   }
 
   /* Admin shell scope — swap the base canvas to warm graphite */
@@ -327,13 +327,13 @@
   .os-card {
     background: var(--os-surface);
     border: 1px solid var(--os-hairline);
-    border-radius: 20px;
+    border-radius: 8px;
     box-shadow: var(--os-shadow-card);
   }
   .os-card-flat {
     background: var(--os-surface);
     border: 1px solid var(--os-hairline);
-    border-radius: 20px;
+    border-radius: 8px;
   }
   .os-chip {
     display: inline-flex; align-items: center; gap: .35rem;
@@ -611,8 +611,8 @@
 
   --os-green: #5EA56D;
   --os-green-soft: rgba(94,165,109,0.14);
-  --os-gold: #6C151E;
-  --os-gold-soft: rgba(192,184,122,0.14);
+  --os-gold: #4B5563;
+  --os-gold-soft: #F3F4F6;
   --os-info: #7AA7D6;
   --os-info-soft: rgba(122,167,214,0.12);
   --os-warn: #D8A94A;
@@ -929,8 +929,8 @@
   --os-canvas: #F7F7F5;
   --os-surface: #FFFFFF;
   --os-surface-2: #FAFAF8;
-  --os-hairline: rgba(26,26,26,0.06);
-  --os-hairline-strong: rgba(26,26,26,0.10);
+  --os-hairline: #D1D5DB;
+  --os-hairline-strong: #9CA3AF;
   --os-ink: #0F1210;
   --os-ink-2: #4A4E4B;
   --os-ink-3: #5F6462;
@@ -1055,3 +1055,815 @@
 /* ---------- Colour-scheme hint (native controls, scrollbars) ---------- */
 [data-os-theme="dark"] { color-scheme: dark; }
 [data-os-theme="light"] { color-scheme: light; }
+
+
+/* ============================================================
+   STAYNAS REFINED OPERATIONS — UI FOUNDATION (v1)
+   Scoped to the authenticated operations shell. Public booking
+   and marketing pages retain their existing visual system.
+   ============================================================ */
+.mtoni-os {
+  --os-canvas: #F7F7F3;
+  --os-surface: #FFFFFF;
+  --os-surface-2: #F1F2ED;
+  --os-hairline: rgba(32, 44, 41, 0.09);
+  --os-hairline-strong: rgba(32, 44, 41, 0.15);
+  --os-ink: #202C29;
+  --os-ink-2: #4F5B55;
+  --os-ink-3: #707A73;
+  --os-green: #263D33;
+  --os-green-soft: rgba(38, 61, 51, 0.09);
+  --os-gold: #B47A45;
+  --os-gold-soft: rgba(180, 122, 69, 0.13);
+  --os-info: #426B83;
+  --os-info-soft: rgba(66, 107, 131, 0.10);
+  --os-warn: #9A6A2F;
+  --os-warn-soft: rgba(154, 106, 47, 0.12);
+  --os-danger: #A84842;
+  --os-danger-soft: rgba(168, 72, 66, 0.10);
+  --os-success: #397451;
+  --os-success-soft: rgba(57, 116, 81, 0.10);
+  --os-shadow-card: 0 1px 2px rgba(32, 44, 41, 0.035), 0 8px 24px -18px rgba(32, 44, 41, 0.18);
+  --os-shadow-float: 0 16px 40px -20px rgba(32, 44, 41, 0.22);
+
+  --background: var(--os-canvas);
+  --foreground: var(--os-ink);
+  --card: var(--os-surface);
+  --card-foreground: var(--os-ink);
+  --popover: var(--os-surface);
+  --popover-foreground: var(--os-ink);
+  --primary: var(--os-green);
+  --primary-foreground: #FFFFFF;
+  --secondary: var(--os-surface-2);
+  --secondary-foreground: var(--os-ink);
+  --muted: var(--os-surface-2);
+  --muted-foreground: var(--os-ink-3);
+  --accent: var(--os-gold-soft);
+  --accent-foreground: var(--os-ink);
+  --border: var(--os-hairline);
+  --input: var(--os-hairline-strong);
+  --ring: var(--os-green);
+
+  background: var(--os-canvas);
+  color: var(--os-ink);
+  font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  font-feature-settings: "ss01", "cv11", "tnum";
+  -webkit-font-smoothing: antialiased;
+}
+
+.mtoni-os :is(h1, h2, h3, h4, .font-display) {
+  font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  font-weight: 600;
+  overflow-wrap: normal;
+  hyphens: manual;
+}
+.mtoni-os h1, .mtoni-os .text-4xl { font-size: clamp(1.5rem, 1.25rem + 0.7vw, 1.875rem); line-height: 1.25; }
+.mtoni-os h2, .mtoni-os .text-3xl { font-size: clamp(1.25rem, 1.1rem + 0.45vw, 1.5rem); line-height: 1.3; }
+.mtoni-os h3, .mtoni-os .text-2xl { font-size: 1.125rem; line-height: 1.35; }
+.mtoni-os .text-5xl, .mtoni-os .text-6xl, .mtoni-os .text-7xl,
+.mtoni-os .text-8xl, .mtoni-os .text-9xl { font-size: 1.5rem; line-height: 1.3; }
+.mtoni-os p { line-height: 1.55; }
+.mtoni-os .os-card, .mtoni-os .os-card-flat,
+.mtoni-os [data-slot="card"], .mtoni-os .bg-card {
+  border-radius: 12px;
+  border-color: var(--os-hairline);
+  box-shadow: var(--os-shadow-card);
+}
+.mtoni-os .os-card-flat { box-shadow: none; }
+.mtoni-os :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), textarea, select, [role="combobox"]) {
+  min-height: 40px;
+  border-radius: 8px;
+  border-color: var(--os-hairline-strong);
+  background: var(--os-surface);
+  color: var(--os-ink);
+}
+.mtoni-os :is(input, textarea, select)::placeholder { color: var(--os-ink-3); opacity: 1; }
+.mtoni-os :is(input, textarea, select):disabled { opacity: 0.62; cursor: not-allowed; }
+.mtoni-os textarea { min-height: 96px; }
+.mtoni-os :is(button, [role="button"]) { border-radius: 8px; }
+.mtoni-os table { font-size: 13px; }
+.mtoni-os th { font-size: 11px; letter-spacing: 0.055em; font-weight: 600; }
+.mtoni-os .font-display.text-\[2\.4rem\] { font-size: clamp(1.5rem, 1.3rem + 0.5vw, 1.875rem); line-height: 1.25; font-weight: 600; }
+.mtoni-os .os-chip {
+  padding: 3px 9px;
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  border-color: var(--os-hairline-strong);
+}
+.mtoni-os :is(.text-muted-foreground, [class*="text-[color:var(--os-ink-3)]"]) { color: var(--os-ink-3); }
+.mtoni-os :is(a, button, input, textarea, select) { transition-duration: 160ms; }
+.mtoni-os :is(input, textarea, select, button):focus-visible {
+  outline-color: var(--os-green);
+  outline-offset: 2px;
+}
+.mtoni-os main#admin-main { min-width: 0; }
+@media (max-width: 767px) {
+  .mtoni-os main#admin-main { padding: 16px 14px max(20px, env(safe-area-inset-bottom)); }
+  .mtoni-os .os-hero-bleed { padding: 20px 18px; border-radius: 12px; gap: 16px; }
+  .mtoni-os .os-hero-bleed h1 { font-size: 1.5rem; line-height: 1.25; }
+  .mtoni-os .os-card, .mtoni-os .os-card-flat, .mtoni-os [data-slot="card"] { min-width: 0; }
+  .mtoni-os :is(h1, h2, h3, h4) { overflow-wrap: anywhere; }
+  .mtoni-os table { min-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mtoni-os *, .mtoni-os *::before, .mtoni-os *::after { scroll-behavior: auto !important; }
+}
+
+
+/* Dark appearance uses the same forest/bronze identity, with surfaces
+   and text tuned for low-glare operational work. */
+[data-os-theme="dark"] .mtoni-os {
+  --os-canvas: #171D1A;
+  --os-surface: #1E2622;
+  --os-surface-2: #26302B;
+  --os-hairline: rgba(239, 242, 235, 0.08);
+  --os-hairline-strong: rgba(239, 242, 235, 0.14);
+  --os-ink: #F1F3EE;
+  --os-ink-2: #C1C9C2;
+  --os-ink-3: #98A39B;
+  --os-green: #86A992;
+  --os-green-soft: rgba(134, 169, 146, 0.15);
+  --os-gold: #D2A16D;
+  --os-gold-soft: rgba(210, 161, 109, 0.15);
+  --os-shadow-card: 0 1px 0 rgba(255,255,255,0.025) inset, 0 8px 24px -18px rgba(0,0,0,0.55);
+  --background: var(--os-canvas);
+  --foreground: var(--os-ink);
+  --card: var(--os-surface-2);
+  --card-foreground: var(--os-ink);
+  --popover: #26302B;
+  --popover-foreground: var(--os-ink);
+  --primary: var(--os-green);
+  --primary-foreground: #17221B;
+  --secondary: var(--os-surface-2);
+  --secondary-foreground: var(--os-ink);
+  --muted: rgba(255,255,255,0.04);
+  --muted-foreground: var(--os-ink-3);
+  --accent: rgba(210, 161, 109, 0.12);
+  --accent-foreground: var(--os-ink);
+  --border: var(--os-hairline);
+  --input: var(--os-hairline-strong);
+  --ring: var(--os-green);
+}
+
+
+/* Final module-audit hardening: keep controls legible in both themes,
+   prevent wide operational views from forcing the whole mobile shell
+   wider than the viewport, and respect reduced-motion preferences. */
+[data-os-theme="dark"] .mtoni-os :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), textarea, select, [role="combobox"]) {
+  background: var(--os-surface-2);
+  color: var(--os-ink);
+  border-color: var(--os-hairline-strong);
+}
+[data-os-theme="dark"] .mtoni-os :is(input, textarea, select)::placeholder {
+  color: var(--os-ink-3);
+  opacity: 1;
+}
+.mtoni-os :is([data-slot="table-container"], .table-container, .table-scroll) {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+.mtoni-os :is([data-slot="table-container"], .table-container, .table-scroll) table {
+  min-width: max-content;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mtoni-os *, .mtoni-os *::before, .mtoni-os *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+/* Contrast correction confirmed from the mobile Knowledge Base preview.
+   Radix Select triggers expose role=combobox; force the OS surface tokens
+   in dark mode so global component/background utilities cannot paint them white. */
+[data-os-theme="dark"] .mtoni-os [role="combobox"] {
+  background-color: var(--os-surface-2) !important;
+  color: var(--os-ink) !important;
+  border-color: var(--os-hairline-strong) !important;
+  color-scheme: dark;
+}
+[data-os-theme="dark"] .mtoni-os [role="combobox"] [data-placeholder],
+[data-os-theme="dark"] .mtoni-os [role="combobox"][data-placeholder] {
+  color: var(--os-ink-2) !important;
+  opacity: 1;
+}
+[data-os-theme="dark"] .mtoni-os [role="listbox"],
+[data-os-theme="dark"] .mtoni-os [data-radix-popper-content-wrapper] [role="listbox"] {
+  background-color: var(--os-surface) !important;
+  color: var(--os-ink) !important;
+  border-color: var(--os-hairline-strong) !important;
+}
+
+
+/* StayNas dark-mode select contrast — include Radix trigger and portal
+   surfaces explicitly because their utility classes can otherwise retain
+   a light background even while the surrounding shell is dark. */
+[data-os-theme="dark"] .mtoni-os :is(
+  [data-slot="select-trigger"],
+  [data-slot="select-content"],
+  [data-radix-select-trigger],
+  [role="combobox"]
+) {
+  background-color: var(--os-surface-2) !important;
+  color: var(--os-ink) !important;
+  border-color: var(--os-hairline-strong) !important;
+  color-scheme: dark;
+}
+[data-os-theme="dark"] .mtoni-os :is(
+  [data-slot="select-trigger"],
+  [data-radix-select-trigger],
+  [role="combobox"]
+) [data-placeholder],
+[data-os-theme="dark"] .mtoni-os :is(
+  [data-slot="select-trigger"],
+  [data-radix-select-trigger],
+  [role="combobox"]
+) [data-slot="select-value"] {
+  color: var(--os-ink-2) !important;
+  opacity: 1 !important;
+}
+[data-os-theme="dark"] .mtoni-os [data-radix-popper-content-wrapper] [role="option"],
+[data-os-theme="dark"] .mtoni-os [data-slot="select-item"] {
+  color: var(--os-ink) !important;
+}
+[data-os-theme="dark"] .mtoni-os [data-radix-popper-content-wrapper] [role="option"][data-highlighted],
+[data-os-theme="dark"] .mtoni-os [data-slot="select-item"][data-highlighted] {
+  background-color: var(--os-green-soft) !important;
+  color: var(--os-ink) !important;
+}
+
+
+/* Global contextual navigation system: bounded card containers and
+   individually legible destinations, instead of loose wrapping labels. */
+.mtoni-os .os-context-nav,
+.mtoni-os main#admin-main nav.flex.flex-wrap.gap-1.overflow-x-auto.rounded-lg.border.bg-card.p-1.text-sm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--os-hairline);
+  border-radius: 14px;
+  background: var(--os-surface);
+  box-shadow: var(--os-shadow-card);
+  min-width: 0;
+}
+.mtoni-os .os-context-nav__link,
+.mtoni-os main#admin-main nav.flex.flex-wrap.gap-1.overflow-x-auto.rounded-lg.border.bg-card.p-1.text-sm > a {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: var(--os-ink-2);
+  background: transparent;
+  font-size: 13px;
+  line-height: 1.3;
+  text-decoration: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+.mtoni-os .os-context-nav__link:hover,
+.mtoni-os main#admin-main nav.flex.flex-wrap.gap-1.overflow-x-auto.rounded-lg.border.bg-card.p-1.text-sm > a:hover {
+  color: var(--os-ink);
+  background: var(--os-surface-2);
+}
+.mtoni-os .os-context-nav__link.is-active,
+.mtoni-os main#admin-main nav.flex.flex-wrap.gap-1.overflow-x-auto.rounded-lg.border.bg-card.p-1.text-sm > a[aria-current="page"] {
+  color: var(--os-ink);
+  background: var(--os-green-soft);
+  border-color: color-mix(in srgb, var(--os-green) 42%, transparent);
+  font-weight: 600;
+}
+.mtoni-os .os-context-nav__link:focus-visible,
+.mtoni-os main#admin-main nav.flex.flex-wrap.gap-1.overflow-x-auto.rounded-lg.border.bg-card.p-1.text-sm > a:focus-visible {
+  outline: 2px solid var(--os-green);
+  outline-offset: 2px;
+}
+@media (max-width: 767px) {
+  .mtoni-os .os-context-nav,
+  .mtoni-os main#admin-main nav.flex.flex-wrap.gap-1.overflow-x-auto.rounded-lg.border.bg-card.p-1.text-sm {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 7px;
+  }
+  .mtoni-os .os-context-nav__link,
+  .mtoni-os main#admin-main nav.flex.flex-wrap.gap-1.overflow-x-auto.rounded-lg.border.bg-card.p-1.text-sm > a {
+    min-height: 44px;
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+}
+
+
+/* Global contextual navigation cards — shared by StayNas AI and nested
+   intelligence workspaces. Mobile stays compact and horizontally navigable;
+   larger screens use a tidy card grid instead of floating wrapped labels. */
+.mtoni-os .os-context-nav {
+  min-width: 0;
+  box-shadow: var(--os-shadow-card);
+}
+.mtoni-os .os-context-nav__items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+.mtoni-os .os-context-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--os-hairline);
+  border-radius: 10px;
+  background: var(--os-surface-2);
+  color: var(--os-ink-2);
+  font-size: 13px;
+  line-height: 1.3;
+  text-decoration: none;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+.mtoni-os .os-context-nav__item span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mtoni-os .os-context-nav__item:hover {
+  border-color: var(--os-hairline-strong);
+  background: var(--os-green-soft);
+  color: var(--os-ink);
+}
+.mtoni-os .os-context-nav__item[data-context-active="true"] {
+  border-color: transparent;
+  background: var(--os-green);
+  color: var(--os-surface);
+  font-weight: 600;
+}
+[data-os-theme="dark"] .mtoni-os .os-context-nav__item[data-context-active="true"] {
+  color: #17221B;
+}
+.mtoni-os .os-context-nav__item:focus-visible {
+  outline: 2px solid var(--os-green);
+  outline-offset: 2px;
+}
+@media (max-width: 767px) {
+  .mtoni-os .os-context-nav__items {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 1px 1px 5px;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mtoni-os .os-context-nav__item {
+    flex: 0 0 auto;
+    max-width: 82vw;
+    min-height: 42px;
+    white-space: nowrap;
+    scroll-snap-align: start;
+  }
+  .mtoni-os .os-context-nav__item span {
+    overflow-wrap: normal;
+  }
+  .mtoni-os .os-context-nav__items--compact .os-context-nav__item {
+    padding: 9px 11px;
+  }
+}
+@media (min-width: 768px) {
+  .mtoni-os .os-context-nav__items--compact {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+}
+
+
+/* Unified StayNas visual system — applies to public pages, portal-mounted
+   dialogs/forms, floating concierge launcher and the authenticated OS. */
+:root {
+  --color-burgundy: #B47A45;
+  --primary: #202C29;
+  --primary-foreground: #F7F7F3;
+  --accent: #B47A45;
+  --accent-foreground: #202C29;
+  --ring: #B47A45;
+}
+.dark {
+  --primary: #B47A45;
+  --primary-foreground: #202C29;
+  --accent: rgba(180, 122, 69, 0.18);
+  --accent-foreground: #F7F7F3;
+  --ring: #B47A45;
+}
+/* Radix portals are mounted outside page wrappers; use semantic global
+   tokens so dialogs, sheets, popovers and menus share the brand palette. */
+[data-radix-dialog-content],
+[data-radix-alert-dialog-content],
+[data-radix-popover-content],
+[data-radix-dropdown-menu-content],
+[data-radix-select-content],
+[data-radix-popper-content-wrapper] [role="listbox"] {
+  border-color: var(--border);
+  color: var(--popover-foreground);
+}
+[data-radix-dialog-content],
+[data-radix-alert-dialog-content] {
+  background: var(--background);
+}
+[data-radix-popover-content],
+[data-radix-dropdown-menu-content],
+[data-radix-select-content],
+[data-radix-popper-content-wrapper] [role="listbox"] {
+  background: var(--popover);
+}
+[data-radix-dialog-overlay],
+[data-radix-alert-dialog-overlay] {
+  background: rgb(20 28 24 / 68%);
+}
+
+
+/* Contextual navigation must wrap into a complete card grid on mobile.
+   Horizontal scrolling caused Marketing Intelligence links to end mid-card. */
+.mtoni-os .os-context-nav {
+  display: block;
+  padding: 8px;
+  border: 1px solid var(--os-hairline);
+  border-radius: 14px;
+  background: var(--os-surface);
+}
+.mtoni-os .os-context-nav__items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+  padding: 0;
+}
+.mtoni-os .os-context-nav__item {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  min-height: 46px;
+  padding: 10px 11px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  scroll-snap-align: unset;
+}
+.mtoni-os .os-context-nav__item span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 768px) {
+  .mtoni-os .os-context-nav__items {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+  }
+}
+/* Unified floating guest concierge control: forest surface, ivory icon,
+   bronze ring; uses global primary tokens so it stays in sync with the site. */
+body > #root button[aria-label="Open StayNas AI Concierge"] {
+  background: #202C29;
+  color: #F7F7F3;
+  border-color: #B47A45;
+  box-shadow: 0 10px 28px rgb(32 44 41 / 22%);
+}
+body > #root button[aria-label="Open StayNas AI Concierge"]:hover {
+  background: #2C3B36;
+}
+
+
+/* StayNas Enterprise Neutral — shared component normalization. */
+.mtoni-os {
+  --background: #F3F4F6;
+  --foreground: #111827;
+  --card: #FFFFFF;
+  --card-foreground: #111827;
+  --popover: #FFFFFF;
+  --popover-foreground: #111827;
+  --primary: #111827;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F3F4F6;
+  --secondary-foreground: #374151;
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
+  --accent: #E5E7EB;
+  --accent-foreground: #111827;
+  --border: #D1D5DB;
+  --input: #D1D5DB;
+  --ring: #374151;
+  font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  background-color: #F3F4F6;
+  color: #111827;
+}
+.mtoni-os :is(h1,h2,h3,h4,[class*="font-display"]) {
+  font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.mtoni-os .os-card,
+.mtoni-os .os-card-flat {
+  background: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  box-shadow: none;
+}
+.mtoni-os :is(input,textarea,select,[role="combobox"]) {
+  border-color: #D1D5DB;
+}
+.mtoni-os :is(button,[role="button"],a[class*="bg-primary"]) {
+  --tw-ring-color: #374151;
+}
+.mtoni-os :is(button.bg-primary,[class~="bg-primary"]) {
+  background-color: #111827;
+  color: #FFFFFF;
+}
+.mtoni-os :is(button.bg-primary,[class~="bg-primary"]):hover {
+  background-color: #374151;
+}
+
+
+/* Controlled typography scale for operational screens. */
+.mtoni-os .text-xs { font-size: 0.75rem; line-height: 1.4; }
+.mtoni-os .text-sm { font-size: 0.875rem; line-height: 1.5; }
+.mtoni-os .text-base { font-size: 0.9375rem; line-height: 1.55; }
+.mtoni-os .text-lg { font-size: 1rem; line-height: 1.5; }
+.mtoni-os .text-xl { font-size: 1.125rem; line-height: 1.4; }
+.mtoni-os .text-2xl { font-size: 1.25rem; line-height: 1.35; }
+.mtoni-os .text-3xl { font-size: 1.5rem; line-height: 1.3; }
+.mtoni-os .text-4xl { font-size: 1.75rem; line-height: 1.25; }
+.mtoni-os .text-5xl,
+.mtoni-os .text-6xl,
+.mtoni-os .text-7xl,
+.mtoni-os .text-8xl,
+.mtoni-os .text-9xl { font-size: 1.875rem; line-height: 1.25; }
+.mtoni-os p { line-height: 1.55; }
+.mtoni-os :is(label,button,input,textarea,select) { font-family: "Inter", "Helvetica Neue", system-ui, sans-serif; }
+
+
+/* Enterprise Neutral — authoritative OS tokens for every admin module.
+   The older adaptive-theme block below the base tokens re-declared these
+   --os-* variables, so the landing/global palette changed while module
+   components that consume --os-ink/--os-green/--os-canvas kept the legacy
+   palette. Keep the OS token layer aligned with the shared semantic tokens. */
+.mtoni-os {
+  --os-canvas: #F3F4F6;
+  --os-surface: #FFFFFF;
+  --os-surface-2: #FFFFFF;
+  --os-hairline: #D1D5DB;
+  --os-hairline-strong: #9CA3AF;
+  --os-ink: #111827;
+  --os-ink-2: #374151;
+  --os-ink-3: #6B7280;
+  --os-green: #111827;
+  --os-green-soft: #F3F4F6;
+  --os-gold: #4B5563;
+  --os-gold-soft: #F3F4F6;
+  --os-shadow-card: 0 1px 2px rgba(17,24,39,0.04);
+  --os-shadow-float: 0 4px 12px rgba(17,24,39,0.08);
+  --surface: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --surface-muted: #F3F4F6;
+  --border-subtle: #D1D5DB;
+  --input-foreground: #111827;
+  --focus: #374151;
+}
+.mtoni-os :is(.os-card,.os-card-flat,[data-slot="card"],.bg-card) {
+  background-color: #FFFFFF;
+  border-color: #D1D5DB;
+  color: #111827;
+  border-radius: 8px;
+  box-shadow: none;
+}
+.mtoni-os :is(.os-chip,[class*="os-context-nav"]) {
+  border-color: #D1D5DB;
+}
+
+
+/* Enterprise-neutral hardening: preserve the user-selected dark appearance.
+   The light token normalization above must not override the dark theme tokens. */
+html[data-os-theme="dark"] .mtoni-os {
+  --os-canvas: #111827;
+  --os-surface: #1F2937;
+  --os-surface-2: #273449;
+  --os-hairline: #374151;
+  --os-hairline-strong: #4B5563;
+  --os-ink: #F9FAFB;
+  --os-ink-2: #E5E7EB;
+  --os-ink-3: #9CA3AF;
+  --os-green: #F9FAFB;
+  --os-green-soft: #374151;
+  --os-gold: #D1D5DB;
+  --os-gold-soft: #374151;
+  --os-shadow-card: 0 1px 2px rgba(0,0,0,0.18);
+  --os-shadow-float: 0 4px 12px rgba(0,0,0,0.24);
+  --background: #111827;
+  --foreground: #F9FAFB;
+  --card: #1F2937;
+  --card-foreground: #F9FAFB;
+  --popover: #1F2937;
+  --popover-foreground: #F9FAFB;
+  --primary: #F9FAFB;
+  --primary-foreground: #111827;
+  --secondary: #273449;
+  --secondary-foreground: #E5E7EB;
+  --muted: #273449;
+  --muted-foreground: #9CA3AF;
+  --accent: #374151;
+  --accent-foreground: #F9FAFB;
+  --border: #374151;
+  --input: #4B5563;
+  --ring: #D1D5DB;
+  --surface: #1F2937;
+  --surface-elevated: #273449;
+  --surface-muted: #273449;
+  --border-subtle: #374151;
+  --input-foreground: #F9FAFB;
+  --focus: #D1D5DB;
+  background-color: #111827;
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] .mtoni-os :is(.os-card,.os-card-flat,[data-slot="card"],.bg-card) {
+  background-color: #1F2937;
+  border-color: #374151;
+  color: #F9FAFB;
+  box-shadow: none;
+}
+html[data-os-theme="dark"] .mtoni-os :is(input,textarea,select,[role="combobox"]) {
+  background-color: #1F2937;
+  border-color: #4B5563;
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] .mtoni-os :is(button.bg-primary,[class~="bg-primary"]) {
+  background-color: #F9FAFB;
+  color: #111827;
+}
+html[data-os-theme="dark"] .mtoni-os :is(button.bg-primary,[class~="bg-primary"]):hover {
+  background-color: #E5E7EB;
+}
+html[data-os-theme="dark"] .mtoni-os :is(table,thead,tbody,tr,th,td) {
+  border-color: #374151;
+}
+html[data-os-theme="dark"] .mtoni-os :is(.os-chip,[class*="os-context-nav"]) {
+  background-color: #273449;
+  border-color: #4B5563;
+  color: #E5E7EB;
+}
+html[data-os-theme="dark"] .mtoni-os .text-muted-foreground {
+  color: #9CA3AF;
+}
+html[data-os-theme="dark"] .mtoni-os :is(a,button):focus-visible {
+  outline-color: #D1D5DB;
+}
+
+/* Shared operational content guardrails across module routes. */
+.mtoni-os :is(table) {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+}
+.mtoni-os :is(th,td) {
+  overflow-wrap: anywhere;
+}
+.mtoni-os :is(input,textarea,select,[role="combobox"]) {
+  min-width: 0;
+  max-width: 100%;
+}
+.mtoni-os :is(img,video,canvas,svg) {
+  max-width: 100%;
+}
+.mtoni-os :is(.overflow-x-auto,[data-scroll-container]) {
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+@media (max-width: 767px) {
+  .mtoni-os {
+    overflow-wrap: anywhere;
+  }
+  .mtoni-os :is(.os-card,.os-card-flat,[data-slot="card"]) {
+    min-width: 0;
+  }
+  .mtoni-os :is(button,[role="button"],input,select,[role="combobox"]) {
+    min-height: 36px;
+  }
+}
+
+
+/* Enterprise-neutral dropdown palette: native selects and Radix menus.
+   Keep selected/highlighted options on the shared charcoal/grey system,
+   not the legacy clay/gold accent. */
+.mtoni-os select {
+  color-scheme: light;
+  accent-color: #111827;
+  background-color: #FFFFFF;
+  color: #111827;
+}
+.mtoni-os select option,
+.mtoni-os select optgroup {
+  background-color: #FFFFFF;
+  color: #111827;
+}
+.mtoni-os select option:checked {
+  background: #111827 linear-gradient(0deg, #111827 0%, #111827 100%);
+  color: #FFFFFF;
+}
+.mtoni-os :is([role="option"],[role="menuitem"],[data-radix-select-item],[data-radix-menu-item])[data-highlighted],
+.mtoni-os :is([role="option"],[role="menuitem"],[data-radix-select-item],[data-radix-menu-item]):focus,
+.mtoni-os :is([role="option"],[role="menuitem"],[data-radix-select-item],[data-radix-menu-item])[data-state="checked"] {
+  background-color: #E5E7EB;
+  color: #111827;
+}
+.mtoni-os :is([role="option"],[data-radix-select-item])[aria-selected="true"] {
+  background-color: #111827;
+  color: #FFFFFF;
+}
+html[data-os-theme="dark"] .mtoni-os select {
+  color-scheme: dark;
+  background-color: #1F2937;
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] .mtoni-os select option,
+html[data-os-theme="dark"] .mtoni-os select optgroup {
+  background-color: #1F2937;
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] .mtoni-os select option:checked {
+  background: #F9FAFB linear-gradient(0deg, #F9FAFB 0%, #F9FAFB 100%);
+  color: #111827;
+}
+html[data-os-theme="dark"] .mtoni-os :is([role="option"],[role="menuitem"],[data-radix-select-item],[data-radix-menu-item])[data-highlighted],
+html[data-os-theme="dark"] .mtoni-os :is([role="option"],[role="menuitem"],[data-radix-select-item],[data-radix-menu-item]):focus {
+  background-color: #374151;
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] .mtoni-os :is([role="option"],[data-radix-select-item])[aria-selected="true"] {
+  background-color: #F9FAFB;
+  color: #111827;
+}
+
+
+/* Radix popovers/menus render in a portal outside .mtoni-os.
+   Apply the enterprise dropdown palette at document level as well. */
+[data-radix-popper-content-wrapper] [role="option"],
+[data-radix-popper-content-wrapper] [role="menuitem"],
+[data-radix-popper-content-wrapper] [data-radix-select-item],
+[data-radix-popper-content-wrapper] [data-radix-menu-item] {
+  background-color: transparent;
+  color: #111827;
+}
+[data-radix-popper-content-wrapper] [role="option"][data-highlighted],
+[data-radix-popper-content-wrapper] [role="menuitem"][data-highlighted],
+[data-radix-popper-content-wrapper] [data-radix-select-item][data-highlighted],
+[data-radix-popper-content-wrapper] [data-radix-menu-item][data-highlighted],
+[data-radix-popper-content-wrapper] [role="option"]:focus,
+[data-radix-popper-content-wrapper] [role="menuitem"]:focus {
+  background-color: #E5E7EB !important;
+  color: #111827 !important;
+}
+[data-radix-popper-content-wrapper] [role="option"][data-state="checked"],
+[data-radix-popper-content-wrapper] [data-radix-select-item][data-state="checked"],
+[data-radix-popper-content-wrapper] [role="option"][aria-selected="true"],
+[data-radix-popper-content-wrapper] [data-radix-select-item][aria-selected="true"] {
+  background-color: #111827 !important;
+  color: #FFFFFF !important;
+}
+[data-radix-popper-content-wrapper] [role="option"][data-state="checked"] *,
+[data-radix-popper-content-wrapper] [data-radix-select-item][data-state="checked"] *,
+[data-radix-popper-content-wrapper] [role="option"][aria-selected="true"] *,
+[data-radix-popper-content-wrapper] [data-radix-select-item][aria-selected="true"] * {
+  color: inherit !important;
+}
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="option"],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="menuitem"],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-select-item],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-menu-item] {
+  color: #F9FAFB;
+}
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="option"][data-highlighted],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="menuitem"][data-highlighted],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-select-item][data-highlighted],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-menu-item][data-highlighted] {
+  background-color: #374151 !important;
+  color: #F9FAFB !important;
+}
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="option"][data-state="checked"],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-select-item][data-state="checked"],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [role="option"][aria-selected="true"],
+html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-select-item][aria-selected="true"] {
+  background-color: #F9FAFB !important;
+  color: #111827 !important;
+}
