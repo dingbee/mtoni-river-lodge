@@ -492,7 +492,6 @@ export const getReconciliation = createServerFn({ method: "POST" })
     const { reconcileBookingLedger, getReconciliationEventAmount } = await import(
       "./finance-reconciliation"
     );
-    const ledgerEvents = ledgerResult.data ?? [];
     const rows = (bookings ?? []).map((booking) => ({
       ...booking,
       ...reconcileBookingLedger(booking, ledgerEvents),
@@ -524,7 +523,7 @@ export const getReconciliation = createServerFn({ method: "POST" })
       range: { from, to },
       matched: rows.filter((row) => row.matched).length,
       unmatched: rows.filter((row) => !row.matched),
-      unmatchedEvents: orphanResult.data ?? [],
+      orphanEventsScope: "founder_audit_only" as const,
       unclassifiedEvents,
       currencySummary: Array.from(currencySummary.entries()).map(([currency, totals]) => ({
         currency,
