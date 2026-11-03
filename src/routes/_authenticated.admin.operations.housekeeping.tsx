@@ -311,6 +311,10 @@ function HousekeepingPage() {
 
           {work.isLoading ? (
             <div className="rounded-xl border p-6 text-sm text-muted-foreground">Loading housekeeping work…</div>
+          ) : work.isError ? (
+            <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+              Housekeeping work could not be loaded: {work.error instanceof Error ? work.error.message : "Unknown retrieval error"}
+            </div>
           ) : rows.length === 0 ? (
             <div className="rounded-xl border p-8 text-center">
               <CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
