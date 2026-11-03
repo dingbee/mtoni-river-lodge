@@ -428,58 +428,64 @@ export const getRevenueAnalytics = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const from = data.from ?? firstOfYear();
     const to = data.to ?? todayISO();
-    const { data: rows } = await context.supabase
+    const { data: rows, error } = await context.supabase
       .from("bookings")
-      .select(
-        "id, guest_id, guest_email, room_id, total, nights, status, source, country, check_in, cancelled_at",
-      )
-      .gte("check_in", from)
-      .lte("check_in", to);
+      .select("id, guest_id, guest_email, room_id, total, nights, currency, status, source, country, check_in, cancelled_at")
+      .gte("check_in", from).lte("check_in", to);
+    if (error) throw error;
     const active = (rows ?? []).filter((b) => b.status !== "cancelled");
     const cancelled = (rows ?? []).filter((b) => b.status === "cancelled");
-
+    const currencyTotals = new Map<string, { revenue: number; stays: number; guestSpend: Map<string, { total: number; stays: number }> }>();
     const byMonth = new Map<string, number>();
     const bySource = new Map<string, { total: number; count: number }>();
-    const guestSpend = new Map<string, { total: number; stays: number }>();
-    for (const b of active) {
-      const m = String(b.check_in).slice(0, 7);
-      byMonth.set(m, (byMonth.get(m) ?? 0) + Number(b.total ?? 0));
-      const s = b.source ?? "unknown";
-      const cur = bySource.get(s) ?? { total: 0, count: 0 };
-      cur.total += Number(b.total ?? 0);
-      cur.count += 1;
-      bySource.set(s, cur);
-      const key = b.guest_id ?? b.guest_email;
-      const g = guestSpend.get(key) ?? { total: 0, stays: 0 };
-      g.total += Number(b.total ?? 0);
-      g.stays += 1;
-      guestSpend.set(key, g);
+    for (const booking of active) {
+      const currency = String(booking.currency || "UNKNOWN").toUpperCase();
+      const totals = currencyTotals.get(currency) ?? { revenue: 0, stays: 0, guestSpend: new Map<string, { total: number; stays: number }>() };
+      totals.revenue += Number(booking.total ?? 0);
+      totals.stays += 1;
+      const guestKey = booking.guest_id ?? booking.guest_email;
+      const guest = totals.guestSpend.get(guestKey) ?? { total: 0, stays: 0 };
+      guest.total += Number(booking.total ?? 0);
+      guest.stays += 1;
+      totals.guestSpend.set(guestKey, guest);
+      currencyTotals.set(currency, totals);
+      const monthKey = `${currency}|${String(booking.check_in).slice(0, 7)}`;
+      byMonth.set(monthKey, (byMonth.get(monthKey) ?? 0) + Number(booking.total ?? 0));
+      const sourceKey = `${currency}|${booking.source ?? "unknown"}`;
+      const source = bySource.get(sourceKey) ?? { total: 0, count: 0 };
+      source.total += Number(booking.total ?? 0);
+      source.count += 1;
+      bySource.set(sourceKey, source);
     }
-
-    const stays = active.length || 1;
-    const totalRevenue = active.reduce((a, b) => a + Number(b.total ?? 0), 0);
-    const lifetimeValues = Array.from(guestSpend.values());
-    const avgLtv =
-      lifetimeValues.length > 0
-        ? lifetimeValues.reduce((a, g) => a + g.total, 0) / lifetimeValues.length
-        : 0;
+    const splitKey = (key: string) => key.split("|", 2);
+    const currencySummaries = Array.from(currencyTotals.entries()).map(([currency, totals]) => {
+      const guestValues = Array.from(totals.guestSpend.values());
+      return {
+        currency, totalRevenue: totals.revenue, stays: totals.stays,
+        avgSpendPerStay: totals.stays ? totals.revenue / totals.stays : 0,
+        guestCount: guestValues.length,
+        avgLifetimeValue: guestValues.length ? guestValues.reduce((sum, guest) => sum + guest.total, 0) / guestValues.length : 0,
+        cancellationImpact: cancelled.filter((b) => String(b.currency || "UNKNOWN").toUpperCase() === currency)
+          .reduce((sum, b) => sum + Number(b.total ?? 0), 0),
+        cancellationsCount: cancelled.filter((b) => String(b.currency || "UNKNOWN").toUpperCase() === currency).length,
+      };
+    }).sort((a, b) => a.currency.localeCompare(b.currency));
+    const topGuests = Array.from(currencyTotals.entries()).flatMap(([currency, totals]) =>
+      Array.from(totals.guestSpend.entries()).map(([key, value]) => ({ currency, key, ...value }))
+    ).sort((a, b) => a.currency.localeCompare(b.currency) || b.total - a.total).slice(0, 30);
 
     return {
       range: { from, to },
-      totalRevenue,
-      avgSpendPerStay: totalRevenue / stays,
-      cancellationsCount: cancelled.length,
-      cancellationImpact: cancelled.reduce((a, b) => a + Number(b.total ?? 0), 0),
-      guestCount: guestSpend.size,
-      avgLifetimeValue: avgLtv,
-      byMonth: Array.from(byMonth.entries())
-        .map(([month, total]) => ({ month, total }))
-        .sort((a, b) => a.month.localeCompare(b.month)),
-      bySource: Array.from(bySource.entries()).map(([source, v]) => ({ source, ...v })),
-      topGuests: Array.from(guestSpend.entries())
-        .map(([key, v]) => ({ key, ...v }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 10),
+      currencySummaries,
+      byMonth: Array.from(byMonth.entries()).map(([key, total]) => {
+        const [currency, month] = splitKey(key);
+        return { currency, month, total };
+      }).sort((a, b) => a.currency.localeCompare(b.currency) || a.month.localeCompare(b.month)),
+      bySource: Array.from(bySource.entries()).map(([key, value]) => {
+        const [currency, source] = splitKey(key);
+        return { currency, source, ...value };
+      }).sort((a, b) => a.currency.localeCompare(b.currency) || b.total - a.total),
+      topGuests,
     };
   });
 
