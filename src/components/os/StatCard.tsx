@@ -32,7 +32,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "os-card os-fade-in relative overflow-hidden p-5 hover:-translate-y-[1px]",
+        "os-card os-fade-in relative min-w-0 overflow-hidden p-4 sm:p-5 hover:-translate-y-[1px]",
         className,
       )}
     >
@@ -42,7 +42,7 @@ export function StatCard({
         style={{ background: "radial-gradient(closest-side, var(--os-green), transparent 70%)" }}
       />
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[0.66rem] font-medium uppercase tracking-[0.24em] text-[color:var(--os-ink-3)]">
+        <p className="text-[0.66rem] font-medium uppercase tracking-[0.14em] text-[color:var(--os-ink-3)]">
           {label}
         </p>
         {Icon && (
@@ -56,7 +56,7 @@ export function StatCard({
           </span>
         )}
       </div>
-      <p className="mt-5 font-display text-[2.4rem] font-normal leading-none tracking-tight text-[color:var(--os-ink)] tabular-nums">
+      <p className="mt-4 break-words font-display text-[2.4rem] font-normal leading-tight tracking-tight text-[color:var(--os-ink)] tabular-nums sm:mt-5">
         {value}
       </p>
       <div className="mt-4 flex items-center justify-between gap-2">
