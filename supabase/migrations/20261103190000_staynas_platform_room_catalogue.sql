@@ -87,6 +87,12 @@ CREATE INDEX IF NOT EXISTS rooms_catalogue_type_idx
   ON public.rooms(catalogue_type_id);
 
 ALTER TABLE public.staynas_platform_admins ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Platform admins can verify own access" ON public.staynas_platform_admins;
+CREATE POLICY "Platform admins can verify own access"
+ON public.staynas_platform_admins
+FOR SELECT TO authenticated
+USING (user_id = auth.uid());
 ALTER TABLE public.staynas_room_catalogue_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.staynas_room_catalogue_types ENABLE ROW LEVEL SECURITY;
 
