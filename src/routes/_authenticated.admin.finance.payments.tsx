@@ -181,7 +181,7 @@ function Payments() {
                       <option value="">Select original payment to refund</option>
                       {refundableEvents.map((event) => {
                         const refunded = (timeline?.events ?? [])
-                          .filter((candidate) => candidate.event_type === "refund" && candidate.reverses_event_id === event.id)
+                          .filter((candidate) => candidate.event_type === "refund" && (candidate as typeof candidate & { reverses_event_id?: string | null }).reverses_event_id === event.id)
                           .reduce((sum, candidate) => sum + Math.abs(Number(candidate.amount ?? 0)), 0);
                         const remaining = Math.max(0, Number(event.amount) - refunded);
                         return remaining > 0 ? (
