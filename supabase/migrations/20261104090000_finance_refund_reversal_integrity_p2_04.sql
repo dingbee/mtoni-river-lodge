@@ -78,7 +78,10 @@ begin
   if nullif(btrim(_method), '') is null or _method <> btrim(_method) or length(_method) > 40 then
     raise exception using errcode = '22023', message = 'A valid refund method is required';
   end if;
-  if _note is not null and length(_note) > 500 then
+  if nullif(btrim(_note), '') is null then
+    raise exception using errcode = '22023', message = 'A refund reason is required';
+  end if;
+  if length(_note) > 500 then
     raise exception using errcode = '22023', message = 'Note must be 500 characters or fewer';
   end if;
   if nullif(btrim(_idempotency_key), '') is null or length(_idempotency_key) < 8 or length(_idempotency_key) > 128 then
@@ -173,7 +176,7 @@ begin
   ) values (
     _booking_id, 'manual', 'refund', v_signed, upper(v_booking.currency), _method,
     _payment_event_id, _idempotency_key,
-    jsonb_build_object('note', nullif(_note,''), 'actor_id', v_actor, 'original_payment_event_id', _payment_event_id)
+    jsonb_build_object('note', btrim(_note), 'actor_id', v_actor, 'original_payment_event_id', _payment_event_id)
   ) returning * into v_refund;
 
   update public.bookings
