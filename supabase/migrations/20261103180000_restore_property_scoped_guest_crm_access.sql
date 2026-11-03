@@ -213,7 +213,11 @@ BEGIN
     _property_id := public.staynas_active_property_id(_uid);
   END IF;
 
-  IF _uid IS NULL
+  IF auth.role() = 'service_role' THEN
+    IF _property_id IS NULL THEN
+      RAISE EXCEPTION 'A property must be resolved for service guest records';
+    END IF;
+  ELSIF _uid IS NULL
      OR NOT public.is_any_staff(_uid)
      OR _property_id IS NULL
      OR NOT public.staynas_user_has_property_access(_uid, _property_id) THEN
