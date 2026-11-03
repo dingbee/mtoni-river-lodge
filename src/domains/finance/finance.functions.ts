@@ -153,62 +153,36 @@ export const getRevenueHealth = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await (await import("@/lib/booking-property.server"))
+      .getConfiguredBookingPropertyId(context.supabase, context.userId);
     const from = daysAgo(30);
-    const to = daysAgo(-30); // next 30 days
-    const [{ data: past }, { data: future }, { data: rooms }] = await Promise.all([
-      context.supabase
-        .from("bookings")
-        .select("total, nights, status, balance_amount, created_at, check_in, payment_status")
-        .gte("check_in", from)
-        .lte("check_in", todayISO()),
-      context.supabase
-        .from("bookings")
-        .select("total, nights, status, check_in, created_at")
-        .gt("check_in", todayISO())
-        .lte("check_in", to),
-      context.supabase.from("rooms").select("id, total_units"),
+    const to = daysAgo(-30);
+    const [{ data: past, error }, { data: future, error: futureError }, { data: rooms, error: roomsError }] = await Promise.all([
+      context.supabase.from("bookings").select("total,nights,status,balance_amount,check_in,check_out,payment_status")
+        .eq("property_id", propertyId).gte("check_in", from).lte("check_in", todayISO()),
+      context.supabase.from("bookings").select("total,nights,status,check_in,created_at")
+        .eq("property_id", propertyId).gt("check_in", todayISO()).lte("check_in", to),
+      context.supabase.from("rooms").select("id,total_units").eq("property_id", propertyId),
     ]);
-    const totalUnits = (rooms ?? []).reduce((a, r) => a + Number(r.total_units ?? 1), 0) || 1;
-
-    const pastActive = (past ?? []).filter((b) => b.status !== "cancelled");
-    const cancelled = (past ?? []).filter((b) => b.status === "cancelled").length;
-    const nights = pastActive.reduce((a, b) => a + Number(b.nights ?? 0), 0);
-    const occupancy = nights / (totalUnits * 30);
-    const outstanding = pastActive.reduce((a, b) => a + Number(b.balance_amount ?? 0), 0);
-    const revenue = pastActive.reduce((a, b) => a + Number(b.total ?? 0), 0);
-    const forwardRevenue = (future ?? [])
-      .filter((b) => b.status !== "cancelled")
-      .reduce((a, b) => a + Number(b.total ?? 0), 0);
-
-    // Simple scoring — 0..100
-    let score = 50;
-    if (occupancy >= 0.7) score += 20;
-    else if (occupancy >= 0.5) score += 10;
-    else if (occupancy < 0.3) score -= 15;
-
-    if (outstanding < revenue * 0.1) score += 15;
-    else if (outstanding > revenue * 0.3) score -= 15;
-
-    if (forwardRevenue > revenue * 0.6) score += 15;
-    else if (forwardRevenue < revenue * 0.3) score -= 10;
-
-    if (cancelled > pastActive.length * 0.2) score -= 10;
-    score = Math.max(0, Math.min(100, score));
-
-    const status: "healthy" | "attention" | "critical" =
-      score >= 70 ? "healthy" : score >= 45 ? "attention" : "critical";
-
-    return {
-      score,
-      status,
-      signals: {
-        occupancy30d: occupancy,
-        outstanding,
-        revenue30d: revenue,
-        forwardRevenue30d: forwardRevenue,
-        cancellations30d: cancelled,
-      },
-    };
+    if (error) throw error;
+    if (futureError) throw futureError;
+    if (roomsError) throw roomsError;
+    const totalUnits = (rooms ?? []).reduce((a,r)=>a+Number(r.total_units??1),0);
+    const completed = (past ?? []).filter(b => ["checked_out","completed"].includes(String(b.status)) && String(b.check_out)<=todayISO());
+    const cancelled = (past ?? []).filter(b=>b.status==="cancelled").length;
+    const nights = completed.reduce((a,b)=>a+Number(b.nights??0),0);
+    const occupancy = totalUnits>0 ? nights/(totalUnits*30) : 0;
+    const outstanding = (past ?? []).filter(b=>b.status!=="cancelled").reduce((a,b)=>a+Number(b.balance_amount??0),0);
+    const revenue = completed.reduce((a,b)=>a+Number(b.total??0),0);
+    const forwardRevenue = (future ?? []).filter(b=>b.status!=="cancelled").reduce((a,b)=>a+Number(b.total??0),0);
+    let score=50;
+    if(occupancy>=0.7) score+=20; else if(occupancy>=0.5) score+=10; else if(occupancy<0.3) score-=15;
+    if(outstanding<revenue*0.1) score+=15; else if(outstanding>revenue*0.3) score-=15;
+    if(forwardRevenue>revenue*0.6) score+=15; else if(forwardRevenue<revenue*0.3) score-=10;
+    if(cancelled>completed.length*0.2) score-=10;
+    score=Math.max(0,Math.min(100,score));
+    const status:"healthy"|"attention"|"critical"=score>=70?"healthy":score>=45?"attention":"critical";
+    return {score,status,signals:{occupancy30d:occupancy,outstanding,revenue30d:revenue,forwardRevenue30d:forwardRevenue,cancellations30d:cancelled}};
   });
 
 // ---------------------------------------------------------------------------
