@@ -23,7 +23,7 @@ def main():
             browser=p.chromium.launch()
             page=browser.new_page(viewport={'width':390,'height':844},device_scale_factor=1)
             errors=[]; page.on('pageerror',lambda e:errors.append(str(e)))
-            response=page.goto(BASE_URL+'/rooms',wait_until='networkidle')
+            response=page.goto(BASE_URL+'/rooms',wait_until='load')
             assert response and response.status<400,'Public rooms page did not load'
             menu_button = page.get_by_role('button', name='Open StayNas menu')
             menu_button.wait_for(state='visible')
