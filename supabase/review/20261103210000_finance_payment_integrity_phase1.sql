@@ -206,7 +206,7 @@ begin
 
   if found then
     if v_event.event_type <> _event_type
-       or v_event.amount <> case when _event_type = 'refund' then -_amount else _amount end
+       or v_event.amount <> (case when _event_type = 'refund' then -_amount else _amount end)
        or coalesce(v_event.payment_method,'') <> _method
        or coalesce(v_event.currency,'') <> v_booking.currency then
       raise exception using errcode = '23505', message = 'Idempotency key was already used with a different payment payload';
@@ -219,7 +219,7 @@ begin
     );
   end if;
 
-  v_signed_amount := case when _event_type = 'refund' then -_amount else _amount end;
+  v_signed_amount := (case when _event_type = 'refund' then -_amount else _amount end);
   v_new_paid := round(coalesce(v_booking.paid_amount,0) + v_signed_amount, 2);
 
   if v_new_paid < 0 then
