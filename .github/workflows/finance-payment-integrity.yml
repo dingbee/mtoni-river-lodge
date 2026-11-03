@@ -1,0 +1,39 @@
+name: StayNas Finance payment integrity
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/domains/finance/**"
+      - "src/lib/finance-rpc.ts"
+      - "src/routes/_authenticated.admin.finance.payments.tsx"
+      - "supabase/review/*finance_payment_integrity*"
+      - ".github/workflows/finance-payment-integrity.yml"
+  push:
+    branches:
+      - fix/finance-transaction-integrity-phase1
+
+jobs:
+  finance-payment-integrity:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Payment input contract tests
+        run: bunx vitest run src/domains/finance/payment-contract.test.ts
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Finance lint
+        run: bunx eslint src/domains/finance/finance.functions.ts src/domains/finance/payment-contract.ts src/domains/finance/payment-contract.test.ts src/lib/finance-rpc.ts src/routes/_authenticated.admin.finance.payments.tsx --rule 'prettier/prettier: off'
+      - name: Production build
+        run: bun run build

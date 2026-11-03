@@ -48,7 +48,7 @@ function Payments() {
     queryKey: ["finance.payments", search, status],
     queryFn: () => listFn({ data: { search: search || undefined, status: status || undefined, limit: 100 } }),
   });
-  const { data: timeline } = useQuery({
+  const { data: timeline, error: timelineError } = useQuery({
     queryKey: ["finance.timeline", selected?.id],
     queryFn: () => timelineFn({ data: { bookingId: selected!.id } }),
     enabled: !!selected,
@@ -57,7 +57,8 @@ function Payments() {
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("cash");
   const [note, setNote] = useState("");
-  const [eventType, setEventType] = useState<"manual_payment" | "refund" | "adjustment">("manual_payment");
+  const [eventType, setEventType] = useState<"manual_payment" | "refund">("manual_payment");
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
   const record = useMutation({
     mutationFn: () =>
@@ -68,14 +69,16 @@ function Payments() {
           method,
           note: note || undefined,
           eventType,
+          idempotencyKey,
         },
       }),
-    onSuccess: () => {
-      toast.success("Payment recorded");
+    onSuccess: (result) => {
+      toast.success(result.duplicate ? "Payment already recorded — duplicate safely ignored" : "Payment recorded");
       qc.invalidateQueries({ queryKey: ["finance.payments"] });
       qc.invalidateQueries({ queryKey: ["finance.timeline", selected?.id] });
       setAmount("");
       setNote("");
+      setIdempotencyKey(crypto.randomUUID());
     },
     onError: (e: unknown) => toast.error((e as Error).message),
   });
@@ -161,7 +164,6 @@ function Payments() {
                   <select className="rounded border border-border bg-background px-2 py-1 text-sm" value={eventType} onChange={(e) => setEventType(e.target.value as never)}>
                     <option value="manual_payment">Manual payment</option>
                     <option value="refund">Refund</option>
-                    <option value="adjustment">Adjustment</option>
                   </select>
                   <Input placeholder="Amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
                   <Input placeholder="Method (cash, transfer…)" value={method} onChange={(e) => setMethod(e.target.value)} />
@@ -174,13 +176,14 @@ function Payments() {
               <div>
                 <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Timeline</p>
                 <div className="space-y-1 text-xs">
-                  {(timeline?.events ?? []).map((e) => (
+                  {timelineError && <p className="text-destructive">Payment timeline unavailable: {(timelineError as Error).message}</p>}
+                  {!timelineError && (timeline?.events ?? []).map((e) => (
                     <div key={e.id} className="flex justify-between border-b border-border/50 py-1">
                       <span>{e.event_type} · {e.payment_method ?? e.provider}</span>
                       <span>{e.amount != null ? `${e.currency ?? ""} ${Number(e.amount).toFixed(2)}` : ""} · {new Date(e.created_at).toLocaleString()}</span>
                     </div>
                   ))}
-                  {!(timeline?.events ?? []).length && <p className="text-muted-foreground">No events yet.</p>}
+                  {!timelineError && !(timeline?.events ?? []).length && <p className="text-muted-foreground">No events yet.</p>}
                 </div>
               </div>
             </div>
