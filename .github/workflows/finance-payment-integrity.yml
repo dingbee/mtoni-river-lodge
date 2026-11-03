@@ -17,6 +17,7 @@ on:
   push:
     branches:
       - fix/pesapal-atomic-finance-finalization
+      - feat/finance-*
 
 jobs:
   finance-payment-integrity:
