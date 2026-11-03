@@ -71,15 +71,15 @@
      Token names retained for backward compatibility with existing
      class names (bg-ivory, bg-bone, text-charcoal, bg-charcoal,
      text-ivory, etc.) — only the values are refreshed. */
-  --ivory: #F5DABF;        /* dominant background + light text on dark */
-  --bone: #F9E8D5;         /* alternate sections, cards, content blocks */
-  --clay: #6C151E;         /* StayNas burgundy accent */
-  --ember: #6C151E;        /* accent alias */
-  --gold: #6C151E;         /* accent alias */
-  --river: #5C5854;        /* muted secondary text */
-  --forest: #0F3D3A;       /* deep green hover */
-  --charcoal: #171514;     /* primary text + black luxe surfaces */
-  --green: #0F3D3A;        /* StayNas primary deep green */
+  --ivory: #FFFFFF;        /* enterprise white surface */
+  --bone: #F3F4F6;         /* enterprise light-grey surface */
+  --clay: #374151;         /* neutral charcoal accent */
+  --ember: #374151;        /* neutral accent alias */
+  --gold: #374151;         /* neutral accent alias */
+  --river: #6B7280;        /* muted secondary text */
+  --forest: #111827;       /* charcoal action hover */
+  --charcoal: #374151;     /* enterprise charcoal text */
+  --green: #111827;        /* near-black primary actions */
 
   --background: var(--ivory);
   --foreground: var(--charcoal);
@@ -97,8 +97,8 @@
   --accent-foreground: var(--charcoal);
   --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: #FFFFFF;
-  --border: rgba(26, 26, 26, 0.10);
-  --input: rgba(26, 26, 26, 0.14);
+  --border: #D1D5DB;
+  --input: #D1D5DB;
   --ring: var(--green);
 }
 
@@ -1867,3 +1867,52 @@ html[data-os-theme="dark"] [data-radix-popper-content-wrapper] [data-radix-selec
   background-color: #F9FAFB !important;
   color: #111827 !important;
 }
+
+
+/*
+ * Enterprise portal theme bridge.
+ * Radix portals mount under document.body, outside .mtoni-os. Mirror the
+ * enterprise semantic tokens onto <html> only while AdminShell is mounted
+ * (applyOsTheme owns data-os-theme). Public routes never set this attribute.
+ */
+html[data-os-theme="light"] {
+  --background: #F3F4F6; --foreground: #111827;
+  --card: #FFFFFF; --card-foreground: #111827;
+  --popover: #FFFFFF; --popover-foreground: #111827;
+  --primary: #111827; --primary-foreground: #FFFFFF;
+  --secondary: #F3F4F6; --secondary-foreground: #374151;
+  --muted: #F3F4F6; --muted-foreground: #6B7280;
+  --accent: #E5E7EB; --accent-foreground: #111827;
+  --border: #D1D5DB; --input: #D1D5DB; --ring: #374151;
+  color-scheme: light;
+}
+html[data-os-theme="dark"] {
+  --background: #111827; --foreground: #F9FAFB;
+  --card: #1F2937; --card-foreground: #F9FAFB;
+  --popover: #1F2937; --popover-foreground: #F9FAFB;
+  --primary: #F9FAFB; --primary-foreground: #111827;
+  --secondary: #273449; --secondary-foreground: #E5E7EB;
+  --muted: #273449; --muted-foreground: #9CA3AF;
+  --accent: #374151; --accent-foreground: #F9FAFB;
+  --border: #374151; --input: #4B5563; --ring: #D1D5DB;
+  color-scheme: dark;
+}
+html[data-os-theme] :is(
+  [data-radix-dialog-content], [data-radix-alert-dialog-content],
+  [data-radix-popover-content], [data-radix-dropdown-menu-content],
+  [data-radix-select-content],
+  [data-radix-popper-content-wrapper] [role="listbox"]
+) {
+  border-color: var(--border);
+  color: var(--popover-foreground);
+}
+html[data-os-theme] :is([data-radix-dialog-content], [data-radix-alert-dialog-content]) {
+  background-color: var(--background);
+}
+html[data-os-theme] :is(
+  [data-radix-popover-content], [data-radix-dropdown-menu-content],
+  [data-radix-select-content], [data-radix-popper-content-wrapper] [role="listbox"]
+) {
+  background-color: var(--popover);
+}
+
