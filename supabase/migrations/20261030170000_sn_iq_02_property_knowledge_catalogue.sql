@@ -132,7 +132,20 @@ ON CONFLICT (property_id, slug) DO NOTHING;
 -- migration granted SELECT-only on categories and scheduler configuration;
 -- grant the minimum DML required by their new property-scoped manager flows.
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.knowledge_categories TO authenticated;
-GRANT UPDATE ON public.ai_knowledge_scheduler_config TO authenticated;
+GRANT SELECT, UPDATE ON public.ai_knowledge_scheduler_config TO authenticated;
+-- Authenticated server functions use the caller's RLS-backed client. Table
+-- grants must accompany the property-scoped policies above.
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.knowledge_documents TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.knowledge_document_versions TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.knowledge_chunks TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_knowledge_sources TO authenticated;
+GRANT SELECT, INSERT ON public.ai_knowledge_search_log TO authenticated;
+GRANT SELECT ON public.ai_knowledge_sync_runs TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_knowledge_notifications TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_copilot_sessions TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_copilot_messages TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_copilot_feedback TO authenticated;
+
 
 -- ---------------------------------------------------------------------------
 -- 2. RLS: every tenant catalogue and intelligence record follows active scope.
