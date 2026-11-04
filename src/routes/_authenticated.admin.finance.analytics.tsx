@@ -85,8 +85,6 @@ function Analytics() {
         <SectionCard title="Analytics unavailable"><p className="text-sm text-destructive">The analytics report could not be loaded. Refresh or contact a StayNas administrator.</p></SectionCard>
       ) : isLoading || !data || ledgerLoading || !ledgerData ? (
         <LoadingState />
-      ) : false ? (
-        <SectionCard title="Analytics unavailable"><p className="text-sm text-destructive">The analytics report could not be loaded. Refresh or contact a StayNas administrator.</p></SectionCard>
       ) : (
         <>
           <SectionCard title="Cash Performance" description="Cash movements from the payment transaction ledger. Booked value is separate; recognised revenue requires an approved accounting policy.">
