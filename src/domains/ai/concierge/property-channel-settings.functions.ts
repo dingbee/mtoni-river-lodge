@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
 type PropertyChannelSettingsInsert = Database["public"]["Tables"]["ai_property_channel_settings"]["Insert"];
@@ -7,7 +8,7 @@ type PropertyChannelSettingsInsert = Database["public"]["Tables"]["ai_property_c
 const channels = ["web", "whatsapp", "email"] as const;
 type Channel = typeof channels[number];
 
-async function requireTenantAdmin(supabase: any, userId: string): Promise<string> {
+async function requireTenantAdmin(supabase: SupabaseClient<Database>, userId: string): Promise<string> {
   const { data: propertyId, error } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
   if (error || !propertyId) throw new Error("No active property selected.");
   const { data: member, error: memberError } = await supabase.from("staynas_property_members")
