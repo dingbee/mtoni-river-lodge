@@ -1925,4 +1925,85 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.staynas_set_guest_child_property()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  _row jsonb := to_jsonb(NEW);
+  _uid uuid := auth.uid();
+  _guest_id uuid;
+  _booking_id uuid;
+  _checkin_id uuid;
+  _property_id uuid;
+  _derived_property_id uuid;
+  _checkin_booking_id uuid;
+  _checkin_guest_id uuid;
+BEGIN
+  _guest_id := NULLIF(_row ->> 'guest_id', '')::uuid;
+  _booking_id := NULLIF(_row ->> 'booking_id', '')::uuid;
+  _checkin_id := NULLIF(_row ->> 'checkin_id', '')::uuid;
+  _property_id := NULLIF(_row ->> 'property_id', '')::uuid;
+
+  IF _booking_id IS NOT NULL THEN
+    SELECT b.property_id INTO _derived_property_id
+    FROM public.bookings b
+    WHERE b.id = _booking_id
+      AND (_guest_id IS NULL OR b.guest_id = _guest_id);
+    IF _derived_property_id IS NULL THEN
+      RAISE EXCEPTION 'Guest record booking does not match the guest';
+    END IF;
+    IF _property_id IS NOT NULL AND _property_id <> _derived_property_id THEN
+      RAISE EXCEPTION 'Guest record cannot be moved across properties';
+    END IF;
+    _property_id := _derived_property_id;
+  END IF;
+
+  IF _checkin_id IS NOT NULL THEN
+    SELECT b.property_id, gc.booking_id, gc.guest_id
+      INTO _derived_property_id, _checkin_booking_id, _checkin_guest_id
+    FROM public.guest_checkins gc
+    JOIN public.bookings b ON b.id = gc.booking_id
+    WHERE gc.id = _checkin_id;
+    IF _derived_property_id IS NULL
+       OR (_guest_id IS NOT NULL AND _checkin_guest_id <> _guest_id)
+       OR (_booking_id IS NOT NULL AND _checkin_booking_id <> _booking_id) THEN
+      RAISE EXCEPTION 'Guest record check-in does not match the guest booking';
+    END IF;
+    IF _property_id IS NOT NULL AND _property_id <> _derived_property_id THEN
+      RAISE EXCEPTION 'Guest record cannot be moved across properties';
+    END IF;
+    _property_id := _derived_property_id;
+  END IF;
+
+  IF _property_id IS NULL THEN
+    _property_id := public.staynas_active_property_id(_uid);
+  END IF;
+
+  IF auth.role() = 'service_role' THEN
+    IF _property_id IS NULL THEN
+      RAISE EXCEPTION 'A property must be resolved for service guest records';
+    END IF;
+  ELSIF _uid IS NULL
+     OR _property_id IS NULL
+     OR NOT public.staynas_user_has_property_access(_uid, _property_id)
+     OR NOT public.staynas_current_user_has_property_role(_property_id, ARRAY['owner','manager','admin','reception','reservations','housekeeping','finance','marketing','editor']::public.app_role[]) THEN
+    RAISE EXCEPTION 'Active property staff access required for guest records';
+  END IF;
+
+  IF _guest_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM public.bookings b
+    WHERE b.guest_id = _guest_id AND b.property_id = _property_id
+  ) THEN
+    RAISE EXCEPTION 'Guest is not associated with the selected property';
+  END IF;
+
+  NEW := jsonb_populate_record(NEW, jsonb_build_object('property_id', _property_id));
+  RETURN NEW;
+END;
+$function$
+
+
 commit;
