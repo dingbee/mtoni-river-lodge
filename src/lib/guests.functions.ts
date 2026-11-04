@@ -1,14 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { requireStayNasModuleAccess, requireStayNasStaffAccess } from "@/lib/staynas-authorization.server";
 import { logActivity } from "@/lib/activity-log.server";
 
 // Any-staff gate; RLS enforces the same, but we fail fast with a friendly message.
 async function assertStaff(supabase: any, userId: string) {
-  const { data, error } = await supabase.rpc("is_any_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasStaffAccess(supabase, userId);
 }
 
 const listSchema = z.object({
