@@ -2187,4 +2187,29 @@ END;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.housekeeping_resolve_exception(_exception_id uuid, _resolution text DEFAULT NULL::text)
+ RETURNS housekeeping_exceptions
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE _uid uuid := auth.uid(); _row public.housekeeping_exceptions%ROWTYPE;
+BEGIN
+  IF _uid IS NULL OR NOT public.staynas_current_user_has_property_role(public.staynas_active_property_id(_uid), ARRAY['housekeeping','owner','manager','admin']::public.app_role[])
+    THEN RAISE EXCEPTION 'Housekeeping access required'; END IF;
+  SELECT * INTO _row FROM public.housekeeping_exceptions WHERE id=_exception_id AND EXISTS (SELECT 1 FROM public.room_states rs WHERE rs.id=housekeeping_exceptions.room_state_id AND rs.property_id=public.staynas_active_property_id(_uid)) FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Exception not found'; END IF;
+  IF _row.status <> 'open' THEN RETURN _row; END IF;
+
+  UPDATE public.housekeeping_exceptions
+  SET status='resolved',
+      notes=CASE WHEN NULLIF(trim(COALESCE(_resolution,'')),'') IS NULL THEN notes
+                 ELSE concat_ws(E'\n',NULLIF(notes,''),'Resolution: '||trim(_resolution)) END,
+      resolved_by=_uid,resolved_at=now(),updated_at=now()
+  WHERE id=_exception_id RETURNING * INTO _row;
+  RETURN _row;
+END;
+$function$
+
+
 commit;
