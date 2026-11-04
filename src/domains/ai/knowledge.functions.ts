@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { requireStayNasModuleAccess, requireStayNasPropertyRole } from "@/lib/staynas-authorization.server";
 
 // ============= Types =============
 
@@ -91,11 +91,7 @@ export function chunkText(text: string, maxLen = 1200, overlap = 150): string[] 
 }
 
 async function assertAdmin(supabase: any, userId: string) {
-  const { data } = await supabase.rpc("has_any_role", {
-    _user_id: userId,
-    _roles: ["owner", "manager"],
-  });
-  if (!data) throw new Error("You do not have permission to manage knowledge.");
+  await requireStayNasPropertyRole(supabase, userId, ["owner", "manager"]);
 }
 
 // ============= Categories =============
