@@ -133,6 +133,7 @@ function Payments() {
                   <th>Guest</th>
                   <th>Check-in</th>
                   <th>Total</th>
+                  <th>Deposit required</th>
                   <th>Paid to date</th>
                   <th>Outstanding</th>
                   <th>Due at check-in</th>
