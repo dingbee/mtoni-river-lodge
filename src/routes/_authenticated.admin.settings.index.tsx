@@ -11,12 +11,15 @@ import {
   ShieldCheck,
   Building2,
   ArrowRight,
+  Network,
+  ScrollText,
 } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { AppearanceControl } from "@/components/os/AppearanceControl";
 import { Badge } from "@/components/ui/badge";
 import { getBrandContext } from "@/domains/content/brand/brand.functions";
+import { getFounderAdminStatus } from "@/domains/_platform/founder-admin.functions";
 import { usePropertyContext } from "@/modules/property/PropertyContext";
 
 export const Route = createFileRoute("/_authenticated/admin/settings/")({
@@ -39,8 +42,10 @@ type LinkTile = {
 
 function SettingsHub() {
   const brandFn = useServerFn(getBrandContext);
+  const founderStatusFn = useServerFn(getFounderAdminStatus);
   const { organisation, property: propertyContext } = usePropertyContext();
   const brand = useQuery({ queryKey: ["settings.brand-summary"], queryFn: () => brandFn() });
+  const founderStatus = useQuery({ queryKey: ["settings.founder-admin-status"], queryFn: () => founderStatusFn() });
 
   const contentTiles: LinkTile[] = [
     {
@@ -60,7 +65,7 @@ function SettingsHub() {
     {
       to: "/admin/ai/settings",
       title: "StayNas AI",
-      description: "Model, tools and role scope for the AI Command Centre.",
+      description: "AI configuration and role scope.",
       Icon: Sparkles,
     },
     {
@@ -144,11 +149,51 @@ function SettingsHub() {
         </div>
       </SectionCard>
 
+      {founderStatus.data?.isFounderAdmin === true && (
+        <SectionCard title="Nolmark Founder Administration" description="Platform-level controls for the StayNas service. These controls are separate from property administration.">
+          <div className="grid gap-3 md:grid-cols-2">
+            <FounderTile
+              to="/admin/ai/concierge/providers"
+              title="Provider Routing"
+              description="Manage verified provider-to-property mappings for WhatsApp and email."
+              Icon={Network}
+            />
+            <FounderTile
+              to="/admin/ai/activity"
+              title="Global AI Activity"
+              description="Review the platform-wide AI audit trail."
+              Icon={ScrollText}
+            />
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Founder access is verified server-side. Each destination independently enforces founder-only authorization; tenant owner roles do not grant these permissions.
+          </p>
+        </SectionCard>
+      )}
+
       <TileGrid title="Content" tiles={contentTiles} />
       <TileGrid title="AI & Messaging" tiles={aiAndMessaging} />
       <TileGrid title="Access" tiles={access} />
       <TileGrid title="Integrations & System" tiles={integrations} />
     </div>
+  );
+}
+
+function FounderTile({ to, title, description, Icon }: LinkTile) {
+  return (
+    <Link
+      to={to}
+      className="group flex items-start gap-3 rounded-md border border-[color:var(--os-hairline)] bg-[color:var(--os-surface-2)] p-3 transition hover:border-[color:var(--os-ink-3)]"
+    >
+      <span className="flex size-8 flex-none items-center justify-center rounded-full bg-[color:var(--os-surface)] text-[color:var(--os-ink-2)]">
+        <Icon className="size-4" aria-hidden />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm text-[color:var(--os-ink)]">{title}</div>
+        <div className="mt-0.5 line-clamp-2 text-xs text-[color:var(--os-ink-3)]">{description}</div>
+      </div>
+      <ArrowRight className="mt-1 size-4 flex-none text-[color:var(--os-ink-3)] transition group-hover:translate-x-0.5" aria-hidden />
+    </Link>
   );
 }
 
