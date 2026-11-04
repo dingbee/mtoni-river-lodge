@@ -18,12 +18,19 @@ export const Route = createFileRoute("/_authenticated/admin/bookings")({
   component: AdminBookings,
 });
 
-type StatusFilter = "all" | "pending" | "confirmed" | "cancelled" | "completed" | "no_show";
+type StatusFilter = "all" | "pending" | "confirmed" | "checked_in" | "cancelled" | "completed" | "no_show";
+type BookingLifecycleAction = Exclude<StatusFilter, "all" | "pending">;
+const lifecycleActions: Record<string, BookingLifecycleAction[]> = {
+  pending: ["confirmed", "cancelled"],
+  confirmed: ["checked_in", "cancelled", "no_show"],
+  checked_in: ["completed"],
+};
 type PaymentFilter = "all" | "unpaid" | "deposit_paid" | "paid" | "refunded";
 
 const statusColors: Record<string, string> = {
   pending: "bg-[color:var(--os-warn-soft)] text-[color:var(--os-warn)]",
   confirmed: "bg-[color:var(--os-success-soft)] text-[color:var(--os-success)]",
+  checked_in: "bg-[color:var(--os-info-soft)] text-[color:var(--os-info)]",
   cancelled: "bg-[color:var(--os-danger-soft)] text-[color:var(--os-danger)]",
   completed: "bg-[color:var(--os-info-soft)] text-[color:var(--os-info)]",
   no_show: "bg-muted text-muted-foreground",
@@ -62,7 +69,7 @@ function AdminBookings() {
   });
 
   const update = useMutation({
-    mutationFn: (vars: { id: string; status: Exclude<StatusFilter, "all"> }) =>
+    mutationFn: (vars: { id: string; status: BookingLifecycleAction }) =>
       updateFn({ data: vars }),
     onSuccess: () => {
       toast.success("Booking updated");
@@ -424,7 +431,7 @@ function AdminBookings() {
                     Update status
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {(["pending", "confirmed", "cancelled", "completed", "no_show"] as const).map(
+                    {(lifecycleActions[detail.data.booking.status] ?? []).map(
                       (s) => (
                         <button
                           key={s}
