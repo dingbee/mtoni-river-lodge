@@ -79,7 +79,6 @@ async function logActivity(
   await supabaseAdmin.from("guest_checkin_activity").insert({
     checkin_id: ctx.id,
     booking_id: ctx.booking_id,
-    property_id: ctx.property_id,
     action,
     session_id: sessionId,
     detail: detail as never,
@@ -154,6 +153,7 @@ export async function uploadDocument(input: {
   if (uploadError) throw new DocumentRefusal("upload_failed", "We could not store that file.");
 
   const { error: insertError } = await supabaseAdmin.from("guest_documents").insert({
+    property_id: ctx.property_id,
     checkin_id: ctx.id,
     booking_id: ctx.booking_id,
     guest_id: ctx.guest_id,
