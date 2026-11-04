@@ -1,21 +1,46 @@
 # DC-03R — Booking and inventory remediation contract
 
-Status: implementation gate; not a production migration.
+Status: implementation gate; UAT verification in progress. No production migration or deployment.
 
 Repository baseline: `main` at `18457aca8924329f4dacb133ffcaa0ab85436660`.
 Working branch: `fix/dc-03r-booking-inventory-remediation`.
 
-## Verified live contract
+## Verified UAT environment
 
-The current production database exposes these relevant contracts:
+The authorised test target is the existing isolated StayNas Supabase project in the Nolmark CDMA organisation; no new project or Supabase branch is required.
+
+- Supabase project: `StayNas`, ref `hpsryyywolitgeaacpoy`, organisation `nolmarkcdma`, region `eu-west-1`, status `ACTIVE_HEALTHY`.
+- Tester organisation: `Nolmark CDMA`, slug `nolmark-cdma`.
+- Tester property: `Nolmark CDMA`, slug `nolmark-cdma-staynas`, property ID `f44ff48a-5449-4464-b0cb-83295fadb468`.
+- Existing UAT data at inspection: 3 demo rooms, 1 pre-existing booking, 0 holds, 270 inventory rows. The pre-existing booking is preserved.
+- Current ready Vercel preview for the public-booking demo branch: `staynas-7v4hr92te-nolmark.vercel.app`, branch `feat/staynas-public-booking-network-demo`, commit `55e4294469056c532188b5d2734c84062dd553f9`.
+- No verified hostname row currently exists for the Nolmark tester property in `staynas_property_domains`. The public property resolver requires a verified hostname. Do not fake `verified_at` or bypass the existing domain-verification workflow.
+
+## Verified live UAT contract
+
+The UAT database exposes these relevant contracts:
 
 - `create_booking_for_property(_property_id, _room_slug, ...)` — anonymous execution is granted, but the implementation only checks `available_units <= 0` when no hold is supplied. It does not subtract other active holds before a no-hold booking.
 - `create_booking_hold_for_property(_property_id, _room_slug, ...)` — anonymous execution is granted; it locks inventory rows and counts overlapping active holds.
 - `get_room_availability(_check_in, _check_out, _property_id)` — property membership is required for non-service callers, so an anonymous guest cannot use this contract.
-- `release_booking_hold(_hold_id, _session_id)` and `get_booking_hold_for_session(_hold_id, _session_id)` — the live overloads are two-argument contracts. The app currently sends `_property_id`, so those calls do not match.
+- `release_booking_hold(_hold_id, _session_id)` and `get_booking_hold_for_session(_hold_id, _session_id)` — the installed overloads are two-argument contracts. The app currently sends `_property_id`, so those calls do not match.
 - The live hold lookup and release functions contain a literal property UUID. They are not suitable for a property-neutral multitenant platform.
+- The UAT database has two `create_booking_for_property` overloads, one with an optional `_payment_method` argument. A call that omits that final argument is ambiguous at the SQL level; the application should have one canonical callable contract.
+- The app's `bookingRpc.ts` describes the intended property-scoped contract, but that contract is not the one currently installed in UAT. The unapplied review migration defines an earlier intended guest contract, but must not be applied until the inventory invariant and finance guard are corrected and the app/database release is coordinated.
+- `staynas_booking_property_id()` resolves anonymous requests from the incoming request hostname and delegates to `staynas_booking_property_id(_hostname)`. `getConfiguredBookingPropertyId()` currently calls the no-argument resolver from a server-side Supabase client without explicitly forwarding the incoming host. The Nolmark tester property has no verified hostname row, so a true public guest HTTP flow is not yet end-to-end testable.
 
-The app's `booking-rpc.ts` describes the intended three-argument/property-scoped contract, but that contract is not the one currently installed in production. The unapplied review migration defines the intended public guest contract, but must not be applied until the inventory invariant is corrected and the app/database release is coordinated.
+## UAT inventory-race reproduction
+
+A rollback-only test used the one-unit `demo-family-suite` room and a disposable future date:
+
+1. Create an active hold for session A.
+2. Create a no-hold booking for guest B against the same room/date.
+3. Convert session A's hold into a second booking for the same room/date.
+4. Roll back the transaction.
+
+Both booking calls completed without an exception when the finance trigger's transaction-local test context was enabled. A follow-up query confirmed zero residual test bookings, holds, or inventory rows. This demonstrates the allocation defect without changing the existing UAT data.
+
+The finance trigger `enforce_finance_rpc_booking_update()` rejects changes to booking financial fields unless `staynas.payment_rpc='on'` or the request role is `service_role`. The booking RPC does not establish that transaction-local context itself; the rollback test had to set it externally. The corrected booking RPC must set the narrowly scoped flag internally around its initial financial-field write, without exposing a client-settable bypass.
 
 ## Required canonical allocation invariant
 
@@ -25,10 +50,10 @@ For every room and stay date, all allocation paths must serialize on the same `r
 
 A booking consuming a valid hold must:
 1. Lock all inventory date rows in deterministic ascending date order.
-2. Lock the hold row.
+2. Lock the hold row after inventory rows to preserve a consistent lock order.
 3. Verify hold status is active, not expired, same property, same room, exact check-in/check-out, and exact non-null session ID.
 4. Count other active, unexpired overlapping holds for each date, excluding only the exact hold being converted.
-5. Require sufficient unallocated inventory for every date.
+5. Require sufficient unallocated inventory for every date, including capacity for every other hold after this booking consumes one unit.
 6. Decrement inventory exactly once per date, write booking nights, convert the hold, and write the calendar event in the same transaction.
 
 A booking without a hold must count every active, unexpired hold for each date before decrementing inventory. A hold creation must use the same row-lock ordering and count active holds before inserting. The hold's own session must not be used as a broad exclusion for unrelated holds; only a specifically identified replacement hold may be released/excluded.
@@ -37,16 +62,17 @@ All multi-night allocation is atomic: any failed date rolls back every date, boo
 
 ## Public guest security contract
 
-- The property identifier must be resolved from server-controlled booking configuration, never accepted as authority merely because it came from a browser.
-- Anonymous RPCs must be deliberately narrow and only operate on that configured property; staff RPCs must validate authenticated membership for the requested property.
+- The property identifier must be resolved from server-controlled booking configuration and a server-observed verified hostname, never accepted as authority merely because it came from a browser.
+- Anonymous RPCs must be deliberately narrow and only operate on the property resolved for the verified request hostname; staff RPCs must validate authenticated membership for the requested property.
 - Do not grant broad anonymous execution to staff functions and do not route guest traffic through the unrestricted service role.
-- Public hold lookup/release must require the exact hold ID + high-entropy session token and verify the configured property. Do not expose unrestricted hold table reads.
+- Public hold lookup/release must require the exact hold ID + high-entropy session token and verify the resolved property. Do not expose unrestricted hold table reads.
 - Retire ambiguous unscoped overloads only in the same coordinated migration that installs and grants the replacement contracts.
 - No hardcoded property UUIDs in functions.
+- The finance-write GUC must only be set inside the trusted booking/payment functions and must be transaction-local.
 
 ## Acceptance tests required before promotion
 
-1. Anonymous availability works only for the configured booking property; inactive/missing config fails closed.
+1. Anonymous availability works only for the property resolved from a verified request hostname; inactive/missing domain configuration fails closed.
 2. Anonymous hold create, lookup, release, and booking RPC signatures match the application exactly.
 3. A guest cannot read/release/convert another session's hold.
 4. A hold cannot be converted for a different room, property, or date range.
@@ -60,10 +86,11 @@ All multi-night allocation is atomic: any failed date rolls back every date, boo
 12. Same-session retries are idempotent or safely rejected; they must never create duplicate bookings or consume inventory twice.
 13. A property-A session cannot interact with property-B hold or booking records.
 14. Existing staff/front-desk booking flow uses the same allocator and retains property authorization.
-15. Migration is repeatable in a disposable database and leaves no legacy ambiguous callable overloads.
+15. Initial booking financial fields are accepted only from the trusted booking RPC; direct client updates remain blocked.
+16. Migration is repeatable in UAT and leaves no legacy ambiguous callable overloads.
 
 ## Execution gate
 
-The current GitHub connector supports repository changes but does not provide a checked-out project runtime for `bun install`, Vitest, TypeScript, ESLint, or Vite build execution. The connected Supabase project is production; production DDL is prohibited in this phase. Therefore this branch must not be represented as a completed fix until the migration and tests have been run against a disposable Supabase development branch and CI has passed.
+The existing Nolmark CDMA UAT project and tester property are the authorised test target. No new Supabase branch or project is required. The rollback-only reproduction made no persistent changes; the pre-existing UAT booking remains untouched. No production SQL, production deployment, or application deployment has been performed.
 
-No production SQL was executed for this remediation.
+The GitHub connector does not provide a checked-out project runtime for local `bun install`, Vitest, TypeScript, ESLint, or Vite build execution. This branch must not be represented as a completed fix until the corrected migration and application changes are run against the existing UAT target, the required tests pass, and CI passes. Production promotion remains separately gated by explicit approval.
