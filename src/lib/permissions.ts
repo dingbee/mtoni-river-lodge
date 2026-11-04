@@ -93,21 +93,12 @@ export function useCurrentUserRoles() {
     queryKey: ["current-user-roles", userId],
     enabled: authReady && Boolean(userId),
     queryFn: async () => {
-      const [{ data: globalRoles, error: globalRoleError }, { data: propertyRole, error: propertyRoleError }] =
-        await Promise.all([
-          supabase.rpc("current_user_roles"),
-          staynasRpc(supabase).rpc("staynas_current_property_role"),
-        ]);
+      const { data: propertyRoles, error } = await staynasRpc(supabase).rpc("staynas_current_property_roles");
+      if (error) throw new Error(error.message);
 
-      if (globalRoleError) throw new Error(globalRoleError.message);
-      if (propertyRoleError) throw new Error(propertyRoleError.message);
-
-      // Combine legacy global roles with the role scoped to the selected property.
-      // Entitlements remain restrictive: the effective roles only feed the existing module map.
-      return normalizeStayNasRoles([
-        ...((globalRoles ?? []) as string[]),
-        ...(typeof propertyRole === "string" ? [propertyRole] : []),
-      ]);
+      // Operational entitlements are derived exclusively from the selected property's
+      // active memberships. Platform authority is checked through its separate registry.
+      return normalizeStayNasRoles(propertyRoles ?? []);
     },
     staleTime: 5 * 60 * 1000,
   });
