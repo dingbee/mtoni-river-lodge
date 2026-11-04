@@ -5,6 +5,7 @@ on:
     branches:
       - feat/sn-iq-04-omnichannel-communications
       - fix/sn-iq-04-*
+      - fix/ci-*
       - feat/sn-iq-04-clean
     paths:
       - "src/domains/ai/concierge/**"
