@@ -42,7 +42,9 @@ const addDays = (days: number) => {
 const money = (value: number, currency: string) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
 const prettyDate = (value: string) => value
-  ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`))
+  ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" })
+      .format(new Date(`${value}T00:00:00Z`))
+      .toLocaleUpperCase("en-GB")
   : "Select date";
 
 const roomVisuals = [
@@ -168,13 +170,19 @@ function PublicPropertyBookingPage() {
             <span className="hidden items-center gap-1.5 text-[11px] text-[#78847c] sm:flex"><CalendarDays className="h-4 w-4"/> Flexible dates</span>
           </div>
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-[1fr_1fr_.8fr_auto] sm:items-end sm:gap-3">
-            <label className="min-w-0 rounded-xl border border-[#e8e8e1] bg-[#fafaf8] px-3 py-2.5 transition focus-within:border-[#758a7d] focus-within:bg-white">
+            <label className="relative block min-w-0 rounded-xl border border-[#e8e8e1] bg-[#fafaf8] px-3 py-2.5 transition focus-within:border-[#758a7d] focus-within:bg-white">
               <span className="block text-[9px] font-semibold uppercase tracking-[0.17em] text-[#7b877e]">Check-in</span>
-              <input aria-label="Check-in date" type="date" min={isoDate(new Date())} value={checkIn} onChange={(event) => { setCheckIn(event.target.value); if (checkOut <= event.target.value) setCheckOut(addDays(2)); setHasSearched(false); }} className="mt-1 w-full min-w-0 border-0 bg-transparent p-0 text-[13px] font-semibold text-[#26352c] outline-none focus:ring-0"/>
+              <span aria-hidden="true" className="mt-1 flex items-center justify-between gap-2 text-[13px] font-semibold text-[#26352c]">
+                <span>{prettyDate(checkIn).toLocaleUpperCase("en-GB")}</span><ChevronDown className="h-4 w-4 shrink-0 text-[#526257]"/>
+              </span>
+              <input aria-label="Check-in date" type="date" min={isoDate(new Date())} value={checkIn} onChange={(event) => { setCheckIn(event.target.value); if (checkOut <= event.target.value) setCheckOut(addDays(2)); setHasSearched(false); }} className="absolute inset-0 h-full w-full cursor-pointer opacity-0"/>
             </label>
-            <label className="min-w-0 rounded-xl border border-[#e8e8e1] bg-[#fafaf8] px-3 py-2.5 transition focus-within:border-[#758a7d] focus-within:bg-white">
+            <label className="relative block min-w-0 rounded-xl border border-[#e8e8e1] bg-[#fafaf8] px-3 py-2.5 transition focus-within:border-[#758a7d] focus-within:bg-white">
               <span className="block text-[9px] font-semibold uppercase tracking-[0.17em] text-[#7b877e]">Check-out</span>
-              <input aria-label="Check-out date" type="date" min={checkIn || isoDate(new Date())} value={checkOut} onChange={(event) => { setCheckOut(event.target.value); setHasSearched(false); }} className="mt-1 w-full min-w-0 border-0 bg-transparent p-0 text-[13px] font-semibold text-[#26352c] outline-none focus:ring-0"/>
+              <span aria-hidden="true" className="mt-1 flex items-center justify-between gap-2 text-[13px] font-semibold text-[#26352c]">
+                <span>{prettyDate(checkOut).toLocaleUpperCase("en-GB")}</span><ChevronDown className="h-4 w-4 shrink-0 text-[#526257]"/>
+              </span>
+              <input aria-label="Check-out date" type="date" min={checkIn || isoDate(new Date())} value={checkOut} onChange={(event) => { setCheckOut(event.target.value); setHasSearched(false); }} className="absolute inset-0 h-full w-full cursor-pointer opacity-0"/>
             </label>
             <div className="col-span-2 flex items-center justify-between rounded-xl border border-[#e8e8e1] bg-[#fafaf8] px-3 py-2.5 sm:col-span-1">
               <div><span className="block text-[9px] font-semibold uppercase tracking-[0.17em] text-[#7b877e]">Guests</span><span className="mt-1 block text-[13px] font-semibold text-[#26352c]">{guests} {guests === 1 ? "guest" : "guests"}</span></div>
