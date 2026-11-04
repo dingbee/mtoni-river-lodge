@@ -23,7 +23,7 @@ export const FEATURE_FLAGS: Record<FeatureFlagKey, FeatureFlag> = {
   website_analytics:    { key: "website_analytics",    state: "beta",     description: "Website analytics framework",          since: "2026-07-15" },
   mtoni_ai_command_centre: { key: "mtoni_ai_command_centre", state: "internal", description: "Mtoni AI Command Centre (Sprint 8A)", since: "2026-07-17" },
   mtoni_ai_concierge:      { key: "mtoni_ai_concierge",      state: "enabled",  description: "Public AI Concierge widget (Sprint 9)", since: "2026-07-17" },
-  online_checkin:          { key: "online_checkin",          state: "beta",     description: "Online Check-In module (v1.1 foundation)", since: "2026-08-06" },
+  online_checkin:          { key: "online_checkin",          state: "enabled",  description: "Online Check-In and Guest Journey (Phase 4)", since: "2026-11-04" },
 };
 
 const STAFF_ROLES = new Set(["owner","manager","reception","marketing","housekeeping","finance","editor"]);

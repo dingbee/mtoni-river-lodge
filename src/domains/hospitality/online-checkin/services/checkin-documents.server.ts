@@ -45,12 +45,17 @@ async function authorise(token: string, sessionId: string): Promise<CheckInConte
   if (Date.parse(data.expires_at) <= Date.now()) {
     throw new DocumentRefusal("expired", "This check-in link has expired");
   }
-  if (data.session_id && data.session_id !== sessionId) {
-    throw new DocumentRefusal("session", "Your check-in session is no longer active");
+  // Document operations are available only inside the active, verified wizard
+  // session. A token by itself is not sufficient authorisation.
+  if (!data.session_id || data.session_id !== sessionId) {
+    throw new DocumentRefusal("session", "Verify your reservation before managing documents.");
   }
   const last = Date.parse(data.last_activity_at ?? "") || 0;
-  if (last && Date.now() - last > SESSION_TIMEOUT_MS) {
+  if (!last || Date.now() - last > SESSION_TIMEOUT_MS) {
     throw new DocumentRefusal("session", "Your check-in session timed out. Please verify again.");
+  }
+  if (data.status !== "in_progress") {
+    throw new DocumentRefusal("locked", "Documents can only be changed during an active check-in.");
   }
   const { data: booking, error: bookingError } = await supabaseAdmin
     .from("bookings")
@@ -59,6 +64,12 @@ async function authorise(token: string, sessionId: string): Promise<CheckInConte
     .maybeSingle();
   if (bookingError || !booking?.property_id) {
     throw new DocumentRefusal("invalid", "Unable to resolve the property for this check-in.");
+  }
+  const { data: eligibility, error: eligibilityError } = await supabaseAdmin
+    .rpc("checkin_eligibility", { _booking_id: data.booking_id });
+  const eligibilityResult = eligibility as { ok?: boolean } | null;
+  if (eligibilityError || !eligibilityResult?.ok) {
+    throw new DocumentRefusal("ineligible", "This reservation is no longer eligible for online check-in.");
   }
   return { id: data.id, booking_id: data.booking_id, guest_id: data.guest_id, property_id: booking.property_id };
 }
@@ -118,8 +129,12 @@ export async function uploadDocument(input: {
   const ext = input.fileName.split(".").pop()?.toLowerCase() ?? "";
   const mimeOk = (ALLOWED_DOCUMENT_MIME as readonly string[]).includes(input.mimeType);
   const extOk = (ALLOWED_DOCUMENT_EXT as readonly string[]).includes(ext);
-  if (!mimeOk || !extOk) {
-    throw new DocumentRefusal("validation", "Use a PDF, JPG or PNG file.");
+  const matchingType =
+    (input.mimeType === "application/pdf" && ext === "pdf") ||
+    (input.mimeType === "image/jpeg" && ["jpg", "jpeg"].includes(ext)) ||
+    (input.mimeType === "image/png" && ext === "png");
+  if (!mimeOk || !extOk || !matchingType) {
+    throw new DocumentRefusal("validation", "Use a matching PDF, JPG or PNG file.");
   }
 
   const bytes = Buffer.from(input.contentBase64, "base64");
@@ -128,23 +143,25 @@ export async function uploadDocument(input: {
     throw new DocumentRefusal("validation", "File is larger than 8 MB.");
   }
 
-  // Replace: drop any previous document of the same kind for this check-in.
+  // Do not trust the browser-provided MIME type: verify the actual file signature.
+  const isPdf = bytes.subarray(0, 5).toString("ascii") === "%PDF-";
+  const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  const isPng = bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  if (
+    (input.mimeType === "application/pdf" && !isPdf) ||
+    (input.mimeType === "image/jpeg" && !isJpeg) ||
+    (input.mimeType === "image/png" && !isPng)
+  ) {
+    throw new DocumentRefusal("validation", "The selected file does not match its document type.");
+  }
+
+  // Preserve the previous document until the replacement has been stored
+  // and its metadata row has committed successfully.
   const { data: previous } = await supabaseAdmin
     .from("guest_documents")
     .select("id, storage_path")
     .eq("checkin_id", ctx.id)
     .eq("kind", input.kind);
-  const stalePaths = (previous ?? []).map((r) => r.storage_path).filter(Boolean) as string[];
-  if (stalePaths.length) await supabaseAdmin.storage.from(BUCKET).remove(stalePaths);
-  if (previous?.length) {
-    await supabaseAdmin
-      .from("guest_documents")
-      .delete()
-      .in(
-        "id",
-        previous.map((r) => r.id),
-      );
-  }
 
   const path = `${ctx.booking_id}/${ctx.id}/${input.kind}-${crypto.randomUUID()}.${ext}`;
   const { error: uploadError } = await supabaseAdmin.storage
@@ -171,6 +188,18 @@ export async function uploadDocument(input: {
   if (insertError) {
     await supabaseAdmin.storage.from(BUCKET).remove([path]);
     throw new DocumentRefusal("upload_failed", "We could not save that document.");
+  }
+
+  // Clean up superseded copies only after the new document is safely recorded.
+  const stalePaths = (previous ?? []).map((r) => r.storage_path).filter(Boolean) as string[];
+  const staleIds = (previous ?? []).map((r) => r.id);
+  if (stalePaths.length) {
+    const { error } = await supabaseAdmin.storage.from(BUCKET).remove(stalePaths);
+    if (error) console.warn("[checkin-documents] stale file cleanup failed", error.message);
+  }
+  if (staleIds.length) {
+    const { error } = await supabaseAdmin.from("guest_documents").delete().in("id", staleIds);
+    if (error) console.warn("[checkin-documents] stale metadata cleanup failed", error.message);
   }
 
   await touch(ctx.id);
