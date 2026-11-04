@@ -138,23 +138,13 @@ export async function uploadDocument(input: {
     throw new DocumentRefusal("validation", "File is larger than 8 MB.");
   }
 
-  // Replace: drop any previous document of the same kind for this check-in.
+  // Preserve the previous document until the replacement has been stored
+  // and its metadata row has committed successfully.
   const { data: previous } = await supabaseAdmin
     .from("guest_documents")
     .select("id, storage_path")
     .eq("checkin_id", ctx.id)
     .eq("kind", input.kind);
-  const stalePaths = (previous ?? []).map((r) => r.storage_path).filter(Boolean) as string[];
-  if (stalePaths.length) await supabaseAdmin.storage.from(BUCKET).remove(stalePaths);
-  if (previous?.length) {
-    await supabaseAdmin
-      .from("guest_documents")
-      .delete()
-      .in(
-        "id",
-        previous.map((r) => r.id),
-      );
-  }
 
   const path = `${ctx.booking_id}/${ctx.id}/${input.kind}-${crypto.randomUUID()}.${ext}`;
   const { error: uploadError } = await supabaseAdmin.storage
@@ -181,6 +171,18 @@ export async function uploadDocument(input: {
   if (insertError) {
     await supabaseAdmin.storage.from(BUCKET).remove([path]);
     throw new DocumentRefusal("upload_failed", "We could not save that document.");
+  }
+
+  // Clean up superseded copies only after the new document is safely recorded.
+  const stalePaths = (previous ?? []).map((r) => r.storage_path).filter(Boolean) as string[];
+  const staleIds = (previous ?? []).map((r) => r.id);
+  if (stalePaths.length) {
+    const { error } = await supabaseAdmin.storage.from(BUCKET).remove(stalePaths);
+    if (error) console.warn("[checkin-documents] stale file cleanup failed", error.message);
+  }
+  if (staleIds.length) {
+    const { error } = await supabaseAdmin.from("guest_documents").delete().in("id", staleIds);
+    if (error) console.warn("[checkin-documents] stale metadata cleanup failed", error.message);
   }
 
   await touch(ctx.id);
