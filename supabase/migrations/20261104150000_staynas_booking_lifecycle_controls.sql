@@ -117,7 +117,7 @@ create or replace function public.staynas_transition_booking(
 )
 returns jsonb
 language plpgsql
-security invoker
+security definer
 set search_path = public
 as $function$
 declare
@@ -141,8 +141,8 @@ begin
   from public.bookings b
   where b.id = _booking_id
   for update;
-  if not found then
-    raise exception using errcode = 'P0002', message = 'Booking not found or property access denied';
+  if not found or not public.staynas_user_has_property_access(v_actor, v_booking.property_id) then
+    raise exception using errcode = '42501', message = 'Booking not found or property access denied';
   end if;
 
   v_previous_status := v_booking.status::text;
