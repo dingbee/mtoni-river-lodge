@@ -24,7 +24,7 @@ export const listBookings = createServerFn({ method: "POST" })
     await assertStaff(context.supabase, context.userId);
     let q = context.supabase
       .from("bookings")
-      .select("id, reference, guest_name, guest_email, check_in, check_out, nights, adults, children, total, deposit_amount, balance_amount, currency, status, payment_status, payment_method, created_at, room_id")
+      .select("id, reference, guest_name, guest_email, check_in, check_out, nights, adults, children, total, deposit_amount, balance_amount, paid_amount, currency, status, payment_status, payment_method, created_at, room_id")
       .order("created_at", { ascending: false })
       .limit(200);
     if (data.status !== "all") q = q.eq("status", data.status);
