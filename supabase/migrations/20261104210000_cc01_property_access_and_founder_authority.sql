@@ -2312,4 +2312,101 @@ END;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.housekeeping_transition_room_state(_room_state_id uuid, _to_state room_state, _note text DEFAULT NULL::text, _idempotency_key text DEFAULT NULL::text)
+ RETURNS room_states
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  _uid uuid := auth.uid();
+  _current public.room_states%ROWTYPE;
+  _existing public.housekeeping_transition_log%ROWTYPE;
+  _result public.room_states%ROWTYPE;
+  _is_supervisor boolean;
+BEGIN
+  IF _uid IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+
+  IF NOT public.staynas_current_user_has_property_role(public.staynas_active_property_id(_uid), ARRAY['housekeeping','owner','manager','admin']::public.app_role[]) THEN
+    RAISE EXCEPTION 'Forbidden';
+  END IF;
+
+  IF _idempotency_key IS NULL OR length(trim(_idempotency_key)) < 8 THEN
+    RAISE EXCEPTION 'Idempotency key is required';
+  END IF;
+
+  SELECT *
+    INTO _existing
+  FROM public.housekeeping_transition_log
+  WHERE idempotency_key = _idempotency_key AND room_state_id = _room_state_id AND actor_id = _uid;
+
+  IF FOUND THEN
+    SELECT * INTO _result
+    FROM public.room_states
+    WHERE id = _existing.room_state_id;
+    RETURN _result;
+  END IF;
+
+  SELECT *
+    INTO _current
+  FROM public.room_states
+  WHERE id = _room_state_id AND property_id = public.staynas_active_property_id(_uid)
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Room state not found';
+  END IF;
+
+  _is_supervisor := public.staynas_current_user_has_property_role(
+    _current.property_id,
+    ARRAY['admin'::public.app_role, 'owner'::public.app_role, 'manager'::public.app_role]
+  );
+
+  -- Housekeeping staff may only execute housekeeping lifecycle transitions.
+  IF NOT _is_supervisor
+     AND NOT public.staynas_current_user_has_property_role(_current.property_id, ARRAY['housekeeping'::public.app_role])
+  THEN
+    RAISE EXCEPTION 'Housekeeping transition requires housekeeping or supervisor role';
+  END IF;
+
+  IF NOT _is_supervisor THEN
+    IF NOT (
+      (_current.state = 'vacant_dirty' AND _to_state = 'inspection')
+      OR (_current.state = 'inspection' AND _to_state IN ('vacant_clean', 'vacant_dirty'))
+    ) THEN
+      RAISE EXCEPTION 'Invalid housekeeping transition: % -> %', _current.state, _to_state;
+    END IF;
+  ELSE
+    IF NOT (
+      (_current.state = 'vacant_dirty' AND _to_state IN ('inspection', 'maintenance', 'out_of_service'))
+      OR (_current.state = 'inspection' AND _to_state IN ('vacant_clean', 'vacant_dirty', 'maintenance', 'out_of_service'))
+      OR (_current.state = 'vacant_clean' AND _to_state IN ('vacant_dirty', 'maintenance', 'out_of_service'))
+      OR (_current.state = 'maintenance' AND _to_state IN ('vacant_dirty', 'vacant_clean', 'out_of_service'))
+      OR (_current.state = 'out_of_service' AND _to_state IN ('maintenance', 'vacant_dirty', 'vacant_clean'))
+    ) THEN
+      RAISE EXCEPTION 'Invalid room-readiness transition: % -> %', _current.state, _to_state;
+    END IF;
+  END IF;
+
+  UPDATE public.room_states
+  SET state = _to_state,
+      state_note = NULLIF(trim(COALESCE(_note, '')), ''),
+      updated_by = _uid,
+      updated_at = now()
+  WHERE id = _room_state_id
+  RETURNING * INTO _result;
+
+  INSERT INTO public.housekeeping_transition_log (
+    room_state_id, from_state, to_state, actor_id, idempotency_key, note
+  ) VALUES (
+    _room_state_id, _current.state, _to_state, _uid, _idempotency_key, _note
+  );
+
+  RETURN _result;
+END;
+$function$
+
+
 commit;
