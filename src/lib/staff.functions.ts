@@ -100,8 +100,7 @@ export const listStaffUsers = createServerFn({ method: "GET" })
 
     if (byUser.size === 0) return [];
 
-    // Enrich with auth metadata via admin client (staff-only surface).
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Enrich with auth metadata via the already-authorized admin client.
     const results: StaffUser[] = [];
     for (const [uid, info] of byUser.entries()) {
       try {
@@ -182,7 +181,7 @@ export const assignRole = createServerFn({ method: "POST" })
       actorId: context.userId,
       actorEmail: (context.claims as any)?.email ?? null,
       action: "role.assigned",
-      entityType: "user_role",
+      entityType: "property_member",
       entityId: data.userId,
       entityLabel: data.role,
       newValue: { role: data.role },
@@ -221,7 +220,7 @@ export const revokeRole = createServerFn({ method: "POST" })
       actorId: context.userId,
       actorEmail: (context.claims as any)?.email ?? null,
       action: "role.revoked",
-      entityType: "user_role",
+      entityType: "property_member",
       entityId: data.userId,
       entityLabel: data.role,
       previousValue: { role: data.role },
@@ -371,7 +370,7 @@ const disableSchema = z.object({
   disabled: z.boolean(),
 });
 
-/** Enable or disable a staff user (ban_duration on auth.users). */
+/** Suspend or restore this user's membership in the active property only. */
 export const setStaffUserDisabled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => disableSchema.parse(d))
@@ -398,12 +397,14 @@ export const setStaffUserDisabled = createServerFn({ method: "POST" })
         if ((count ?? 0) <= 1) throw new Error("Cannot suspend the last property owner");
       }
     }
-    const { error } = await supabaseAdmin
+    const { data: updatedRows, error } = await supabaseAdmin
       .from("staynas_property_members")
       .update({ status: data.disabled ? "suspended" : "active", updated_at: new Date().toISOString() })
       .eq("property_id", propertyId)
-      .eq("user_id", data.userId);
+      .eq("user_id", data.userId)
+      .select("user_id");
     if (error) throw new Error(error.message);
+    if (!updatedRows?.length) throw new Error("User is not a member of the active property.");
     await logActivity(context.supabase, {
       actorId: context.userId,
       actorEmail: (context.claims as any)?.email ?? null,
