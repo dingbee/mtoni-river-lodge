@@ -1072,4 +1072,9 @@ revoke all on function public.housekeeping_record_event(text, uuid, uuid, uuid, 
 grant execute on function public.housekeeping_record_event(text, uuid, uuid, uuid, uuid, uuid, uuid, jsonb, uuid) to service_role;
 
 
+
+-- The application now provisions property memberships directly. Stop the
+-- legacy global-role trigger from silently granting Nolmark property access.
+drop trigger if exists staynas_user_role_property_bootstrap on public.user_roles;
+
 commit;
