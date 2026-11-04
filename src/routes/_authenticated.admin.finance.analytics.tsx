@@ -16,7 +16,7 @@ import { getRevenueIntelligence as getRevenueIntelligenceLedger } from "@/domain
 export const Route = createFileRoute("/_authenticated/admin/finance/analytics")({
   head: () => ({
     meta: [
-      { title: "Revenue Analytics — Mtoni OS" },
+      { title: "Revenue Analytics — StayNas" },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
@@ -81,9 +81,11 @@ function Analytics() {
         </div>
       </SectionCard>
 
-      {isLoading || !data || ledgerLoading || !ledgerData ? (
+      {error || ledgerError ? (
+        <SectionCard title="Analytics unavailable"><p className="text-sm text-destructive">The analytics report could not be loaded. Refresh or contact a StayNas administrator.</p></SectionCard>
+      ) : isLoading || !data || ledgerLoading || !ledgerData ? (
         <LoadingState />
-      ) : error || ledgerError ? (
+      ) : false ? (
         <SectionCard title="Analytics unavailable"><p className="text-sm text-destructive">The analytics report could not be loaded. Refresh or contact a StayNas administrator.</p></SectionCard>
       ) : (
         <>
