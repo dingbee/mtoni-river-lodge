@@ -2006,4 +2006,14 @@ END;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.housekeeping_is_supervisor(_uid uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT _uid IS NOT NULL AND _uid = auth.uid() AND public.staynas_current_user_has_property_role(public.staynas_active_property_id(_uid), ARRAY['owner','manager','admin']::public.app_role[])
+$function$
+
+
 commit;
