@@ -10,6 +10,7 @@ import { logActivity } from "@/lib/activity-log.server";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { bookingRpc } from "@/lib/booking-rpc";
 import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
+import { requireStayNasCoreStaffAccess } from "@/lib/staynas-authorization.server";
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- untyped RPC surfaces, matching existing admin services */
 
@@ -22,9 +23,7 @@ const STAFF_SOURCES = [
 export const RESERVATION_SOURCES = STAFF_SOURCES;
 
 async function assertStaff(supabase: any, userId: string) {
-  const { data, error } = await supabase.rpc("is_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasCoreStaffAccess(supabase, userId);
 }
 
 const createSchema = z.object({
