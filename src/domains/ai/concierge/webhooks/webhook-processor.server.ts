@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import type { NormalizedProviderEvent } from "./webhook-normalization.server";
+import { parseNormalizedProviderEvent, type NormalizedProviderEvent } from "./webhook-normalization.server";
 
 type InboxRow = {
   id: string; property_id: string; channel_id: string | null; provider: "meta_cloud_api" | "resend";
@@ -33,7 +33,7 @@ export function canTransitionMessageStatus(current: string, next: string): boole
 
 async function processInbound(supabase: SupabaseClient<Database>, row: InboxRow, event: NormalizedProviderEvent) {
   const supportedMedia = ["image", "audio", "document", "video"].includes(String(event.safePayload.messageType));
-  if (!event.externalContact || (!event.body && !supportedMedia)) {
+  if (!event.providerMessageId || !event.externalContact || (!event.body && !supportedMedia)) {
     throw new Error("Inbound message is missing a supported sender or message body.");
   }
   const { data, error } = await supabase.rpc("staynas_process_provider_inbound", {
@@ -43,9 +43,9 @@ async function processInbound(supabase: SupabaseClient<Database>, row: InboxRow,
     p_provider_message_id: event.providerMessageId,
     p_provider_event_id: row.provider_event_id,
     p_external_contact: event.externalContact,
-    p_guest_name: typeof event.safePayload.profileName === "string" ? event.safePayload.profileName : null,
-    p_body: event.body,
-    p_subject: event.subject,
+    p_guest_name: typeof event.safePayload.profileName === "string" ? event.safePayload.profileName : "",
+    p_body: event.body ?? "",
+    p_subject: event.subject ?? "",
     p_message_type: event.body ? "text" : "media",
     p_occurred_at: event.occurredAt,
     p_safe_payload: event.safePayload,
@@ -96,9 +96,23 @@ export async function processProviderWebhookInbox(supabase: SupabaseClient<Datab
     .maybeSingle();
   if (claimError) throw new Error(claimError.message);
   if (!row) return { claimed: false, reason: "already_claimed_or_processed" as const };
-  const typed = row as InboxRow;
+  if (row.provider !== "meta_cloud_api" && row.provider !== "resend") {
+    throw new Error("Unsupported webhook provider.");
+  }
+  const event = parseNormalizedProviderEvent(row.normalized_event);
+  if (event.provider !== row.provider) throw new Error("Webhook provider does not match the normalized event.");
+  const typed: InboxRow = {
+    id: row.id,
+    property_id: row.property_id,
+    channel_id: row.channel_id,
+    provider: row.provider,
+    external_account_id: row.external_account_id,
+    provider_event_id: row.provider_event_id,
+    event_type: row.event_type,
+    normalized_event: event,
+    processing_status: row.processing_status,
+  };
   try {
-    const event = typed.normalized_event;
     let result: { sessionId?: string; messageId?: string; ignored?: boolean } = {};
     if (event.eventType === "inbound_message" && event.direction === "inbound") {
       result = await processInbound(supabase, typed, event);

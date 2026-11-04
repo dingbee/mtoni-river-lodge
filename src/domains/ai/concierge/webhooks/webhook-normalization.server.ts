@@ -19,7 +19,26 @@ export interface NormalizedProviderEvent {
   externalContact: string | null;
   body: string | null;
   subject: string | null;
-  safePayload: Record<string, unknown>;
+  safePayload: Record<string, string | number | boolean | null>;
+}
+
+
+const normalizedProviderEventSchema = z.object({
+  provider: z.enum(["meta_cloud_api", "resend"]),
+  providerEventId: z.string().min(1),
+  providerMessageId: z.string().nullable(),
+  channel: z.enum(["whatsapp", "email"]),
+  eventType: z.enum(["inbound_message", "sent", "delivered", "read", "failed", "bounced", "complained", "unsubscribed"]),
+  direction: z.enum(["inbound", "outbound"]),
+  occurredAt: z.string(),
+  externalContact: z.string().nullable(),
+  body: z.string().nullable(),
+  subject: z.string().nullable(),
+  safePayload: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
+});
+
+export function parseNormalizedProviderEvent(value: unknown): NormalizedProviderEvent {
+  return normalizedProviderEventSchema.parse(value);
 }
 
 function stableId(value: unknown): string {
