@@ -2,24 +2,18 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { ConciergeMemoryRow } from "./memory.types";
+import { requireStayNasStaffAccess, requireStayNasPropertyRole } from "@/lib/staynas-authorization.server";
 
 const MEMORY_TYPES = ["preference", "interest", "travel_style", "communication_preference"] as const;
 const MEMORY_STATUS = ["pending", "approved", "rejected", "archived"] as const;
 const MANAGER_ROLES = ["owner", "manager"] as const;
 
 async function assertStaff(sb: any, userId: string) {
-  const { data, error } = await sb.rpc("is_any_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasStaffAccess(sb, userId);
 }
 
 async function assertManager(sb: any, userId: string) {
-  const { data, error } = await sb.rpc("has_any_role", {
-    _user_id: userId,
-    _roles: MANAGER_ROLES,
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasPropertyRole(sb, userId, MANAGER_ROLES);
 }
 
 // ---------- list ----------
