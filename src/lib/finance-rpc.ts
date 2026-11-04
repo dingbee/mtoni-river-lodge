@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
 // Local RPC contract for the Phase 1 payment transaction. The generated
 // database types are regenerated only after the reviewed SQL is applied.
@@ -27,6 +28,6 @@ interface FinanceRpcContract {
   ): RpcResult<RecordBookingPaymentResult>;
 }
 
-export function financeRpc(client: SupabaseClient<any>): FinanceRpcContract {
+export function financeRpc(client: SupabaseClient<Database>): FinanceRpcContract {
   return client as unknown as FinanceRpcContract;
 }
