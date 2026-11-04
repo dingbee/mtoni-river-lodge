@@ -17,6 +17,7 @@ on:
       - fix/ci-*
       - main
       - feat/finance-*
+      - fix/finance-phase2-ci-coverage
 
 jobs:
   finance-payment-integrity:
@@ -34,8 +35,12 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - name: Payment input contract tests
-        run: bunx vitest run src/domains/finance/payment-contract.test.ts
+      - name: Finance contract, currency and reconciliation tests
+        run: >-
+          bunx vitest run
+          src/domains/finance/payment-contract.test.ts
+          src/domains/finance/finance-currency.test.ts
+          src/domains/finance/finance-reconciliation.test.ts
       # TanStack Start generates routeTree.gen.ts during the Vite build.
       - name: Generate routes and verify production build
         run: bun run build
@@ -43,4 +48,15 @@ jobs:
         run: bunx tsc --noEmit
       - name: Finance lint
         run: >-
-          bunx eslint src/domains/finance/finance.functions.ts src/domains/finance/payment-contract.ts src/domains/finance/payment-contract.test.ts src/lib/finance-rpc.ts src/routes/_authenticated.admin.finance.payments.tsx --rule 'prettier/prettier: off'
+          bunx eslint
+          src/domains/finance/finance.functions.ts
+          src/domains/finance/payment-contract.ts
+          src/domains/finance/payment-contract.test.ts
+          src/domains/finance/finance-currency.ts
+          src/domains/finance/finance-currency.test.ts
+          src/domains/finance/finance-reconciliation.ts
+          src/domains/finance/finance-reconciliation.test.ts
+          src/lib/finance-rpc.ts
+          src/lib/payment-finalize.server.ts
+          src/routes/_authenticated.admin.finance.payments.tsx
+          --rule 'prettier/prettier: off'
