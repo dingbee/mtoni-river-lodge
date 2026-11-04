@@ -91,6 +91,7 @@ declare
   v_booking public.bookings%rowtype;
   v_room_state public.room_states%rowtype;
   v_room_count integer := 0;
+  v_previous_status text;
 begin
   if v_actor is null then
     raise exception using errcode = '42501', message = 'Authentication required';
@@ -109,6 +110,8 @@ begin
   if not found then
     raise exception using errcode = 'P0002', message = 'Booking not found or property access denied';
   end if;
+
+  v_previous_status := v_booking.status::text;
 
   if v_booking.status::text = _target_status then
     return jsonb_build_object('ok', true, 'duplicate', true, 'booking_id', v_booking.id, 'status', v_booking.status::text);
@@ -170,7 +173,7 @@ begin
       insert into public.ops_tasks (
         booking_id, room_state_id, task_type, category, title, priority, status, due_at
       ) values (
-        v_booking.id, v_room_state.id, 'housekeeping', 'housekeeping',
+        v_booking.property_id, v_booking.id, v_room_state.id, 'housekeeping', 'housekeeping',
         'Clean ' || v_room_state.unit_label || ' after ' || v_booking.guest_name,
         2, 'pending', now() + interval '3 hours'
       );
@@ -187,7 +190,7 @@ begin
   ) values (
     v_actor, 'reservation.status_changed', 'booking', v_booking.id, v_booking.reference,
     'reservations',
-    jsonb_build_object('from', (select status::text from public.bookings where id = _booking_id), 'to', _target_status,
+    jsonb_build_object('from', v_previous_status, 'to', _target_status,
                        'notes', nullif(btrim(_notes),''), 'property_id', v_booking.property_id),
     'audit'
   );
