@@ -29,7 +29,7 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - name: Adapter registry contract tests
-        run: bunx vitest run src/domains/distribution/adapters/registry.test.ts
+        run: bunx vitest run src/domains/distribution/adapters
       - name: TypeScript verification
         run: bunx tsc --noEmit
       - name: Production build
