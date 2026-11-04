@@ -31,6 +31,7 @@ jobs:
       - name: Run shared, Finance Phase 2 and Pesapal regression suites
         run: >-
           bunx vitest run
+          src/lib/booking-lifecycle.test.ts
           src/lib/housekeeping-state-machine.test.ts
           src/lib/housekeeping-offline.test.ts
           src/domains/ai/concierge/request-categorization.test.ts

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { listBookings, getBookingDetail, updateBookingStatus } from "@/lib/admin.functions";
+import { getAllowedBookingTransitions, type BookingLifecycleStatus } from "@/lib/booking-lifecycle";
 import { CalendarDays, Loader2, Plus } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
@@ -18,12 +19,14 @@ export const Route = createFileRoute("/_authenticated/admin/bookings")({
   component: AdminBookings,
 });
 
-type StatusFilter = "all" | "pending" | "confirmed" | "cancelled" | "completed" | "no_show";
+type StatusFilter = "all" | "pending" | "confirmed" | "checked_in" | "cancelled" | "completed" | "no_show";
+type BookingLifecycleAction = Exclude<BookingLifecycleStatus, "pending">;
 type PaymentFilter = "all" | "unpaid" | "deposit_paid" | "paid" | "refunded";
 
 const statusColors: Record<string, string> = {
   pending: "bg-[color:var(--os-warn-soft)] text-[color:var(--os-warn)]",
   confirmed: "bg-[color:var(--os-success-soft)] text-[color:var(--os-success)]",
+  checked_in: "bg-[color:var(--os-info-soft)] text-[color:var(--os-info)]",
   cancelled: "bg-[color:var(--os-danger-soft)] text-[color:var(--os-danger)]",
   completed: "bg-[color:var(--os-info-soft)] text-[color:var(--os-info)]",
   no_show: "bg-muted text-muted-foreground",
@@ -62,7 +65,7 @@ function AdminBookings() {
   });
 
   const update = useMutation({
-    mutationFn: (vars: { id: string; status: Exclude<StatusFilter, "all"> }) =>
+    mutationFn: (vars: { id: string; status: BookingLifecycleAction }) =>
       updateFn({ data: vars }),
     onSuccess: () => {
       toast.success("Booking updated");
@@ -123,6 +126,7 @@ function AdminBookings() {
               <option value="all">All</option>
               <option value="pending">Pending</option>
               <option value="confirmed">Confirmed</option>
+              <option value="checked_in">Checked-in</option>
               <option value="cancelled">Cancelled</option>
               <option value="completed">Completed</option>
               <option value="no_show">No-show</option>
@@ -424,7 +428,7 @@ function AdminBookings() {
                     Update status
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {(["pending", "confirmed", "cancelled", "completed", "no_show"] as const).map(
+                    {getAllowedBookingTransitions(detail.data.booking.status as BookingLifecycleStatus).map(
                       (s) => (
                         <button
                           key={s}

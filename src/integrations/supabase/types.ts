@@ -18682,6 +18682,10 @@ export type Database = {
       }
     }
     Functions: {
+      staynas_transition_booking: {
+        Args: { _booking_id: string; _target_status: string; _notes?: string | null }
+        Returns: Json
+      }
       ai_knowledge_sources_search: {
         Args: { _limit?: number; _query: string }
         Returns: {

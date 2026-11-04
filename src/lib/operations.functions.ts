@@ -210,38 +210,13 @@ export const checkInBooking = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
-    const sb: any = context.supabase;
-    const { data: booking, error } = await sb
-      .from("bookings").select("id, reference, guest_name, status").eq("id", data.bookingId).maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!booking) throw new Error("Reservation not found");
-
-    const notes = data.notes ? `[check-in ${new Date().toISOString()}] ${data.notes}` : null;
-    const { error: bErr } = await sb.from("bookings")
-      .update({
-        status: "checked_in",
-        notes: notes ?? undefined,
-        confirmed_at: new Date().toISOString(),
-      })
-      .eq("id", data.bookingId);
-    if (bErr) throw new Error(bErr.message);
-
-    if (data.roomStateId) {
-      await sb.from("room_states")
-        .update({ state: "occupied", booking_id: data.bookingId, updated_by: context.userId })
-        .eq("id", data.roomStateId);
-    }
-
-    await logOpsEvent(sb, context.userId, context.claims, {
-      type: "reservation.checked_in",
-      module: "operations",
-      entityType: "booking",
-      entityId: data.bookingId,
-      entityLabel: booking.reference,
-      severity: "audit",
-      meta: { arrival_time: data.arrivalTime, notes: data.notes ?? null },
+    const { data: result, error } = await context.supabase.rpc("staynas_transition_booking", {
+      _booking_id: data.bookingId,
+      _target_status: "checked_in",
+      _notes: data.notes ?? null,
     });
-    return { ok: true };
+    if (error) throw new Error(error.message);
+    return result ?? { ok: true };
   });
 
 const checkOutSchema = z.object({
@@ -256,47 +231,13 @@ export const checkOutBooking = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
-    const sb: any = context.supabase;
-    const { data: booking } = await sb.from("bookings")
-      .select("id, reference, guest_name, room_id").eq("id", data.bookingId).maybeSingle();
-    if (!booking) throw new Error("Reservation not found");
-
-    const { error } = await sb.from("bookings")
-      .update({ status: "completed" })
-      .eq("id", data.bookingId);
+    const { data: result, error } = await context.supabase.rpc("staynas_transition_booking", {
+      _booking_id: data.bookingId,
+      _target_status: "completed",
+      _notes: data.notes ?? null,
+    });
     if (error) throw new Error(error.message);
-
-    // Flip the assigned room to vacant_dirty and queue a housekeeping task.
-    const { data: linkedState } = await sb.from("room_states")
-      .select("id, unit_label").eq("booking_id", data.bookingId).maybeSingle();
-    if (linkedState) {
-      await sb.from("room_states")
-        .update({ state: "vacant_dirty", booking_id: null, updated_by: context.userId })
-        .eq("id", linkedState.id);
-    }
-
-    await sb.from("ops_tasks").insert({
-      booking_id: data.bookingId,
-      room_state_id: linkedState?.id ?? null,
-      task_type: "housekeeping",
-      category: "housekeeping",
-      title: `Clean ${linkedState?.unit_label ?? "room"} after ${booking.guest_name}`,
-      priority: 2,
-      status: "pending",
-      due_at: new Date(Date.now() + 3 * 3600 * 1000).toISOString(),
-    });
-
-    await logOpsEvent(sb, context.userId, context.claims, {
-      type: "reservation.checked_out",
-      module: "operations",
-      entityType: "booking",
-      entityId: data.bookingId,
-      entityLabel: booking.reference,
-      severity: "audit",
-      meta: { departure_time: data.departureTime, notes: data.notes ?? null },
-    });
-    // TODO: queue post-stay review request (future automation)
-    return { ok: true };
+    return result ?? { ok: true };
   });
 
 // -------------------------------------------------------------- Calendar
