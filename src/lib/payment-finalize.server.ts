@@ -87,9 +87,8 @@ export async function verifyAndFinalizePayment(opts: {
     const paid = Number(status.amount ?? 0);
     const amountsMatch = Math.round(expected * 100) === Math.round(paid * 100);
     const currency = resolvePesapalSettlementCurrency(status.currency, booking.currency);
-    const currencyMatches = currency !== null;
 
-    if (!amountsMatch || !currencyMatches) {
+    if (!amountsMatch || currency === null) {
       const nowIso = new Date().toISOString();
       const { error: eventError } = await supabaseAdmin.from("payment_events").insert({
         booking_id: booking.id,
