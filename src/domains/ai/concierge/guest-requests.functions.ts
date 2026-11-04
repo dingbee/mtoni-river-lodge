@@ -32,12 +32,13 @@ export const createGuestRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => createSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const propertyId = await activePropertyId(context.supabase, context.userId);
-    const { data: staff, error: staffError } = await context.supabase.rpc("is_any_staff", { _user_id: context.userId });
+    const db = context.supabase as any;
+    const propertyId = await activePropertyId(db, context.userId);
+    const { data: staff, error: staffError } = await db.rpc("is_any_staff", { _user_id: context.userId });
     if (staffError || !staff) throw new Error("Staff access is required to register a guest request.");
 
     if (data.session_id) {
-      const { data: session, error } = await context.supabase
+      const { data: session, error } = await db
         .from("ai_concierge_sessions").select("id, property_id, guest_id")
         .eq("id", data.session_id).eq("property_id", propertyId).maybeSingle();
       if (error || !session) throw new Error("Concierge conversation not found in the active property.");
@@ -57,7 +58,7 @@ export const createGuestRequest = createServerFn({ method: "POST" })
     }
 
     const category = data.category ?? categorizeGuestRequest(data.request_text);
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await db
       .from("staynas_guest_requests")
       .insert({
         property_id: propertyId,
