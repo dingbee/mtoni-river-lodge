@@ -18757,23 +18757,6 @@ export type Database = {
       }
     }
     Functions: {
-      get_room_availability: {
-        Args: { _check_in: string; _check_out: string }
-        Returns: {
-          base_price: number
-          capacity_adults: number
-          capacity_children: number
-          currency: string
-          is_available: boolean
-          max_occupancy: number
-          min_available: number
-          name: string
-          nightly_total: number
-          nights: number
-          room_id: string
-          slug: string
-        }[]
-      }
       staynas_dispatch_guest_request: {
         Args: { _assignee_id?: string; _due_at?: string; _request_id: string }
         Returns: { request_id: string; task_id: string; task_category: string; task_status: string }[]
@@ -19497,7 +19480,7 @@ export type Database = {
           _notes?: string
           _room_state_id: string
           _severity?: number
-          _task_id: string
+          _task_id: string | null
           _title: string
         }
         Returns: {

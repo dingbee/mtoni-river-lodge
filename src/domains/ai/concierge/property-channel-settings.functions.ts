@@ -1,5 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database } from "@/integrations/supabase/types";
+
+type PropertyChannelSettingsInsert = Database["public"]["Tables"]["ai_property_channel_settings"]["Insert"];
 
 const channels = ["web", "whatsapp", "email"] as const;
 type Channel = typeof channels[number];
@@ -48,10 +51,23 @@ export const updatePropertyChannelSettings = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const propertyId = await requireTenantAdmin(context.supabase, context.userId);
-    const patch: Record<string, unknown> = { property_id: propertyId, channel: data.channel, updated_by: context.userId, updated_at: new Date().toISOString() };
-    for (const key of ["enabled","inbound_enabled","outbound_enabled","sender_display_name","sender_email","sender_phone_label","approved_template_names","require_human_approval","service_consent_required","marketing_consent_required","staff_handoff_enabled"] as const) {
-      if (data[key] !== undefined) patch[key] = data[key];
-    }
+    const patch: PropertyChannelSettingsInsert = {
+      property_id: propertyId,
+      channel: data.channel,
+      updated_by: context.userId,
+      updated_at: new Date().toISOString(),
+      ...(data.enabled === undefined ? {} : { enabled: data.enabled }),
+      ...(data.inbound_enabled === undefined ? {} : { inbound_enabled: data.inbound_enabled }),
+      ...(data.outbound_enabled === undefined ? {} : { outbound_enabled: data.outbound_enabled }),
+      ...(data.sender_display_name === undefined ? {} : { sender_display_name: data.sender_display_name }),
+      ...(data.sender_email === undefined ? {} : { sender_email: data.sender_email }),
+      ...(data.sender_phone_label === undefined ? {} : { sender_phone_label: data.sender_phone_label }),
+      ...(data.approved_template_names === undefined ? {} : { approved_template_names: data.approved_template_names }),
+      ...(data.require_human_approval === undefined ? {} : { require_human_approval: data.require_human_approval }),
+      ...(data.service_consent_required === undefined ? {} : { service_consent_required: data.service_consent_required }),
+      ...(data.marketing_consent_required === undefined ? {} : { marketing_consent_required: data.marketing_consent_required }),
+      ...(data.staff_handoff_enabled === undefined ? {} : { staff_handoff_enabled: data.staff_handoff_enabled }),
+    };
     const { error } = await context.supabase.from("ai_property_channel_settings").upsert(patch, { onConflict: "property_id,channel" });
     if (error) throw new Error(error.message);
     return { ok: true };

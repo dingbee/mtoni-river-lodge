@@ -28,6 +28,7 @@ interface CheckInContext {
   id: string;
   booking_id: string;
   guest_id: string | null;
+  property_id: string;
 }
 
 async function authorise(token: string, sessionId: string): Promise<CheckInContext> {
@@ -51,7 +52,15 @@ async function authorise(token: string, sessionId: string): Promise<CheckInConte
   if (last && Date.now() - last > SESSION_TIMEOUT_MS) {
     throw new DocumentRefusal("session", "Your check-in session timed out. Please verify again.");
   }
-  return { id: data.id, booking_id: data.booking_id, guest_id: data.guest_id };
+  const { data: booking, error: bookingError } = await supabaseAdmin
+    .from("bookings")
+    .select("property_id")
+    .eq("id", data.booking_id)
+    .maybeSingle();
+  if (bookingError || !booking?.property_id) {
+    throw new DocumentRefusal("invalid", "Unable to verify the property for this check-in.");
+  }
+  return { id: data.id, booking_id: data.booking_id, guest_id: data.guest_id, property_id: booking.property_id };
 }
 
 async function touch(checkinId: string) {
@@ -144,6 +153,7 @@ export async function uploadDocument(input: {
   if (uploadError) throw new DocumentRefusal("upload_failed", "We could not store that file.");
 
   const { error: insertError } = await supabaseAdmin.from("guest_documents").insert({
+    property_id: ctx.property_id,
     checkin_id: ctx.id,
     booking_id: ctx.booking_id,
     guest_id: ctx.guest_id,

@@ -62,7 +62,7 @@ export const completeHousekeepingTask = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
     await assertHousekeepingTaskProperty(context.supabase, data.taskId, await activePropertyId(context.supabase, context.userId));
-    const { data: row, error } = await housekeepingClient(context.supabase).rpc("housekeeping_complete_task", { _task_id: data.taskId, _note: data.note ?? null, _idempotency_key: data.idempotencyKey });
+    const { data: row, error } = await housekeepingClient(context.supabase).rpc("housekeeping_complete_task", { _task_id: data.taskId, ...(data.note === undefined ? {} : { _note: data.note }), _idempotency_key: data.idempotencyKey });
     if (error) throw new Error(error.message); return row;
   });
 
