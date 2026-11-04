@@ -2409,4 +2409,34 @@ END;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.housekeeping_assign_task(_task_id uuid, _assignee_id uuid)
+ RETURNS ops_tasks
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  _uid uuid := auth.uid();
+  _task public.ops_tasks%ROWTYPE;
+BEGIN
+  IF _uid IS NULL OR NOT public.housekeeping_is_supervisor(_uid)
+    THEN RAISE EXCEPTION 'Supervisor access required'; END IF;
+  SELECT * INTO _task FROM public.ops_tasks WHERE id = _task_id AND category = 'housekeeping' AND property_id = public.staynas_active_property_id(_uid) FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Housekeeping task not found'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.staynas_property_members pm JOIN public.staynas_properties p ON p.id=pm.property_id JOIN public.staynas_organisations o ON o.id=p.organisation_id WHERE pm.user_id=_assignee_id AND pm.property_id=_task.property_id AND pm.status='active' AND pm.role='housekeeping' AND p.status <> 'suspended' AND o.status='active') THEN RAISE EXCEPTION 'Assignee must have an active housekeeping role in this property'; END IF;
+  IF _task.status IN ('completed','cancelled') THEN RAISE EXCEPTION 'Task is closed'; END IF;
+
+  UPDATE public.ops_tasks
+  SET assignee_id = _assignee_id,
+      claimed_at = NULL,
+      started_at = NULL,
+      status = CASE WHEN status = 'in_progress' THEN 'pending'::public.ops_task_status ELSE status END,
+      updated_at = now()
+  WHERE id = _task_id
+  RETURNING * INTO _task;
+  RETURN _task;
+END;
+$function$
+
+
 commit;
