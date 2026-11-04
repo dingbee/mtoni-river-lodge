@@ -670,4 +670,87 @@ create policy "Finance staff insert payment events for accessible properties" on
   );
 
 
+
+-- Housekeeping audit/event rows are scoped through their owning room state or task.
+drop policy if exists "Housekeeping staff read action idempotency" on public.housekeeping_action_idempotency;
+create policy "Housekeeping staff read action idempotency" on public.housekeeping_action_idempotency
+  for select to authenticated
+  using (
+    exists (
+      select 1 from public.ops_tasks t
+      where t.id = housekeeping_action_idempotency.task_id
+        and public.staynas_user_has_property_access(auth.uid(), t.property_id)
+        and public.staynas_current_user_has_property_role(t.property_id, array['housekeeping'::public.app_role,'owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    )
+  );
+
+drop policy if exists "Housekeeping staff read events" on public.housekeeping_events;
+create policy "Housekeeping staff read events" on public.housekeeping_events
+  for select to authenticated
+  using (
+    exists (
+      select 1 from public.room_states rs
+      where rs.id = housekeeping_events.room_state_id
+        and public.staynas_user_has_property_access(auth.uid(), rs.property_id)
+        and public.staynas_current_user_has_property_role(rs.property_id, array['housekeeping'::public.app_role,'owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    )
+    or exists (
+      select 1 from public.ops_tasks t
+      where t.id = housekeeping_events.task_id
+        and public.staynas_user_has_property_access(auth.uid(), t.property_id)
+        and public.staynas_current_user_has_property_role(t.property_id, array['housekeeping'::public.app_role,'owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    )
+    or exists (
+      select 1 from public.housekeeping_exceptions ex
+      join public.room_states rs on rs.id = ex.room_state_id
+      where ex.id = housekeeping_events.exception_id
+        and public.staynas_user_has_property_access(auth.uid(), rs.property_id)
+        and public.staynas_current_user_has_property_role(rs.property_id, array['housekeeping'::public.app_role,'owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    )
+    or exists (
+      select 1 from public.housekeeping_inspections i
+      join public.room_states rs on rs.id = i.room_state_id
+      where i.id = housekeeping_events.inspection_id
+        and public.staynas_user_has_property_access(auth.uid(), rs.property_id)
+        and public.staynas_current_user_has_property_role(rs.property_id, array['housekeeping'::public.app_role,'owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    )
+  );
+
+drop policy if exists "Housekeeping staff read own property exceptions" on public.housekeeping_exceptions;
+create policy "Housekeeping staff read own property exceptions" on public.housekeeping_exceptions
+  for select to authenticated
+  using (
+    exists (
+      select 1 from public.room_states rs
+      where rs.id = housekeeping_exceptions.room_state_id
+        and public.staynas_user_has_property_access(auth.uid(), rs.property_id)
+        and public.staynas_current_user_has_property_role(rs.property_id, array['housekeeping'::public.app_role,'owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    )
+  );
+
+drop policy if exists "Housekeeping staff read own property inspections" on public.housekeeping_inspections;
+create policy "Housekeeping staff read own property inspections" on public.housekeeping_inspections
+  for select to authenticated
+  using (
+    exists (
+      select 1 from public.room_states rs
+      where rs.id = housekeeping_inspections.room_state_id
+        and public.staynas_user_has_property_access(auth.uid(), rs.property_id)
+        and public.staynas_current_user_has_property_role(rs.property_id, array['housekeeping'::public.app_role,'owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    )
+  );
+
+drop policy if exists "Staff read housekeeping transition log" on public.housekeeping_transition_log;
+create policy "Staff read housekeeping transition log" on public.housekeeping_transition_log
+  for select to authenticated
+  using (
+    exists (
+      select 1 from public.room_states rs
+      where rs.id = housekeeping_transition_log.room_state_id
+        and public.staynas_user_has_property_access(auth.uid(), rs.property_id)
+        and public.staynas_current_user_has_property_role(rs.property_id, array['housekeeping'::public.app_role,'owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    )
+  );
+
+
 commit;
