@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { AI_TOOLS } from "../ai.tools";
+import { getActivePropertyAiRoles } from "../ai.authorization.server";
 import { canUseTool, toolDomain } from "../ai.permissions";
 import { allowedToolsForRoles, SYSTEM_BRAND } from "../ai.context";
 import type { AiKnowledgeCitation, AiToolId } from "../ai.types";
@@ -29,11 +30,6 @@ function toKnowledgeCitation(row: any): AiKnowledgeCitation {
     language_code: typeof row.language_code === "string" ? row.language_code : "en",
     excerpt: String(row.content ?? row.excerpt ?? "").slice(0, 400),
   };
-}
-
-async function getRoles(supabase: any): Promise<string[]> {
-  const { data } = await supabase.rpc("current_user_roles");
-  return (data ?? []) as string[];
 }
 
 function buildMultiRouterPrompt(roles: readonly string[]): string {
@@ -121,7 +117,7 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const start = Date.now();
-    const roles = await getRoles(context.supabase);
+    const { propertyId, roles } = await getActivePropertyAiRoles(context.supabase, context.userId);
     if (roles.length === 0) throw new Error("You do not have a staff role assigned.");
 
     // Session
@@ -158,7 +154,7 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
       const tid = t.tool as AiToolId;
       if (!canUseTool(tid, roles)) continue;
       try {
-        const res = await AI_TOOLS[tid].run({ supabase: context.supabase }, t.args ?? {});
+        const res = await AI_TOOLS[tid].run({ supabase: context.supabase, propertyId }, t.args ?? {});
         toolIds.push(tid);
         domainsUsed.add(toolDomain(tid));
         evidence.push({ domain: toolDomain(tid), tool: tid, count: res.count, window: res.window, summary: res.summary });
