@@ -48,7 +48,7 @@ async function processInbound(supabase: WebhookClient, row: InboxRow, event: Nor
     p_external_contact: externalContact,
     p_guest_name: typeof event.safePayload.profileName === "string" ? event.safePayload.profileName : "",
     p_body: event.body ?? "",
-    p_subject: event.subject,
+    p_subject: event.subject ?? "",
     p_message_type: event.body ? "text" : "media",
     p_occurred_at: event.occurredAt,
     p_safe_payload: event.safePayload as Json,
