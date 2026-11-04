@@ -256,7 +256,7 @@ function HousekeepingPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {[
           ["Active", dashboard.data?.active_tasks ?? 0],
           ["Unassigned", dashboard.data?.unassigned_tasks ?? 0],
@@ -266,13 +266,16 @@ function HousekeepingPage() {
           ["Open exceptions", dashboard.data?.exceptions_open ?? 0],
           ["Rooms ready", dashboard.data?.rooms_ready ?? 0],
           ["Failed today", dashboard.data?.failed_inspections_today ?? 0],
-          ["Avg cleaning", `${dashboard.data?.avg_cleaning_minutes ?? 0} min`],
         ].map(([label,value]) => (
           <div key={String(label)} className="rounded-xl border bg-card p-4">
             <div className="text-xs text-muted-foreground">{label}</div>
             <div className="mt-1 text-2xl font-semibold">{value}</div>
           </div>
         ))}
+      </div>
+      <div className="flex items-center justify-between rounded-xl border bg-card/70 px-4 py-3 text-xs">
+        <span className="text-muted-foreground">Average cleaning time</span>
+        <span className="font-semibold tabular-nums">{dashboard.data?.avg_cleaning_minutes ?? 0} min</span>
       </div>
       {(intelligence.data ?? []).length > 0 && (
         <section className="rounded-xl border bg-card p-4">
