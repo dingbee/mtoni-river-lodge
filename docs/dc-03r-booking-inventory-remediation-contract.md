@@ -14,7 +14,7 @@ The authorised test target is the existing isolated StayNas Supabase project in 
 - Tester property: `Nolmark CDMA`, slug `nolmark-cdma-staynas`, property ID `f44ff48a-5449-4464-b0cb-83295fadb468`.
 - Existing UAT data at inspection: 3 demo rooms, 1 pre-existing booking, 0 holds, 270 inventory rows. The pre-existing booking is preserved.
 - Current ready Vercel preview for the public-booking demo branch: `staynas-7v4hr92te-nolmark.vercel.app`, branch `feat/staynas-public-booking-network-demo`, commit `55e4294469056c532188b5d2734c84062dd553f9`.
-- No verified hostname row currently exists for the Nolmark tester property in `staynas_property_domains`. The public property resolver requires a verified hostname. Do not fake `verified_at` or bypass the existing domain-verification workflow.
+- This remediation phase uses the existing Nolmark CDMA tester property as the UAT target. Hostname-based property resolution is explicitly out of scope at this juncture; do not add hostname parsing, domain verification, or hostname-dependent tests as a prerequisite.
 
 ## Verified live UAT contract
 
@@ -27,7 +27,7 @@ The UAT database exposes these relevant contracts:
 - The live hold lookup and release functions contain a literal property UUID. They are not suitable for a property-neutral multitenant platform.
 - The UAT database has two `create_booking_for_property` overloads, one with an optional `_payment_method` argument. A call that omits that final argument is ambiguous at the SQL level; the application should have one canonical callable contract.
 - The app's `bookingRpc.ts` describes the intended property-scoped contract, but that contract is not the one currently installed in UAT. The unapplied review migration defines an earlier intended guest contract, but must not be applied until the inventory invariant and finance guard are corrected and the app/database release is coordinated.
-- `staynas_booking_property_id()` resolves anonymous requests from the incoming request hostname and delegates to `staynas_booking_property_id(_hostname)`. `getConfiguredBookingPropertyId()` currently calls the no-argument resolver from a server-side Supabase client without explicitly forwarding the incoming host. The Nolmark tester property has no verified hostname row, so a true public guest HTTP flow is not yet end-to-end testable.
+- The live no-argument `staynas_booking_property_id()` resolver currently uses PostgREST request headers for anonymous requests. This phase does not introduce or depend on hostname resolution. A non-hostname, server-controlled property-context contract for public guest traffic remains a separate design gate; do not substitute a browser-supplied property UUID or a global singleton booking property.
 
 ## UAT inventory-race reproduction
 
@@ -43,19 +43,14 @@ Both booking calls completed without an exception when the finance trigger's tra
 The finance trigger `enforce_finance_rpc_booking_update()` rejects changes to booking financial fields unless `staynas.payment_rpc='on'` or the request role is `service_role`. The booking RPC does not establish that transaction-local context itself; the rollback test had to set it externally. The corrected booking RPC must set the narrowly scoped flag internally around its initial financial-field write, without exposing a client-settable bypass.
 
 
-## Application-side prerequisite remediation — partial
+## Application-side prerequisite remediation — scope corrected
 
-The working branch now contains a narrowly scoped public-host resolver correction:
-
-- Authenticated StayNas callers continue to resolve their active property through `staynas_booking_property_id()`.
-- Anonymous guest calls read the server-observed HTTP `Host` header and call the hostname overload `staynas_booking_property_id(_hostname)`.
-- Host input is normalized and malformed values fail closed.
-- No client-supplied property UUID is used as authority.
-- Vitest coverage has been extended for hostname normalization and existing property-isolation guards.
-- A dedicated GitHub Actions workflow has been added to run the booking-property tests, build, TypeScript and lint checks on the DC-03R branch.
-
-This is not yet an end-to-end booking fix. The UAT property still lacks a verified hostname record, and the database-side booking RPC and inventory allocation defects remain unresolved. The new workflow commit is present, but a passing workflow run has not yet been observed. No Vercel deployment has been initiated.
-
+- Hostname-specific application changes have been reverted to the repository's main versions.
+- The existing `staynas_booking_property_id()` resolver call remains unchanged.
+- Hostname normalization helpers and hostname-specific unit tests have been removed.
+- The dedicated booking/property GitHub Actions workflow remains in the branch to exercise the existing property-isolation tests, build, TypeScript, and lint checks.
+- This phase does not claim a completed public guest property-context solution. A server-controlled, non-hostname property-context contract must be designed separately before public guest E2E can be certified.
+- No Vercel deployment or database migration has been initiated.
 ## Required canonical allocation invariant
 
 For every room and stay date, all allocation paths must serialize on the same `room_inventory(room_id, date)` row lock and enforce:
@@ -76,8 +71,10 @@ All multi-night allocation is atomic: any failed date rolls back every date, boo
 
 ## Public guest security contract
 
-- The property identifier must be resolved from server-controlled booking configuration and a server-observed verified hostname, never accepted as authority merely because it came from a browser.
-- Anonymous RPCs must be deliberately narrow and only operate on the property resolved for the verified request hostname; staff RPCs must validate authenticated membership for the requested property.
+- Hostname resolution is out of scope for this remediation phase.
+- The property identifier must come from a server-controlled StayNas property context; never accept a browser-supplied property UUID as authority.
+- Do not apply a global singleton booking configuration as a shortcut: StayNas is multi-tenant and public booking context must not collapse all properties onto one tenant.
+- Anonymous RPCs must be deliberately narrow; staff RPCs must validate authenticated membership for the requested property.
 - Do not grant broad anonymous execution to staff functions and do not route guest traffic through the unrestricted service role.
 - Public hold lookup/release must require the exact hold ID + high-entropy session token and verify the resolved property. Do not expose unrestricted hold table reads.
 - Retire ambiguous unscoped overloads only in the same coordinated migration that installs and grants the replacement contracts.
@@ -86,7 +83,7 @@ All multi-night allocation is atomic: any failed date rolls back every date, boo
 
 ## Acceptance tests required before promotion
 
-1. Anonymous availability works only for the property resolved from a verified request hostname; inactive/missing domain configuration fails closed.
+1. The approved server-controlled, non-hostname property context resolves the Nolmark CDMA tester property; cross-property identifiers fail closed.
 2. Anonymous hold create, lookup, release, and booking RPC signatures match the application exactly.
 3. A guest cannot read/release/convert another session's hold.
 4. A hold cannot be converted for a different room, property, or date range.
@@ -105,6 +102,6 @@ All multi-night allocation is atomic: any failed date rolls back every date, boo
 
 ## Execution gate
 
-The existing Nolmark CDMA UAT project and tester property are the authorised test target. No new Supabase branch or project is required. The rollback-only reproduction made no persistent changes; the pre-existing UAT booking remains untouched. No production SQL, production deployment, or application deployment has been performed.
+The existing Nolmark CDMA UAT project and tester property are the authorised test target. No new Supabase branch or project is required. Hostname/domain work is excluded. The rollback-only reproduction made no persistent changes; the pre-existing UAT booking remains untouched. No persistent UAT SQL, production SQL, production deployment, or application deployment has been performed.
 
 The GitHub connector does not provide a checked-out project runtime for local `bun install`, Vitest, TypeScript, ESLint, or Vite build execution. This branch must not be represented as a completed fix until the corrected migration and application changes are run against the existing UAT target, the required tests pass, and CI passes. Production promotion remains separately gated by explicit approval.
