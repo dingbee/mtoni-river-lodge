@@ -1890,4 +1890,19 @@ $function$
 
 
 
+CREATE OR REPLACE FUNCTION public.is_guest_pii_staff(_user_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT _user_id IS NOT NULL
+    AND _user_id = auth.uid()
+    AND public.staynas_current_user_has_property_role(
+      public.staynas_active_property_id(auth.uid()),
+      ARRAY['owner','manager','admin','reception','reservations']::public.app_role[]
+    )
+$function$
+
+
 commit;
