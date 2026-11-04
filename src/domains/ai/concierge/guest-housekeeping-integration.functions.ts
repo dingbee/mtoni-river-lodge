@@ -8,7 +8,8 @@ export const dispatchGuestHousekeepingRequest = createServerFn({ method: "POST" 
   .inputValidator((input: unknown) => z.object({ requestId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
-    const { data: result, error } = await context.supabase.rpc("staynas_dispatch_housekeeping_request", { _request_id: data.requestId });
+    const db = context.supabase as any;
+    const { data: result, error } = await db.rpc("staynas_dispatch_housekeeping_request", { _request_id: data.requestId });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
     if (!row?.task_id || !row?.request_id) throw new Error("Housekeeping dispatch was not confirmed.");
