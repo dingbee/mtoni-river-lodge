@@ -1,11 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { TablesInsert } from "@/integrations/supabase/types";
+import type { Database, TablesInsert } from "@/integrations/supabase/types";
 
 const channels = ["web", "whatsapp", "email"] as const;
 type Channel = typeof channels[number];
 
-async function requireTenantAdmin(supabase: any, userId: string): Promise<string> {
+async function requireTenantAdmin(supabase: SupabaseClient<Database>, userId: string): Promise<string> {
   const { data: propertyId, error } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
   if (error || !propertyId) throw new Error("No active property selected.");
   const { data: member, error: memberError } = await supabase.from("staynas_property_members")
@@ -43,7 +44,7 @@ export const updatePropertyChannelSettings = createServerFn({ method: "POST" })
     staff_handoff_enabled?: boolean;
   }) => {
     if (!input || !channels.includes(input.channel)) throw new Error("Invalid channel.");
-    if (input.sender_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.sender_email)) throw new Error("Invalid sender email.");
+    if (input.sender_email && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(input.sender_email)) throw new Error("Invalid sender email.");
     if (input.approved_template_names && (input.approved_template_names.length > 50 || input.approved_template_names.some(v => !/^[a-z0-9_]{1,512}$/.test(v)))) throw new Error("Invalid approved template list.");
     return input;
   })
