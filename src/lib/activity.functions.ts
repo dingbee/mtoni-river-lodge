@@ -10,7 +10,7 @@ export type ActivityLogEntry = {
   entity_type: string;
   entity_id: string | null;
   entity_label: string | null;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, any>;
   previous_value: unknown;
   new_value: unknown;
   ip_address: string | null;
