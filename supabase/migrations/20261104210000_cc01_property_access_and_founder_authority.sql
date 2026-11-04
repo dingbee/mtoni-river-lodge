@@ -844,4 +844,13 @@ drop policy if exists "Managers decide approvals" on public.approval_requests;
 create policy "Managers decide approvals" on public.approval_requests for update to authenticated
 using (public.is_staynas_founder_ai_admin()) with check (public.is_staynas_founder_ai_admin());
 
+
+drop policy if exists "guest_tags_staff_catalog_all" on public.guest_tags;
+create policy "guest_tags_staff_catalog_all" on public.guest_tags for all to authenticated
+using (public.is_staynas_founder_ai_admin()) with check (public.is_staynas_founder_ai_admin());
+
+drop policy if exists "Finance manage pricing rules" on public.pricing_rules;
+create policy "Finance manage pricing rules" on public.pricing_rules for all to authenticated
+using (public.is_staynas_founder_ai_admin()) with check (public.is_staynas_founder_ai_admin());
+
 commit;
