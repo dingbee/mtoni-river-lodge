@@ -35,7 +35,8 @@ export function canTransitionMessageStatus(current: string, next: string): boole
 async function processInbound(supabase: WebhookClient, row: InboxRow, event: NormalizedProviderEvent) {
   const supportedMedia = ["image", "audio", "document", "video"].includes(String(event.safePayload.messageType));
   if (!event.providerMessageId) throw new Error("Inbound message has no provider message ID.");
-  if (!event.externalContact || (!event.body && !supportedMedia)) {
+  const externalContact = event.externalContact;
+  if (!externalContact || (!event.body && !supportedMedia)) {
     throw new Error("Inbound message is missing a supported sender or message body.");
   }
   const { data, error } = await supabase.rpc("staynas_process_provider_inbound", {
@@ -44,8 +45,8 @@ async function processInbound(supabase: WebhookClient, row: InboxRow, event: Nor
     p_provider: providerName(row.provider),
     p_provider_message_id: event.providerMessageId,
     p_provider_event_id: row.provider_event_id,
-    p_external_contact: event.externalContact,
-    p_guest_name: typeof event.safePayload.profileName === "string" ? event.safePayload.profileName : null,
+    p_external_contact: externalContact,
+    p_guest_name: typeof event.safePayload.profileName === "string" ? event.safePayload.profileName : "",
     p_body: event.body ?? "",
     p_subject: event.subject,
     p_message_type: event.body ? "text" : "media",
