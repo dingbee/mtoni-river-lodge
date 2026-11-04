@@ -54,24 +54,3 @@ export function filterToProperty<T extends { property_id?: string | null }>(
 ): T[] {
   return rows.filter((r) => belongsToProperty(r, propertyId));
 }
-
-/**
- * Normalize a server-observed Host header before passing it to the
- * hostname-scoped property resolver. Reject malformed values rather than
- * guessing a property context.
- */
-export function normalizeBookingHostname(hostHeader: string | null | undefined): string {
-  const raw = (hostHeader ?? "").split(",")[0]?.trim().toLowerCase() ?? "";
-  const hostname = raw.replace(/:\d+$/, "").replace(/\.$/, "");
-  if (
-    !hostname ||
-    hostname.length > 253 ||
-    !/^[a-z0-9.-]+$/.test(hostname) ||
-    hostname.startsWith(".") ||
-    hostname.endsWith(".") ||
-    hostname.includes("..")
-  ) {
-    throw new BookingPropertyError("A valid request hostname is required for public booking");
-  }
-  return hostname;
-}
