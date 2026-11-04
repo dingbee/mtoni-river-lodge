@@ -2741,13 +2741,13 @@ AS $function$
         d.allowed_roles IS NULL
         OR array_length(d.allowed_roles, 1) IS NULL
         OR public.staynas_current_user_has_property_role(d.property_id, d.allowed_roles)
-        OR public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
+        OR public.staynas_current_user_has_property_role(d.property_id, ARRAY['owner','manager','admin']::public.app_role[])
       )
       AND (
         c.id IS NULL
         OR array_length(c.allowed_roles, 1) IS NULL
         OR public.staynas_current_user_has_property_role(d.property_id, c.allowed_roles)
-        OR public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
+        OR public.staynas_current_user_has_property_role(d.property_id, ARRAY['owner','manager','admin']::public.app_role[])
       )
   );
 $function$
