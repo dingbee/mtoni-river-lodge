@@ -853,4 +853,17 @@ drop policy if exists "Finance manage pricing rules" on public.pricing_rules;
 create policy "Finance manage pricing rules" on public.pricing_rules for all to authenticated
 using (public.is_staynas_founder_ai_admin()) with check (public.is_staynas_founder_ai_admin());
 
+
+drop policy if exists "Owners and managers manage respad migration files" on public.respad_migration_files;
+create policy "Owners and managers manage respad migration files" on public.respad_migration_files for all to authenticated
+using (public.is_staynas_founder_ai_admin()) with check (public.is_staynas_founder_ai_admin());
+
+drop policy if exists "Staff can manage review statistics" on public.review_statistics;
+create policy "Staff can manage review statistics" on public.review_statistics for all to authenticated
+using (public.is_staynas_founder_ai_admin()) with check (public.is_staynas_founder_ai_admin());
+
+drop policy if exists "Staff can manage all reviews" on public.reviews;
+create policy "Staff can manage all reviews" on public.reviews for all to authenticated
+using (public.is_staynas_founder_ai_admin()) with check (public.is_staynas_founder_ai_admin());
+
 commit;
