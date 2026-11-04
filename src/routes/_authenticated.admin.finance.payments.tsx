@@ -133,8 +133,9 @@ function Payments() {
                   <th>Guest</th>
                   <th>Check-in</th>
                   <th>Total</th>
-                  <th>Paid</th>
-                  <th>Balance</th>
+                  <th>Paid to date</th>
+                  <th>Outstanding</th>
+                  <th>Due at check-in</th>
                   <th>Status</th>
                   <th></th>
                 </tr>
