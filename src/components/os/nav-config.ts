@@ -39,37 +39,38 @@ export type NavEntry =
   | { kind: "item"; item: NavItem }
   | { kind: "group"; group: NavGroup };
 
+/**
+ * Primary StayNas navigation information architecture.
+ *
+ * Keep item IDs and hrefs stable: IDs are permission keys and hrefs are
+ * existing production routes. This file changes navigation organisation
+ * only; it does not define or alter Enterprise UI.
+ */
 export const NAV: NavEntry[] = [
-  { kind: "item", item: { id: "overview", label: "Overview", href: "/admin", icon: LayoutDashboard } },
+  {
+    kind: "item",
+    item: { id: "overview", label: "Overview", href: "/admin", icon: LayoutDashboard },
+  },
   {
     kind: "group",
     group: {
-      id: "reservations",
-      label: "Reservations",
-      icon: Calendar,
+      id: "guest-management",
+      label: "Guest Management",
+      icon: Users,
       items: [
         { id: "reservations", label: "All Reservations", href: "/admin/bookings", icon: Calendar },
         { id: "reservations.calendar", label: "Calendar", href: "/admin/calendar", icon: CalendarDays },
-      ],
-    },
-  },
-  {
-    kind: "group",
-    group: {
-      id: "front-desk",
-      label: "Front Desk",
-      icon: ClipboardCheck,
-      items: [
-        { id: "front-desk", label: "Today", href: "/admin/front-desk", icon: ClipboardCheck },
+        { id: "front-desk", label: "Front Desk", href: "/admin/front-desk", icon: ClipboardCheck },
         { id: "front-desk.scan-pass", label: "Scan Arrival Pass", href: "/admin/operations/arrivals/scan", icon: QrCode },
+        { id: "guests", label: "Guests", href: "/admin/guests/crm", icon: Users },
       ],
     },
   },
   {
     kind: "group",
     group: {
-      id: "operations",
-      label: "Operations",
+      id: "property-operations",
+      label: "Property Operations",
       icon: Activity,
       items: [
         { id: "operations", label: "Operations Centre", href: "/admin/operations", icon: Activity },
@@ -81,15 +82,24 @@ export const NAV: NavEntry[] = [
       ],
     },
   },
-  { kind: "item", item: { id: "guests", label: "Guests", href: "/admin/guests/crm", icon: Users } },
-  { kind: "item", item: { id: "finance", label: "Finance", href: "/admin/finance", icon: CreditCard } },
-  { kind: "item", item: { id: "revenue", label: "Analytics", href: "/admin/analytics/revenue", icon: BarChart3 } },
-  { kind: "item", item: { id: "automation", label: "Automation", href: "/admin/automation", icon: Bot } },
   {
     kind: "group",
     group: {
-      id: "ai",
-      label: "StayNas AI",
+      id: "business-management",
+      label: "Business Management",
+      icon: BarChart3,
+      items: [
+        { id: "finance", label: "Finance", href: "/admin/finance", icon: CreditCard },
+        { id: "revenue", label: "Revenue", href: "/admin/analytics/revenue", icon: TrendingUp },
+        { id: "automation", label: "Automation", href: "/admin/automation", icon: Bot },
+      ],
+    },
+  },
+  {
+    kind: "group",
+    group: {
+      id: "staynas-intelligence",
+      label: "StayNas Intelligence",
       icon: Bot,
       items: [
         { id: "ai.concierge", label: "Concierge", href: "/admin/ai/concierge", icon: Bot },
@@ -97,15 +107,15 @@ export const NAV: NavEntry[] = [
         { id: "ai.operations", label: "Operations Intelligence", href: "/admin/ai/operations", icon: Activity },
         { id: "ai.revenue", label: "Revenue Intelligence", href: "/admin/ai/revenue", icon: TrendingUp },
         { id: "ai.executive", label: "Executive Intelligence", href: "/admin/ai/executive", icon: LayoutDashboard },
+        { id: "knowledge", label: "Knowledge", href: "/admin/ai/knowledge", icon: FileText },
       ],
     },
   },
-  { kind: "item", item: { id: "knowledge", label: "Knowledge", href: "/admin/ai/knowledge", icon: FileText } },
   {
     kind: "group",
     group: {
-      id: "system",
-      label: "System",
+      id: "administration",
+      label: "Administration",
       icon: Settings,
       items: [
         { id: "system.health", label: "Health", href: "/admin/system/health", icon: Activity },
