@@ -1,6 +1,4 @@
-export const EXPERIENCES: { slug: string; name: string; tags: string[] }[] = [];
-
-import type { ConciergeIntentSignal, ConciergeRecommendation, ConciergeRoomRecommendation, ConciergeExperienceRecommendation, ConciergeRoomCatalogItem } from "./concierge.types";
+import type { ConciergeIntentSignal, ConciergeRecommendation, ConciergeRoomRecommendation, ConciergeExperienceRecommendation, ConciergeRoomCatalogItem, ConciergeExperienceCatalogItem } from "./concierge.types";
 
 export function recommendRooms(intent: ConciergeIntentSignal, catalog: ConciergeRoomCatalogItem[]): ConciergeRoomRecommendation[] {
   const adults = intent.detected.adults ?? 2;
@@ -13,12 +11,29 @@ export function recommendRooms(intent: ConciergeIntentSignal, catalog: Concierge
     else { score -= 0.35; reasoning.push("Does not fit a party of " + party + "."); }
     if (children > 0 && room.capacity_children >= children) { score += 0.1; reasoning.push("Configured for the requested children."); }
     if (reasoning.length === 0) reasoning.push(room.short_description ?? "Configured room option.");
-    return { type:"room" as const, slug:room.slug, name:room.name, reasoning, confidence:Math.max(0.05,Math.min(0.95,score)), from_price_usd:Number(room.base_price) };
-  }).filter((r) => r.confidence > 0.2).sort((a,b) => b.confidence-a.confidence).slice(0,2);
+    return {
+      type: "room" as const, slug: room.slug, name: room.name, reasoning,
+      confidence: Math.max(0.05, Math.min(0.95, score)),
+      from_price: Number(room.base_price), currency: room.currency,
+    };
+  }).filter((r) => r.confidence > 0.2).sort((a, b) => b.confidence - a.confidence).slice(0, 2);
 }
 
-export function recommendExperiences(_intent: ConciergeIntentSignal): ConciergeExperienceRecommendation[] { return []; }
+export function recommendExperiences(intent: ConciergeIntentSignal, catalog: ConciergeExperienceCatalogItem[]): ConciergeExperienceRecommendation[] {
+  const interests = (intent.detected.interests ?? []).map((value) => value.toLowerCase().trim()).filter(Boolean);
+  if (interests.length === 0) return [];
+  return catalog.map((item) => {
+    const searchable = `${item.name} ${item.slug} ${item.description ?? ""}`.toLowerCase();
+    const matches = interests.filter((interest) => searchable.includes(interest));
+    return {
+      type: "experience" as const, slug: item.slug, name: item.name,
+      reasoning: matches.length ? [`Matches your interest in ${matches.join(", ")}.`] : ["Available experience at this property."],
+      confidence: Math.min(0.9, 0.55 + matches.length * 0.15),
+      from_price: Number(item.price), currency: item.currency, unit: item.unit,
+    };
+  }).sort((a, b) => b.confidence - a.confidence).slice(0, 2);
+}
 
-export function combinedRecommendations(intent: ConciergeIntentSignal, catalog: ConciergeRoomCatalogItem[]): ConciergeRecommendation[] {
-  return recommendRooms(intent, catalog);
+export function combinedRecommendations(intent: ConciergeIntentSignal, rooms: ConciergeRoomCatalogItem[], experiences: ConciergeExperienceCatalogItem[]): ConciergeRecommendation[] {
+  return [...recommendRooms(intent, rooms), ...recommendExperiences(intent, experiences)];
 }
