@@ -1,6 +1,6 @@
 # StayNas DC-04 — Provider-Neutral Adapter Runtime
 
-Status: architecture and repository contract phase. No provider connection, credential write, database migration, or deployment is authorised by this artifact.
+Status: DC-04.2 adapter contract implementation in progress. No provider connection, credential write, database migration, or deployment is authorised by this artifact.
 
 ## Objective
 
@@ -177,6 +177,15 @@ DC-04 may define types, pure validation, mock adapters, and contract tests while
 - DC-04.4 — Security and tenant-context contract tests.
 - DC-04.5 — Readiness review; no provider activation until dependencies are certified.
 
+## DC-04.2 implementation artifacts
+
+- `src/domains/distribution/adapters/contracts.ts` — provider manifest, capability, environment, lifecycle, execution context, opaque credential handle, normalized error and health contracts.
+- `src/domains/distribution/adapters/registry.ts` — in-memory provider/version registry with duplicate, contract-version, capability and environment checks.
+- `src/domains/distribution/adapters/registry.test.ts` — mock adapter contract tests for registration, duplicates, version compatibility, capability and environment rejection, and required health implementation.
+- `.github/workflows/dc-04-adapter-contracts.yml` — dedicated Vitest, TypeScript and production-build workflow.
+
+The registry is an in-memory code registry only. It is not a connection store, tenant authorization boundary, credential broker, or provider execution engine. No real provider adapter has been registered.
+
 ## Verification boundary
 
-This document records the baseline inspection only. It does not certify the existing integration table as secure for distribution use. No database schema or data was modified. No provider credentials were used. No provider connection, synchronization, or deployment was performed.
+The repository/schema baseline and pure contract implementation are recorded. CI workflow and tests are authored but have not yet been observed passing. The existing integration table is not certified as secure for distribution use. No database schema or data was modified. No provider credentials were used. No provider connection, synchronization, or deployment was performed.
