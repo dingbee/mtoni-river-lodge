@@ -1419,4 +1419,212 @@ $function$
 
 
 
+
+-- Booking and arrival RPCs authorize against the target booking property.
+CREATE OR REPLACE FUNCTION public.arrival_pass_validate(_pass_token text, _client jsonb DEFAULT '{}'::jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  _property_id uuid;
+BEGIN
+  SELECT b.property_id INTO _property_id
+  FROM public.arrival_passes p
+  JOIN public.bookings b ON b.id = p.booking_id
+  WHERE p.token = _pass_token;
+
+  IF _property_id IS NULL
+     OR NOT public.staynas_user_has_property_access(auth.uid(), _property_id)
+     OR NOT public.staynas_current_user_has_property_role(_property_id, ARRAY['owner','manager','reception']::public.app_role[]) THEN
+    RAISE EXCEPTION 'Arrival pass not found or property access denied';
+  END IF;
+
+  RETURN public.arrival_pass_validate_unscoped(_pass_token, COALESCE(_client, '{}'::jsonb));
+END;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.arrival_pass_validate_unscoped(_pass_token text, _client jsonb DEFAULT '{}'::jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  _p public.arrival_passes%ROWTYPE;
+  _b public.bookings%ROWTYPE;
+  _r public.rooms%ROWTYPE;
+  _c public.guest_checkins%ROWTYPE;
+  _a public.arrival_information%ROWTYPE;
+  _unit text;
+  _e jsonb;
+  _fp_before text;
+  _code text := 'valid';
+  _msg text := 'Arrival pass verified';
+  _ok boolean := true;
+  _docs jsonb;
+BEGIN
+  IF _pass_token IS NULL OR length(_pass_token) < 24 THEN
+    RETURN jsonb_build_object('ok', false, 'code','invalid','message','This code is not a Mtoni arrival pass.');
+  END IF;
+
+  SELECT * INTO _p FROM public.arrival_passes WHERE token = _pass_token FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('ok', false, 'code','invalid','message','No arrival pass matches this code.');
+  END IF;
+
+  SELECT * INTO _b FROM public.bookings WHERE id = _p.booking_id;
+  SELECT * INTO _r FROM public.rooms WHERE id = _b.room_id;
+  SELECT * INTO _c FROM public.guest_checkins WHERE id = _p.checkin_id;
+  SELECT * INTO _a FROM public.arrival_information WHERE checkin_id = _p.checkin_id;
+  SELECT unit_label INTO _unit FROM public.room_states WHERE booking_id = _b.id LIMIT 1;
+
+  SELECT jsonb_build_object(
+           'total', count(*),
+           'verified', count(*) FILTER (WHERE status = 'verified'),
+           'rejected', count(*) FILTER (WHERE status = 'rejected'))
+    INTO _docs FROM public.guest_documents WHERE booking_id = _b.id;
+
+  _e := public.checkin_eligibility(_b.id);
+  _fp_before := _p.reservation_snapshot->>'fingerprint';
+
+  IF _p.status = 'revoked' THEN
+    _ok := false; _code := 'revoked'; _msg := 'This arrival pass was revoked. Continue at the front desk.';
+  ELSIF _p.status = 'used' THEN
+    _ok := false; _code := 'used'; _msg := 'This arrival pass has already been used for arrival.';
+  ELSIF _p.status = 'expired' OR _p.expires_at <= now() THEN
+    _ok := false; _code := 'expired'; _msg := 'This arrival pass has expired.';
+  ELSIF _b.status = 'cancelled' THEN
+    _ok := false; _code := 'cancelled'; _msg := 'This reservation has been cancelled.';
+  ELSIF _b.status IN ('completed','no_show') THEN
+    _ok := false; _code := 'ineligible'; _msg := 'This reservation is closed.';
+  ELSIF _fp_before IS NOT NULL AND _e->'snapshot'->>'fingerprint' IS DISTINCT FROM _fp_before THEN
+    _ok := false; _code := 'reservation_changed';
+    _msg := 'The reservation changed after this pass was issued. Review before confirming arrival.';
+  END IF;
+
+  UPDATE public.arrival_passes
+     SET scan_count = scan_count + 1, last_scanned_at = now(),
+         status = CASE WHEN status = 'active' AND expires_at <= now() THEN 'expired'::public.arrival_pass_status ELSE status END,
+         updated_at = now()
+   WHERE id = _p.id;
+
+  PERFORM public.checkin_log_activity(_p.checkin_id, _b.id, 'arrival_pass_scanned', NULL,
+    jsonb_build_object('pass_id', _p.id, 'result', _code, 'device', _client->>'device'));
+
+  INSERT INTO public.activity_logs (actor_id, action, module, entity_type, entity_id, entity_label,
+                                    severity, metadata, ip_address, user_agent)
+  VALUES (auth.uid(), 'arrival_pass.scanned', 'operations', 'booking', _b.id, _b.reference,
+          'audit', jsonb_build_object('pass_id', _p.id, 'result', _code,
+                                      'guest_id', _b.guest_id, 'device', _client->>'device',
+                                      'timezone', _client->>'timezone'),
+          NULLIF(_client->>'ip',''), NULLIF(_client->>'user_agent',''));
+
+  RETURN jsonb_build_object(
+    'ok', _ok, 'code', _code, 'message', _msg,
+    'pass', jsonb_build_object('id', _p.id, 'token', _p.token, 'status', _p.status,
+                               'issued_at', _p.issued_at, 'expires_at', _p.expires_at,
+                               'used_at', _p.used_at, 'scan_count', _p.scan_count + 1),
+    'reservation', jsonb_build_object('id', _b.id, 'reference', _b.reference, 'status', _b.status,
+                                      'guest_name', _b.guest_name, 'guest_email', _b.guest_email,
+                                      'check_in', _b.check_in, 'check_out', _b.check_out,
+                                      'nights', _b.nights, 'adults', _b.adults, 'children', _b.children,
+                                      'room_name', COALESCE(_r.name,'Room'), 'unit_label', _unit,
+                                      'payment_status', _b.payment_status,
+                                      'balance_amount', _b.balance_amount, 'currency', _b.currency,
+                                      'checked_in_at', _b.checked_in_at,
+                                      'special_requests', COALESCE(_a.special_requests, _b.special_requests),
+                                      'estimated_arrival_time', _a.estimated_arrival_time),
+    'checkin', jsonb_build_object('id', _c.id, 'status', _c.status, 'submitted_at', _c.submitted_at),
+    'documents', COALESCE(_docs, '{}'::jsonb),
+    'eligibility', _e);
+END $function$
+
+
+CREATE OR REPLACE FUNCTION public.checkin_ensure_for_booking(_booking_id uuid)
+ RETURNS TABLE(id uuid, token text, status checkin_status, expires_at timestamp with time zone)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE _b public.bookings%ROWTYPE;
+BEGIN
+  SELECT * INTO _b FROM public.bookings WHERE bookings.id = _booking_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Reservation not found'; END IF;
+  IF auth.uid() IS NULL
+     OR NOT public.staynas_user_has_property_access(auth.uid(), _b.property_id)
+     OR NOT public.staynas_current_user_has_property_role(_b.property_id, ARRAY['owner','manager','reception']::public.app_role[]) THEN
+    RAISE EXCEPTION 'Forbidden';
+  END IF;
+
+  INSERT INTO public.guest_checkins (booking_id, guest_id, expires_at)
+  VALUES (_b.id, _b.guest_id, (_b.check_out + interval '1 day')::timestamptz)
+  ON CONFLICT (booking_id) DO UPDATE SET updated_at = now();
+
+  RETURN QUERY
+    SELECT c.id, c.token, c.status, c.expires_at
+      FROM public.guest_checkins c WHERE c.booking_id = _b.id;
+END $function$
+
+
+CREATE OR REPLACE FUNCTION public.staynas_enforce_booking_lifecycle()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_actor uuid := auth.uid();
+begin
+  if new.status is not distinct from old.status then
+    return new;
+  end if;
+
+  if new.status::text = 'confirmed' then
+    if old.status::text <> 'pending'
+      or (v_actor is not null and not public.staynas_current_user_has_property_role(new.property_id, array['owner','manager','admin','reservations','reception']::public.app_role[])) then
+      raise exception using errcode = '42501', message = 'Only authorized reservations staff may confirm a pending booking';
+    end if;
+    new.confirmed_at := coalesce(new.confirmed_at, now());
+  elsif new.status::text = 'checked_in' then
+    if old.status::text <> 'confirmed'
+      or (v_actor is not null and not public.staynas_current_user_has_property_role(new.property_id, array['owner','manager','admin','reception']::public.app_role[])) then
+      raise exception using errcode = '42501', message = 'Only front-desk staff may check in a confirmed booking';
+    end if;
+    new.checked_in_at := coalesce(new.checked_in_at, now());
+  elsif new.status::text = 'completed' then
+    if old.status::text <> 'checked_in'
+      or (v_actor is not null and not public.staynas_current_user_has_property_role(new.property_id, array['owner','manager','admin','reception']::public.app_role[])) then
+      raise exception using errcode = '42501', message = 'A booking must be checked in by authorized front-desk staff before completion';
+    end if;
+    if exists (select 1 from public.room_states rs where rs.room_id = old.room_id)
+      and not exists (
+        select 1 from public.room_states rs
+        where rs.booking_id = old.id and rs.room_id = old.room_id and rs.state = 'occupied'
+      ) then
+      raise exception using errcode = '55000', message = 'Checkout requires the assigned physical room to be in occupied state';
+    end if;
+  elsif new.status::text = 'cancelled' then
+    if old.status::text not in ('pending','confirmed')
+      or (v_actor is not null and not public.staynas_current_user_has_property_role(new.property_id, array['owner','manager','admin','reservations']::public.app_role[])) then
+      raise exception using errcode = '42501', message = 'Cancellation is permitted only for pending or confirmed bookings by reservations managers';
+    end if;
+    new.cancelled_at := coalesce(new.cancelled_at, now());
+  elsif new.status::text = 'no_show' then
+    if old.status::text <> 'confirmed'
+      or (now() at time zone coalesce((select sp.timezone from public.staynas_properties sp where sp.id = old.property_id), 'Africa/Dar_es_Salaam'))::date <= old.check_in
+      or (v_actor is not null and not public.staynas_current_user_has_property_role(new.property_id, array['owner','manager','admin','reservations']::public.app_role[])) then
+      raise exception using errcode = '42501', message = 'No-show requires an unarrived confirmed booking after its check-in date and reservations authorization';
+    end if;
+  else
+    raise exception using errcode = '22023', message = 'Unsupported booking lifecycle transition';
+  end if;
+
+  return new;
+end;
+$function$
+
+
+
 commit;
