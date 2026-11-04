@@ -41,24 +41,18 @@ function AuthPage() {
         return;
       }
 
-      // Accept either a legacy global staff role or an active property-scoped membership.
-      const [{ data: roles, error: roleError }, { data: properties, error: propertyError }] =
-        await Promise.all([
-          supabase.rpc("current_user_roles"),
-          staynasRpc(supabase).rpc("staynas_list_properties"),
-        ]);
-
-      const hasLegacyStaffRole = !roleError && Boolean(roles?.length);
+      // Staff sign-in requires at least one property-scoped membership.
+      // Legacy global roles are not a tenant access credential.
+      const { data: properties, error: propertyError } =
+        await staynasRpc(supabase).rpc("staynas_list_properties");
       const accessibleProperties = !propertyError && Array.isArray(properties) ? properties : [];
 
-      if (!hasLegacyStaffRole && accessibleProperties.length === 0) {
+      if (propertyError || accessibleProperties.length === 0) {
         await supabase.auth.signOut();
         toast.error(
-          roleError
-            ? "Could not verify staff roles. Please try again."
-            : propertyError
-              ? "Could not load your property access. Please try again."
-              : "Your account does not have StayNas staff access.",
+          propertyError
+            ? "Could not load your property access. Please try again."
+            : "Your account does not have StayNas property access.",
         );
         return;
       }
@@ -82,15 +76,15 @@ function AuthPage() {
         return;
       }
 
-      // Route housekeeping-only staff directly to their operational workspace.
-      const normalizedRoles = (Array.isArray(roles) ? roles : []).map((entry: unknown) => {
-        if (typeof entry === "string") return entry.toLowerCase();
-        if (entry && typeof entry === "object") {
-          const record = entry as Record<string, unknown>;
-          return String(record.role ?? record.name ?? record.app_role ?? "").toLowerCase();
-        }
-        return "";
-      });
+      // Resolve all active roles from the selected property's membership.
+      const { data: propertyRoles, error: propertyRolesError } =
+        await staynasRpc(supabase).rpc("staynas_current_property_roles");
+      if (propertyRolesError) {
+        await supabase.auth.signOut();
+        toast.error("Could not verify your property role. Please try again.");
+        return;
+      }
+      const normalizedRoles = (propertyRoles ?? []).map((role) => String(role).toLowerCase());
       const housekeepingOnly =
         normalizedRoles.includes("housekeeping") &&
         !normalizedRoles.some((role: string) =>
