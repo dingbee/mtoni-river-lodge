@@ -212,6 +212,55 @@ BEGIN
 END;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.get_booking_hold_for_property(_property_id uuid, _hold_id uuid, _session_id text)
+ RETURNS TABLE(id uuid, room_id uuid, check_in date, check_out date, expires_at timestamp with time zone, status text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'pg_catalog, public, pg_temp'
+AS $function$
+ SELECT h.id,h.room_id,h.check_in,h.check_out,h.expires_at,h.status::text
+ FROM public.booking_holds h JOIN public.rooms r ON r.id=h.room_id
+ WHERE _property_id IS NOT NULL AND r.property_id=_property_id AND public.staynas_property_is_operational(r.property_id) AND h.id=_hold_id
+   AND _session_id IS NOT NULL AND length(trim(_session_id))>=6 AND h.session_id=_session_id
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.get_room_availability_for_property(_property_id uuid, _check_in date, _check_out date)
+ RETURNS TABLE(room_id uuid, slug text, name text, base_price numeric, currency text, capacity_adults integer, capacity_children integer, max_occupancy integer, nights integer, nightly_total numeric, min_available integer, is_available boolean)
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'pg_catalog, public, pg_temp'
+AS $function$
+DECLARE _nights integer;
+BEGIN
+  IF _property_id IS NULL THEN RAISE EXCEPTION 'property_id is required'; END IF;
+  IF _check_out <= _check_in THEN RAISE EXCEPTION 'check_out must be after check_in'; END IF;
+  IF NOT public.staynas_property_is_operational(_property_id) THEN
+    RAISE EXCEPTION 'Property not found or inactive';
+  END IF;
+  _nights := _check_out - _check_in;
+  RETURN QUERY
+  WITH date_range AS (
+    SELECT generate_series(_check_in, _check_out - interval '1 day', interval '1 day')::date d
+  ), per_night AS (
+    SELECT r.id room_id, dr.d, COALESCE(i.available_units,r.total_units) units,
+      COALESCE(i.is_blocked,false) blocked, COALESCE(i.price_override,r.base_price) rate,
+      (SELECT count(*) FROM public.booking_holds h WHERE h.room_id=r.id AND h.status='active'
+        AND h.expires_at>now() AND h.check_in<=dr.d AND h.check_out>dr.d) hold_count
+    FROM public.rooms r CROSS JOIN date_range dr
+    LEFT JOIN public.room_inventory i ON i.room_id=r.id AND i.date=dr.d
+    WHERE r.status='active' AND r.property_id=_property_id
+  )
+  SELECT r.id,r.slug,r.name,r.base_price,r.currency,r.capacity_adults,r.capacity_children,r.max_occupancy,
+    _nights,COALESCE(sum(pn.rate),0)::numeric,
+    COALESCE(min(GREATEST(pn.units-pn.hold_count,0)),0)::integer,
+    (count(*) FILTER (WHERE pn.blocked OR pn.units-pn.hold_count<=0)=0)
+  FROM public.rooms r JOIN per_night pn ON pn.room_id=r.id
+  WHERE r.status='active' AND r.property_id=_property_id
+  GROUP BY r.id;
+END $function$
+
+
 -- Folio access is always anchored to the booking's owning property. A caller
 -- must have an allowed role in that same active property.
 create or replace function public.staynas_current_user_has_property_role(
