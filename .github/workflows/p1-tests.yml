@@ -30,4 +30,5 @@ jobs:
       - name: TypeScript verification
         run: bunx tsc --noEmit
       - name: Finance changed-file lint
-        run: bunx eslint src/domains/finance/finance.functions.ts src/domains/finance/payment-contract.ts src/domains/finance/payment-contract.test.ts src/lib/finance-rpc.ts src/routes/_authenticated.admin.finance.payments.tsx src/lib/staff-reservations.functions.ts src/components/os/reservations/NewReservationDialog.tsx src/lib/payment-finalize.server.ts --rule 'prettier/prettier: off'
+        run: >-
+          bunx eslint src/domains/finance/finance.functions.ts src/domains/finance/payment-contract.ts src/domains/finance/payment-contract.test.ts src/lib/finance-rpc.ts src/routes/_authenticated.admin.finance.payments.tsx src/lib/staff-reservations.functions.ts src/components/os/reservations/NewReservationDialog.tsx src/lib/payment-finalize.server.ts --rule 'prettier/prettier: off'
