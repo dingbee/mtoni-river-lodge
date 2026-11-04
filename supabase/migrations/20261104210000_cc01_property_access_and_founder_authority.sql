@@ -3031,6 +3031,17 @@ ALTER FUNCTION public.housekeeping_mark_notification_read(uuid)
 ALTER FUNCTION public.enforce_room_category_property()
   SET search_path = pg_catalog, public, pg_temp;
 
+-- Trigger-only SECURITY DEFINER functions are not PostgREST RPC surfaces.
+-- Remove inherited direct grants while preserving automatic trigger execution.
+REVOKE ALL ON FUNCTION public.bookings_link_guest() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.hk_exception_events() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.hk_inspection_events() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.hk_room_state_events() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.hk_task_events() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_enforce_hold_property() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_enforce_ops_task_property() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_set_guest_child_property() FROM PUBLIC, anon, authenticated;
+
 -- Prevent authenticated clients from probing legacy global role assignments.
 -- The remaining restaurant platform-admin SECURITY DEFINER routine executes as
 -- its owner and retains its internal compatibility check.
