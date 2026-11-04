@@ -75,20 +75,17 @@ export const updateBookingStatus = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({
       id: z.string().uuid(),
-      status: z.enum(["pending", "confirmed", "cancelled", "completed", "no_show"]),
+      status: z.enum(["confirmed", "checked_in", "cancelled", "completed", "no_show"]),
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     await assertStaff(context.supabase, context.userId);
-    const patch: {
-      status: typeof data.status;
-      confirmed_at?: string;
-      cancelled_at?: string;
-    } = { status: data.status };
-    if (data.status === "confirmed") patch.confirmed_at = new Date().toISOString();
-    if (data.status === "cancelled") patch.cancelled_at = new Date().toISOString();
-    const { error } = await context.supabase.from("bookings").update(patch).eq("id", data.id);
+    const { data: result, error } = await context.supabase.rpc("staynas_transition_booking", {
+      _booking_id: data.id,
+      _target_status: data.status,
+      _notes: null,
+    });
     if (error) throw new Error(error.message);
-    return { ok: true };
+    return result ?? { ok: true };
   });
