@@ -16,7 +16,7 @@ export const updateGuestTaskExecution = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     const { data: result, error } = await context.supabase.rpc("staynas_update_guest_task_execution", {
-      _task_id: data.task_id, _action: data.action, _assignee_id: data.assignee_id ?? null, _note: data.note ?? null,
+      _task_id: data.task_id, _action: data.action, _assignee_id: data.assignee_id ?? undefined, _note: data.note ?? undefined,
     });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
@@ -36,7 +36,7 @@ export const updateGuestRequestStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.concierge");
     const { data: result, error } = await context.supabase.rpc("staynas_update_guest_request_status", {
-      _request_id: data.request_id, _status: data.status, _note: data.note ?? null,
+      _request_id: data.request_id, _status: data.status, _note: data.note ?? undefined,
     });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
