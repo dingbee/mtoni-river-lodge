@@ -45,12 +45,17 @@ async function authorise(token: string, sessionId: string): Promise<CheckInConte
   if (Date.parse(data.expires_at) <= Date.now()) {
     throw new DocumentRefusal("expired", "This check-in link has expired");
   }
-  if (data.session_id && data.session_id !== sessionId) {
-    throw new DocumentRefusal("session", "Your check-in session is no longer active");
+  // Document operations are available only inside the active, verified wizard
+  // session. A token by itself is not sufficient authorisation.
+  if (!data.session_id || data.session_id !== sessionId) {
+    throw new DocumentRefusal("session", "Verify your reservation before managing documents.");
   }
   const last = Date.parse(data.last_activity_at ?? "") || 0;
-  if (last && Date.now() - last > SESSION_TIMEOUT_MS) {
+  if (!last || Date.now() - last > SESSION_TIMEOUT_MS) {
     throw new DocumentRefusal("session", "Your check-in session timed out. Please verify again.");
+  }
+  if (data.status !== "in_progress") {
+    throw new DocumentRefusal("locked", "Documents can only be changed during an active check-in.");
   }
   const { data: booking, error: bookingError } = await supabaseAdmin
     .from("bookings")
@@ -59,6 +64,11 @@ async function authorise(token: string, sessionId: string): Promise<CheckInConte
     .maybeSingle();
   if (bookingError || !booking?.property_id) {
     throw new DocumentRefusal("invalid", "Unable to resolve the property for this check-in.");
+  }
+  const { data: eligibility, error: eligibilityError } = await supabaseAdmin
+    .rpc("checkin_eligibility", { _booking_id: data.booking_id });
+  if (eligibilityError || !eligibility?.ok) {
+    throw new DocumentRefusal("ineligible", "This reservation is no longer eligible for online check-in.");
   }
   return { id: data.id, booking_id: data.booking_id, guest_id: data.guest_id, property_id: booking.property_id };
 }
