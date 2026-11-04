@@ -10,7 +10,7 @@ async function assertStaff(supabase: any, userId: string) {
 }
 
 const listSchema = z.object({
-  status: z.enum(["all", "pending", "confirmed", "cancelled", "completed", "no_show"]).default("all"),
+  status: z.enum(["all", "pending", "confirmed", "checked_in", "cancelled", "completed", "no_show"]).default("all"),
   paymentStatus: z.enum(["all", "unpaid", "deposit_paid", "paid", "refunded"]).default("all"),
   from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
