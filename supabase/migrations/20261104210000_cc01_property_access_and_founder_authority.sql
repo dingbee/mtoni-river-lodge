@@ -2828,4 +2828,21 @@ END;
 $function$
 
 
+
+-- Storage objects for guest documents inherit the exact document property
+-- and staff roles; no global staff role can read another tenant's files.
+drop policy if exists "guest documents property staff read" on storage.objects;
+create policy "guest documents property staff read" on storage.objects
+  for select to authenticated
+  using (
+    bucket_id = 'guest-documents'
+    and exists (
+      select 1 from public.guest_documents d
+      where d.storage_path = objects.name
+        and d.property_id is not null
+        and public.staynas_user_has_property_access(auth.uid(), d.property_id)
+        and public.staynas_current_user_has_property_role(d.property_id, ARRAY['owner','manager','reception']::public.app_role[])
+    )
+  );
+
 commit;
