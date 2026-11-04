@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { FounderAdminGate } from "@/components/os/FounderAdminGate";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -25,7 +26,7 @@ import {
 
 export const Route = createFileRoute("/_authenticated/admin/marketing/seo")({
   head: () => ({ meta: [{ title: "SEO Centre — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
-  component: SeoCentre,
+  component: SeoCentrePage
 });
 
 const SCHEMA_OPTIONS = [
@@ -99,6 +100,10 @@ function Counter({ value, min, max }: { value: string; min: number; max: number 
   const len = value.length;
   const tone = len === 0 ? "text-muted-foreground" : len < min || len > max ? "text-[color:var(--os-warn)]" : "text-[color:var(--os-success)]";
   return <span className={`text-xs ${tone}`}>{len} chars · target {min}–{max}</span>;
+}
+
+function SeoCentrePage() {
+  return <FounderAdminGate description="SEO overrides are currently stored in a shared platform-wide catalogue."><SeoCentre /></FounderAdminGate>;
 }
 
 function SeoCentre() {
