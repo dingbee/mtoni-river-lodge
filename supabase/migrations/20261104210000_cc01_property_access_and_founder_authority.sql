@@ -1627,4 +1627,51 @@ $function$
 
 
 
+
+-- Public booking-hold release remains session-bound; staff override is scoped
+-- to the exact property. Retire the old hard-coded Mtoni property id.
+CREATE OR REPLACE FUNCTION public.release_booking_hold_for_property(_property_id uuid, _hold_id uuid, _session_id text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE _h public.booking_holds%ROWTYPE;
+BEGIN
+ IF _property_id IS NULL THEN RAISE EXCEPTION 'property_id is required'; END IF;
+ SELECT h.* INTO _h FROM public.booking_holds h JOIN public.rooms r ON r.id=h.room_id
+ WHERE h.id=_hold_id AND r.property_id=_property_id FOR UPDATE OF h;
+ IF NOT FOUND OR _h.status<>'active' THEN RETURN false; END IF;
+ IF _session_id IS NULL OR (_h.session_id<>_session_id AND NOT public.staynas_current_user_has_property_role(_property_id, ARRAY['owner','manager','reception','reservations']::public.app_role[])) THEN
+   RAISE EXCEPTION 'Not authorized to release this hold';
+ END IF;
+ UPDATE public.booking_holds SET status='released',updated_at=now() WHERE id=_hold_id;
+ PERFORM public.log_calendar_event('hold.released',_h.room_id,NULL,_h.id,_h.check_in,_h.check_out,jsonb_build_object('property_id',_property_id));
+ RETURN true;
+END $function$
+
+
+CREATE OR REPLACE FUNCTION public.release_booking_hold(_hold_id uuid, _session_id text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+  _property_id uuid;
+BEGIN
+  SELECT r.property_id INTO _property_id
+  FROM public.booking_holds h
+  JOIN public.rooms r ON r.id = h.room_id
+  WHERE h.id = _hold_id;
+
+  IF NOT FOUND OR _property_id IS NULL THEN
+    RETURN false;
+  END IF;
+
+  RETURN public.release_booking_hold_for_property(_property_id, _hold_id, _session_id);
+END;
+$function$
+
+
 commit;
