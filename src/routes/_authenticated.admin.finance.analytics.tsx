@@ -51,12 +51,12 @@ function Analytics() {
     return new Date(Date.UTC(d.getUTCFullYear(), 0, 1)).toISOString().slice(0, 10);
   });
   const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ["finance.analytics", from, to],
     queryFn: () => fn({ data: { from, to } }),
   });
 
-  const { data: ledgerData, isLoading: ledgerLoading } = useQuery({
+  const { data: ledgerData, isLoading: ledgerLoading, error: ledgerError } = useQuery({
     queryKey: ["finance.revenue-ledger", from, to],
     queryFn: () => ledgerFn({ data: { from, to } }),
   });
@@ -65,10 +65,10 @@ function Analytics() {
     <div className="space-y-6">
       <PageHeader
         title="Revenue Analytics"
-        description="Deep-dive reporting on revenue, guests and sources."
+        description="Cash performance from the payment ledger, with booking value reported separately."
         actions={
           data ? (
-            <Button size="sm" variant="outline" onClick={() => downloadCsv(`analytics-${from}-${to}.csv`, toCsv(data.byMonth as never))}>
+            <Button size="sm" variant="outline" onClick={() => downloadCsv(`booked-value-analytics-${from}-${to}.csv`, toCsv(data.byMonth as never))}>
               <Download className="mr-1 h-3 w-3" /> Export CSV
             </Button>
           ) : null
@@ -83,6 +83,8 @@ function Analytics() {
 
       {isLoading || !data || ledgerLoading || !ledgerData ? (
         <LoadingState />
+      ) : error || ledgerError ? (
+        <SectionCard title="Analytics unavailable"><p className="text-sm text-destructive">The analytics report could not be loaded. Refresh or contact a StayNas administrator.</p></SectionCard>
       ) : (
         <>
           <SectionCard title="Cash Performance" description="Cash movements from the payment transaction ledger. Booked value is separate; recognised revenue requires an approved accounting policy.">
@@ -107,12 +109,12 @@ function Analytics() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <StatCard label="Cancellations" value={data.cancellationsCount} />
             {data.currencyBreakdown.map((item) => (
-              <StatCard key={item.currency} label={`Revenue · ${item.currency}`} value={money(item.totalRevenue, item.currency)} hint={`Avg. spend/stay ${money(item.avgSpendPerStay, item.currency)} · LTV ${money(item.avgLifetimeValue, item.currency)} · cancellations ${money(item.cancellationImpact, item.currency)}`} />
+              <StatCard key={item.currency} label={`Booked value · ${item.currency}`} value={money(item.totalRevenue, item.currency)} hint={`Avg. spend/stay ${money(item.avgSpendPerStay, item.currency)} · LTV ${money(item.avgLifetimeValue, item.currency)} · cancellations ${money(item.cancellationImpact, item.currency)}`} />
             ))}
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <SectionCard title="Revenue by Month">
+            <SectionCard title="Booked Value by Month">
               <div className="space-y-2 text-sm">
                 {data.byMonth.map((r) => (
                   <div key={`${r.currency}-${r.month}`} className="flex justify-between">
@@ -122,7 +124,7 @@ function Analytics() {
                 ))}
               </div>
             </SectionCard>
-            <SectionCard title="Booking Source Performance">
+            <SectionCard title="Booking Source — Booked Value">
               <div className="space-y-2 text-sm">
                 {data.bySource.map((r) => (
                   <div key={`${r.currency}-${r.source}`} className="flex justify-between">
@@ -135,7 +137,7 @@ function Analytics() {
                 ))}
               </div>
             </SectionCard>
-            <SectionCard title="Top Guests by Spend">
+            <SectionCard title="Top Guests by Booked Value">
               <div className="space-y-2 text-sm">
                 {data.topGuests.map((g) => (
                   <div key={`${g.currency}-${g.key}`} className="flex justify-between">
