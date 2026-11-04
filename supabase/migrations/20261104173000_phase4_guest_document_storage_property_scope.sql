@@ -32,8 +32,16 @@ COMMENT ON POLICY "guest documents property staff read" ON storage.objects IS
 DROP POLICY IF EXISTS "Guest PII staff manage guest documents" ON public.guest_documents;
 DROP POLICY IF EXISTS "Staff manage guest documents" ON public.guest_documents;
 DROP POLICY IF EXISTS guest_documents_property_staff_read ON public.guest_documents;
-CREATE POLICY guest_documents_property_staff_manage
-  ON public.guest_documents FOR ALL TO authenticated
+DROP POLICY IF EXISTS guest_documents_property_staff_manage ON public.guest_documents;
+CREATE POLICY guest_documents_property_staff_read
+  ON public.guest_documents FOR SELECT TO authenticated
+  USING (
+    public.is_any_staff(auth.uid())
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','reception']::public.app_role[])
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+  );
+CREATE POLICY guest_documents_property_staff_update
+  ON public.guest_documents FOR UPDATE TO authenticated
   USING (
     public.is_any_staff(auth.uid())
     AND public.has_any_role(auth.uid(), ARRAY['owner','manager','reception']::public.app_role[])
@@ -44,12 +52,26 @@ CREATE POLICY guest_documents_property_staff_manage
     AND public.has_any_role(auth.uid(), ARRAY['owner','manager','reception']::public.app_role[])
     AND public.staynas_user_has_property_access(auth.uid(), property_id)
   );
+REVOKE INSERT, DELETE ON public.guest_documents FROM authenticated;
+GRANT SELECT, UPDATE ON public.guest_documents TO authenticated;
 
 DROP POLICY IF EXISTS "Guest PII staff manage guest checkins" ON public.guest_checkins;
 DROP POLICY IF EXISTS "Staff manage guest checkins" ON public.guest_checkins;
 DROP POLICY IF EXISTS guest_checkins_property_staff_read ON public.guest_checkins;
-CREATE POLICY guest_checkins_property_staff_manage
-  ON public.guest_checkins FOR ALL TO authenticated
+DROP POLICY IF EXISTS guest_checkins_property_staff_manage ON public.guest_checkins;
+CREATE POLICY guest_checkins_property_staff_read
+  ON public.guest_checkins FOR SELECT TO authenticated
+  USING (
+    public.is_any_staff(auth.uid())
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','reception']::public.app_role[])
+    AND EXISTS (
+      SELECT 1 FROM public.bookings b
+      WHERE b.id = guest_checkins.booking_id
+        AND public.staynas_user_has_property_access(auth.uid(), b.property_id)
+    )
+  );
+CREATE POLICY guest_checkins_property_staff_update
+  ON public.guest_checkins FOR UPDATE TO authenticated
   USING (
     public.is_any_staff(auth.uid())
     AND public.has_any_role(auth.uid(), ARRAY['owner','manager','reception']::public.app_role[])
@@ -68,6 +90,8 @@ CREATE POLICY guest_checkins_property_staff_manage
         AND public.staynas_user_has_property_access(auth.uid(), b.property_id)
     )
   );
+REVOKE INSERT, DELETE ON public.guest_checkins FROM authenticated;
+GRANT SELECT, UPDATE ON public.guest_checkins TO authenticated;
 
 DROP POLICY IF EXISTS "Staff read checkin activity" ON public.guest_checkin_activity;
 DROP POLICY IF EXISTS guest_checkin_activity_property_staff_read ON public.guest_checkin_activity;
@@ -85,8 +109,20 @@ CREATE POLICY guest_checkin_activity_property_staff_read
 
 DROP POLICY IF EXISTS "Ops staff manage arrival information" ON public.arrival_information;
 DROP POLICY IF EXISTS "Staff manage arrival information" ON public.arrival_information;
-CREATE POLICY arrival_information_property_staff_manage
-  ON public.arrival_information FOR ALL TO authenticated
+DROP POLICY IF EXISTS arrival_information_property_staff_manage ON public.arrival_information;
+CREATE POLICY arrival_information_property_staff_read
+  ON public.arrival_information FOR SELECT TO authenticated
+  USING (
+    public.is_any_staff(auth.uid())
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','reception']::public.app_role[])
+    AND EXISTS (
+      SELECT 1 FROM public.bookings b
+      WHERE b.id = arrival_information.booking_id
+        AND public.staynas_user_has_property_access(auth.uid(), b.property_id)
+    )
+  );
+CREATE POLICY arrival_information_property_staff_update
+  ON public.arrival_information FOR UPDATE TO authenticated
   USING (
     public.is_any_staff(auth.uid())
     AND public.has_any_role(auth.uid(), ARRAY['owner','manager','reception']::public.app_role[])
@@ -105,6 +141,8 @@ CREATE POLICY arrival_information_property_staff_manage
         AND public.staynas_user_has_property_access(auth.uid(), b.property_id)
     )
   );
+REVOKE INSERT, DELETE ON public.arrival_information FROM authenticated;
+GRANT SELECT, UPDATE ON public.arrival_information TO authenticated;
 
 DROP POLICY IF EXISTS "Staff can view arrival passes" ON public.arrival_passes;
 CREATE POLICY arrival_passes_property_staff_read
