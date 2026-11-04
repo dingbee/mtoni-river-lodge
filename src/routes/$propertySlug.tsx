@@ -127,17 +127,23 @@ function PublicPropertyBookingPage() {
     return <main className="flex min-h-screen items-center justify-center bg-[#f5f4ef] px-5"><div className="max-w-md rounded-[2rem] border border-stone-200 bg-white p-8 text-center shadow-sm"><h1 className="text-2xl font-semibold text-slate-900">Booking page unavailable</h1><p className="mt-3 text-sm text-slate-600">{pageError || "This property is not currently published on StayNas."}</p><a href="/" className="mt-6 inline-flex rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white">StayNas home</a></div></main>;
   }
 
-  const { property, rooms } = propertyData;
+  const { property, rooms, branding } = propertyData;
   const currency = property.currency || "USD";
+  const brandStyle = {
+    "--direct-primary": branding.primaryColor,
+    "--direct-secondary": branding.secondaryColor,
+    "--direct-background": branding.backgroundColor,
+    "--direct-text": branding.textColor,
+  } as React.CSSProperties;
   const selectedTotal = selectedRoom ? selectedRoom.nightly_total : 0;
 
   return (
-    <main className="min-h-screen bg-[#f5f4ef] pb-28 text-[#202820] selection:bg-[#dce8df]">
+    <main style={brandStyle} className="min-h-screen bg-[var(--direct-background)] pb-28 text-[var(--direct-text)] selection:bg-[#dce8df]">
       <header className="relative z-10 border-b border-black/[0.06] bg-[#f5f4ef]/95">
         <div className="mx-auto flex h-[68px] max-w-7xl items-center justify-between px-5 sm:px-8">
           <a href="/" className="flex items-center gap-2.5" aria-label="StayNas home">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1d3028] text-sm font-semibold tracking-tight text-white">S</span>
-            <span className="text-[17px] font-semibold tracking-[-0.04em] text-[#1d3028]">staynas<span className="ml-1.5 text-[10px] font-medium uppercase tracking-[0.2em] text-[#718078]">direct</span></span>
+            {branding.logoUrl ? <img src={branding.logoUrl} alt={property.name} className="h-9 max-w-32 object-contain" /> : <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--direct-primary)] text-sm font-semibold tracking-tight text-white">S</span>}
+            <span className="text-[17px] font-semibold tracking-[-0.04em] text-[var(--direct-primary)]">{branding.logoUrl ? property.name : <>staynas<span className="ml-1.5 text-[10px] font-medium uppercase tracking-[0.2em] text-[#718078]">direct</span></>}</span>
           </a>
           <div className="flex items-center gap-2 text-[11px] font-medium tracking-wide text-[#68766d]"><ShieldCheck className="h-4 w-4"/><span className="hidden sm:inline">BOOK DIRECT · BOOK SECURE</span><span className="sm:hidden">BOOK DIRECT</span></div>
         </div>
@@ -145,12 +151,12 @@ function PublicPropertyBookingPage() {
 
       <section className="mx-auto max-w-7xl px-4 pt-4 sm:px-8 sm:pt-7">
         <div className="relative isolate flex min-h-[290px] items-end overflow-hidden rounded-[1.65rem] bg-[#293b31] sm:min-h-[390px] sm:rounded-[2rem]">
-          <img src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=2200&q=88" alt="Relaxed boutique hospitality setting" className="absolute inset-0 -z-20 h-full w-full object-cover" />
+          <img src={branding.heroImageUrl || "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=2200&q=88"} alt="Relaxed boutique hospitality setting" className="absolute inset-0 -z-20 h-full w-full object-cover" />
           <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#101d18]/80 via-[#15231c]/45 to-[#15231c]/10"/>
           <div className="max-w-2xl px-6 pb-8 pt-16 text-white sm:px-10 sm:pb-11">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#d8c9a7] sm:text-xs">A more personal way to stay</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--direct-secondary)] sm:text-xs">{branding.tagline || "A more personal way to stay"}</p>
             <h1 className="mt-3 max-w-xl text-[2.35rem] font-medium leading-[1.05] tracking-[-0.055em] sm:text-6xl">{property.name}</h1>
-            <p className="mt-3 max-w-md text-sm leading-6 text-white/85 sm:mt-4 sm:text-base">Find your dates. Choose your room. Book directly.</p>
+            <p className="mt-3 max-w-md text-sm leading-6 text-white/85 sm:mt-4 sm:text-base">{branding.description || "Find your dates. Choose your room. Book directly."}</p>
             <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/15 px-3 py-1.5 text-[10px] font-medium tracking-wide text-white/90 backdrop-blur-sm"><Globe2 className="h-3.5 w-3.5"/> DIRECT RESERVATIONS · POWERED BY STAYNAS</div>
           </div>
           <div className="absolute right-5 top-5 hidden rounded-full border border-white/25 bg-black/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur-sm sm:block">Nolmark UAT experience</div>
@@ -177,7 +183,7 @@ function PublicPropertyBookingPage() {
                 <button type="button" aria-label="Add guest" disabled={guests >= 8} onClick={() => { setGuests((value) => Math.min(8, value + 1)); setHasSearched(false); }} className="flex h-7 w-7 items-center justify-center rounded-full border border-[#dedfd7] text-[#526257] disabled:opacity-30"><Plus className="h-3.5 w-3.5"/></button>
               </div>
             </div>
-            <button type="button" disabled={nights < 1 || availabilityMutation.isPending} onClick={runAvailability} className="col-span-2 flex h-[48px] items-center justify-center gap-2 rounded-xl bg-[#1e352a] px-5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#294536] disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1">
+            <button type="button" disabled={nights < 1 || availabilityMutation.isPending} onClick={runAvailability} className="col-span-2 flex h-[48px] items-center justify-center gap-2 rounded-xl bg-[var(--direct-primary)] px-5 text-[13px] font-semibold text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1">
               {availabilityMutation.isPending ? "Checking…" : "Find a room"}<ArrowRight className="h-4 w-4"/>
             </button>
           </div>
@@ -214,7 +220,7 @@ function PublicPropertyBookingPage() {
                 </div>
                 {live ? <div className="mt-4 border-t border-[#f0f0eb] pt-3">
                   <div className="flex items-center justify-between gap-2"><span className="text-[10px] font-medium text-[#4d7059]">{live.min_available} available</span><span className="text-xs font-semibold text-[#26382d]">{money(live.nightly_total, live.currency)} <span className="font-normal text-[#899188]">stay total</span></span></div>
-                  <button type="button" onClick={() => { setSelectedRoom(live); setConfirmation(null); window.setTimeout(() => document.getElementById("guest-details")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80); }} className={`mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-xs font-semibold transition ${isSelected ? "bg-[#e5eee6] text-[#31523b]" : "bg-[#1e352a] text-white hover:bg-[#294536]"}`}>{isSelected ? "Room selected" : "Choose this room"}<ArrowRight className="h-3.5 w-3.5"/></button>
+                  <button type="button" onClick={() => { setSelectedRoom(live); setConfirmation(null); window.setTimeout(() => document.getElementById("guest-details")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80); }} className={`mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-xs font-semibold transition ${isSelected ? "bg-[#e5eee6] text-[#31523b]" : "bg-[var(--direct-primary)] text-white hover:opacity-90"}`}>{isSelected ? "Room selected" : "Choose this room"}<ArrowRight className="h-3.5 w-3.5"/></button>
                 </div> : notReturned ? <div className="mt-4 border-t border-[#f0f0eb] pt-3"><p className="text-xs text-[#8b7460]">Not available for these dates</p></div> : <p className="mt-4 border-t border-[#f0f0eb] pt-3 text-[10px] text-[#9a9f97]">Search dates to check availability</p>}
               </div>
             </article>;
@@ -245,12 +251,12 @@ function PublicPropertyBookingPage() {
         </section>}
       </section>
 
-      <footer className="border-t border-[#e7e5dd] bg-[#eeeee7] px-5 py-7 text-center"><p className="text-sm font-semibold tracking-tight text-[#314338]">staynas<span className="ml-1 text-[9px] font-medium uppercase tracking-[0.2em] text-[#879188]">direct</span></p><p className="mt-2 text-[10px] text-[#879188]">Property-owned reservations · Powered by StayNas</p><p className="mt-1 text-[9px] text-[#9aa198]">Nolmark UAT demonstration — sample inventory and rates.</p></footer>
+      <footer className="border-t border-[#e7e5dd] bg-[#eeeee7] px-5 py-7 text-center">{branding.logoUrl ? <img src={branding.logoUrl} alt={property.name} className="mx-auto h-8 max-w-32 object-contain"/> : <p className="text-sm font-semibold tracking-tight text-[#314338]">{property.name}</p>}{branding.showStayNasAttribution && <p className="mt-2 text-[10px] text-[#879188]">Property-owned reservations · Powered by StayNas</p>}<p className="mt-1 text-[9px] text-[#9aa198]">Nolmark UAT demonstration — sample inventory and rates.</p></footer>
 
       {!confirmation && <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#e6e4dc] bg-[#fafaf7]/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-lg sm:hidden">
         <div className="mx-auto flex max-w-lg items-center gap-3">
           <div className="min-w-0 flex-1"><p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#7d897f]">{selectedRoom ? "Selected room" : "Your stay"}</p><p className="truncate text-xs font-semibold text-[#29372e]">{selectedRoom ? money(selectedTotal, selectedRoom.currency) + " · " + selectedRoom.name : `${nights} nights · ${guests} guests`}</p></div>
-          <button type="button" onClick={() => selectedRoom ? document.getElementById("guest-details")?.scrollIntoView({ behavior: "smooth", block: "start" }) : runAvailability()} disabled={availabilityMutation.isPending || (selectedRoom === null && nights < 1)} className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#1e352a] px-5 text-xs font-semibold text-white disabled:opacity-50">{selectedRoom ? "Continue" : availabilityMutation.isPending ? "Checking…" : "Find a room"}<ArrowRight className="h-3.5 w-3.5"/></button>
+          <button type="button" onClick={() => selectedRoom ? document.getElementById("guest-details")?.scrollIntoView({ behavior: "smooth", block: "start" }) : runAvailability()} disabled={availabilityMutation.isPending || (selectedRoom === null && nights < 1)} className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--direct-primary)] px-5 text-xs font-semibold text-white disabled:opacity-50">{selectedRoom ? "Continue" : availabilityMutation.isPending ? "Checking…" : "Find a room"}<ArrowRight className="h-3.5 w-3.5"/></button>
         </div>
       </div>}
     </main>
