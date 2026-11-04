@@ -154,7 +154,7 @@ export async function verifyAndFinalizePayment(opts: {
   }
 
   if (outcome === "reversed") {
-    const { data: reversalResult, error: reversalError } = await (supabaseAdmin as any).rpc(
+    const { data: reversalResult, error: reversalError } = await paymentFinalizeRpc.rpc(
       "finalize_pesapal_reversal",
       {
         _booking_id: booking.id,
