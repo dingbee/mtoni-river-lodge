@@ -42,6 +42,20 @@ Both booking calls completed without an exception when the finance trigger's tra
 
 The finance trigger `enforce_finance_rpc_booking_update()` rejects changes to booking financial fields unless `staynas.payment_rpc='on'` or the request role is `service_role`. The booking RPC does not establish that transaction-local context itself; the rollback test had to set it externally. The corrected booking RPC must set the narrowly scoped flag internally around its initial financial-field write, without exposing a client-settable bypass.
 
+
+## Application-side prerequisite remediation — partial
+
+The working branch now contains a narrowly scoped public-host resolver correction:
+
+- Authenticated StayNas callers continue to resolve their active property through `staynas_booking_property_id()`.
+- Anonymous guest calls read the server-observed HTTP `Host` header and call the hostname overload `staynas_booking_property_id(_hostname)`.
+- Host input is normalized and malformed values fail closed.
+- No client-supplied property UUID is used as authority.
+- Vitest coverage has been extended for hostname normalization and existing property-isolation guards.
+- A dedicated GitHub Actions workflow has been added to run the booking-property tests, build, TypeScript and lint checks on the DC-03R branch.
+
+This is not yet an end-to-end booking fix. The UAT property still lacks a verified hostname record, and the database-side booking RPC and inventory allocation defects remain unresolved. The new workflow commit is present, but a passing workflow run has not yet been observed. No Vercel deployment has been initiated.
+
 ## Required canonical allocation invariant
 
 For every room and stay date, all allocation paths must serialize on the same `room_inventory(room_id, date)` row lock and enforce:
