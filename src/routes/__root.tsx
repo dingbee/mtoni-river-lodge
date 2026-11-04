@@ -2,7 +2,6 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter } from "
 import { useRef, useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import appCss from "../styles.css?url";
-import { BackToTop } from "@/components/site/BackToTop";
 import { PWALifecycle } from "@/components/site/PWALifecycle";
 import { ConciergeWidget } from "@/components/site/ConciergeWidget";
 import { Toaster } from "@/components/ui/sonner";
@@ -27,4 +26,4 @@ export const Route = createRootRoute({
 });
 function RootShell({children}:{children:React.ReactNode}) { return <html lang="en" suppressHydrationWarning><head><HeadContent/></head><body>{children}<Scripts/></body></html>; }
 function GoogleAnalytics(){const router=useRouter();const prev=useRef<string|null>(null);useEffect(()=>router.subscribe("onResolved",()=>{const href=router.state.location.href;if(href!==prev.current){trackPageView(router.state.location.pathname,document.title);prev.current=href;}}),[router]);return null;}
-function RootComponent(){const router=useRouter();const pathname=router.state.location.pathname;const isAdmin=pathname.startsWith("/admin")||pathname.startsWith("/auth")||pathname.startsWith("/api");const [conciergeOpen,setConciergeOpen]=useState(false);return <QueryClientProvider client={fallbackQueryClient}><Outlet/><BackToTop conciergeOpen={conciergeOpen}/><GoogleAnalytics/><PWALifecycle/><Toaster position="top-center" richColors/>{!isAdmin&&<ConciergeWidget onOpenChange={setConciergeOpen}/>}</QueryClientProvider>;}
+function RootComponent(){const router=useRouter();const pathname=router.state.location.pathname;const isAdmin=pathname.startsWith("/admin")||pathname.startsWith("/auth")||pathname.startsWith("/api");const [conciergeOpen,setConciergeOpen]=useState(false);return <QueryClientProvider client={fallbackQueryClient}><Outlet/><GoogleAnalytics/><PWALifecycle/><Toaster position="top-center" richColors/>{!isAdmin&&<ConciergeWidget onOpenChange={setConciergeOpen}/>}</QueryClientProvider>;}

@@ -133,6 +133,13 @@ function SettingsHub() {
       </SectionCard>
 
       <SectionCard title="Property">
+        <div className="mb-4">
+          <Link to="/admin/settings/branding" className="group flex items-center gap-3 rounded-md border border-[color:var(--os-hairline)] bg-[color:var(--os-surface-2)] p-3 transition hover:border-[color:var(--os-ink-3)]">
+            <span className="flex size-9 flex-none items-center justify-center rounded-full bg-[color:var(--os-surface)] text-[color:var(--os-ink-2)]"><Palette className="size-4" aria-hidden /></span>
+            <div className="min-w-0 flex-1"><div className="text-sm text-[color:var(--os-ink)]">Property Branding</div><div className="mt-0.5 text-xs text-[color:var(--os-ink-3)]">Logo, colours, photography and guest-facing identity.</div></div>
+            <ArrowRight className="size-4 text-[color:var(--os-ink-3)]" aria-hidden />
+          </Link>
+        </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <PropertyFact label="Owner" value={organisation.name} hint="Current StayNas property owner for this project" />
           <PropertyFact label="Property" value={propertyContext.name} hint={`Property code: ${propertyContext.code}`} />
