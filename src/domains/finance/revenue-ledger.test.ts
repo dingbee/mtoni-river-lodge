@@ -20,7 +20,7 @@ describe("aggregateRevenueLedger", () => {
     ]);
     expect(rows.map((row) => [row.currency, row.cashCollected])).toEqual([["TZS", 100], ["USD", 20]]);
   });
-  it("ignores pending, failed, unknown, malformed and wrongly signed events", () => {
+  it("ignores pending, failed, unknown, malformed and wrongly signed collections", () => {
     expect(aggregateRevenueLedger([
       { event_type: "payment_pending", amount: 100, currency: "USD" },
       { event_type: "payment_failed", amount: 100, currency: "USD" },
@@ -28,7 +28,10 @@ describe("aggregateRevenueLedger", () => {
       { event_type: "manual_payment", amount: -5, currency: "USD" },
       { event_type: "refund", amount: 5, currency: "USD" },
       { event_type: "manual_payment", amount: "NaN", currency: "USD" },
-    ])).toEqual([]);
+    ])).toEqual([{
+      currency: "USD", cashCollected: 0, refunds: 5, providerReversals: 0,
+      netCashReceived: -5, successfulCollections: 0, refundEvents: 1, reversalEvents: 0,
+    }]);
   });
   it("retains negative net cash when refunds exceed collections", () => {
     const [row] = aggregateRevenueLedger([
