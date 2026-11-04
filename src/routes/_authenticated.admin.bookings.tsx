@@ -19,12 +19,7 @@ export const Route = createFileRoute("/_authenticated/admin/bookings")({
 });
 
 type StatusFilter = "all" | "pending" | "confirmed" | "checked_in" | "cancelled" | "completed" | "no_show";
-type BookingLifecycleAction = Exclude<StatusFilter, "all" | "pending">;
-const lifecycleActions: Record<string, BookingLifecycleAction[]> = {
-  pending: ["confirmed", "cancelled"],
-  confirmed: ["checked_in", "cancelled", "no_show"],
-  checked_in: ["completed"],
-};
+type BookingLifecycleAction = Exclude<BookingLifecycleStatus, "pending">;
 type PaymentFilter = "all" | "unpaid" | "deposit_paid" | "paid" | "refunded";
 
 const statusColors: Record<string, string> = {
@@ -431,7 +426,7 @@ function AdminBookings() {
                     Update status
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {(lifecycleActions[detail.data.booking.status] ?? []).map(
+                    {getAllowedBookingTransitions(detail.data.booking.status as BookingLifecycleStatus).map(
                       (s) => (
                         <button
                           key={s}
