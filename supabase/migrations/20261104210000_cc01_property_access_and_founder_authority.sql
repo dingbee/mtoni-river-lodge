@@ -115,8 +115,8 @@ AS $function$
   );
 $function$;
 
-REVOKE ALL ON FUNCTION public.staynas_property_is_operational(uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.staynas_property_is_operational(uuid) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.staynas_property_is_operational(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_property_is_operational(uuid) TO service_role;
 
 CREATE OR REPLACE FUNCTION public.staynas_enforce_booking_property()
 RETURNS trigger
