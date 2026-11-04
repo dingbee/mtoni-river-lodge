@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Building2, ChevronDown, ChevronRight, Command, Sparkles } from "lucide-react";
+import { Building2, ChevronDown, ChevronRight, Command, PanelLeftClose, X } from "lucide-react";
 import { NAV, type NavItem } from "./nav-config";
 import { canAccessModule } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
@@ -83,7 +83,7 @@ export function AdminSidebar({
   return (
     <aside
       className={cn(
-        "flex h-full min-h-0 flex-col overflow-hidden border-r border-[color:var(--os-hairline)] bg-[color:var(--os-surface)]",
+        "flex h-full min-h-0 flex-col overflow-hidden bg-[color:var(--os-surface)]",
         collapsed ? "w-16" : "w-64",
       )}
       aria-label="Primary navigation"
@@ -196,6 +196,21 @@ export function AdminSidebar({
           </div>
         </div>
       )}
+      <div className="shrink-0 border-t border-[color:var(--os-hairline)] p-3 pb-[max(12px,env(safe-area-inset-bottom))]">
+        <button
+          type="button"
+          onClick={mobile ? onNavigate : onCollapse}
+          aria-label={mobile ? "Close navigation" : collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={mobile ? "Close navigation" : collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={cn(
+            "flex min-h-10 w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-[color:var(--os-ink-2)] transition-colors hover:bg-muted/70 hover:text-[color:var(--os-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+            collapsed && "justify-center px-2",
+          )}
+        >
+          {mobile ? <X className="h-4 w-4 shrink-0" aria-hidden /> : <PanelLeftClose className="h-4 w-4 shrink-0" aria-hidden />}
+          {!collapsed && <span>{mobile ? "Close menu" : collapsed ? "Expand sidebar" : "Collapse sidebar"}</span>}
+        </button>
+      </div>
     </aside>
   );
 }
