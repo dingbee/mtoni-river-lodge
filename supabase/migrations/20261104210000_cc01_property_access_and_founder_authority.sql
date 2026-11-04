@@ -68,4 +68,32 @@ as $function$
   );
 $function$;
 
+
+-- Return every active role in the explicitly selected property. The previous
+-- scalar helper could silently discard roles for multi-role property members.
+create or replace function public.staynas_current_property_roles()
+returns text[]
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $function$
+  select coalesce(array_agg(distinct pm.role::text order by pm.role::text), array[]::text[])
+  from public.staynas_user_property_context c
+  join public.staynas_property_members pm
+    on pm.property_id = c.property_id
+   and pm.user_id = c.user_id
+  join public.staynas_properties p
+    on p.id = c.property_id
+  join public.staynas_organisations o
+    on o.id = p.organisation_id
+  where c.user_id = auth.uid()
+    and pm.status = 'active'
+    and p.status <> 'suspended'
+    and o.status = 'active';
+$function$;
+
+revoke all on function public.staynas_current_property_roles() from public, anon;
+grant execute on function public.staynas_current_property_roles() to authenticated, service_role;
+
 commit;
