@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/admin/operations/room-cata
 
 const blankCategory = () => ({ id: undefined as string | undefined, slug: "", name: "", description: "", features: "", specifications: "", sortOrder: 0, status: "active" as "active" | "archived" });
 const blankType = () => ({
-  id: undefined as string | undefined, slug: "", name: "", catalogueCategoryId: "none", shortDescription: "", capacityAdults: 2,
+  id: undefined as string | undefined, slug: "", name: "", shortName: "", roomNumberLabel: "", catalogueCategoryId: "none", shortDescription: "", capacityAdults: 2,
   capacityChildren: 0, maxOccupancy: 2, description: "", details: "", ctaLine: "", heroLine: "", imageUrl: "", galleryUrls: "",
   sizeLabel: "", viewLabel: "", bedLabel: "", bathroomLabel: "", sortOrder: 0, status: "active" as "active" | "inactive",
 });
@@ -49,7 +49,7 @@ function PlatformRoomCataloguePage() {
 
   const typeMutation = useMutation({
     mutationFn: () => saveTypeFn({ data: {
-      id: roomType.id, slug: roomType.slug, name: roomType.name,
+      id: roomType.id, slug: roomType.slug, name: roomType.name, shortName: roomType.shortName, roomNumberLabel: roomType.roomNumberLabel,
       catalogueCategoryId: roomType.catalogueCategoryId === "none" ? null : roomType.catalogueCategoryId,
       shortDescription: roomType.shortDescription, capacityAdults: Number(roomType.capacityAdults),
       capacityChildren: Number(roomType.capacityChildren), maxOccupancy: Number(roomType.maxOccupancy),
@@ -73,7 +73,7 @@ function PlatformRoomCataloguePage() {
     sortOrder: c.sort_order ?? 0, status: c.status,
   });
   const editType = (r: any) => setRoomType({
-    id: r.id, slug: r.slug, name: r.name, catalogueCategoryId: r.category_id ?? "none",
+    id: r.id, slug: r.slug, name: r.name, shortName: r.short_name ?? "", roomNumberLabel: r.room_number_label ?? "", catalogueCategoryId: r.category_id ?? "none",
     shortDescription: r.short_description ?? "", capacityAdults: r.capacity_adults,
     capacityChildren: r.capacity_children, maxOccupancy: r.max_occupancy,
     description: (r.description ?? []).join("\n\n"), details: (r.details ?? []).map((d: any) => `${d.label}: ${d.value}`).join("\n"), ctaLine: r.cta_line ?? "", heroLine: r.hero_line ?? "",
@@ -122,6 +122,10 @@ function PlatformRoomCataloguePage() {
           <div className="space-y-3 border-t pt-4">
             <Input placeholder="Room definition name" value={roomType.name} onChange={e => setRoomType({ ...roomType, name: e.target.value })} />
             <Input placeholder="Unique slug" value={roomType.slug} onChange={e => setRoomType({ ...roomType, slug: e.target.value })} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input placeholder="Short display name (optional)" value={roomType.shortName} onChange={e => setRoomType({ ...roomType, shortName: e.target.value })} />
+              <Input placeholder="Room number label (optional)" value={roomType.roomNumberLabel} onChange={e => setRoomType({ ...roomType, roomNumberLabel: e.target.value })} />
+            </div>
             <Select value={roomType.catalogueCategoryId} onValueChange={v => setRoomType({ ...roomType, catalogueCategoryId: v })}>
               <SelectTrigger><SelectValue placeholder="System category" /></SelectTrigger>
               <SelectContent><SelectItem value="none">No category</SelectItem>{categories.filter((c: any) => c.status === "active").map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
