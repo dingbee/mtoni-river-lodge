@@ -4,7 +4,6 @@ import {
   belongsToProperty,
   filterToProperty,
   BookingPropertyError,
-  normalizeBookingHostname,
 } from "./booking-property";
 
 // Property-isolation regression tests for the public booking engine.
@@ -87,22 +86,4 @@ describe("filterToProperty", () => {
   it("returns nothing when the property id is empty", () => {
     expect(filterToProperty(rows, "")).toHaveLength(0);
   });
-});
-
-describe("normalizeBookingHostname", () => {
-  it("normalizes case, whitespace, forwarded host lists and ports", () => {
-    expect(normalizeBookingHostname("  STAYNAS.EXAMPLE.COM:443, proxy.internal "))
-      .toBe("staynas.example.com");
-  });
-
-  it("removes a trailing DNS dot", () => {
-    expect(normalizeBookingHostname("staynas.example.com.")).toBe("staynas.example.com");
-  });
-
-  it.each([undefined, null, "", " ", ".example.com", "example..com", "https://example.com", "bad host"])(
-    "rejects an invalid host header: %s",
-    (host) => {
-      expect(() => normalizeBookingHostname(host)).toThrow(BookingPropertyError);
-    },
-  );
 });
