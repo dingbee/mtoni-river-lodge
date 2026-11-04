@@ -110,3 +110,5 @@ export type DeliveryEventInput = z.infer<typeof deliveryEventInputSchema>;
 export function isSafeIdentityDigest(value: string): boolean {
   return /^[a-f0-9]{64}$/i.test(value);
 }
+
+// CI verification branch: shared typed baseline.
