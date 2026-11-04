@@ -23,7 +23,7 @@ const ALLOWED_TRANSITIONS: Readonly<Record<ConnectionLifecycle, readonly Connect
   pending_validation: ["connected", "degraded", "error", "suspended", "revoked"],
   connected: ["degraded", "suspended", "revoked", "error"],
   degraded: ["connected", "suspended", "revoked", "error"],
-  suspended: ["revoked"],
+  suspended: ["pending_validation", "revoked"],
   revoked: [],
   error: ["pending_validation", "suspended", "revoked"],
 };
