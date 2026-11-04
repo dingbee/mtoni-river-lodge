@@ -1014,8 +1014,42 @@ create policy "guest_tags_staff_catalog_all" on public.guest_tags for all to aut
 using (public.is_staynas_founder_ai_admin()) with check (public.is_staynas_founder_ai_admin());
 
 drop policy if exists "Finance manage pricing rules" on public.pricing_rules;
-create policy "Finance manage pricing rules" on public.pricing_rules for all to authenticated
-using (public.is_staynas_founder_ai_admin()) with check (public.is_staynas_founder_ai_admin());
+create policy "Founder admins manage global pricing rules" on public.pricing_rules
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+
+create policy "Property finance staff manage room pricing rules" on public.pricing_rules
+  for all to authenticated
+  using (
+    scope = 'room' AND room_id IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM public.rooms r
+      WHERE r.id = pricing_rules.room_id
+        AND public.staynas_user_has_property_access(auth.uid(), r.property_id)
+        AND public.staynas_current_user_has_property_role(
+          r.property_id, ARRAY['owner'::public.app_role,'manager'::public.app_role,'finance'::public.app_role,'admin'::public.app_role]
+        )
+    )
+  )
+  with check (
+    scope = 'room' AND room_id IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM public.rooms r
+      WHERE r.id = pricing_rules.room_id
+        AND public.staynas_user_has_property_access(auth.uid(), r.property_id)
+        AND public.staynas_current_user_has_property_role(
+          r.property_id, ARRAY['owner'::public.app_role,'manager'::public.app_role,'finance'::public.app_role,'admin'::public.app_role]
+        )
+    )
+  );
+
+create policy "Property finance staff read global pricing defaults" on public.pricing_rules
+  for select to authenticated
+  using (
+    scope = 'all'
+    AND cardinality(public.staynas_current_property_roles()) > 0
+  );
 
 
 drop policy if exists "Owners and managers manage respad migration files" on public.respad_migration_files;
@@ -3194,6 +3228,119 @@ ALTER FUNCTION public.housekeeping_mark_notification_read(uuid)
   SET search_path = pg_catalog, public, pg_temp;
 ALTER FUNCTION public.enforce_room_category_property()
   SET search_path = pg_catalog, public, pg_temp;
+
+-- Shared guest tag catalogue is readable by active property staff; only
+-- platform administrators may mutate the cross-tenant catalogue.
+create policy "Active property staff read shared guest tags" on public.guest_tags
+  for select to authenticated
+  using (cardinality(public.staynas_current_property_roles()) > 0);
+
+-- These platform-wide tables have no property key. Keep their CRUD surfaces
+-- founder-only until tenant-aware data contracts are implemented.
+create policy "Founder admins manage workflows" on public.workflows
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+create policy "Founder admins manage workflow runs" on public.workflow_runs
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+drop policy if exists "Managers decide approvals" on public.approval_requests;
+create policy "Founder admins manage approval requests" on public.approval_requests
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+create policy "Founder admins manage campaigns" on public.campaigns
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+create policy "Public can read published journal articles" on public.journal_articles
+  for select to anon, authenticated
+  using (status = 'published');
+create policy "Founder admins manage journal articles" on public.journal_articles
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+create policy "Founder admins manage scheduled jobs" on public.scheduled_jobs
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+create policy "Founder admins read email send log" on public.email_send_log
+  for select to authenticated
+  using (public.is_staynas_founder_ai_admin());
+create policy "Founder admins manage service recovery insights" on public.ai_service_recovery_insights
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+create policy "Founder admins manage room readiness insights" on public.ai_room_readiness_insights
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+create policy "Founder admins manage guest alerts" on public.ai_guest_alerts
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+create policy "Founder admins manage revenue alerts" on public.ai_revenue_alerts
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+create policy "Founder admins manage strategic risks" on public.ai_strategic_risks
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+
+-- Operational alerts are linked to their owning booking or room, never global.
+create policy "Property staff read operational alerts" on public.ops_alerts
+  for select to authenticated
+  using (
+    (booking_id IS NOT NULL AND EXISTS (
+      SELECT 1 FROM public.bookings b
+      WHERE b.id = ops_alerts.booking_id
+        AND public.staynas_user_has_property_access(auth.uid(), b.property_id)
+    ))
+    OR
+    (room_id IS NOT NULL AND EXISTS (
+      SELECT 1 FROM public.rooms r
+      WHERE r.id = ops_alerts.room_id
+        AND public.staynas_user_has_property_access(auth.uid(), r.property_id)
+    ))
+  );
+create policy "Property supervisors resolve operational alerts" on public.ops_alerts
+  for update to authenticated
+  using (
+    (booking_id IS NOT NULL AND EXISTS (
+      SELECT 1 FROM public.bookings b
+      WHERE b.id = ops_alerts.booking_id
+        AND public.staynas_current_user_has_property_role(
+          b.property_id, ARRAY['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role,'housekeeping'::public.app_role,'reception'::public.app_role]
+        )
+    ))
+    OR
+    (room_id IS NOT NULL AND EXISTS (
+      SELECT 1 FROM public.rooms r
+      WHERE r.id = ops_alerts.room_id
+        AND public.staynas_current_user_has_property_role(
+          r.property_id, ARRAY['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role,'housekeeping'::public.app_role,'reception'::public.app_role]
+        )
+    ))
+  )
+  with check (
+    (booking_id IS NOT NULL AND EXISTS (
+      SELECT 1 FROM public.bookings b
+      WHERE b.id = ops_alerts.booking_id
+        AND public.staynas_current_user_has_property_role(
+          b.property_id, ARRAY['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role,'housekeeping'::public.app_role,'reception'::public.app_role]
+        )
+    ))
+    OR
+    (room_id IS NOT NULL AND EXISTS (
+      SELECT 1 FROM public.rooms r
+      WHERE r.id = ops_alerts.room_id
+        AND public.staynas_current_user_has_property_role(
+          r.property_id, ARRAY['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role,'housekeeping'::public.app_role,'reception'::public.app_role]
+        )
+    ))
+  );
 
 -- Trigger-only SECURITY DEFINER functions are not PostgREST RPC surfaces.
 -- Remove inherited direct grants while preserving automatic trigger execution.
