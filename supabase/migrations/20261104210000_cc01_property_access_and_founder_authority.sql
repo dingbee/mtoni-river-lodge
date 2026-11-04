@@ -2753,4 +2753,36 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.set_room_block(_room_id uuid, _from date, _to date, _blocked boolean, _reason text DEFAULT NULL::text)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE _d date; _n int := 0; _room public.rooms%ROWTYPE;
+BEGIN
+  IF _to <= _from THEN RAISE EXCEPTION 'to must be after from'; END IF;
+
+  SELECT * INTO _room FROM public.rooms WHERE id = _room_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Room not found'; END IF;
+  IF auth.uid() IS NULL OR NOT public.staynas_user_has_property_access(auth.uid(), _room.property_id) OR NOT public.staynas_current_user_has_property_role(_room.property_id, ARRAY['owner','manager','admin']::public.app_role[]) THEN RAISE EXCEPTION 'Forbidden'; END IF;
+
+  _d := _from;
+  WHILE _d < _to LOOP
+    INSERT INTO public.room_inventory (room_id, date, available_units, is_blocked)
+    VALUES (_room_id, _d, _room.total_units, _blocked)
+    ON CONFLICT (room_id, date) DO UPDATE SET is_blocked = EXCLUDED.is_blocked, updated_at = now();
+    _n := _n + 1;
+    _d := _d + INTERVAL '1 day';
+  END LOOP;
+
+  PERFORM public.log_calendar_event(
+    CASE WHEN _blocked THEN 'room.blocked' ELSE 'room.unblocked' END,
+    _room_id, NULL, NULL, _from, _to,
+    jsonb_build_object('reason', COALESCE(_reason,''))
+  );
+  RETURN _n;
+END $function$
+
+
 commit;
