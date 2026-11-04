@@ -11,6 +11,7 @@ import { SectionCard } from "@/components/os/SectionCard";
 import { Button } from "@/components/ui/button";
 import { NewReservationDialog } from "@/components/os/reservations/NewReservationDialog";
 import { CheckinAccessPanel } from "@/components/os/reservations/CheckinAccessPanel";
+import { ReservationFinancialSummary } from "@/components/os/finance/ReservationFinancialSummary";
 
 export const Route = createFileRoute("/_authenticated/admin/bookings")({
   head: () => ({
@@ -344,6 +345,14 @@ function AdminBookings() {
                     </div>
                   )}
                 </div>
+
+                <ReservationFinancialSummary
+                  className="mt-4"
+                  total={detail.data.booking.total}
+                  depositRequired={detail.data.booking.deposit_amount}
+                  paidToDate={detail.data.booking.paid_amount}
+                  currency={detail.data.booking.currency}
+                />
 
                 {detail.data.booking.special_requests && (
                   <div className="mt-4 rounded-lg border border-border p-3 text-sm">
