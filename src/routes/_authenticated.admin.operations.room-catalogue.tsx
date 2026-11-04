@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { getPlatformRoomConfiguration, savePlatformRoomCategory, savePlatformRoomType } from "@/lib/platform-room-configuration.server";
 
@@ -20,7 +21,7 @@ const pairsText=(v:Record<string,string>|null)=>Object.entries(v??{}).map(([k,x]
 const detailsText=(v:{label:string;value:string}[]|null)=> (v??[]).map(x=>x.label+": "+x.value).join("\n");
 const Field=({label,value,onChange,placeholder,type="text",min}:{label:string;value:string|number;onChange:(v:string)=>void;placeholder?:string;type?:string;min?:number})=><label className="block min-w-0"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</span><input type={type} min={min} value={value} placeholder={placeholder??label} onChange={e=>onChange(e.target.value)} className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-100"/></label>;
 const Area=({label,value,onChange,hint,rows=4}:{label:string;value:string;onChange:(v:string)=>void;hint?:string;rows?:number})=><label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</span><textarea rows={rows} value={value} onChange={e=>onChange(e.target.value)} className="w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-100"/>{hint&&<span className="mt-1 block text-xs text-slate-400">{hint}</span>}</label>;
-const SelectField=({label,value,onChange,children}:{label:string;value:string;onChange:(v:string)=>void;children:React.ReactNode})=><label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</span><select value={value} onChange={e=>onChange(e.target.value)} className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-100">{children}</select></label>;
+const SelectField=({label,value,onChange,children}:{label:string;value:string;onChange:(v:string)=>void;children:ReactNode})=><label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</span><select value={value} onChange={e=>onChange(e.target.value)} className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-100">{children}</select></label>;
 const SectionTitle=({eyebrow,title,description}:{eyebrow:string;title:string;description:string})=><div className="mb-5 border-b border-slate-100 pb-4"><p className="text-[10px] font-bold uppercase tracking-[.18em] text-slate-400">{eyebrow}</p><h3 className="mt-1 text-base font-semibold text-slate-900">{title}</h3><p className="mt-1 text-sm text-slate-500">{description}</p></div>;
 
 function PlatformRoomConfiguration(){
