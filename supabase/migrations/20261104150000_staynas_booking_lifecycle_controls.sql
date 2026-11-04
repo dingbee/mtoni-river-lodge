@@ -78,6 +78,13 @@ begin
       or (v_actor is not null and not public.has_any_role(v_actor, array['owner','manager','admin','reception']::public.app_role[])) then
       raise exception using errcode = '42501', message = 'A booking must be checked in by authorized front-desk staff before completion';
     end if;
+    if exists (select 1 from public.room_states rs where rs.room_id = old.room_id)
+      and not exists (
+        select 1 from public.room_states rs
+        where rs.booking_id = old.id and rs.room_id = old.room_id and rs.state = 'occupied'
+      ) then
+      raise exception using errcode = '55000', message = 'Checkout requires the assigned physical room to be in occupied state';
+    end if;
   elsif new.status::text = 'cancelled' then
     if old.status::text not in ('pending','confirmed')
       or (v_actor is not null and not public.has_any_role(v_actor, array['owner','manager','admin','reservations']::public.app_role[])) then
