@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { requireStayNasModuleAccess, requireStayNasPropertyRole, requireStayNasStaffAccess, requireStayNasCoreStaffAccess } from "./staynas-authorization.server";
+import { requireStayNasModuleAccess, requireStayNasPropertyRole, requireStayNasStaffAccess, requireStayNasCoreStaffAccess, requireStayNasFounderAdmin } from "./staynas-authorization.server";
 
 function clientWithPropertyRoles(roles: string[], error: unknown = null) {
   return {
@@ -74,5 +74,33 @@ describe("property-scoped role guards", () => {
   it("fails closed when role resolution errors", async () => {
     const client = clientWithPropertyRoles([], new Error("rpc unavailable"));
     await expect(requireStayNasPropertyRole(client, "user-9", ["owner"])).rejects.toThrow("Unable to verify the active property's access role.");
+  });
+});
+
+
+describe("founder-admin authorization", () => {
+  function founderClient(result: { data: unknown; error: unknown }) {
+    const query = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue(result),
+    };
+    return { from: vi.fn().mockReturnValue(query) } as any;
+  }
+
+  it("allows a user present in the canonical platform-admin registry", async () => {
+    const client = founderClient({ data: { user_id: "founder-1" }, error: null });
+    await expect(requireStayNasFounderAdmin(client, "founder-1")).resolves.toBeUndefined();
+    expect(client.from).toHaveBeenCalledWith("staynas_platform_admins");
+  });
+
+  it("rejects a property owner who is not a platform founder admin", async () => {
+    const client = founderClient({ data: null, error: null });
+    await expect(requireStayNasFounderAdmin(client, "property-owner")).rejects.toThrow("StayNas founder administration required.");
+  });
+
+  it("fails closed when the founder registry cannot be read", async () => {
+    const client = founderClient({ data: null, error: new Error("database unavailable") });
+    await expect(requireStayNasFounderAdmin(client, "founder-1")).rejects.toThrow("Unable to verify founder administration access.");
   });
 });
