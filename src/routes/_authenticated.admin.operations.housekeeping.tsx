@@ -371,7 +371,7 @@ function HousekeepingPage() {
                         <Play className="h-4 w-4" /> Start cleaning
                       </button>
                     )}
-                    <button className="rounded-lg border px-3 py-2 text-sm" onClick={() => { setExceptionRoom(task); setExceptionTitle(""); setExceptionNotes(""); setError(null); }}>Report issue</button>\n                    {task.status === "in_progress" && (
+                    <button className="rounded-lg border px-3 py-2 text-sm" onClick={() => { setExceptionRoom(task); setExceptionTitle(""); setExceptionNotes(""); setError(null); }}>Report issue</button>                    {task.status === "in_progress" && (
                       <button className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground" onClick={() => setNoteTask(task.id)}>
                         <CheckCircle2 className="h-4 w-4" /> Complete cleaning
                       </button>
@@ -595,7 +595,7 @@ function HousekeepingPage() {
           </div>
         </div>
       )}
-\n      <div className="rounded-xl border border-dashed p-4 text-xs text-muted-foreground">
+      <div className="rounded-xl border border-dashed p-4 text-xs text-muted-foreground">
         <WandSparkles className="mr-1 inline h-3.5 w-3.5" />
         Readiness is controlled: dirty → cleaning task → inspection → passed = ready, or failed → re-clean → inspection.
       </div>
