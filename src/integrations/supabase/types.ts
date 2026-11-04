@@ -19480,7 +19480,7 @@ export type Database = {
           _notes?: string
           _room_state_id: string
           _severity?: number
-          _task_id: string
+          _task_id: string | null
           _title: string
         }
         Returns: {

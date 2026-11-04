@@ -24,7 +24,7 @@ export const reportHousekeepingException = createServerFn({ method: "POST" })
       _task_id: data.taskId ?? null,
       _exception_type: data.exceptionType,
       _title: data.title,
-      _notes: data.notes ?? null,
+      ...(data.notes === undefined ? {} : { _notes: data.notes }),
       _severity: data.severity,
       _evidence: data.evidence as Json,
     });
@@ -38,7 +38,7 @@ export const listHousekeepingExceptions = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
     const { data: rows, error } = await housekeepingClient(context.supabase).rpc("housekeeping_list_exceptions", {
-      _room_state_id: data.roomStateId ?? null, _open_only: data.openOnly,
+      ...(data.roomStateId ? { _room_state_id: data.roomStateId } : {}), _open_only: data.openOnly,
     });
     if (error) throw new Error(error.message);
     return rows ?? [];
@@ -50,7 +50,7 @@ export const resolveHousekeepingException = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
     const { data: row, error } = await housekeepingClient(context.supabase).rpc("housekeeping_resolve_exception", {
-      _exception_id: data.exceptionId, _resolution: data.resolution ?? null,
+      _exception_id: data.exceptionId, ...(data.resolution === undefined ? {} : { _resolution: data.resolution }),
     });
     if (error) throw new Error(error.message);
     return row;
