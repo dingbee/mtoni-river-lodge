@@ -2016,4 +2016,33 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.housekeeping_get_dashboard()
+ RETURNS TABLE(active_tasks bigint, unassigned_tasks bigint, in_progress_tasks bigint, overdue_tasks bigint, inspection_pending bigint, exceptions_open bigint, rooms_ready bigint, failed_inspections_today bigint, avg_cleaning_minutes numeric)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE _uid uuid:=auth.uid(); _property_id uuid;
+BEGIN
+ IF _uid IS NULL OR NOT public.staynas_current_user_has_property_role(public.staynas_active_property_id(_uid), ARRAY['housekeeping','owner','manager','admin']::public.app_role[])
+ THEN RAISE EXCEPTION 'Housekeeping access required'; END IF;
+ _property_id:=public.staynas_active_property_id(_uid);
+ IF _property_id IS NULL OR NOT public.staynas_user_has_property_access(_uid,_property_id)
+ THEN RAISE EXCEPTION 'Active property access required'; END IF;
+ RETURN QUERY SELECT
+ (SELECT count(*) FROM public.ops_tasks t WHERE t.property_id=_property_id AND t.category='housekeeping' AND t.status IN('pending','in_progress')),
+ (SELECT count(*) FROM public.ops_tasks t WHERE t.property_id=_property_id AND t.category='housekeeping' AND t.status IN('pending','in_progress') AND t.assignee_id IS NULL),
+ (SELECT count(*) FROM public.ops_tasks t WHERE t.property_id=_property_id AND t.category='housekeeping' AND t.status='in_progress'),
+ (SELECT count(*) FROM public.ops_tasks t WHERE t.property_id=_property_id AND t.category='housekeeping' AND t.status IN('pending','in_progress') AND t.due_at<now()),
+ (SELECT count(*) FROM public.housekeeping_inspections i JOIN public.room_states rs ON rs.id=i.room_state_id WHERE rs.property_id=_property_id AND i.status='pending'),
+ (SELECT count(*) FROM public.housekeeping_exceptions e JOIN public.room_states rs ON rs.id=e.room_state_id WHERE rs.property_id=_property_id AND e.status='open'),
+ (SELECT count(*) FROM public.room_states rs WHERE rs.property_id=_property_id AND rs.state='vacant_clean'),
+ (SELECT count(*) FROM public.housekeeping_inspections i JOIN public.room_states rs ON rs.id=i.room_state_id WHERE rs.property_id=_property_id AND i.status='failed' AND i.inspected_at>=date_trunc('day',now())),
+ COALESCE((SELECT ROUND(AVG(EXTRACT(EPOCH FROM(t.completed_at-t.started_at))/60.0)::numeric,1)
+ FROM public.ops_tasks t WHERE t.property_id=_property_id AND t.category='housekeeping'
+ AND t.completed_at IS NOT NULL AND t.started_at IS NOT NULL AND t.completed_at>=now()-interval '7 days'),0);
+END;
+$function$
+
+
 commit;
