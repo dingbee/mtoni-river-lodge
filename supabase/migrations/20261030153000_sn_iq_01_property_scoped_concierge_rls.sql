@@ -4,8 +4,8 @@
 -- This migration is intentionally not applied until isolated DB verification.
 
 CREATE OR REPLACE FUNCTION public.staynas_ai_property_in_active_context(
-  _property_id uuid,
-  _allowed_roles public.app_role[]
+  p_property_id uuid,
+  p_allowed_roles public.app_role[]
 )
 RETURNS boolean
 LANGUAGE sql
@@ -22,16 +22,16 @@ AS $$
     JOIN public.staynas_properties AS property
       ON property.id = member.property_id
     WHERE member.user_id = auth.uid()
-      AND member.property_id = _property_id
+      AND member.property_id = p_property_id
       AND member.status = 'active'
-      AND member.role = ANY (_allowed_roles)
+      AND member.role = ANY (p_allowed_roles)
       AND property.status = 'active'
   );
 $$;
 
 CREATE OR REPLACE FUNCTION public.staynas_ai_session_in_active_property(
-  _session_id uuid,
-  _allowed_roles public.app_role[]
+  p_session_id uuid,
+  p_allowed_roles public.app_role[]
 )
 RETURNS boolean
 LANGUAGE sql
@@ -42,15 +42,15 @@ AS $$
   SELECT EXISTS (
     SELECT 1
     FROM public.ai_concierge_sessions AS session
-    WHERE session.id = _session_id
+    WHERE session.id = p_session_id
       AND session.property_id IS NOT NULL
-      AND public.staynas_ai_property_in_active_context(session.property_id, _allowed_roles)
+      AND public.staynas_ai_property_in_active_context(session.property_id, p_allowed_roles)
   );
 $$;
 
 CREATE OR REPLACE FUNCTION public.staynas_ai_booking_in_active_property(
-  _booking_id uuid,
-  _allowed_roles public.app_role[]
+  p_booking_id uuid,
+  p_allowed_roles public.app_role[]
 )
 RETURNS boolean
 LANGUAGE sql
@@ -61,9 +61,9 @@ AS $$
   SELECT EXISTS (
     SELECT 1
     FROM public.bookings AS booking
-    WHERE booking.id = _booking_id
+    WHERE booking.id = p_booking_id
       AND booking.property_id IS NOT NULL
-      AND public.staynas_ai_property_in_active_context(booking.property_id, _allowed_roles)
+      AND public.staynas_ai_property_in_active_context(booking.property_id, p_allowed_roles)
   );
 $$;
 
