@@ -41,7 +41,7 @@ describe("connection lifecycle policy", () => {
   it("does not allow health automation to reactivate a suspended connection", () => {
     expect(() => validateLifecycleTransition({
       from: "suspended",
-      to: "connected",
+      to: "pending_validation",
       actor: { type: "system", id: "health-worker" },
       reason: "Health recovered",
       occurredAt: at,
