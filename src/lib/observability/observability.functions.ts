@@ -2,11 +2,11 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireStayNasPropertyRole } from "@/lib/staynas-authorization.server";
+import { requireStayNasFounderAdmin } from "@/lib/staynas-authorization.server";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function assertOwnerOrAdmin(supabase: any, userId: string): Promise<void> {
-  await requireStayNasPropertyRole(supabase, userId, ["owner", "manager"]);
+  await requireStayNasFounderAdmin(supabase, userId);
 }
 
 export const getSystemHealth = createServerFn({ method: "GET" })
