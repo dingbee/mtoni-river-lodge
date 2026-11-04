@@ -272,6 +272,27 @@ grant execute on function public.pms_post_folio_charge(text, uuid, numeric, text
 
 -- Replace legacy global-role gates with membership checks against the exact
 -- property owning each row (or its parent booking/room).
+
+drop policy if exists "Staff manage own property booking extras" on public.booking_extras;
+create policy "Staff manage own property booking extras" on public.booking_extras
+  for all to authenticated
+  using (
+    exists (
+      select 1 from public.bookings b
+      where b.id = booking_extras.booking_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.bookings b
+      where b.id = booking_extras.booking_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    )
+  );
+
 drop policy if exists "Staff manage own property extras" on public.extras;
 create policy "Staff manage own property extras" on public.extras
   for all to authenticated
@@ -326,10 +347,12 @@ create policy "Supervisors update own property room_states" on public.room_state
   using (
     public.staynas_user_has_property_access(auth.uid(), property_id)
     and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role,'reception'::public.app_role,'finance'::public.app_role,'marketing'::public.app_role,'editor'::public.app_role,'reservations'::public.app_role])
+    and not public.staynas_user_has_property_role(auth.uid(), property_id, array['housekeeping'::public.app_role])
   )
   with check (
     public.staynas_user_has_property_access(auth.uid(), property_id)
     and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role,'reception'::public.app_role,'finance'::public.app_role,'marketing'::public.app_role,'editor'::public.app_role,'reservations'::public.app_role])
+    and not public.staynas_user_has_property_role(auth.uid(), property_id, array['housekeeping'::public.app_role])
   );
 
 drop policy if exists "Staff manage own property inventory" on public.room_inventory;
