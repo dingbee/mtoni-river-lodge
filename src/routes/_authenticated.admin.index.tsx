@@ -293,8 +293,8 @@ function GuestList({ items }: { items: any[]; icon?: any }) {
               {g.country ?? ""}{g.country && g.email ? " · " : ""}{g.email ?? ""}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground"><Users className="mr-1 inline size-3" />{g.total_stays}</span>
+          <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
+            <span className="whitespace-nowrap text-xs text-muted-foreground"><Users className="mr-1 inline size-3" />{g.total_stays}</span>
             <GuestStatusChip status={g.status} />
           </div>
         </li>
