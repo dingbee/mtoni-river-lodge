@@ -1,3 +1,4 @@
+// Shared CI TypeScript baseline verification.
 export type ConciergeRole = "user" | "assistant" | "system";
 
 export interface ConciergeCitation {
