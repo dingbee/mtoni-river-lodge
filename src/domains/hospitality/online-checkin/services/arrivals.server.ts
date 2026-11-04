@@ -18,6 +18,7 @@ import {
   type DocumentAggregateStatus,
   type ReviewAction,
 } from "./arrivals-shared";
+import { requireStayNasPropertyRole } from "@/lib/staynas-authorization.server";
 
 type Sb = any;
 
@@ -32,20 +33,16 @@ export function todayIso() {
 }
 
 export async function assertArrivalsAccess(supabase: Sb, userId: string) {
-  const { data, error } = await supabase.rpc("has_any_role", {
-    _user_id: userId,
-    _roles: ARRIVAL_ROLES as unknown as string[],
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden — arrivals access requires reception or manager role.");
+  await requireStayNasPropertyRole(supabase, userId, ARRIVAL_ROLES);
 }
 
 export async function isManager(supabase: Sb, userId: string): Promise<boolean> {
-  const { data } = await supabase.rpc("has_any_role", {
-    _user_id: userId,
-    _roles: ARRIVAL_MANAGER_ROLES as unknown as string[],
-  });
-  return Boolean(data);
+  try {
+    await requireStayNasPropertyRole(supabase, userId, ARRIVAL_MANAGER_ROLES);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function logStaffEvent(
