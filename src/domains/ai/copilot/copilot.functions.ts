@@ -140,6 +140,11 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
       session_id: sessionId, user_id: context.userId, role: "user", content: data.question,
     });
 
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error("An active property is required for Copilot tools.");
+    const { data: hasPropertyAccess, error: accessError } = await context.supabase.rpc("staynas_user_has_property_access", { _uid: context.userId, _property_id: propertyId });
+    if (accessError || !hasPropertyAccess) throw new Error("Active property access denied.");
+
     // Router (multi-tool)
     const routerRaw = await chat(buildMultiRouterPrompt(roles), data.question);
     const parsed = tryJson<{ tools: Array<{ tool: string; args?: any }>; reason?: string }>(routerRaw) ?? { tools: [] };
@@ -158,7 +163,7 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
       const tid = t.tool as AiToolId;
       if (!canUseTool(tid, roles)) continue;
       try {
-        const res = await AI_TOOLS[tid].run({ supabase: context.supabase }, t.args ?? {});
+        const res = await AI_TOOLS[tid].run({ supabase: context.supabase, propertyId }, t.args ?? {});
         toolIds.push(tid);
         domainsUsed.add(toolDomain(tid));
         evidence.push({ domain: toolDomain(tid), tool: tid, count: res.count, window: res.window, summary: res.summary });
