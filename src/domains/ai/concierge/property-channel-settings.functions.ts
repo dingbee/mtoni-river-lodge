@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { TablesInsert } from "@/integrations/supabase/types";
 
 const channels = ["web", "whatsapp", "email"] as const;
 type Channel = typeof channels[number];
@@ -48,9 +49,9 @@ export const updatePropertyChannelSettings = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const propertyId = await requireTenantAdmin(context.supabase, context.userId);
-    const patch: Record<string, unknown> = { property_id: propertyId, channel: data.channel, updated_by: context.userId, updated_at: new Date().toISOString() };
+    const patch: TablesInsert<"ai_property_channel_settings"> = { property_id: propertyId, channel: data.channel, updated_by: context.userId, updated_at: new Date().toISOString() };
     for (const key of ["enabled","inbound_enabled","outbound_enabled","sender_display_name","sender_email","sender_phone_label","approved_template_names","require_human_approval","service_consent_required","marketing_consent_required","staff_handoff_enabled"] as const) {
-      if (data[key] !== undefined) patch[key] = data[key];
+      if (data[key] !== undefined) (patch as Record<string, unknown>)[key] = data[key];
     }
     const { error } = await context.supabase.from("ai_property_channel_settings").upsert(patch, { onConflict: "property_id,channel" });
     if (error) throw new Error(error.message);
