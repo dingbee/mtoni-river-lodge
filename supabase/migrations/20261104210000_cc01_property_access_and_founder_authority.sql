@@ -1905,4 +1905,24 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.staynas_guest_is_accessible(_uid uuid, _guest_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT _uid IS NOT NULL
+    AND _uid = auth.uid()
+    AND _guest_id IS NOT NULL
+    AND EXISTS (
+      SELECT 1
+      FROM public.bookings b
+      WHERE b.guest_id = _guest_id
+        AND b.property_id IS NOT NULL
+        AND public.staynas_user_has_property_access(_uid, b.property_id)
+        AND public.staynas_current_user_has_property_role(b.property_id, ARRAY['owner','manager','admin','reception','reservations']::public.app_role[])
+    )
+$function$
+
+
 commit;
