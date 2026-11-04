@@ -16,22 +16,29 @@ describe("manual payment request contract", () => {
     });
   });
 
-  it("accepts a refund only when an audit reason is supplied", () => {
+  it("accepts a refund with an audit reason and original payment reference", () => {
+    const originalPaymentEventId = "00000000-0000-4000-8000-000000000003";
     expect(
       recordManualPaymentInputSchema.parse({
         ...valid,
         eventType: "refund",
         note: "Guest cancellation approved",
+        originalPaymentEventId,
       }).eventType,
     ).toBe("refund");
     expect(
-      recordManualPaymentInputSchema.safeParse({ ...valid, eventType: "refund" }).success,
+      recordManualPaymentInputSchema.safeParse({
+        ...valid,
+        eventType: "refund",
+        originalPaymentEventId,
+      }).success,
     ).toBe(false);
     expect(
       recordManualPaymentInputSchema.safeParse({
         ...valid,
         eventType: "refund",
         note: "   ",
+        originalPaymentEventId,
       }).success,
     ).toBe(false);
   });
