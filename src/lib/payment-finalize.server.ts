@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Json } from "@/integrations/supabase/types";
 import { getPesapalTransactionStatus, classifyStatus } from "./pesapal.server";
+import { resolvePesapalSettlementCurrency } from "./pesapal-currency";
 
 
 type FinalizeRpcResult = Promise<{
@@ -57,6 +58,7 @@ function makeInvoiceNumber(reference: string) {
  * Verifies the Pesapal transaction for a booking and finalizes it.
  * - Requires paid amount to match stored deposit exactly (cent-level).
  *   Mismatch => booking moves to payment_mismatch and is NOT confirmed.
+ * - Requires an explicit provider currency matching the booking currency.
  * - On success: generates invoice_number, sets confirmed_at, sends email.
  */
 export async function verifyAndFinalizePayment(opts: {
@@ -84,11 +86,9 @@ export async function verifyAndFinalizePayment(opts: {
     const expected = Number(booking.deposit_amount);
     const paid = Number(status.amount ?? 0);
     const amountsMatch = Math.round(expected * 100) === Math.round(paid * 100);
-    const currency = status.currency ?? booking.currency ?? "USD";
-    const currencyMatches =
-      currency.toUpperCase() === (booking.currency || "USD").toUpperCase();
+    const currency = resolvePesapalSettlementCurrency(status.currency, booking.currency);
 
-    if (!amountsMatch || !currencyMatches) {
+    if (!amountsMatch || currency === null) {
       const nowIso = new Date().toISOString();
       const { error: eventError } = await supabaseAdmin.from("payment_events").insert({
         booking_id: booking.id,

@@ -7,17 +7,18 @@ on:
       - "src/domains/finance/**"
       - "src/lib/finance-rpc.ts"
       - "src/lib/payment-finalize.server.ts"
+      - "src/lib/pesapal-currency.ts"
+      - "src/lib/pesapal-currency.test.ts"
       - "supabase/migrations/*pesapal_atomic_finance*"
       - "src/routes/_authenticated.admin.finance.payments.tsx"
       - "supabase/review/*finance_payment_integrity*"
       - ".github/workflows/finance-payment-integrity.yml"
   push:
     branches:
-      - fix/pesapal-atomic-finance-finalization
+      - fix/pesapal-*
       - fix/ci-*
       - main
       - feat/finance-*
-      - fix/finance-phase2-ci-coverage
 
 jobs:
   finance-payment-integrity:
@@ -35,18 +36,19 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - name: Finance contract, currency and reconciliation tests
+      - name: Finance contract, currency, reconciliation and Pesapal tests
         run: >-
           bunx vitest run
           src/domains/finance/payment-contract.test.ts
           src/domains/finance/finance-currency.test.ts
           src/domains/finance/finance-reconciliation.test.ts
+          src/lib/pesapal-currency.test.ts
       # TanStack Start generates routeTree.gen.ts during the Vite build.
       - name: Generate routes and verify production build
         run: bun run build
       - name: TypeScript verification
         run: bunx tsc --noEmit
-      - name: Finance lint
+      - name: Finance and Pesapal lint
         run: >-
           bunx eslint
           src/domains/finance/finance.functions.ts
@@ -58,5 +60,7 @@ jobs:
           src/domains/finance/finance-reconciliation.test.ts
           src/lib/finance-rpc.ts
           src/lib/payment-finalize.server.ts
+          src/lib/pesapal-currency.ts
+          src/lib/pesapal-currency.test.ts
           src/routes/_authenticated.admin.finance.payments.tsx
           --rule 'prettier/prettier: off'
