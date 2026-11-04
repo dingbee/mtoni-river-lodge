@@ -170,7 +170,8 @@ begin
     select rs.* into v_room_state
     from public.room_states rs
     where rs.room_id = v_booking.room_id
-      and (rs.booking_id = v_booking.id or (rs.booking_id is null and rs.state in ('vacant_clean','reserved','inspection')))
+      and rs.state in ('vacant_clean','reserved','inspection')
+      and (rs.booking_id = v_booking.id or rs.booking_id is null)
     order by (rs.booking_id = v_booking.id) desc, rs.unit_label
     limit 1
     for update skip locked;
