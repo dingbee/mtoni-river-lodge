@@ -2845,4 +2845,20 @@ create policy "guest documents property staff read" on storage.objects
     )
   );
 
+
+-- Prevent authenticated clients from probing legacy global role assignments.
+-- The remaining restaurant platform-admin SECURITY DEFINER routine executes as
+-- its owner and retains its internal compatibility check.
+revoke all on function public.has_any_role(uuid, public.app_role[]) from public, anon, authenticated;
+revoke all on function public.has_role(uuid, public.app_role) from public, anon, authenticated;
+revoke all on function public.is_any_staff(uuid) from public, anon, authenticated;
+revoke all on function public.is_staff(uuid) from public, anon, authenticated;
+revoke all on function public.current_user_roles() from public, anon, authenticated;
+
+grant execute on function public.has_any_role(uuid, public.app_role[]) to service_role;
+grant execute on function public.has_role(uuid, public.app_role) to service_role;
+grant execute on function public.is_any_staff(uuid) to service_role;
+grant execute on function public.is_staff(uuid) to service_role;
+grant execute on function public.current_user_roles() to service_role;
+
 commit;
