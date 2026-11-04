@@ -67,7 +67,8 @@ async function authorise(token: string, sessionId: string): Promise<CheckInConte
   }
   const { data: eligibility, error: eligibilityError } = await supabaseAdmin
     .rpc("checkin_eligibility", { _booking_id: data.booking_id });
-  if (eligibilityError || !eligibility?.ok) {
+  const eligibilityResult = eligibility as { ok?: boolean } | null;
+  if (eligibilityError || !eligibilityResult?.ok) {
     throw new DocumentRefusal("ineligible", "This reservation is no longer eligible for online check-in.");
   }
   return { id: data.id, booking_id: data.booking_id, guest_id: data.guest_id, property_id: booking.property_id };
