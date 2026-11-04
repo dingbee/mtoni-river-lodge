@@ -56,7 +56,7 @@ export const documentUploadSchema = documentSessionSchema.extend({
   fileName: z.string().min(1).max(200),
   mimeType: z.string().min(3).max(120),
   size: z.number().int().positive().max(MAX_DOCUMENT_BYTES),
-  contentBase64: z.string().min(8),
+  contentBase64: z.string().min(8).max(11_184_900),
   documentNumber: z.string().trim().max(60).optional().or(z.literal("")),
   documentExpiry: z.string().trim().max(20).optional().or(z.literal("")),
 });
