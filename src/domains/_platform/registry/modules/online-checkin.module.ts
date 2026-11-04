@@ -11,5 +11,5 @@ export const onlineCheckInArrivalsModule = defineModule({
   order: 35,
   requiredRoles: ["owner", "manager", "reception"],
   featureFlag: "online_checkin",
-  status: "beta",
+  status: "active",
 });
