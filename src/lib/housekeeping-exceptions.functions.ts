@@ -6,7 +6,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
 const roomStateId = z.string().uuid();
-const taskId = z.string().uuid();
+const taskId = z.string().uuid().nullable().optional();
 
 export const reportHousekeepingException = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -21,7 +21,7 @@ export const reportHousekeepingException = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
     const { data: row, error } = await housekeepingClient(context.supabase).rpc("housekeeping_report_exception", {
       _room_state_id: data.roomStateId,
-      _task_id: data.taskId,
+      _task_id: (data.taskId ?? null) as unknown as string,
       _exception_type: data.exceptionType,
       _title: data.title,
       _notes: data.notes ?? undefined,
