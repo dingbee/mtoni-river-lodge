@@ -11,13 +11,13 @@ ALTER TABLE public.rooms
 CREATE INDEX IF NOT EXISTS rooms_property_sort_idx
   ON public.rooms(property_id, status, sort_order, name);
 
-CREATE INDEX IF NOT EXISTS rooms_property_sort_idx
-  ON public.rooms(property_id, status, sort_order, name);
-
 
 DROP POLICY IF EXISTS "Platform admins upload room images" ON storage.objects;
 DROP POLICY IF EXISTS "Platform admins update room images" ON storage.objects;
 DROP POLICY IF EXISTS "Platform admins delete room images" ON storage.objects;
+DROP POLICY IF EXISTS "Property room managers upload room images" ON storage.objects;
+DROP POLICY IF EXISTS "Property room managers update room images" ON storage.objects;
+DROP POLICY IF EXISTS "Property room managers delete room images" ON storage.objects;
 CREATE POLICY "Property room managers upload room images" ON storage.objects
   FOR INSERT TO authenticated WITH CHECK (
     bucket_id='room-images' AND EXISTS (
