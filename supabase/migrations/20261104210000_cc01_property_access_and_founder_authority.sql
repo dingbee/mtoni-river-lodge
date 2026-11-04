@@ -124,6 +124,9 @@ as $function$
   );
 $function$;
 
+revoke all on function public.staynas_user_has_property_role(uuid, uuid, public.app_role[]) from public, anon;
+grant execute on function public.staynas_user_has_property_role(uuid, uuid, public.app_role[]) to authenticated, service_role;
+
 drop policy if exists "Staff can read folio postings" on public.pms_folio_postings;
 drop policy if exists "Staff can record folio postings" on public.pms_folio_postings;
 drop policy if exists "Staff can update folio postings" on public.pms_folio_postings;
