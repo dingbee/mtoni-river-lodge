@@ -2439,4 +2439,97 @@ END;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.housekeeping_claim_task(_task_id uuid)
+ RETURNS ops_tasks
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  _uid uuid := auth.uid();
+  _task public.ops_tasks%ROWTYPE;
+BEGIN
+  IF _uid IS NULL OR NOT public.staynas_current_user_has_property_role(public.staynas_active_property_id(_uid), ARRAY['housekeeping']::public.app_role[])
+    THEN RAISE EXCEPTION 'Housekeeping staff access required'; END IF;
+
+  SELECT * INTO _task FROM public.ops_tasks WHERE id = _task_id AND category = 'housekeeping' AND property_id = public.staynas_active_property_id(_uid) FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Housekeeping task not found'; END IF;
+  IF _task.status IN ('completed','cancelled') THEN RAISE EXCEPTION 'Task is closed'; END IF;
+  IF _task.assignee_id IS NOT NULL AND _task.assignee_id <> _uid THEN
+    RAISE EXCEPTION 'Task is assigned to another housekeeper';
+  END IF;
+
+  UPDATE public.ops_tasks
+  SET assignee_id = _uid,
+      claimed_at = COALESCE(claimed_at, now()),
+      status = 'pending',
+      updated_at = now()
+  WHERE id = _task_id
+  RETURNING * INTO _task;
+  RETURN _task;
+END;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.housekeeping_claim_task(_task_id uuid, _idempotency_key text DEFAULT NULL::text)
+ RETURNS ops_tasks
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  _uid uuid := auth.uid();
+  _task public.ops_tasks%ROWTYPE;
+  _existing public.housekeeping_action_idempotency%ROWTYPE;
+BEGIN
+  IF _uid IS NULL OR NOT public.staynas_current_user_has_property_role(public.staynas_active_property_id(_uid), ARRAY['housekeeping']::public.app_role[])
+    THEN RAISE EXCEPTION 'Housekeeping staff access required'; END IF;
+  IF _idempotency_key IS NULL OR length(trim(_idempotency_key)) < 8
+    THEN RAISE EXCEPTION 'Idempotency key is required'; END IF;
+
+  SELECT * INTO _task
+  FROM public.ops_tasks
+  WHERE id = _task_id AND category = 'housekeeping' AND property_id = public.staynas_active_property_id(_uid)
+  FOR UPDATE;
+
+  IF NOT FOUND THEN RAISE EXCEPTION 'Housekeeping task not found'; END IF;
+
+  SELECT * INTO _existing
+  FROM public.housekeeping_action_idempotency
+  WHERE action_type = 'claim'
+    AND idempotency_key = _idempotency_key
+    AND task_id = _task_id AND actor_id = _uid
+  LIMIT 1;
+
+  IF FOUND THEN
+    SELECT * INTO _task FROM public.ops_tasks WHERE id = _existing.task_id;
+    RETURN _task;
+  END IF;
+
+  IF _task.status IN ('completed','cancelled') THEN
+    RAISE EXCEPTION 'Task is closed';
+  END IF;
+  IF _task.assignee_id IS NOT NULL AND _task.assignee_id <> _uid THEN
+    RAISE EXCEPTION 'Task is assigned to another housekeeper';
+  END IF;
+
+  UPDATE public.ops_tasks
+  SET assignee_id = _uid,
+      claimed_at = COALESCE(claimed_at, now()),
+      status = 'pending',
+      updated_at = now()
+  WHERE id = _task_id
+  RETURNING * INTO _task;
+
+  INSERT INTO public.housekeeping_action_idempotency(
+    action_type, idempotency_key, task_id, actor_id, result
+  )
+  VALUES ('claim', _idempotency_key, _task.id, _uid, to_jsonb(_task))
+  ON CONFLICT (action_type, idempotency_key) DO NOTHING;
+
+  RETURN _task;
+END;
+$function$
+
+
 commit;
