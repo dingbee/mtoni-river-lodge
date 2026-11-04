@@ -34,7 +34,7 @@ export const updateGuestRequestStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => requestStatusSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.concierge");
+    await requireStayNasModuleAccess(context.supabase, context.userId, "concierge");
     const { data: result, error } = await context.supabase.rpc("staynas_update_guest_request_status", {
       _request_id: data.request_id, _status: data.status, _note: data.note ?? null,
     });
