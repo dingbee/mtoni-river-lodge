@@ -38,11 +38,11 @@ export function ArrivalFilters({
   const set = (patch: Partial<ArrivalsFilter>) => onChange({ ...filters, ...patch });
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="relative min-w-[220px] flex-1">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="relative min-w-0 w-full sm:col-span-2 xl:col-span-3">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          className="h-9 pl-8"
+          className="h-11 w-full pl-9"
           placeholder="Search guest name, reference or email"
           value={filters.search ?? ""}
           onChange={(e) => set({ search: e.target.value })}
@@ -53,7 +53,7 @@ export function ArrivalFilters({
         value={filters.scope}
         onValueChange={(v) => set({ scope: v as ArrivalsFilter["scope"] })}
       >
-        <SelectTrigger className="h-9 w-[160px]">
+        <SelectTrigger className="h-11 w-full">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -69,7 +69,7 @@ export function ArrivalFilters({
         <>
           <Input
             type="date"
-            className="h-9 w-[150px]"
+            className="h-11 w-full"
             value={filters.from ?? ""}
             onChange={(e) => set({ from: e.target.value || undefined })}
           />
@@ -145,7 +145,7 @@ export function ArrivalFilters({
         value={filters.roomId ?? ALL}
         onValueChange={(v) => set({ roomId: v === ALL ? undefined : v })}
       >
-        <SelectTrigger className="h-9 w-[170px]">
+        <SelectTrigger className="h-11 w-full">
           <SelectValue placeholder="Room" />
         </SelectTrigger>
         <SelectContent>
