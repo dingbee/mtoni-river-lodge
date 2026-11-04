@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { hasStayNasEntitlement, type StayNasModuleId } from "@/lib/staynas-entitlements";
+import { staynasRpc } from "@/lib/staynas-rpc";
 
 /**
  * Authorize an operational module against the authenticated user's explicitly
@@ -19,7 +20,7 @@ export async function requireStayNasModuleAccess(
 ): Promise<void> {
   if (!userId) throw new Error("Forbidden");
 
-  const { data: propertyRoles, error } = await (supabase as any).rpc("staynas_current_property_roles");
+  const { data: propertyRoles, error } = await staynasRpc(supabase).rpc("staynas_current_property_roles");
 
   if (error) {
     throw new Error("Unable to verify the active property's access role.");
