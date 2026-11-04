@@ -15,56 +15,37 @@ begin
     return new;
   end if;
 
-  if v_actor is null and current_user <> 'service_role' then
-    raise exception using errcode = '42501', message = 'Authenticated actor required for booking lifecycle changes';
-  end if;
-
-  if current_user <> 'service_role' then
-    if new.status::text = 'confirmed' then
-      if old.status::text <> 'pending'
-        or not public.has_any_role(v_actor, array['owner','manager','admin','reservations','reception']::public.app_role[]) then
-        raise exception using errcode = '42501', message = 'Only authorized reservations staff may confirm a pending booking';
-      end if;
-      new.confirmed_at := coalesce(new.confirmed_at, now());
-    elsif new.status::text = 'checked_in' then
-      if old.status::text <> 'confirmed'
-        or not public.has_any_role(v_actor, array['owner','manager','admin','reception']::public.app_role[]) then
-        raise exception using errcode = '42501', message = 'Only front-desk staff may check in a confirmed booking';
-      end if;
-      new.checked_in_at := coalesce(new.checked_in_at, now());
-    elsif new.status::text = 'completed' then
-      if old.status::text <> 'checked_in'
-        or old.checked_in_at is null
-        or not public.has_any_role(v_actor, array['owner','manager','admin','reception']::public.app_role[]) then
-        raise exception using errcode = '42501', message = 'A booking must be checked in by authorized front-desk staff before completion';
-      end if;
-    elsif new.status::text = 'cancelled' then
-      if old.status::text not in ('pending','confirmed')
-        or not public.has_any_role(v_actor, array['owner','manager','admin','reservations']::public.app_role[]) then
-        raise exception using errcode = '42501', message = 'Cancellation is permitted only for pending or confirmed bookings by reservations managers';
-      end if;
-      new.cancelled_at := coalesce(new.cancelled_at, now());
-    elsif new.status::text = 'no_show' then
-      if old.status::text <> 'confirmed'
-        or current_date <= old.check_in
-        or not public.has_any_role(v_actor, array['owner','manager','admin','reservations']::public.app_role[]) then
-        raise exception using errcode = '42501', message = 'No-show requires an unarrived confirmed booking after its check-in date and reservations authorization';
-      end if;
-    else
-      raise exception using errcode = '22023', message = 'Unsupported booking lifecycle transition';
+  if new.status::text = 'confirmed' then
+    if old.status::text <> 'pending'
+      or (v_actor is not null and not public.has_any_role(v_actor, array['owner','manager','admin','reservations','reception']::public.app_role[])) then
+      raise exception using errcode = '42501', message = 'Only authorized reservations staff may confirm a pending booking';
+    end if;
+    new.confirmed_at := coalesce(new.confirmed_at, now());
+  elsif new.status::text = 'checked_in' then
+    if old.status::text <> 'confirmed'
+      or (v_actor is not null and not public.has_any_role(v_actor, array['owner','manager','admin','reception']::public.app_role[])) then
+      raise exception using errcode = '42501', message = 'Only front-desk staff may check in a confirmed booking';
+    end if;
+    new.checked_in_at := coalesce(new.checked_in_at, now());
+  elsif new.status::text = 'completed' then
+    if old.status::text <> 'checked_in'
+      or (v_actor is not null and not public.has_any_role(v_actor, array['owner','manager','admin','reception']::public.app_role[])) then
+      raise exception using errcode = '42501', message = 'A booking must be checked in by authorized front-desk staff before completion';
+    end if;
+  elsif new.status::text = 'cancelled' then
+    if old.status::text not in ('pending','confirmed')
+      or (v_actor is not null and not public.has_any_role(v_actor, array['owner','manager','admin','reservations']::public.app_role[])) then
+      raise exception using errcode = '42501', message = 'Cancellation is permitted only for pending or confirmed bookings by reservations managers';
+    end if;
+    new.cancelled_at := coalesce(new.cancelled_at, now());
+  elsif new.status::text = 'no_show' then
+    if old.status::text <> 'confirmed'
+      or current_date <= old.check_in
+      or (v_actor is not null and not public.has_any_role(v_actor, array['owner','manager','admin','reservations']::public.app_role[])) then
+      raise exception using errcode = '42501', message = 'No-show requires an unarrived confirmed booking after its check-in date and reservations authorization';
     end if;
   else
-    -- Service-role automation is still subject to the state graph.
-    if not (
-      (old.status::text = 'pending' and new.status::text in ('confirmed','cancelled')) or
-      (old.status::text = 'confirmed' and new.status::text in ('checked_in','cancelled','no_show')) or
-      (old.status::text = 'checked_in' and new.status::text = 'completed')
-    ) then
-      raise exception using errcode = '22023', message = 'Invalid booking lifecycle transition';
-    end if;
-    if new.status::text = 'checked_in' then new.checked_in_at := coalesce(new.checked_in_at, now()); end if;
-    if new.status::text = 'confirmed' then new.confirmed_at := coalesce(new.confirmed_at, now()); end if;
-    if new.status::text = 'cancelled' then new.cancelled_at := coalesce(new.cancelled_at, now()); end if;
+    raise exception using errcode = '22023', message = 'Unsupported booking lifecycle transition';
   end if;
 
   return new;
