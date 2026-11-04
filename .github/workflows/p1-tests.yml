@@ -1,4 +1,5 @@
 name: P1 test verification
+# Shared TypeScript baseline verification
 
 on:
   push:
