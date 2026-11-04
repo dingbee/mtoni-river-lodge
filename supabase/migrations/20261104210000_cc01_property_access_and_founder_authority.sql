@@ -2950,6 +2950,17 @@ create policy "guest documents property staff read" on storage.objects
   );
 
 
+-- Clear the remaining mutable search_path advisor findings. These routines
+-- use schema-qualified application objects and built-in PostgreSQL functions.
+ALTER FUNCTION public.housekeeping_checklist_template()
+  SET search_path = pg_catalog, public, pg_temp;
+ALTER FUNCTION public.housekeeping_list_notifications(integer)
+  SET search_path = pg_catalog, public, pg_temp;
+ALTER FUNCTION public.housekeeping_mark_notification_read(uuid)
+  SET search_path = pg_catalog, public, pg_temp;
+ALTER FUNCTION public.enforce_room_category_property()
+  SET search_path = pg_catalog, public, pg_temp;
+
 -- Prevent authenticated clients from probing legacy global role assignments.
 -- The remaining restaurant platform-admin SECURITY DEFINER routine executes as
 -- its owner and retains its internal compatibility check.
