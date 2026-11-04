@@ -21,7 +21,7 @@ as $function$
       on p.id = pm.property_id
     join public.staynas_organisations o
       on o.id = p.organisation_id
-    where pm.user_id = _uid
+    where pm.user_id = auth.uid()
       and pm.property_id = _property_id
       and pm.status = 'active'
       and p.status <> 'suspended'
@@ -99,8 +99,7 @@ grant execute on function public.staynas_current_property_roles() to authenticat
 
 -- Folio access is always anchored to the booking's owning property. A caller
 -- must have an allowed role in that same active property.
-create or replace function public.staynas_user_has_property_role(
-  _uid uuid,
+create or replace function public.staynas_current_user_has_property_role(
   _property_id uuid,
   _roles public.app_role[]
 )
@@ -124,8 +123,8 @@ as $function$
   );
 $function$;
 
-revoke all on function public.staynas_user_has_property_role(uuid, uuid, public.app_role[]) from public, anon;
-grant execute on function public.staynas_user_has_property_role(uuid, uuid, public.app_role[]) to authenticated, service_role;
+revoke all on function public.staynas_current_user_has_property_role(uuid, public.app_role[]) from public, anon;
+grant execute on function public.staynas_current_user_has_property_role(uuid, public.app_role[]) to authenticated, service_role;
 
 drop policy if exists "Staff can read folio postings" on public.pms_folio_postings;
 drop policy if exists "Staff can record folio postings" on public.pms_folio_postings;
@@ -139,8 +138,8 @@ create policy "Property finance staff read folio postings"
       from public.bookings b
       where b.id = pms_folio_postings.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(
-          auth.uid(), b.property_id,
+        and public.staynas_current_user_has_property_role(
+          b.property_id,
           array['owner'::public.app_role,'manager'::public.app_role,'finance'::public.app_role,'reception'::public.app_role]
         )
     )
@@ -185,8 +184,8 @@ begin
   end if;
 
   if not public.staynas_user_has_property_access(_actor, _booking.property_id)
-     or not public.staynas_user_has_property_role(
-       _actor, _booking.property_id,
+     or not public.staynas_current_user_has_property_role(
+       _booking.property_id,
        array['owner'::public.app_role,'manager'::public.app_role,'finance'::public.app_role,'reception'::public.app_role]
      ) then
     raise exception 'Forbidden — folio posting requires access to the booking property.';
@@ -281,7 +280,7 @@ create policy "Staff manage own property booking extras" on public.booking_extra
       select 1 from public.bookings b
       where b.id = booking_extras.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
     )
   )
   with check (
@@ -289,7 +288,7 @@ create policy "Staff manage own property booking extras" on public.booking_extra
       select 1 from public.bookings b
       where b.id = booking_extras.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
     )
   );
 
@@ -298,11 +297,11 @@ create policy "Staff manage own property extras" on public.extras
   for all to authenticated
   using (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
   )
   with check (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
   );
 
 drop policy if exists "Admins delete own property holds" on public.booking_holds;
@@ -310,7 +309,7 @@ create policy "Admins delete own property holds" on public.booking_holds
   for delete to authenticated
   using (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
   );
 
 drop policy if exists "Room admins manage own property categories" on public.room_categories;
@@ -318,11 +317,11 @@ create policy "Room admins manage own property categories" on public.room_catego
   for all to authenticated
   using (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
   )
   with check (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
   );
 
 drop policy if exists "Supervisors delete own property room_states" on public.room_states;
@@ -330,7 +329,7 @@ create policy "Supervisors delete own property room_states" on public.room_state
   for delete to authenticated
   using (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
   );
 
 drop policy if exists "Supervisors insert own property room_states" on public.room_states;
@@ -338,7 +337,7 @@ create policy "Supervisors insert own property room_states" on public.room_state
   for insert to authenticated
   with check (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
   );
 
 drop policy if exists "Supervisors update own property room_states" on public.room_states;
@@ -346,13 +345,13 @@ create policy "Supervisors update own property room_states" on public.room_state
   for update to authenticated
   using (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role,'reception'::public.app_role,'finance'::public.app_role,'marketing'::public.app_role,'editor'::public.app_role,'reservations'::public.app_role])
-    and not public.staynas_user_has_property_role(auth.uid(), property_id, array['housekeeping'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role,'reception'::public.app_role,'finance'::public.app_role,'marketing'::public.app_role,'editor'::public.app_role,'reservations'::public.app_role])
+    and not public.staynas_current_user_has_property_role(property_id, array['housekeeping'::public.app_role])
   )
   with check (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role,'reception'::public.app_role,'finance'::public.app_role,'marketing'::public.app_role,'editor'::public.app_role,'reservations'::public.app_role])
-    and not public.staynas_user_has_property_role(auth.uid(), property_id, array['housekeeping'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role,'reception'::public.app_role,'finance'::public.app_role,'marketing'::public.app_role,'editor'::public.app_role,'reservations'::public.app_role])
+    and not public.staynas_current_user_has_property_role(property_id, array['housekeeping'::public.app_role])
   );
 
 drop policy if exists "Staff manage own property inventory" on public.room_inventory;
@@ -363,7 +362,7 @@ create policy "Staff manage own property inventory" on public.room_inventory
       select 1 from public.rooms r
       where r.id = room_inventory.room_id
         and public.staynas_user_has_property_access(auth.uid(), r.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), r.property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+        and public.staynas_current_user_has_property_role(r.property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
     )
   )
   with check (
@@ -371,7 +370,7 @@ create policy "Staff manage own property inventory" on public.room_inventory
       select 1 from public.rooms r
       where r.id = room_inventory.room_id
         and public.staynas_user_has_property_access(auth.uid(), r.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), r.property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+        and public.staynas_current_user_has_property_role(r.property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
     )
   );
 
@@ -380,11 +379,11 @@ create policy "Managers manage accessible schedules" on public.staynas_staff_sch
   for all to authenticated
   using (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
   )
   with check (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
     and public.staynas_user_has_property_access(staff_user_id, property_id)
   );
 
@@ -395,7 +394,7 @@ create policy "Staff read accessible schedules" on public.staynas_staff_schedule
     public.staynas_user_has_property_access(auth.uid(), property_id)
     and (
       staff_user_id = auth.uid()
-      or public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+      or public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
     )
   );
 
@@ -404,11 +403,11 @@ create policy "guest_communications_property_staff_all" on public.guest_communic
   for all to authenticated
   using (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
   )
   with check (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
   );
 
 drop policy if exists "guest_documents_property_staff_read" on public.guest_documents;
@@ -416,7 +415,7 @@ create policy "guest_documents_property_staff_read" on public.guest_documents
   for select to authenticated
   using (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
   );
 
 drop policy if exists "guest_documents_property_staff_update" on public.guest_documents;
@@ -424,11 +423,11 @@ create policy "guest_documents_property_staff_update" on public.guest_documents
   for update to authenticated
   using (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
   )
   with check (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
   );
 
 drop policy if exists "guest_notes_property_staff_all" on public.guest_notes;
@@ -436,11 +435,11 @@ create policy "guest_notes_property_staff_all" on public.guest_notes
   for all to authenticated
   using (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
   )
   with check (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
   );
 
 drop policy if exists "guest_preferences_property_staff_all" on public.guest_preferences;
@@ -448,11 +447,11 @@ create policy "guest_preferences_property_staff_all" on public.guest_preferences
   for all to authenticated
   using (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
   )
   with check (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
   );
 
 drop policy if exists "guest_tag_assignments_property_staff_all" on public.guest_tag_assignments;
@@ -460,11 +459,11 @@ create policy "guest_tag_assignments_property_staff_all" on public.guest_tag_ass
   for all to authenticated
   using (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
   )
   with check (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
   );
 
 drop policy if exists "guest_threads_property_staff_read" on public.guest_threads;
@@ -475,7 +474,7 @@ create policy "guest_threads_property_staff_read" on public.guest_threads
       select 1 from public.bookings b
       where b.id = guest_threads.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
     )
   );
 
@@ -487,7 +486,7 @@ create policy "email_events_property_staff_read" on public.email_events
       select 1 from public.bookings b
       where b.id = email_events.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
     )
   );
 
@@ -499,7 +498,7 @@ create policy "arrival_information_property_staff_read" on public.arrival_inform
       select 1 from public.bookings b
       where b.id = arrival_information.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
     )
   );
 
@@ -511,7 +510,7 @@ create policy "arrival_information_property_staff_update" on public.arrival_info
       select 1 from public.bookings b
       where b.id = arrival_information.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
     )
   )
   with check (
@@ -519,7 +518,7 @@ create policy "arrival_information_property_staff_update" on public.arrival_info
       select 1 from public.bookings b
       where b.id = arrival_information.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
     )
   );
 
@@ -531,7 +530,7 @@ create policy "arrival_passes_property_staff_read" on public.arrival_passes
       select 1 from public.bookings b
       where b.id = arrival_passes.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
     )
   );
 
@@ -543,7 +542,7 @@ create policy "guest_checkin_activity_property_staff_read" on public.guest_check
       select 1 from public.bookings b
       where b.id = guest_checkin_activity.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
     )
   );
 
@@ -555,7 +554,7 @@ create policy "guest_checkins_property_staff_read" on public.guest_checkins
       select 1 from public.bookings b
       where b.id = guest_checkins.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
     )
   );
 
@@ -567,7 +566,7 @@ create policy "guest_checkins_property_staff_update" on public.guest_checkins
       select 1 from public.bookings b
       where b.id = guest_checkins.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
     )
   )
   with check (
@@ -575,7 +574,7 @@ create policy "guest_checkins_property_staff_update" on public.guest_checkins
       select 1 from public.bookings b
       where b.id = guest_checkins.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
     )
   );
 
@@ -587,7 +586,7 @@ create policy "whatsapp_alerts_property_staff_read" on public.whatsapp_alerts
       select 1 from public.bookings b
       where b.id = whatsapp_alerts.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
     )
   );
 
@@ -596,7 +595,7 @@ create policy "Staff delete non-housekeeping ops_tasks" on public.ops_tasks
   for delete to authenticated
   using (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
     and coalesce(category, '') <> 'housekeeping'
   );
 
@@ -605,7 +604,7 @@ create policy "Staff manage non-housekeeping ops_tasks" on public.ops_tasks
   for insert to authenticated
   with check (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
     and coalesce(category, '') <> 'housekeeping'
   );
 
@@ -614,12 +613,12 @@ create policy "Staff update non-housekeeping ops_tasks" on public.ops_tasks
   for update to authenticated
   using (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
     and coalesce(category, '') <> 'housekeeping'
   )
   with check (
     public.staynas_user_has_property_access(auth.uid(), property_id)
-    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
     and coalesce(category, '') <> 'housekeeping'
   );
 
@@ -631,7 +630,7 @@ create policy "Finance manage financial alerts" on public.financial_alerts
       select 1 from public.bookings b
       where b.id = financial_alerts.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'finance'::public.app_role,'admin'::public.app_role])
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'finance'::public.app_role,'admin'::public.app_role])
     )
   )
   with check (
@@ -639,7 +638,7 @@ create policy "Finance manage financial alerts" on public.financial_alerts
       select 1 from public.bookings b
       where b.id = financial_alerts.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'finance'::public.app_role,'admin'::public.app_role])
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'finance'::public.app_role,'admin'::public.app_role])
     )
   );
 
@@ -652,7 +651,7 @@ create policy "Finance staff can read payment events for accessible properties" 
       select 1 from public.bookings b
       where b.id = payment_events.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'finance'::public.app_role])
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'finance'::public.app_role])
     )
   );
 
@@ -665,7 +664,7 @@ create policy "Finance staff insert payment events for accessible properties" on
       select 1 from public.bookings b
       where b.id = payment_events.booking_id
         and public.staynas_user_has_property_access(auth.uid(), b.property_id)
-        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'finance'::public.app_role])
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'finance'::public.app_role])
     )
     and current_setting('staynas.payment_rpc', true) = 'on'
   );
