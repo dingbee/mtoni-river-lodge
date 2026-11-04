@@ -13,6 +13,10 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - "src/domains/ai/concierge/**"
+      - "src/routes/_authenticated.admin.ai.concierge.conversations.tsx"
+      - "src/routes/api/public/*webhook*"
 
 jobs:
   omnichannel-contracts:
@@ -32,10 +36,11 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Run omnichannel contract and provider adapter regressions
         run: bunx vitest run src/domains/ai/concierge/omnichannel.contracts.test.ts src/domains/ai/concierge/webhooks/webhook-processor.server.test.ts
+      - name: Production build
+        run: bun run build
+
       - name: TypeScript verification
         run: bunx tsc --noEmit
       - name: Lint omnichannel contracts, provider adapters, webhook security and tests
         run: >-
           bunx eslint src/domains/ai/concierge/omnichannel.contracts.ts src/domains/ai/concierge/omnichannel.contracts.test.ts src/domains/ai/concierge/omnichannel.ledger.types.ts src/domains/ai/concierge/providers src/domains/ai/concierge/webhooks src/domains/ai/concierge/unified-inbox.functions.ts src/routes/_authenticated.admin.ai.concierge.conversations.tsx src/domains/ai/concierge/property-channel-settings.functions.ts --rule 'prettier/prettier: off'
-      - name: Production build
-        run: bun run build
