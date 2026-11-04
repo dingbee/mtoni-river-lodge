@@ -16,15 +16,12 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Sb = any;
 
+import { requireStayNasPropertyRole } from "@/lib/staynas-authorization.server";
+
 export const ADMIN_ROLES = ["owner", "manager"] as const;
 
 export async function assertMigrationAdmin(supabase: Sb, userId: string) {
-  const { data, error } = await supabase.rpc("has_any_role", {
-    _user_id: userId,
-    _roles: [...ADMIN_ROLES],
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden: migration tools are owner/manager only");
+  await requireStayNasPropertyRole(supabase, userId, ADMIN_ROLES);
 }
 
 async function audit(
