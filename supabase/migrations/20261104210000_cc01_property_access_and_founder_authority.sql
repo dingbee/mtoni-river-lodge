@@ -2141,4 +2141,50 @@ END;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.housekeeping_report_exception(_room_state_id uuid, _task_id uuid, _exception_type text, _title text, _notes text DEFAULT NULL::text, _severity integer DEFAULT 2, _evidence jsonb DEFAULT '[]'::jsonb)
+ RETURNS housekeeping_exceptions
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE _uid uuid := auth.uid(); _row public.housekeeping_exceptions%ROWTYPE; _task public.ops_tasks%ROWTYPE;
+BEGIN
+  IF _uid IS NULL OR NOT public.staynas_current_user_has_property_role(public.staynas_active_property_id(_uid), ARRAY['housekeeping','owner','manager','admin']::public.app_role[])
+    THEN RAISE EXCEPTION 'Housekeeping access required'; END IF;
+  IF _exception_type NOT IN ('dnd','discrepancy','damage','maintenance','lost_found','linen_amenity')
+    THEN RAISE EXCEPTION 'Invalid housekeeping exception type'; END IF;
+  IF _severity NOT BETWEEN 1 AND 3 THEN RAISE EXCEPTION 'Invalid severity'; END IF;
+  IF jsonb_typeof(COALESCE(_evidence,'[]'::jsonb)) <> 'array' THEN RAISE EXCEPTION 'Evidence must be an array'; END IF;
+
+  IF _task_id IS NOT NULL THEN
+    SELECT * INTO _task FROM public.ops_tasks WHERE id = _task_id AND category = 'housekeeping' AND property_id = public.staynas_active_property_id(_uid);
+    IF NOT FOUND THEN RAISE EXCEPTION 'Housekeeping task not found'; END IF;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM public.room_states rs WHERE rs.id = _room_state_id AND rs.property_id = public.staynas_active_property_id(_uid)) THEN RAISE EXCEPTION 'Room state is outside the active property'; END IF;
+
+  INSERT INTO public.housekeeping_exceptions (
+    room_state_id, task_id, exception_type, title, notes, severity, evidence, reported_by
+  ) VALUES (
+    _room_state_id, _task_id, _exception_type, trim(_title),
+    NULLIF(trim(COALESCE(_notes,'')), ''), _severity, _evidence, _uid
+  ) RETURNING * INTO _row;
+
+  IF _exception_type = 'maintenance' THEN
+    INSERT INTO public.ops_tasks (
+      booking_id, task_type, category, title, description, priority, due_at, room_state_id
+    )
+    SELECT _task.booking_id, 'housekeeping_maintenance', 'maintenance',
+           'Maintenance: ' || trim(_title),
+           concat_ws(E'\n', NULLIF(trim(COALESCE(_notes,'')), ''), 'Reported from Housekeeping.'),
+           _severity, now() + CASE WHEN _severity = 1 THEN interval '30 minutes' ELSE interval '2 hours' END,
+           _room_state_id
+    WHERE _task_id IS NOT NULL;
+  END IF;
+
+  RETURN _row;
+END;
+$function$
+
+
 commit;
