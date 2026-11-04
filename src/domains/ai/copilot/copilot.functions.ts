@@ -63,7 +63,6 @@ export const listCopilotSessions = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("ai_copilot_sessions")
       .select("id, title, message_count, last_message_at, created_at, updated_at")
-      .eq("property_id", scope.propertyId)
       .order("updated_at", { ascending: false })
       .limit(50);
     if (error) throw error;
@@ -76,7 +75,7 @@ export const getCopilotSession = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const scope = await getActiveScope(context.supabase, context.userId);
     const [{ data: session }, { data: messages }] = await Promise.all([
-      context.supabase.from("ai_copilot_sessions").select("*").eq("id", data.sessionId).eq("property_id", scope.propertyId).maybeSingle(),
+      context.supabase.from("ai_copilot_sessions").select("*").eq("id", data.sessionId).eq("user_id", context.userId).maybeSingle(),
       context.supabase.from("ai_copilot_messages").select("*").eq("session_id", data.sessionId).order("created_at"),
     ]);
     return { session, messages: messages ?? [] };
@@ -87,7 +86,7 @@ export const deleteCopilotSession = createServerFn({ method: "POST" })
   .inputValidator((i: { sessionId: string }) => ({ sessionId: String(i.sessionId) }))
   .handler(async ({ data, context }) => {
     const scope = await getActiveScope(context.supabase, context.userId);
-    const { error } = await context.supabase.from("ai_copilot_sessions").delete().eq("id", data.sessionId).eq("property_id", scope.propertyId);
+    const { error } = await context.supabase.from("ai_copilot_sessions").delete().eq("id", data.sessionId).eq("user_id", context.userId);
     if (error) throw error;
     return { ok: true };
   });
@@ -124,7 +123,7 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
     if (!sessionId) {
       const { data: session, error } = await context.supabase
         .from("ai_copilot_sessions")
-        .insert({ user_id: context.userId, property_id: propertyId, title: data.question.slice(0, 80), role_snapshot: roles } as any)
+        .insert({ user_id: context.userId, title: data.question.slice(0, 80), role_snapshot: roles })
         .select("id").single();
       if (error) throw error;
       sessionId = session.id;
