@@ -5,6 +5,7 @@
  * calendar_events, room_inventory, rooms, pricing_rules or any other
  * production table. It only touches the `respad_*` staging tables.
  */
+import { requireStayNasPropertyRole } from "@/lib/staynas-authorization.server";
 import {
   buildNormalizedAccounts,
   detectDuplicates,
@@ -15,8 +16,6 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Sb = any;
-
-import { requireStayNasPropertyRole } from "@/lib/staynas-authorization.server";
 
 export const ADMIN_ROLES = ["owner", "manager"] as const;
 
