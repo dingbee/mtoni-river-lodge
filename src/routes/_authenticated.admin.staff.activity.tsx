@@ -18,32 +18,49 @@ export const Route = createFileRoute("/_authenticated/admin/staff/activity")({
 function ActivityLogPage() {
   const fn = useServerFn(listActivityLogs);
   const [search, setSearch] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const q = useQuery({
-    queryKey: ["staff.activity", search],
-    queryFn: () => fn({ data: { search: search || undefined, limit: 300 } }),
-    staleTime: 30_000,
+    queryKey: ["staff.activity", search, from, to],
+    queryFn: () => fn({
+      data: {
+        search: search || undefined,
+        from: from || undefined,
+        to: to || undefined,
+        limit: 1000,
+      },
+    }),
+    staleTime: 15_000,
   });
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Activity Log"
-        description="Immutable audit trail of admin actions across StayNas."
+        description="Append-only operational audit trail across StayNas. Records are retained; no automatic purge is configured."
       />
-      <div className="max-w-md">
+      <div className="grid gap-3 md:grid-cols-[minmax(220px,1fr)_180px_180px]">
         <Input
-          placeholder="Search by action, actor, or entity…"
+          placeholder="Search action, actor, or entity…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <Input aria-label="From date" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+        <Input aria-label="To date" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
       </div>
-      <SectionCard title="Recent activity" description={q.data ? `${q.data.length} entries` : undefined}>
+      <SectionCard
+        title="Activity records"
+        description={q.data ? `${q.data.length} records returned (maximum 1,000 per query)` : "Search and filter recorded activity"}
+      >
         {q.isLoading ? (
           <LoadingState />
         ) : q.isError ? (
           <ErrorState description={(q.error as Error)?.message} onRetry={() => q.refetch()} />
         ) : !q.data || q.data.length === 0 ? (
-          <EmptyState title="No activity yet" description="Admin actions will appear here as they happen." />
+          <EmptyState
+            title="No activity records found"
+            description="No matching audit events have been recorded for this period. This does not imply that no business activity occurred."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -51,8 +68,10 @@ function ActivityLogPage() {
                 <tr className="text-left">
                   <th className="py-2 pr-3">When</th>
                   <th className="py-2 pr-3">Actor</th>
+                  <th className="py-2 pr-3">Module</th>
                   <th className="py-2 pr-3">Action</th>
                   <th className="py-2 pr-3">Entity</th>
+                  <th className="py-2 pr-3">Severity</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[color:var(--os-hairline)]">
@@ -62,6 +81,7 @@ function ActivityLogPage() {
                       {new Date(row.created_at).toLocaleString()}
                     </td>
                     <td className="py-2 pr-3">{row.actor_email ?? row.actor_id?.slice(0, 8) ?? "—"}</td>
+                    <td className="py-2 pr-3 text-xs">{row.module ?? "—"}</td>
                     <td className="py-2 pr-3 font-mono text-xs">{row.action}</td>
                     <td className="py-2 pr-3">
                       <div>{row.entity_label ?? row.entity_type}</div>
@@ -69,6 +89,7 @@ function ActivityLogPage() {
                         <div className="text-[11px] text-muted-foreground">{row.entity_id}</div>
                       )}
                     </td>
+                    <td className="py-2 pr-3 text-xs uppercase">{row.severity}</td>
                   </tr>
                 ))}
               </tbody>
