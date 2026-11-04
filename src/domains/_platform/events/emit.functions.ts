@@ -19,7 +19,13 @@ export const emitPlatformEvent = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => emitSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context;
+    const { data: propertyContext } = await supabase
+      .from("staynas_user_property_context")
+      .select("property_id")
+      .eq("user_id", userId)
+      .maybeSingle();
     const { error } = await supabase.from("activity_logs").insert({
+      property_id: propertyContext?.property_id ?? null,
       actor_id: userId,
       actor_email: (claims as { email?: string } | null)?.email ?? null,
       action: data.action ?? data.type,
