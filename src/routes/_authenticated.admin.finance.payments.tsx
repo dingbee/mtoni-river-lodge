@@ -4,6 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { CreditCard } from "lucide-react";
+import { calculateReservationFinancials } from "@/domains/finance/reservation-financials";
+import { ReservationFinancialSummary } from "@/components/os/finance/ReservationFinancialSummary";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { LoadingState } from "@/components/os/LoadingState";
@@ -131,29 +133,40 @@ function Payments() {
                   <th>Guest</th>
                   <th>Check-in</th>
                   <th>Total</th>
-                  <th>Paid</th>
-                  <th>Balance</th>
+                  <th>Paid to date</th>
+                  <th>Outstanding</th>
+                  <th>Due at check-in</th>
                   <th>Status</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {(rows ?? []).map((r) => (
-                  <tr key={r.id} className="border-t border-border">
-                    <td className="py-2 font-mono text-xs">{r.reference}</td>
-                    <td>{r.guest_name}</td>
-                    <td>{r.check_in}</td>
-                    <td>{r.currency} {Number(r.total).toFixed(2)}</td>
-                    <td>{r.currency} {Number(r.paid_amount ?? 0).toFixed(2)}</td>
-                    <td>{r.currency} {Number(r.balance_amount ?? 0).toFixed(2)}</td>
-                    <td><Badge variant="secondary">{r.payment_status}</Badge></td>
-                    <td>
-                      <Button size="sm" variant="ghost" onClick={() => setSelected(r)}>
-                        <CreditCard className="mr-1 h-3 w-3" /> Open
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                {(rows ?? []).map((r) => {
+                  const financials = calculateReservationFinancials({
+                    total: r.total,
+                    depositRequired: r.deposit_amount,
+                    paidToDate: r.paid_amount,
+                  });
+                  const money = (value: number) => `${r.currency} ${value.toFixed(2)}`;
+                  return (
+                    <tr key={r.id} className="border-t border-border">
+                      <td className="py-2 font-mono text-xs">{r.reference}</td>
+                      <td>{r.guest_name}</td>
+                      <td>{r.check_in}</td>
+                      <td>{money(financials.reservationTotal)}</td>
+                      <td>{money(financials.depositRequired)}</td>
+                      <td>{money(financials.paidToDate)}</td>
+                      <td>{money(financials.outstanding)}</td>
+                      <td>{money(financials.balanceDueAtCheckIn)}</td>
+                      <td><Badge variant="secondary">{r.payment_status}</Badge></td>
+                      <td>
+                        <Button size="sm" variant="ghost" onClick={() => setSelected(r)}>
+                          <CreditCard className="mr-1 h-3 w-3" /> Open
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -167,11 +180,12 @@ function Payments() {
           </DialogHeader>
           {selected && (
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-2 text-sm">
-                <div>Total: <strong>{selected.currency} {Number(selected.total).toFixed(2)}</strong></div>
-                <div>Paid: <strong>{selected.currency} {Number(selected.paid_amount ?? 0).toFixed(2)}</strong></div>
-                <div>Balance: <strong>{selected.currency} {Number(selected.balance_amount ?? 0).toFixed(2)}</strong></div>
-              </div>
+              <ReservationFinancialSummary
+                total={selected.total}
+                depositRequired={selected.deposit_amount}
+                paidToDate={selected.paid_amount}
+                currency={selected.currency}
+              />
               <div className="rounded border border-border p-3">
                 <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Record payment / refund</p>
                 <div className="grid grid-cols-2 gap-2">
