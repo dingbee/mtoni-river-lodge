@@ -17,7 +17,7 @@ describe("requireStayNasModuleAccess", () => {
   });
 
   it("authorizes using the active property's owner membership", async () => {
-    const client = clientWithPropertyRoles("owner");
+    const client = clientWithPropertyRoles(["owner"]);
     await expect(
       requireStayNasModuleAccess(client, "user-1", "finance"),
     ).resolves.toBeUndefined();
