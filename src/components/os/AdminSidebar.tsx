@@ -57,10 +57,14 @@ export function AdminSidebar({
   collapsed,
   roles,
   onNavigate,
+  onCollapse,
+  mobile = false,
 }: {
   collapsed: boolean;
   roles: readonly string[];
   onNavigate?: () => void;
+  onCollapse?: () => void;
+  mobile?: boolean;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { organisation, property } = usePropertyContext();
