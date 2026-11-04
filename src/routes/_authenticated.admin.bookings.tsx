@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { listBookings, getBookingDetail, updateBookingStatus } from "@/lib/admin.functions";
+import { getAllowedBookingTransitions, type BookingLifecycleStatus } from "@/lib/booking-lifecycle";
 import { CalendarDays, Loader2, Plus } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
