@@ -2,15 +2,11 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireStayNasPropertyRole } from "@/lib/staynas-authorization.server";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function assertOwnerOrAdmin(supabase: any, userId: string): Promise<void> {
-  const { data, error } = await supabase.rpc("has_any_role", {
-    _user_id: userId,
-    _roles: ["owner", "manager"],
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasPropertyRole(supabase, userId, ["owner", "manager"]);
 }
 
 export const getSystemHealth = createServerFn({ method: "GET" })
