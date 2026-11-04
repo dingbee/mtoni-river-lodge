@@ -2045,4 +2045,27 @@ END;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.housekeeping_list_exceptions(_room_state_id uuid DEFAULT NULL::uuid, _open_only boolean DEFAULT true)
+ RETURNS TABLE(id uuid, room_state_id uuid, task_id uuid, exception_type text, status text, severity integer, title text, notes text, evidence jsonb, reported_by uuid, assigned_to uuid, resolved_by uuid, resolved_at timestamp with time zone, created_at timestamp with time zone, unit_label text, room_name text)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE _uid uuid:=auth.uid(); _property_id uuid;
+BEGIN
+ IF _uid IS NULL OR NOT public.staynas_current_user_has_property_role(public.staynas_active_property_id(_uid), ARRAY['housekeeping','owner','manager','admin']::public.app_role[])
+ THEN RAISE EXCEPTION 'Housekeeping access required'; END IF;
+ _property_id:=public.staynas_active_property_id(_uid);
+ IF _property_id IS NULL OR NOT public.staynas_user_has_property_access(_uid,_property_id)
+ THEN RAISE EXCEPTION 'Active property access required'; END IF;
+ RETURN QUERY SELECT e.id,e.room_state_id,e.task_id,e.exception_type,e.status,e.severity,e.title,e.notes,e.evidence,
+ e.reported_by,e.assigned_to,e.resolved_by,e.resolved_at,e.created_at,rs.unit_label,r.name
+ FROM public.housekeeping_exceptions e JOIN public.room_states rs ON rs.id=e.room_state_id AND rs.property_id=_property_id
+ JOIN public.rooms r ON r.id=rs.room_id AND r.property_id=_property_id
+ WHERE (_room_state_id IS NULL OR e.room_state_id=_room_state_id) AND (NOT _open_only OR e.status='open')
+ ORDER BY e.severity,e.created_at DESC;
+END;
+$function$
+
+
 commit;
