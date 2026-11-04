@@ -2532,4 +2532,77 @@ END;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.housekeeping_complete_task(_task_id uuid, _note text DEFAULT NULL::text, _idempotency_key text DEFAULT NULL::text)
+ RETURNS ops_tasks
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  _uid uuid := auth.uid();
+  _task public.ops_tasks%ROWTYPE;
+  _rs public.room_states%ROWTYPE;
+BEGIN
+  IF _uid IS NULL OR NOT public.staynas_current_user_has_property_role(public.staynas_active_property_id(_uid), ARRAY['housekeeping']::public.app_role[])
+    THEN RAISE EXCEPTION 'Housekeeping staff access required'; END IF;
+  IF _idempotency_key IS NULL OR length(trim(_idempotency_key)) < 8
+    THEN RAISE EXCEPTION 'Idempotency key is required'; END IF;
+
+  SELECT * INTO _task
+  FROM public.ops_tasks
+  WHERE id = _task_id AND category = 'housekeeping' AND property_id = public.staynas_active_property_id(_uid)
+  FOR UPDATE;
+
+  IF NOT FOUND THEN RAISE EXCEPTION 'Housekeeping task not found'; END IF;
+  IF _task.assignee_id <> _uid THEN RAISE EXCEPTION 'Task is assigned to another housekeeper'; END IF;
+  IF _task.status = 'completed' THEN RETURN _task; END IF;
+  IF _task.status <> 'in_progress' THEN RAISE EXCEPTION 'Start the task before completing it'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM public.housekeeping_transition_log
+    WHERE idempotency_key = _idempotency_key AND room_state_id = _task.room_state_id AND actor_id = _uid
+  ) THEN
+    RETURN _task;
+  END IF;
+
+  SELECT * INTO _rs
+  FROM public.room_states
+  WHERE id = _task.room_state_id
+  FOR UPDATE;
+
+  IF NOT FOUND OR _rs.state <> 'vacant_dirty' THEN
+    RAISE EXCEPTION 'Room is not awaiting cleaning';
+  END IF;
+
+  PERFORM public.housekeeping_transition_room_state(
+    _rs.id,
+    'inspection',
+    _note,
+    _idempotency_key
+  );
+
+  UPDATE public.ops_tasks
+  SET status = 'completed',
+      completed_at = now(),
+      completed_by = _uid,
+      updated_at = now(),
+      description = CASE
+        WHEN NULLIF(trim(COALESCE(_note,'')), '') IS NULL THEN description
+        ELSE concat_ws(E'\n', NULLIF(description,''), 'Cleaning note: ' || trim(_note))
+      END
+  WHERE id = _task_id
+  RETURNING * INTO _task;
+
+  INSERT INTO public.housekeeping_inspections (
+    room_state_id, cleaning_task_id, status, checklist
+  )
+  VALUES (
+    _rs.id, _task.id, 'pending', public.housekeeping_checklist_template()
+  )
+  ON CONFLICT (room_state_id) WHERE status = 'pending' DO NOTHING;
+
+  RETURN _task;
+END;
+$function$
+
+
 commit;
