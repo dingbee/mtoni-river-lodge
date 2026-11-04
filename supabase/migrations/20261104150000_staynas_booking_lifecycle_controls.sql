@@ -1,3 +1,49 @@
+-- Keep confirmation's existing room-preparation side effect inside the property boundary.
+create or replace function public.handle_booking_update()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $function$
+declare
+  v_event text;
+begin
+  if new.status is distinct from old.status then
+    v_event := 'status_' || new.status::text;
+    update public.guest_threads
+      set timeline = timeline || jsonb_build_object(
+        'at', now(), 'type', v_event,
+        'message', 'Status changed: ' || old.status || ' → ' || new.status),
+        last_updated = now()
+      where booking_id = new.id;
+    insert into public.pending_notifications (booking_id, event_type, payload)
+    values (new.id, v_event, jsonb_build_object('from', old.status, 'to', new.status));
+
+    if new.status::text = 'confirmed' then
+      insert into public.ops_tasks (property_id, booking_id, task_type, title, description, due_at, priority)
+      values (new.property_id, new.id, 'room_prep',
+        'Prepare room for ' || new.guest_name,
+        'Check-in on ' || new.check_in,
+        (new.check_in - interval '1 day')::timestamptz, 2);
+    end if;
+  end if;
+
+  if new.payment_status is distinct from old.payment_status then
+    v_event := 'payment_' || new.payment_status::text;
+    update public.guest_threads
+      set timeline = timeline || jsonb_build_object(
+        'at', now(), 'type', v_event,
+        'message', 'Payment ' || old.payment_status || ' → ' || new.payment_status),
+        last_updated = now()
+      where booking_id = new.id;
+    insert into public.pending_notifications (booking_id, event_type, payload)
+    values (new.id, v_event, jsonb_build_object('from', old.payment_status, 'to', new.payment_status));
+  end if;
+
+  return new;
+end;
+$function$;
+
 -- StayNas Phase 3: Booking Lifecycle Controls
 -- One database-enforced transition contract for every booking status writer.
 begin;
