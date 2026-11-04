@@ -62,7 +62,7 @@ export async function verifyAndFinalizePayment(opts: {
         event_type: `${opts.source}:completed`,
         order_tracking_id: opts.orderTrackingId,
         status_code: status.status_code ?? null,
-        payment_method: paymentMethod,
+        payment_method: paymentMethod ?? "unknown",
         amount: paid,
         currency: status.currency ?? null,
         raw,
