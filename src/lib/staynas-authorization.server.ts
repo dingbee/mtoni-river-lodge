@@ -19,13 +19,13 @@ export async function requireStayNasModuleAccess(
 ): Promise<void> {
   if (!userId) throw new Error("Forbidden");
 
-  const { data: propertyRole, error } = await supabase.rpc("staynas_current_property_role");
+  const { data: propertyRoles, error } = await (supabase as any).rpc("staynas_current_property_roles");
 
   if (error) {
     throw new Error("Unable to verify the active property's access role.");
   }
 
-  const roles = propertyRole ? [String(propertyRole)] : [];
+  const roles = Array.isArray(propertyRoles) ? propertyRoles.map(String) : [];
   if (!hasStayNasEntitlement(moduleId, roles)) {
     throw new Error("Forbidden");
   }
