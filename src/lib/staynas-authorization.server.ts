@@ -73,3 +73,18 @@ export async function requireStayNasCoreStaffAccess(
     "owner", "manager", "admin", "reservations",
   ]);
 }
+
+/** Require membership in the canonical platform founder-admin registry. */
+export async function requireStayNasFounderAdmin(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<void> {
+  if (!userId) throw new Error("Forbidden");
+  const { data, error } = await supabase
+    .from("staynas_platform_admins")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw new Error("Unable to verify founder administration access.");
+  if (!data) throw new Error("Forbidden: StayNas founder administration required.");
+}
