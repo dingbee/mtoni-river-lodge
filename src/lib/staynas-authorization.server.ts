@@ -31,3 +31,45 @@ export async function requireStayNasModuleAccess(
     throw new Error("Forbidden");
   }
 }
+
+/** Resolve the caller's roles from the explicitly selected, active property. */
+export async function getStayNasActivePropertyRoles(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<string[]> {
+  if (!userId) return [];
+  const { data, error } = await staynasRpc(supabase).rpc("staynas_current_property_roles");
+  if (error) throw new Error("Unable to verify the active property's access role.");
+  return Array.isArray(data) ? data.map(String) : [];
+}
+
+/** Require one of the supplied roles in the selected active property. */
+export async function requireStayNasPropertyRole(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  allowedRoles: readonly string[],
+): Promise<void> {
+  const roles = await getStayNasActivePropertyRoles(supabase, userId);
+  if (!allowedRoles.some((role) => roles.includes(role))) throw new Error("Forbidden");
+}
+
+/** Require any operational staff membership in the selected active property. */
+export async function requireStayNasStaffAccess(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<void> {
+  await requireStayNasPropertyRole(supabase, userId, [
+    "owner", "manager", "reception", "marketing", "housekeeping",
+    "finance", "admin", "reservations", "editor",
+  ]);
+}
+
+/** Preserve the legacy is_staff role boundary, but evaluate it property-locally. */
+export async function requireStayNasCoreStaffAccess(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<void> {
+  await requireStayNasPropertyRole(supabase, userId, [
+    "owner", "manager", "admin", "reservations",
+  ]);
+}
