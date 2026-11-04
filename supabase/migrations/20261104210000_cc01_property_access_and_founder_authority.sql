@@ -911,4 +911,59 @@ create policy "Founder admins and property finance staff read activity logs" on 
     )
   );
 
+
+-- Give activity events an explicit tenant owner. The table is currently empty,
+-- so this is a safe additive column; new server writes populate it from the
+-- authenticated user's selected property context.
+alter table public.activity_logs
+  add column if not exists property_id uuid references public.staynas_properties(id) on delete set null;
+create index if not exists activity_logs_property_created_idx
+  on public.activity_logs(property_id, created_at desc);
+
+drop policy if exists "Property staff can insert own activity logs" on public.activity_logs;
+drop policy if exists "Finance staff insert own payment audit logs" on public.activity_logs;
+drop policy if exists "Founder admins and property finance staff read activity logs" on public.activity_logs;
+
+create policy "Property staff can insert own activity logs" on public.activity_logs
+  for insert to authenticated
+  with check (
+    actor_id = auth.uid()
+    and (
+      public.is_staynas_founder_ai_admin()
+      or (
+        property_id is not null
+        and public.staynas_user_has_property_access(auth.uid(), property_id)
+        and cardinality(public.staynas_current_property_roles()) > 0
+        and coalesce(module, '') <> 'finance.payments'
+      )
+    )
+  );
+
+create policy "Finance staff insert own payment audit logs" on public.activity_logs
+  for insert to authenticated
+  with check (
+    actor_id = auth.uid()
+    and entity_type = 'booking'
+    and module = 'finance.payments'
+    and exists (
+      select 1 from public.bookings b
+      where b.id = activity_logs.entity_id
+        and b.property_id = activity_logs.property_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_current_user_has_property_role(b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'finance'::public.app_role])
+    )
+    and current_setting('staynas.payment_rpc', true) = 'on'
+  );
+
+create policy "Founder admins and property staff read activity logs" on public.activity_logs
+  for select to authenticated
+  using (
+    public.is_staynas_founder_ai_admin()
+    or (
+      property_id is not null
+      and public.staynas_user_has_property_access(auth.uid(), property_id)
+      and cardinality(public.staynas_current_property_roles()) > 0
+    )
+  );
+
 commit;
