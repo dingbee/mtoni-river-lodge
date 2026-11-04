@@ -1077,4 +1077,346 @@ grant execute on function public.housekeeping_record_event(text, uuid, uuid, uui
 -- legacy global-role trigger from silently granting Nolmark property access.
 drop trigger if exists staynas_user_role_property_bootstrap on public.user_roles;
 
+
+-- Payment RPCs authorize against the locked booking's property and attach that
+-- property to their immutable audit entries.
+CREATE OR REPLACE FUNCTION public.record_booking_payment(_booking_id uuid, _amount numeric, _event_type text, _method text, _note text, _idempotency_key text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+declare
+  v_actor uuid := auth.uid();
+  v_booking public.bookings%rowtype;
+  v_event public.payment_events%rowtype;
+  v_signed_amount numeric(14,2);
+  v_new_paid numeric(14,2);
+  v_new_balance numeric(14,2);
+  v_new_status public.payment_status;
+begin
+  if v_actor is null then
+    raise exception using errcode = '42501', message = 'Authentication required';
+  end if;
+  if _booking_id is null then
+    raise exception using errcode = '22023', message = 'Booking is required';
+  end if;
+  if _amount is null or _amount <= 0 or _amount <> round(_amount, 2) then
+    raise exception using errcode = '22023', message = 'Amount must be positive and limited to two decimal places';
+  end if;
+  if _event_type is null or _event_type not in ('manual_payment','refund') then
+    raise exception using errcode = '22023', message = 'Unsupported payment event type';
+  end if;
+  if nullif(btrim(_method), '') is null or _method <> btrim(_method) or length(_method) > 40 then
+    raise exception using errcode = '22023', message = 'A valid payment method is required';
+  end if;
+  if _note is not null and length(_note) > 500 then
+    raise exception using errcode = '22023', message = 'Note must be 500 characters or fewer';
+  end if;
+  if nullif(btrim(_idempotency_key), '') is null
+     or length(_idempotency_key) < 8
+     or length(_idempotency_key) > 128 then
+    raise exception using errcode = '22023', message = 'A valid idempotency key is required';
+  end if;
+
+  select b.* into v_booking
+  from public.bookings b
+  where b.id = _booking_id
+    and public.staynas_user_has_property_access(v_actor, b.property_id)
+  for update;
+
+  if not found then
+    raise exception using errcode = '42501', message = 'Booking not found or property access denied';
+  end if;
+  if not public.staynas_current_user_has_property_role(
+    v_booking.property_id, array['owner','manager','finance']::public.app_role[]
+  ) then
+    raise exception using errcode = '42501', message = 'Finance permission required for this property';
+  end if;
+
+  -- Restrict the transaction-local write context to this atomic RPC.
+  perform set_config('staynas.payment_rpc', 'on', true);
+
+  -- Retries with the same key and same payload return the original result.
+  select e.* into v_event
+  from public.payment_events e
+  where e.booking_id = _booking_id
+    and e.idempotency_key = _idempotency_key;
+
+  if found then
+    if v_event.event_type <> _event_type
+       or v_event.amount <> (case when _event_type = 'refund' then -_amount else _amount end)
+       or coalesce(v_event.payment_method,'') <> _method
+       or coalesce(v_event.currency,'') <> v_booking.currency then
+      raise exception using errcode = '23505', message = 'Idempotency key was already used with a different payment payload';
+    end if;
+    return jsonb_build_object(
+      'ok', true, 'duplicate', true, 'event_id', v_event.id,
+      'paid_amount', coalesce(v_booking.paid_amount,0),
+      'balance_amount', v_booking.balance_amount,
+      'payment_status', v_booking.payment_status
+    );
+  end if;
+
+  v_signed_amount := (case when _event_type = 'refund' then -_amount else _amount end);
+  v_new_paid := round(coalesce(v_booking.paid_amount,0) + v_signed_amount, 2);
+
+  if v_new_paid < 0 then
+    raise exception using errcode = '22023', message = 'Refund exceeds the amount previously paid';
+  end if;
+  if _event_type = 'manual_payment' and v_new_paid > v_booking.total then
+    raise exception using errcode = '22023', message = 'Payment exceeds the outstanding booking amount';
+  end if;
+
+  v_new_balance := greatest(0, round(v_booking.total - v_new_paid, 2));
+  if v_new_paid >= v_booking.total then
+    v_new_status := 'paid';
+  elsif v_new_paid > 0 and v_new_paid >= v_booking.deposit_amount then
+    v_new_status := 'deposit_paid';
+  elsif v_new_paid = 0 and _event_type = 'refund' then
+    v_new_status := 'refunded';
+  else
+    v_new_status := 'unpaid';
+  end if;
+
+  insert into public.payment_events (
+    booking_id, provider, event_type, amount, currency,
+    payment_method, idempotency_key, raw
+  ) values (
+    _booking_id, 'manual', _event_type, v_signed_amount, v_booking.currency,
+    _method, _idempotency_key,
+    jsonb_build_object('note', nullif(_note,''), 'actor_id', v_actor)
+  )
+  returning * into v_event;
+
+  update public.bookings
+  set paid_amount = v_new_paid,
+      balance_amount = v_new_balance,
+      payment_status = v_new_status,
+      payment_method = _method
+  where id = _booking_id;
+
+  insert into public.activity_logs (
+    property_id, actor_id, action, entity_type, entity_id, entity_label,
+    module, metadata, severity
+  ) values (
+    v_booking.property_id, v_actor, 'finance.' || _event_type, 'booking', _booking_id,
+    v_booking.reference, 'finance.payments',
+    jsonb_build_object(
+      'event_id', v_event.id, 'amount', v_signed_amount,
+      'currency', v_booking.currency, 'method', _method,
+      'note', nullif(_note,''), 'idempotency_key', _idempotency_key
+    ),
+    'audit'
+  );
+
+  return jsonb_build_object(
+    'ok', true, 'duplicate', false, 'event_id', v_event.id,
+    'paid_amount', v_new_paid, 'balance_amount', v_new_balance,
+    'payment_status', v_new_status
+  );
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.record_booking_refund(_booking_id uuid, _payment_event_id uuid, _amount numeric, _method text, _note text, _idempotency_key text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+declare
+  v_actor uuid := auth.uid();
+  v_booking public.bookings%rowtype;
+  v_payment public.payment_events%rowtype;
+  v_refund public.payment_events%rowtype;
+  v_already_refunded numeric(14,2);
+  v_paid numeric(14,2);
+  v_balance numeric(14,2);
+  v_status public.payment_status;
+  v_signed numeric(14,2);
+begin
+  if v_actor is null then
+    raise exception using errcode = '42501', message = 'Authentication required';
+  end if;
+  if _booking_id is null or _payment_event_id is null then
+    raise exception using errcode = '22023', message = 'Booking and original payment are required';
+  end if;
+  if _amount is null or _amount <= 0 or _amount <> round(_amount, 2) then
+    raise exception using errcode = '22023', message = 'Refund amount must be positive and limited to two decimal places';
+  end if;
+  if nullif(btrim(_method), '') is null or _method <> btrim(_method) or length(_method) > 40 then
+    raise exception using errcode = '22023', message = 'A valid refund method is required';
+  end if;
+  if nullif(btrim(_note), '') is null then
+    raise exception using errcode = '22023', message = 'A refund reason is required';
+  end if;
+  if length(_note) > 500 then
+    raise exception using errcode = '22023', message = 'Note must be 500 characters or fewer';
+  end if;
+  if nullif(btrim(_idempotency_key), '') is null or length(_idempotency_key) < 8 or length(_idempotency_key) > 128 then
+    raise exception using errcode = '22023', message = 'A valid idempotency key is required';
+  end if;
+
+  select b.* into v_booking
+  from public.bookings b
+  where b.id = _booking_id
+    and public.staynas_user_has_property_access(v_actor, b.property_id)
+  for update;
+  if not found then
+    raise exception using errcode = '42501', message = 'Booking not found or property access denied';
+  end if;
+  if not public.staynas_current_user_has_property_role(
+    v_booking.property_id, array['owner','manager','finance']::public.app_role[]
+  ) then
+    raise exception using errcode = '42501', message = 'Finance permission required for this property';
+  end if;
+
+  -- The booking row is already locked above. That lock serializes every
+  -- refund on this booking, so do not request UPDATE privilege on the
+  -- tenant-readable payment_events table just to lock the source event.
+  select e.* into v_payment
+  from public.payment_events e
+  where e.id = _payment_event_id
+    and e.booking_id = _booking_id
+    and e.amount > 0
+    and e.event_type in ('manual_payment','payment_completed');
+  if not found then
+    raise exception using errcode = '22023', message = 'Original payment event is not refundable';
+  end if;
+  if upper(coalesce(v_payment.currency,'')) <> upper(coalesce(v_booking.currency,'')) then
+    raise exception using errcode = '22023', message = 'Original payment currency does not match booking currency';
+  end if;
+  if exists (
+    select 1 from public.payment_events e
+    where e.provider_reverses_event_id = _payment_event_id
+  ) then
+    raise exception using errcode = '55000',
+      message = 'This Pesapal settlement was provider-reversed and cannot receive a cash refund';
+  end if;
+
+  perform set_config('staynas.payment_rpc', 'on', true);
+
+  select e.* into v_refund
+  from public.payment_events e
+  where e.booking_id = _booking_id
+    and e.idempotency_key = _idempotency_key;
+  if found then
+    if v_refund.event_type <> 'refund'
+       or v_refund.reverses_event_id is distinct from _payment_event_id
+       or abs(v_refund.amount) <> _amount
+       or coalesce(v_refund.payment_method,'') <> _method
+       or upper(coalesce(v_refund.currency,'')) <> upper(coalesce(v_booking.currency,'')) then
+      raise exception using errcode = '23505', message = 'Idempotency key was already used with a different refund payload';
+    end if;
+    return jsonb_build_object(
+      'ok', true, 'duplicate', true, 'event_id', v_refund.id,
+      'paid_amount', coalesce(v_booking.paid_amount,0),
+      'balance_amount', v_booking.balance_amount,
+      'payment_status', v_booking.payment_status
+    );
+  end if;
+
+  -- Legacy refunds without an original-event link cannot safely be allocated
+  -- to this payment. Fail closed instead of risking a duplicate cash refund.
+  if exists (
+    select 1 from public.payment_events e
+    where e.booking_id = _booking_id
+      and e.event_type = 'refund'
+      and e.reverses_event_id is null
+  ) then
+    raise exception using errcode = '55000',
+      message = 'This booking has legacy unlinked refunds; reconcile them before issuing another refund';
+  end if;
+
+  select coalesce(sum(abs(e.amount)),0) into v_already_refunded
+  from public.payment_events e
+  where e.reverses_event_id = _payment_event_id
+    and e.event_type = 'refund';
+
+  if v_already_refunded + _amount > v_payment.amount then
+    raise exception using errcode = '22023', message = 'Refund exceeds the remaining refundable amount for this payment';
+  end if;
+
+  v_paid := round(coalesce(v_booking.paid_amount,0) - _amount, 2);
+  if v_paid < 0 then
+    raise exception using errcode = '22023', message = 'Refund exceeds net amount paid on this booking';
+  end if;
+  v_balance := greatest(0, round(v_booking.total - v_paid, 2));
+  if v_paid = 0 then
+    v_status := 'refunded';
+  elsif v_paid >= v_booking.total then
+    v_status := 'paid';
+  elsif v_paid >= coalesce(v_booking.deposit_amount,0) then
+    v_status := 'deposit_paid';
+  else
+    v_status := 'unpaid';
+  end if;
+
+  v_signed := -_amount;
+  insert into public.payment_events (
+    booking_id, provider, event_type, amount, currency, payment_method,
+    reverses_event_id, idempotency_key, raw
+  ) values (
+    _booking_id, 'manual', 'refund', v_signed, upper(v_booking.currency), _method,
+    _payment_event_id, _idempotency_key,
+    jsonb_build_object('note', btrim(_note), 'actor_id', v_actor, 'original_payment_event_id', _payment_event_id)
+  ) returning * into v_refund;
+
+  update public.bookings
+  set paid_amount = v_paid,
+      balance_amount = v_balance,
+      payment_status = v_status
+  where id = _booking_id;
+
+  insert into public.activity_logs (
+    property_id, actor_id, action, entity_type, entity_id, entity_label, module, metadata, severity
+  ) values (
+    v_booking.property_id, v_actor, 'finance.refund', 'booking', _booking_id, v_booking.reference, 'finance.payments',
+    jsonb_build_object(
+      'event_id', v_refund.id, 'original_payment_event_id', _payment_event_id,
+      'amount', v_signed, 'currency', v_booking.currency, 'method', _method,
+      'note', nullif(_note,''), 'idempotency_key', _idempotency_key
+    ), 'audit'
+  );
+
+  return jsonb_build_object(
+    'ok', true, 'duplicate', false, 'event_id', v_refund.id,
+    'paid_amount', v_paid, 'balance_amount', v_balance, 'payment_status', v_status
+  );
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.enforce_finance_payment_audit_context()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+begin
+  if (new.module = 'finance.payments' or new.action like 'finance.%')
+     and coalesce(auth.role(), '') <> 'service_role' then
+    if current_setting('staynas.payment_rpc', true) is distinct from 'on' then
+      raise exception using errcode = '42501',
+        message = 'Finance payment audit rows must be written by the atomic payment RPC';
+    end if;
+    if new.actor_id is distinct from auth.uid()
+       or new.entity_type <> 'booking'
+       or not public.staynas_current_user_has_property_role(
+         new.property_id, array['owner','manager','finance']::public.app_role[]
+       )
+       or not exists (
+         select 1 from public.bookings b
+         where b.id = new.entity_id
+           and b.property_id = new.property_id
+           and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+       ) then
+      raise exception using errcode = '42501',
+        message = 'Finance audit actor or property scope is invalid';
+    end if;
+  end if;
+  return new;
+end;
+$function$
+
+
+
 commit;
