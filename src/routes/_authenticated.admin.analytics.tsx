@@ -1,4 +1,7 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { isFounderAiAdmin } from "@/domains/ai/governance.functions";
 import { LayoutDashboard, Calendar, Globe, TrendingUp, Megaphone, ClipboardCheck, Bot, Crown, FileText, LineChart, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/analytics")({
@@ -21,6 +24,10 @@ const TABS = [
 ] as const;
 
 function AnalyticsLayout() {
+  const accessFn = useServerFn(isFounderAiAdmin);
+  const access = useQuery({ queryKey: ["staynas-founder-admin"], queryFn: () => accessFn() });
+  if (access.isLoading) return <div className="p-6 text-sm text-muted-foreground">Verifying founder access…</div>;
+  if (access.isError || access.data !== true) return <div className="rounded-xl border p-6"><h1 className="text-lg font-semibold">Founder administration only</h1><p className="mt-2 text-sm text-muted-foreground">Platform analytics currently use global datasets and remain restricted until tenant-scoped reporting is implemented.</p></div>;
   return (
     <div className="space-y-4">
       <nav className="flex flex-wrap gap-1 overflow-x-auto rounded-lg border bg-card p-1 text-sm">
