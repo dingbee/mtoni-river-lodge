@@ -74,12 +74,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     <PropertyProvider>
       <div className="staynas-os mtoni-os flex min-h-screen text-foreground">
         <div className="hidden lg:block">
-          <AdminSidebar collapsed={collapsed} roles={roles} />
+          <AdminSidebar collapsed={collapsed} roles={roles} onCollapse={() => setCollapsed((v) => !v)} />
         </div>
 
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent side="left" className="staynas-mobile-sheet mtoni-os w-72 p-0 border-r border-[color:var(--os-hairline)] bg-[color:var(--os-canvas)] text-[color:var(--os-ink)]">
-            <AdminSidebar collapsed={false} roles={roles} onNavigate={() => setMobileOpen(false)} />
+          <SheetContent side="left" className="staynas-mobile-sheet mtoni-os w-72 border-0 p-0 bg-[color:var(--os-canvas)] text-[color:var(--os-ink)]"
+            showCloseButton={false}>
+            <AdminSidebar collapsed={false} roles={roles} mobile onNavigate={() => setMobileOpen(false)} />
           </SheetContent>
         </Sheet>
 
