@@ -32,7 +32,7 @@ export const transitionHousekeepingRoomState = createServerFn({ method: "POST" }
       {
         _room_state_id: data.roomStateId,
         _to_state: data.toState,
-        _note: data.note ?? null,
+        _note: data.note ?? undefined,
         _idempotency_key: data.idempotencyKey,
       },
     );
