@@ -28,7 +28,7 @@ function ActivityLogPage() {
     <div className="space-y-6">
       <PageHeader
         title="Activity Log"
-        description="Immutable audit trail of admin actions across StayNas."
+        description="Recorded operational and administrative audit events. Coverage depends on which workflows emit audit events."
       />
       <div className="max-w-md">
         <Input
