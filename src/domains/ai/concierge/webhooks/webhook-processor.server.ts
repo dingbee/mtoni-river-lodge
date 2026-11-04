@@ -34,6 +34,7 @@ export function canTransitionMessageStatus(current: string, next: string): boole
 
 async function processInbound(supabase: WebhookClient, row: InboxRow, event: NormalizedProviderEvent) {
   const supportedMedia = ["image", "audio", "document", "video"].includes(String(event.safePayload.messageType));
+  if (!event.providerMessageId) throw new Error("Inbound message has no provider message ID.");
   if (!event.externalContact || (!event.body && !supportedMedia)) {
     throw new Error("Inbound message is missing a supported sender or message body.");
   }
@@ -41,7 +42,7 @@ async function processInbound(supabase: WebhookClient, row: InboxRow, event: Nor
     p_property_id: row.property_id,
     p_channel: event.channel,
     p_provider: providerName(row.provider),
-    p_provider_message_id: event.providerMessageId ?? "",
+    p_provider_message_id: event.providerMessageId,
     p_provider_event_id: row.provider_event_id,
     p_external_contact: event.externalContact,
     p_guest_name: typeof event.safePayload.profileName === "string" ? event.safePayload.profileName : null,
