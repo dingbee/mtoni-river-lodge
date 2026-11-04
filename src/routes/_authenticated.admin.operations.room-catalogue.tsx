@@ -1,166 +1,111 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { PageHeader } from "@/components/os/PageHeader";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-  listPlatformRoomCatalogue, savePlatformRoomCatalogueCategory, savePlatformRoomCatalogueType,
-} from "@/lib/room-management.functions";
+import { getPlatformRoomConfiguration, savePlatformRoomCategory, savePlatformRoomType } from "@/lib/platform-room-configuration.server";
 
 export const Route = createFileRoute("/_authenticated/admin/operations/room-catalogue")({
   head: () => ({ meta: [{ title: "Platform System Configuration — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
-  component: PlatformRoomCataloguePage,
+  component: PlatformRoomConfiguration,
 });
 
-const blankCategory = () => ({ id: undefined as string | undefined, slug: "", name: "", description: "", features: "", specifications: "", sortOrder: 0, status: "active" as "active" | "archived" });
-const blankType = () => ({
-  id: undefined as string | undefined, slug: "", name: "", shortName: "", roomNumberLabel: "", catalogueCategoryId: "none", shortDescription: "", capacityAdults: 2,
-  capacityChildren: 0, maxOccupancy: 2, description: "", details: "", ctaLine: "", heroLine: "", imageUrl: "", galleryUrls: "",
-  sizeLabel: "", viewLabel: "", bedLabel: "", bathroomLabel: "", sortOrder: 0, status: "active" as "active" | "inactive",
-});
-const toLines = (value: Record<string, string> | null | undefined) => Object.entries(value ?? {}).map(([k, v]) => k + ": " + v).join("\n");
-const toSpecs = (value: string) => Object.fromEntries(value.split("\n").map(v => v.trim()).filter(Boolean).map(line => {
-  const i = line.indexOf(":"); return i > 0 ? [line.slice(0, i).trim(), line.slice(i + 1).trim()] : [line, ""];
-}));
+type CategoryForm = { id?:string; slug:string; name:string; description:string; features:string; specifications:string; sortOrder:number; status:"active"|"archived" };
+type RoomForm = { id?:string; slug:string; name:string; shortName:string; roomNumberLabel:string; categoryId:string; shortDescription:string; description:string; details:string; ctaLine:string; heroLine:string; imageUrl:string; galleryUrls:string; sizeLabel:string; viewLabel:string; bedLabel:string; bathroomLabel:string; capacityAdults:number; capacityChildren:number; maxOccupancy:number; sortOrder:number; status:"active"|"archived" };
+const emptyCategory=():CategoryForm=>({slug:"",name:"",description:"",features:"",specifications:"",sortOrder:0,status:"active"});
+const emptyRoom=():RoomForm=>({slug:"",name:"",shortName:"",roomNumberLabel:"",categoryId:"",shortDescription:"",description:"",details:"",ctaLine:"",heroLine:"",imageUrl:"",galleryUrls:"",sizeLabel:"",viewLabel:"",bedLabel:"",bathroomLabel:"",capacityAdults:2,capacityChildren:0,maxOccupancy:2,sortOrder:0,status:"active"});
+const lines=(v:string)=>v.split("\n").map(x=>x.trim()).filter(Boolean);
+const pairs=(v:string)=>Object.fromEntries(lines(v).map(x=>{const i=x.indexOf(":");return i>0?[x.slice(0,i).trim(),x.slice(i+1).trim()]:[x,""];}));
+const pairsText=(v:Record<string,string>|null)=>Object.entries(v??{}).map(([k,x])=>k+": "+x).join("\n");
+const detailsText=(v:{label:string;value:string}[]|null)=> (v??[]).map(x=>x.label+": "+x.value).join("\n");
+const Field=({label,value,onChange,placeholder,type="text",min}:{label:string;value:string|number;onChange:(v:string)=>void;placeholder?:string;type?:string;min?:number})=><label className="block min-w-0"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</span><input type={type} min={min} value={value} placeholder={placeholder??label} onChange={e=>onChange(e.target.value)} className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-100"/></label>;
+const Area=({label,value,onChange,hint,rows=4}:{label:string;value:string;onChange:(v:string)=>void;hint?:string;rows?:number})=><label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</span><textarea rows={rows} value={value} onChange={e=>onChange(e.target.value)} className="w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-100"/>{hint&&<span className="mt-1 block text-xs text-slate-400">{hint}</span>}</label>;
+const SelectField=({label,value,onChange,children}:{label:string;value:string;onChange:(v:string)=>void;children:React.ReactNode})=><label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</span><select value={value} onChange={e=>onChange(e.target.value)} className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-100">{children}</select></label>;
+const SectionTitle=({eyebrow,title,description}:{eyebrow:string;title:string;description:string})=><div className="mb-5 border-b border-slate-100 pb-4"><p className="text-[10px] font-bold uppercase tracking-[.18em] text-slate-400">{eyebrow}</p><h3 className="mt-1 text-base font-semibold text-slate-900">{title}</h3><p className="mt-1 text-sm text-slate-500">{description}</p></div>;
 
-function PlatformRoomCataloguePage() {
-  const qc = useQueryClient();
-  const listFn = useServerFn(listPlatformRoomCatalogue);
-  const saveCategoryFn = useServerFn(savePlatformRoomCatalogueCategory);
-  const saveTypeFn = useServerFn(savePlatformRoomCatalogueType);
-  const q = useQuery({ queryKey: ["platform-room-catalogue"], queryFn: () => listFn() });
-  const [category, setCategory] = useState(blankCategory());
-  const [roomType, setRoomType] = useState(blankType());
+function PlatformRoomConfiguration(){
+  const qc=useQueryClient();
+  const get=useServerFn(getPlatformRoomConfiguration), saveCategory=useServerFn(savePlatformRoomCategory), saveRoom=useServerFn(savePlatformRoomType);
+  const query=useQuery({queryKey:["platform-room-configuration-v3"],queryFn:()=>get()});
+  const [tab,setTab]=useState<"room-types"|"categories">("room-types");
+  const [search,setSearch]=useState("");
+  const [category,setCategory]=useState<CategoryForm>(emptyCategory());
+  const [room,setRoom]=useState<RoomForm>(emptyRoom());
+  const [editing,setEditing]=useState(false);
+  const categories=query.data?.categories??[], roomTypes=query.data?.roomTypes??[];
+  const visible=useMemo(()=>{const source=tab==="categories"?categories:roomTypes;const q=search.trim().toLowerCase();return source.filter((x:any)=>!q||x.name.toLowerCase().includes(q)||x.slug.toLowerCase().includes(q));},[tab,categories,roomTypes,search]);
+  const refresh=()=>qc.invalidateQueries({queryKey:["platform-room-configuration-v3"]});
+  const categoryMutation=useMutation({mutationFn:()=>saveCategory({data:{id:category.id,slug:category.slug,name:category.name,description:category.description,features:lines(category.features),specifications:pairs(category.specifications),sortOrder:Number(category.sortOrder),status:category.status}}),onSuccess:()=>{toast.success("Category saved");setCategory(emptyCategory());setEditing(false);refresh();},onError:(e:Error)=>toast.error(e.message)});
+  const roomMutation=useMutation({mutationFn:()=>saveRoom({data:{id:room.id,slug:room.slug,name:room.name,shortName:room.shortName,roomNumberLabel:room.roomNumberLabel,categoryId:room.categoryId||null,shortDescription:room.shortDescription,description:room.description.split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean),details:lines(room.details).map(x=>{const i=x.indexOf(":");return i>0?{label:x.slice(0,i).trim(),value:x.slice(i+1).trim()}:null;}).filter(Boolean),ctaLine:room.ctaLine,heroLine:room.heroLine,imageUrl:room.imageUrl,galleryUrls:lines(room.galleryUrls),sizeLabel:room.sizeLabel,viewLabel:room.viewLabel,bedLabel:room.bedLabel,bathroomLabel:room.bathroomLabel,capacityAdults:Number(room.capacityAdults),capacityChildren:Number(room.capacityChildren),maxOccupancy:Number(room.maxOccupancy),sortOrder:Number(room.sortOrder),status:room.status}}),onSuccess:()=>{toast.success("Room definition saved");setRoom(emptyRoom());setEditing(false);refresh();},onError:(e:Error)=>toast.error(e.message)});
+  const startNew=()=>{setEditing(true);if(tab==="categories")setCategory(emptyCategory());else setRoom(emptyRoom());};
+  const choose=(item:any)=>{setEditing(true);if(tab==="categories")setCategory({id:item.id,slug:item.slug,name:item.name,description:item.description??"",features:(item.features??[]).join("\n"),specifications:pairsText(item.specifications),sortOrder:item.sort_order??0,status:item.status});else setRoom({id:item.id,slug:item.slug,name:item.name,shortName:item.short_name??"",roomNumberLabel:item.room_number_label??"",categoryId:item.category_id??"",shortDescription:item.short_description??"",description:(item.description??[]).join("\n\n"),details:detailsText(item.details),ctaLine:item.cta_line??"",heroLine:item.hero_line??"",imageUrl:item.image_url??"",galleryUrls:(item.gallery_urls??[]).join("\n"),sizeLabel:item.size_label??"",viewLabel:item.view_label??"",bedLabel:item.bed_label??"",bathroomLabel:item.bathroom_label??"",capacityAdults:item.capacity_adults,capacityChildren:item.capacity_children,maxOccupancy:item.max_occupancy,sortOrder:item.sort_order??0,status:item.status});};
+  const setR=(key:keyof RoomForm,value:any)=>setRoom(old=>({...old,[key]:value}));
+  const setC=(key:keyof CategoryForm,value:any)=>setCategory(old=>({...old,[key]:value}));
+  const activeCount=(tab==="categories"?categories:roomTypes).filter((x:any)=>x.status==="active").length;
+  const busy=categoryMutation.isPending||roomMutation.isPending;
 
-  const categoryMutation = useMutation({
-    mutationFn: () => saveCategoryFn({ data: {
-      id: category.id, slug: category.slug, name: category.name, description: category.description,
-      features: category.features.split("\n").map(v => v.trim()).filter(Boolean),
-      specifications: toSpecs(category.specifications), sortOrder: Number(category.sortOrder), status: category.status,
-    }}),
-    onSuccess: () => { toast.success("Platform category saved"); setCategory(blankCategory()); qc.invalidateQueries({ queryKey: ["platform-room-catalogue"] }); },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  return <main className="min-h-screen bg-[#f5f6f8] text-slate-900">
+    <div className="mx-auto max-w-[1440px] px-4 py-7 sm:px-6 lg:px-8">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div><div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-400"><span>STAYNAS</span><span>/</span><span>PLATFORM</span><span>/</span><span className="text-slate-600">SYSTEM CONFIGURATION</span></div><p className="text-[11px] font-bold uppercase tracking-[.2em] text-indigo-600">Platform control plane</p><h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-950">Accommodation catalogue</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Define the canonical room types and category standards available across StayNas. This catalogue does not manage property room numbers, inventory, rates or availability.</p></div>
+        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"><p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Configuration scope</p><p className="mt-1 text-sm font-semibold">Platform-wide</p><p className="mt-0.5 text-xs text-slate-500">Shared across properties</p></div>
+      </div>
 
-  const typeMutation = useMutation({
-    mutationFn: () => saveTypeFn({ data: {
-      id: roomType.id, slug: roomType.slug, name: roomType.name, shortName: roomType.shortName, roomNumberLabel: roomType.roomNumberLabel,
-      catalogueCategoryId: roomType.catalogueCategoryId === "none" ? null : roomType.catalogueCategoryId,
-      shortDescription: roomType.shortDescription, capacityAdults: Number(roomType.capacityAdults),
-      capacityChildren: Number(roomType.capacityChildren), maxOccupancy: Number(roomType.maxOccupancy),
-      description: roomType.description.split("\n\n").map(v => v.trim()).filter(Boolean),
-      details: roomType.details.split("\n").map(v => v.trim()).filter(Boolean).map(line => { const i=line.indexOf(":"); return i>0 ? {label:line.slice(0,i).trim(),value:line.slice(i+1).trim()} : null; }).filter(Boolean),
-      ctaLine: roomType.ctaLine,
-      status: roomType.status, sortOrder: Number(roomType.sortOrder), heroLine: roomType.heroLine, imageUrl: roomType.imageUrl,
-      galleryUrls: roomType.galleryUrls.split("\n").map(v => v.trim()).filter(Boolean),
-      sizeLabel: roomType.sizeLabel, viewLabel: roomType.viewLabel, bedLabel: roomType.bedLabel,
-      bathroomLabel: roomType.bathroomLabel,
-    }}),
-    onSuccess: () => { toast.success("Platform room definition saved"); setRoomType(blankType()); qc.invalidateQueries({ queryKey: ["platform-room-catalogue"] }); },
-    onError: (e: Error) => toast.error(e.message),
-  });
+      <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs text-slate-500">Room definitions</p><p className="mt-1 text-2xl font-semibold tabular-nums">{roomTypes.length}</p><p className="mt-1 text-xs text-slate-400">Canonical accommodation types</p></div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs text-slate-500">Categories</p><p className="mt-1 text-2xl font-semibold tabular-nums">{categories.length}</p><p className="mt-1 text-xs text-slate-400">Shared classification groups</p></div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs text-slate-500">Active definitions</p><p className="mt-1 text-2xl font-semibold tabular-nums">{roomTypes.filter((x:any)=>x.status==="active").length}</p><p className="mt-1 text-xs text-slate-400">Available for property adoption</p></div>
+      </div>
 
-  const categories = q.data?.categories ?? [];
-  const types = q.data?.types ?? [];
-  const editCategory = (c: any) => setCategory({
-    id: c.id, slug: c.slug, name: c.name, description: c.description ?? "",
-    features: (c.features ?? []).join("\n"), specifications: toLines(c.specifications),
-    sortOrder: c.sort_order ?? 0, status: c.status,
-  });
-  const editType = (r: any) => setRoomType({
-    id: r.id, slug: r.slug, name: r.name, shortName: r.short_name ?? "", roomNumberLabel: r.room_number_label ?? "", catalogueCategoryId: r.category_id ?? "none",
-    shortDescription: r.short_description ?? "", capacityAdults: r.capacity_adults,
-    capacityChildren: r.capacity_children, maxOccupancy: r.max_occupancy,
-    description: (r.description ?? []).join("\n\n"), details: (r.details ?? []).map((d: any) => `${d.label}: ${d.value}`).join("\n"), ctaLine: r.cta_line ?? "", heroLine: r.hero_line ?? "",
-    imageUrl: r.image_url ?? "", galleryUrls: (r.gallery_urls ?? []).join("\n"),
-    sizeLabel: r.size_label ?? "", viewLabel: r.view_label ?? "", bedLabel: r.bed_label ?? "",
-    bathroomLabel: r.bathroom_label ?? "", sortOrder: r.sort_order ?? 0,
-    status: r.status === "archived" ? "inactive" : "active",
-  });
-
-  return <div className="space-y-6">
-    <PageHeader title="Platform System Configuration" description="Authoritative shared accommodation definitions used by StayNas properties. Property inventory, rates, currency and availability remain property-owned." />
-    {q.isLoading ? <p className="text-sm text-muted-foreground">Loading platform configuration…</p> :
-      q.isError ? <p className="text-sm text-destructive">{(q.error as Error).message}</p> :
-      <div className="grid gap-6 xl:grid-cols-2">
-        <section className="space-y-4 rounded-xl border bg-card p-5">
-          <div><h2 className="text-lg font-semibold">System categories</h2><p className="text-sm text-muted-foreground">Shared classification, features, specifications and display order.</p></div>
-          <div className="space-y-2">{categories.map((c: any) => <button type="button" key={c.id} onClick={() => editCategory(c)} className="w-full rounded-lg border p-3 text-left hover:bg-muted">
-            <div className="flex justify-between gap-2"><strong>{c.name}</strong><span className="text-xs text-muted-foreground">{c.status}</span></div>
-            <p className="text-xs text-muted-foreground">{c.slug} · {(c.features ?? []).length} features · {Object.keys(c.specifications ?? {}).length} specifications</p>
-          </button>)}</div>
-          <div className="space-y-3 border-t pt-4">
-            <Input placeholder="Category name" value={category.name} onChange={e => setCategory({ ...category, name: e.target.value })} />
-            <Input placeholder="Unique slug" value={category.slug} onChange={e => setCategory({ ...category, slug: e.target.value })} />
-            <Textarea placeholder="Description" value={category.description} onChange={e => setCategory({ ...category, description: e.target.value })} />
-            <Textarea placeholder="Features — one per line" value={category.features} onChange={e => setCategory({ ...category, features: e.target.value })} />
-            <Textarea placeholder="Specifications — Label: value, one per line" value={category.specifications} onChange={e => setCategory({ ...category, specifications: e.target.value })} />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Input type="number" min="0" placeholder="Display order" value={category.sortOrder} onChange={e => setCategory({ ...category, sortOrder: Number(e.target.value) })} />
-              <Select value={category.status} onValueChange={v => setCategory({ ...category, status: v as "active" | "archived" })}>
-                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
-                <SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="archived">Archived</SelectItem></SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setCategory(blankCategory())}>Clear</Button>
-              <Button onClick={() => categoryMutation.mutate()} disabled={categoryMutation.isPending || !category.name || !category.slug}>{category.id ? "Update category" : "Add category"}</Button>
-            </div>
+      {query.isLoading?<div className="mt-6 rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">Loading platform catalogue…</div>:query.isError?<div className="mt-6 rounded-xl border border-rose-200 bg-white p-6 text-sm text-rose-700">{(query.error as Error).message}</div>:
+      <div className="mt-7 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+          <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1">
+            <button type="button" onClick={()=>{setTab("room-types");setSearch("");setEditing(false);}} className={`rounded-md px-4 py-2 text-sm font-semibold transition ${tab==="room-types"?"bg-white text-slate-900 shadow-sm":"text-slate-500 hover:text-slate-800"}`}>Room definitions <span className="ml-1 text-xs opacity-60">{roomTypes.length}</span></button>
+            <button type="button" onClick={()=>{setTab("categories");setSearch("");setEditing(false);}} className={`rounded-md px-4 py-2 text-sm font-semibold transition ${tab==="categories"?"bg-white text-slate-900 shadow-sm":"text-slate-500 hover:text-slate-800"}`}>Categories <span className="ml-1 text-xs opacity-60">{categories.length}</span></button>
           </div>
-        </section>
-        <section className="space-y-4 rounded-xl border bg-card p-5">
-          <div><h2 className="text-lg font-semibold">System room definitions</h2><p className="text-sm text-muted-foreground">Canonical room content, occupancy rules, images and category assignment. No property rates or physical inventory.</p></div>
-          <div className="space-y-2">{types.map((r: any) => <button type="button" key={r.id} onClick={() => editType(r)} className="w-full rounded-lg border p-3 text-left hover:bg-muted">
-            <div className="flex justify-between gap-2"><strong>{r.name}</strong><span className="text-xs text-muted-foreground">{r.status}</span></div>
-            <p className="text-xs text-muted-foreground">{r.slug} · max occupancy {r.max_occupancy} · {r.capacity_adults} adults / {r.capacity_children} children</p>
-          </button>)}</div>
-          <div className="space-y-3 border-t pt-4">
-            <Input placeholder="Room definition name" value={roomType.name} onChange={e => setRoomType({ ...roomType, name: e.target.value })} />
-            <Input placeholder="Unique slug" value={roomType.slug} onChange={e => setRoomType({ ...roomType, slug: e.target.value })} />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Input placeholder="Short display name (optional)" value={roomType.shortName} onChange={e => setRoomType({ ...roomType, shortName: e.target.value })} />
-              <Input placeholder="Room number label (optional)" value={roomType.roomNumberLabel} onChange={e => setRoomType({ ...roomType, roomNumberLabel: e.target.value })} />
+          <button type="button" onClick={startNew} className="rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700">+ New {tab==="categories"?"category":"room type"}</button>
+        </div>
+
+        <div className="grid min-h-[680px] grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <aside className="border-b border-slate-200 bg-slate-50/70 lg:border-b-0 lg:border-r">
+            <div className="border-b border-slate-200 p-4"><div className="flex items-center justify-between"><p className="text-xs font-bold uppercase tracking-wider text-slate-500">{tab==="categories"?"Category library":"Room type library"}</p><span className="text-xs text-slate-400">{activeCount} active</span></div><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by name or slug…" className="mt-3 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-slate-500"/></div>
+            <div className="max-h-[620px] space-y-1 overflow-y-auto p-2">
+              {visible.map((item:any)=><button type="button" key={item.id} onClick={()=>choose(item)} className="w-full rounded-xl border border-transparent p-3 text-left transition hover:border-slate-200 hover:bg-white">
+                <div className="flex items-start justify-between gap-2"><span className="text-sm font-semibold text-slate-800">{item.name}</span><span className={`mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${item.status==="active"?"bg-emerald-50 text-emerald-700":"bg-slate-100 text-slate-500"}`}>{item.status}</span></div>
+                <p className="mt-1 truncate text-xs text-slate-400">{item.slug}</p>
+                {tab==="room-types"&&<p className="mt-2 text-xs text-slate-500">{item.capacity_adults} adults · {item.capacity_children} children · max {item.max_occupancy}</p>}
+              </button>)}
+              {visible.length===0&&<div className="px-3 py-10 text-center text-sm text-slate-400">No matching records</div>}
             </div>
-            <Select value={roomType.catalogueCategoryId} onValueChange={v => setRoomType({ ...roomType, catalogueCategoryId: v })}>
-              <SelectTrigger><SelectValue placeholder="System category" /></SelectTrigger>
-              <SelectContent><SelectItem value="none">No category</SelectItem>{categories.filter((c: any) => c.status === "active").map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-            </Select>
-            <Textarea placeholder="Short description" value={roomType.shortDescription} onChange={e => setRoomType({ ...roomType, shortDescription: e.target.value })} />
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Input type="number" min="1" placeholder="Adults" value={roomType.capacityAdults} onChange={e => setRoomType({ ...roomType, capacityAdults: Number(e.target.value) })} />
-              <Input type="number" min="0" placeholder="Children" value={roomType.capacityChildren} onChange={e => setRoomType({ ...roomType, capacityChildren: Number(e.target.value) })} />
-              <Input type="number" min="1" placeholder="Maximum occupancy" value={roomType.maxOccupancy} onChange={e => setRoomType({ ...roomType, maxOccupancy: Number(e.target.value) })} />
-            </div>
-            <Textarea placeholder="Full guest-facing description — separate paragraphs with a blank line" value={roomType.description} onChange={e => setRoomType({ ...roomType, description: e.target.value })} />
-            <Textarea placeholder="Guest-facing detail rows — Label: value, one per line" value={roomType.details} onChange={e => setRoomType({ ...roomType, details: e.target.value })} />
-            <Input placeholder="Guest-facing call-to-action line" value={roomType.ctaLine} onChange={e => setRoomType({ ...roomType, ctaLine: e.target.value })} />
-            <Input placeholder="Guest-facing hero line" value={roomType.heroLine} onChange={e => setRoomType({ ...roomType, heroLine: e.target.value })} />
-            <Input placeholder="Primary image URL" value={roomType.imageUrl} onChange={e => setRoomType({ ...roomType, imageUrl: e.target.value })} />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Input placeholder="Size" value={roomType.sizeLabel} onChange={e => setRoomType({ ...roomType, sizeLabel: e.target.value })} />
-              <Input placeholder="View" value={roomType.viewLabel} onChange={e => setRoomType({ ...roomType, viewLabel: e.target.value })} />
-              <Input placeholder="Bed" value={roomType.bedLabel} onChange={e => setRoomType({ ...roomType, bedLabel: e.target.value })} />
-              <Input placeholder="Bathroom" value={roomType.bathroomLabel} onChange={e => setRoomType({ ...roomType, bathroomLabel: e.target.value })} />
-            </div>
-            <Textarea placeholder="Gallery image URLs — one per line" value={roomType.galleryUrls} onChange={e => setRoomType({ ...roomType, galleryUrls: e.target.value })} />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Input type="number" min="0" placeholder="Display order" value={roomType.sortOrder} onChange={e => setRoomType({ ...roomType, sortOrder: Number(e.target.value) })} />
-              <Select value={roomType.status} onValueChange={v => setRoomType({ ...roomType, status: v as "active" | "inactive" })}>
-                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
-                <SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Archived</SelectItem></SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setRoomType(blankType())}>Clear</Button>
-              <Button onClick={() => typeMutation.mutate()} disabled={typeMutation.isPending || !roomType.name || !roomType.slug}>{roomType.id ? "Update definition" : "Add definition"}</Button>
-            </div>
-          </div>
-        </section>
+          </aside>
+
+          <section className="min-w-0 p-5 sm:p-7">
+            {!editing?<div className="flex min-h-[560px] flex-col items-center justify-center text-center"><div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-2xl text-indigo-600">{tab==="room-types"?"⌂":"▦"}</div><h2 className="mt-5 text-lg font-semibold">{tab==="room-types"?"Build your room type library":"Define accommodation categories"}</h2><p className="mt-2 max-w-md text-sm leading-6 text-slate-500">{tab==="room-types"?"Select a definition from the library to inspect and edit it, or create a new canonical room type.":"Select a category to edit its shared description, features and specifications, or create a new category."}</p><button type="button" onClick={startNew} className="mt-5 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700">Create {tab==="room-types"?"room type":"category"}</button></div>:
+            tab==="categories"?<div className="mx-auto max-w-3xl">
+              <div className="mb-7 flex flex-wrap items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-indigo-600">Catalogue taxonomy</p><h2 className="mt-1 text-xl font-semibold">{category.id?"Edit category":"New category"}</h2><p className="mt-1 text-sm text-slate-500">Category definitions are shared platform standards.</p></div><button type="button" onClick={()=>{setEditing(false);setCategory(emptyCategory());}} className="text-sm font-medium text-slate-500 hover:text-slate-900">Discard</button></div>
+              <div className="space-y-7">
+                <div><SectionTitle eyebrow="01 / Identity" title="Category identity" description="Name and stable identifier used across the platform."/><div className="grid gap-4 sm:grid-cols-2"><Field label="Category name" value={category.name} onChange={v=>setC("name",v)}/><Field label="Slug" value={category.slug} onChange={v=>setC("slug",v)} placeholder="e.g. suites-and-villas"/></div><div className="mt-4"><Area label="Category description" value={category.description} onChange={v=>setC("description",v)} rows={3}/></div></div>
+                <div><SectionTitle eyebrow="02 / Standards" title="Features and specifications" description="Reusable selling points and structured category attributes."/><Area label="Features" value={category.features} onChange={v=>setC("features",v)} hint="One feature per line." rows={5}/><div className="mt-4"><Area label="Specifications" value={category.specifications} onChange={v=>setC("specifications",v)} hint="Use Label: value, one specification per line." rows={5}/></div></div>
+                <div><SectionTitle eyebrow="03 / Publishing" title="Display and availability" description="Control category order and whether it can be selected."/><div className="grid gap-4 sm:grid-cols-2"><Field label="Display order" type="number" min={0} value={category.sortOrder} onChange={v=>setC("sortOrder",Number(v))}/><SelectField label="Status" value={category.status} onChange={v=>setC("status",v as "active"|"archived")}><option value="active">Active</option><option value="archived">Archived</option></SelectField></div></div>
+              </div>
+              <div className="mt-8 flex justify-end border-t border-slate-100 pt-5"><button type="button" disabled={busy||!category.name||!category.slug} onClick={()=>categoryMutation.mutate()} className="rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:opacity-40">{categoryMutation.isPending?"Saving…":category.id?"Save category":"Create category"}</button></div>
+            </div>:
+            <div className="mx-auto max-w-4xl">
+              <div className="mb-7 flex flex-wrap items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-indigo-600">Canonical accommodation model</p><h2 className="mt-1 text-xl font-semibold">{room.id?"Edit room definition":"New room definition"}</h2><p className="mt-1 text-sm text-slate-500">Guest-facing content and capacity rules. No property inventory or pricing is stored here.</p></div><button type="button" onClick={()=>{setEditing(false);setRoom(emptyRoom());}} className="text-sm font-medium text-slate-500 hover:text-slate-900">Discard</button></div>
+              <div className="space-y-8">
+                <div><SectionTitle eyebrow="01 / Identity" title="Room type identity" description="The canonical name and category that properties can adopt."/><div className="grid gap-4 sm:grid-cols-2"><Field label="Room type name" value={room.name} onChange={v=>setR("name",v)}/><Field label="Slug" value={room.slug} onChange={v=>setR("slug",v)} placeholder="e.g. deluxe-suite"/></div><div className="mt-4 grid gap-4 sm:grid-cols-2"><Field label="Short display name" value={room.shortName} onChange={v=>setR("shortName",v)}/><Field label="Room number label" value={room.roomNumberLabel} onChange={v=>setR("roomNumberLabel",v)}/></div><div className="mt-4"><SelectField label="Category" value={room.categoryId} onChange={v=>setR("categoryId",v)}><option value="">Uncategorised</option>{categories.filter((x:any)=>x.status==="active").map((x:any)=><option key={x.id} value={x.id}>{x.name}</option>)}</SelectField></div></div>
+                <div><SectionTitle eyebrow="02 / Guest content" title="Descriptions and messaging" description="The original room storytelling fields, used by guest-facing pages."/><Area label="Short description" value={room.shortDescription} onChange={v=>setR("shortDescription",v)} rows={2}/><div className="mt-4"><Area label="Full description" value={room.description} onChange={v=>setR("description",v)} hint="Separate each paragraph with one blank line." rows={6}/></div><div className="mt-4"><Area label="Room details" value={room.details} onChange={v=>setR("details",v)} hint="Label: value, one detail per line. Example: Bed: King size." rows={4}/></div><div className="mt-4 grid gap-4 sm:grid-cols-2"><Field label="Hero line" value={room.heroLine} onChange={v=>setR("heroLine",v)}/><Field label="Call-to-action line" value={room.ctaLine} onChange={v=>setR("ctaLine",v)}/></div></div>
+                <div><SectionTitle eyebrow="03 / Capacity and specifications" title="Occupancy and room attributes" description="Shared capacity defaults and guest-facing physical specifications."/><div className="grid gap-4 sm:grid-cols-3"><Field label="Adults" type="number" min={1} value={room.capacityAdults} onChange={v=>setR("capacityAdults",Number(v))}/><Field label="Children" type="number" min={0} value={room.capacityChildren} onChange={v=>setR("capacityChildren",Number(v))}/><Field label="Maximum occupancy" type="number" min={1} value={room.maxOccupancy} onChange={v=>setR("maxOccupancy",Number(v))}/></div><div className="mt-4 grid gap-4 sm:grid-cols-2"><Field label="Room size" value={room.sizeLabel} onChange={v=>setR("sizeLabel",v)}/><Field label="View" value={room.viewLabel} onChange={v=>setR("viewLabel",v)}/><Field label="Bed" value={room.bedLabel} onChange={v=>setR("bedLabel",v)}/><Field label="Bathroom" value={room.bathroomLabel} onChange={v=>setR("bathroomLabel",v)}/></div></div>
+                <div><SectionTitle eyebrow="04 / Media" title="Images and gallery" description="Primary visual and supporting room photography."/>{room.imageUrl&&<div className="mb-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><img src={room.imageUrl} alt="Room primary preview" className="h-48 w-full object-cover" onError={e=>{e.currentTarget.style.display="none";}}/></div>}<Field label="Primary image URL" value={room.imageUrl} onChange={v=>setR("imageUrl",v)}/><div className="mt-4"><Area label="Gallery image URLs" value={room.galleryUrls} onChange={v=>setR("galleryUrls",v)} hint="One image URL per line, up to 20 images." rows={4}/></div></div>
+                <div><SectionTitle eyebrow="05 / Publishing" title="Ordering and status" description="Determine how this definition is presented in the platform catalogue."/><div className="grid gap-4 sm:grid-cols-2"><Field label="Display order" type="number" min={0} value={room.sortOrder} onChange={v=>setR("sortOrder",Number(v))}/><SelectField label="Status" value={room.status} onChange={v=>setR("status",v as "active"|"archived")}><option value="active">Active</option><option value="archived">Archived</option></SelectField></div></div>
+              </div>
+              <div className="mt-8 flex justify-end border-t border-slate-100 pt-5"><button type="button" disabled={busy||!room.name||!room.slug||room.maxOccupancy<room.capacityAdults} onClick={()=>roomMutation.mutate()} className="rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:opacity-40">{roomMutation.isPending?"Saving…":room.id?"Save room definition":"Create room definition"}</button></div>
+            </div>}
+          </section>
+        </div>
       </div>}
-  </div>;
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400"><span>StayNas · Platform-owned catalogue</span><span>Property rates · room inventory · availability remain outside this configuration</span></div>
+    </div>
+  </main>;
 }
