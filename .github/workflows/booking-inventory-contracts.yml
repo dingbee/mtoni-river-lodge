@@ -35,7 +35,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - name: Booking property and hostname regression tests
+      - name: Booking property-isolation regression tests
         run: bunx vitest run src/lib/booking-property.test.ts
       - name: Generate routes and verify production build
         run: bun run build
