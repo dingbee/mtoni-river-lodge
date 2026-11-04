@@ -77,7 +77,10 @@ describe("adapter execution tenant authorization", () => {
     expect(() => authorizeAdapterExecution({ ...base, environment: "live" })).toThrow(/denied/);
   });
 
-  it("rejects non-connected connections and missing credential references", () => {
+  it("rejects degraded/suspended connections and missing credential references", () => {
+    expect(() => authorizeAdapterExecution({
+      ...base, connection: { ...base.connection, lifecycle: "degraded" },
+    })).toThrow(/denied/);
     expect(() => authorizeAdapterExecution({
       ...base, connection: { ...base.connection, lifecycle: "suspended" },
     })).toThrow(/denied/);
