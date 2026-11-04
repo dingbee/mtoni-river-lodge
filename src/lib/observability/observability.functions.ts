@@ -136,12 +136,25 @@ export const getInventoryIntegrity = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<InventoryIntegrityReport> => {
     await assertOwnerOrAdmin(context.supabase, context.userId);
 
+    // Health is shown in the currently selected property context. Never aggregate
+    // inventory across tenants: legacy/demo property rows may remain in the shared DB.
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc(
+      "staynas_active_property_id",
+      { _uid: context.userId },
+    );
+    if (propertyError) throw new Error(propertyError.message);
+    if (!propertyId) throw new Error("No active property selected");
+
     const [roomsRes, statesRes] = await Promise.all([
       context.supabase
         .from("rooms")
         .select("id, slug, name, total_units, sort_order")
+        .eq("property_id", propertyId)
         .eq("status", "active"),
-      context.supabase.from("room_states").select("room_id"),
+      context.supabase
+        .from("room_states")
+        .select("room_id")
+        .eq("property_id", propertyId),
     ]);
     if (roomsRes.error) throw new Error(roomsRes.error.message);
     if (statesRes.error) throw new Error(statesRes.error.message);
