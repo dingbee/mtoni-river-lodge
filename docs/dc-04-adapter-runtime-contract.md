@@ -1,6 +1,6 @@
 # StayNas DC-04 — Provider-Neutral Adapter Runtime
 
-Status: DC-04.3 lifecycle/error/health contracts implemented; CI verification pending for the current branch head. No provider connection, credential write, database migration, or deployment is authorised by this artifact.
+Status: DC-04.3 lifecycle/error/health contracts and DC-04.4 pure tenant-context authorization policy implemented; current-head CI verification pending. No provider connection, credential write, database migration, or deployment is authorised by this artifact.
 
 ## Objective
 
@@ -177,6 +177,15 @@ DC-04 may define types, pure validation, mock adapters, and contract tests while
 - Health assessment classifies bounded probe results and latency. The assessment is pure: timeout scheduling, concurrency limits and rate limiting remain responsibilities of the future worker/orchestrator and are not claimed as implemented here.
 - `lifecycle.test.ts` covers permitted/forbidden transitions, actor attribution, terminal revocation, safe error normalization, retry bounds and health classification.
 
+### DC-04.4 tenant-context authorization policy
+
+- `authorization.ts` builds the immutable adapter execution context from trusted persisted connection, property membership and external-account grant records.
+- It fails closed for inactive principals, unusable connection states, missing credential references, provider/version mismatch, environment mismatch, undeclared capabilities, cross-organisation/property membership and mismatched or inactive external-account grants.
+- Platform-admin membership bypass does not bypass connection ownership, environment, capability or external-account/property grant checks.
+- The resulting context contains identifiers only; it does not expose the credential reference or secret.
+- `authorization.test.ts` covers valid resolution, inactive principals, cross-tenant membership, wrong-property grants, environment mismatch, suspended connections, missing credential references and platform-admin boundaries.
+- This is a pure policy boundary. It does not yet load database records, enforce database RLS, resolve credentials, or prove that any caller is authorized to supply the records. Those responsibilities remain for a server-side integration and security review.
+
 ## Execution sequence
 
 - DC-04.1 — Repository and schema baseline (this document).
@@ -184,6 +193,11 @@ DC-04 may define types, pure validation, mock adapters, and contract tests while
 - DC-04.3 — Connection lifecycle and normalized error/health contracts.
 - DC-04.4 — Security and tenant-context contract tests.
 - DC-04.5 — Readiness review; no provider activation until dependencies are certified.
+
+## DC-04.4 implementation artifacts
+
+- `src/domains/distribution/adapters/authorization.ts` — fail-closed tenant and account grant policy that constructs server execution context.
+- `src/domains/distribution/adapters/authorization.test.ts` — cross-tenant, grant, lifecycle, environment and platform-admin boundary tests.
 
 ## DC-04.3 implementation artifacts
 
