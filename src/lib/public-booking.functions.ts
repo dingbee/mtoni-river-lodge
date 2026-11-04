@@ -38,6 +38,19 @@ export const getPublicDemoProperty = createServerFn({ method: "GET" })
       .eq("status", "active")
       .order("sort_order", { ascending: true });
 
+    const { data: brandingRow, error: brandingError } = await (supabaseAdmin as any)
+      .from("staynas_property_branding")
+      .select("logo_url, logo_dark_url, favicon_url, primary_color, secondary_color, background_color, text_color, tagline, description, hero_image_url, gallery_image_urls, show_staynas_attribution")
+      .eq("property_id", property.id)
+      .maybeSingle();
+    if (brandingError) {
+      console.error("[StayNas public booking] Property branding query failed", {
+        code: brandingError.code, propertyId: property.id,
+      });
+      throw new Error("Unable to load property presentation.");
+    }
+    const branding = brandingRow ?? {};
+
     if (error) {
       // Log only safe PostgREST diagnostics; never log credentials or guest data.
       console.error("[StayNas public booking] Room catalogue query failed", {
@@ -56,6 +69,20 @@ export const getPublicDemoProperty = createServerFn({ method: "GET" })
         name: property.name,
         currency: property.currency,
         timezone: property.timezone,
+      },
+      branding: {
+        logoUrl: branding.logo_url ?? "",
+        logoDarkUrl: branding.logo_dark_url ?? "",
+        faviconUrl: branding.favicon_url ?? "",
+        primaryColor: branding.primary_color ?? "#1e352a",
+        secondaryColor: branding.secondary_color ?? "#c6a878",
+        backgroundColor: branding.background_color ?? "#f5f4ef",
+        textColor: branding.text_color ?? "#202820",
+        tagline: branding.tagline ?? "",
+        description: branding.description ?? "",
+        heroImageUrl: branding.hero_image_url ?? "",
+        galleryImageUrls: Array.isArray(branding.gallery_image_urls) ? branding.gallery_image_urls : [],
+        showStayNasAttribution: branding.show_staynas_attribution ?? true,
       },
       rooms: (rooms ?? []).map((room: any) => ({
         ...room,
