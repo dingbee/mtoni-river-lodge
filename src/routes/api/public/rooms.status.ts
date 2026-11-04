@@ -28,7 +28,7 @@ export const Route = createFileRoute("/api/public/rooms/status")({
         // Scope every inventory read to the configured booking property.
         const propertyId = await getConfiguredBookingPropertyId(sb);
         const [{ data, error }, { data: catalog, error: catalogError }] = await Promise.all([
-          bookingRpc(sb).rpc("get_room_availability", { _check_in: date, _check_out: nextIso, _property_id: propertyId }),
+          bookingRpc(sb).rpc("get_room_availability_for_property", { _check_in: date, _check_out: nextIso, _property_id: propertyId }),
           (sb as any).from("rooms").select("slug,total_units").eq("status", "active").eq("property_id", propertyId),
         ]);
         if (error) return Response.json({ error: error.message }, { status: 500 });

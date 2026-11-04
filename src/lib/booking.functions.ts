@@ -47,7 +47,7 @@ export const checkAvailability = createServerFn({ method: "POST" })
     }
     const sb = getPublicClient();
     const propertyId = await getConfiguredBookingPropertyId(sb);
-    const { data: rows, error } = await bookingRpc(sb).rpc("get_room_availability", {
+    const { data: rows, error } = await bookingRpc(sb).rpc("get_room_availability_for_property", {
       _check_in: data.checkIn,
       _check_out: data.checkOut,
       _property_id: propertyId,
@@ -119,7 +119,7 @@ export const createBooking = createServerFn({ method: "POST" })
     const below6 = data.childrenBelow6 ?? 0;
     const plus7 = data.children7Plus ?? Math.max(0, (data.children ?? 0) - below6);
     const totalChildren = below6 + plus7;
-    const { data: result, error } = await bookingRpc(sb).rpc("create_booking", {
+    const { data: result, error } = await bookingRpc(sb).rpc("create_booking_for_property", {
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
       _check_out: data.checkOut,
