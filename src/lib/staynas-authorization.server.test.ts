@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { requireStayNasModuleAccess } from "./staynas-authorization.server";
+import { requireStayNasModuleAccess, requireStayNasPropertyRole, requireStayNasStaffAccess, requireStayNasCoreStaffAccess } from "./staynas-authorization.server";
 
 function clientWithPropertyRoles(roles: string[], error: unknown = null) {
   return {
@@ -45,5 +45,34 @@ describe("requireStayNasModuleAccess", () => {
     await expect(
       requireStayNasModuleAccess(client, "user-4", "finance"),
     ).rejects.toThrow("Unable to verify the active property's access role.");
+  });
+});
+
+
+describe("property-scoped role guards", () => {
+  it("allows only a role present in the selected active property", async () => {
+    const client = clientWithPropertyRoles(["finance"]);
+    await expect(requireStayNasPropertyRole(client, "user-5", ["owner", "finance"])).resolves.toBeUndefined();
+    expect(client.rpc).toHaveBeenCalledWith("staynas_current_property_roles");
+  });
+
+  it("rejects roles held only outside the selected property", async () => {
+    const client = clientWithPropertyRoles(["housekeeping"]);
+    await expect(requireStayNasPropertyRole(client, "user-6", ["owner", "manager"])).rejects.toThrow("Forbidden");
+  });
+
+  it("allows operational staff roles in the selected property", async () => {
+    const client = clientWithPropertyRoles(["reception"]);
+    await expect(requireStayNasStaffAccess(client, "user-7")).resolves.toBeUndefined();
+  });
+
+  it("does not treat housekeeping as core staff for the legacy is_staff boundary", async () => {
+    const client = clientWithPropertyRoles(["housekeeping"]);
+    await expect(requireStayNasCoreStaffAccess(client, "user-8")).rejects.toThrow("Forbidden");
+  });
+
+  it("fails closed when role resolution errors", async () => {
+    const client = clientWithPropertyRoles([], new Error("rpc unavailable"));
+    await expect(requireStayNasPropertyRole(client, "user-9", ["owner"])).rejects.toThrow("Unable to verify the active property's access role.");
   });
 });
