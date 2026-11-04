@@ -48,7 +48,7 @@ export const createGuestRequest = createServerFn({ method: "POST" })
     }
 
     if (data.booking_id) {
-      const { data: booking, error } = await context.supabase
+      const { data: booking, error } = await db
         .from("bookings").select("id, property_id, guest_id")
         .eq("id", data.booking_id).eq("property_id", propertyId).maybeSingle();
       if (error || !booking) throw new Error("Booking not found in the active property.");
@@ -88,8 +88,9 @@ export const listGuestRequests = createServerFn({ method: "POST" })
     limit: z.number().int().min(1).max(100).default(50),
   }).parse(input ?? {}))
   .handler(async ({ data, context }) => {
-    const propertyId = await activePropertyId(context.supabase, context.userId);
-    let query = context.supabase
+    const db = context.supabase as any;
+    const propertyId = await activePropertyId(db, context.userId);
+    let query = db
       .from("staynas_guest_requests")
       .select("id, session_id, booking_id, guest_id, category, request_text, intake_channel, status, priority, guest_name, guest_contact, requested_for, created_at, updated_at")
       .eq("property_id", propertyId);
