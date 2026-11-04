@@ -179,7 +179,7 @@ function StaffUsersPage() {
   });
   const disableM = useAdminMutation({
     mutationFn: (v: { userId: string; disabled: boolean }) => disableFn({ data: v }),
-    onSuccessToast: (_d, v) => (v.disabled ? "User disabled" : "User enabled"),
+    onSuccessToast: (_d, v) => (v.disabled ? "Property access suspended" : "Property access restored"),
     onSuccess: invalidate,
   });
   const removeRolesM = useAdminMutation({
@@ -286,7 +286,7 @@ function StaffUsersPage() {
                           onDisable={() =>
                             setConfirm({
                               title: "Disable this user?",
-                              description: `${u.email ?? u.user_id} will no longer be able to sign in until re-enabled.`,
+                              description: `${u.email ?? u.user_id} will lose access to this property; other property access is unchanged.`,
                               onConfirm: () =>
                                 disableM.mutate({ userId: u.user_id, disabled: true }),
                             })
