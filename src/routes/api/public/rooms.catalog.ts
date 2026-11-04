@@ -12,7 +12,7 @@ export const Route = createFileRoute("/api/public/rooms/catalog")({
       { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
     );
     const propertyId = await getConfiguredBookingPropertyId(sb);
-    let query = sb.from("rooms").select("id,slug,name,short_description,capacity_adults,capacity_children,max_occupancy,total_units,base_price,currency,included_guests,extra_guest_fee,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,catalogue_type_id,catalogue:staynas_room_catalogue_types(id,slug,name,short_name,room_number_label,short_description,description,details,cta_line,capacity_adults,capacity_children,max_occupancy,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,category:staynas_room_catalogue_categories(id,slug,name,description,features,specifications))")
+    let query = sb.from("rooms").select("id,slug,name,short_description,capacity_adults,capacity_children,max_occupancy,total_units,base_price,currency,included_guests,extra_guest_fee,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,catalogue_type_id,catalogue:staynas_room_catalogue_types(id,slug,name,short_name,room_number_label,short_description,description,details,cta_line,capacity_adults,capacity_children,max_occupancy,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,amenities,category:staynas_room_catalogue_categories(id,slug,name,description,features,specifications))")
       .eq("status","active").eq("property_id",propertyId).order("sort_order").order("name");
     if (slug) query=query.eq("slug",slug);
     const {data,error}=await query;
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/api/public/rooms/catalog")({
         short_description:d.short_description,description:d.description,details:d.details,cta_line:d.cta_line,
         capacity_adults:d.capacity_adults,capacity_children:d.capacity_children,max_occupancy:d.max_occupancy,
         hero_line:d.hero_line,image_url:d.image_url,gallery_urls:d.gallery_urls,size_label:d.size_label,
-        view_label:d.view_label,bed_label:d.bed_label,bathroom_label:d.bathroom_label,category:d.category,catalogue:undefined};
+        view_label:d.view_label,bed_label:d.bed_label,bathroom_label:d.bathroom_label,amenities:d.amenities,category:d.category,catalogue:undefined};
     });
     return Response.json({rooms},{headers:{"cache-control":"public, max-age=30"}});
   }}},
