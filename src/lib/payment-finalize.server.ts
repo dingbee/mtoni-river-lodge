@@ -108,7 +108,7 @@ export async function verifyAndFinalizePayment(opts: {
         _order_tracking_id: opts.orderTrackingId,
         _amount: paid,
         _currency: currency,
-        _method: paymentMethod,
+        _method: paymentMethod ?? "unknown",
         _source: opts.source,
         _invoice_number: invoiceNumber,
         _raw: raw,
