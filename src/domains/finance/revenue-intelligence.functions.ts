@@ -24,25 +24,38 @@ export const getRevenueIntelligence = createServerFn({ method: "POST" })
     if (from > to) throw new Error("Revenue range start must not be after its end");
 
     const endExclusive = new Date(new Date(`${to}T00:00:00.000Z`).getTime() + 86_400_000).toISOString();
-    const [bookingsResult, eventsResult] = await Promise.all([
-      context.supabase.from("bookings")
+    // Supabase applies a per-request row cap. Read bounded pages so the report
+    // cannot silently understate totals when a date range exceeds that cap.
+    const pageSize = 1000;
+    async function readAll<T>(query: (fromRow: number, toRow: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>) {
+      const rows: T[] = [];
+      for (let offset = 0; ; offset += pageSize) {
+        const result = await query(offset, offset + pageSize - 1);
+        if (result.error) throw result.error;
+        const page = result.data ?? [];
+        rows.push(...page);
+        if (page.length < pageSize) return rows;
+      }
+    }
+    const [bookings, events] = await Promise.all([
+      readAll((start, end) => context.supabase.from("bookings")
         .select("id, total, currency, status")
-        .gte("check_in", from).lte("check_in", to),
-      context.supabase.from("payment_events")
+        .gte("check_in", from).lte("check_in", to)
+        .order("id").range(start, end)),
+      readAll((start, end) => context.supabase.from("payment_events")
         .select("event_type, amount, currency, created_at")
         .gte("created_at", `${from}T00:00:00.000Z`)
-        .lt("created_at", endExclusive),
+        .lt("created_at", endExclusive)
+        .order("created_at").order("id").range(start, end)),
     ]);
-    if (bookingsResult.error) throw bookingsResult.error;
-    if (eventsResult.error) throw eventsResult.error;
 
     const booked = new Map<string, number>();
-    for (const booking of bookingsResult.data ?? []) {
+    for (const booking of bookings) {
       if (booking.status === "cancelled") continue;
       const currency = (booking.currency ?? "UNKNOWN").trim().toUpperCase() || "UNKNOWN";
       booked.set(currency, (booked.get(currency) ?? 0) + Number(booking.total ?? 0));
     }
-    const ledger = aggregateRevenueLedger(eventsResult.data ?? []);
+    const ledger = aggregateRevenueLedger(events);
     const currencies = [...new Set([...booked.keys(), ...ledger.map((row) => row.currency)])].sort();
 
     return {
