@@ -68,7 +68,7 @@ export const updatePropertyChannelSettings = createServerFn({ method: "POST" })
       ...(data.marketing_consent_required === undefined ? {} : { marketing_consent_required: data.marketing_consent_required }),
       ...(data.staff_handoff_enabled === undefined ? {} : { staff_handoff_enabled: data.staff_handoff_enabled }),
     };
-    const { error } = await context.supabase.from("ai_property_channel_settings").upsert(patch, { onConflict: "property_id,channel" });
+    const { error } = await context.supabase.from("ai_property_channel_settings").upsert(patch as never, { onConflict: "property_id,channel" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
