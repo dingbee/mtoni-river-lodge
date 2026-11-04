@@ -810,4 +810,38 @@ create policy "Founder admins can read all legacy role assignments" on public.us
   using (public.is_staynas_founder_ai_admin());
 
 
+
+-- Global analytics and approval tables have no tenant key and remain platform-admin only.
+drop policy if exists "Managers write analytics_recs" on public.ai_analytics_recommendations;
+create policy "Managers write analytics_recs" on public.ai_analytics_recommendations for all to authenticated
+using (public.is_staynas_founder_ai_admin()) with check (public.is_staynas_founder_ai_admin());
+
+drop policy if exists "Managers write trend_snapshots" on public.ai_trend_snapshots;
+create policy "Managers write trend_snapshots" on public.ai_trend_snapshots for all to authenticated
+using (public.is_staynas_founder_ai_admin()) with check (public.is_staynas_founder_ai_admin());
+
+drop policy if exists "Managers write dashboards" on public.analytics_dashboards;
+create policy "Managers write dashboards" on public.analytics_dashboards for all to authenticated
+using (public.is_staynas_founder_ai_admin()) with check (public.is_staynas_founder_ai_admin());
+
+drop policy if exists "Managers write reports" on public.analytics_reports;
+create policy "Managers write reports" on public.analytics_reports for all to authenticated
+using (public.is_staynas_founder_ai_admin()) with check (public.is_staynas_founder_ai_admin());
+
+drop policy if exists "Managers can write analytics_snapshots" on public.analytics_snapshots;
+create policy "Managers can write analytics_snapshots" on public.analytics_snapshots for all to authenticated
+using (public.is_staynas_founder_ai_admin()) with check (public.is_staynas_founder_ai_admin());
+
+drop policy if exists "Staff can read analytics_snapshots" on public.analytics_snapshots;
+create policy "Staff can read analytics_snapshots" on public.analytics_snapshots for select to authenticated
+using (public.is_staynas_founder_ai_admin());
+
+drop policy if exists "Managers write widgets" on public.analytics_widgets;
+create policy "Managers write widgets" on public.analytics_widgets for all to authenticated
+using (public.is_staynas_founder_ai_admin()) with check (public.is_staynas_founder_ai_admin());
+
+drop policy if exists "Managers decide approvals" on public.approval_requests;
+create policy "Managers decide approvals" on public.approval_requests for update to authenticated
+using (public.is_staynas_founder_ai_admin()) with check (public.is_staynas_founder_ai_admin());
+
 commit;
