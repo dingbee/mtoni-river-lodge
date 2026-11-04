@@ -129,14 +129,30 @@ export async function uploadDocument(input: {
   const ext = input.fileName.split(".").pop()?.toLowerCase() ?? "";
   const mimeOk = (ALLOWED_DOCUMENT_MIME as readonly string[]).includes(input.mimeType);
   const extOk = (ALLOWED_DOCUMENT_EXT as readonly string[]).includes(ext);
-  if (!mimeOk || !extOk) {
-    throw new DocumentRefusal("validation", "Use a PDF, JPG or PNG file.");
+  const matchingType =
+    (input.mimeType === "application/pdf" && ext === "pdf") ||
+    (input.mimeType === "image/jpeg" && ["jpg", "jpeg"].includes(ext)) ||
+    (input.mimeType === "image/png" && ext === "png");
+  if (!mimeOk || !extOk || !matchingType) {
+    throw new DocumentRefusal("validation", "Use a matching PDF, JPG or PNG file.");
   }
 
   const bytes = Buffer.from(input.contentBase64, "base64");
   if (bytes.length === 0) throw new DocumentRefusal("validation", "That file appears to be empty.");
   if (bytes.length > MAX_DOCUMENT_BYTES) {
     throw new DocumentRefusal("validation", "File is larger than 8 MB.");
+  }
+
+  // Do not trust the browser-provided MIME type: verify the actual file signature.
+  const isPdf = bytes.subarray(0, 5).toString("ascii") === "%PDF-";
+  const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  const isPng = bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  if (
+    (input.mimeType === "application/pdf" && !isPdf) ||
+    (input.mimeType === "image/jpeg" && !isJpeg) ||
+    (input.mimeType === "image/png" && !isPng)
+  ) {
+    throw new DocumentRefusal("validation", "The selected file does not match its document type.");
   }
 
   // Preserve the previous document until the replacement has been stored
