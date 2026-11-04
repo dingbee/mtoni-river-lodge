@@ -175,8 +175,11 @@ export const assignRole = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("staynas_property_members")
-      .insert({ property_id: propertyId, user_id: data.userId, role: data.role, status: "active" });
-    if (error && !/duplicate|unique/i.test(error.message)) throw new Error(error.message);
+      .upsert(
+        { property_id: propertyId, user_id: data.userId, role: data.role, status: "active" },
+        { onConflict: "property_id,user_id,role" },
+      );
+    if (error) throw new Error(error.message);
     await logActivity(context.supabase, {
       actorId: context.userId,
       actorEmail: (context.claims as any)?.email ?? null,
@@ -290,8 +293,11 @@ export const inviteStaffUser = createServerFn({ method: "POST" })
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
     const { error: roleErr } = await supabaseAdmin
       .from("staynas_property_members")
-      .insert({ property_id: propertyId, user_id: userId, role: data.role, status: "active" });
-    if (roleErr && !/duplicate|unique/i.test(roleErr.message)) throw new Error(roleErr.message);
+      .upsert(
+        { property_id: propertyId, user_id: userId, role: data.role, status: "active" },
+        { onConflict: "property_id,user_id,role" },
+      );
+    if (roleErr) throw new Error(roleErr.message);
 
     await logActivity(context.supabase, {
       actorId: context.userId,
