@@ -22,6 +22,10 @@ export const Route = createFileRoute("/_authenticated/admin/finance/analytics")(
   component: Analytics,
 });
 
+function money(value: number, currency: string) {
+  return `${currency} ${Math.round(Number(value || 0)).toLocaleString()}`;
+}
+
 function toCsv(rows: Record<string, unknown>[]): string {
   if (!rows.length) return "";
   const cols = Object.keys(rows[0]);
@@ -74,21 +78,20 @@ function Analytics() {
         <LoadingState />
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-4">
-            <StatCard label="Revenue" value={`$${Math.round(data.totalRevenue).toLocaleString()}`} />
-            <StatCard label="Avg. spend / stay" value={`$${Math.round(data.avgSpendPerStay).toLocaleString()}`} />
-            <StatCard label="Guests" value={data.guestCount} />
-            <StatCard label="Avg. lifetime value" value={`$${Math.round(data.avgLifetimeValue).toLocaleString()}`} />
-            <StatCard label="Cancellations" value={data.cancellationsCount} hint={`Impact $${Math.round(data.cancellationImpact).toLocaleString()}`} />
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Cancellations" value={data.cancellationsCount} />
+            {data.currencyBreakdown.map((item) => (
+              <StatCard key={item.currency} label={`Revenue · ${item.currency}`} value={money(item.totalRevenue, item.currency)} hint={`Avg. spend/stay ${money(item.avgSpendPerStay, item.currency)} · LTV ${money(item.avgLifetimeValue, item.currency)} · cancellations ${money(item.cancellationImpact, item.currency)}`} />
+            ))}
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <SectionCard title="Revenue by Month">
               <div className="space-y-2 text-sm">
                 {data.byMonth.map((r) => (
-                  <div key={r.month} className="flex justify-between">
+                  <div key={`${r.currency}-${r.month}`} className="flex justify-between">
                     <span>{r.month}</span>
-                    <span className="font-medium">${Math.round(r.total).toLocaleString()}</span>
+                    <span className="font-medium">{money(r.total, r.currency)}</span>
                   </div>
                 ))}
               </div>
@@ -96,11 +99,11 @@ function Analytics() {
             <SectionCard title="Booking Source Performance">
               <div className="space-y-2 text-sm">
                 {data.bySource.map((r) => (
-                  <div key={r.source} className="flex justify-between">
+                  <div key={`${r.currency}-${r.source}`} className="flex justify-between">
                     <span className="capitalize">{r.source}</span>
                     <span>
                       <Badge variant="secondary" className="mr-2">{r.count}</Badge>
-                      ${Math.round(r.total).toLocaleString()}
+                      {money(r.total, r.currency)}
                     </span>
                   </div>
                 ))}
@@ -109,11 +112,11 @@ function Analytics() {
             <SectionCard title="Top Guests by Spend">
               <div className="space-y-2 text-sm">
                 {data.topGuests.map((g) => (
-                  <div key={g.key} className="flex justify-between">
+                  <div key={`${g.currency}-${g.key}`} className="flex justify-between">
                     <span className="truncate pr-2">{g.key}</span>
                     <span>
                       <Badge variant="outline" className="mr-2">{g.stays} stays</Badge>
-                      ${Math.round(g.total).toLocaleString()}
+                      {money(g.total, g.currency)}
                     </span>
                   </div>
                 ))}

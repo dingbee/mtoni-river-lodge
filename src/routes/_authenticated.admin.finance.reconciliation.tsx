@@ -52,7 +52,8 @@ function Reconciliation() {
                     <th className="py-2">Reference</th>
                     <th>Booking paid</th>
                     <th>Events total</th>
-                    <th>Variance</th>
+                    <th>Paid variance</th>
+                    <th>Balance variance</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -63,29 +64,22 @@ function Reconciliation() {
                       <td>{r.currency} {Number(r.paid_amount ?? 0).toFixed(2)}</td>
                       <td>{r.currency} {Number(r.events_total).toFixed(2)}</td>
                       <td className={r.variance !== 0 ? "text-[color:var(--os-warn)]" : ""}>{r.variance.toFixed(2)}</td>
-                      <td><Badge variant="secondary">{r.payment_status}</Badge></td>
+                      <td className={r.balance_variance !== 0 ? "text-[color:var(--os-warn)]" : ""}>{r.currency} {r.balance_variance.toFixed(2)}</td>
+                      <td>
+                        <Badge variant="secondary">{r.payment_status}</Badge>
+                        {r.currency_mismatch && <Badge variant="destructive" className="ml-1">Currency</Badge>}
+                      </td>
                     </tr>
                   ))}
                   {!data.unmatched.length && (
-                    <tr><td colSpan={5} className="py-4 text-center text-muted-foreground">All bookings reconciled ✓</td></tr>
+                    <tr><td colSpan={6} className="py-4 text-center text-muted-foreground">All bookings reconciled ✓</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
-            <p className="mt-4 text-xs text-muted-foreground">Matched: {data.matched} · Unmatched Pesapal events: {data.unmatchedEvents.length}</p>
+            <p className="mt-4 text-xs text-muted-foreground">Matched: {data.matched} · Unlinked provider events require founder-level audit and are excluded from tenant scope.</p>
           </SectionCard>
-          {data.unmatchedEvents.length > 0 && (
-            <SectionCard title="Orphan Payment Events">
-              <div className="space-y-1 text-xs">
-                {data.unmatchedEvents.slice(0, 30).map((e) => (
-                  <div key={e.id} className="flex justify-between border-b border-border/40 py-1">
-                    <span>{e.event_type} · {e.merchant_reference}</span>
-                    <span>{e.currency ?? ""} {e.amount ?? ""} · {new Date(e.created_at).toLocaleString()}</span>
-                  </div>
-                ))}
-              </div>
-            </SectionCard>
-          )}
+
         </>
       )}
     </div>

@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { financeRpc } from "@/lib/finance-rpc";
 import { recordManualPaymentInputSchema } from "./payment-contract";
+import { moneyByCurrency, sumCurrency } from "./finance-currency";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -50,8 +51,7 @@ function firstOfYear() {
 
 // ---------------------------------------------------------------------------
 // Module 1 — Revenue Dashboard KPIs
-// ---------------------------------------------------------------------------
-
+// Monetary values are always grouped by currency. Never aggregate unlike currencies.
 export const getRevenueDashboard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => filtersSchema.parse(d))
@@ -62,9 +62,7 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
 
     let q = context.supabase
       .from("bookings")
-      .select(
-        "id, reference, room_id, check_in, check_out, nights, adults, children, total, paid_amount, deposit_amount, balance_amount, currency, source, country, payment_method, payment_status, status, created_at",
-      )
+      .select("id, reference, room_id, check_in, check_out, nights, adults, children, total, paid_amount, deposit_amount, balance_amount, currency, source, country, payment_method, payment_status, status, created_at")
       .gte("check_in", from)
       .lte("check_in", to);
     if (data.roomId) q = q.eq("room_id", data.roomId);
@@ -73,106 +71,83 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
     if (data.paymentMethod) q = q.eq("payment_method", data.paymentMethod);
     const { data: bookings, error } = await q;
     if (error) throw error;
-
     const active = (bookings ?? []).filter((b) => b.status !== "cancelled");
 
-    const [{ data: today }, { data: mtd }, { data: ytd }, { data: rooms }] =
-      await Promise.all([
-        context.supabase
-          .from("bookings")
-          .select("total, currency, status")
-          .eq("check_in", todayISO()),
-        context.supabase
-          .from("bookings")
-          .select("total, currency, status")
-          .gte("check_in", firstOfMonth())
-          .lte("check_in", todayISO()),
-        context.supabase
-          .from("bookings")
-          .select("total, currency, status")
-          .gte("check_in", firstOfYear())
-          .lte("check_in", todayISO()),
-        context.supabase.from("rooms").select("id, slug, name, total_units"),
-      ]);
-
-    const sum = (rows: Array<{ total: number | string; status?: string }> | null) =>
-      (rows ?? [])
-        .filter((r) => r.status !== "cancelled")
-        .reduce((acc, r) => acc + Number(r.total ?? 0), 0);
-
-    const totalUnits = (rooms ?? []).reduce((a, r) => a + Number(r.total_units ?? 1), 0) || 1;
-
-    const nightsSold = active.reduce((a, b) => a + Number(b.nights ?? 0), 0);
-    const revenue = active.reduce((a, b) => a + Number(b.total ?? 0), 0);
-    const outstanding = active.reduce((a, b) => a + Number(b.balance_amount ?? 0), 0);
-    const deposits = active.reduce((a, b) => a + Number(b.deposit_amount ?? 0), 0);
-
-    // Refunds via payment_events
-    const { data: refundEvents } = await context.supabase
-      .from("payment_events")
-      .select("amount, created_at, event_type")
-      .in("event_type", ["refund", "refund_issued", "reversed"])
-      .gte("created_at", `${from}T00:00:00Z`)
-      .lte("created_at", `${to}T23:59:59Z`);
-    const refunds = (refundEvents ?? []).reduce((a, r) => a + Math.abs(Number(r.amount ?? 0)), 0);
-
-    const rangeDays =
-      Math.max(1, Math.ceil((+new Date(to) - +new Date(from)) / 86_400_000) + 1);
-    const adr = nightsSold > 0 ? revenue / nightsSold : 0;
-    const availableRoomNights = totalUnits * rangeDays;
-    const occupancy = availableRoomNights > 0 ? nightsSold / availableRoomNights : 0;
-    const revpar = availableRoomNights > 0 ? revenue / availableRoomNights : 0;
-
-    // Breakdowns
-    const byRoom = new Map<string, number>();
-    const bySource = new Map<string, number>();
-    const byCountry = new Map<string, number>();
-    const byMonth = new Map<string, number>();
-    for (const b of active) {
-      byRoom.set(b.room_id, (byRoom.get(b.room_id) ?? 0) + Number(b.total ?? 0));
-      bySource.set(b.source ?? "unknown", (bySource.get(b.source ?? "unknown") ?? 0) + Number(b.total ?? 0));
-      byCountry.set(b.country ?? "—", (byCountry.get(b.country ?? "—") ?? 0) + Number(b.total ?? 0));
-      const mk = String(b.check_in).slice(0, 7);
-      byMonth.set(mk, (byMonth.get(mk) ?? 0) + Number(b.total ?? 0));
+    const [todayResult, mtdResult, ytdResult, roomsResult, refundsResult] = await Promise.all([
+      context.supabase.from("bookings").select("total, currency, status").eq("check_in", todayISO()),
+      context.supabase.from("bookings").select("total, currency, status").gte("check_in", firstOfMonth()).lte("check_in", todayISO()),
+      context.supabase.from("bookings").select("total, currency, status").gte("check_in", firstOfYear()).lte("check_in", todayISO()),
+      context.supabase.from("rooms").select("id, slug, name, total_units"),
+      context.supabase.from("payment_events").select("amount, currency, created_at, event_type")
+        .in("event_type", ["refund", "refund_issued"])
+        .gte("created_at", `${from}T00:00:00Z`).lte("created_at", `${to}T23:59:59Z`),
+    ]);
+    for (const result of [todayResult, mtdResult, ytdResult, roomsResult, refundsResult]) {
+      if (result.error) throw result.error;
     }
-    const roomMap = new Map((rooms ?? []).map((r) => [r.id, r]));
+    const totalUnits = (roomsResult.data ?? []).reduce((a, r) => a + Number(r.total_units ?? 1), 0) || 1;
+    const rangeDays = Math.max(1, Math.ceil((+new Date(to) - +new Date(from)) / 86_400_000) + 1);
+    const revenueByCurrency = new Map<string, { currency: string; revenue: number; paid: number; outstanding: number; deposits: number; nightsSold: number; adr: number; revpar: number }>();
+    for (const b of active) {
+      const currency = b.currency || "UNKNOWN";
+      const item = revenueByCurrency.get(currency) ?? { currency, revenue: 0, paid: 0, outstanding: 0, deposits: 0, nightsSold: 0, adr: 0, revpar: 0 };
+      item.revenue += Number(b.total ?? 0);
+      item.paid += Number(b.paid_amount ?? 0);
+      item.outstanding += Number(b.balance_amount ?? 0);
+      item.deposits += Number(b.deposit_amount ?? 0);
+      item.nightsSold += Number(b.nights ?? 0);
+      revenueByCurrency.set(currency, item);
+    }
+    for (const item of revenueByCurrency.values()) {
+      item.adr = item.nightsSold > 0 ? item.revenue / item.nightsSold : 0;
+      item.revpar = item.revenue / (totalUnits * rangeDays);
+    }
+
+    const groupBreakdown = (keyOf: (b: (typeof active)[number]) => string) => {
+      const totals = new Map<string, number>();
+      for (const b of active) {
+        const key = `${b.currency || "UNKNOWN"}::${keyOf(b)}`;
+        totals.set(key, (totals.get(key) ?? 0) + Number(b.total ?? 0));
+      }
+      return Array.from(totals, ([key, total]) => {
+        const [currency, value] = key.split("::");
+        return { currency, key: value ?? "", total };
+      }).sort((a, b) => a.currency.localeCompare(b.currency) || b.total - a.total);
+    };
+    const roomMap = new Map((roomsResult.data ?? []).map((r) => [r.id, r]));
+    const revenueByRoom = groupBreakdown((b) => b.room_id).map((r) => ({
+      currency: r.currency, room_id: r.key, name: roomMap.get(r.key)?.name ?? "Unknown", total: r.total,
+    }));
+    const revenueBySource = groupBreakdown((b) => b.source ?? "unknown").map((r) => ({ currency: r.currency, source: r.key, total: r.total }));
+    const revenueByCountry = groupBreakdown((b) => b.country ?? "—").map((r) => ({ currency: r.currency, country: r.key, total: r.total }));
+    const revenueTrend = groupBreakdown((b) => String(b.check_in).slice(0, 7)).map((r) => ({ currency: r.currency, month: r.key, total: r.total }));
+    const currencyTotals = (rows: Array<{ total: number | string; currency?: string | null; status?: string }>) =>
+      moneyByCurrency(rows.filter((r) => r.status !== "cancelled"), (r) => Number(r.total ?? 0));
+    const refundsByCurrency = sumCurrency((refundsResult.data ?? []).map((r) => ({
+      currency: r.currency, amount: Math.abs(Number(r.amount ?? 0)),
+    })));
 
     return {
       range: { from, to },
-      todayRevenue: sum(today),
-      mtdRevenue: sum(mtd),
-      ytdRevenue: sum(ytd),
-      outstanding,
-      deposits,
-      refunds,
-      adr,
-      revpar,
-      occupancy,
-      nightsSold,
-      availableRoomNights,
-      revenueByRoom: Array.from(byRoom.entries())
-        .map(([room_id, total]) => ({
-          room_id,
-          name: roomMap.get(room_id)?.name ?? "Unknown",
-          total,
-        }))
-        .sort((a, b) => b.total - a.total),
-      revenueBySource: Array.from(bySource.entries())
-        .map(([source, total]) => ({ source, total }))
-        .sort((a, b) => b.total - a.total),
-      revenueByCountry: Array.from(byCountry.entries())
-        .map(([country, total]) => ({ country, total }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 10),
-      revenueTrend: Array.from(byMonth.entries())
-        .map(([month, total]) => ({ month, total }))
-        .sort((a, b) => a.month.localeCompare(b.month)),
-      currency: active[0]?.currency ?? "USD",
+      todayRevenueByCurrency: currencyTotals(todayResult.data ?? []),
+      mtdRevenueByCurrency: currencyTotals(mtdResult.data ?? []),
+      ytdRevenueByCurrency: currencyTotals(ytdResult.data ?? []),
+      currencyBreakdown: Array.from(new Set([
+        ...revenueByCurrency.keys(),
+        ...(todayResult.data ?? []).map((r) => r.currency || "UNKNOWN"),
+        ...(mtdResult.data ?? []).map((r) => r.currency || "UNKNOWN"),
+        ...(ytdResult.data ?? []).map((r) => r.currency || "UNKNOWN"),
+        ...refundsByCurrency.map((r) => r.currency),
+      ])).sort().map((currency) => revenueByCurrency.get(currency) ?? {
+        currency, revenue: 0, paid: 0, outstanding: 0, deposits: 0, nightsSold: 0, adr: 0, revpar: 0,
+      }),
+      refundsByCurrency,
+      revenueByRoom, revenueBySource, revenueByCountry, revenueTrend,
     };
   });
 
 // ---------------------------------------------------------------------------
-// Revenue Health Score (traffic-light)
+// Revenue Health Score (currency-aware)
 // ---------------------------------------------------------------------------
 
 export const getRevenueHealth = createServerFn({ method: "GET" })
@@ -180,64 +155,46 @@ export const getRevenueHealth = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const from = daysAgo(30);
-    const to = daysAgo(-30); // next 30 days
-    const [{ data: past }, { data: future }, { data: rooms }] = await Promise.all([
-      context.supabase
-        .from("bookings")
-        .select("total, nights, status, balance_amount, created_at, check_in, payment_status")
-        .gte("check_in", from)
-        .lte("check_in", todayISO()),
-      context.supabase
-        .from("bookings")
-        .select("total, nights, status, check_in, created_at")
-        .gt("check_in", todayISO())
-        .lte("check_in", to),
+    const to = daysAgo(-30);
+    const [pastResult, futureResult, roomsResult] = await Promise.all([
+      context.supabase.from("bookings")
+        .select("total, nights, status, balance_amount, created_at, check_in, payment_status, currency")
+        .gte("check_in", from).lte("check_in", todayISO()),
+      context.supabase.from("bookings")
+        .select("total, nights, status, check_in, created_at, currency")
+        .gt("check_in", todayISO()).lte("check_in", to),
       context.supabase.from("rooms").select("id, total_units"),
     ]);
-    const totalUnits = (rooms ?? []).reduce((a, r) => a + Number(r.total_units ?? 1), 0) || 1;
-
-    const pastActive = (past ?? []).filter((b) => b.status !== "cancelled");
-    const cancelled = (past ?? []).filter((b) => b.status === "cancelled").length;
-    const nights = pastActive.reduce((a, b) => a + Number(b.nights ?? 0), 0);
-    const occupancy = nights / (totalUnits * 30);
-    const outstanding = pastActive.reduce((a, b) => a + Number(b.balance_amount ?? 0), 0);
-    const revenue = pastActive.reduce((a, b) => a + Number(b.total ?? 0), 0);
-    const forwardRevenue = (future ?? [])
-      .filter((b) => b.status !== "cancelled")
-      .reduce((a, b) => a + Number(b.total ?? 0), 0);
-
-    // Simple scoring — 0..100
-    let score = 50;
-    if (occupancy >= 0.7) score += 20;
-    else if (occupancy >= 0.5) score += 10;
-    else if (occupancy < 0.3) score -= 15;
-
-    if (outstanding < revenue * 0.1) score += 15;
-    else if (outstanding > revenue * 0.3) score -= 15;
-
-    if (forwardRevenue > revenue * 0.6) score += 15;
-    else if (forwardRevenue < revenue * 0.3) score -= 10;
-
-    if (cancelled > pastActive.length * 0.2) score -= 10;
-    score = Math.max(0, Math.min(100, score));
-
-    const status: "healthy" | "attention" | "critical" =
-      score >= 70 ? "healthy" : score >= 45 ? "attention" : "critical";
-
-    return {
-      score,
-      status,
-      signals: {
-        occupancy30d: occupancy,
-        outstanding,
-        revenue30d: revenue,
-        forwardRevenue30d: forwardRevenue,
-        cancellations30d: cancelled,
-      },
-    };
+    for (const result of [pastResult, futureResult, roomsResult]) if (result.error) throw result.error;
+    const totalUnits = (roomsResult.data ?? []).reduce((a, r) => a + Number(r.total_units ?? 1), 0) || 1;
+    const past = pastResult.data ?? [];
+    const active = past.filter((b) => b.status !== "cancelled");
+    const cancelled = past.filter((b) => b.status === "cancelled").length;
+    const currencies = new Set([...active.map((b) => b.currency || "UNKNOWN"), ...(futureResult.data ?? []).map((b) => b.currency || "UNKNOWN")]);
+    const totalNights30d = active.reduce((sum, b) => sum + Number(b.nights ?? 0), 0);
+    const occupancy30d = totalNights30d / (totalUnits * 30);
+    const healthByCurrency = Array.from(currencies).sort().map((currency) => {
+      const current = active.filter((b) => (b.currency || "UNKNOWN") === currency);
+      const future = (futureResult.data ?? []).filter((b) => b.status !== "cancelled" && (b.currency || "UNKNOWN") === currency);
+      const outstanding = current.reduce((a, b) => a + Number(b.balance_amount ?? 0), 0);
+      const revenue30d = current.reduce((a, b) => a + Number(b.total ?? 0), 0);
+      const forwardRevenue30d = future.reduce((a, b) => a + Number(b.total ?? 0), 0);
+      let score = 50;
+      if (occupancy30d >= 0.7) score += 20; else if (occupancy30d >= 0.5) score += 10; else if (occupancy30d < 0.3) score -= 15;
+      if (outstanding < revenue30d * 0.1) score += 15; else if (outstanding > revenue30d * 0.3) score -= 15;
+      if (forwardRevenue30d > revenue30d * 0.6) score += 15; else if (forwardRevenue30d < revenue30d * 0.3) score -= 10;
+      const cancelledForCurrency = past.filter((b) => b.status === "cancelled" && (b.currency || "UNKNOWN") === currency).length;
+      if (cancelledForCurrency > current.length * 0.2) score -= 10;
+      score = Math.max(0, Math.min(100, score));
+      return {
+        currency, score,
+        status: (score >= 70 ? "healthy" : score >= 45 ? "attention" : "critical") as "healthy" | "attention" | "critical",
+        signals: { occupancy30d, outstanding, revenue30d, forwardRevenue30d },
+      };
+    });
+    return { healthByCurrency, cancellations30d: cancelled };
   });
 
-// ---------------------------------------------------------------------------
 // Module 2 — Payment Centre
 // ---------------------------------------------------------------------------
 
@@ -304,17 +261,25 @@ export const recordManualPayment = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => recordManualPaymentInputSchema.parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
-    const { data: result, error } = await financeRpc(context.supabase).rpc(
-      "record_booking_payment",
-      {
-        _booking_id: data.bookingId,
-        _amount: data.amount,
-        _event_type: data.eventType,
-        _method: data.method,
-        _note: data.note ?? null,
-        _idempotency_key: data.idempotencyKey,
-      },
-    );
+    const rpc = financeRpc(context.supabase);
+    const { data: result, error } =
+      data.eventType === "refund"
+        ? await rpc.rpc("record_booking_refund", {
+            _booking_id: data.bookingId,
+            _payment_event_id: data.originalPaymentEventId!,
+            _amount: data.amount,
+            _method: data.method,
+            _note: data.note ?? null,
+            _idempotency_key: data.idempotencyKey,
+          })
+        : await rpc.rpc("record_booking_payment", {
+            _booking_id: data.bookingId,
+            _amount: data.amount,
+            _event_type: "manual_payment",
+            _method: data.method,
+            _note: data.note ?? null,
+            _idempotency_key: data.idempotencyKey,
+          });
     if (error) throw new Error(`Payment was not recorded: ${error.message}`);
     if (!result?.ok) throw new Error("Payment transaction did not complete");
     return {
@@ -395,9 +360,7 @@ export const getInvoicePdf = createServerFn({ method: "POST" })
   });
 
 // ---------------------------------------------------------------------------
-// Module 4 — Revenue Analytics
-// ---------------------------------------------------------------------------
-
+// Module 4 — Revenue Analytics (currency-safe)
 export const getRevenueAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => filtersSchema.parse(d))
@@ -405,62 +368,67 @@ export const getRevenueAnalytics = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const from = data.from ?? firstOfYear();
     const to = data.to ?? todayISO();
-    const { data: rows } = await context.supabase
+    const { data: rows, error } = await context.supabase
       .from("bookings")
-      .select(
-        "id, guest_id, guest_email, room_id, total, nights, status, source, country, check_in, cancelled_at",
-      )
-      .gte("check_in", from)
-      .lte("check_in", to);
+      .select("id, guest_id, guest_email, room_id, total, nights, status, source, country, check_in, cancelled_at, currency")
+      .gte("check_in", from).lte("check_in", to);
+    if (error) throw error;
     const active = (rows ?? []).filter((b) => b.status !== "cancelled");
     const cancelled = (rows ?? []).filter((b) => b.status === "cancelled");
-
     const byMonth = new Map<string, number>();
-    const bySource = new Map<string, { total: number; count: number }>();
-    const guestSpend = new Map<string, { total: number; stays: number }>();
+    const bySource = new Map<string, { currency: string; source: string; total: number; count: number }>();
+    const guests = new Map<string, { currency: string; key: string; total: number; stays: number }>();
+    const totals = new Map<string, { currency: string; totalRevenue: number; stays: number; cancellationImpact: number }>();
     for (const b of active) {
-      const m = String(b.check_in).slice(0, 7);
-      byMonth.set(m, (byMonth.get(m) ?? 0) + Number(b.total ?? 0));
-      const s = b.source ?? "unknown";
-      const cur = bySource.get(s) ?? { total: 0, count: 0 };
-      cur.total += Number(b.total ?? 0);
-      cur.count += 1;
-      bySource.set(s, cur);
-      const key = b.guest_id ?? b.guest_email;
-      const g = guestSpend.get(key) ?? { total: 0, stays: 0 };
-      g.total += Number(b.total ?? 0);
-      g.stays += 1;
-      guestSpend.set(key, g);
+      const currency = b.currency || "UNKNOWN";
+      const summary = totals.get(currency) ?? { currency, totalRevenue: 0, stays: 0, cancellationImpact: 0 };
+      summary.totalRevenue += Number(b.total ?? 0);
+      summary.stays += 1;
+      totals.set(currency, summary);
+      const month = String(b.check_in).slice(0, 7);
+      const monthKey = currency + "::" + month;
+      byMonth.set(monthKey, (byMonth.get(monthKey) ?? 0) + Number(b.total ?? 0));
+      const sourceName = b.source ?? "unknown";
+      const sourceKey = currency + "::" + sourceName;
+      const source = bySource.get(sourceKey) ?? { currency, source: sourceName, total: 0, count: 0 };
+      source.total += Number(b.total ?? 0);
+      source.count += 1;
+      bySource.set(sourceKey, source);
+      const guestKey = String(b.guest_id ?? b.guest_email ?? "unknown");
+      const spendKey = currency + "::" + guestKey;
+      const guest = guests.get(spendKey) ?? { currency, key: guestKey, total: 0, stays: 0 };
+      guest.total += Number(b.total ?? 0);
+      guest.stays += 1;
+      guests.set(spendKey, guest);
     }
-
-    const stays = active.length || 1;
-    const totalRevenue = active.reduce((a, b) => a + Number(b.total ?? 0), 0);
-    const lifetimeValues = Array.from(guestSpend.values());
-    const avgLtv =
-      lifetimeValues.length > 0
-        ? lifetimeValues.reduce((a, g) => a + g.total, 0) / lifetimeValues.length
-        : 0;
-
+    for (const b of cancelled) {
+      const currency = b.currency || "UNKNOWN";
+      const summary = totals.get(currency) ?? { currency, totalRevenue: 0, stays: 0, cancellationImpact: 0 };
+      summary.cancellationImpact += Number(b.total ?? 0);
+      totals.set(currency, summary);
+    }
+    const currencyBreakdown = Array.from(totals.values()).map((item) => {
+      const currencyGuests = Array.from(guests.values()).filter((g) => g.currency === item.currency);
+      return {
+        ...item,
+        avgSpendPerStay: item.stays ? item.totalRevenue / item.stays : 0,
+        guestCount: currencyGuests.length,
+        avgLifetimeValue: currencyGuests.length ? currencyGuests.reduce((sum, g) => sum + g.total, 0) / currencyGuests.length : 0,
+      };
+    }).sort((a, b) => a.currency.localeCompare(b.currency));
     return {
       range: { from, to },
-      totalRevenue,
-      avgSpendPerStay: totalRevenue / stays,
       cancellationsCount: cancelled.length,
-      cancellationImpact: cancelled.reduce((a, b) => a + Number(b.total ?? 0), 0),
-      guestCount: guestSpend.size,
-      avgLifetimeValue: avgLtv,
-      byMonth: Array.from(byMonth.entries())
-        .map(([month, total]) => ({ month, total }))
-        .sort((a, b) => a.month.localeCompare(b.month)),
-      bySource: Array.from(bySource.entries()).map(([source, v]) => ({ source, ...v })),
-      topGuests: Array.from(guestSpend.entries())
-        .map(([key, v]) => ({ key, ...v }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 10),
+      currencyBreakdown,
+      byMonth: Array.from(byMonth.entries()).map(([key, total]) => {
+        const [currency, month] = key.split("::");
+        return { currency, month, total };
+      }).sort((a, b) => a.currency.localeCompare(b.currency) || a.month.localeCompare(b.month)),
+      bySource: Array.from(bySource.values()).sort((a, b) => a.currency.localeCompare(b.currency) || b.total - a.total),
+      topGuests: Array.from(guests.values()).sort((a, b) => a.currency.localeCompare(b.currency) || b.total - a.total).slice(0, 20),
     };
   });
 
-// ---------------------------------------------------------------------------
 // Module 5 — Financial Reconciliation
 // ---------------------------------------------------------------------------
 
@@ -471,48 +439,104 @@ export const getReconciliation = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const from = data.from ?? daysAgo(30);
     const to = data.to ?? todayISO();
-    const [{ data: bookings }, { data: events }] = await Promise.all([
+    // Paginate every result set. Supabase's default row cap must not silently
+    // truncate bookings or payment events and produce a false reconciliation.
+    const pageSize = 500;
+    const fetchBookingPage = (offset: number) =>
       context.supabase
         .from("bookings")
         .select(
           "id, reference, total, deposit_amount, balance_amount, paid_amount, currency, payment_status, payment_method, pesapal_order_tracking_id, payment_mismatch_at, created_at",
         )
         .gte("created_at", `${from}T00:00:00Z`)
-        .lte("created_at", `${to}T23:59:59Z`),
-      context.supabase
+        .lte("created_at", `${to}T23:59:59Z`)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+
+    const firstBookingPage = await fetchBookingPage(0);
+    if (firstBookingPage.error) throw firstBookingPage.error;
+    const bookings = [...(firstBookingPage.data ?? [])];
+    for (let offset = pageSize; (firstBookingPage.data ?? []).length === pageSize; offset += pageSize) {
+      const page = await fetchBookingPage(offset);
+      if (page.error) throw page.error;
+      bookings.push(...(page.data ?? []));
+      if ((page.data ?? []).length < pageSize) break;
+    }
+
+    const bookingIds = bookings.map((booking) => booking.id);
+    const ledgerEvents: Array<{ id: string; booking_id: string | null; event_type: string; amount: number | string | null; currency: string | null }> = [];
+    for (let index = 0; index < bookingIds.length; index += 100) {
+      const bookingIdChunk = bookingIds.slice(index, index + 100);
+      const firstPage = await context.supabase
         .from("payment_events")
         .select("*")
-        .gte("created_at", `${from}T00:00:00Z`)
-        .lte("created_at", `${to}T23:59:59Z`),
-    ]);
-
-    const eventsByBooking = new Map<string, number>();
-    for (const e of events ?? []) {
-      if (!e.booking_id) continue;
-      if (["completed", "manual_payment", "adjustment"].includes(e.event_type)) {
-        eventsByBooking.set(e.booking_id, (eventsByBooking.get(e.booking_id) ?? 0) + Number(e.amount ?? 0));
-      } else if (["refund", "reversed"].includes(e.event_type)) {
-        eventsByBooking.set(e.booking_id, (eventsByBooking.get(e.booking_id) ?? 0) - Math.abs(Number(e.amount ?? 0)));
+        .in("booking_id", bookingIdChunk)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(0, pageSize - 1);
+      if (firstPage.error) throw firstPage.error;
+      ledgerEvents.push(...(firstPage.data ?? []));
+      for (let offset = pageSize; (firstPage.data ?? []).length === pageSize; offset += pageSize) {
+        const page = await context.supabase
+          .from("payment_events")
+          .select("*")
+          .in("booking_id", bookingIdChunk)
+          .order("created_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(offset, offset + pageSize - 1);
+        if (page.error) throw page.error;
+        ledgerEvents.push(...(page.data ?? []));
+        if ((page.data ?? []).length < pageSize) break;
       }
     }
 
-    const rows = (bookings ?? []).map((b) => {
-      const eventsTotal = eventsByBooking.get(b.id) ?? 0;
-      const bookingPaid = Number(b.paid_amount ?? 0);
-      const diff = Math.round((eventsTotal - bookingPaid) * 100) / 100;
-      return {
-        ...b,
-        events_total: eventsTotal,
-        variance: diff,
-        matched: Math.abs(diff) < 0.5,
+    // Unlinked payment events cannot be safely assigned to a tenant/property.
+    // The tenant-scoped client is intentionally not allowed to read those rows;
+    // they require a separate founder-level audit.
+
+
+
+    const { reconcileBookingLedger, getReconciliationEventAmount } = await import(
+      "./finance-reconciliation"
+    );
+    const rows = (bookings ?? []).map((booking) => ({
+      ...booking,
+      ...reconcileBookingLedger(booking, ledgerEvents),
+    }));
+
+    const unclassifiedEvents = ledgerEvents.filter(
+      (event) => getReconciliationEventAmount(event) === null,
+    );
+    const currencySummary = new Map<
+      string,
+      { bookings: number; booking_paid: number; event_paid: number; outstanding: number }
+    >();
+    for (const row of rows) {
+      const currency = row.currency || "UNKNOWN";
+      const summary = currencySummary.get(currency) ?? {
+        bookings: 0,
+        booking_paid: 0,
+        event_paid: 0,
+        outstanding: 0,
       };
-    });
+      summary.bookings += 1;
+      summary.booking_paid += Number(row.paid_amount ?? 0);
+      summary.event_paid += row.events_total;
+      summary.outstanding += Number(row.balance_amount ?? 0);
+      currencySummary.set(currency, summary);
+    }
 
     return {
       range: { from, to },
-      matched: rows.filter((r) => r.matched).length,
-      unmatched: rows.filter((r) => !r.matched),
-      unmatchedEvents: (events ?? []).filter((e) => !e.booking_id),
+      matched: rows.filter((row) => row.matched).length,
+      unmatched: rows.filter((row) => !row.matched),
+      orphanEventsScope: "founder_audit_only" as const,
+      unclassifiedEvents,
+      currencySummary: Array.from(currencySummary.entries()).map(([currency, totals]) => ({
+        currency,
+        ...totals,
+      })),
     };
   });
 

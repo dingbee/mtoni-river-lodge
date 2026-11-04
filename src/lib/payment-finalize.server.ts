@@ -1,5 +1,41 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { Json } from "@/integrations/supabase/types";
 import { getPesapalTransactionStatus, classifyStatus } from "./pesapal.server";
+
+
+type FinalizeRpcResult = Promise<{
+  data: { ok: boolean; duplicate: boolean } | null;
+  error: { message: string; code?: string } | null;
+}>;
+
+interface PaymentFinalizeRpcClient {
+  rpc(
+    fn: "finalize_pesapal_payment",
+    args: {
+      _booking_id: string;
+      _order_tracking_id: string;
+      _amount: number;
+      _currency: string;
+      _method: string | null;
+      _source: "ipn" | "status_check";
+      _invoice_number: string;
+      _raw: Json;
+    },
+  ): FinalizeRpcResult;
+  rpc(
+    fn: "finalize_pesapal_reversal",
+    args: {
+      _booking_id: string;
+      _order_tracking_id: string;
+      _amount: number;
+      _currency: string;
+      _source: "ipn" | "status_check";
+      _raw: Json;
+    },
+  ): FinalizeRpcResult;
+}
+
+const paymentFinalizeRpc = supabaseAdmin as unknown as PaymentFinalizeRpcClient;
 
 export type FinalizeOutcome =
   | "pending"
@@ -37,14 +73,12 @@ export async function verifyAndFinalizePayment(opts: {
   if (bookingError) throw new Error(`Unable to load booking for Pesapal finalization: ${bookingError.message}`);
   if (!booking) return { outcome: "pending", paymentMethod: null };
 
-  if (booking.payment_status === "paid" || booking.payment_status === "deposit_paid") {
-    return { outcome: "already_finalized", paymentMethod: null };
-  }
-
+  // Always re-query Pesapal. A completed settlement can later be reversed;
+  // booking payment_status must never suppress provider status verification.
   const status = await getPesapalTransactionStatus(opts.orderTrackingId);
   const outcome = classifyStatus(status.status_code);
   const paymentMethod = status.payment_method ?? null;
-  const raw = JSON.parse(JSON.stringify(status));
+  const raw = JSON.parse(JSON.stringify(status)) as Json;
 
   if (outcome === "completed") {
     const expected = Number(booking.deposit_amount);
@@ -62,7 +96,7 @@ export async function verifyAndFinalizePayment(opts: {
         event_type: `${opts.source}:completed`,
         order_tracking_id: opts.orderTrackingId,
         status_code: status.status_code ?? null,
-        payment_method: paymentMethod ?? "unknown",
+        payment_method: paymentMethod,
         amount: paid,
         currency: status.currency ?? null,
         raw,
@@ -101,29 +135,39 @@ export async function verifyAndFinalizePayment(opts: {
     }
 
     const invoiceNumber = booking.invoice_number ?? makeInvoiceNumber(booking.reference);
-    const { data: result, error: finalizeError } = await supabaseAdmin.rpc(
+    const { data: result, error: finalizeError } = await paymentFinalizeRpc.rpc(
       "finalize_pesapal_payment",
       {
         _booking_id: booking.id,
         _order_tracking_id: opts.orderTrackingId,
         _amount: paid,
         _currency: currency,
-        _method: paymentMethod ?? "unknown",
+        _method: paymentMethod,
         _source: opts.source,
         _invoice_number: invoiceNumber,
         _raw: raw,
       },
     );
     if (finalizeError) throw new Error(`Unable to finalize Pesapal settlement: ${finalizeError.message}`);
-    if (
-      !result ||
-      typeof result !== "object" ||
-      Array.isArray(result) ||
-      result.ok !== true
-    ) {
-      throw new Error("Pesapal settlement transaction did not complete");
-    }
-    return { outcome: result.duplicate === true ? "already_finalized" : "completed", paymentMethod };
+    if (!result?.ok) throw new Error("Pesapal settlement transaction did not complete");
+    return { outcome: result.duplicate ? "already_finalized" : "completed", paymentMethod };
+  }
+
+  if (outcome === "reversed") {
+    const { data: reversalResult, error: reversalError } = await paymentFinalizeRpc.rpc(
+      "finalize_pesapal_reversal",
+      {
+        _booking_id: booking.id,
+        _order_tracking_id: opts.orderTrackingId,
+        _amount: Number(status.amount ?? 0),
+        _currency: status.currency ?? "",
+        _source: opts.source,
+        _raw: raw,
+      },
+    );
+    if (reversalError) throw new Error(`Unable to finalize Pesapal reversal: ${reversalError.message}`);
+    if (!reversalResult?.ok) throw new Error("Pesapal reversal transaction did not complete");
+    return { outcome: reversalResult.duplicate ? "already_finalized" : "reversed", paymentMethod };
   }
 
   const { error: eventError } = await supabaseAdmin.from("payment_events").insert({
@@ -139,7 +183,11 @@ export async function verifyAndFinalizePayment(opts: {
   });
   if (eventError) throw new Error(`Unable to record Pesapal status event: ${eventError.message}`);
 
-  if (outcome === "failed" || outcome === "reversed") {
+  if (
+    outcome === "failed" &&
+    booking.payment_status !== "paid" &&
+    booking.payment_status !== "deposit_paid"
+  ) {
     const { error: failedUpdateError } = await supabaseAdmin
       .from("bookings")
       .update({ payment_failed_at: new Date().toISOString() })
