@@ -28,12 +28,13 @@ interface CheckInContext {
   id: string;
   booking_id: string;
   guest_id: string | null;
+  property_id: string;
 }
 
 async function authorise(token: string, sessionId: string): Promise<CheckInContext> {
   const { data, error } = await supabaseAdmin
     .from("guest_checkins")
-    .select("id, booking_id, guest_id, status, locked_at, expires_at, session_id, last_activity_at")
+    .select("id, booking_id, guest_id, property_id, status, locked_at, expires_at, session_id, last_activity_at")
     .eq("token", token)
     .maybeSingle();
   if (error) throw new DocumentRefusal("invalid", "Unable to load this check-in link");
@@ -51,7 +52,7 @@ async function authorise(token: string, sessionId: string): Promise<CheckInConte
   if (last && Date.now() - last > SESSION_TIMEOUT_MS) {
     throw new DocumentRefusal("session", "Your check-in session timed out. Please verify again.");
   }
-  return { id: data.id, booking_id: data.booking_id, guest_id: data.guest_id };
+  return { id: data.id, booking_id: data.booking_id, guest_id: data.guest_id, property_id: data.property_id };
 }
 
 async function touch(checkinId: string) {
@@ -70,6 +71,7 @@ async function logActivity(
   await supabaseAdmin.from("guest_checkin_activity").insert({
     checkin_id: ctx.id,
     booking_id: ctx.booking_id,
+    property_id: ctx.property_id,
     action,
     session_id: sessionId,
     detail: detail as never,
