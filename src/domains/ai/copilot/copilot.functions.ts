@@ -63,6 +63,7 @@ export const listCopilotSessions = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("ai_copilot_sessions")
       .select("id, title, message_count, last_message_at, created_at, updated_at")
+      .eq("user_id", context.userId)
       .order("updated_at", { ascending: false })
       .limit(50);
     if (error) throw error;
