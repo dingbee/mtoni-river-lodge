@@ -216,14 +216,6 @@ export const checkInBooking = createServerFn({ method: "POST" })
       _notes: data.notes ?? null,
     });
     if (error) throw new Error(error.message);
-    await logOpsEvent(context.supabase, context.userId, context.claims, {
-      type: "reservation.checked_in",
-      module: "operations",
-      entityType: "booking",
-      entityId: data.bookingId,
-      severity: "audit",
-      meta: { arrival_time: data.arrivalTime, notes: data.notes ?? null },
-    });
     return result ?? { ok: true };
   });
 
@@ -245,14 +237,6 @@ export const checkOutBooking = createServerFn({ method: "POST" })
       _notes: data.notes ?? null,
     });
     if (error) throw new Error(error.message);
-    await logOpsEvent(context.supabase, context.userId, context.claims, {
-      type: "reservation.checked_out",
-      module: "operations",
-      entityType: "booking",
-      entityId: data.bookingId,
-      severity: "audit",
-      meta: { departure_time: data.departureTime, notes: data.notes ?? null },
-    });
     return result ?? { ok: true };
   });
 
