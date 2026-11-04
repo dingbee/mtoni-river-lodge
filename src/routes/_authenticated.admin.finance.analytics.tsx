@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Download } from "lucide-react";
 import { getRevenueAnalytics } from "@/domains/finance/finance.functions";
+import { getRevenueIntelligence as getRevenueIntelligenceLedger } from "@/domains/finance/revenue-intelligence.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/finance/analytics")({
   head: () => ({
@@ -44,6 +45,7 @@ function downloadCsv(name: string, csv: string) {
 
 function Analytics() {
   const fn = useServerFn(getRevenueAnalytics);
+  const ledgerFn = useServerFn(getRevenueIntelligenceLedger);
   const [from, setFrom] = useState(() => {
     const d = new Date();
     return new Date(Date.UTC(d.getUTCFullYear(), 0, 1)).toISOString().slice(0, 10);
@@ -52,6 +54,11 @@ function Analytics() {
   const { data, isLoading } = useQuery({
     queryKey: ["finance.analytics", from, to],
     queryFn: () => fn({ data: { from, to } }),
+  });
+
+  const { data: ledgerData, isLoading: ledgerLoading } = useQuery({
+    queryKey: ["finance.revenue-ledger", from, to],
+    queryFn: () => ledgerFn({ data: { from, to } }),
   });
 
   return (
@@ -74,10 +81,29 @@ function Analytics() {
         </div>
       </SectionCard>
 
-      {isLoading || !data ? (
+      {isLoading || !data || ledgerLoading || !ledgerData ? (
         <LoadingState />
       ) : (
         <>
+          <SectionCard title="Cash Performance" description="Cash movements from the payment transaction ledger. Booked value is separate; recognised revenue requires an approved accounting policy.">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {ledgerData.byCurrency.map((item) => (
+                <div key={item.currency} className="rounded-lg border p-3 space-y-1">
+                  <div className="text-xs font-medium text-muted-foreground">{item.currency}</div>
+                  <div className="text-lg font-semibold">{money(item.cashCollected, item.currency)}</div>
+                  <div className="text-xs text-muted-foreground">Cash collected</div>
+                  <div className="text-sm">Refunds: {money(item.refunds, item.currency)}</div>
+                  <div className="text-sm">Provider reversals: {money(item.providerReversals, item.currency)}</div>
+                  <div className="text-sm font-medium">Net cash: {money(item.netCashReceived, item.currency)}</div>
+                  <div className="text-xs text-muted-foreground">Booked value: {money(item.bookedValue, item.currency)}</div>
+                </div>
+              ))}
+              {ledgerData.byCurrency.length === 0 && (
+                <p className="text-sm text-muted-foreground">No booked value or cash movements recorded for this period.</p>
+              )}
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">Cash period: UTC payment-event date · Booked-value period: reservation check-in date · Recognised revenue: not configured.</p>
+          </SectionCard>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <StatCard label="Cancellations" value={data.cancellationsCount} />
             {data.currencyBreakdown.map((item) => (
