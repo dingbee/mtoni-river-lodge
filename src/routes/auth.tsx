@@ -79,12 +79,16 @@ function AuthPage() {
       // Resolve all active roles from the selected property's membership.
       const { data: propertyRoles, error: propertyRolesError } =
         await staynasRpc(supabase).rpc("staynas_current_property_roles");
-      if (propertyRolesError) {
+      if (propertyRolesError || !propertyRoles?.length) {
         await supabase.auth.signOut();
-        toast.error("Could not verify your property role. Please try again.");
+        toast.error(
+          propertyRolesError
+            ? "Could not verify your property role. Please try again."
+            : "Your selected property has no active staff role for this account.",
+        );
         return;
       }
-      const normalizedRoles = (propertyRoles ?? []).map((role) => String(role).toLowerCase());
+      const normalizedRoles = propertyRoles.map((role) => String(role).toLowerCase());
       const housekeepingOnly =
         normalizedRoles.includes("housekeeping") &&
         !normalizedRoles.some((role: string) =>
