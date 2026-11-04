@@ -753,4 +753,61 @@ create policy "Staff read housekeeping transition log" on public.housekeeping_tr
   );
 
 
+
+-- Room catalogue administration follows the owning property's membership.
+drop policy if exists "Staff manage own property rooms" on public.rooms;
+create policy "Staff manage own property rooms" on public.rooms
+  for all to authenticated
+  using (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+  )
+  with check (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+  );
+
+-- Public guests see only active room categories. Authenticated property staff
+-- may also see inactive/draft categories for their own property.
+drop policy if exists "Public read active room categories" on public.room_categories;
+create policy "Public read active room categories" on public.room_categories
+  for select to anon, authenticated
+  using (status = 'active');
+
+create policy "Property staff read all room categories" on public.room_categories
+  for select to authenticated
+  using (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role,'reception'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'marketing'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+  );
+
+-- These are platform-wide controls, not tenant-level configuration surfaces.
+drop policy if exists "Admins manage pesapal settings" on public.pesapal_settings;
+create policy "Founder admins manage pesapal settings" on public.pesapal_settings
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+
+drop policy if exists "Owners and admins update errors" on public.system_errors;
+create policy "Founder admins update system errors" on public.system_errors
+  for update to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+
+drop policy if exists "Owners and admins view errors" on public.system_errors;
+create policy "Founder admins view system errors" on public.system_errors
+  for select to authenticated
+  using (public.is_staynas_founder_ai_admin());
+
+drop policy if exists "Owners and admins view probes" on public.system_health_probes;
+create policy "Founder admins view system probes" on public.system_health_probes
+  for select to authenticated
+  using (public.is_staynas_founder_ai_admin());
+
+drop policy if exists "Staff managers can read all role assignments" on public.user_roles;
+create policy "Founder admins can read all legacy role assignments" on public.user_roles
+  for select to authenticated
+  using (public.is_staynas_founder_ai_admin());
+
+
 commit;
