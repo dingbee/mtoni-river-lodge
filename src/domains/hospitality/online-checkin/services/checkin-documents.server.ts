@@ -154,7 +154,6 @@ export async function uploadDocument(input: {
   if (uploadError) throw new DocumentRefusal("upload_failed", "We could not store that file.");
 
   const { error: insertError } = await supabaseAdmin.from("guest_documents").insert({
-    property_id: ctx.property_id,
     checkin_id: ctx.id,
     booking_id: ctx.booking_id,
     guest_id: ctx.guest_id,
