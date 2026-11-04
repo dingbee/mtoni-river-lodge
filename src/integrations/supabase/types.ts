@@ -529,6 +529,7 @@ export type Database = {
       }
       ai_concierge_leads: {
         Row: {
+          property_id: string | null
           assigned_to: string | null
           country: string | null
           created_at: string
@@ -548,6 +549,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          property_id?: string | null
           assigned_to?: string | null
           country?: string | null
           created_at?: string
@@ -567,6 +569,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          property_id?: string | null
           assigned_to?: string | null
           country?: string | null
           created_at?: string
@@ -795,6 +798,7 @@ export type Database = {
       }
       ai_concierge_sessions: {
         Row: {
+          property_id: string | null
           channel: string
           channel_thread_id: string | null
           created_at: string
@@ -816,6 +820,7 @@ export type Database = {
           user_agent: string | null
         }
         Insert: {
+          property_id?: string | null
           channel?: string
           channel_thread_id?: string | null
           created_at?: string
@@ -837,6 +842,7 @@ export type Database = {
           user_agent?: string | null
         }
         Update: {
+          property_id?: string | null
           channel?: string
           channel_thread_id?: string | null
           created_at?: string
@@ -1063,6 +1069,7 @@ export type Database = {
       }
       ai_copilot_sessions: {
         Row: {
+          property_id: string | null
           created_at: string
           id: string
           last_message_at: string | null
@@ -1073,6 +1080,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          property_id?: string | null
           created_at?: string
           id?: string
           last_message_at?: string | null
@@ -1083,6 +1091,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          property_id?: string | null
           created_at?: string
           id?: string
           last_message_at?: string | null
@@ -1431,6 +1440,7 @@ export type Database = {
       }
       ai_guest_memories: {
         Row: {
+          property_id: string | null
           approved_at: string | null
           approved_by: string | null
           confidence: number
@@ -1447,6 +1457,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          property_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           confidence?: number
@@ -1463,6 +1474,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          property_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           confidence?: number
@@ -1653,6 +1665,7 @@ export type Database = {
       }
       ai_knowledge_notifications: {
         Row: {
+          property_id: string | null
           created_at: string
           id: string
           message: string | null
@@ -1666,6 +1679,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          property_id?: string | null
           created_at?: string
           id?: string
           message?: string | null
@@ -1679,6 +1693,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          property_id?: string | null
           created_at?: string
           id?: string
           message?: string | null
@@ -1737,6 +1752,7 @@ export type Database = {
       }
       ai_knowledge_search_log: {
         Row: {
+          property_id: string | null
           asked_by: string | null
           confidence: number | null
           created_at: string
@@ -1746,6 +1762,7 @@ export type Database = {
           result_count: number
         }
         Insert: {
+          property_id?: string | null
           asked_by?: string | null
           confidence?: number | null
           created_at?: string
@@ -1755,6 +1772,7 @@ export type Database = {
           result_count?: number
         }
         Update: {
+          property_id?: string | null
           asked_by?: string | null
           confidence?: number | null
           created_at?: string
@@ -1767,6 +1785,11 @@ export type Database = {
       }
       ai_knowledge_sources: {
         Row: {
+          review_due_at: string | null
+          simple_tsv: unknown
+          is_guest_visible: boolean
+          language_code: string
+          property_id: string | null
           completeness_score: number | null
           confidence_score: number | null
           content: string
@@ -1794,6 +1817,11 @@ export type Database = {
           usage_score: number | null
         }
         Insert: {
+          review_due_at?: string | null
+          property_id?: string | null
+          language_code?: string
+          is_guest_visible?: boolean
+          simple_tsv?: unknown
           completeness_score?: number | null
           confidence_score?: number | null
           content?: string
@@ -1821,6 +1849,11 @@ export type Database = {
           usage_score?: number | null
         }
         Update: {
+          review_due_at?: string | null
+          property_id?: string | null
+          language_code?: string
+          is_guest_visible?: boolean
+          simple_tsv?: unknown
           completeness_score?: number | null
           confidence_score?: number | null
           content?: string
@@ -1851,6 +1884,7 @@ export type Database = {
       }
       ai_knowledge_sync_runs: {
         Row: {
+          property_id: string | null
           created_at: string
           error: string | null
           finished_at: string | null
@@ -1862,6 +1896,7 @@ export type Database = {
           triggered_by: string
         }
         Insert: {
+          property_id?: string | null
           created_at?: string
           error?: string | null
           finished_at?: string | null
@@ -1873,6 +1908,7 @@ export type Database = {
           triggered_by?: string
         }
         Update: {
+          property_id?: string | null
           created_at?: string
           error?: string | null
           finished_at?: string | null
@@ -2292,6 +2328,7 @@ export type Database = {
       }
       ai_personalization_events: {
         Row: {
+          property_id: string | null
           created_at: string
           detail: Json
           event_type: string
@@ -2301,6 +2338,7 @@ export type Database = {
           session_id: string | null
         }
         Insert: {
+          property_id?: string | null
           created_at?: string
           detail?: Json
           event_type: string
@@ -2310,6 +2348,7 @@ export type Database = {
           session_id?: string | null
         }
         Update: {
+          property_id?: string | null
           created_at?: string
           detail?: Json
           event_type?: string
@@ -3805,6 +3844,7 @@ export type Database = {
       }
       bookings: {
         Row: {
+          property_id: string | null
           adults: number
           balance_amount: number
           balance_due: number
@@ -3852,6 +3892,7 @@ export type Database = {
           visit_purpose: string | null
         }
         Insert: {
+          property_id?: string | null
           adults?: number
           balance_amount?: number
           balance_due?: number
@@ -3899,6 +3940,7 @@ export type Database = {
           visit_purpose?: string | null
         }
         Update: {
+          property_id?: string | null
           adults?: number
           balance_amount?: number
           balance_due?: number
@@ -6524,6 +6566,7 @@ export type Database = {
       }
       knowledge_categories: {
         Row: {
+          property_id: string | null
           allowed_roles: Database["public"]["Enums"]["app_role"][]
           created_at: string
           description: string | null
@@ -6535,6 +6578,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          property_id?: string | null
           allowed_roles?: Database["public"]["Enums"]["app_role"][]
           created_at?: string
           description?: string | null
@@ -6546,6 +6590,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          property_id?: string | null
           allowed_roles?: Database["public"]["Enums"]["app_role"][]
           created_at?: string
           description?: string | null
@@ -6568,6 +6613,9 @@ export type Database = {
       }
       knowledge_chunks: {
         Row: {
+          simple_tsv: unknown
+          language_code: string
+          property_id: string | null
           chunk_index: number
           content: string
           created_at: string
@@ -6577,6 +6625,9 @@ export type Database = {
           version: number
         }
         Insert: {
+          property_id?: string | null
+          language_code?: string
+          simple_tsv?: unknown
           chunk_index: number
           content: string
           created_at?: string
@@ -6586,6 +6637,9 @@ export type Database = {
           version: number
         }
         Update: {
+          property_id?: string | null
+          language_code?: string
+          simple_tsv?: unknown
           chunk_index?: number
           content?: string
           created_at?: string
@@ -6606,6 +6660,7 @@ export type Database = {
       }
       knowledge_document_versions: {
         Row: {
+          property_id: string | null
           byte_size: number | null
           change_note: string | null
           checksum: string | null
@@ -6617,6 +6672,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          property_id?: string | null
           byte_size?: number | null
           change_note?: string | null
           checksum?: string | null
@@ -6628,6 +6684,7 @@ export type Database = {
           version: number
         }
         Update: {
+          property_id?: string | null
           byte_size?: number | null
           change_note?: string | null
           checksum?: string | null
@@ -6650,6 +6707,12 @@ export type Database = {
       }
       knowledge_documents: {
         Row: {
+          review_due_at: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_updated_at: string | null
+          language_code: string
+          property_id: string | null
           allowed_roles: Database["public"]["Enums"]["app_role"][] | null
           byte_size: number | null
           category_id: string | null
@@ -6670,6 +6733,12 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          property_id?: string | null
+          language_code?: string
+          source_updated_at?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          review_due_at?: string | null
           allowed_roles?: Database["public"]["Enums"]["app_role"][] | null
           byte_size?: number | null
           category_id?: string | null
@@ -6690,6 +6759,12 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          property_id?: string | null
+          language_code?: string
+          source_updated_at?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          review_due_at?: string | null
           allowed_roles?: Database["public"]["Enums"]["app_role"][] | null
           byte_size?: number | null
           category_id?: string | null
@@ -16273,6 +16348,7 @@ export type Database = {
       }
       rooms: {
         Row: {
+          property_id: string | null
           base_price: number
           bathroom_label: string | null
           bed_label: string | null
@@ -16299,6 +16375,7 @@ export type Database = {
           view_label: string | null
         }
         Insert: {
+          property_id?: string | null
           base_price: number
           bathroom_label?: string | null
           bed_label?: string | null
@@ -16325,6 +16402,7 @@ export type Database = {
           view_label?: string | null
         }
         Update: {
+          property_id?: string | null
           base_price?: number
           bathroom_label?: string | null
           bed_label?: string | null
@@ -16803,6 +16881,18 @@ export type Database = {
           trigger_event?: string
           updated_at?: string
         }
+        Relationships: []
+      }
+      staynas_properties: {
+        Row: { id: string; organisation_id: string; slug: string; code: string; name: string; timezone: string; currency: string; status: string; created_at: string; updated_at: string }
+        Insert: { id?: string; organisation_id: string; slug: string; code: string; name: string; timezone?: string; currency?: string; status?: string; created_at?: string; updated_at?: string }
+        Update: { id?: string; organisation_id?: string; slug?: string; code?: string; name?: string; timezone?: string; currency?: string; status?: string; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      staynas_property_members: {
+        Row: { property_id: string; user_id: string; role: Database["public"]["Enums"]["app_role"]; status: string; created_at: string; updated_at: string }
+        Insert: { property_id: string; user_id: string; role: Database["public"]["Enums"]["app_role"]; status?: string; created_at?: string; updated_at?: string }
+        Update: { property_id?: string; user_id?: string; role?: Database["public"]["Enums"]["app_role"]; status?: string; created_at?: string; updated_at?: string }
         Relationships: []
       }
     }
@@ -17295,6 +17385,71 @@ export type Database = {
           document_slug: string
           document_title: string
           rank: number
+        }[]
+      }
+      staynas_knowledge_search: {
+        Args: { _guest_visible_only?: boolean; _limit?: number; _property_id: string; _query: string }
+        Returns: {
+          category_slug: string | null
+          chunk_id: string
+          chunk_index: number
+          content: string
+          document_id: string
+          document_slug: string
+          document_title: string
+          language_code: string
+          rank: number
+          source_updated_at: string | null
+        }[]
+      }
+      staynas_ai_knowledge_search: {
+        Args: { _guest_visible_only?: boolean; _limit?: number; _property_id: string; _query: string }
+        Returns: {
+          content: string
+          id: string
+          language_code: string
+          rank: number
+          source_type: string
+          source_updated_at: string | null
+          summary: string | null
+          title: string
+          url: string | null
+        }[]
+      }
+      staynas_property_knowledge_search: {
+        Args: { _guest_visible_only?: boolean; _limit?: number; _property_id: string; _query: string }
+        Returns: {
+          category_slug: string | null
+          chunk_index: number | null
+          content: string
+          language_code: string
+          rank: number
+          slug: string | null
+          source_id: string
+          source_kind: string
+          source_type: string
+          source_updated_at: string | null
+          summary: string | null
+          title: string
+          url: string | null
+        }[]
+      }
+      staynas_public_property_knowledge_search: {
+        Args: { _limit?: number; _property_id: string; _query: string }
+        Returns: {
+          category_slug: string | null
+          chunk_index: number | null
+          content: string
+          language_code: string
+          rank: number
+          slug: string | null
+          source_id: string
+          source_kind: string
+          source_type: string
+          source_updated_at: string | null
+          summary: string | null
+          title: string
+          url: string | null
         }[]
       }
       log_calendar_event: {
