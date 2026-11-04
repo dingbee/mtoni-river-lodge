@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import {
   getAiSystems,
+  isFounderAiAdmin,
   listAiConfigurations,
   updateAiConfiguration,
   listAiPrompts,
@@ -23,14 +24,24 @@ export const Route = createFileRoute("/_authenticated/admin/ai/governance")({
 });
 
 function GovernancePage() {
+  const accessFn = useServerFn(isFounderAiAdmin);
+  const access = useQuery({ queryKey: ["ai-governance-access"], queryFn: () => accessFn() });
   const systemsFn = useServerFn(getAiSystems);
   const configsFn = useServerFn(listAiConfigurations);
   const promptsFn = useServerFn(listAiPrompts);
   const scopeFn = useServerFn(getAiScopeContext);
-  const systems = useQuery({ queryKey: ["ai-systems"], queryFn: () => systemsFn() });
-  const configs = useQuery({ queryKey: ["ai-configs"], queryFn: () => configsFn() });
-  const prompts = useQuery({ queryKey: ["ai-prompts"], queryFn: () => promptsFn() });
-  const scope = useQuery({ queryKey: ["ai-scope"], queryFn: () => scopeFn() });
+  const systems = useQuery({ queryKey: ["ai-systems"], queryFn: () => systemsFn(), enabled: access.data === true });
+  const configs = useQuery({ queryKey: ["ai-configs"], queryFn: () => configsFn(), enabled: access.data === true });
+  const prompts = useQuery({ queryKey: ["ai-prompts"], queryFn: () => promptsFn(), enabled: access.data === true });
+  const scope = useQuery({ queryKey: ["ai-scope"], queryFn: () => scopeFn(), enabled: access.data === true });
+
+  if (access.isLoading) return <div className="p-6 text-sm text-muted-foreground">Verifying founder access…</div>;
+  if (access.isError || access.data !== true) return (
+    <div className="rounded-xl border p-6">
+      <h1 className="text-lg font-semibold">Founder administration only</h1>
+      <p className="mt-2 text-sm text-muted-foreground">AI configuration, prompts and platform governance are managed by the StayNas founder administrator.</p>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
