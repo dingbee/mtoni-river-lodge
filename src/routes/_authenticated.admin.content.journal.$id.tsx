@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { FounderAdminGate } from "@/components/os/FounderAdminGate";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
@@ -34,7 +35,7 @@ import { computeReadMinutes, extractToc } from "@/lib/journal-utils";
 
 export const Route = createFileRoute("/_authenticated/admin/content/journal/$id")({
   head: () => ({ meta: [{ title: "Edit Article — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
-  component: JournalEditorPage,
+  component: JournalEditorFounderPage
 });
 
 const statusTone: Record<string, StatusTone> = {
@@ -43,6 +44,10 @@ const statusTone: Record<string, StatusTone> = {
   published: "success",
   archived: "warning",
 };
+
+function JournalEditorFounderPage() {
+  return <FounderAdminGate description="Journal articles are shared platform content; only founder administrators can manage them."><JournalEditorPage /></FounderAdminGate>;
+}
 
 function JournalEditorPage() {
   const { id } = Route.useParams();
