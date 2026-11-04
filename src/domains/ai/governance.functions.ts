@@ -7,6 +7,15 @@ async function assertFounderAdmin(supabase: any) {
   if (error || !data) throw new Error("Forbidden: StayNas founder administration required.");
 }
 
+
+export const isFounderAiAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase.rpc("is_staynas_founder_ai_admin");
+    if (error) throw new Error("Unable to verify founder administration access.");
+    return Boolean(data);
+  });
+
 /* ---------- Configurations ---------- */
 
 export const listAiConfigurations = createServerFn({ method: "GET" })
