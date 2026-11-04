@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, Tables } from "@/integrations/supabase/types";
+import type { Database, Json, Tables } from "@/integrations/supabase/types";
 import type { NormalizedProviderEvent } from "./webhook-normalization.server";
 
 type Provider = "meta_cloud_api" | "resend";
@@ -50,7 +50,7 @@ async function processInbound(supabase: WebhookClient, row: InboxRow, event: Nor
     p_subject: event.subject,
     p_message_type: event.body ? "text" : "media",
     p_occurred_at: event.occurredAt,
-    p_safe_payload: event.safePayload,
+    p_safe_payload: event.safePayload as Json,
   });
   if (error) throw new Error("Atomic inbound persistence failed: " + error.message);
   const result = Array.isArray(data) ? data[0] : data;
@@ -79,7 +79,7 @@ async function processDelivery(supabase: WebhookClient, row: InboxRow, event: No
     property_id: row.property_id, message_id: message.id, channel: event.channel,
     provider: providerName(row.provider), provider_event_id: row.provider_event_id,
     provider_message_id: event.providerMessageId, event_type: event.eventType,
-    occurred_at: event.occurredAt, payload: event.safePayload,
+    occurred_at: event.occurredAt, payload: event.safePayload as Json,
   }, { onConflict: "provider,provider_event_id", ignoreDuplicates: true });
   if (eventError) throw new Error(eventError.message);
   return { ignored: false as const, sessionId: message.session_id, messageId: message.id };
