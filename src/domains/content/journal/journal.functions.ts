@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireStayNasFounderAdmin } from "@/lib/staynas-authorization.server";
 import { defineAiInterface, aiPlaceholder } from "@/domains/_platform/ai/interface";
 
 export type JournalStatus = "draft" | "scheduled" | "published" | "archived";
@@ -27,6 +28,7 @@ export interface JournalArticleInput {
 export const listJournalArticles = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("journal_articles")
       .select("id, slug, title, excerpt, status, cover_image_url, read_minutes, published_at, scheduled_at, updated_at, author_id, category_id")
@@ -39,6 +41,7 @@ export const getJournalArticle = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string }) => input)
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data: row, error } = await context.supabase
       .from("journal_articles")
       .select("*")
@@ -52,6 +55,7 @@ export const createJournalArticle = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { slug: string; title: string }) => input)
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data: row, error } = await context.supabase
       .from("journal_articles")
       .insert({ slug: data.slug, title: data.title, status: "draft", created_by: context.userId })
@@ -65,6 +69,7 @@ export const upsertJournalArticle = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: JournalArticleInput) => input)
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     if (!data.id) throw new Error("id required for upsert");
     const { id, ...patch } = data;
     const { error } = await context.supabase
@@ -79,6 +84,7 @@ export const deleteJournalArticle = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string }) => input)
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { error } = await context.supabase.from("journal_articles").delete().eq("id", data.id);
     if (error) throw error;
     return { ok: true };
@@ -88,6 +94,7 @@ export const publishJournalArticle = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string; publishedAt?: string }) => input)
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const publishedAt = data.publishedAt ?? new Date().toISOString();
     const { error } = await context.supabase
       .from("journal_articles")
@@ -101,6 +108,7 @@ export const scheduleJournalArticle = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string; scheduledAt: string }) => input)
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { error } = await context.supabase
       .from("journal_articles")
       .update({ status: "scheduled", scheduled_at: data.scheduledAt })
@@ -113,6 +121,7 @@ export const archiveJournalArticle = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string }) => input)
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { error } = await context.supabase
       .from("journal_articles")
       .update({ status: "archived" })
@@ -124,6 +133,7 @@ export const archiveJournalArticle = createServerFn({ method: "POST" })
 export const listJournalTaxonomies = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const [authors, categories, tags] = await Promise.all([
       context.supabase.from("journal_authors").select("id, name, slug").order("name"),
       context.supabase.from("journal_categories").select("id, name, slug").order("name"),
@@ -141,6 +151,7 @@ export const listArticleTagIds = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { articleId: string }) => input)
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data: rows, error } = await context.supabase
       .from("journal_article_tags").select("tag_id").eq("article_id", data.articleId);
     if (error) throw error;
@@ -152,6 +163,7 @@ export const setArticleTags = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { articleId: string; tagIds: string[] }) => input)
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     await context.supabase.from("journal_article_tags").delete().eq("article_id", data.articleId);
     if (data.tagIds.length) {
       const rows = data.tagIds.map((tag_id) => ({ article_id: data.articleId, tag_id }));
@@ -166,6 +178,7 @@ export const setArticleFeatured = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string; featured: boolean }) => input)
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { error } = await context.supabase
       .from("journal_articles").update({ featured: data.featured } as never).eq("id", data.id);
     if (error) throw error;
@@ -177,6 +190,7 @@ export const listArticleVersions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { articleId: string }) => input)
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data: rows, error } = await context.supabase
       .from("journal_article_versions")
       .select("id, version, note, created_at")
@@ -191,6 +205,7 @@ export const snapshotJournalArticle = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string; note?: string }) => input)
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const [article, tags, latest] = await Promise.all([
       context.supabase.from("journal_articles").select("*").eq("id", data.id).maybeSingle(),
       context.supabase.from("journal_article_tags").select("tag_id").eq("article_id", data.id),
@@ -220,6 +235,7 @@ export const restoreJournalArticleVersion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { versionId: string }) => input)
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const v = await context.supabase
       .from("journal_article_versions").select("article_id, snapshot").eq("id", data.versionId).maybeSingle();
     if (v.error) throw v.error;
@@ -251,6 +267,7 @@ export const getRelatedArticles = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { articleId: string; limit?: number }) => input)
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const limit = data.limit ?? 4;
     const self = await context.supabase
       .from("journal_articles").select("category_id").eq("id", data.articleId).maybeSingle();
@@ -287,6 +304,7 @@ export const getInternalLinkSuggestions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { articleId: string; text: string }) => input)
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data: rows, error } = await context.supabase
       .from("journal_articles")
       .select("id, slug, title")
