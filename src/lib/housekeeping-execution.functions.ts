@@ -60,7 +60,7 @@ export const completeHousekeepingTask = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
     const { data: row, error } = await housekeepingClient(context.supabase).rpc("housekeeping_complete_task", {
       _task_id: data.taskId,
-      _note: data.note ?? null,
+      _note: data.note ?? undefined,
       _idempotency_key: data.idempotencyKey,
     });
     if (error) throw new Error(error.message);
