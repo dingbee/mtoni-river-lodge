@@ -125,7 +125,7 @@ ALTER FUNCTION public.arrival_pass_validate(text, jsonb)
   RENAME TO arrival_pass_validate_unscoped;
 
 REVOKE ALL ON FUNCTION public.arrival_pass_validate_unscoped(text, jsonb)
-  FROM PUBLIC, anon, authenticated;
+  FROM PUBLIC, anon, authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.arrival_pass_validate(
   _pass_token text,
