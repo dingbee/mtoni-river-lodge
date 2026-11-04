@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,6 +22,18 @@ export type OsNotification = {
 };
 
 const NOTIF_QUERY_KEY = ["os-notifications"] as const;
+
+/**
+ * Supabase Realtime channels are stateful: Postgres listeners must be
+ * registered before subscribe(), and a joined channel cannot be reconfigured.
+ * AdminShell can be mounted more than once during route error-boundary and
+ * recovery transitions, so every hook instance must own a distinct topic.
+ */
+export function notificationChannelTopic(instanceId: string): string {
+  const safeId = instanceId.replace(/[^a-zA-Z0-9_-]/g, "");
+  if (!safeId) throw new Error("A non-empty notification channel instance ID is required.");
+  return `os-notifications-${safeId}`;
+}
 
 function eventTypeToKind(evt: string): NotificationKind {
   if (evt.startsWith("booking")) return "booking_created";
@@ -91,26 +103,41 @@ export function useNotifications() {
 }
 
 /**
- * Subscribes to realtime inserts on `pending_notifications` and refreshes
- * the shared notifications query. Mount once at the admin shell level.
+ * Subscribes to pending notification changes and refreshes the shared query.
+ * Each mounted instance owns a unique channel; listeners are always attached
+ * before subscribe(), and the channel is removed when that instance unmounts.
  */
 export function useRealtimeNotifications() {
   const qc = useQueryClient();
+  const instanceId = useId();
+  const channelTopic = notificationChannelTopic(instanceId);
+
   useEffect(() => {
+    let active = true;
     const channel = supabase
-      .channel("os-notifications")
+      .channel(channelTopic)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "pending_notifications" },
         () => {
-          qc.invalidateQueries({ queryKey: NOTIF_QUERY_KEY });
+          if (active) void qc.invalidateQueries({ queryKey: NOTIF_QUERY_KEY });
         },
       )
-      .subscribe();
+      .subscribe((status, error) => {
+        if (!active) return;
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          // Realtime is an enhancement; the query remains available via normal fetch/refetch.
+          console.warn("[os-notifications] realtime subscription degraded", error);
+        }
+      });
+
     return () => {
-      supabase.removeChannel(channel);
+      active = false;
+      // removeChannel is asynchronous; unique per-instance topics prevent a
+      // rapid remount from trying to register listeners on a channel being removed.
+      void supabase.removeChannel(channel);
     };
-  }, [qc]);
+  }, [channelTopic, qc]);
 }
 
 export function useUnreadCount() {
