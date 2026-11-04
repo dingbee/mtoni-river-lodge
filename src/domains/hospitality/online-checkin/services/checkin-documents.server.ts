@@ -79,7 +79,6 @@ async function logActivity(
   await supabaseAdmin.from("guest_checkin_activity").insert({
     checkin_id: ctx.id,
     booking_id: ctx.booking_id,
-    property_id: ctx.property_id,
     action,
     session_id: sessionId,
     detail: detail as never,
@@ -157,6 +156,7 @@ export async function uploadDocument(input: {
     checkin_id: ctx.id,
     booking_id: ctx.booking_id,
     guest_id: ctx.guest_id,
+    property_id: ctx.property_id,
     kind: input.kind,
     label: input.fileName,
     file_name: input.fileName,
