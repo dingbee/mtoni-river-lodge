@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireStayNasModuleAccess, requireStayNasPropertyRole } from "@/lib/staynas-authorization.server";
+import { requireStayNasModuleAccess, requireStayNasPropertyRole, requireStayNasFounderAdmin } from "@/lib/staynas-authorization.server";
 import { financeRpc } from "@/lib/finance-rpc";
 import { recordManualPaymentInputSchema } from "./payment-contract";
 import { moneyByCurrency, sumCurrency } from "./finance-currency";
@@ -558,7 +558,7 @@ const pricingRuleSchema = z.object({
     "min_stay",
     "blackout",
   ]),
-  scope: z.enum(["all", "room"]).default("all"),
+  scope: z.enum(["all", "room"]).default("room"),
   room_id: z.string().uuid().nullable().optional(),
   starts_on: z.string().nullable().optional(),
   ends_on: z.string().nullable().optional(),
@@ -570,12 +570,23 @@ const pricingRuleSchema = z.object({
   priority: z.number().int().default(100),
   active: z.boolean().default(true),
   notes: z.string().nullable().optional(),
+}).superRefine((value, ctx) => {
+  if (value.scope === "room" && !value.room_id) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["room_id"], message: "Select a room for a room-scoped pricing rule." });
+  }
+  if (value.scope === "all" && value.room_id) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["room_id"], message: "Global pricing rules cannot target an individual room." });
+  }
 });
 
 export const listPricingRules = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    try {
+      await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    } catch {
+      await requireStayNasFounderAdmin(context.supabase, context.userId);
+    }
     const { data, error } = await context.supabase
       .from("pricing_rules")
       .select("*")
@@ -589,8 +600,23 @@ export const savePricingRule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => pricingRuleSchema.parse(d))
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const { id, ...rest } = data;
+    let existingScope: string | null = null;
+    if (id) {
+      const { data: existing, error: readError } = await context.supabase
+        .from("pricing_rules")
+        .select("scope")
+        .eq("id", id)
+        .maybeSingle();
+      if (readError) throw readError;
+      existingScope = existing?.scope ?? null;
+    }
+    if (data.scope === "all" || existingScope === "all") {
+      await requireStayNasFounderAdmin(context.supabase, context.userId);
+    } else {
+      await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+      await requireStayNasPropertyRole(context.supabase, context.userId, ["owner", "manager", "finance", "admin"]);
+    }
     if (id) {
       const { data: row, error } = await context.supabase
         .from("pricing_rules")
@@ -614,7 +640,16 @@ export const deletePricingRule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const { data: existing, error: readError } = await context.supabase
+      .from("pricing_rules").select("scope").eq("id", data.id).maybeSingle();
+    if (readError) throw readError;
+    if (!existing) throw new Error("Pricing rule not found");
+    if (existing.scope === "all") {
+      await requireStayNasFounderAdmin(context.supabase, context.userId);
+    } else {
+      await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+      await requireStayNasPropertyRole(context.supabase, context.userId, ["owner", "manager", "finance", "admin"]);
+    }
     const { error } = await context.supabase.from("pricing_rules").delete().eq("id", data.id);
     if (error) throw error;
     return { ok: true };
