@@ -2927,6 +2927,12 @@ GRANT EXECUTE ON FUNCTION public.save_room_type_configuration(
   uuid,uuid,text,text,uuid,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text
 ) TO authenticated, service_role;
 
+-- Retire the legacy global-role room configuration overload. Leaving it executable
+-- would bypass the property-scoped contract introduced above.
+REVOKE ALL ON FUNCTION public.save_room_type_configuration(
+  uuid,text,text,uuid,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text
+) FROM PUBLIC, anon, authenticated;
+
 -- Storage objects for guest documents inherit the exact document property
 -- and staff roles; no global staff role can read another tenant's files.
 drop policy if exists "guest documents property staff read" on storage.objects;
