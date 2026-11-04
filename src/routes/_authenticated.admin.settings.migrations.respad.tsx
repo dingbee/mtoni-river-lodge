@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/os/PageHeader";
 import { RespadMigrationWorkspace } from "@/components/os/migration/RespadMigrationWorkspace";
-import { useCurrentUserRoles, canAccessModule } from "@/lib/permissions";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { isFounderAiAdmin } from "@/domains/ai/governance.functions";
 import { ComingSoon } from "@/components/os/ComingSoon";
 
 export const Route = createFileRoute("/_authenticated/admin/settings/migrations/respad")({
@@ -15,14 +17,11 @@ export const Route = createFileRoute("/_authenticated/admin/settings/migrations/
 });
 
 function RespadMigrationPage() {
-  const { data: roles = [], isLoading } = useCurrentUserRoles();
-  if (!isLoading && !canAccessModule("settings.migrations.respad", roles)) {
-    return (
-      <ComingSoon
-        title="Restricted"
-        description="Migration tools are available to owners and managers only."
-      />
-    );
+  const accessFn = useServerFn(isFounderAiAdmin);
+  const access = useQuery({ queryKey: ["staynas-founder-admin"], queryFn: () => accessFn() });
+  if (access.isLoading) return <div className="p-6 text-sm text-muted-foreground">Verifying founder access…</div>;
+  if (access.isError || access.data !== true) {
+    return <ComingSoon title="Founder administration only" description="ResPad migration staging is a platform-wide operation and is restricted to the StayNas founder administrator." />;
   }
   return (
     <div className="space-y-6">
