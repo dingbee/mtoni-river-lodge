@@ -1,12 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { requireStayNasModuleAccess, requireStayNasCoreStaffAccess } from "@/lib/staynas-authorization.server";
 
 async function assertStaff(supabase: any, userId: string) {
-  const { data, error } = await supabase.rpc("is_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasCoreStaffAccess(supabase, userId);
 }
 
 const listSchema = z.object({
