@@ -30,6 +30,7 @@ const roomSchema = z.object({
   viewLabel: z.string().trim().max(120).default(""),
   bedLabel: z.string().trim().max(120).default(""),
   bathroomLabel: z.string().trim().max(120).default(""),
+  amenities: z.array(z.string().trim().min(1).max(100)).max(80).default([]),
   capacityAdults: z.number().int().min(1).max(20),
   capacityChildren: z.number().int().min(0).max(20),
   maxOccupancy: z.number().int().min(1).max(30),
@@ -68,7 +69,7 @@ export const savePlatformRoomType = createServerFn({ method: "POST" }).middlewar
     room_number_label:data.roomNumberLabel || null, short_description:data.shortDescription || null,
     description:data.description, details:data.details, cta_line:data.ctaLine || null, hero_line:data.heroLine || null,
     image_url:data.imageUrl || null, gallery_urls:data.galleryUrls, size_label:data.sizeLabel || null,
-    view_label:data.viewLabel || null, bed_label:data.bedLabel || null, bathroom_label:data.bathroomLabel || null,
+    view_label:data.viewLabel || null, bed_label:data.bedLabel || null, bathroom_label:data.bathroomLabel || null, amenities:data.amenities,
     capacity_adults:data.capacityAdults, capacity_children:data.capacityChildren, max_occupancy:data.maxOccupancy,
     status:data.status, sort_order:data.sortOrder,
   };
