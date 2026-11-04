@@ -114,7 +114,7 @@ as $function$
     from public.staynas_property_members pm
     join public.staynas_properties p on p.id = pm.property_id
     join public.staynas_organisations o on o.id = p.organisation_id
-    where pm.user_id = _uid
+    where pm.user_id = auth.uid()
       and pm.property_id = _property_id
       and pm.status = 'active'
       and p.status <> 'suspended'
