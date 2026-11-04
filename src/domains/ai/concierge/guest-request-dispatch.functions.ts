@@ -16,8 +16,8 @@ export const dispatchGuestRequest = createServerFn({ method: "POST" })
       "staynas_dispatch_guest_request",
       {
         _request_id: data.request_id,
-        _assignee_id: data.assignee_id ?? null,
-        _due_at: data.due_at ?? null,
+        _assignee_id: data.assignee_id ?? undefined,
+        _due_at: data.due_at ?? undefined,
       },
     );
     if (error) throw new Error(error.message);
