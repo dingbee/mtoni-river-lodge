@@ -33,13 +33,22 @@ export const getPublicDemoProperty = createServerFn({ method: "GET" })
     const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
     const { data: rooms, error } = await (supabaseAdmin as any)
       .from("rooms")
-      .select("id, slug, name, short_description, description, details, hero_line, image_url, gallery_urls, bed_label, bathroom_label, amenities, max_occupancy, total_units, base_price, currency, included_guests, extra_guest_fee")
+      .select("id, slug, name, short_description, bed_label, bathroom_label, amenities, max_occupancy, total_units, base_price, currency, included_guests, extra_guest_fee")
       .eq("property_id", property.id)
       .eq("status", "active")
-      .order("sort_order")
-      .order("name");
+      .order("sort_order", { ascending: true });
 
-    if (error) throw new Error("Unable to load room information.");
+    if (error) {
+      // Log only safe PostgREST diagnostics; never log credentials or guest data.
+      console.error("[StayNas public booking] Room catalogue query failed", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        propertyId: property.id,
+      });
+      throw new Error("Unable to load room information. Please try again later.");
+    }
 
     return {
       property: {
