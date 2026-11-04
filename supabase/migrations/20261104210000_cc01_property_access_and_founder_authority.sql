@@ -2718,4 +2718,39 @@ END;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.knowledge_can_read_document(_doc_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.knowledge_documents d
+    LEFT JOIN public.knowledge_categories c ON c.id = d.category_id
+    WHERE d.id = _doc_id
+      AND d.property_id IS NOT NULL
+      AND public.staynas_user_has_property_access(auth.uid(), d.property_id)
+      AND (c.property_id IS NULL OR c.property_id = d.property_id)
+      AND public.staynas_current_user_has_property_role(d.property_id, ARRAY['owner','manager','admin','reception','housekeeping','finance','marketing','editor','reservations']::public.app_role[])
+      AND (
+        public.staynas_current_user_has_property_role(d.property_id, ARRAY['owner','manager','admin']::public.app_role[])
+        OR d.status = 'published'
+      )
+      AND (
+        d.allowed_roles IS NULL
+        OR array_length(d.allowed_roles, 1) IS NULL
+        OR public.staynas_current_user_has_property_role(d.property_id, d.allowed_roles)
+        OR public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
+      )
+      AND (
+        c.id IS NULL
+        OR array_length(c.allowed_roles, 1) IS NULL
+        OR public.staynas_current_user_has_property_role(d.property_id, c.allowed_roles)
+        OR public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
+      )
+  );
+$function$
+
+
 commit;
