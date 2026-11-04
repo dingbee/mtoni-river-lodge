@@ -269,4 +269,383 @@ revoke all on function public.pms_post_folio_charge(text, uuid, numeric, text, t
 grant execute on function public.pms_post_folio_charge(text, uuid, numeric, text, text, jsonb) to authenticated, service_role;
 
 
+
+-- Replace legacy global-role gates with membership checks against the exact
+-- property owning each row (or its parent booking/room).
+drop policy if exists "Staff manage own property extras" on public.extras;
+create policy "Staff manage own property extras" on public.extras
+  for all to authenticated
+  using (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+  )
+  with check (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+  );
+
+drop policy if exists "Admins delete own property holds" on public.booking_holds;
+create policy "Admins delete own property holds" on public.booking_holds
+  for delete to authenticated
+  using (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+  );
+
+drop policy if exists "Room admins manage own property categories" on public.room_categories;
+create policy "Room admins manage own property categories" on public.room_categories
+  for all to authenticated
+  using (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+  )
+  with check (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+  );
+
+drop policy if exists "Supervisors delete own property room_states" on public.room_states;
+create policy "Supervisors delete own property room_states" on public.room_states
+  for delete to authenticated
+  using (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+  );
+
+drop policy if exists "Supervisors insert own property room_states" on public.room_states;
+create policy "Supervisors insert own property room_states" on public.room_states
+  for insert to authenticated
+  with check (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+  );
+
+drop policy if exists "Supervisors update own property room_states" on public.room_states;
+create policy "Supervisors update own property room_states" on public.room_states
+  for update to authenticated
+  using (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role,'reception'::public.app_role,'finance'::public.app_role,'marketing'::public.app_role,'editor'::public.app_role,'reservations'::public.app_role])
+  )
+  with check (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role,'reception'::public.app_role,'finance'::public.app_role,'marketing'::public.app_role,'editor'::public.app_role,'reservations'::public.app_role])
+  );
+
+drop policy if exists "Staff manage own property inventory" on public.room_inventory;
+create policy "Staff manage own property inventory" on public.room_inventory
+  for all to authenticated
+  using (
+    exists (
+      select 1 from public.rooms r
+      where r.id = room_inventory.room_id
+        and public.staynas_user_has_property_access(auth.uid(), r.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), r.property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.rooms r
+      where r.id = room_inventory.room_id
+        and public.staynas_user_has_property_access(auth.uid(), r.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), r.property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    )
+  );
+
+drop policy if exists "Managers manage accessible schedules" on public.staynas_staff_schedules;
+create policy "Managers manage accessible schedules" on public.staynas_staff_schedules
+  for all to authenticated
+  using (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+  )
+  with check (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    and public.staynas_user_has_property_access(staff_user_id, property_id)
+  );
+
+drop policy if exists "Staff read accessible schedules" on public.staynas_staff_schedules;
+create policy "Staff read accessible schedules" on public.staynas_staff_schedules
+  for select to authenticated
+  using (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and (
+      staff_user_id = auth.uid()
+      or public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    )
+  );
+
+drop policy if exists "guest_communications_property_staff_all" on public.guest_communications;
+create policy "guest_communications_property_staff_all" on public.guest_communications
+  for all to authenticated
+  using (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+  )
+  with check (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+  );
+
+drop policy if exists "guest_documents_property_staff_read" on public.guest_documents;
+create policy "guest_documents_property_staff_read" on public.guest_documents
+  for select to authenticated
+  using (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+  );
+
+drop policy if exists "guest_documents_property_staff_update" on public.guest_documents;
+create policy "guest_documents_property_staff_update" on public.guest_documents
+  for update to authenticated
+  using (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+  )
+  with check (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+  );
+
+drop policy if exists "guest_notes_property_staff_all" on public.guest_notes;
+create policy "guest_notes_property_staff_all" on public.guest_notes
+  for all to authenticated
+  using (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+  )
+  with check (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+  );
+
+drop policy if exists "guest_preferences_property_staff_all" on public.guest_preferences;
+create policy "guest_preferences_property_staff_all" on public.guest_preferences
+  for all to authenticated
+  using (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+  )
+  with check (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+  );
+
+drop policy if exists "guest_tag_assignments_property_staff_all" on public.guest_tag_assignments;
+create policy "guest_tag_assignments_property_staff_all" on public.guest_tag_assignments
+  for all to authenticated
+  using (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+  )
+  with check (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+  );
+
+drop policy if exists "guest_threads_property_staff_read" on public.guest_threads;
+create policy "guest_threads_property_staff_read" on public.guest_threads
+  for select to authenticated
+  using (
+    exists (
+      select 1 from public.bookings b
+      where b.id = guest_threads.booking_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    )
+  );
+
+drop policy if exists "email_events_property_staff_read" on public.email_events;
+create policy "email_events_property_staff_read" on public.email_events
+  for select to authenticated
+  using (
+    exists (
+      select 1 from public.bookings b
+      where b.id = email_events.booking_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    )
+  );
+
+drop policy if exists "arrival_information_property_staff_read" on public.arrival_information;
+create policy "arrival_information_property_staff_read" on public.arrival_information
+  for select to authenticated
+  using (
+    exists (
+      select 1 from public.bookings b
+      where b.id = arrival_information.booking_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+    )
+  );
+
+drop policy if exists "arrival_information_property_staff_update" on public.arrival_information;
+create policy "arrival_information_property_staff_update" on public.arrival_information
+  for update to authenticated
+  using (
+    exists (
+      select 1 from public.bookings b
+      where b.id = arrival_information.booking_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.bookings b
+      where b.id = arrival_information.booking_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+    )
+  );
+
+drop policy if exists "arrival_passes_property_staff_read" on public.arrival_passes;
+create policy "arrival_passes_property_staff_read" on public.arrival_passes
+  for select to authenticated
+  using (
+    exists (
+      select 1 from public.bookings b
+      where b.id = arrival_passes.booking_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+    )
+  );
+
+drop policy if exists "guest_checkin_activity_property_staff_read" on public.guest_checkin_activity;
+create policy "guest_checkin_activity_property_staff_read" on public.guest_checkin_activity
+  for select to authenticated
+  using (
+    exists (
+      select 1 from public.bookings b
+      where b.id = guest_checkin_activity.booking_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+    )
+  );
+
+drop policy if exists "guest_checkins_property_staff_read" on public.guest_checkins;
+create policy "guest_checkins_property_staff_read" on public.guest_checkins
+  for select to authenticated
+  using (
+    exists (
+      select 1 from public.bookings b
+      where b.id = guest_checkins.booking_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+    )
+  );
+
+drop policy if exists "guest_checkins_property_staff_update" on public.guest_checkins;
+create policy "guest_checkins_property_staff_update" on public.guest_checkins
+  for update to authenticated
+  using (
+    exists (
+      select 1 from public.bookings b
+      where b.id = guest_checkins.booking_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.bookings b
+      where b.id = guest_checkins.booking_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role])
+    )
+  );
+
+drop policy if exists "whatsapp_alerts_property_staff_read" on public.whatsapp_alerts;
+create policy "whatsapp_alerts_property_staff_read" on public.whatsapp_alerts
+  for select to authenticated
+  using (
+    exists (
+      select 1 from public.bookings b
+      where b.id = whatsapp_alerts.booking_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    )
+  );
+
+drop policy if exists "Staff delete non-housekeeping ops_tasks" on public.ops_tasks;
+create policy "Staff delete non-housekeeping ops_tasks" on public.ops_tasks
+  for delete to authenticated
+  using (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    and coalesce(category, '') <> 'housekeeping'
+  );
+
+drop policy if exists "Staff manage non-housekeeping ops_tasks" on public.ops_tasks;
+create policy "Staff manage non-housekeeping ops_tasks" on public.ops_tasks
+  for insert to authenticated
+  with check (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    and coalesce(category, '') <> 'housekeeping'
+  );
+
+drop policy if exists "Staff update non-housekeeping ops_tasks" on public.ops_tasks;
+create policy "Staff update non-housekeeping ops_tasks" on public.ops_tasks
+  for update to authenticated
+  using (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    and coalesce(category, '') <> 'housekeeping'
+  )
+  with check (
+    public.staynas_user_has_property_access(auth.uid(), property_id)
+    and public.staynas_user_has_property_role(auth.uid(), property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
+    and coalesce(category, '') <> 'housekeeping'
+  );
+
+drop policy if exists "Finance manage financial alerts" on public.financial_alerts;
+create policy "Finance manage financial alerts" on public.financial_alerts
+  for all to authenticated
+  using (
+    exists (
+      select 1 from public.bookings b
+      where b.id = financial_alerts.booking_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'finance'::public.app_role,'admin'::public.app_role])
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.bookings b
+      where b.id = financial_alerts.booking_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'finance'::public.app_role,'admin'::public.app_role])
+    )
+  );
+
+drop policy if exists "Finance staff can read payment events for accessible properties" on public.payment_events;
+create policy "Finance staff can read payment events for accessible properties" on public.payment_events
+  for select to authenticated
+  using (
+    booking_id is not null
+    and exists (
+      select 1 from public.bookings b
+      where b.id = payment_events.booking_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'finance'::public.app_role])
+    )
+  );
+
+drop policy if exists "Finance staff insert payment events for accessible properties" on public.payment_events;
+create policy "Finance staff insert payment events for accessible properties" on public.payment_events
+  for insert to authenticated
+  with check (
+    booking_id is not null
+    and exists (
+      select 1 from public.bookings b
+      where b.id = payment_events.booking_id
+        and public.staynas_user_has_property_access(auth.uid(), b.property_id)
+        and public.staynas_user_has_property_role(auth.uid(), b.property_id, array['owner'::public.app_role,'manager'::public.app_role,'finance'::public.app_role])
+    )
+    and current_setting('staynas.payment_rpc', true) = 'on'
+  );
+
+
 commit;
