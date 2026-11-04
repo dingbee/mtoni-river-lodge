@@ -2068,4 +2068,25 @@ END;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.housekeeping_list_intelligence()
+ RETURNS TABLE(signal_type text, priority text, title text, reasoning text, room_id uuid, booking_id uuid, confidence numeric)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE _uid uuid:=auth.uid(); _property_id uuid;
+BEGIN
+ IF _uid IS NULL OR NOT public.staynas_current_user_has_property_role(public.staynas_active_property_id(_uid), ARRAY['housekeeping','owner','manager','admin']::public.app_role[])
+ THEN RAISE EXCEPTION 'Housekeeping access required'; END IF;
+ _property_id:=public.staynas_active_property_id(_uid);
+ IF _property_id IS NULL OR NOT public.staynas_user_has_property_access(_uid,_property_id)
+ THEN RAISE EXCEPTION 'Active property access required'; END IF;
+ RETURN QUERY SELECT i.insight_type,i.priority,i.title,i.reasoning,i.room_id,i.booking_id,i.confidence
+ FROM public.ai_room_readiness_insights i JOIN public.rooms r ON r.id=i.room_id AND r.property_id=_property_id
+ WHERE i.status='pending' AND i.priority IN('critical','high')
+ ORDER BY CASE i.priority WHEN 'critical' THEN 1 WHEN 'high' THEN 2 ELSE 3 END,i.created_at DESC LIMIT 20;
+END;
+$function$
+
+
 commit;
