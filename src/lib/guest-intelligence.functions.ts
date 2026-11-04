@@ -138,7 +138,7 @@ export const getGuestPayments = createServerFn({ method: "POST" })
     const sb: any = context.supabase;
     const { data: bookings } = await sb
       .from("bookings")
-      .select("id, reference, total, paid_amount, balance_amount, currency, payment_status, invoice_number")
+      .select("id, reference, total, deposit_amount, paid_amount, balance_amount, currency, payment_status, invoice_number")
       .eq("guest_id", data.id);
     const ids = (bookings ?? []).map((b: any) => b.id);
     const { data: events } = ids.length
