@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Building2, ChevronDown, ChevronRight, Command, PanelLeftClose, X } from "lucide-react";
 import { NAV, type NavItem } from "./nav-config";
 import { canAccessModule } from "@/lib/permissions";
@@ -69,6 +69,34 @@ export function AdminSidebar({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { organisation, property } = usePropertyContext();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [groupsRestored, setGroupsRestored] = useState(false);
+
+  // Keep expanded navigation groups across route changes and browser reloads.
+  // Hydrate after mount to avoid server/client markup mismatches.
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("staynas.sidebar.open-groups.v1");
+      if (saved) {
+        const parsed: unknown = JSON.parse(saved);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          setOpenGroups(parsed as Record<string, boolean>);
+        }
+      }
+    } catch {
+      // Navigation remains usable when browser storage is unavailable.
+    } finally {
+      setGroupsRestored(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!groupsRestored) return;
+    try {
+      window.localStorage.setItem("staynas.sidebar.open-groups.v1", JSON.stringify(openGroups));
+    } catch {
+      // Persistence is best-effort; it must never block navigation.
+    }
+  }, [groupsRestored, openGroups]);
 
   const entries = useMemo(
     () =>
