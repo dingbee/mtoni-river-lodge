@@ -16,7 +16,7 @@ export type CurrencyRevenueLedger = {
 };
 
 const COLLECTION_EVENTS = new Set(["manual_payment", "payment_completed"]);
-const REFUND_EVENTS = new Set(["refund"]);
+const REFUND_EVENTS = new Set(["refund", "refund_issued"]);
 const REVERSAL_EVENTS = new Set(["provider_reversal"]);
 
 export function aggregateRevenueLedger(events: RevenueLedgerEvent[]): CurrencyRevenueLedger[] {
@@ -39,11 +39,9 @@ export function aggregateRevenueLedger(events: RevenueLedgerEvent[]): CurrencyRe
       row.cashCollected += amount;
       row.successfulCollections += 1;
     } else if (isRefund) {
-      if (amount > 0) continue;
       row.refunds += Math.abs(amount);
       row.refundEvents += 1;
     } else {
-      if (amount > 0) continue;
       row.providerReversals += Math.abs(amount);
       row.reversalEvents += 1;
     }
