@@ -111,7 +111,6 @@ export function AdminSidebar({
             </p>
           </div>
         )}
-        {!collapsed && <Sparkles className="h-4 w-4 shrink-0 text-primary/70" aria-hidden />}
       </div>
 
       <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 py-3">
