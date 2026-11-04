@@ -1,6 +1,6 @@
 # StayNas DC-04 — Provider-Neutral Adapter Runtime
 
-Status: DC-04.2 adapter contract implementation in progress. No provider connection, credential write, database migration, or deployment is authorised by this artifact.
+Status: DC-04.3 lifecycle/error/health contracts implemented; CI verification pending for the current branch head. No provider connection, credential write, database migration, or deployment is authorised by this artifact.
 
 ## Objective
 
@@ -169,6 +169,14 @@ DC-04 may define types, pure validation, mock adapters, and contract tests while
 - Mock-adapter contract tests cover success, unsupported capability, invalid credentials, cross-tenant context, timeout, rate limit, provider outage, and incompatible adapter version.
 - No live provider operation or booking/inventory side effect occurs in DC-04 contract tests.
 
+### DC-04.3 lifecycle, error and health policy
+
+- `src/domains/distribution/adapters/lifecycle.ts` defines an explicit transition graph with actor attribution, reason and timestamp requirements.
+- Suspended connections can only return to validation through an attributed human/platform-admin action; system health workers cannot reactivate them. Revoked connections are terminal.
+- Error normalization accepts a typed code and correlation ID, derives retryability and safe operator text from a fixed policy, bounds rate-limit retry hints to 15 minutes, and drops malformed provider codes. Raw provider messages and response bodies are not accepted.
+- Health assessment classifies bounded probe results and latency. The assessment is pure: timeout scheduling, concurrency limits and rate limiting remain responsibilities of the future worker/orchestrator and are not claimed as implemented here.
+- `lifecycle.test.ts` covers permitted/forbidden transitions, actor attribution, terminal revocation, safe error normalization, retry bounds and health classification.
+
 ## Execution sequence
 
 - DC-04.1 — Repository and schema baseline (this document).
@@ -176,6 +184,11 @@ DC-04 may define types, pure validation, mock adapters, and contract tests while
 - DC-04.3 — Connection lifecycle and normalized error/health contracts.
 - DC-04.4 — Security and tenant-context contract tests.
 - DC-04.5 — Readiness review; no provider activation until dependencies are certified.
+
+## DC-04.3 implementation artifacts
+
+- `src/domains/distribution/adapters/lifecycle.ts` — explicit lifecycle transition policy, safe error normalization and bounded health assessment.
+- `src/domains/distribution/adapters/lifecycle.test.ts` — lifecycle, error and health policy tests.
 
 ## DC-04.2 implementation artifacts
 
