@@ -3,7 +3,13 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
 async function assertFounderAdmin(supabase: any) {
-  const { data, error } = await supabase.rpc("is_staynas_founder_ai_admin");
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error("Forbidden");
+  const { data, error } = await supabase
+    .from("staynas_platform_admins")
+    .select("user_id")
+    .eq("user_id", authData.user.id)
+    .maybeSingle();
   if (error || !data) throw new Error("Forbidden: StayNas founder administration required.");
 }
 
@@ -11,7 +17,11 @@ async function assertFounderAdmin(supabase: any) {
 export const isFounderAiAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase.rpc("is_staynas_founder_ai_admin");
+    const { data, error } = await context.supabase
+      .from("staynas_platform_admins")
+      .select("user_id")
+      .eq("user_id", context.userId)
+      .maybeSingle();
     if (error) throw new Error("Unable to verify founder administration access.");
     return Boolean(data);
   });
@@ -196,9 +206,6 @@ export const getAiUsageMetrics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertFounderAdmin(context.supabase);
-    if (!roles.some((r) => ["owner", "manager", "finance"].includes(r))) {
-      throw new Error("Forbidden");
-    }
     const { data, error } = await context.supabase
       .from("ai_usage_metrics").select("*")
       .order("day", { ascending: false }).limit(90);
