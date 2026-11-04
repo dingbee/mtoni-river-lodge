@@ -15,6 +15,9 @@ export type ActivityLogEntry = {
   new_value: unknown;
   ip_address: string | null;
   user_agent: string | null;
+  module: string | null;
+  severity: string;
+  correlation_id: string | null;
   created_at: string;
 };
 
