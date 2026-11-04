@@ -33,7 +33,7 @@ export const submitHousekeepingInspection = createServerFn({ method: "POST" })
       _inspection_id: data.inspectionId,
       _checklist: data.checklist,
       _passed: data.passed,
-      _notes: data.notes ?? null,
+      _notes: data.notes ?? undefined,
       _idempotency_key: data.idempotencyKey,
     });
     if (error) throw new Error(error.message);

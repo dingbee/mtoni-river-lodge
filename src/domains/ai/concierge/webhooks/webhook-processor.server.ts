@@ -1,13 +1,19 @@
 import { randomBytes } from "node:crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Json, Tables } from "@/integrations/supabase/types";
 import type { NormalizedProviderEvent } from "./webhook-normalization.server";
 
-type InboxRow = {
-  id: string; property_id: string; channel_id: string | null; provider: "meta_cloud_api" | "resend";
-  external_account_id: string; provider_event_id: string; event_type: string;
-  normalized_event: NormalizedProviderEvent; processing_status: string;
+type Provider = "meta_cloud_api" | "resend";
+type InboxRow = Pick<
+  Tables<"ai_provider_webhook_inbox">,
+  "id" | "property_id" | "channel_id" | "external_account_id" | "provider_event_id" | "event_type" | "processing_status"
+> & {
+  provider: Provider;
+  normalized_event: NormalizedProviderEvent;
 };
+type WebhookClient = SupabaseClient<Database>;
 
-const providerName = (provider: InboxRow["provider"]) => provider === "meta_cloud_api" ? "meta_cloud_api" : "resend";
+const providerName = (provider: Provider) => provider === "meta_cloud_api" ? "meta_cloud_api" : "resend";
 export const messageStatus = (event: NormalizedProviderEvent["eventType"]) => {
   if (event === "sent") return "accepted";
   if (event === "delivered") return "delivered";
@@ -18,10 +24,7 @@ export const messageStatus = (event: NormalizedProviderEvent["eventType"]) => {
 };
 const rank: Record<string, number> = { recorded: 0, queued: 1, accepted: 2, delivered: 3, read: 4 };
 export function canTransitionMessageStatus(current: string, next: string): boolean {
-  // Confirmed delivery is stronger than any failure callback.
   if (current === "read" || current === "delivered") return false;
-  // A failure is provisional: only a later positive provider confirmation may
-  // supersede it. Never move a failed message backwards to queued/accepted.
   if (current === "failed" || current === "undeliverable") {
     return next === "delivered" || next === "read";
   }
@@ -29,9 +32,11 @@ export function canTransitionMessageStatus(current: string, next: string): boole
   return (rank[next] ?? -1) >= (rank[current] ?? -1);
 }
 
-async function processInbound(supabase: any, row: InboxRow, event: NormalizedProviderEvent) {
+async function processInbound(supabase: WebhookClient, row: InboxRow, event: NormalizedProviderEvent) {
   const supportedMedia = ["image", "audio", "document", "video"].includes(String(event.safePayload.messageType));
-  if (!event.externalContact || (!event.body && !supportedMedia)) {
+  if (!event.providerMessageId) throw new Error("Inbound message has no provider message ID.");
+  const externalContact = event.externalContact;
+  if (!externalContact || (!event.body && !supportedMedia)) {
     throw new Error("Inbound message is missing a supported sender or message body.");
   }
   const { data, error } = await supabase.rpc("staynas_process_provider_inbound", {
@@ -40,21 +45,21 @@ async function processInbound(supabase: any, row: InboxRow, event: NormalizedPro
     p_provider: providerName(row.provider),
     p_provider_message_id: event.providerMessageId,
     p_provider_event_id: row.provider_event_id,
-    p_external_contact: event.externalContact,
-    p_guest_name: typeof event.safePayload.profileName === "string" ? event.safePayload.profileName : null,
-    p_body: event.body,
-    p_subject: event.subject,
+    p_external_contact: externalContact,
+    p_guest_name: typeof event.safePayload.profileName === "string" ? event.safePayload.profileName : "",
+    p_body: event.body ?? "",
+    p_subject: event.subject ?? "",
     p_message_type: event.body ? "text" : "media",
     p_occurred_at: event.occurredAt,
-    p_safe_payload: event.safePayload,
+    p_safe_payload: event.safePayload as Json,
   });
   if (error) throw new Error("Atomic inbound persistence failed: " + error.message);
   const result = Array.isArray(data) ? data[0] : data;
   if (!result?.session_id || !result?.message_id) throw new Error("Atomic inbound persistence returned no message linkage.");
-  return { sessionId: result.session_id as string, messageId: result.message_id as string };
+  return { sessionId: result.session_id, messageId: result.message_id };
 }
 
-async function processDelivery(supabase: any, row: InboxRow, event: NormalizedProviderEvent) {
+async function processDelivery(supabase: WebhookClient, row: InboxRow, event: NormalizedProviderEvent) {
   if (!event.providerMessageId) throw new Error("Delivery event has no provider message ID.");
   const { data: message, error } = await supabase.from("ai_omnichannel_messages")
     .select("id,property_id,session_id,status")
@@ -75,10 +80,10 @@ async function processDelivery(supabase: any, row: InboxRow, event: NormalizedPr
     property_id: row.property_id, message_id: message.id, channel: event.channel,
     provider: providerName(row.provider), provider_event_id: row.provider_event_id,
     provider_message_id: event.providerMessageId, event_type: event.eventType,
-    occurred_at: event.occurredAt, payload: event.safePayload,
+    occurred_at: event.occurredAt, payload: event.safePayload as Json,
   }, { onConflict: "provider,provider_event_id", ignoreDuplicates: true });
   if (eventError) throw new Error(eventError.message);
-  return { ignored: false as const, sessionId: message.session_id as string, messageId: message.id as string };
+  return { ignored: false as const, sessionId: message.session_id, messageId: message.id };
 }
 
 /**
@@ -86,7 +91,7 @@ async function processDelivery(supabase: any, row: InboxRow, event: NormalizedPr
  * intake; the processing status claim protects concurrent workers; message and
  * delivery ledgers retain their own unique provider identifiers as final guards.
  */
-export async function processProviderWebhookInbox(supabase: any, inboxId: string) {
+export async function processProviderWebhookInbox(supabase: WebhookClient, inboxId: string) {
   const { data: row, error: claimError } = await supabase.from("ai_provider_webhook_inbox")
     .update({ processing_status: "processing", processing_started_at: new Date().toISOString(), last_error: null })
     .eq("id", inboxId).or(`processing_status.in.(received,failed),and(processing_status.eq.processing,processing_started_at.lt.${new Date(Date.now() - 5 * 60 * 1000).toISOString()})`)
@@ -94,7 +99,11 @@ export async function processProviderWebhookInbox(supabase: any, inboxId: string
     .maybeSingle();
   if (claimError) throw new Error(claimError.message);
   if (!row) return { claimed: false, reason: "already_claimed_or_processed" as const };
-  const typed = row as InboxRow;
+  const typed: InboxRow = {
+    ...row,
+    provider: row.provider as Provider,
+    normalized_event: row.normalized_event as unknown as NormalizedProviderEvent,
+  };
   try {
     const event = typed.normalized_event;
     let result: { sessionId?: string; messageId?: string; ignored?: boolean } = {};

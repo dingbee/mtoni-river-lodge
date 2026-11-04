@@ -62,7 +62,7 @@ export async function verifyAndFinalizePayment(opts: {
         event_type: `${opts.source}:completed`,
         order_tracking_id: opts.orderTrackingId,
         status_code: status.status_code ?? null,
-        payment_method: paymentMethod,
+        payment_method: paymentMethod ?? "unknown",
         amount: paid,
         currency: status.currency ?? null,
         raw,
@@ -101,22 +101,29 @@ export async function verifyAndFinalizePayment(opts: {
     }
 
     const invoiceNumber = booking.invoice_number ?? makeInvoiceNumber(booking.reference);
-    const { data: result, error: finalizeError } = await (supabaseAdmin as any).rpc(
+    const { data: result, error: finalizeError } = await supabaseAdmin.rpc(
       "finalize_pesapal_payment",
       {
         _booking_id: booking.id,
         _order_tracking_id: opts.orderTrackingId,
         _amount: paid,
         _currency: currency,
-        _method: paymentMethod,
+        _method: paymentMethod ?? "unknown",
         _source: opts.source,
         _invoice_number: invoiceNumber,
         _raw: raw,
       },
     );
     if (finalizeError) throw new Error(`Unable to finalize Pesapal settlement: ${finalizeError.message}`);
-    if (!result?.ok) throw new Error("Pesapal settlement transaction did not complete");
-    return { outcome: result.duplicate ? "already_finalized" : "completed", paymentMethod };
+    if (
+      !result ||
+      typeof result !== "object" ||
+      Array.isArray(result) ||
+      result.ok !== true
+    ) {
+      throw new Error("Pesapal settlement transaction did not complete");
+    }
+    return { outcome: result.duplicate === true ? "already_finalized" : "completed", paymentMethod };
   }
 
   const { error: eventError } = await supabaseAdmin.from("payment_events").insert({

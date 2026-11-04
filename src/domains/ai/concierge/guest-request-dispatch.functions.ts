@@ -12,7 +12,8 @@ export const dispatchGuestRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => dispatchSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { data: result, error } = await context.supabase.rpc(
+    const db = context.supabase as any;
+    const { data: result, error } = await db.rpc(
       "staynas_dispatch_guest_request",
       {
         _request_id: data.request_id,

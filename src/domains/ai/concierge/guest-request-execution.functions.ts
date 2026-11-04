@@ -15,7 +15,8 @@ export const updateGuestTaskExecution = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => executionSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
-    const { data: result, error } = await context.supabase.rpc("staynas_update_guest_task_execution", {
+    const db = context.supabase as any;
+    const { data: result, error } = await db.rpc("staynas_update_guest_task_execution", {
       _task_id: data.task_id, _action: data.action, _assignee_id: data.assignee_id ?? null, _note: data.note ?? null,
     });
     if (error) throw new Error(error.message);
@@ -34,8 +35,9 @@ export const updateGuestRequestStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => requestStatusSchema.parse(input))
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "concierge");
-    const { data: result, error } = await context.supabase.rpc("staynas_update_guest_request_status", {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.concierge");
+    const db = context.supabase as any;
+    const { data: result, error } = await db.rpc("staynas_update_guest_request_status", {
       _request_id: data.request_id, _status: data.status, _note: data.note ?? null,
     });
     if (error) throw new Error(error.message);

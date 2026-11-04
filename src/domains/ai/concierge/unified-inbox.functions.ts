@@ -1,7 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database, Tables } from "@/integrations/supabase/types";
 
-async function activeProperty(supabase: any, userId: string): Promise<string> {
+type InboxMessage = Pick<
+  Tables<"ai_omnichannel_messages">,
+  "session_id" | "body" | "subject" | "status" | "direction" | "channel" | "occurred_at" | "created_at"
+>;
+
+async function activeProperty(supabase: SupabaseClient<Database>, userId: string): Promise<string> {
   const { data: propertyId, error } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
   if (error || !propertyId) throw new Error("No active property selected.");
   const { data: member, error: memberError } = await supabase.from("staynas_property_members")
@@ -19,16 +26,21 @@ export const listUnifiedInboxConversations = createServerFn({ method: "GET" })
       .select("id,channel,guest_name,guest_email,guest_phone,message_count,escalated,last_active_at,created_at")
       .eq("property_id", propertyId).order("last_active_at", { ascending: false }).limit(150);
     if (error) throw new Error(error.message);
-    const ids = (sessions ?? []).map((row: { id: string }) => row.id);
+    const ids = (sessions ?? []).map((row) => row.id);
     if (!ids.length) return [];
     const { data: messages, error: messageError } = await context.supabase.from("ai_omnichannel_messages")
       .select("session_id,body,subject,status,direction,channel,occurred_at,created_at")
       .eq("property_id", propertyId).in("session_id", ids)
       .order("occurred_at", { ascending: false }).limit(600);
     if (messageError) throw new Error(messageError.message);
-    const latest = new Map<string, any>();
-    for (const message of messages ?? []) if (!latest.has(message.session_id)) latest.set(message.session_id, message);
-    return (sessions ?? []).map((session: any) => ({ ...session, latest_message: latest.get(session.id) ?? null }));
+    const latest = new Map<string, InboxMessage>();
+    for (const message of messages ?? []) {
+      if (!latest.has(message.session_id)) latest.set(message.session_id, message);
+    }
+    return (sessions ?? []).map((session) => ({
+      ...session,
+      latest_message: latest.get(session.id) ?? null,
+    }));
   });
 
 export const getUnifiedInboxTimeline = createServerFn({ method: "POST" })

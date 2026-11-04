@@ -1,8 +1,6 @@
 // Server-only helpers used by the public concierge handler.
-// Loads approved memories for a given session or guest identity and
-// returns a compact context string plus the memory ids that were applied
-// (for personalization event logging). Uses supabaseAdmin because the
-// concierge is a public/anon surface.
+// Guest memories are explicitly scoped to the active property. Guest identity
+// may be global, but preferences and personalization evidence never cross tenants.
 import type { ConciergeMemoryRow } from "./memory.types";
 
 export interface ConciergeMemoryContext {
@@ -16,92 +14,80 @@ export interface ConciergeMemoryContext {
 export async function loadConciergeMemoryContext(params: {
   sessionId: string;
   guestId: string | null;
-  guestEmail: string | null;
+  propertyId: string;
 }): Promise<ConciergeMemoryContext> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  let guestId = params.guestId ?? null;
-
-  // Resolve guest by voluntarily-provided email if we don't have one yet.
-  if (!guestId && params.guestEmail) {
-    const email = params.guestEmail.trim().toLowerCase();
-    if (email) {
-      const { data: g } = await supabaseAdmin
-        .from("guests")
-        .select("id")
-        .eq("email", email)
-        .eq("is_deleted", false)
-        .maybeSingle();
-      if (g?.id) guestId = g.id;
-    }
-  }
-
+  const db = supabaseAdmin as any;
+  const guestId = params.guestId ?? null;
   const rows: ConciergeMemoryRow[] = [];
+
   if (guestId) {
-    const { data } = await supabaseAdmin
+    const { data } = await db
       .from("ai_guest_memories")
       .select("*")
+      .eq("property_id", params.propertyId)
       .eq("guest_id", guestId)
       .eq("status", "approved")
       .order("updated_at", { ascending: false })
       .limit(20);
-    for (const r of (data ?? []) as ConciergeMemoryRow[]) rows.push(r);
+    for (const row of (data ?? []) as ConciergeMemoryRow[]) rows.push(row);
   }
-  // Session-scoped approved memories (anonymous returning session)
-  const { data: sessionMems } = await supabaseAdmin
+
+  const { data: sessionMems } = await db
     .from("ai_guest_memories")
     .select("*")
+    .eq("property_id", params.propertyId)
     .eq("session_id", params.sessionId)
     .eq("status", "approved")
     .limit(20);
-  for (const r of (sessionMems ?? []) as ConciergeMemoryRow[]) {
-    if (!rows.find((m) => m.id === r.id)) rows.push(r);
+  for (const row of (sessionMems ?? []) as ConciergeMemoryRow[]) {
+    if (!rows.find((memory) => memory.id === row.id)) rows.push(row);
   }
 
-  // Returning visitor: linked guest OR prior sessions from same email
-  let isReturning = false;
+  let isReturningVisitor = false;
   if (guestId) {
-    const { count } = await supabaseAdmin
+    const { count } = await db
       .from("ai_concierge_sessions")
       .select("id", { count: "exact", head: true })
+      .eq("property_id", params.propertyId)
       .eq("guest_id", guestId);
-    isReturning = (count ?? 0) > 1;
+    isReturningVisitor = (count ?? 0) > 1;
   }
 
-  const contextText = rows.length
-    ? rows
-        .map(
-          (m) =>
-            `- [${m.memory_type}] ${m.memory_key}: ${m.memory_value} (conf ${Number(m.confidence).toFixed(2)})`,
-        )
-        .join("\n")
-    : "";
+  const contextText = rows
+    .map((memory) =>
+      `- [${memory.memory_type}] ${memory.memory_key}: ${memory.memory_value} (conf ${Number(memory.confidence).toFixed(2)})`,
+    )
+    .join("\n");
 
   return {
     memories: rows,
     contextText,
-    memoryIds: rows.map((r) => r.id),
+    memoryIds: rows.map((memory) => memory.id),
     guestId,
-    isReturningVisitor: isReturning,
+    isReturningVisitor,
   };
 }
 
-// Heuristic suggestion of new memories from the guest's message + intent signals.
-// Always inserted with status='pending'. Staff must approve.
+// Heuristic suggestions are stored as pending and require staff approval.
+// Both reads and writes are constrained by property_id.
 export async function suggestMemoriesFromMessage(params: {
   sessionId: string;
   guestId: string | null;
+  propertyId: string;
   message: string;
   interests: string[];
   party: { adults?: number | null; children?: number | null };
 }): Promise<number> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const db = supabaseAdmin as any;
   const suggestions: Array<{
     memory_type: string;
     memory_key: string;
     memory_value: string;
     confidence: number;
   }> = [];
-  const text = params.message.toLowerCase();
+  const message = params.message.toLowerCase();
 
   for (const tag of params.interests ?? []) {
     if (!tag) continue;
@@ -120,7 +106,7 @@ export async function suggestMemoriesFromMessage(params: {
       confidence: 0.7,
     });
   }
-  if (/river[- ]?facing|river view|riverfront/.test(text)) {
+  if (/river[- ]?facing|river view|riverfront/.test(message)) {
     suggestions.push({
       memory_type: "preference",
       memory_key: "preference.room.river_facing",
@@ -128,7 +114,7 @@ export async function suggestMemoriesFromMessage(params: {
       confidence: 0.75,
     });
   }
-  if (/quiet|peaceful|calm/.test(text)) {
+  if (/quiet|peaceful|calm/.test(message)) {
     suggestions.push({
       memory_type: "preference",
       memory_key: "preference.ambience.quiet",
@@ -136,7 +122,7 @@ export async function suggestMemoriesFromMessage(params: {
       confidence: 0.6,
     });
   }
-  if (/whatsapp/.test(text)) {
+  if (/whatsapp/.test(message)) {
     suggestions.push({
       memory_type: "communication_preference",
       memory_key: "communication.whatsapp",
@@ -147,42 +133,37 @@ export async function suggestMemoriesFromMessage(params: {
 
   if (suggestions.length === 0) return 0;
 
-  // Dedupe against existing rows for this guest/session
-  let existing = new Set<string>();
-  if (params.guestId) {
-    const { data } = await supabaseAdmin
-      .from("ai_guest_memories")
-      .select("memory_key")
-      .eq("guest_id", params.guestId);
-    for (const r of data ?? []) existing.add((r as any).memory_key);
-  } else {
-    const { data } = await supabaseAdmin
-      .from("ai_guest_memories")
-      .select("memory_key")
-      .eq("session_id", params.sessionId);
-    for (const r of data ?? []) existing.add((r as any).memory_key);
-  }
-  const fresh = suggestions.filter((s) => !existing.has(s.memory_key));
+  const identityQuery = db
+    .from("ai_guest_memories")
+    .select("memory_key")
+    .eq("property_id", params.propertyId);
+  const { data: existingRows } = params.guestId
+    ? await identityQuery.eq("guest_id", params.guestId)
+    : await identityQuery.eq("session_id", params.sessionId);
+  const existing = new Set<string>((existingRows ?? []).map((row: any) => row.memory_key));
+  const fresh = suggestions.filter((suggestion) => !existing.has(suggestion.memory_key));
   if (fresh.length === 0) return 0;
 
-  const rows = fresh.map((s) => ({
-    ...s,
+  const rows = fresh.map((suggestion) => ({
+    ...suggestion,
+    property_id: params.propertyId,
     guest_id: params.guestId,
     session_id: params.guestId ? null : params.sessionId,
     source: "ai_suggested",
     status: "pending",
   }));
-  const { data: inserted, error } = await supabaseAdmin
+  const { data: inserted, error } = await db
     .from("ai_guest_memories")
     .insert(rows)
     .select("id");
   if (error) return 0;
+
   if (inserted?.length) {
-    await supabaseAdmin.from("ai_memory_events").insert(
-      inserted.map((r: any) => ({
-        memory_id: r.id,
+    await db.from("ai_memory_events").insert(
+      inserted.map((row: any) => ({
+        memory_id: row.id,
         event_type: "created",
-        payload: { source: "ai_suggested" },
+        payload: { source: "ai_suggested", property_id: params.propertyId },
       })),
     );
   }

@@ -32,12 +32,13 @@ export const createGuestRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => createSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const propertyId = await activePropertyId(context.supabase, context.userId);
-    const { data: staff, error: staffError } = await context.supabase.rpc("is_any_staff", { _user_id: context.userId });
+    const db = context.supabase as any;
+    const propertyId = await activePropertyId(db, context.userId);
+    const { data: staff, error: staffError } = await db.rpc("is_any_staff", { _user_id: context.userId });
     if (staffError || !staff) throw new Error("Staff access is required to register a guest request.");
 
     if (data.session_id) {
-      const { data: session, error } = await context.supabase
+      const { data: session, error } = await db
         .from("ai_concierge_sessions").select("id, property_id, guest_id")
         .eq("id", data.session_id).eq("property_id", propertyId).maybeSingle();
       if (error || !session) throw new Error("Concierge conversation not found in the active property.");
@@ -47,7 +48,7 @@ export const createGuestRequest = createServerFn({ method: "POST" })
     }
 
     if (data.booking_id) {
-      const { data: booking, error } = await context.supabase
+      const { data: booking, error } = await db
         .from("bookings").select("id, property_id, guest_id")
         .eq("id", data.booking_id).eq("property_id", propertyId).maybeSingle();
       if (error || !booking) throw new Error("Booking not found in the active property.");
@@ -57,7 +58,7 @@ export const createGuestRequest = createServerFn({ method: "POST" })
     }
 
     const category = data.category ?? categorizeGuestRequest(data.request_text);
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await db
       .from("staynas_guest_requests")
       .insert({
         property_id: propertyId,
@@ -87,8 +88,9 @@ export const listGuestRequests = createServerFn({ method: "POST" })
     limit: z.number().int().min(1).max(100).default(50),
   }).parse(input ?? {}))
   .handler(async ({ data, context }) => {
-    const propertyId = await activePropertyId(context.supabase, context.userId);
-    let query = context.supabase
+    const db = context.supabase as any;
+    const propertyId = await activePropertyId(db, context.userId);
+    let query = db
       .from("staynas_guest_requests")
       .select("id, session_id, booking_id, guest_id, category, request_text, intake_channel, status, priority, guest_name, guest_contact, requested_for, created_at, updated_at")
       .eq("property_id", propertyId);

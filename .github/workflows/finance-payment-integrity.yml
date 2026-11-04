@@ -14,6 +14,7 @@ on:
   push:
     branches:
       - fix/pesapal-atomic-finance-finalization
+      - fix/ci-*
       - main
       - feat/finance-*
 
@@ -35,9 +36,11 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Payment input contract tests
         run: bunx vitest run src/domains/finance/payment-contract.test.ts
+      # TanStack Start generates routeTree.gen.ts during the Vite build.
+      - name: Generate routes and verify production build
+        run: bun run build
       - name: TypeScript verification
         run: bunx tsc --noEmit
       - name: Finance lint
-        run: bunx eslint src/domains/finance/finance.functions.ts src/domains/finance/payment-contract.ts src/domains/finance/payment-contract.test.ts src/lib/finance-rpc.ts src/routes/_authenticated.admin.finance.payments.tsx --rule 'prettier/prettier: off'
-      - name: Production build
-        run: bun run build
+        run: >-
+          bunx eslint src/domains/finance/finance.functions.ts src/domains/finance/payment-contract.ts src/domains/finance/payment-contract.test.ts src/lib/finance-rpc.ts src/routes/_authenticated.admin.finance.payments.tsx --rule 'prettier/prettier: off'
