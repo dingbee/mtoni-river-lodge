@@ -19,6 +19,7 @@ import {
 import { PageHeader } from "@/components/os/PageHeader";
 import { Button } from "@/components/ui/button";
 import { listAllReviews, createReview, updateReview, deleteReview } from "@/lib/reviews.functions";
+import { isFounderAiAdmin } from "@/domains/ai/governance.functions";
 import { importReview, generateReviewSummaries } from "@/lib/review-import.functions";
 import { listReviewStatistics, upsertReviewStatistic } from "@/lib/review-stats.functions";
 import { listActivityLogs } from "@/lib/activity.functions";
@@ -36,7 +37,7 @@ export const Route = createFileRoute("/_authenticated/admin/reviews")({
   head: () => ({
     meta: [{ title: "Reviews — Admin" }, { name: "robots", content: "noindex,nofollow" }],
   }),
-  component: AdminReviews,
+  component: FounderAdminReviews,
 });
 
 type TabKey = "manual" | "import" | "quick" | "activity" | "statistics";
@@ -92,6 +93,16 @@ const blankForm: FormState = {
   imported_from: "",
   review_url: "",
 };
+
+function FounderAdminReviews() {
+  const accessFn = useServerFn(isFounderAiAdmin);
+  const access = useQuery({ queryKey: ["staynas-founder-admin"], queryFn: () => accessFn() });
+  if (access.isLoading) return <div className="p-6 text-sm text-muted-foreground">Verifying founder access…</div>;
+  if (access.isError || access.data !== true) {
+    return <div className="rounded-xl border p-6"><h1 className="text-lg font-semibold">Founder administration only</h1><p className="mt-2 text-sm text-muted-foreground">Review records are not yet property-scoped and remain restricted to the platform administrator.</p></div>;
+  }
+  return <AdminReviews />;
+}
 
 function AdminReviews() {
   const [tab, setTab] = useState<TabKey>("manual");
