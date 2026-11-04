@@ -2,21 +2,30 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { hasStayNasEntitlement, type StayNasModuleId } from "@/lib/staynas-entitlements";
 
+/**
+ * Authorize an operational module against the authenticated user's explicitly
+ * selected property membership. Global user_roles are not an operational
+ * tenant authority: they are legacy platform-level assignments and must never
+ * grant access to a customer property's modules.
+ *
+ * The RPC derives auth.uid() server-side and resolves the membership for the
+ * active property context. Its database implementation must also reject
+ * suspended properties and organisations.
+ */
 export async function requireStayNasModuleAccess(
   supabase: SupabaseClient<Database>,
   userId: string,
   moduleId: StayNasModuleId,
 ): Promise<void> {
-  // userId remains part of the authorization contract; the RPC derives the
-  // roles from the authenticated caller rather than relying on a direct
-  // user_roles SELECT, which is intentionally blocked by RLS.
-  void userId;
+  if (!userId) throw new Error("Forbidden");
 
-  const { data, error } = await supabase.rpc("current_user_roles");
+  const { data: propertyRole, error } = await supabase.rpc("staynas_current_property_role");
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    throw new Error("Unable to verify the active property's access role.");
+  }
 
-  const roles = (data ?? []).map((role) => String(role));
+  const roles = propertyRole ? [String(propertyRole)] : [];
   if (!hasStayNasEntitlement(moduleId, roles)) {
     throw new Error("Forbidden");
   }
