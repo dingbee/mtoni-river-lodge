@@ -18,7 +18,7 @@ export const Route = createFileRoute("/api/public/rooms/catalog")({
         // Platform catalogue records are authoritative for reusable room definitions.
         const propertyId = await getConfiguredBookingPropertyId(sb);
         let query = sb.from("rooms")
-          .select("id,slug,name,short_description,capacity_adults,capacity_children,max_occupancy,total_units,base_price,currency,included_guests,extra_guest_fee,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,catalogue_type_id,catalogue:staynas_room_catalogue_types(id,slug,name,short_description,capacity_adults,capacity_children,max_occupancy,description,details,cta_line,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,category:staynas_room_catalogue_categories(id,slug,name,description,features,specifications))")
+          .select("id,slug,name,short_description,capacity_adults,capacity_children,max_occupancy,total_units,base_price,currency,included_guests,extra_guest_fee,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,catalogue_type_id,catalogue:staynas_room_catalogue_types(id,slug,name,short_name,room_number_label,short_description,capacity_adults,capacity_children,max_occupancy,description,details,cta_line,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,category:staynas_room_catalogue_categories(id,slug,name,description,features,specifications))")
           .eq("status", "active").eq("property_id", propertyId).order("sort_order").order("name");
         if (slug) query = query.eq("slug", slug);
         const { data, error } = await query;
@@ -33,6 +33,8 @@ export const Route = createFileRoute("/api/public/rooms/catalog")({
           return {
             ...room,
             name: definition.name,
+            short_name: definition.short_name,
+            room_number_label: definition.room_number_label,
             short_description: definition.short_description,
             capacity_adults: definition.capacity_adults,
             capacity_children: definition.capacity_children,
