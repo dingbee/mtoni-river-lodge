@@ -8,8 +8,7 @@ export const adminExists = createServerFn({ method: "GET" }).handler(async () =>
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { count, error } = await supabaseAdmin
     .from("staynas_platform_admins")
-    .select("user_id", { count: "exact", head: true })
-    
+    .select("user_id", { count: "exact", head: true });
   if (error) throw error;
   return { adminExists: (count ?? 0) > 0 };
 });
@@ -21,13 +20,12 @@ export const claimFirstAdmin = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { count, error: countErr } = await supabaseAdmin
-      .from("user_roles")
-      .select("user_id", { count: "exact", head: true })
-      .eq("role", "owner");
+      .from("staynas_platform_admins")
+      .select("user_id", { count: "exact", head: true });
     if (countErr) throw countErr;
     if ((count ?? 0) > 0) return { granted: false };
     const { error } = await supabaseAdmin
-      .from("user_roles")
+      .from("staynas_platform_admins")
       .insert({ user_id: context.userId, created_by: context.userId });
     if (error && !`${error.message}`.includes("duplicate")) throw error;
     return { granted: true };
