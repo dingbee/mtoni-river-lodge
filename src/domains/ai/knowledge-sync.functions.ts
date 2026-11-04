@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { requireStayNasModuleAccess, requireStayNasStaffAccess, requireStayNasPropertyRole } from "@/lib/staynas-authorization.server";
 
 const APPROVER_ROLES = ["owner", "manager", "reception"] as const;
 const SOURCE_TYPES = [
@@ -16,17 +16,10 @@ const SOURCE_TYPES = [
 const STATUSES = ["pending", "processing", "approved", "archived", "failed"] as const;
 
 async function assertStaff(sb: any, userId: string) {
-  const { data, error } = await sb.rpc("is_any_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasStaffAccess(sb, userId);
 }
 async function assertApprover(sb: any, userId: string) {
-  const { data, error } = await sb.rpc("has_any_role", {
-    _user_id: userId,
-    _roles: [...APPROVER_ROLES],
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasPropertyRole(sb, userId, APPROVER_ROLES);
 }
 
 export interface AiKnowledgeSource {
