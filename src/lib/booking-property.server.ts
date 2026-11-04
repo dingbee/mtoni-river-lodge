@@ -1,7 +1,7 @@
 import { getRequestHeader } from "@tanstack/react-start/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { bookingRpc } from "./booking-rpc";
-import { BookingPropertyError } from "./booking-property";
+import { BookingPropertyError, normalizeBookingHostname } from "./booking-property";
 
 /**
  * Resolve booking scope from authenticated StayNas membership for staff.
@@ -26,13 +26,7 @@ export async function getConfiguredBookingPropertyId(
     return data;
   }
 
-  const hostHeader = getRequestHeader("host");
-  const hostname = hostHeader?.split(",")[0]?.trim().toLowerCase();
-  if (!hostname) {
-    throw new BookingPropertyError(
-      "Public booking property cannot be resolved without a request hostname",
-    );
-  }
+  const hostname = normalizeBookingHostname(getRequestHeader("host"));
 
   const { data, error } = await bookingRpc(sb).rpc("staynas_booking_property_id", {
     _hostname: hostname,
