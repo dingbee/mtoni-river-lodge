@@ -18685,6 +18685,14 @@ export type Database = {
       }
     }
     Functions: {
+      is_staynas_founder_ai_admin: {
+        Args: Record<string, never>
+        Returns: boolean
+      }
+      staynas_current_property_roles: {
+        Args: Record<string, never>
+        Returns: string[]
+      }
       staynas_transition_booking: {
         Args: { _booking_id: string; _target_status: string; _notes?: string | null }
         Returns: Json
