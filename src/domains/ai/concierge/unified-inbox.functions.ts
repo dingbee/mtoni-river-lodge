@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
-async function activeProperty(supabase: any, userId: string): Promise<string> {
+async function activeProperty(supabase: SupabaseClient<Database>, userId: string): Promise<string> {
   const { data: propertyId, error } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
   if (error || !propertyId) throw new Error("No active property selected.");
   const { data: member, error: memberError } = await supabase.from("staynas_property_members")
@@ -26,9 +28,9 @@ export const listUnifiedInboxConversations = createServerFn({ method: "GET" })
       .eq("property_id", propertyId).in("session_id", ids)
       .order("occurred_at", { ascending: false }).limit(600);
     if (messageError) throw new Error(messageError.message);
-    const latest = new Map<string, any>();
+    const latest = new Map<string, NonNullable<typeof messages>[number]>();
     for (const message of messages ?? []) if (!latest.has(message.session_id)) latest.set(message.session_id, message);
-    return (sessions ?? []).map((session: any) => ({ ...session, latest_message: latest.get(session.id) ?? null }));
+    return (sessions ?? []).map((session) => ({ ...session, latest_message: latest.get(session.id) ?? null }));
   });
 
 export const getUnifiedInboxTimeline = createServerFn({ method: "POST" })
