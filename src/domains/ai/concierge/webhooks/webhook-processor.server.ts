@@ -1,4 +1,6 @@
 import { randomBytes } from "node:crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import type { NormalizedProviderEvent } from "./webhook-normalization.server";
 
 type InboxRow = {
@@ -29,7 +31,7 @@ export function canTransitionMessageStatus(current: string, next: string): boole
   return (rank[next] ?? -1) >= (rank[current] ?? -1);
 }
 
-async function processInbound(supabase: any, row: InboxRow, event: NormalizedProviderEvent) {
+async function processInbound(supabase: SupabaseClient<Database>, row: InboxRow, event: NormalizedProviderEvent) {
   const supportedMedia = ["image", "audio", "document", "video"].includes(String(event.safePayload.messageType));
   if (!event.externalContact || (!event.body && !supportedMedia)) {
     throw new Error("Inbound message is missing a supported sender or message body.");
@@ -54,7 +56,7 @@ async function processInbound(supabase: any, row: InboxRow, event: NormalizedPro
   return { sessionId: result.session_id as string, messageId: result.message_id as string };
 }
 
-async function processDelivery(supabase: any, row: InboxRow, event: NormalizedProviderEvent) {
+async function processDelivery(supabase: SupabaseClient<Database>, row: InboxRow, event: NormalizedProviderEvent) {
   if (!event.providerMessageId) throw new Error("Delivery event has no provider message ID.");
   const { data: message, error } = await supabase.from("ai_omnichannel_messages")
     .select("id,property_id,session_id,status")
@@ -86,7 +88,7 @@ async function processDelivery(supabase: any, row: InboxRow, event: NormalizedPr
  * intake; the processing status claim protects concurrent workers; message and
  * delivery ledgers retain their own unique provider identifiers as final guards.
  */
-export async function processProviderWebhookInbox(supabase: any, inboxId: string) {
+export async function processProviderWebhookInbox(supabase: SupabaseClient<Database>, inboxId: string) {
   const { data: row, error: claimError } = await supabase.from("ai_provider_webhook_inbox")
     .update({ processing_status: "processing", processing_started_at: new Date().toISOString(), last_error: null })
     .eq("id", inboxId).or(`processing_status.in.(received,failed),and(processing_status.eq.processing,processing_started_at.lt.${new Date(Date.now() - 5 * 60 * 1000).toISOString()})`)
