@@ -16,6 +16,21 @@ async function chat(system: string, user: string, jsonMode = true): Promise<stri
 
 const tryJson = parseAiJson;
 
+function toKnowledgeCitation(row: any): AiKnowledgeCitation {
+  return {
+    source_id: String(row.source_id ?? row.document_id ?? row.id ?? ""),
+    source_kind: row.source_kind === "synced_source" ? "synced_source" : "document",
+    source_type: String(row.source_type ?? "document"),
+    title: String(row.title ?? row.document_title ?? "Untitled source"),
+    slug: typeof (row.slug ?? row.document_slug) === "string" ? (row.slug ?? row.document_slug) : null,
+    category_slug: typeof row.category_slug === "string" ? row.category_slug : null,
+    chunk_index: Number.isInteger(row.chunk_index) ? row.chunk_index : null,
+    url: typeof row.url === "string" ? row.url : null,
+    language_code: typeof row.language_code === "string" ? row.language_code : "en",
+    excerpt: String(row.content ?? row.excerpt ?? "").slice(0, 400),
+  };
+}
+
 async function getRoles(supabase: any): Promise<string[]> {
   const { data } = await supabase.rpc("current_user_roles");
   return (data ?? []) as string[];
@@ -149,10 +164,7 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
         evidence.push({ domain: toolDomain(tid), tool: tid, count: res.count, window: res.window, summary: res.summary });
         toolPayloads.push(`### Tool: ${tid}\n${res.summary}\nData: ${JSON.stringify(res.data).slice(0, 3000)}`);
         if (tid === "knowledge.search" && Array.isArray(res.data)) {
-          citations = (res.data as any[]).map((r) => ({
-            document_id: r.document_id, document_title: r.document_title, document_slug: r.document_slug,
-            category_slug: r.category_slug ?? null, chunk_index: r.chunk_index, excerpt: String(r.content ?? "").slice(0, 400),
-          }));
+          citations = (res.data as any[]).map(toKnowledgeCitation);
         }
       } catch (err: any) {
         toolPayloads.push(`### Tool: ${tid}\nError: ${err?.message ?? "unknown"}`);
@@ -170,10 +182,7 @@ export const sendCopilotMessage = createServerFn({ method: "POST" })
         });
         const rows = (kb ?? []) as any[];
         if (rows.length) {
-          citations = rows.map((r) => ({
-            document_id: r.document_id, document_title: r.document_title, document_slug: r.document_slug,
-            category_slug: r.category_slug ?? null, chunk_index: r.chunk_index, excerpt: String(r.content ?? "").slice(0, 400),
-          }));
+          citations = rows.map(toKnowledgeCitation);
           domainsUsed.add("knowledge");
           evidence.push({ domain: "knowledge", tool: "knowledge.search", count: rows.length });
           toolPayloads.push(`### Knowledge excerpts\n${rows.map((r, i) => `[K${i+1}] ${r.document_title}: ${String(r.content ?? "").slice(0, 500)}`).join("\n")}`);

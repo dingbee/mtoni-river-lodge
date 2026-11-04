@@ -27,6 +27,8 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - run: bunx vitest run src/lib/housekeeping-state-machine.test.ts src/lib/housekeeping-offline.test.ts src/domains/ai/concierge/request-categorization.test.ts src/domains/finance/payment-contract.test.ts
+      - name: Generate TanStack route tree
+        run: bun run build
       - name: TypeScript verification
         run: bunx tsc --noEmit
       - name: Finance changed-file lint
