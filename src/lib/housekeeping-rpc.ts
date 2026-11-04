@@ -22,7 +22,7 @@ type HousekeepingFunctions = {
 };
 type HousekeepingDatabase = Omit<Database, "public"> & {
   public: Omit<Database["public"], "Functions"> & {
-    Functions: Database["public"]["Functions"] & HousekeepingFunctions;
+    Functions: Omit<Database["public"]["Functions"], keyof HousekeepingFunctions> & HousekeepingFunctions;
   };
 };
 
