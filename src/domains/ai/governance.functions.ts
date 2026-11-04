@@ -59,8 +59,6 @@ export const listAiPrompts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertFounderAdmin(context.supabase);
-    const roles = await getRoles(context.supabase);
-    assertManager(roles);
     const { data, error } = await context.supabase
       .from("ai_prompt_versions").select("*")
       .order("module", { ascending: true })
@@ -97,8 +95,6 @@ export const activateAiPromptVersion = createServerFn({ method: "POST" })
   .inputValidator((i: { id: string }) => i)
   .handler(async ({ data, context }) => {
     await assertFounderAdmin(context.supabase);
-    const roles = await getRoles(context.supabase);
-    assertAdmin(roles);
     const { data: target, error: e1 } = await context.supabase
       .from("ai_prompt_versions").select("module, prompt_key").eq("id", data.id).single();
     if (e1) throw e1;
@@ -154,8 +150,6 @@ export const getAiPerformance = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertFounderAdmin(context.supabase);
-    const roles = await getRoles(context.supabase);
-    assertManager(roles);
     const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
     const { data: logs } = await context.supabase
       .from("ai_activity_logs")
@@ -193,7 +187,6 @@ export const getAiUsageMetrics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertFounderAdmin(context.supabase);
-    const roles = await getRoles(context.supabase);
     if (!roles.some((r) => ["owner", "manager", "finance"].includes(r))) {
       throw new Error("Forbidden");
     }
@@ -210,8 +203,6 @@ export const listAiHealthEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertFounderAdmin(context.supabase);
-    const roles = await getRoles(context.supabase);
-    assertManager(roles);
     const { data, error } = await context.supabase
       .from("ai_health_events").select("*")
       .order("created_at", { ascending: false }).limit(200);
@@ -224,8 +215,6 @@ export const resolveAiHealthEvent = createServerFn({ method: "POST" })
   .inputValidator((i: { id: string; resolved: boolean }) => i)
   .handler(async ({ data, context }) => {
     await assertFounderAdmin(context.supabase);
-    const roles = await getRoles(context.supabase);
-    assertAdmin(roles);
     const { error } = await context.supabase
       .from("ai_health_events").update({ resolved: data.resolved }).eq("id", data.id);
     if (error) throw error;
@@ -239,8 +228,6 @@ export const searchAiAudit = createServerFn({ method: "POST" })
   .inputValidator((i: { module?: string; tool?: string; status?: string; from?: string; to?: string; limit?: number } | undefined) => i ?? {})
   .handler(async ({ data, context }) => {
     await assertFounderAdmin(context.supabase);
-    const roles = await getRoles(context.supabase);
-    assertManager(roles);
     let q = context.supabase.from("ai_activity_logs")
       .select("id, user_id, question, domains_accessed, tool_called, response, recommendation, model, status, error, duration_ms, created_at")
       .order("created_at", { ascending: false })
@@ -261,8 +248,6 @@ export const getAiSystems = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertFounderAdmin(context.supabase);
-    const roles = await getRoles(context.supabase);
-    assertManager(roles);
     const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
     const { data: logs } = await context.supabase
       .from("ai_activity_logs").select("domains_accessed, status, created_at").gte("created_at", since);
