@@ -419,3 +419,47 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.arrival_pass_confirm(text, jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.arrival_pass_confirm(text, jsonb) TO authenticated;
+
+
+-- Fail the migration if any broad legacy policy or anonymous staff scanner
+-- execution path remains in place.
+DO $phase4_assert$
+DECLARE
+  _submit_definition text;
+  _confirm_definition text;
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN ('guest_documents','guest_checkins','guest_checkin_activity','arrival_information','arrival_passes')
+      AND policyname IN (
+        'Guest PII staff manage guest documents',
+        'Staff manage guest documents',
+        'Guest PII staff manage guest checkins',
+        'Staff manage guest checkins',
+        'Staff read checkin activity',
+        'Ops staff manage arrival information',
+        'Staff manage arrival information',
+        'Staff can view arrival passes'
+      )
+  ) THEN
+    RAISE EXCEPTION 'Phase 4 security assertion failed: legacy global staff policy remains';
+  END IF;
+
+  IF has_function_privilege('anon', 'public.arrival_pass_validate(text,jsonb)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.arrival_pass_confirm(text,jsonb)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.arrival_pass_validate_unscoped(text,jsonb)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Phase 4 security assertion failed: anonymous arrival-pass staff execution remains';
+  END IF;
+
+  _submit_definition := pg_get_functiondef('public.checkin_submit(text,text,jsonb,jsonb,boolean,text,jsonb)'::regprocedure);
+  _confirm_definition := pg_get_functiondef('public.arrival_pass_confirm(text,jsonb)'::regprocedure);
+
+  IF position('checkin_sync_reservation' IN _submit_definition) > 0 THEN
+    RAISE EXCEPTION 'Phase 4 lifecycle assertion failed: guest submission still invokes privileged room sync';
+  END IF;
+  IF position('staynas_transition_booking' IN _confirm_definition) = 0 THEN
+    RAISE EXCEPTION 'Phase 4 lifecycle assertion failed: front-desk confirmation does not use Phase 3 lifecycle RPC';
+  END IF;
+END;
+$phase4_assert$;
