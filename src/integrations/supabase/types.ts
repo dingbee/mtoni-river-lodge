@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       activity_logs: {
         Row: {
+          property_id: string | null
           action: string
           actor_email: string | null
           actor_id: string | null
@@ -34,6 +35,7 @@ export type Database = {
           user_agent: string | null
         }
         Insert: {
+          property_id?: string | null
           action: string
           actor_email?: string | null
           actor_id?: string | null
@@ -52,6 +54,7 @@ export type Database = {
           user_agent?: string | null
         }
         Update: {
+          property_id?: string | null
           action?: string
           actor_email?: string | null
           actor_id?: string | null
