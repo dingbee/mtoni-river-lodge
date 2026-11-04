@@ -68,6 +68,7 @@ END
 $sn_iq$;
 
 DROP POLICY IF EXISTS "Staff can read concierge sessions" ON public.ai_concierge_sessions;
+DROP POLICY IF EXISTS "Staff can read concierge sessions in active property" ON public.ai_concierge_sessions;
 CREATE POLICY "Staff can read concierge sessions in active property"
   ON public.ai_concierge_sessions
   FOR SELECT TO authenticated
