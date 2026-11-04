@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -223,6 +223,124 @@ export type Database = {
           tone_score?: number
         }
         Relationships: []
+      }
+      ai_communication_dispatch_attempts: {
+        Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          attempt_number: number
+          channel: string
+          created_at: string
+          draft_id: string | null
+          error_code: string | null
+          error_summary: string | null
+          finished_at: string | null
+          id: string
+          idempotency_key: string
+          message_id: string
+          next_retry_at: string | null
+          property_id: string
+          provider: string
+          provider_message_id: string | null
+          request_fingerprint: string
+          response_code: number | null
+          session_id: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          approval_status: string
+          approved_at?: string | null
+          approved_by?: string | null
+          attempt_number: number
+          channel: string
+          created_at?: string
+          draft_id?: string | null
+          error_code?: string | null
+          error_summary?: string | null
+          finished_at?: string | null
+          id?: string
+          idempotency_key: string
+          message_id: string
+          next_retry_at?: string | null
+          property_id: string
+          provider: string
+          provider_message_id?: string | null
+          request_fingerprint: string
+          response_code?: number | null
+          session_id: string
+          started_at?: string
+          status: string
+        }
+        Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          attempt_number?: number
+          channel?: string
+          created_at?: string
+          draft_id?: string | null
+          error_code?: string | null
+          error_summary?: string | null
+          finished_at?: string | null
+          id?: string
+          idempotency_key?: string
+          message_id?: string
+          next_retry_at?: string | null
+          property_id?: string
+          provider?: string
+          provider_message_id?: string | null
+          request_fingerprint?: string
+          response_code?: number | null
+          session_id?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_communication_dispatch_attempts_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "ai_communication_drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_communication_dispatch_attempts_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_omnichannel_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_communication_dispatch_attempts_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_communication_dispatch_attempts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_communication_dispatch_message_property_fkey"
+            columns: ["message_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "ai_omnichannel_messages"
+            referencedColumns: ["id", "property_id"]
+          },
+          {
+            foreignKeyName: "ai_communication_dispatch_session_property_fkey"
+            columns: ["session_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_sessions"
+            referencedColumns: ["id", "property_id"]
+          },
+        ]
       }
       ai_communication_drafts: {
         Row: {
@@ -810,6 +928,7 @@ export type Database = {
           locale: string | null
           message_count: number
           page_context: Json
+          property_id: string
           referer: string | null
           session_token: string
           updated_at: string
@@ -831,6 +950,7 @@ export type Database = {
           locale?: string | null
           message_count?: number
           page_context?: Json
+          property_id: string
           referer?: string | null
           session_token: string
           updated_at?: string
@@ -852,6 +972,7 @@ export type Database = {
           locale?: string | null
           message_count?: number
           page_context?: Json
+          property_id?: string
           referer?: string | null
           session_token?: string
           updated_at?: string
@@ -877,6 +998,13 @@ export type Database = {
             columns: ["guest_id"]
             isOneToOne: false
             referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_concierge_sessions_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
             referencedColumns: ["id"]
           },
         ]
@@ -1353,6 +1481,132 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "ops_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_guest_channel_preferences: {
+        Row: {
+          captured_at: string
+          channel: string
+          consent_source: string
+          consent_status: string
+          consent_text_version: string | null
+          created_at: string
+          evidence_message_id: string | null
+          guest_id: string
+          id: string
+          property_id: string
+          purpose: string
+          updated_by: string | null
+          withdrawn_at: string | null
+        }
+        Insert: {
+          captured_at?: string
+          channel: string
+          consent_source: string
+          consent_status: string
+          consent_text_version?: string | null
+          created_at?: string
+          evidence_message_id?: string | null
+          guest_id: string
+          id?: string
+          property_id: string
+          purpose: string
+          updated_by?: string | null
+          withdrawn_at?: string | null
+        }
+        Update: {
+          captured_at?: string
+          channel?: string
+          consent_source?: string
+          consent_status?: string
+          consent_text_version?: string | null
+          created_at?: string
+          evidence_message_id?: string | null
+          guest_id?: string
+          id?: string
+          property_id?: string
+          purpose?: string
+          updated_by?: string | null
+          withdrawn_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_guest_channel_preferences_evidence_message_id_fkey"
+            columns: ["evidence_message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_omnichannel_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_guest_channel_preferences_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_guest_identity_links: {
+        Row: {
+          channel: string
+          created_at: string
+          guest_id: string
+          id: string
+          identifier_ciphertext: string | null
+          identifier_hash: string
+          identifier_type: string
+          property_id: string
+          source_message_id: string | null
+          status: string
+          verification_method: string
+          verified_at: string
+          verified_by: string | null
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          guest_id: string
+          id?: string
+          identifier_ciphertext?: string | null
+          identifier_hash: string
+          identifier_type: string
+          property_id: string
+          source_message_id?: string | null
+          status?: string
+          verification_method: string
+          verified_at: string
+          verified_by?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          guest_id?: string
+          id?: string
+          identifier_ciphertext?: string | null
+          identifier_hash?: string
+          identifier_type?: string
+          property_id?: string
+          source_message_id?: string | null
+          status?: string
+          verification_method?: string
+          verified_at?: string
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_guest_identity_links_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_guest_identity_links_source_message_id_fkey"
+            columns: ["source_message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_omnichannel_messages"
             referencedColumns: ["id"]
           },
         ]
@@ -2031,6 +2285,171 @@ export type Database = {
           },
         ]
       }
+      ai_omnichannel_delivery_events: {
+        Row: {
+          channel: string
+          dispatch_attempt_id: string | null
+          event_type: string
+          id: string
+          message_id: string
+          occurred_at: string
+          payload: Json
+          property_id: string
+          provider: string
+          provider_event_id: string
+          provider_message_id: string | null
+          received_at: string
+        }
+        Insert: {
+          channel: string
+          dispatch_attempt_id?: string | null
+          event_type: string
+          id?: string
+          message_id: string
+          occurred_at: string
+          payload?: Json
+          property_id: string
+          provider: string
+          provider_event_id: string
+          provider_message_id?: string | null
+          received_at?: string
+        }
+        Update: {
+          channel?: string
+          dispatch_attempt_id?: string | null
+          event_type?: string
+          id?: string
+          message_id?: string
+          occurred_at?: string
+          payload?: Json
+          property_id?: string
+          provider?: string
+          provider_event_id?: string
+          provider_message_id?: string | null
+          received_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_omnichannel_delivery_events_dispatch_attempt_id_fkey"
+            columns: ["dispatch_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "ai_communication_dispatch_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_omnichannel_delivery_events_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_omnichannel_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_omnichannel_delivery_events_message_property_fkey"
+            columns: ["message_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "ai_omnichannel_messages"
+            referencedColumns: ["id", "property_id"]
+          },
+          {
+            foreignKeyName: "ai_omnichannel_delivery_events_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_omnichannel_messages: {
+        Row: {
+          actor_type: string
+          actor_user_id: string | null
+          body: string | null
+          body_redacted: string | null
+          channel: string
+          client_message_id: string | null
+          created_at: string
+          direction: string
+          guest_id: string | null
+          id: string
+          message_type: string
+          metadata: Json
+          occurred_at: string
+          property_id: string
+          provider: string | null
+          provider_message_id: string | null
+          reply_to_message_id: string | null
+          session_id: string
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          actor_type: string
+          actor_user_id?: string | null
+          body?: string | null
+          body_redacted?: string | null
+          channel: string
+          client_message_id?: string | null
+          created_at?: string
+          direction: string
+          guest_id?: string | null
+          id?: string
+          message_type?: string
+          metadata?: Json
+          occurred_at?: string
+          property_id: string
+          provider?: string | null
+          provider_message_id?: string | null
+          reply_to_message_id?: string | null
+          session_id: string
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          actor_type?: string
+          actor_user_id?: string | null
+          body?: string | null
+          body_redacted?: string | null
+          channel?: string
+          client_message_id?: string | null
+          created_at?: string
+          direction?: string
+          guest_id?: string | null
+          id?: string
+          message_type?: string
+          metadata?: Json
+          occurred_at?: string
+          property_id?: string
+          provider?: string | null
+          provider_message_id?: string | null
+          reply_to_message_id?: string | null
+          session_id?: string
+          status?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_omnichannel_messages_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_omnichannel_messages_reply_to_message_id_fkey"
+            columns: ["reply_to_message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_omnichannel_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_omnichannel_messages_session_property_fkey"
+            columns: ["session_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_sessions"
+            referencedColumns: ["id", "property_id"]
+          },
+        ]
+      }
       ai_operations_alerts: {
         Row: {
           alert_type: string
@@ -2542,6 +2961,208 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ai_organisations"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_property_channel_settings: {
+        Row: {
+          approved_template_names: string[]
+          channel: string
+          created_at: string
+          enabled: boolean
+          id: string
+          inbound_enabled: boolean
+          marketing_consent_required: boolean
+          outbound_enabled: boolean
+          property_id: string
+          require_human_approval: boolean
+          sender_display_name: string | null
+          sender_email: string | null
+          sender_phone_label: string | null
+          service_consent_required: boolean
+          staff_handoff_enabled: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          approved_template_names?: string[]
+          channel: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          inbound_enabled?: boolean
+          marketing_consent_required?: boolean
+          outbound_enabled?: boolean
+          property_id: string
+          require_human_approval?: boolean
+          sender_display_name?: string | null
+          sender_email?: string | null
+          sender_phone_label?: string | null
+          service_consent_required?: boolean
+          staff_handoff_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          approved_template_names?: string[]
+          channel?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          inbound_enabled?: boolean
+          marketing_consent_required?: boolean
+          outbound_enabled?: boolean
+          property_id?: string
+          require_human_approval?: boolean
+          sender_display_name?: string | null
+          sender_email?: string | null
+          sender_phone_label?: string | null
+          service_consent_required?: boolean
+          staff_handoff_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_property_channel_settings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_provider_property_bindings: {
+        Row: {
+          channel_id: string | null
+          created_at: string
+          enabled: boolean
+          external_account_id: string
+          external_endpoint_id: string
+          id: string
+          property_id: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          channel_id?: string | null
+          created_at?: string
+          enabled?: boolean
+          external_account_id: string
+          external_endpoint_id: string
+          id?: string
+          property_id: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          channel_id?: string | null
+          created_at?: string
+          enabled?: boolean
+          external_account_id?: string
+          external_endpoint_id?: string
+          id?: string
+          property_id?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_provider_property_bindings_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_provider_property_bindings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_provider_webhook_inbox: {
+        Row: {
+          channel_id: string | null
+          event_type: string
+          external_account_id: string
+          id: string
+          last_error: string | null
+          message_id: string | null
+          normalized_event: Json
+          processed_at: string | null
+          processing_started_at: string | null
+          processing_status: string
+          property_id: string
+          provider: string
+          provider_event_id: string
+          received_at: string
+          session_id: string | null
+        }
+        Insert: {
+          channel_id?: string | null
+          event_type: string
+          external_account_id: string
+          id?: string
+          last_error?: string | null
+          message_id?: string | null
+          normalized_event: Json
+          processed_at?: string | null
+          processing_started_at?: string | null
+          processing_status?: string
+          property_id: string
+          provider: string
+          provider_event_id: string
+          received_at?: string
+          session_id?: string | null
+        }
+        Update: {
+          channel_id?: string | null
+          event_type?: string
+          external_account_id?: string
+          id?: string
+          last_error?: string | null
+          message_id?: string | null
+          normalized_event?: Json
+          processed_at?: string | null
+          processing_started_at?: string | null
+          processing_status?: string
+          property_id?: string
+          provider?: string
+          provider_event_id?: string
+          received_at?: string
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_provider_webhook_inbox_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_provider_webhook_inbox_message_property_fkey"
+            columns: ["message_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "ai_omnichannel_messages"
+            referencedColumns: ["id", "property_id"]
+          },
+          {
+            foreignKeyName: "ai_provider_webhook_inbox_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_provider_webhook_inbox_session_property_fkey"
+            columns: ["session_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_sessions"
+            referencedColumns: ["id", "property_id"]
           },
         ]
       }
@@ -3697,6 +4318,7 @@ export type Database = {
           guest_email: string | null
           id: string
           metadata: Json
+          property_id: string
           room_id: string
           session_id: string
           status: string
@@ -3711,6 +4333,7 @@ export type Database = {
           guest_email?: string | null
           id?: string
           metadata?: Json
+          property_id: string
           room_id: string
           session_id: string
           status?: string
@@ -3725,6 +4348,7 @@ export type Database = {
           guest_email?: string | null
           id?: string
           metadata?: Json
+          property_id?: string
           room_id?: string
           session_id?: string
           status?: string
@@ -3743,6 +4367,13 @@ export type Database = {
             columns: ["converted_booking_id"]
             isOneToOne: false
             referencedRelation: "ops_outstanding_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_holds_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
             referencedColumns: ["id"]
           },
           {
@@ -3840,12 +4471,15 @@ export type Database = {
           payment_status: Database["public"]["Enums"]["payment_status"]
           pesapal_merchant_reference: string | null
           pesapal_order_tracking_id: string | null
+          property_id: string
           reference: string
           room_id: string
           source: string
           special_requests: string | null
           status: Database["public"]["Enums"]["booking_status"]
           subtotal: number
+          tax_addition: number
+          tax_breakdown: Json
           taxes: number
           total: number
           updated_at: string
@@ -3887,12 +4521,15 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"]
           pesapal_merchant_reference?: string | null
           pesapal_order_tracking_id?: string | null
+          property_id: string
           reference: string
           room_id: string
           source?: string
           special_requests?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           subtotal?: number
+          tax_addition?: number
+          tax_breakdown?: Json
           taxes?: number
           total?: number
           updated_at?: string
@@ -3934,12 +4571,15 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"]
           pesapal_merchant_reference?: string | null
           pesapal_order_tracking_id?: string | null
+          property_id?: string
           reference?: string
           room_id?: string
           source?: string
           special_requests?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           subtotal?: number
+          tax_addition?: number
+          tax_breakdown?: Json
           taxes?: number
           total?: number
           updated_at?: string
@@ -3965,6 +4605,13 @@ export type Database = {
             columns: ["guest_id"]
             isOneToOne: false
             referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
             referencedColumns: ["id"]
           },
           {
@@ -4462,6 +5109,7 @@ export type Database = {
           id: string
           name: string
           price: number
+          property_id: string
           slug: string
           sort_order: number
           unit: Database["public"]["Enums"]["extra_unit"]
@@ -4474,6 +5122,7 @@ export type Database = {
           id?: string
           name: string
           price: number
+          property_id: string
           slug: string
           sort_order?: number
           unit?: Database["public"]["Enums"]["extra_unit"]
@@ -4486,11 +5135,20 @@ export type Database = {
           id?: string
           name?: string
           price?: number
+          property_id?: string
           slug?: string
           sort_order?: number
           unit?: Database["public"]["Enums"]["extra_unit"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "extras_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       financial_alerts: {
         Row: {
@@ -4752,6 +5410,7 @@ export type Database = {
           id: string
           meta: Json
           occurred_at: string
+          property_id: string
           subject: string | null
         }
         Insert: {
@@ -4765,6 +5424,7 @@ export type Database = {
           id?: string
           meta?: Json
           occurred_at?: string
+          property_id: string
           subject?: string | null
         }
         Update: {
@@ -4778,6 +5438,7 @@ export type Database = {
           id?: string
           meta?: Json
           occurred_at?: string
+          property_id?: string
           subject?: string | null
         }
         Relationships: [
@@ -4816,6 +5477,13 @@ export type Database = {
             referencedRelation: "guests"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "guest_communications_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
         ]
       }
       guest_documents: {
@@ -4834,6 +5502,7 @@ export type Database = {
           label: string | null
           meta: Json
           mime_type: string | null
+          property_id: string
           rejection_reason: string | null
           status: string
           storage_path: string | null
@@ -4857,6 +5526,7 @@ export type Database = {
           label?: string | null
           meta?: Json
           mime_type?: string | null
+          property_id: string
           rejection_reason?: string | null
           status?: string
           storage_path?: string | null
@@ -4880,6 +5550,7 @@ export type Database = {
           label?: string | null
           meta?: Json
           mime_type?: string | null
+          property_id?: string
           rejection_reason?: string | null
           status?: string
           storage_path?: string | null
@@ -4931,6 +5602,13 @@ export type Database = {
             referencedRelation: "guests"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "guest_documents_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
         ]
       }
       guest_notes: {
@@ -4944,6 +5622,7 @@ export type Database = {
           history: Json
           id: string
           is_deleted: boolean
+          property_id: string
           updated_at: string
         }
         Insert: {
@@ -4956,6 +5635,7 @@ export type Database = {
           history?: Json
           id?: string
           is_deleted?: boolean
+          property_id: string
           updated_at?: string
         }
         Update: {
@@ -4968,6 +5648,7 @@ export type Database = {
           history?: Json
           id?: string
           is_deleted?: boolean
+          property_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -4992,6 +5673,13 @@ export type Database = {
             referencedRelation: "guests"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "guest_notes_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
         ]
       }
       guest_preferences: {
@@ -5006,6 +5694,7 @@ export type Database = {
           kind: string
           last_observed_at: string | null
           observed_count: number
+          property_id: string
           severity: string | null
           source: string
           state: string
@@ -5024,6 +5713,7 @@ export type Database = {
           kind?: string
           last_observed_at?: string | null
           observed_count?: number
+          property_id: string
           severity?: string | null
           source?: string
           state?: string
@@ -5042,6 +5732,7 @@ export type Database = {
           kind?: string
           last_observed_at?: string | null
           observed_count?: number
+          property_id?: string
           severity?: string | null
           source?: string
           state?: string
@@ -5071,6 +5762,13 @@ export type Database = {
             referencedRelation: "guests"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "guest_preferences_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
         ]
       }
       guest_tag_assignments: {
@@ -5078,18 +5776,21 @@ export type Database = {
           assigned_at: string
           assigned_by: string | null
           guest_id: string
+          property_id: string
           tag_id: string
         }
         Insert: {
           assigned_at?: string
           assigned_by?: string | null
           guest_id: string
+          property_id: string
           tag_id: string
         }
         Update: {
           assigned_at?: string
           assigned_by?: string | null
           guest_id?: string
+          property_id?: string
           tag_id?: string
         }
         Relationships: [
@@ -5112,6 +5813,13 @@ export type Database = {
             columns: ["guest_id"]
             isOneToOne: false
             referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_tag_assignments_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
             referencedColumns: ["id"]
           },
           {
@@ -5288,6 +5996,329 @@ export type Database = {
             columns: ["merged_into"]
             isOneToOne: false
             referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      housekeeping_action_idempotency: {
+        Row: {
+          action_type: string
+          actor_id: string
+          created_at: string
+          id: string
+          idempotency_key: string
+          result: Json
+          task_id: string
+        }
+        Insert: {
+          action_type: string
+          actor_id: string
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          result?: Json
+          task_id: string
+        }
+        Update: {
+          action_type?: string
+          actor_id?: string
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          result?: Json
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "housekeeping_action_idempotency_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "ops_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      housekeeping_events: {
+        Row: {
+          actor_id: string | null
+          assignee_id: string | null
+          correlation_id: string | null
+          created_at: string
+          event_type: string
+          exception_id: string | null
+          id: string
+          inspection_id: string | null
+          payload: Json
+          room_state_id: string | null
+          task_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          assignee_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          event_type: string
+          exception_id?: string | null
+          id?: string
+          inspection_id?: string | null
+          payload?: Json
+          room_state_id?: string | null
+          task_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          assignee_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          event_type?: string
+          exception_id?: string | null
+          id?: string
+          inspection_id?: string | null
+          payload?: Json
+          room_state_id?: string | null
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "housekeeping_events_exception_id_fkey"
+            columns: ["exception_id"]
+            isOneToOne: false
+            referencedRelation: "housekeeping_exceptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "housekeeping_events_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "housekeeping_inspections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "housekeeping_events_room_state_id_fkey"
+            columns: ["room_state_id"]
+            isOneToOne: false
+            referencedRelation: "room_states"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "housekeeping_events_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "ops_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      housekeeping_exceptions: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          evidence: Json
+          exception_type: string
+          id: string
+          notes: string | null
+          reported_by: string
+          resolved_at: string | null
+          resolved_by: string | null
+          room_state_id: string
+          severity: number
+          status: string
+          task_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          evidence?: Json
+          exception_type: string
+          id?: string
+          notes?: string | null
+          reported_by: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          room_state_id: string
+          severity?: number
+          status?: string
+          task_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          evidence?: Json
+          exception_type?: string
+          id?: string
+          notes?: string | null
+          reported_by?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          room_state_id?: string
+          severity?: number
+          status?: string
+          task_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "housekeeping_exceptions_room_state_id_fkey"
+            columns: ["room_state_id"]
+            isOneToOne: false
+            referencedRelation: "room_states"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "housekeeping_exceptions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "ops_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      housekeeping_inspections: {
+        Row: {
+          attempt_no: number
+          checklist: Json
+          cleaning_task_id: string
+          created_at: string
+          id: string
+          idempotency_key: string | null
+          inspected_at: string | null
+          inspector_id: string | null
+          notes: string | null
+          room_state_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_no?: number
+          checklist?: Json
+          cleaning_task_id: string
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          inspected_at?: string | null
+          inspector_id?: string | null
+          notes?: string | null
+          room_state_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_no?: number
+          checklist?: Json
+          cleaning_task_id?: string
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          inspected_at?: string | null
+          inspector_id?: string | null
+          notes?: string | null
+          room_state_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "housekeeping_inspections_cleaning_task_id_fkey"
+            columns: ["cleaning_task_id"]
+            isOneToOne: false
+            referencedRelation: "ops_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "housekeeping_inspections_room_state_id_fkey"
+            columns: ["room_state_id"]
+            isOneToOne: false
+            referencedRelation: "room_states"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      housekeeping_notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          event_id: string
+          href: string | null
+          id: string
+          kind: string
+          read_at: string | null
+          recipient_user_id: string
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          event_id: string
+          href?: string | null
+          id?: string
+          kind: string
+          read_at?: string | null
+          recipient_user_id: string
+          title: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          event_id?: string
+          href?: string | null
+          id?: string
+          kind?: string
+          read_at?: string | null
+          recipient_user_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "housekeeping_notifications_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "housekeeping_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      housekeeping_transition_log: {
+        Row: {
+          actor_id: string
+          created_at: string
+          from_state: Database["public"]["Enums"]["room_state"]
+          id: string
+          idempotency_key: string
+          note: string | null
+          room_state_id: string
+          to_state: Database["public"]["Enums"]["room_state"]
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          from_state: Database["public"]["Enums"]["room_state"]
+          id?: string
+          idempotency_key: string
+          note?: string | null
+          room_state_id: string
+          to_state: Database["public"]["Enums"]["room_state"]
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          from_state?: Database["public"]["Enums"]["room_state"]
+          id?: string
+          idempotency_key?: string
+          note?: string | null
+          room_state_id?: string
+          to_state?: Database["public"]["Enums"]["room_state"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "housekeeping_transition_log_room_state_id_fkey"
+            columns: ["room_state_id"]
+            isOneToOne: false
+            referencedRelation: "room_states"
             referencedColumns: ["id"]
           },
         ]
@@ -6963,12 +7994,17 @@ export type Database = {
           assignee_id: string | null
           booking_id: string | null
           category: string | null
+          claimed_at: string | null
           completed_at: string | null
+          completed_by: string | null
           created_at: string
           description: string | null
           due_at: string | null
           id: string
           priority: number
+          property_id: string | null
+          room_state_id: string | null
+          started_at: string | null
           status: Database["public"]["Enums"]["ops_task_status"]
           task_type: string
           title: string
@@ -6979,12 +8015,17 @@ export type Database = {
           assignee_id?: string | null
           booking_id?: string | null
           category?: string | null
+          claimed_at?: string | null
           completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
           description?: string | null
           due_at?: string | null
           id?: string
           priority?: number
+          property_id?: string | null
+          room_state_id?: string | null
+          started_at?: string | null
           status?: Database["public"]["Enums"]["ops_task_status"]
           task_type: string
           title: string
@@ -6995,12 +8036,17 @@ export type Database = {
           assignee_id?: string | null
           booking_id?: string | null
           category?: string | null
+          claimed_at?: string | null
           completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
           description?: string | null
           due_at?: string | null
           id?: string
           priority?: number
+          property_id?: string | null
+          room_state_id?: string | null
+          started_at?: string | null
           status?: Database["public"]["Enums"]["ops_task_status"]
           task_type?: string
           title?: string
@@ -7021,6 +8067,20 @@ export type Database = {
             referencedRelation: "ops_outstanding_balances"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ops_tasks_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ops_tasks_room_state_id_fkey"
+            columns: ["room_state_id"]
+            isOneToOne: false
+            referencedRelation: "room_states"
+            referencedColumns: ["id"]
+          },
         ]
       }
       payment_events: {
@@ -7031,6 +8091,7 @@ export type Database = {
           currency: string | null
           event_type: string
           id: string
+          idempotency_key: string | null
           merchant_reference: string | null
           order_tracking_id: string | null
           payment_method: string | null
@@ -7045,6 +8106,7 @@ export type Database = {
           currency?: string | null
           event_type: string
           id?: string
+          idempotency_key?: string | null
           merchant_reference?: string | null
           order_tracking_id?: string | null
           payment_method?: string | null
@@ -7059,6 +8121,7 @@ export type Database = {
           currency?: string | null
           event_type?: string
           id?: string
+          idempotency_key?: string | null
           merchant_reference?: string | null
           order_tracking_id?: string | null
           payment_method?: string | null
@@ -16143,6 +17206,7 @@ export type Database = {
           features: string[]
           id: string
           name: string
+          property_id: string
           slug: string
           sort_order: number
           specifications: Json
@@ -16155,6 +17219,7 @@ export type Database = {
           features?: string[]
           id?: string
           name: string
+          property_id: string
           slug: string
           sort_order?: number
           specifications?: Json
@@ -16167,13 +17232,22 @@ export type Database = {
           features?: string[]
           id?: string
           name?: string
+          property_id?: string
           slug?: string
           sort_order?: number
           specifications?: Json
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "room_categories_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       room_inventory: {
         Row: {
@@ -16218,6 +17292,7 @@ export type Database = {
           booking_id: string | null
           created_at: string
           id: string
+          property_id: string
           room_id: string
           state: Database["public"]["Enums"]["room_state"]
           state_note: string | null
@@ -16229,6 +17304,7 @@ export type Database = {
           booking_id?: string | null
           created_at?: string
           id?: string
+          property_id: string
           room_id: string
           state?: Database["public"]["Enums"]["room_state"]
           state_note?: string | null
@@ -16240,6 +17316,7 @@ export type Database = {
           booking_id?: string | null
           created_at?: string
           id?: string
+          property_id?: string
           room_id?: string
           state?: Database["public"]["Enums"]["room_state"]
           state_note?: string | null
@@ -16263,6 +17340,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "room_states_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "room_states_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
@@ -16278,6 +17362,7 @@ export type Database = {
           bed_label: string | null
           capacity_adults: number
           capacity_children: number
+          catalogue_type_id: string | null
           category_id: string | null
           created_at: string
           currency: string
@@ -16289,6 +17374,7 @@ export type Database = {
           included_guests: number
           max_occupancy: number
           name: string
+          property_id: string
           short_description: string | null
           size_label: string | null
           slug: string
@@ -16304,6 +17390,7 @@ export type Database = {
           bed_label?: string | null
           capacity_adults?: number
           capacity_children?: number
+          catalogue_type_id?: string | null
           category_id?: string | null
           created_at?: string
           currency?: string
@@ -16315,6 +17402,7 @@ export type Database = {
           included_guests?: number
           max_occupancy?: number
           name: string
+          property_id: string
           short_description?: string | null
           size_label?: string | null
           slug: string
@@ -16330,6 +17418,7 @@ export type Database = {
           bed_label?: string | null
           capacity_adults?: number
           capacity_children?: number
+          catalogue_type_id?: string | null
           category_id?: string | null
           created_at?: string
           currency?: string
@@ -16341,6 +17430,7 @@ export type Database = {
           included_guests?: number
           max_occupancy?: number
           name?: string
+          property_id?: string
           short_description?: string | null
           size_label?: string | null
           slug?: string
@@ -16352,10 +17442,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "rooms_catalogue_type_id_fkey"
+            columns: ["catalogue_type_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_room_catalogue_types"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "rooms_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "room_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rooms_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
             referencedColumns: ["id"]
           },
         ]
@@ -16476,6 +17580,643 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      staynas_domain_verification_audit: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          details: Json
+          domain_id: string | null
+          hostname: string
+          id: string
+          property_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json
+          domain_id?: string | null
+          hostname: string
+          id?: string
+          property_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json
+          domain_id?: string | null
+          hostname?: string
+          id?: string
+          property_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staynas_domain_verification_audit_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_property_domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staynas_domain_verification_audit_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staynas_organisations: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      staynas_platform_admins: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      staynas_guest_requests: {
+        Row: {
+          booking_id: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          dispatched_at: string | null
+          dispatched_by: string | null
+          guest_contact: string | null
+          guest_id: string | null
+          guest_name: string | null
+          id: string
+          intake_channel: string
+          metadata: Json
+          operational_task_id: string | null
+          priority: number
+          property_id: string
+          request_text: string
+          requested_for: string | null
+          session_id: string | null
+          status: string
+          status_note: string | null
+          status_updated_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          booking_id?: string | null
+          category: string
+          created_at?: string
+          created_by?: string | null
+          dispatched_at?: string | null
+          dispatched_by?: string | null
+          guest_contact?: string | null
+          guest_id?: string | null
+          guest_name?: string | null
+          id?: string
+          intake_channel?: string
+          metadata?: Json
+          operational_task_id?: string | null
+          priority?: number
+          property_id: string
+          request_text: string
+          requested_for?: string | null
+          session_id?: string | null
+          status?: string
+          status_note?: string | null
+          status_updated_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          dispatched_at?: string | null
+          dispatched_by?: string | null
+          guest_contact?: string | null
+          guest_id?: string | null
+          guest_name?: string | null
+          id?: string
+          intake_channel?: string
+          metadata?: Json
+          operational_task_id?: string | null
+          priority?: number
+          property_id?: string
+          request_text?: string
+          requested_for?: string | null
+          session_id?: string | null
+          status?: string
+          status_note?: string | null
+          status_updated_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staynas_guest_requests_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staynas_guest_requests_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staynas_guest_requests_operational_task_id_fkey"
+            columns: ["operational_task_id"]
+            isOneToOne: false
+            referencedRelation: "ops_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staynas_guest_requests_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staynas_guest_requests_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_concierge_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staynas_properties: {
+        Row: {
+          code: string
+          created_at: string
+          currency: string | null
+          id: string
+          name: string
+          organisation_id: string
+          slug: string
+          status: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          currency?: string | null
+          id?: string
+          name: string
+          organisation_id: string
+          slug: string
+          status?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          currency?: string | null
+          id?: string
+          name?: string
+          organisation_id?: string
+          slug?: string
+          status?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staynas_properties_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staynas_property_domains: {
+        Row: {
+          created_at: string
+          hostname: string
+          id: string
+          is_primary: boolean
+          last_checked_at: string | null
+          last_verification_error: string | null
+          property_id: string
+          updated_at: string
+          verification_method: string
+          verification_status: string
+          verification_token: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          hostname: string
+          id?: string
+          is_primary?: boolean
+          last_checked_at?: string | null
+          last_verification_error?: string | null
+          property_id: string
+          updated_at?: string
+          verification_method?: string
+          verification_status?: string
+          verification_token?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          hostname?: string
+          id?: string
+          is_primary?: boolean
+          last_checked_at?: string | null
+          last_verification_error?: string | null
+          property_id?: string
+          updated_at?: string
+          verification_method?: string
+          verification_status?: string
+          verification_token?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staynas_property_domains_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staynas_property_integrations: {
+        Row: {
+          created_at: string
+          credential_reference: string | null
+          enabled: boolean
+          environment: string
+          id: string
+          property_id: string
+          provider: string
+          public_config: Json
+          purpose: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credential_reference?: string | null
+          enabled?: boolean
+          environment?: string
+          id?: string
+          property_id: string
+          provider: string
+          public_config?: Json
+          purpose: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credential_reference?: string | null
+          enabled?: boolean
+          environment?: string
+          id?: string
+          property_id?: string
+          provider?: string
+          public_config?: Json
+          purpose?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staynas_property_integrations_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staynas_property_members: {
+        Row: {
+          created_at: string
+          property_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          property_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          property_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staynas_property_members_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staynas_property_tax_rules: {
+        Row: {
+          active: boolean
+          applies_to: string
+          calculation_type: string
+          created_at: string
+          currency: string | null
+          id: string
+          is_compound: boolean
+          name: string
+          property_id: string
+          rate: number
+          tax_code: string | null
+          updated_at: string
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          active?: boolean
+          applies_to?: string
+          calculation_type: string
+          created_at?: string
+          currency?: string | null
+          id?: string
+          is_compound?: boolean
+          name: string
+          property_id: string
+          rate: number
+          tax_code?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          active?: boolean
+          applies_to?: string
+          calculation_type?: string
+          created_at?: string
+          currency?: string | null
+          id?: string
+          is_compound?: boolean
+          name?: string
+          property_id?: string
+          rate?: number
+          tax_code?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staynas_property_tax_rules_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staynas_room_catalogue_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          features: string[]
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+          specifications: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          features?: string[]
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+          specifications?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          features?: string[]
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+          specifications?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      staynas_room_catalogue_types: {
+        Row: {
+          bathroom_label: string | null
+          bed_label: string | null
+          capacity_adults: number
+          capacity_children: number
+          category_id: string | null
+          created_at: string
+          gallery_urls: string[]
+          hero_line: string | null
+          id: string
+          image_url: string | null
+          max_occupancy: number
+          name: string
+          short_description: string | null
+          size_label: string | null
+          slug: string
+          sort_order: number
+          status: string
+          updated_at: string
+          view_label: string | null
+        }
+        Insert: {
+          bathroom_label?: string | null
+          bed_label?: string | null
+          capacity_adults?: number
+          capacity_children?: number
+          category_id?: string | null
+          created_at?: string
+          gallery_urls?: string[]
+          hero_line?: string | null
+          id?: string
+          image_url?: string | null
+          max_occupancy?: number
+          name: string
+          short_description?: string | null
+          size_label?: string | null
+          slug: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+          view_label?: string | null
+        }
+        Update: {
+          bathroom_label?: string | null
+          bed_label?: string | null
+          capacity_adults?: number
+          capacity_children?: number
+          category_id?: string | null
+          created_at?: string
+          gallery_urls?: string[]
+          hero_line?: string | null
+          id?: string
+          image_url?: string | null
+          max_occupancy?: number
+          name?: string
+          short_description?: string | null
+          size_label?: string | null
+          slug?: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+          view_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staynas_room_catalogue_types_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_room_catalogue_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staynas_staff_schedules: {
+        Row: {
+          created_at: string
+          created_by: string
+          ends_at: string
+          id: string
+          notes: string | null
+          property_id: string
+          staff_user_id: string
+          starts_at: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          ends_at: string
+          id?: string
+          notes?: string | null
+          property_id: string
+          staff_user_id: string
+          starts_at: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          ends_at?: string
+          id?: string
+          notes?: string | null
+          property_id?: string
+          staff_user_id?: string
+          starts_at?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staynas_staff_schedules_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staynas_user_property_context: {
+        Row: {
+          property_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          property_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          property_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staynas_user_property_context_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       suppressed_emails: {
         Row: {
@@ -17016,6 +18757,40 @@ export type Database = {
       }
     }
     Functions: {
+      get_room_availability: {
+        Args: { _check_in: string; _check_out: string }
+        Returns: {
+          base_price: number
+          capacity_adults: number
+          capacity_children: number
+          currency: string
+          is_available: boolean
+          max_occupancy: number
+          min_available: number
+          name: string
+          nightly_total: number
+          nights: number
+          room_id: string
+          slug: string
+        }[]
+      }
+      staynas_dispatch_guest_request: {
+        Args: { _assignee_id?: string; _due_at?: string; _request_id: string }
+        Returns: { request_id: string; task_id: string; task_category: string; task_status: string }[]
+      }
+      staynas_dispatch_housekeeping_request: {
+        Args: { _request_id: string }
+        Returns: { request_id: string; task_id: string; request_status: string; task_status: string }[]
+      }
+      staynas_update_guest_request_status: {
+        Args: { _note?: string; _request_id: string; _status: string }
+        Returns: { request_id: string; request_status: string; task_id: string | null; task_status: string | null }[]
+      }
+      staynas_update_guest_task_execution: {
+        Args: { _action: string; _assignee_id?: string; _note?: string; _task_id: string }
+        Returns: { task_id: string; task_status: string; request_id: string | null; request_status: string | null }[]
+      }
+
       ai_knowledge_sources_search: {
         Args: { _limit?: number; _query: string }
         Returns: {
@@ -17040,6 +18815,17 @@ export type Database = {
       arrival_pass_fetch: { Args: { _pass_token: string }; Returns: Json }
       arrival_pass_validate: {
         Args: { _client?: Json; _pass_token: string }
+        Returns: Json
+      }
+      calculate_staynas_booking_taxes: {
+        Args: {
+          _accommodation_subtotal: number
+          _currency: string
+          _extras_total: number
+          _nights: number
+          _property_id: string
+          _service_date: string
+        }
         Returns: Json
       }
       checkin_eligibility: { Args: { _booking_id: string }; Returns: Json }
@@ -17183,11 +18969,110 @@ export type Database = {
               total: number
             }[]
           }
+        | {
+            Args: {
+              _adults: number
+              _check_in: string
+              _check_out: string
+              _children: number
+              _children_7_plus: number
+              _children_below_6: number
+              _country: string
+              _extras: Json
+              _guest_email: string
+              _guest_name: string
+              _guest_phone: string
+              _hold_id: string
+              _property_id: string
+              _room_slug: string
+              _session_id: string
+              _special_requests: string
+            }
+            Returns: {
+              booking_id: string
+              currency: string
+              reference: string
+              total: number
+            }[]
+          }
+      create_booking_for_property:
+        | {
+            Args: {
+              _adults: number
+              _check_in: string
+              _check_out: string
+              _children: number
+              _children_7_plus?: number
+              _children_below_6?: number
+              _country: string
+              _extras?: Json
+              _guest_email: string
+              _guest_name: string
+              _guest_phone: string
+              _hold_id?: string
+              _property_id: string
+              _room_slug: string
+              _session_id?: string
+              _special_requests: string
+            }
+            Returns: {
+              booking_id: string
+              currency: string
+              reference: string
+              total: number
+            }[]
+          }
+        | {
+            Args: {
+              _adults: number
+              _check_in: string
+              _check_out: string
+              _children: number
+              _children_7_plus?: number
+              _children_below_6?: number
+              _country: string
+              _extras?: Json
+              _guest_email: string
+              _guest_name: string
+              _guest_phone: string
+              _hold_id?: string
+              _payment_method?: string
+              _property_id: string
+              _room_slug: string
+              _session_id?: string
+              _special_requests: string
+            }
+            Returns: {
+              booking_id: string
+              currency: string
+              reference: string
+              tax_addition: number
+              tax_breakdown: Json
+              taxes: number
+              total: number
+            }[]
+          }
       create_booking_hold: {
         Args: {
           _check_in: string
           _check_out: string
           _guest_email?: string
+          _room_slug: string
+          _session_id: string
+          _ttl_seconds?: number
+        }
+        Returns: {
+          expires_at: string
+          hold_id: string
+          room_id: string
+        }[]
+      }
+      create_booking_hold_for_property: {
+        Args: {
+          _check_in: string
+          _check_out: string
+          _guest_email?: string
+          _property_id: string
           _room_slug: string
           _session_id: string
           _ttl_seconds?: number
@@ -17217,6 +19102,19 @@ export type Database = {
         Returns: number
       }
       expire_booking_holds: { Args: never; Returns: number }
+      finalize_pesapal_payment: {
+        Args: {
+          _amount: number
+          _booking_id: string
+          _currency: string
+          _invoice_number: string
+          _method: string
+          _order_tracking_id: string
+          _raw: Json
+          _source: string
+        }
+        Returns: Json
+      }
       find_duplicate_guests: {
         Args: never
         Returns: {
@@ -17225,6 +19123,17 @@ export type Database = {
           match_type: string
           sample_emails: string[]
           sample_names: string[]
+        }[]
+      }
+      get_booking_hold_for_property: {
+        Args: { _hold_id: string; _property_id: string; _session_id: string }
+        Returns: {
+          check_in: string
+          check_out: string
+          expires_at: string
+          id: string
+          room_id: string
+          status: string
         }[]
       }
       get_booking_hold_for_session: {
@@ -17246,8 +19155,47 @@ export type Database = {
           source: Database["public"]["Enums"]["review_source"]
         }[]
       }
-      get_room_availability: {
-        Args: { _check_in: string; _check_out: string }
+      get_room_availability:
+        | {
+            Args: { _check_in: string; _check_out: string }
+            Returns: {
+              base_price: number
+              capacity_adults: number
+              capacity_children: number
+              currency: string
+              is_available: boolean
+              max_occupancy: number
+              min_available: number
+              name: string
+              nightly_total: number
+              nights: number
+              room_id: string
+              slug: string
+            }[]
+          }
+        | {
+            Args: {
+              _check_in: string
+              _check_out: string
+              _property_id: string
+            }
+            Returns: {
+              base_price: number
+              capacity_adults: number
+              capacity_children: number
+              currency: string
+              is_available: boolean
+              max_occupancy: number
+              min_available: number
+              name: string
+              nightly_total: number
+              nights: number
+              room_id: string
+              slug: string
+            }[]
+          }
+      get_room_availability_for_property: {
+        Args: { _check_in: string; _check_out: string; _property_id: string }
         Returns: {
           base_price: number
           capacity_adults: number
@@ -17276,6 +19224,447 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      housekeeping_assign_task: {
+        Args: { _assignee_id: string; _task_id: string }
+        Returns: {
+          assigned_to: string | null
+          assignee_id: string | null
+          booking_id: string | null
+          category: string | null
+          claimed_at: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          description: string | null
+          due_at: string | null
+          id: string
+          priority: number
+          property_id: string | null
+          room_state_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["ops_task_status"]
+          task_type: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ops_tasks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      housekeeping_checklist_template: { Args: never; Returns: Json }
+      housekeeping_claim_task:
+        | {
+            Args: { _task_id: string }
+            Returns: {
+              assigned_to: string | null
+              assignee_id: string | null
+              booking_id: string | null
+              category: string | null
+              claimed_at: string | null
+              completed_at: string | null
+              completed_by: string | null
+              created_at: string
+              description: string | null
+              due_at: string | null
+              id: string
+              priority: number
+              property_id: string | null
+              room_state_id: string | null
+              started_at: string | null
+              status: Database["public"]["Enums"]["ops_task_status"]
+              task_type: string
+              title: string
+              updated_at: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "ops_tasks"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { _idempotency_key?: string; _task_id: string }
+            Returns: {
+              assigned_to: string | null
+              assignee_id: string | null
+              booking_id: string | null
+              category: string | null
+              claimed_at: string | null
+              completed_at: string | null
+              completed_by: string | null
+              created_at: string
+              description: string | null
+              due_at: string | null
+              id: string
+              priority: number
+              property_id: string | null
+              room_state_id: string | null
+              started_at: string | null
+              status: Database["public"]["Enums"]["ops_task_status"]
+              task_type: string
+              title: string
+              updated_at: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "ops_tasks"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      housekeeping_complete_task: {
+        Args: { _idempotency_key?: string; _note?: string; _task_id: string }
+        Returns: {
+          assigned_to: string | null
+          assignee_id: string | null
+          booking_id: string | null
+          category: string | null
+          claimed_at: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          description: string | null
+          due_at: string | null
+          id: string
+          priority: number
+          property_id: string | null
+          room_state_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["ops_task_status"]
+          task_type: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ops_tasks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      housekeeping_get_dashboard: {
+        Args: never
+        Returns: {
+          active_tasks: number
+          avg_cleaning_minutes: number
+          exceptions_open: number
+          failed_inspections_today: number
+          in_progress_tasks: number
+          inspection_pending: number
+          overdue_tasks: number
+          rooms_ready: number
+          unassigned_tasks: number
+        }[]
+      }
+      housekeeping_is_supervisor: { Args: { _uid: string }; Returns: boolean }
+      housekeeping_list_exceptions: {
+        Args: { _open_only?: boolean; _room_state_id?: string }
+        Returns: {
+          assigned_to: string
+          created_at: string
+          evidence: Json
+          exception_type: string
+          id: string
+          notes: string
+          reported_by: string
+          resolved_at: string
+          resolved_by: string
+          room_name: string
+          room_state_id: string
+          severity: number
+          status: string
+          task_id: string
+          title: string
+          unit_label: string
+        }[]
+      }
+      housekeeping_list_inspection_queue: {
+        Args: never
+        Returns: {
+          attempt_no: number
+          booking_id: string
+          booking_reference: string
+          checklist: Json
+          cleaning_task_id: string
+          completed_at: string
+          guest_name: string
+          inspection_id: string
+          notes: string
+          room_id: string
+          room_name: string
+          room_state_id: string
+          status: string
+          unit_label: string
+        }[]
+      }
+      housekeeping_list_intelligence: {
+        Args: never
+        Returns: {
+          booking_id: string
+          confidence: number
+          priority: string
+          reasoning: string
+          room_id: string
+          signal_type: string
+          title: string
+        }[]
+      }
+      housekeeping_list_notifications: {
+        Args: { _limit?: number }
+        Returns: {
+          body: string
+          created_at: string
+          event_id: string
+          href: string
+          id: string
+          kind: string
+          read_at: string
+          title: string
+        }[]
+      }
+      housekeeping_list_staff: {
+        Args: never
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
+      housekeeping_list_work: {
+        Args: { _include_completed?: boolean; _mine_only?: boolean }
+        Returns: {
+          assignee_id: string
+          booking_id: string
+          booking_reference: string
+          claimed_at: string
+          completed_at: string
+          description: string
+          due_at: string
+          guest_name: string
+          id: string
+          priority: number
+          room_id: string
+          room_name: string
+          room_state_id: string
+          started_at: string
+          status: Database["public"]["Enums"]["ops_task_status"]
+          title: string
+          unit_label: string
+        }[]
+      }
+      housekeeping_mark_notification_read: {
+        Args: { _id: string }
+        Returns: {
+          body: string | null
+          created_at: string
+          event_id: string
+          href: string | null
+          id: string
+          kind: string
+          read_at: string | null
+          recipient_user_id: string
+          title: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "housekeeping_notifications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      housekeeping_record_event: {
+        Args: {
+          _actor_id?: string
+          _assignee_id?: string
+          _correlation_id?: string
+          _event_type: string
+          _exception_id?: string
+          _inspection_id?: string
+          _payload?: Json
+          _room_state_id?: string
+          _task_id?: string
+        }
+        Returns: string
+      }
+      housekeeping_report_exception: {
+        Args: {
+          _evidence?: Json
+          _exception_type: string
+          _notes?: string
+          _room_state_id: string
+          _severity?: number
+          _task_id: string
+          _title: string
+        }
+        Returns: {
+          assigned_to: string | null
+          created_at: string
+          evidence: Json
+          exception_type: string
+          id: string
+          notes: string | null
+          reported_by: string
+          resolved_at: string | null
+          resolved_by: string | null
+          room_state_id: string
+          severity: number
+          status: string
+          task_id: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "housekeeping_exceptions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      housekeeping_resolve_exception: {
+        Args: { _exception_id: string; _resolution?: string }
+        Returns: {
+          assigned_to: string | null
+          created_at: string
+          evidence: Json
+          exception_type: string
+          id: string
+          notes: string | null
+          reported_by: string
+          resolved_at: string | null
+          resolved_by: string | null
+          room_state_id: string
+          severity: number
+          status: string
+          task_id: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "housekeeping_exceptions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      housekeeping_start_task:
+        | {
+            Args: { _task_id: string }
+            Returns: {
+              assigned_to: string | null
+              assignee_id: string | null
+              booking_id: string | null
+              category: string | null
+              claimed_at: string | null
+              completed_at: string | null
+              completed_by: string | null
+              created_at: string
+              description: string | null
+              due_at: string | null
+              id: string
+              priority: number
+              property_id: string | null
+              room_state_id: string | null
+              started_at: string | null
+              status: Database["public"]["Enums"]["ops_task_status"]
+              task_type: string
+              title: string
+              updated_at: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "ops_tasks"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { _idempotency_key?: string; _task_id: string }
+            Returns: {
+              assigned_to: string | null
+              assignee_id: string | null
+              booking_id: string | null
+              category: string | null
+              claimed_at: string | null
+              completed_at: string | null
+              completed_by: string | null
+              created_at: string
+              description: string | null
+              due_at: string | null
+              id: string
+              priority: number
+              property_id: string | null
+              room_state_id: string | null
+              started_at: string | null
+              status: Database["public"]["Enums"]["ops_task_status"]
+              task_type: string
+              title: string
+              updated_at: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "ops_tasks"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      housekeeping_submit_inspection: {
+        Args: {
+          _checklist: Json
+          _idempotency_key?: string
+          _inspection_id: string
+          _notes?: string
+          _passed: boolean
+        }
+        Returns: {
+          attempt_no: number
+          checklist: Json
+          cleaning_task_id: string
+          created_at: string
+          id: string
+          idempotency_key: string | null
+          inspected_at: string | null
+          inspector_id: string | null
+          notes: string | null
+          room_state_id: string
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "housekeeping_inspections"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      housekeeping_transition_room_state: {
+        Args: {
+          _idempotency_key?: string
+          _note?: string
+          _room_state_id: string
+          _to_state: Database["public"]["Enums"]["room_state"]
+        }
+        Returns: {
+          booking_id: string | null
+          created_at: string
+          id: string
+          property_id: string
+          room_id: string
+          state: Database["public"]["Enums"]["room_state"]
+          state_note: string | null
+          unit_label: string
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "room_states"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       is_any_staff: { Args: { _user_id: string }; Returns: boolean }
       is_guest_pii_staff: { Args: { _user_id: string }; Returns: boolean }
@@ -17346,8 +19735,23 @@ export type Database = {
         }
         Returns: Json
       }
+      record_booking_payment: {
+        Args: {
+          _amount: number
+          _booking_id: string
+          _event_type: string
+          _idempotency_key: string
+          _method: string
+          _note: string
+        }
+        Returns: Json
+      }
       release_booking_hold: {
         Args: { _hold_id: string; _session_id: string }
+        Returns: boolean
+      }
+      release_booking_hold_for_property: {
+        Args: { _hold_id: string; _property_id: string; _session_id: string }
         Returns: boolean
       }
       restaurant_can_read: { Args: { _tenant_id: string }; Returns: boolean }
@@ -17402,6 +19806,129 @@ export type Database = {
           _to: string
         }
         Returns: number
+      }
+      staynas_active_property_id: { Args: { _uid?: string }; Returns: string }
+      staynas_ai_property_in_active_context: {
+        Args: {
+          p_allowed_roles: Database["public"]["Enums"]["app_role"][]
+          p_property_id: string
+        }
+        Returns: boolean
+      }
+      staynas_ai_session_in_active_property: {
+        Args: {
+          p_allowed_roles: Database["public"]["Enums"]["app_role"][]
+          p_session_id: string
+        }
+        Returns: boolean
+      }
+      staynas_booking_property_id:
+        | { Args: never; Returns: string }
+        | { Args: { _hostname: string }; Returns: string }
+      staynas_calendar_audit_events: {
+        Args: {
+          _from: string
+          _limit?: number
+          _property_id: string
+          _to: string
+        }
+        Returns: {
+          actor_id: string
+          booking_id: string
+          created_at: string
+          date_from: string
+          date_to: string
+          event_type: string
+          hold_id: string
+          id: string
+          payload: Json
+          room_id: string
+        }[]
+      }
+      staynas_calendar_list_staff: {
+        Args: { _property_id: string }
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
+      staynas_calendar_operational_events: {
+        Args: { _from: string; _property_id: string; _to: string }
+        Returns: {
+          all_day: boolean
+          assignee_id: string
+          booking_id: string
+          description: string
+          ends_at: string
+          event_kind: string
+          id: string
+          room_id: string
+          room_state_id: string
+          source_id: string
+          source_type: string
+          starts_at: string
+          status: string
+          title: string
+        }[]
+      }
+      staynas_current_property_role: { Args: never; Returns: string }
+      staynas_guest_is_accessible: {
+        Args: { _guest_id: string; _uid: string }
+        Returns: boolean
+      }
+      staynas_list_properties: {
+        Args: never
+        Returns: {
+          code: string
+          currency: string
+          id: string
+          is_active: boolean
+          name: string
+          organisation_id: string
+          organisation_name: string
+          slug: string
+          status: string
+          timezone: string
+        }[]
+      }
+      staynas_process_provider_inbound: {
+        Args: {
+          p_body: string
+          p_channel: string
+          p_external_contact: string
+          p_guest_name: string
+          p_message_type: string
+          p_occurred_at: string
+          p_property_id: string
+          p_provider: string
+          p_provider_event_id: string
+          p_provider_message_id: string
+          p_safe_payload: Json
+          p_subject: string
+        }
+        Returns: {
+          duplicate: boolean
+          message_id: string
+          session_id: string
+        }[]
+      }
+      staynas_set_active_property: {
+        Args: { _property_id: string }
+        Returns: {
+          property_id: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "staynas_user_property_context"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      staynas_user_has_property_access: {
+        Args: { _property_id: string; _uid: string }
+        Returns: boolean
       }
       system_observability_trim: { Args: never; Returns: undefined }
     }
