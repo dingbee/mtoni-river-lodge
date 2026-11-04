@@ -78,7 +78,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent side="left" className="staynas-mobile-sheet mtoni-os w-72 border-0 p-0 bg-[color:var(--os-canvas)] text-[color:var(--os-ink)]"\n            showCloseButton={false}>
+          <SheetContent side="left" className="staynas-mobile-sheet mtoni-os w-72 border-0 p-0 bg-[color:var(--os-canvas)] text-[color:var(--os-ink)]"
+            showCloseButton={false}>
             <AdminSidebar collapsed={false} roles={roles} mobile onNavigate={() => setMobileOpen(false)} />
           </SheetContent>
         </Sheet>
