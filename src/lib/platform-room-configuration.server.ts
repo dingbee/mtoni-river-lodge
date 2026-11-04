@@ -90,6 +90,7 @@ export const savePlatformRoomType = createServerFn({ method: "POST" })
     if (existingError) throw new Error(existingError.message);
     const { data: property, error: propertyError } = await sb.from("staynas_properties").select("currency").eq("id",propertyId).single();
     if (propertyError) throw new Error(propertyError.message);
+    if (!existing && !property.currency) throw new Error("Configure the property currency before creating room types");
     const payload = {
       property_id:propertyId, category_id:data.categoryId ?? null, slug:data.slug, name:data.name,
       short_name:data.shortName || null, room_number_label:data.roomNumberLabel || null,
