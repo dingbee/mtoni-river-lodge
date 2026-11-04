@@ -2,10 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { callAiGateway, parseAiJson } from "@/lib/ai-gateway.server";
-import { requireStayNasCoreStaffAccess } from "@/lib/staynas-authorization.server";
+import { requireStayNasFounderAdmin } from "@/lib/staynas-authorization.server";
 
 async function assertStaff(supabase: any, userId: string) {
-  await requireStayNasCoreStaffAccess(supabase, userId);
+  await requireStayNasFounderAdmin(supabase, userId);
 }
 
 async function callAI(system: string, user: string, expectJson = false): Promise<string> {
