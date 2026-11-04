@@ -26,6 +26,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
+      # TanStack Start generates routeTree.gen.ts during the Vite build.
       - name: TypeScript verification
         run: bunx tsc --noEmit
       - name: Finance and reservation lint
