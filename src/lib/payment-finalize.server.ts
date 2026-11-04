@@ -1,5 +1,41 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { Json } from "@/integrations/supabase/types";
 import { getPesapalTransactionStatus, classifyStatus } from "./pesapal.server";
+
+
+type FinalizeRpcResult = Promise<{
+  data: { ok: boolean; duplicate: boolean } | null;
+  error: { message: string; code?: string } | null;
+}>;
+
+interface PaymentFinalizeRpcClient {
+  rpc(
+    fn: "finalize_pesapal_payment",
+    args: {
+      _booking_id: string;
+      _order_tracking_id: string;
+      _amount: number;
+      _currency: string;
+      _method: string | null;
+      _source: "ipn" | "status_check";
+      _invoice_number: string;
+      _raw: Json;
+    },
+  ): FinalizeRpcResult;
+  rpc(
+    fn: "finalize_pesapal_reversal",
+    args: {
+      _booking_id: string;
+      _order_tracking_id: string;
+      _amount: number;
+      _currency: string;
+      _source: "ipn" | "status_check";
+      _raw: Json;
+    },
+  ): FinalizeRpcResult;
+}
+
+const paymentFinalizeRpc = supabaseAdmin as unknown as PaymentFinalizeRpcClient;
 
 export type FinalizeOutcome =
   | "pending"
@@ -44,7 +80,7 @@ export async function verifyAndFinalizePayment(opts: {
   const status = await getPesapalTransactionStatus(opts.orderTrackingId);
   const outcome = classifyStatus(status.status_code);
   const paymentMethod = status.payment_method ?? null;
-  const raw = JSON.parse(JSON.stringify(status));
+  const raw = JSON.parse(JSON.stringify(status)) as Json;
 
   if (outcome === "completed") {
     const expected = Number(booking.deposit_amount);
@@ -101,7 +137,7 @@ export async function verifyAndFinalizePayment(opts: {
     }
 
     const invoiceNumber = booking.invoice_number ?? makeInvoiceNumber(booking.reference);
-    const { data: result, error: finalizeError } = await (supabaseAdmin as any).rpc(
+    const { data: result, error: finalizeError } = await paymentFinalizeRpc.rpc(
       "finalize_pesapal_payment",
       {
         _booking_id: booking.id,

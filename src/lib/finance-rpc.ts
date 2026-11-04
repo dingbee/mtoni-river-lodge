@@ -27,6 +27,6 @@ interface FinanceRpcContract {
   ): RpcResult<RecordBookingPaymentResult>;
 }
 
-export function financeRpc(client: SupabaseClient<any>): FinanceRpcContract {
+export function financeRpc(client: SupabaseClient): FinanceRpcContract {
   return client as unknown as FinanceRpcContract;
 }
