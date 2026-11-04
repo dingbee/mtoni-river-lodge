@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json } from "@/integrations/supabase/types";
 
 export type ActivityLogEntry = {
   id: string;
@@ -10,9 +11,9 @@ export type ActivityLogEntry = {
   entity_type: string;
   entity_id: string | null;
   entity_label: string | null;
-  metadata: Record<string, any>;
-  previous_value: unknown;
-  new_value: unknown;
+  metadata: Json;
+  previous_value: Json | null;
+  new_value: Json | null;
   ip_address: string | null;
   user_agent: string | null;
   module: string | null;
