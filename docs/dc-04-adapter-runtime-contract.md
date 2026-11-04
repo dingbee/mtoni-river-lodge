@@ -1,6 +1,6 @@
 # StayNas DC-04 — Provider-Neutral Adapter Runtime
 
-Status: DC-04.3 lifecycle/error/health contracts and DC-04.4 pure tenant-context authorization policy implemented; current-head CI verification pending. No provider connection, credential write, database migration, or deployment is authorised by this artifact.
+Status: DC-04.1–04.4 contract implementation complete; DC-04.5 readiness review BLOCKED pending platform prerequisites and current-head CI. No provider activation is permitted. No provider connection, credential write, database migration, or deployment is authorised by this artifact.
 
 ## Objective
 
@@ -186,13 +186,33 @@ DC-04 may define types, pure validation, mock adapters, and contract tests while
 - `authorization.test.ts` covers valid resolution, inactive principals, cross-tenant membership, wrong-property grants, environment mismatch, suspended connections, missing credential references and platform-admin boundaries.
 - This is a pure policy boundary. It does not yet load database records, enforce database RLS, resolve credentials, or prove that any caller is authorized to supply the records. Those responsibilities remain for a server-side integration and security review.
 
+### DC-04.5 readiness review
+
+**Decision: NOT READY for provider activation.** The provider-neutral contract layer is implemented, but the operational trust and durability boundaries are not certified.
+
+| Gate | Finding | Status |
+|---|---|---|
+| Adapter manifest, registry and capability contracts | Pure code registry and mock tests added | Implemented; CI pending |
+| Lifecycle, safe errors and health assessment | Pure policy and tests added; no worker or persisted health evidence | Partial |
+| Tenant execution context | Pure fail-closed policy; no trusted database loader or RLS-backed resolver | Partial |
+| External account ownership and property grants | Existing integration table does not represent these relationships | Blocked |
+| Connection persistence and lifecycle audit | Existing integration table lacks lifecycle, actor-attributed transitions and audit history | Blocked |
+| Credential broker | No verified server-only resolver with connection, tenant and environment isolation | Blocked |
+| Rate-plan and room mapping | Canonical distribution mapping contract not certified | Blocked |
+| Inventory/reservation boundary | DC-03R RPC mismatch and allocation race remain unresolved | Blocked |
+| Durable operation evidence | Distribution operation inbox/outbox and idempotent operation ledger not certified | Blocked |
+
+**Activation rule:** no adapter may perform listing, room/rate mapping, availability, or reservation operations until the blocked gates are implemented and independently verified. In particular, DC-03R must be remediated before any availability or reservation capability is enabled. A service-role credential alone must never authorize tenant scope.
+
+DC-04 is therefore complete as a provider-neutral contract and policy foundation only. It is not a production-ready distribution runtime, and no provider is registered or connected.
+
 ## Execution sequence
 
 - DC-04.1 — Repository and schema baseline (this document).
 - DC-04.2 — Pure adapter and capability contracts with mock registry.
 - DC-04.3 — Connection lifecycle and normalized error/health contracts.
 - DC-04.4 — Security and tenant-context contract tests.
-- DC-04.5 — Readiness review; no provider activation until dependencies are certified.
+- DC-04.5 — Readiness review completed: NOT READY; activation blocked by the gates above.
 
 ## DC-04.4 implementation artifacts
 
