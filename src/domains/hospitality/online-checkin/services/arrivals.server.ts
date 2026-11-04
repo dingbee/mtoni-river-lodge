@@ -61,7 +61,13 @@ export async function logStaffEvent(
   },
 ) {
   try {
+    const { data: propertyContext } = await supabase
+      .from("staynas_user_property_context")
+      .select("property_id")
+      .eq("user_id", userId)
+      .maybeSingle();
     await supabase.from("activity_logs").insert({
+      property_id: propertyContext?.property_id ?? null,
       actor_id: userId,
       actor_email: claims?.email ?? null,
       action: event.action,
