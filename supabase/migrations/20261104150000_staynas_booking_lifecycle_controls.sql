@@ -152,7 +152,7 @@ begin
       where id = v_room_state.id;
 
       insert into public.ops_tasks (
-        booking_id, room_state_id, task_type, category, title, priority, status, due_at
+        property_id, booking_id, room_state_id, task_type, category, title, priority, status, due_at
       ) values (
         v_booking.property_id, v_booking.id, v_room_state.id, 'housekeeping', 'housekeeping',
         'Clean ' || v_room_state.unit_label || ' after ' || v_booking.guest_name,
