@@ -3365,6 +3365,10 @@ create policy "Founder admins manage AI feedback" on public.ai_feedback
   using (public.is_staynas_founder_ai_admin())
   with check (public.is_staynas_founder_ai_admin());
 
+create policy "Users submit own AI feedback" on public.ai_feedback
+  for insert to authenticated
+  with check (user_id = auth.uid());
+
 -- Trigger-only SECURITY DEFINER functions are not PostgREST RPC surfaces.
 -- Remove inherited direct grants while preserving automatic trigger execution.
 REVOKE ALL ON FUNCTION public.bookings_link_guest() FROM PUBLIC, anon, authenticated;
