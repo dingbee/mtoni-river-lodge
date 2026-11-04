@@ -3143,7 +3143,6 @@ grant execute on function public.is_any_staff(uuid) to service_role;
 grant execute on function public.is_staff(uuid) to service_role;
 grant execute on function public.current_user_roles() to service_role;
 
-commit;
  THEN
     RAISE EXCEPTION 'Valid property hostname is required';
   END IF;
