@@ -82,7 +82,7 @@ function ConversationsPage() {
           {list.data?.length === 0 && (
             <p className="p-3 text-sm text-muted-foreground">No conversations yet.</p>
           )}
-          {list.data?.map((s: any) => (
+          {list.data?.map((s) => (
             <div key={s.id} className="flex items-center justify-between px-3 py-2 text-sm">
               <div className="min-w-0">
                 <p className="truncate font-medium">
