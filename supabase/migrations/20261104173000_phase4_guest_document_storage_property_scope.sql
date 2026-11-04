@@ -258,7 +258,7 @@ BEGIN
     IF _name IS NULL OR length(_name) < 2 THEN
       RETURN jsonb_build_object('ok', false, 'code','validation','message','Full name is required');
     END IF;
-    IF _email IS NULL OR _email !~* '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$' THEN
+    IF _email IS NULL OR _email !~* '^[^@\s]+@[^@\s]+\.[^@\s]+$' THEN
       RETURN jsonb_build_object('ok', false, 'code','validation','message','A valid email is required');
     END IF;
   END IF;
