@@ -16,8 +16,48 @@ describe("manual payment request contract", () => {
     });
   });
 
-  it("accepts an explicit refund event", () => {
-    expect(recordManualPaymentInputSchema.parse({ ...valid, eventType: "refund" }).eventType).toBe("refund");
+  it("accepts a refund with an audit reason and original payment reference", () => {
+    const originalPaymentEventId = "00000000-0000-4000-8000-000000000003";
+    expect(
+      recordManualPaymentInputSchema.parse({
+        ...valid,
+        eventType: "refund",
+        note: "Guest cancellation approved",
+        originalPaymentEventId,
+      }).eventType,
+    ).toBe("refund");
+    expect(
+      recordManualPaymentInputSchema.safeParse({
+        ...valid,
+        eventType: "refund",
+        originalPaymentEventId,
+      }).success,
+    ).toBe(false);
+    expect(
+      recordManualPaymentInputSchema.safeParse({
+        ...valid,
+        eventType: "refund",
+        note: "   ",
+        originalPaymentEventId,
+      }).success,
+    ).toBe(false);
+  });
+
+
+  it("requires an original successful payment reference for refunds", () => {
+    const refund = { ...valid, eventType: "refund" as const, note: "Approved guest refund" };
+    expect(recordManualPaymentInputSchema.safeParse(refund).success).toBe(false);
+    expect(recordManualPaymentInputSchema.safeParse({
+      ...refund,
+      originalPaymentEventId: "00000000-0000-4000-8000-000000000003",
+    }).success).toBe(true);
+  });
+
+  it("does not accept an original payment reference for a new payment", () => {
+    expect(recordManualPaymentInputSchema.safeParse({
+      ...valid,
+      originalPaymentEventId: "00000000-0000-4000-8000-000000000003",
+    }).success).toBe(false);
   });
 
   it("rejects zero, negative, non-finite, and sub-cent amounts", () => {
