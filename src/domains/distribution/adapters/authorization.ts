@@ -80,7 +80,7 @@ export function authorizeAdapterExecution(
   if (!principal.active || !principal.userId.trim()) {
     throw new AdapterAuthorizationError("inactive_principal");
   }
-  if (connection.lifecycle !== "connected" && connection.lifecycle !== "degraded") {
+  if (connection.lifecycle !== "connected") {
     throw new AdapterAuthorizationError("connection_not_usable");
   }
   if (!connection.credentialReference?.trim()) {
