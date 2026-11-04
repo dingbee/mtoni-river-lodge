@@ -3342,6 +3342,29 @@ create policy "Property supervisors resolve operational alerts" on public.ops_al
     ))
   );
 
+-- AI recommendation and feedback stores currently lack a property key.
+-- Keep their access aligned with the founder-only analytics and executive APIs.
+create policy "Founder admins manage guest recommendations" on public.ai_guest_recommendations
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+create policy "Founder admins manage pricing recommendations" on public.ai_pricing_recommendations
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+create policy "Founder admins manage revenue opportunities" on public.ai_revenue_opportunities
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+create policy "Founder admins manage marketing recommendations" on public.ai_marketing_recommendations
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+create policy "Founder admins manage AI feedback" on public.ai_feedback
+  for all to authenticated
+  using (public.is_staynas_founder_ai_admin())
+  with check (public.is_staynas_founder_ai_admin());
+
 -- Trigger-only SECURITY DEFINER functions are not PostgREST RPC surfaces.
 -- Remove inherited direct grants while preserving automatic trigger execution.
 REVOKE ALL ON FUNCTION public.bookings_link_guest() FROM PUBLIC, anon, authenticated;
