@@ -933,7 +933,7 @@ create policy "Property staff can insert own activity logs" on public.activity_l
       or (
         property_id is not null
         and public.staynas_user_has_property_access(auth.uid(), property_id)
-        and cardinality(public.staynas_current_property_roles()) > 0
+        and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
         and coalesce(module, '') <> 'finance.payments'
       )
     )
@@ -962,7 +962,7 @@ create policy "Founder admins and property staff read activity logs" on public.a
     or (
       property_id is not null
       and public.staynas_user_has_property_access(auth.uid(), property_id)
-      and cardinality(public.staynas_current_property_roles()) > 0
+      and public.staynas_current_user_has_property_role(property_id, array['owner'::public.app_role,'manager'::public.app_role,'reception'::public.app_role,'marketing'::public.app_role,'housekeeping'::public.app_role,'finance'::public.app_role,'admin'::public.app_role,'reservations'::public.app_role,'editor'::public.app_role])
     )
   );
 
