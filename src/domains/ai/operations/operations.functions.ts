@@ -1,16 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { requireStayNasStaffAccess, requireStayNasPropertyRole } from "@/lib/staynas-authorization.server";
 
 async function assertStaff(sb: any, userId: string) {
-  const { data, error } = await sb.rpc("is_any_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasStaffAccess(sb, userId);
 }
 async function assertRole(sb: any, userId: string, roles: string[]) {
-  const { data, error } = await sb.rpc("has_any_role", { _user_id: userId, _roles: roles });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasPropertyRole(sb, userId, roles);
 }
 
 const isoDate = (d = new Date()) => d.toISOString().slice(0, 10);
