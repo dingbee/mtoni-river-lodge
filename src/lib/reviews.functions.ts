@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { logActivity } from "./activity-log.server";
 import type { Review, ReviewAggregate } from "./reviews";
-import { requireStayNasCoreStaffAccess } from "@/lib/staynas-authorization.server";
+import { requireStayNasFounderAdmin } from "@/lib/staynas-authorization.server";
 
 function publicClient() {
   return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
@@ -13,7 +13,7 @@ function publicClient() {
 }
 
 async function assertStaff(supabase: any, userId: string) {
-  await requireStayNasCoreStaffAccess(supabase, userId);
+  await requireStayNasFounderAdmin(supabase, userId);
 }
 
 const REVIEW_COLS =
