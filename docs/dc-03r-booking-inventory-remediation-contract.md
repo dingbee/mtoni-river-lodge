@@ -20,13 +20,12 @@ The authorised test target is the existing isolated StayNas Supabase project in 
 
 The UAT database exposes these relevant contracts:
 
-- `create_booking_for_property(_property_id, _room_slug, ...)` — anonymous execution is granted, but the implementation only checks `available_units <= 0` when no hold is supplied. It does not subtract other active holds before a no-hold booking.
-- `create_booking_hold_for_property(_property_id, _room_slug, ...)` — anonymous execution is granted; it locks inventory rows and counts overlapping active holds.
-- `get_room_availability(_check_in, _check_out, _property_id)` — property membership is required for non-service callers, so an anonymous guest cannot use this contract.
-- `release_booking_hold(_hold_id, _session_id)` and `get_booking_hold_for_session(_hold_id, _session_id)` — the installed overloads are two-argument contracts. The app currently sends `_property_id`, so those calls do not match.
-- The live hold lookup and release functions contain a literal property UUID. They are not suitable for a property-neutral multitenant platform.
-- The UAT database has two `create_booking_for_property` overloads, one with an optional `_payment_method` argument. A call that omits that final argument is ambiguous at the SQL level; the application should have one canonical callable contract.
-- The app's `bookingRpc.ts` describes the intended property-scoped contract, but that contract is not the one currently installed in UAT. The unapplied review migration defines an earlier intended guest contract, but must not be applied until the inventory invariant and finance guard are corrected and the app/database release is coordinated.
+- `create_booking` has four live overloads. The 16-argument property-aware overload matches the app's argument names but is executable by `authenticated` and `service_role`, not `anon`; the other three overloads are service-role only. The unauthenticated website client therefore cannot rely on this RPC contract.
+- The app calls `create_booking_hold` with seven arguments including `_property_id`, but the live `create_booking_hold` is a six-argument service-role-only function. The live `create_booking_hold_for_property` is seven arguments with `_property_id` as its first parameter and is granted to `anon`/`authenticated`; the name and parameter order do not match the app call.
+- The app calls `get_room_availability(_check_in,_check_out,_property_id)`, but that live overload requires property membership for non-service callers and is not executable by `anon`.
+- The app calls `release_booking_hold(_hold_id,_session_id,_property_id)` and `get_booking_hold_for_session(_hold_id,_session_id,_property_id)`. The live functions expose only two arguments and are service-role only; their bodies also contain a literal property UUID.
+- The live `create_booking_for_property` functions have 16- and 17-argument overloads, both granted to `anon`/`authenticated`; the 17-argument overload has `_payment_method` and tax logic. Both contain the inventory race and the 17-argument version also needs the finance-trigger context established internally.
+- The app's `bookingRpc.ts` describes the intended property-scoped contract, but that contract is not the one currently installed in UAT. The existing review migration is not safe to apply as-is: it assumes a global singleton booking property, replaces a separate RPC family, drops overloads, and does not fix the allocation race or finance GUC. A coordinated replacement must be designed against the live schema and current multi-tenant property model.
 - The live no-argument `staynas_booking_property_id()` resolver currently uses PostgREST request headers for anonymous requests. This phase does not introduce or depend on hostname resolution. A non-hostname, server-controlled property-context contract for public guest traffic remains a separate design gate; do not substitute a browser-supplied property UUID or a global singleton booking property.
 
 ## UAT inventory-race reproduction
@@ -48,7 +47,7 @@ The finance trigger `enforce_finance_rpc_booking_update()` rejects changes to bo
 - Hostname-specific application changes have been reverted to the repository's main versions.
 - The existing `staynas_booking_property_id()` resolver call remains unchanged.
 - Hostname normalization helpers and hostname-specific unit tests have been removed.
-- The dedicated booking/property GitHub Actions workflow remains in the branch to exercise the existing property-isolation tests, build, TypeScript, and lint checks.
+- The dedicated booking/property GitHub Actions workflow remains in the branch to exercise the existing property-isolation tests, build, TypeScript, and lint checks. Its push trigger was refreshed by the scope-correction commits; no successful run has yet been verified.
 - This phase does not claim a completed public guest property-context solution. A server-controlled, non-hostname property-context contract must be designed separately before public guest E2E can be certified.
 - No Vercel deployment or database migration has been initiated.
 ## Required canonical allocation invariant
