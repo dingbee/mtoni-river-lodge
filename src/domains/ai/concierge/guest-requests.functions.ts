@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireStayNasStaffAccess } from "@/lib/staynas-authorization.server";
 
 import { GUEST_REQUEST_CATEGORIES, categorizeGuestRequest } from "./request-categorization";
 
@@ -34,8 +35,7 @@ export const createGuestRequest = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const db = context.supabase as any;
     const propertyId = await activePropertyId(db, context.userId);
-    const { data: staff, error: staffError } = await db.rpc("is_any_staff", { _user_id: context.userId });
-    if (staffError || !staff) throw new Error("Staff access is required to register a guest request.");
+    await requireStayNasStaffAccess(db, context.userId);
 
     if (data.session_id) {
       const { data: session, error } = await db
