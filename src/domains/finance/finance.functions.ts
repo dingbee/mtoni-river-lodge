@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { requireStayNasModuleAccess, requireStayNasPropertyRole } from "@/lib/staynas-authorization.server";
 import { financeRpc } from "@/lib/finance-rpc";
 import { recordManualPaymentInputSchema } from "./payment-contract";
 import { moneyByCurrency, sumCurrency } from "./finance-currency";
@@ -707,11 +707,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
-    const { data: allowed } = await context.supabase.rpc("has_any_role", {
-      _user_id: context.userId,
-      _roles: ["owner", "manager", "finance"] as never,
-    });
-    if (!allowed) throw new Error("Forbidden");
+    await requireStayNasPropertyRole(context.supabase, context.userId, ["owner", "manager", "finance"]);
 
     const inserts: Array<Record<string, unknown>> = [];
     const today = todayISO();
