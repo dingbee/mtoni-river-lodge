@@ -291,3 +291,16 @@ CREATE POLICY "Concierge messages read in active property"
   USING (public.staynas_ai_session_in_active_property(
     session_id, ARRAY['owner','manager','admin','reception','marketing']::public.app_role[]
   ));
+
+-- Table privileges are independent of RLS. Grant only the operations represented
+-- by the policies above; RLS remains the row-level authorization boundary.
+GRANT SELECT ON public.ai_concierge_sessions, public.ai_concierge_messages TO authenticated;
+GRANT SELECT, UPDATE ON public.ai_concierge_leads TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_guest_memories TO authenticated;
+GRANT SELECT, INSERT ON public.ai_memory_events, public.ai_personalization_events TO authenticated;
+GRANT SELECT ON public.ai_concierge_intents, public.ai_concierge_recommendations TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_concierge_outcomes, public.ai_concierge_attributions TO authenticated;
+GRANT SELECT ON public.ai_concierge_feedback TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_conversation_participants, public.ai_communication_drafts, public.ai_escalations TO authenticated;
+GRANT SELECT ON public.ai_concierge_insights, public.ai_activity_logs TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_concierge_channels TO authenticated;
