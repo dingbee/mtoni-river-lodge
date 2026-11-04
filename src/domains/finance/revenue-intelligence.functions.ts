@@ -48,14 +48,14 @@ export const getRevenueIntelligence = createServerFn({ method: "POST" })
     return {
       range: { from, to, cashPeriod: "payment_event.created_at_utc", bookedValuePeriod: "booking.check_in" },
       accountingRecognition: { status: "not_configured" as const, recognisedRevenueByCurrency: [] as never[] },
-      byCurrency: currencies.map((currency) => ({
-        currency,
-        bookedValue: booked.get(currency) ?? 0,
-        ...(ledger.find((row) => row.currency === currency) ?? {
+      byCurrency: currencies.map((currency) => {
+        const row = ledger.find((item) => item.currency === currency) ?? {
           currency, cashCollected: 0, refunds: 0, providerReversals: 0,
           netCashReceived: 0, successfulCollections: 0, refundEvents: 0, reversalEvents: 0,
-        }),
-      })),
+        };
+        const { currency: _currency, ...cashMetrics } = row;
+        return { currency, bookedValue: booked.get(currency) ?? 0, ...cashMetrics };
+      }),
       source: "payment_events",
     };
   });
