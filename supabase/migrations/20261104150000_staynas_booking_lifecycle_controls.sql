@@ -40,7 +40,7 @@ begin
     new.cancelled_at := coalesce(new.cancelled_at, now());
   elsif new.status::text = 'no_show' then
     if old.status::text <> 'confirmed'
-      or current_date <= old.check_in
+      or (now() at time zone coalesce((select sp.timezone from public.staynas_properties sp where sp.id = old.property_id), 'Africa/Dar_es_Salaam'))::date <= old.check_in
       or (v_actor is not null and not public.has_any_role(v_actor, array['owner','manager','admin','reservations']::public.app_role[])) then
       raise exception using errcode = '42501', message = 'No-show requires an unarrived confirmed booking after its check-in date and reservations authorization';
     end if;
@@ -108,7 +108,7 @@ begin
       message = format('Invalid booking transition: %s -> %s', v_booking.status::text, _target_status);
   end if;
 
-  if _target_status = 'no_show' and current_date <= v_booking.check_in then
+  if _target_status = 'no_show' and (now() at time zone coalesce((select sp.timezone from public.staynas_properties sp where sp.id = v_booking.property_id), 'Africa/Dar_es_Salaam'))::date <= v_booking.check_in then
     raise exception using errcode = '22023', message = 'No-show can be recorded only after the scheduled check-in date';
   end if;
 
@@ -119,8 +119,8 @@ begin
     where rs.room_id = v_booking.room_id
       and (rs.booking_id = v_booking.id or (rs.booking_id is null and rs.state in ('vacant_clean','reserved','inspection')))
     order by (rs.booking_id = v_booking.id) desc, rs.unit_label
-    for update skip locked
-    limit 1;
+    limit 1
+    for update skip locked;
 
     if v_room_count > 0 and v_room_state.id is null then
       raise exception using errcode = '55000', message = 'No eligible physical room unit is available for check-in';
@@ -128,7 +128,7 @@ begin
   end if;
 
   update public.bookings
-  set status = _target_status,
+  set status = _target_status::public.booking_status,
       notes = case when nullif(btrim(_notes),'') is null then notes
                    else concat_ws(E'\n', notes, '[' || _target_status || ' ' || now()::text || '] ' || btrim(_notes)) end
   where id = _booking_id
@@ -143,8 +143,8 @@ begin
     from public.room_states rs
     where rs.booking_id = v_booking.id
     order by rs.unit_label
-    for update
-    limit 1;
+    limit 1
+    for update;
 
     if v_room_state.id is not null then
       update public.room_states
