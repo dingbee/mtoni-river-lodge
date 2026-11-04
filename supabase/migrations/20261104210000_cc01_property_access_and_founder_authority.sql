@@ -97,6 +97,121 @@ revoke all on function public.staynas_current_property_roles() from public, anon
 grant execute on function public.staynas_current_property_roles() to authenticated, service_role;
 
 
+-- Tenant lifecycle predicate used by public booking entry points and insert guards.
+CREATE OR REPLACE FUNCTION public.staynas_property_is_operational(_property_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $function$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.staynas_properties p
+    JOIN public.staynas_organisations o ON o.id = p.organisation_id
+    WHERE p.id = _property_id
+      AND p.status = 'active'
+      AND o.status = 'active'
+  );
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_property_is_operational(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.staynas_property_is_operational(uuid) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.staynas_enforce_booking_property()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $function$
+DECLARE
+  _room_property uuid;
+BEGIN
+  SELECT r.property_id INTO _room_property
+  FROM public.rooms r
+  WHERE r.id = NEW.room_id;
+
+  IF _room_property IS NULL THEN
+    RAISE EXCEPTION 'Room property is required';
+  END IF;
+  IF NOT public.staynas_property_is_operational(_room_property) THEN
+    RAISE EXCEPTION 'Property or organisation is inactive';
+  END IF;
+  IF NEW.property_id IS NULL THEN
+    NEW.property_id := _room_property;
+  END IF;
+  IF NEW.property_id <> _room_property THEN
+    RAISE EXCEPTION 'Booking property does not match room property';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.staynas_enforce_hold_property()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $function$
+DECLARE
+  _room_property uuid;
+BEGIN
+  SELECT r.property_id INTO _room_property
+  FROM public.rooms r
+  WHERE r.id = NEW.room_id;
+
+  IF _room_property IS NULL THEN
+    RAISE EXCEPTION 'Room property is required';
+  END IF;
+  IF NOT public.staynas_property_is_operational(_room_property) THEN
+    RAISE EXCEPTION 'Property or organisation is inactive';
+  END IF;
+  IF NEW.property_id IS NULL THEN
+    NEW.property_id := _room_property;
+  END IF;
+  IF NEW.property_id <> _room_property THEN
+    RAISE EXCEPTION 'Hold property does not match room property';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_enforce_booking_property() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_enforce_hold_property() FROM PUBLIC, anon, authenticated;
+
+-- Resolve public booking tenants only through verified domains of active tenants.
+CREATE OR REPLACE FUNCTION public.staynas_booking_property_id(_hostname text)
+RETURNS uuid
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $function$
+DECLARE
+  _property uuid;
+  _host text;
+BEGIN
+  _host := lower(trim(split_part(COALESCE(_hostname, ''), ':', 1)));
+  IF _host = '' OR _host !~ '^[a-z0-9.-]+$' THEN
+    RAISE EXCEPTION 'Valid property hostname is required';
+  END IF;
+
+  SELECT d.property_id INTO _property
+  FROM public.staynas_property_domains d
+  JOIN public.staynas_properties p ON p.id = d.property_id
+  JOIN public.staynas_organisations o ON o.id = p.organisation_id
+  WHERE d.hostname = _host
+    AND d.verified_at IS NOT NULL
+    AND p.status = 'active'
+    AND o.status = 'active';
+
+  IF _property IS NULL THEN
+    RAISE EXCEPTION 'No active property is configured for this hostname';
+  END IF;
+  RETURN _property;
+END;
+$function$;
+
 -- Folio access is always anchored to the booking's owning property. A caller
 -- must have an allowed role in that same active property.
 create or replace function public.staynas_current_user_has_property_role(
