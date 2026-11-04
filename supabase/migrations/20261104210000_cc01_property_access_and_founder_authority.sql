@@ -966,4 +966,110 @@ create policy "Founder admins and property staff read activity logs" on public.a
     )
   );
 
+
+-- Housekeeping event fan-out is tenant-local. The legacy implementation
+-- notified every global owner/manager from user_roles regardless of property.
+create or replace function public.housekeeping_record_event(
+  _event_type text,
+  _room_state_id uuid default null,
+  _task_id uuid default null,
+  _inspection_id uuid default null,
+  _exception_id uuid default null,
+  _actor_id uuid default null,
+  _assignee_id uuid default null,
+  _payload jsonb default '{}'::jsonb,
+  _correlation_id uuid default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $function$
+declare
+  eid uuid;
+  r uuid;
+  title text;
+  _property_id uuid;
+begin
+  select coalesce(
+    (select rs.property_id from public.room_states rs where rs.id = _room_state_id),
+    (select t.property_id from public.ops_tasks t where t.id = _task_id),
+    (select rs.property_id from public.housekeeping_inspections i join public.room_states rs on rs.id = i.room_state_id where i.id = _inspection_id),
+    (select rs.property_id from public.housekeeping_exceptions ex join public.room_states rs on rs.id = ex.room_state_id where ex.id = _exception_id)
+  ) into _property_id;
+
+  if _property_id is null then
+    raise exception 'Housekeeping event must resolve to an owning property.';
+  end if;
+
+  if _assignee_id is not null and not exists (
+    select 1 from public.staynas_property_members pm
+    where pm.property_id = _property_id
+      and pm.user_id = _assignee_id
+      and pm.status = 'active'
+  ) then
+    raise exception 'Housekeeping assignee is not an active member of the event property.';
+  end if;
+
+  insert into public.housekeeping_events(
+    event_type, room_state_id, task_id, inspection_id, exception_id,
+    actor_id, assignee_id, payload, correlation_id
+  )
+  values(
+    _event_type, _room_state_id, _task_id, _inspection_id, _exception_id,
+    coalesce(_actor_id, auth.uid()), _assignee_id, coalesce(_payload, '{}'::jsonb), _correlation_id
+  )
+  returning id into eid;
+
+  title := initcap(replace(_event_type, '_', ' '));
+
+  if _assignee_id is not null
+     and _event_type in (
+       'task_assigned','cleaning_started','cleaning_completed',
+       'inspection_requested','inspection_passed','inspection_failed',
+       'exception_reported','exception_resolved','maintenance_escalated'
+     )
+  then
+    insert into public.housekeeping_notifications(
+      recipient_user_id, event_id, kind, title, body, href
+    )
+    values(
+      _assignee_id, eid, _event_type, title,
+      _payload->>'summary', '/admin/operations/housekeeping'
+    )
+    on conflict do nothing;
+  end if;
+
+  if _event_type in (
+    'task_created','task_assigned','inspection_requested','inspection_passed',
+    'inspection_failed','exception_reported','exception_resolved',
+    'room_ready','maintenance_escalated'
+  )
+  then
+    for r in
+      select distinct pm.user_id
+      from public.staynas_property_members pm
+      where pm.property_id = _property_id
+        and pm.status = 'active'
+        and pm.role = any(array['owner'::public.app_role,'manager'::public.app_role,'admin'::public.app_role])
+    loop
+      insert into public.housekeeping_notifications(
+        recipient_user_id, event_id, kind, title, body, href
+      )
+      values(
+        r, eid, _event_type, title,
+        _payload->>'summary', '/admin/operations/housekeeping'
+      )
+      on conflict do nothing;
+    end loop;
+  end if;
+
+  return eid;
+end;
+$function$;
+
+revoke all on function public.housekeeping_record_event(text, uuid, uuid, uuid, uuid, uuid, uuid, jsonb, uuid) from public, anon, authenticated;
+grant execute on function public.housekeeping_record_event(text, uuid, uuid, uuid, uuid, uuid, uuid, jsonb, uuid) to service_role;
+
+
 commit;
