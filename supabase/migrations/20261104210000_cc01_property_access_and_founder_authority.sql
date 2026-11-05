@@ -3578,8 +3578,28 @@ grant execute on function public.is_any_staff(uuid) to service_role;
 grant execute on function public.is_staff(uuid) to service_role;
 grant execute on function public.current_user_roles() to service_role;
 
-commit;
- THEN RAISE EXCEPTION 'Valid email required'; END IF;
+CREATE OR REPLACE FUNCTION public.create_booking(_room_slug text, _check_in date, _check_out date, _adults integer, _children integer, _guest_name text, _guest_email text, _guest_phone text, _country text, _special_requests text, _extras jsonb, _children_below_6 integer, _children_7_plus integer, _hold_id uuid, _session_id text, _property_id uuid)
+ RETURNS TABLE(booking_id uuid, reference text, total numeric, currency text)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO pg_catalog, public, pg_temp
+AS $function$
+DECLARE
+  _room public.rooms%ROWTYPE;
+  _nights int; _subtotal numeric := 0; _extras_total numeric := 0;
+  _total numeric := 0; _deposit numeric := 0; _balance numeric := 0;
+  _reference text; _booking_id uuid; _d date; _rate numeric; _units int; _blocked boolean;
+  _extra_row record; _extra public.extras%ROWTYPE; _line numeric;
+  _below6 int := COALESCE(_children_below_6, 0);
+  _plus7 int := COALESCE(_children_7_plus, GREATEST(0, COALESCE(_children,0)));
+  _children_total int; _total_occupants int; _paid_occupants int; _extra_occupants int;
+  _hold public.booking_holds%ROWTYPE;
+  _jwt_role text := COALESCE(NULLIF(current_setting('request.jwt.claim.role', true), ''), (NULLIF(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role'), '');
+BEGIN
+  IF _check_out <= _check_in THEN RAISE EXCEPTION 'check_out must be after check_in'; END IF;
+  IF _adults IS NULL OR _adults < 1 THEN RAISE EXCEPTION 'At least one adult required'; END IF;
+  IF _guest_name IS NULL OR length(trim(_guest_name)) < 2 THEN RAISE EXCEPTION 'Guest name required'; END IF;
+  IF _guest_email IS NULL OR _guest_email !~* '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$' THEN RAISE EXCEPTION 'Valid email required'; END IF;
   IF _property_id IS NULL OR NOT EXISTS (SELECT 1 FROM public.staynas_properties p WHERE p.id=_property_id AND p.status='active') THEN
     RAISE EXCEPTION 'Property is required and must be active';
   END IF;
