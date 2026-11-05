@@ -137,6 +137,7 @@ BEGIN
      OR NOT has_function_privilege('authenticated','public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid)','EXECUTE')
      OR NOT has_function_privilege('service_role','public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid)','EXECUTE')
      OR position('staynas_current_user_has_property_role' in pg_get_functiondef('public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid)'::regprocedure)) = 0
+     OR position('staynas_property_is_operational' in pg_get_functiondef('public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid)'::regprocedure)) = 0
   THEN RAISE EXCEPTION 'Staff create_booking role guard or grants are incorrect'; END IF;
 
   IF has_function_privilege('anon','public.reassign_booking_room(uuid,uuid,uuid,text)','EXECUTE')
