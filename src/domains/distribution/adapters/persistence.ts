@@ -24,7 +24,7 @@ export const persistedDistributionExternalAccountSchema = z.object({
   provider_key: z.string().min(2).max(64),
   external_account_reference: z.string().trim().min(1).max(256),
   environment: distributionEnvironmentSchema,
-  credential_reference: z.string().trim().min(1).max(512),
+  credential_reference: z.string().uuid(),
   lifecycle: z.enum(["pending_validation", "connected", "degraded", "suspended", "revoked", "error"]),
 });
 
