@@ -74,8 +74,8 @@ BEGIN
       'public.staynas_resolve_distribution_credential(uuid,uuid,uuid,text,text,text,text,text)',
       'EXECUTE'
     ) THEN
-    RAISE EXCEPTION 'Credential broker execute grants are incorrect';
-  END IF;
+  IF has_table_privilege('anon','public.staynas_distribution_connections','SELECT')
+     OR has_table_privilege('authenticated','public.staynas_distribution_connections','SELECT') THEN
 END
 $test$;
 
