@@ -4,7 +4,7 @@
 **Workstream:** SPE-04 — Deterministic Pricing Resolver  
 **Milestone:** SPE-04.07  
 **Priority:** P0 — Public booking correctness  
-**Status:** OPEN — contract and implementation discovery  
+**Status:** IN PROGRESS — discovery RPC implemented on feature branch; end-to-end selector propagation pending  
 **Predecessor:** SPE-04.06 — Final Verification & Release Readiness  
 **Repository:** `dingbee/mtoni-river-lodge`  
 **Working branch:** `feat/spe-04-deterministic-pricing-resolver`
@@ -44,7 +44,7 @@ Close the SPE-04.06 release limitation: public booking contracts currently do no
 - Ensure all entry points share the same resolver and no old RPC overload bypasses the selected plan.
 - Do not introduce a second pricing calculator in TypeScript.
 
-## 3. Required verification
+## 3. SPE-04.07.01 — discovery contract implementation\n\nAdded `public.discover_staynas_public_rate_plans(...)` in migration `20261106210000_spe04_public_rate_plan_discovery.sql`. It resolves the room under the supplied property, enumerates only active/published plans assigned to that room catalogue type, constrains plan and latest-publication effective dates to the full stay, and calls the authoritative resolver for each candidate. It returns only guest-safe fields (plan ID/name/description/meal plan/refundable/currency/total/minimum stay and immutable publication evidence). It does not return mutable `rate_plan_data`, internal policy JSON or administrative metadata. Direct execution is revoked from PUBLIC/anon/authenticated and granted to `service_role`; the existing server-side property resolver remains the only intended public entry point.\n\nAdded eight pgTAP contract assertions in `supabase/tests/spe04_public_rate_plan_discovery.test.sql`. These are authored tests, not yet executed; pgTAP is unavailable in the current UAT project.\n\n## 4. Required verification
 
 1. Single eligible plan selected implicitly; existing clients remain compatible.
 2. Multiple eligible plans returned as safe options; missing selector fails closed.
@@ -59,7 +59,7 @@ Close the SPE-04.06 release limitation: public booking contracts currently do no
 11. All current P1 build, P1 tests and Finance/payment integrity CI pass on the exact milestone head.
 12. Nolmark CDMA UAT tenant regression passes; Mtoni tenant and production remain untouched.
 
-## 4. Security and data boundaries
+## 5. Security and data boundaries
 
 - Property identity is resolved server-side; every plan query is tenant/property scoped.
 - Public discovery exposes only guest-safe plan fields.
@@ -69,7 +69,7 @@ Close the SPE-04.06 release limitation: public booking contracts currently do no
 - No production migrations, deployments, commercial rate changes or merges without separate authorization.
 - Do not publish or assign the synthetic SPE-03 UAT fixture.
 
-## 5. Acceptance gates
+## 6. Acceptance gates
 
 - [ ] Discovery contract returns only eligible, guest-safe plans for the correct property, room and stay.
 - [ ] Selected plan is propagated through availability → quote → booking.
@@ -82,7 +82,7 @@ Close the SPE-04.06 release limitation: public booking contracts currently do no
 - [ ] Nolmark UAT regression passes with no residual test data.
 - [ ] SPE-04.07 accepted before release-readiness is reconsidered.
 
-## 6. Execution sequence
+## 7. Execution sequence
 
 Inspect current plan/publication schema and existing public booking UI contracts → define safe discovery/query contract → implement server and database propagation → wire guest selection → run unit/contract/CI checks → run Nolmark UAT regression → verify no residual data → report acceptance.
 
