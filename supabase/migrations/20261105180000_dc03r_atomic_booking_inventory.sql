@@ -36,12 +36,15 @@ REVOKE ALL ON FUNCTION public.staynas_lock_room_inventory_dates(uuid,uuid,date,d
 
 -- Canonical booking RPC. All dates are locked in ascending order before the
 -- hold row; the exact converted hold alone is excluded from the hold count.
+-- The payment method is optional so existing 16-argument named RPC calls remain
+-- compatible while using the tax-aware booking calculation.
+DROP FUNCTION IF EXISTS public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid);
 CREATE OR REPLACE FUNCTION public.create_booking(
   _room_slug text,_check_in date,_check_out date,_adults integer,_children integer,
   _guest_name text,_guest_email text,_guest_phone text,_country text,_special_requests text,
   _extras jsonb,_children_below_6 integer,_children_7_plus integer,
-  _hold_id uuid,_session_id text,_property_id uuid
-) RETURNS TABLE(booking_id uuid,reference text,total numeric,currency text)
+  _hold_id uuid,_session_id text,_property_id uuid,_payment_method text DEFAULT 'online'
+) RETURNS TABLE(booking_id uuid,reference text,total numeric,currency text,taxes numeric,tax_addition numeric,tax_breakdown jsonb)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public
 AS $function$
 DECLARE
@@ -54,7 +57,8 @@ DECLARE
   _below6 integer:=COALESCE(_children_below_6,0);
   _plus7 integer:=COALESCE(_children_7_plus,GREATEST(0,COALESCE(_children,0)));
   _children_total integer; _occupants integer; _paid_occupants integer;
-  _extra_occupants integer; _jwt_role text:=COALESCE(
+  _extra_occupants integer; _tax jsonb; _tax_total numeric:=0; _tax_addition numeric:=0;
+  _jwt_role text:=COALESCE(
     NULLIF(current_setting('request.jwt.claim.role',true),''),
     (NULLIF(current_setting('request.jwt.claims',true),'')::jsonb->>'role'),'');
   _prior_finance_rpc text;
@@ -73,6 +77,9 @@ BEGIN
   END IF;
   IF jsonb_typeof(COALESCE(_extras,'[]'::jsonb))<>'array' THEN
     RAISE EXCEPTION 'extras must be an array';
+  END IF;
+  IF COALESCE(_payment_method,'online') NOT IN ('online','pay_at_property') THEN
+    RAISE EXCEPTION 'Unsupported booking payment method';
   END IF;
 
   SELECT r.* INTO _room FROM public.rooms r
@@ -105,11 +112,13 @@ BEGIN
   INSERT INTO public.bookings(
     reference,room_id,property_id,check_in,check_out,nights,adults,children,
     children_below_6,children_7_plus,guest_name,guest_email,guest_phone,country,
-    special_requests,currency,source
+    special_requests,currency,source,payment_method,payment_provider
   ) VALUES(
     _reference,_room.id,_property_id,_check_in,_check_out,_nights,_adults,_children_total,
     _below6,_plus7,trim(_guest_name),lower(trim(_guest_email)),_guest_phone,_country,
-    _special_requests,_room.currency,'website'
+    _special_requests,_room.currency,'website',
+    CASE WHEN _payment_method='pay_at_property' THEN 'pay_at_property' ELSE NULL END,
+    CASE WHEN _payment_method='pay_at_property' THEN 'manual' ELSE 'pesapal' END
   ) RETURNING id INTO _booking_id;
 
   _d:=_check_in;
@@ -154,11 +163,19 @@ BEGIN
     _extras_total:=_extras_total+_line;
   END LOOP;
 
-  _total:=_subtotal+_extras_total; _deposit:=round((_total/2)::numeric,2); _balance:=_total;
+  _tax:=public.calculate_staynas_booking_taxes(
+    _property_id,_check_in,_nights,_subtotal,_extras_total,_room.currency
+  );
+  _tax_total:=COALESCE((_tax->>'tax_total')::numeric,0);
+  _tax_addition:=COALESCE((_tax->>'tax_addition')::numeric,0);
+  _total:=_subtotal+_extras_total+_tax_addition;
+  _deposit:=CASE WHEN _payment_method='pay_at_property' THEN 0 ELSE round((_total/2)::numeric,2) END;
+  _balance:=_total-_deposit;
   _prior_finance_rpc:=current_setting('staynas.payment_rpc',true);
   PERFORM set_config('staynas.payment_rpc','on',true);
-  UPDATE public.bookings SET subtotal=_subtotal,extras_total=_extras_total,total=_total,
-    deposit_amount=_deposit,balance_amount=_balance,balance_due=_balance
+  UPDATE public.bookings SET subtotal=_subtotal,extras_total=_extras_total,taxes=_tax_total,
+    tax_addition=_tax_addition,tax_breakdown=COALESCE(_tax->'breakdown','[]'::jsonb),
+    total=_total,deposit_amount=_deposit,balance_amount=_balance,balance_due=_balance
   WHERE id=_booking_id;
   PERFORM set_config('staynas.payment_rpc',COALESCE(_prior_finance_rpc,''),true);
 
@@ -171,13 +188,14 @@ BEGIN
     'reservation.created',_room.id,_booking_id,_hold_id,_check_in,_check_out,
     jsonb_build_object('property_id',_property_id,'reference',_reference,'total',_total)
   );
-  RETURN QUERY SELECT _booking_id,_reference,_total,_room.currency;
+  RETURN QUERY SELECT _booking_id,_reference,_total,_room.currency,
+    _tax_total,_tax_addition,COALESCE(_tax->'breakdown','[]'::jsonb);
 END;
 $function$;
 
-REVOKE ALL ON FUNCTION public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid)
+REVOKE ALL ON FUNCTION public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid,text)
   FROM PUBLIC,anon;
-GRANT EXECUTE ON FUNCTION public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid)
+GRANT EXECUTE ON FUNCTION public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid,text)
   TO authenticated,service_role;
 
 -- The older public property-first overloads are retired from guest/authenticated
