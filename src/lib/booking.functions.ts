@@ -53,11 +53,32 @@ export const checkAvailability = createServerFn({ method: "POST" })
       _property_id: propertyId,
     });
     if (error) throw new Error(error.message);
+
+    // The public availability RPC intentionally returns inventory and nightly
+    // totals only. Enrich from the active property's public room catalogue so
+    // the guest pricing breakdown retains included-guest and extra-guest rules.
+    const { data: roomConfigs, error: configError } = await (sb as any)
+      .from("rooms")
+      .select("id,included_guests,extra_guest_fee")
+      .eq("property_id", propertyId)
+      .eq("status", "active");
+    if (configError) throw new Error(configError.message);
+    const configByRoomId = new Map(
+      ((roomConfigs ?? []) as any[]).map((room) => [
+        String(room.id),
+        {
+          included_guests: Number(room.included_guests ?? 2),
+          extra_guest_fee: Number(room.extra_guest_fee ?? 0),
+        },
+      ]),
+    );
+
     const guests = data.guests ?? 1;
     const rooms = (rows ?? []) as AvailabilityRoom[];
     return rooms
       .map((r) => ({
         ...r,
+        ...configByRoomId.get(r.room_id),
         nightly_total: Number(r.nightly_total),
         base_price: Number(r.base_price),
         fits_guests: guests <= r.max_occupancy,
