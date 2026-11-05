@@ -24,7 +24,22 @@ on:
 jobs:
   booking-inventory-contracts:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+
       VITE_SUPABASE_PROJECT_ID: ci-placeholder
       VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
       VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
@@ -37,6 +52,14 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Prepare isolated PostgreSQL fixture
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/ci/dc03r-postgres-fixture.sql
+      - name: Apply DC-03R migration to isolated PostgreSQL
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261105180000_dc03r_atomic_booking_inventory.sql
+      - name: Verify atomic booking and hold allocation, including concurrency
+        run: bash scripts/ci/dc03r-postgres-smoke.sh
       - name: Booking property-isolation regression tests
         run: bunx vitest run src/lib/booking-property.test.ts
       - name: Booking hold policy tests
