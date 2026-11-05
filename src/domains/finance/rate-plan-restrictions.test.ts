@@ -46,7 +46,7 @@ describe("SPE-03.08 rate-plan restrictions", () => {
   });
 
   it("rejects room types outside the property's configured catalogue", () => {
-    const parsed = restrictionRulesSchema.parse({ min: rule("min_los", { room_type_ids: [OTHER_TYPE] }) });
+    const parsed = restrictionRulesSchema.parse({ min: rule("min_los", { value: 2, room_type_ids: [OTHER_TYPE] }) });
     expect(() => validateRestrictionRoomTypes(parsed as Record<string, RestrictionRule>, new Set([ROOM_TYPE])))
       .toThrow(/outside this property's catalogue/);
   });
