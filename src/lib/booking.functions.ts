@@ -65,7 +65,7 @@ export type BookingPricingQuote = {
   extras_total: number;
   taxes: number;
   tax_addition: number;
-  tax_breakdown: Array<Record<string, unknown>>;
+  tax_breakdown: Array<Record<string, string | number | boolean | null>>;
   total: number;
   deposit_amount: number;
   balance_due: number;
