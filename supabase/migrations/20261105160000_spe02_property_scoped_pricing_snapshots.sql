@@ -66,13 +66,6 @@ ALTER TABLE public.pricing_rules
 DROP POLICY IF EXISTS "Staff read pricing rules" ON public.pricing_rules;
 DROP POLICY IF EXISTS "Finance manage pricing rules" ON public.pricing_rules;
 
-CREATE POLICY "Property staff read pricing rules"
-  ON public.pricing_rules FOR SELECT TO authenticated
-  USING (
-    public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','finance','admin']::public.app_role[])
-  );
-
 CREATE POLICY "Property finance manage pricing rules"
   ON public.pricing_rules FOR ALL TO authenticated
   USING (
