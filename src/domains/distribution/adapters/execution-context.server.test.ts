@@ -47,12 +47,12 @@ function makeRepository(overrides: Partial<DistributionExecutionRepository> = {}
       lifecycle: "connected",
     })),
     getProperty: vi.fn(async () => ({ organisation_id: "org-1" })),
-    getPropertyMembership: vi.fn(async () => ({
+    getPropertyMembership: vi.fn(async () => ([{
       property_id: "property-1",
       user_id: "user-1",
       role: "manager",
       status: "active",
-    })),
+    }])),
     ...overrides,
   } as DistributionExecutionRepository;
   return rows;
@@ -91,7 +91,7 @@ describe("trusted distribution execution context loader", () => {
 
   it("fails closed when no active property membership exists", async () => {
     const repository = makeRepository({
-      getPropertyMembership: vi.fn(async () => null),
+      getPropertyMembership: vi.fn(async () => []),
     });
     const load = createTrustedDistributionExecutionLoader(repository, makeRegistry());
     await expect(load({
