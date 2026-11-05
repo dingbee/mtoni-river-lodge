@@ -56,6 +56,14 @@ BEGIN
     RAISE EXCEPTION 'Unexpected anonymous booking SECURITY DEFINER overloads: %', public_definer_list;
   END IF;
 
+  IF position('staynas_booking_property_id' in pg_get_functiondef('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)'::regprocedure)) = 0
+     OR position('staynas_booking_property_id' in pg_get_functiondef('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)'::regprocedure)) = 0
+     OR position('staynas_booking_property_id' in pg_get_functiondef('public.create_booking_hold_for_property(uuid,text,date,date,text,text,integer)'::regprocedure)) = 0
+     OR position('staynas_booking_property_id' in pg_get_functiondef('public.get_booking_hold_for_property(uuid,uuid,text)'::regprocedure)) = 0
+     OR position('staynas_booking_property_id' in pg_get_functiondef('public.get_room_availability_for_property(uuid,date,date)'::regprocedure)) = 0
+     OR position('staynas_booking_property_id' in pg_get_functiondef('public.release_booking_hold_for_property(uuid,uuid,text)'::regprocedure)) = 0
+  THEN RAISE EXCEPTION 'A public booking RPC is missing its configured-property boundary'; END IF;
+
   IF NOT has_function_privilege('anon','public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)','EXECUTE')
      OR NOT has_function_privilege('anon','public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)','EXECUTE')
      OR NOT has_function_privilege('anon','public.create_booking_hold_for_property(uuid,text,date,date,text,text,integer)','EXECUTE')
