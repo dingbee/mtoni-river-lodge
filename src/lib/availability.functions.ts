@@ -54,8 +54,8 @@ export const releaseBookingHold = createServerFn({ method: "POST" })
     z.object({ holdId: z.string().uuid(), sessionId: z.string().min(24).max(120) }).parse(d),
   )
   .handler(async ({ data }) => {
-    const sb = publicClient();
-    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { property, supabaseAdmin: sb } = await resolvePublicBookingContext();
+    const propertyId = property.id;
     const { data: ok, error } = await bookingRpc(sb).rpc("release_booking_hold", {
       _hold_id: data.holdId,
       _session_id: data.sessionId,
@@ -67,11 +67,11 @@ export const releaseBookingHold = createServerFn({ method: "POST" })
 
 export const getBookingHold = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
-    z.object({ holdId: z.string().uuid(), sessionId: z.string().min(6) }).parse(d),
+    z.object({ holdId: z.string().uuid(), sessionId: z.string().min(24).max(120) }).parse(d),
   )
   .handler(async ({ data }) => {
-    const sb = publicClient();
-    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { property, supabaseAdmin: sb } = await resolvePublicBookingContext();
+    const propertyId = property.id;
     const { data: rows, error } = await bookingRpc(sb).rpc("get_booking_hold_for_session", {
       _hold_id: data.holdId,
       _session_id: data.sessionId,
