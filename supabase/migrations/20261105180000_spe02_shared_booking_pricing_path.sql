@@ -496,7 +496,7 @@ BEGIN
   PERFORM 1 FROM public.extras e
   WHERE e.property_id=_property_id AND e.active=true
     AND e.slug IN (
-      SELECT item->>'slug' FROM jsonb_array_elements(COALESCE(_extras,'[]'::jsonb)) item
+      SELECT item.value->>'slug' FROM jsonb_array_elements(COALESCE(_extras,'[]'::jsonb)) AS item(value)
     )
   FOR SHARE;
 
