@@ -107,6 +107,22 @@ describe("SPE-03.08 rate-plan restrictions", () => {
     }).reasons.at(-1)).toMatch(/Conflicting stay-length restrictions/);
   });
 
+  it("fails closed when advance-booking rules lack timestamps or receive invalid timestamps", () => {
+    const rules = restrictionRulesSchema.parse({
+      min: rule("advance_booking_min_hours", { value: 12 }),
+    }) as Record<string, RestrictionRule>;
+    const missing = evaluateStayNasRestrictions(rules, {
+      roomTypeId: ROOM_TYPE, arrivalDate: "2027-01-10", departureDate: "2027-01-12",
+    });
+    expect(missing.sellable).toBe(false);
+    expect(missing.reasons[0]).toMatch(/timestamps are required/);
+    const invalid = evaluateStayNasRestrictions(rules, {
+      roomTypeId: ROOM_TYPE, arrivalDate: "2027-01-10", departureDate: "2027-01-12",
+      bookedAt: "not-a-time", arrivalAt: "2027-01-10T12:00:00Z",
+    });
+    expect(invalid.sellable).toBe(false);
+  });
+
   it("ignores inactive rules and rules for other room types", () => {
     const rules = restrictionRulesSchema.parse({
       inactive: rule("stop_sell", { active: false }),
