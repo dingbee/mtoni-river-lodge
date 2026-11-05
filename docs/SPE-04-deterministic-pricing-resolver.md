@@ -1,7 +1,7 @@
 # SPE-04 — Deterministic Pricing Resolver
 
 **Priority:** P0 — Revenue correctness  
-**Status:** SPE-04.01 COMPLETE · SPE-04.02 CONTRACT BASELINED · SPE-04.03 IMPLEMENTATION IN PROGRESS  
+**Status:** SPE-04.01 COMPLETE · SPE-04.02 CONTRACT BASELINED · SPE-04.03 IMPLEMENTATION COMPLETE · CI VERIFICATION RUNNING  
 **Base:** promoted SPE-03 feature baseline  
 **Branch:** feat/spe-04-deterministic-pricing-resolver
 
@@ -163,3 +163,14 @@ Availability may classify a valid room/date/occupancy combination blocked by inv
 Migration `20261106170000_spe04_base_occupancy_validation.sql` adds a database trigger that validates canonical `base_rates` and exact `occupancy_rules` JSON shapes before a rate-plan row can be inserted or changed. It enforces property-catalogue room-type scope, positive numeric rates, uppercase ISO-4217 currency matching, exact occupancy key format, supported count bounds, and pricing-basis compatibility. It raises stable `INVALID_RATE_CONFIGURATION` or `CURRENCY_MISMATCH` error identifiers. The migration is committed to the SPE-04 feature branch only and has not been applied to any database.
 
 This is the first SPE-04.03 implementation slice, not resolver completion. The database-authoritative published-snapshot resolver, source precedence, restrictions, shared-path integration, and resolver-level tests remain open. Do not route quote/availability/booking calls through this guard or describe SPE-04.03 as passed until those pieces are implemented and verified.
+
+
+
+### SPE-04.03 — implementation complete
+
+- `20261106170000_spe04_base_occupancy_validation.sql`: strict database validation for canonical `base_rates` and exact `occupancy_rules`, property catalogue scope, positive numeric rates, ISO-4217 currency equality, occupancy-key syntax/count bounds and pricing-basis compatibility.
+- `20261106180000_spe04_published_pricing_resolver.sql`: database-authoritative resolver reading the latest immutable publication snapshot; explicit plan selection when multiple plans qualify; property/room isolation; approved override → daily → seasonal → occupancy/base precedence; deterministic seasonal priority; cumulative LOS, arrival/departure, stop-sell and advance-booking restrictions; property-local timezone; per-person and exact occupancy pricing; nightly source evidence; structured fail-closed errors.
+- Legacy SPE-02 calculation remains the compatibility path only when the property has no active published plans. No competing TypeScript pricing calculator was introduced.
+- `supabase/tests/spe04_published_pricing_resolver.test.sql`: pgTAP contract tests for resolver signature, result type, SECURITY DEFINER, grants and validation triggers.
+- Quote, availability and booking entry points remain unchanged in SPE-04.03; integration is the next milestone after resolver acceptance.
+- Migrations and pgTAP tests are committed to this feature branch only. They have not been applied or executed against UAT or production.
