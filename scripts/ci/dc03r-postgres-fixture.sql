@@ -104,9 +104,9 @@ CREATE FUNCTION public.get_room_availability(_check_in date,_check_out date,_pro
 RETURNS TABLE(room_id uuid,slug text,name text,base_price numeric,currency text,
  capacity_adults integer,capacity_children integer,max_occupancy integer,nights integer,
  nightly_total numeric,min_available integer,is_available boolean)
-LANGUAGE sql STABLE AS $ SELECT NULL::uuid,NULL::text,NULL::text,NULL::numeric,NULL::text,
+LANGUAGE sql STABLE AS $$ SELECT NULL::uuid,NULL::text,NULL::text,NULL::numeric,NULL::text,
  NULL::integer,NULL::integer,NULL::integer,NULL::integer,NULL::numeric,NULL::integer,NULL::boolean
- WHERE false $;
+ WHERE false $$;
 CREATE FUNCTION public.staynas_active_property_id(_user_id uuid) RETURNS uuid
 LANGUAGE sql STABLE AS $$
  SELECT m.property_id FROM public.staynas_property_members m
