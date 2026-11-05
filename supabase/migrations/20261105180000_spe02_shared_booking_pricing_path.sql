@@ -314,7 +314,7 @@ BEGIN
   END IF;
   RETURN QUERY
   WITH date_range AS (
-    SELECT generate_series(_check_in,_check_out - 1,interval '1 day')::date AS d
+    SELECT generate_series(_check_in,_check_out - interval '1 day',interval '1 day')::date AS d
   ), inventory AS (
     SELECT r.id AS room_id, dr.d,
       COALESCE(i.available_units,r.total_units) AS units,
