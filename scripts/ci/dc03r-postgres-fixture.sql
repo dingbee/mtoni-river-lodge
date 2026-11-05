@@ -61,9 +61,10 @@ CREATE TABLE public.staynas_property_members(
  PRIMARY KEY(user_id,property_id)
 );
 CREATE FUNCTION public.staynas_user_has_property_access(_user_id uuid,_property_id uuid) RETURNS boolean
-LANGUAGE sql STABLE AS $$1 SELECT EXISTS(SELECT 1 FROM public.staynas_property_members m
+LANGUAGE sql STABLE AS $$
+ SELECT EXISTS(SELECT 1 FROM public.staynas_property_members m
    WHERE m.user_id=_user_id AND m.property_id=_property_id AND m.status='active')
-$;
+$$;
 CREATE FUNCTION public.calculate_staynas_booking_taxes(uuid,date,integer,numeric,numeric,text)
 RETURNS jsonb LANGUAGE sql STABLE AS $$
  SELECT jsonb_build_object('tax_total',0,'tax_addition',0,'breakdown','[]'::jsonb)
