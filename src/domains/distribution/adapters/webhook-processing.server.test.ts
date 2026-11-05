@@ -97,15 +97,29 @@ describe("DC-05.05 server webhook processing boundary", () => {
     })).rejects.toThrow(/terminal/);
     expect(rpc).not.toHaveBeenCalled();
 
-    repository.getInboxScope = vi.fn(async () => ({
-      propertyId: "property-1", status: "manual_reconciliation",
-    }));
-    await expect(replay({
+    const terminalRepository: DistributionWebhookReplayRepository = {
+      getAuthenticatedUser: vi.fn(async () => ({ id: "operator-1" })),
+      getInboxScope: vi.fn(async () => ({
+        propertyId: "property-1", status: "manual_reconciliation",
+      })),
+      hasReplayPermission: vi.fn(async () => false),
+    };
+    const terminalReplay = createDistributionWebhookReplayService(terminalRepository, rpc);
+    await expect(terminalReplay({
       accessToken: "token", inboxId: "inbox-1", reason: "Replay after fix.",
     })).rejects.toThrow(/not authorized/);
-    await expect(replay({
+    await expect(terminalReplay({
       accessToken: "token", inboxId: "inbox-1", reason: "Email guest@example.test",
     })).rejects.toThrow(/sensitive data/);
+
+    const anonymousRepository: DistributionWebhookReplayRepository = {
+      ...terminalRepository,
+      getAuthenticatedUser: vi.fn(async () => null),
+    };
+    const anonymousReplay = createDistributionWebhookReplayService(anonymousRepository, rpc);
+    await expect(anonymousReplay({
+      accessToken: "token", inboxId: "inbox-1", reason: "Replay after fix.",
+    })).rejects.toThrow(/authenticated operator/);
     expect(rpc).not.toHaveBeenCalled();
   });
 });
