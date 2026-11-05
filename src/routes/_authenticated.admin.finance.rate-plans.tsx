@@ -168,7 +168,7 @@ function RatePlans() {
       return Object.fromEntries(Object.entries(parsed.restrictions??{}).filter(([,value])=>value&&typeof value==="object")) as Record<string,Record<string,unknown>>;
     } catch { return {}; }
   };
-  const assignedRestrictionRoomTypes=(roomTypeData?.roomTypes??[]).filter((rt:{id:string})=>
+  const assignedRestrictionRoomTypes=((roomTypeData?.roomTypes??[]) as {id:string;name:string}[]).filter((rt:{id:string})=>
     !!editing && (roomTypeData?.assignments??[]).some((a:{rate_plan_id:string;room_type_id:string;active:boolean})=>
       a.rate_plan_id===editing.id&&a.room_type_id===rt.id&&a.active,
     ),
