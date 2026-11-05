@@ -147,9 +147,11 @@ function RatePlans() {
     } catch { toast.error("Fix the rate-data JSON before clearing a daily override."); }
   };
   const dailyRateEntries=Object.entries(readDailyRates()).flatMap(([date,roomRates])=>
-    Object.entries(roomRates).filter(([,value])=>value&&typeof value==="object").map(([roomTypeId,value])=>({
-      date,roomTypeId,value:value as Record<string,unknown>,
-    })),
+    roomRates&&typeof roomRates==="object"
+      ? Object.entries(roomRates).filter(([,value])=>value&&typeof value==="object").map(([roomTypeId,value])=>({
+          date,roomTypeId,value:value as Record<string,unknown>,
+        }))
+      : [],
   );
 
   return <div className="space-y-6">
