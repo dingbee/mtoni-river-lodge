@@ -29,7 +29,8 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - name: Reservation ingestion contract tests
-        run: >-\n          bunx vitest run src/domains/distribution/reservations src/domains/distribution/adapters/mapping-contracts.test.ts src/domains/distribution/adapters/mapping-resolution.test.ts
+        run: >-
+          bunx vitest run src/domains/distribution/reservations src/domains/distribution/adapters/mapping-contracts.test.ts src/domains/distribution/adapters/mapping-resolution.test.ts
       - name: TypeScript verification
         run: bunx tsc --noEmit
       - name: Production build
