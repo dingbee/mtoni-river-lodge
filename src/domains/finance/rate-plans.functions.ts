@@ -217,7 +217,7 @@ export const resolveStayNasRatePlanInheritance = createServerFn({ method: "POST"
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
-    const { data: resolved, error } = await context.supabase.rpc(
+    const { data: resolved, error } = await (context.supabase as any).rpc(
       "resolve_staynas_rate_plan_inheritance",
       { _property_id: propertyId, _rate_plan_id: data.id },
     );
@@ -232,7 +232,7 @@ export const createStayNasRatePlanInheritanceSnapshot = createServerFn({ method:
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
-    const { data: snapshot, error } = await context.supabase.rpc(
+    const { data: snapshot, error } = await (context.supabase as any).rpc(
       "create_staynas_rate_plan_inheritance_snapshot",
       { _property_id: propertyId, _rate_plan_id: data.id },
     );
