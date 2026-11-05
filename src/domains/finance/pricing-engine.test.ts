@@ -20,60 +20,6 @@ const rule = (overrides: Partial<PropertyPricingRule>): PropertyPricingRule => (
   priority: 100,
   active: true,
   ...overrides,
-  it("matches the read-only Nolmark CDMA room baseline", () => {
-    const propertyId = "f44ff48a-5449-4464-b0cb-83295fadb468";
-    const rooms: PricingRoom[] = [
-      {
-        id: "00cc9cf8-73b2-4b56-96f1-ca91418bdb47",
-        propertyId,
-        basePrice: 120,
-        currency: "USD",
-        includedGuests: 2,
-        extraGuestFee: 25,
-        capacityAdults: 2,
-        capacityChildren: 1,
-        maxOccupancy: 3,
-      },
-      {
-        id: "17231e70-a8e2-41f0-8d7b-363df40f0c01",
-        propertyId,
-        basePrice: 165,
-        currency: "USD",
-        includedGuests: 2,
-        extraGuestFee: 30,
-        capacityAdults: 2,
-        capacityChildren: 1,
-        maxOccupancy: 3,
-      },
-      {
-        id: "90eb5492-1901-4853-a95a-280822bd4b02",
-        propertyId,
-        basePrice: 240,
-        currency: "USD",
-        includedGuests: 4,
-        extraGuestFee: 0,
-        capacityAdults: 4,
-        capacityChildren: 2,
-        maxOccupancy: 6,
-      },
-    ];
-    const quote = (room: PricingRoom, occupancy: { adults: number; childrenBelow6?: number; children7Plus?: number }) =>
-      calculatePricingQuote({
-        room,
-        checkIn: "2026-11-10",
-        checkOut: "2026-11-12",
-        occupancy,
-        inventory: [],
-        rules: [],
-      });
-
-    expect(quote(rooms[0], { adults: 2, childrenBelow6: 1 }).subtotal).toBe(240);
-    expect(quote(rooms[0], { adults: 2, children7Plus: 1 }).subtotal).toBe(290);
-    expect(quote(rooms[1], { adults: 2 }).subtotal).toBe(330);
-    expect(quote(rooms[2], { adults: 4, childrenBelow6: 2 }).subtotal).toBe(480);
-    expect(rooms.every((room) => room.currency === "USD")).toBe(true);
-  });
-
 });
 
 describe("calculatePricingQuote", () => {
@@ -182,5 +128,61 @@ describe("calculatePricingQuote", () => {
       inventory: [],
       rules: [],
     })).toThrow(/capacity/i);
+  });
+
+  it("matches the read-only Nolmark CDMA room baseline", () => {
+    const propertyId = "f44ff48a-5449-4464-b0cb-83295fadb468";
+    const rooms: PricingRoom[] = [
+      {
+        id: "00cc9cf8-73b2-4b56-96f1-ca91418bdb47",
+        propertyId,
+        basePrice: 120,
+        currency: "USD",
+        includedGuests: 2,
+        extraGuestFee: 25,
+        capacityAdults: 2,
+        capacityChildren: 1,
+        maxOccupancy: 3,
+      },
+      {
+        id: "17231e70-a8e2-41f0-8d7b-363df40f0c01",
+        propertyId,
+        basePrice: 165,
+        currency: "USD",
+        includedGuests: 2,
+        extraGuestFee: 30,
+        capacityAdults: 2,
+        capacityChildren: 1,
+        maxOccupancy: 3,
+      },
+      {
+        id: "90eb5492-1901-4853-a95a-280822bd4b02",
+        propertyId,
+        basePrice: 240,
+        currency: "USD",
+        includedGuests: 4,
+        extraGuestFee: 0,
+        capacityAdults: 4,
+        capacityChildren: 2,
+        maxOccupancy: 6,
+      },
+    ];
+    const quote = (
+      selectedRoom: PricingRoom,
+      occupancy: { adults: number; childrenBelow6?: number; children7Plus?: number },
+    ) => calculatePricingQuote({
+      room: selectedRoom,
+      checkIn: "2026-11-10",
+      checkOut: "2026-11-12",
+      occupancy,
+      inventory: [],
+      rules: [],
+    });
+
+    expect(quote(rooms[0], { adults: 2, childrenBelow6: 1 }).subtotal).toBe(240);
+    expect(quote(rooms[0], { adults: 2, children7Plus: 1 }).subtotal).toBe(290);
+    expect(quote(rooms[1], { adults: 2 }).subtotal).toBe(330);
+    expect(quote(rooms[2], { adults: 4, childrenBelow6: 2 }).subtotal).toBe(480);
+    expect(rooms.every((item) => item.currency === "USD")).toBe(true);
   });
 });
