@@ -58,6 +58,10 @@ function RatePlans() {
   const [seasonPriority,setSeasonPriority]=useState("10");
   const [seasonRoomTypes,setSeasonRoomTypes]=useState<string[]>([]);
   const [seasonActive,setSeasonActive]=useState(true);
+  const [dailyDate,setDailyDate]=useState("");
+  const [dailyRoomType,setDailyRoomType]=useState("");
+  const [dailyRate,setDailyRate]=useState("");
+  const [dailyActive,setDailyActive]=useState(true);
 
   const reset=()=>{setEditing(null);setCode("");setName("");setDescription("");setCategory("standard_flexible");setBasis("per_room");setMealPlan("room_only");setRefundable(true);setFrom("");setTo("");setParent("");setRatePlanDataText("{}");setInheritancePreview(null);};
   const startEdit=(p:Plan)=>{setEditing(p);setCode(p.code);setName(p.name);setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));setInheritancePreview(null);};
@@ -112,9 +116,44 @@ function RatePlans() {
     } catch { toast.error("Fix the rate-data JSON before removing a season."); }
   };
   const seasonalEntries=Object.entries(readSeasonalRates()).filter(([,value])=>value&&typeof value==="object");
+  const readDailyRates=():Record<string,Record<string,unknown>>=>{
+    try {
+      const parsed=JSON.parse(ratePlanDataText||"{}") as {daily_rates?:Record<string,Record<string,unknown>>};
+      return parsed.daily_rates??{};
+    } catch { return {}; }
+  };
+  const addDailyRate=()=>{
+    if(!dailyDate||!dailyRoomType||!dailyRate){toast.error("Choose a date and room type, then enter a nightly rate.");return;}
+    const amount=Number(dailyRate);
+    if(!Number.isFinite(amount)||amount<=0){toast.error("Daily nightly rate must be a positive number.");return;}
+    try {
+      const parsed=JSON.parse(ratePlanDataText||"{}") as Record<string,unknown>;
+      const dates=(parsed.daily_rates&&typeof parsed.daily_rates==="object"?parsed.daily_rates:{}) as Record<string,Record<string,unknown>>;
+      const rates={...(dates[dailyDate]??{})};
+      if(rates[dailyRoomType]&&typeof rates[dailyRoomType]==="object"){toast.error("A daily rate already exists for this date and room type. Remove it first to replace it.");return;}
+      rates[dailyRoomType]={nightly_rate:amount,currency:String(data?.property?.currency??"").toUpperCase(),active:dailyActive};
+      dates[dailyDate]=rates;parsed.daily_rates=dates;
+      setRatePlanDataText(JSON.stringify(parsed,null,2));
+      setDailyDate("");setDailyRate("");setDailyActive(true);
+      toast.success("Daily override added. Save the rate plan to validate and persist it.");
+    } catch { toast.error("Fix the rate-data JSON before adding a daily override."); }
+  };
+  const removeDailyRate=(date:string,roomTypeId:string)=>{
+    try {
+      const parsed=JSON.parse(ratePlanDataText||"{}") as Record<string,unknown>;
+      const dates=(parsed.daily_rates??{}) as Record<string,Record<string,unknown>>;
+      dates[date]={...(dates[date]??{}),[roomTypeId]:null};
+      parsed.daily_rates=dates;setRatePlanDataText(JSON.stringify(parsed,null,2));
+    } catch { toast.error("Fix the rate-data JSON before clearing a daily override."); }
+  };
+  const dailyRateEntries=Object.entries(readDailyRates()).flatMap(([date,roomRates])=>
+    Object.entries(roomRates).filter(([,value])=>value&&typeof value==="object").map(([roomTypeId,value])=>({
+      date,roomTypeId,value:value as Record<string,unknown>,
+    })),
+  );
 
   return <div className="space-y-6">
-    <PageHeader title="Rate Plans" description="Manage property-scoped commercial accommodation products, room eligibility, seasonal pricing and publication." />
+    <PageHeader title="Rate Plans" description="Manage property-scoped commercial accommodation products, room eligibility, seasonal pricing, daily rate overrides and publication." />
     {data?.property&&<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><span className="font-medium text-foreground">{data.property.name}</span><Badge variant="outline">{String(data.property.currency).toUpperCase()}</Badge><span>{data.property.timezone}</span></div>}
     <SectionCard title={editing?"Edit rate plan":"Create rate plan"} description="A rate plan defines the commercial terms applied to one or more room types. Room assignments are managed separately.">
       <div className="grid gap-3 md:grid-cols-3">
@@ -128,7 +167,7 @@ function RatePlans() {
         <Input type="date" value={to} onChange={e=>setTo(e.target.value)} aria-label="Effective to"/>
         <select className="rounded-md border border-border bg-background px-3 py-2 text-sm" value={refundable?"refundable":"non_refundable"} onChange={e=>setRefundable(e.target.value==="refundable")}><option value="refundable">Refundable</option><option value="non_refundable">Non-refundable</option></select>
         <Input className="md:col-span-3" placeholder="Description and booking conditions" value={description} onChange={e=>setDescription(e.target.value)}/>
-        <label className="md:col-span-3 space-y-1 text-sm"><span className="font-medium">Advanced inheritance data (JSON)</span><textarea className="min-h-40 w-full rounded-md border border-border bg-background p-3 font-mono text-xs" value={ratePlanDataText} onChange={e=>setRatePlanDataText(e.target.value)} spellCheck={false}/><span className="block text-xs text-muted-foreground">Allowed keys: base_rates, seasonal_rates, daily_rates, occupancy_rules, restrictions. Seasonal entries can be managed above. Use keyed objects; JSON null explicitly clears an inherited key.</span></label>
+        <label className="md:col-span-3 space-y-1 text-sm"><span className="font-medium">Advanced inheritance data (JSON)</span><textarea className="min-h-40 w-full rounded-md border border-border bg-background p-3 font-mono text-xs" value={ratePlanDataText} onChange={e=>setRatePlanDataText(e.target.value)} spellCheck={false}/><span className="block text-xs text-muted-foreground">Allowed keys: base_rates, seasonal_rates, daily_rates, occupancy_rules, restrictions. Seasonal and daily rates can be managed above. Use keyed objects; JSON null explicitly clears an inherited key.</span></label>
       </div>
       <div className="mt-5 rounded-lg border border-border p-4 space-y-3">
         <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4"/><h3 className="text-sm font-semibold">Seasonal pricing</h3></div>
@@ -147,6 +186,18 @@ function RatePlans() {
         <div className="space-y-2"><p className="text-xs font-medium">Applicable room types</p><div className="flex flex-wrap gap-4">{(roomTypeData?.roomTypes??[]).map((rt:{id:string;name:string})=><label key={rt.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={seasonRoomTypes.includes(rt.id)} onChange={e=>setSeasonRoomTypes(current=>e.target.checked?[...current,rt.id]:current.filter(id=>id!==rt.id))}/>{rt.name}</label>)}</div></div>
         <Button type="button" variant="outline" onClick={addSeason}><Plus className="mr-2 h-4 w-4"/>Add season</Button>
         {seasonalEntries.length>0&&<div className="space-y-2">{seasonalEntries.map(([key,value])=><div key={key} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm"><div><span className="font-medium">{String(value.name??key)}</span><span className="ml-2 text-xs text-muted-foreground">{String(value.start_date??"")} → {String(value.end_date??"")} · {String(value.nightly_rate??"")} {String(value.currency??"")} · priority {String(value.priority??"—")}</span></div><Button type="button" size="icon" variant="ghost" aria-label={"Remove season "+key} onClick={()=>removeSeason(key)}><Trash2 className="h-4 w-4"/></Button></div>)}</div>}
+      </div>
+      <div className="mt-5 rounded-lg border border-border p-4 space-y-3">
+        <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4"/><h3 className="text-sm font-semibold">Daily rate calendar</h3></div>
+        <p className="text-xs text-muted-foreground">Set an exact-date nightly override for an individual room type. Dates use the property-local calendar. Active daily overrides take precedence over seasonal and base rates for that night. Clearing a child entry reveals the inherited parent rate again.</p>
+        <div className="grid gap-3 md:grid-cols-3">
+          <Input type="date" aria-label="Daily rate date" value={dailyDate} onChange={e=>setDailyDate(e.target.value)}/>
+          <select className="rounded-md border border-border bg-background px-3 py-2 text-sm" value={dailyRoomType} onChange={e=>setDailyRoomType(e.target.value)}><option value="">Choose room type</option>{(roomTypeData?.roomTypes??[]).map((rt:{id:string;name:string})=><option key={rt.id} value={rt.id}>{rt.name}</option>)}</select>
+          <Input type="number" min="0.01" step="0.01" placeholder="Nightly rate" value={dailyRate} onChange={e=>setDailyRate(e.target.value)}/>
+          <div className="flex items-center gap-2 text-sm"><input type="checkbox" checked={dailyActive} onChange={e=>setDailyActive(e.target.checked)}/>Active override <Badge variant="outline">{String(data?.property?.currency??"").toUpperCase()}</Badge></div>
+        </div>
+        <Button type="button" variant="outline" onClick={addDailyRate}><Plus className="mr-2 h-4 w-4"/>Add daily override</Button>
+        {dailyRateEntries.length>0&&<div className="space-y-2">{dailyRateEntries.sort((a,b)=>a.date.localeCompare(b.date)).map(entry=><div key={entry.date+entry.roomTypeId} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm"><div><span className="font-medium">{entry.date}</span><span className="ml-2 text-xs text-muted-foreground">{(roomTypeData?.roomTypes??[]).find((rt:{id:string})=>rt.id===entry.roomTypeId)?.name??entry.roomTypeId} · {String(entry.value.nightly_rate??"")} {String(entry.value.currency??"")} · {entry.value.active===false?"Inactive":"Active"}</span></div><Button type="button" size="icon" variant="ghost" aria-label={"Clear daily rate "+entry.date} onClick={()=>removeDailyRate(entry.date,entry.roomTypeId)}><Trash2 className="h-4 w-4"/></Button></div>)}</div>}
       </div>
       <div className="mt-3 flex flex-wrap gap-2"><Button disabled={!code.trim()||!name.trim()||save.isPending} onClick={()=>save.mutate()}><Plus className="mr-2 h-4 w-4"/>{editing?"Save changes":"Create rate plan"}</Button>{editing&&<Button variant="outline" onClick={reset}>Cancel edit</Button>}</div>
       <p className="mt-2 text-xs text-muted-foreground">Currency is inherited from the active property and cannot be overridden. New plans start as Draft. Missing rate-data keys inherit from the parent; matching child keys override parent values. Cancellation and refundability remain independent.</p>
