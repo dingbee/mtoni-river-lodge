@@ -68,6 +68,30 @@ CREATE TRIGGER staynas_rate_plan_room_types_context_guard
   FOR EACH ROW EXECUTE FUNCTION public.validate_staynas_rate_plan_room_type();
 
 
+
+-- Finance users cannot read the operational rooms table directly. Expose only
+-- the active property's configured room-type catalogue through a scoped RPC.
+CREATE OR REPLACE FUNCTION public.get_staynas_rate_plan_room_types(_property_id uuid)
+RETURNS TABLE(id uuid,name text,slug text)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path=public
+AS $function$
+  SELECT DISTINCT ct.id,ct.name,ct.slug
+  FROM public.rooms r
+  JOIN public.staynas_room_catalogue_types ct ON ct.id=r.catalogue_type_id
+  WHERE r.property_id=_property_id
+    AND ct.status='active'
+    AND (select auth.uid()) IS NOT NULL
+    AND public.staynas_active_property_id((select auth.uid()))=_property_id
+    AND public.staynas_user_has_property_access((select auth.uid()),_property_id)
+    AND public.has_any_role((select auth.uid()),ARRAY['owner','manager','finance','admin']::public.app_role[]);
+$function$;
+
+REVOKE ALL ON FUNCTION public.get_staynas_rate_plan_room_types(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.get_staynas_rate_plan_room_types(uuid) TO authenticated;
+
 -- Enforce publication and archive invariants at the database boundary as well
 -- as in the server actions. The assignment table now exists, so publication
 -- can be gated on at least one active room-type mapping.
