@@ -3,13 +3,21 @@ import { createTrustedDistributionExecutionLoader, type DistributionExecutionRep
 import { DistributionAdapterRegistry } from "./registry";
 import type { DistributionAdapter } from "./contracts";
 
-const manifest = {
+const ids = {
+  connection: "10000000-0000-4000-8000-000000000001",
+  organisation: "20000000-0000-4000-8000-000000000002",
+  property: "30000000-0000-4000-8000-000000000003",
+  grant: "40000000-0000-4000-8000-000000000004",
+  account: "50000000-0000-4000-8000-000000000005",
+} as const;
+
+const manifest: DistributionAdapter["manifest"] = {
   providerKey: "test_provider",
   adapterVersion: "1.0.0",
   contractVersion: "1.0",
-  capabilities: ["availability.read"] as const,
-  environments: ["sandbox"] as const,
-  authenticationModes: ["managed_secret"] as const,
+  capabilities: ["availability.read"],
+  environments: ["sandbox"],
+  authenticationModes: ["managed_secret"],
   supportsHealthCheck: false,
 };
 
@@ -17,39 +25,39 @@ function makeRepository(overrides: Partial<DistributionExecutionRepository> = {}
   const rows = {
     getAuthenticatedPrincipal: vi.fn(async () => ({ id: "user-1" })),
     getConnection: vi.fn(async () => ({
-      id: "connection-1",
-      organisation_id: "org-1",
-      property_id: "property-1",
-      account_grant_id: "grant-1",
-      external_account_id: "account-1",
+      id: ids.connection,
+      organisation_id: ids.organisation,
+      property_id: ids.property,
+      account_grant_id: ids.grant,
+      external_account_id: ids.account,
       provider_key: "test_provider",
       adapter_version: "1.0.0",
       environment: "sandbox",
       lifecycle: "connected",
     })),
     getAccountGrant: vi.fn(async () => ({
-      id: "grant-1",
-      organisation_id: "org-1",
-      property_id: "property-1",
-      external_account_id: "account-1",
+      id: ids.grant,
+      organisation_id: ids.organisation,
+      property_id: ids.property,
+      external_account_id: ids.account,
       provider_key: "test_provider",
       environment: "sandbox",
       grant_status: "active",
       granted_capabilities: ["availability.read"],
     })),
     getExternalAccount: vi.fn(async () => ({
-      id: "account-1",
-      organisation_id: "org-1",
+      id: ids.account,
+      organisation_id: ids.organisation,
       provider_key: "test_provider",
       external_account_reference: "external-a",
       environment: "sandbox",
-      credential_reference: "40000000-0000-4000-8000-000000000001",
+      credential_reference: "60000000-0000-4000-8000-000000000006",
       lifecycle: "connected",
     })),
-    getProperty: vi.fn(async () => ({ organisation_id: "org-1", status: "active" })),
+    getProperty: vi.fn(async () => ({ organisation_id: ids.organisation, status: "active" })),
     getOrganisation: vi.fn(async () => ({ status: "active" })),
     getPropertyMembership: vi.fn(async () => ([{
-      property_id: "property-1",
+      property_id: ids.property,
       user_id: "user-1",
       role: "manager",
       status: "active",
@@ -61,7 +69,7 @@ function makeRepository(overrides: Partial<DistributionExecutionRepository> = {}
 
 function makeRegistry() {
   const registry = new DistributionAdapterRegistry({ supportedContractVersions: ["1.0"] });
-  registry.register({ manifest } as DistributionAdapter);
+  registry.register({ manifest });
   return registry;
 }
 
@@ -71,7 +79,7 @@ describe("trusted distribution execution context loader", () => {
     const load = createTrustedDistributionExecutionLoader(repository, makeRegistry());
     const context = await load({
       accessToken: "verified-session-token",
-      connectionId: "connection-1",
+      connectionId: ids.connection,
       capability: "availability.read",
       environment: "sandbox",
       operation: "availability.pull",
@@ -79,15 +87,15 @@ describe("trusted distribution execution context loader", () => {
     });
 
     expect(context).toMatchObject({
-      organisationId: "org-1",
-      propertyId: "property-1",
-      connectionId: "connection-1",
+      organisationId: ids.organisation,
+      propertyId: ids.property,
+      connectionId: ids.connection,
       providerKey: "test_provider",
       externalAccountReference: "external-a",
       environment: "sandbox",
     });
     expect(repository.getAuthenticatedPrincipal).toHaveBeenCalledWith("verified-session-token");
-    expect(repository.getPropertyMembership).toHaveBeenCalledWith("property-1", "user-1");
+    expect(repository.getPropertyMembership).toHaveBeenCalledWith(ids.property, "user-1");
   });
 
   it("fails closed when no active property membership exists", async () => {
@@ -97,7 +105,7 @@ describe("trusted distribution execution context loader", () => {
     const load = createTrustedDistributionExecutionLoader(repository, makeRegistry());
     await expect(load({
       accessToken: "verified-session-token",
-      connectionId: "connection-1",
+      connectionId: ids.connection,
       capability: "availability.read",
       environment: "sandbox",
       operation: "availability.pull",
@@ -112,7 +120,7 @@ describe("trusted distribution execution context loader", () => {
     const load = createTrustedDistributionExecutionLoader(repository, makeRegistry());
     await expect(load({
       accessToken: "anonymous-session-token",
-      connectionId: "connection-1",
+      connectionId: ids.connection,
       capability: "availability.read",
       environment: "sandbox",
       operation: "availability.pull",
