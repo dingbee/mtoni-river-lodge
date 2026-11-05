@@ -428,18 +428,6 @@ BEGIN
 END;
 $function$;
 
-REVOKE ALL ON FUNCTION public.validate_staynas_rate_override() FROM PUBLIC,anon,authenticated;
-REVOKE ALL ON FUNCTION public.audit_staynas_rate_override() FROM PUBLIC,anon,authenticated;
-REVOKE ALL ON FUNCTION public.audit_staynas_inventory_price_override() FROM PUBLIC,anon,authenticated;
-REVOKE ALL ON FUNCTION public.prevent_staynas_rate_override_audit_mutation() FROM PUBLIC,anon,authenticated;
-REVOKE ALL ON FUNCTION public.apply_staynas_room_date_rate_override(uuid,uuid,date,numeric,text) FROM PUBLIC,anon;
-REVOKE ALL ON FUNCTION public.approve_staynas_room_date_rate_override(uuid) FROM PUBLIC,anon;
-REVOKE ALL ON FUNCTION public.revoke_staynas_room_date_rate_override(uuid) FROM PUBLIC,anon;
-GRANT EXECUTE ON FUNCTION public.apply_staynas_room_date_rate_override(uuid,uuid,date,numeric,text) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.approve_staynas_room_date_rate_override(uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.revoke_staynas_room_date_rate_override(uuid) TO authenticated;
-
-
 CREATE OR REPLACE FUNCTION public.revoke_staynas_room_date_rate_override(_override_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -473,6 +461,20 @@ BEGIN
     'restored_price_override',v_override.previous_inventory_price_override);
 END;
 $function$;
+
+REVOKE ALL ON FUNCTION public.validate_staynas_rate_override() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.audit_staynas_rate_override() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.audit_staynas_inventory_price_override() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.prevent_staynas_rate_override_audit_mutation() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.apply_staynas_room_date_rate_override(uuid,uuid,date,numeric,text) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.approve_staynas_room_date_rate_override(uuid) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.revoke_staynas_room_date_rate_override(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.apply_staynas_room_date_rate_override(uuid,uuid,date,numeric,text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.approve_staynas_room_date_rate_override(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.revoke_staynas_room_date_rate_override(uuid) TO authenticated;
+
+
+
 
 COMMENT ON TABLE public.staynas_rate_overrides IS
   'Property-scoped override proposals and approvals. Resolution precedence for SPE-04: approved exact-date override, published daily calendar, seasonal rate, then inherited/base rate. Rate-plan/room-type scopes are recorded here for SPE-04; exact room/date approval writes only the legacy room_inventory.price_override field.';
