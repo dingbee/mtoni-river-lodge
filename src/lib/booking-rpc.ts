@@ -72,10 +72,6 @@ export interface BookingPropertyRpc {
     args: { _check_in: string; _check_out: string; _property_id: string },
   ): Result<AvailabilityRow[]>;
   rpc(
-    fn: "get_room_availability_for_property",
-    args: { _check_in: string; _check_out: string; _property_id: string },
-  ): Result<AvailabilityRow[]>;
-  rpc(
     fn: "create_booking_hold",
     args: {
       _room_slug: string;
