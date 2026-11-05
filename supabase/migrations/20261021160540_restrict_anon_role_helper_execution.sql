@@ -1,0 +1,6 @@
+REVOKE EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.has_any_role(uuid, public.app_role[]) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.is_any_staff(uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.is_staff(uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.is_guest_pii_staff(uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.restaurant_is_platform_admin(uuid) FROM anon;

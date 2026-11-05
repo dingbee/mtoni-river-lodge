@@ -1,0 +1,14 @@
+REVOKE EXECUTE ON FUNCTION public.save_room_type_configuration(uuid,text,text,uuid,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.save_room_type_configuration(uuid,text,text,uuid,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.set_room_block(uuid,date,date,boolean,text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.set_room_block(uuid,date,date,boolean,text) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.knowledge_can_read_document(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.knowledge_can_read_document(uuid) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.log_calendar_event(text,uuid,uuid,uuid,date,date,jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.log_calendar_event(text,uuid,uuid,uuid,date,date,jsonb) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.checkin_ensure_for_booking(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.checkin_ensure_for_booking(uuid) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.checkin_log_activity(uuid,uuid,text,text,jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.checkin_log_activity(uuid,uuid,text,text,jsonb) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.checkin_sync_reservation(uuid,jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.checkin_sync_reservation(uuid,jsonb) TO authenticated;

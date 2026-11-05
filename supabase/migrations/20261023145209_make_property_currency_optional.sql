@@ -1,0 +1,1 @@
+ALTER TABLE public.staynas_properties ALTER COLUMN currency DROP DEFAULT; ALTER TABLE public.staynas_properties ALTER COLUMN currency DROP NOT NULL;

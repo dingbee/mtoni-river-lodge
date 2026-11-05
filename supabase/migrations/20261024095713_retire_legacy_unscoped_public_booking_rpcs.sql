@@ -1,0 +1,14 @@
+REVOKE EXECUTE ON FUNCTION public.get_room_availability(date,date) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.create_booking_hold(text,date,date,text,text,integer) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.release_booking_hold(uuid,text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_booking_hold_for_session(uuid,text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_room_availability(date,date) TO service_role;
+GRANT EXECUTE ON FUNCTION public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb) TO service_role;
+GRANT EXECUTE ON FUNCTION public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer) TO service_role;
+GRANT EXECUTE ON FUNCTION public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.create_booking_hold(text,date,date,text,text,integer) TO service_role;
+GRANT EXECUTE ON FUNCTION public.release_booking_hold(uuid,text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.get_booking_hold_for_session(uuid,text) TO service_role;
