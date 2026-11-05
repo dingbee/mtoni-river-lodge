@@ -101,15 +101,15 @@ CREATE FUNCTION public.create_booking_hold_for_property(uuid,text,date,date,text
 RETURNS TABLE(hold_id uuid,expires_at timestamptz,room_id uuid)
 LANGUAGE sql AS $$ SELECT NULL::uuid,NULL::timestamptz,NULL::uuid WHERE false $$;
 CREATE FUNCTION public.staynas_active_property_id(_user_id uuid) RETURNS uuid
-LANGUAGE sql STABLE AS $
+LANGUAGE sql STABLE AS $$
  SELECT m.property_id FROM public.staynas_property_members m
  WHERE m.user_id=_user_id AND m.status='active'
  ORDER BY m.property_id LIMIT 1
-$;
+$$;
 CREATE FUNCTION public.staynas_booking_property_id() RETURNS uuid
-LANGUAGE sql STABLE AS $ SELECT NULL::uuid $;
+LANGUAGE sql STABLE AS $$ SELECT NULL::uuid $$;
 CREATE FUNCTION public.staynas_booking_property_id(text) RETURNS uuid
-LANGUAGE sql STABLE AS $ SELECT NULL::uuid $;
+LANGUAGE sql STABLE AS $$ SELECT NULL::uuid $$;
 GRANT EXECUTE ON FUNCTION public.staynas_booking_property_id() TO anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.staynas_booking_property_id(text) TO anon,authenticated,service_role;
 CREATE FUNCTION public.get_room_availability_for_property(uuid,date,date)
