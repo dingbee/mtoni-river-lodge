@@ -316,3 +316,7 @@ The repository/schema baseline and pure contract implementation are recorded. CI
 ### DC-04.10 lease-expiry hardening
 
 The outbox completion RPC now rejects a worker completion when its lease has expired, even if another worker has not yet reclaimed the event. The isolated PostgreSQL smoke test expires a claimed lease, verifies stale completion is rejected, reclaims the event under a new lease, and then verifies successful completion. This prevents a stale worker from committing after its authority window has ended.
+
+### DC-04.8 lease-expiry hardening
+
+The operation completion RPC rejects completion after the worker lease expires, even when the operation has not yet been reclaimed. The claim RPC also terminalizes an expired final attempt as `permanent_failure` and writes `lease_expired` attempt evidence, rather than leaving an unclaimable operation in `running`. The isolated PostgreSQL smoke test covers stale completion rejection, reclaim under a fresh lease, and terminalization when the retry budget is exhausted.
