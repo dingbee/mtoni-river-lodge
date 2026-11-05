@@ -68,6 +68,7 @@ jobs:
           src/lib/finance-rpc.ts
           src/lib/pricing.ts
           src/routes/_authenticated.admin.finance.payments.tsx
+          src/routes/_authenticated.admin.finance.rate-plans.tsx
           src/lib/staff-reservations.functions.ts
           src/components/os/reservations/NewReservationDialog.tsx
           src/lib/payment-finalize.server.ts
