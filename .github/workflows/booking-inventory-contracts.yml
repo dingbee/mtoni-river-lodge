@@ -1,0 +1,49 @@
+name: StayNas booking and inventory contracts
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/lib/booking-property.ts"
+      - "src/lib/booking-property.test.ts"
+      - "src/lib/booking-property.server.ts"
+      - "src/lib/booking-rpc.ts"
+      - "src/lib/booking.functions.ts"
+      - "src/lib/availability.functions.ts"
+      - "supabase/migrations/*booking*"
+      - "supabase/review/*booking*"
+      - ".github/workflows/booking-inventory-contracts.yml"
+  push:
+    branches:
+      - fix/dc-03r-*
+      - fix/booking-*
+      - main
+
+jobs:
+  booking-inventory-contracts:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Booking property-isolation regression tests
+        run: bunx vitest run src/lib/booking-property.test.ts
+      - name: Generate routes and verify production build
+        run: bun run build
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Lint booking property-isolation contracts and tests
+        run: >-
+          bunx eslint
+          src/lib/booking-property.ts
+          src/lib/booking-property.test.ts
+          --rule 'prettier/prettier: off'
