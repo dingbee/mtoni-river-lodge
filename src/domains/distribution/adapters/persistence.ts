@@ -124,7 +124,7 @@ export function resolvePersistedAdapterExecution(
     },
     propertyMembership: input.propertyMembership,
     accountGrant: {
-      externalAccountId: grant.external_account_id,
+      externalAccountId: account.external_account_reference,
       organisationId: grant.organisation_id,
       propertyId: grant.property_id,
       active: grant.grant_status === "active",
