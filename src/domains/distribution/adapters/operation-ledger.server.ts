@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { AdapterExecutionContext } from "./contracts";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-const forbiddenPayloadKey = /(secret|token|password|authorization|api[_-]?key|client[_-]?secret|guest[_-]?(name|email|phone)|email|phone)/i;
+const forbiddenPayloadKey = /(secret|token|password|authorization|api[_-]?key|client[_-]?secret|guest|customer|travell?er|personal|contact|recipient|first[_-]?name|last[_-]?name|full[_-]?name|email|phone)/i;\n\nfunction validateSafePayloadString(value: string): void {\n  if (value.length > 2048) throw new Error("Distribution payload string exceeds the safe length limit.");\n  const sensitiveValuePatterns = [\n    /\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b/i,\n    /^\\+?[0-9]{10,15}$/,\n    /\\bBearer\\s+[A-Za-z0-9._~-]{12,}\\b/i,\n    /\\beyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\b/,\n    /\\b(?:sk|pk)_(?:live|test)_[A-Za-z0-9]{12,}\\b/i,\n  ];\n  if (sensitiveValuePatterns.some((pattern) => pattern.test(value))) {\n    throw new Error("Distribution operation payload contains a sensitive value.");\n  }\n}
 
 function canonicalize(value: unknown): string {
   if (value === null || typeof value === "string" || typeof value === "boolean") {
