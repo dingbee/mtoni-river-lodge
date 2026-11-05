@@ -32,6 +32,11 @@ BEGIN
      OR NOT has_function_privilege('service_role','public.staynas_user_has_property_access(uuid,uuid)','EXECUTE')
   THEN RAISE EXCEPTION 'Property access helper grants are incorrect'; END IF;
 
+  IF has_function_privilege('anon','public.staynas_active_property_id(uuid)','EXECUTE')
+     OR NOT has_function_privilege('authenticated','public.staynas_active_property_id(uuid)','EXECUTE')
+     OR NOT has_function_privilege('service_role','public.staynas_active_property_id(uuid)','EXECUTE')
+  THEN RAISE EXCEPTION 'Active-property resolver grants are incorrect'; END IF;
+
   IF has_function_privilege('anon','public.staynas_current_property_role()','EXECUTE')
      OR NOT has_function_privilege('authenticated','public.staynas_current_property_role()','EXECUTE')
   THEN RAISE EXCEPTION 'Current property role helper grants are incorrect'; END IF;
@@ -59,7 +64,9 @@ BEGIN
         'hk_room_state_events','hk_task_events','staynas_enforce_hold_property',
         'staynas_enforce_ops_task_property','staynas_set_guest_child_property',
         'arrival_pass_validate_unscoped','checkin_eligibility',
-        'housekeeping_is_supervisor','current_user_roles'
+        'housekeeping_is_supervisor','current_user_roles','checkin_log_activity',
+        'checkin_sync_reservation','log_calendar_event','is_guest_pii_staff',
+        'restaurant_is_platform_admin'
       ])
       AND (has_function_privilege('anon',p.oid,'EXECUTE')
            OR has_function_privilege('authenticated',p.oid,'EXECUTE'))
@@ -142,6 +149,12 @@ BEGIN
   IF public.staynas_current_property_roles() <> ARRAY['finance','owner']::text[] THEN
     RAISE EXCEPTION 'Multi-role property membership was not preserved';
   END IF;
+  IF public.staynas_active_property_id('10000000-0000-0000-0000-000000000001') <> '30000000-0000-0000-0000-000000000001' THEN
+    RAISE EXCEPTION 'Owner active-property resolution failed';
+  END IF;
+  IF public.staynas_active_property_id('10000000-0000-0000-0000-000000000002') IS NOT NULL THEN
+    RAISE EXCEPTION 'Authenticated user can resolve another user active property';
+  END IF;
   IF NOT public.is_staynas_founder_ai_admin() THEN
     RAISE EXCEPTION 'Founder registry did not grant founder authority';
   END IF;
@@ -156,6 +169,9 @@ SET LOCAL request.jwt.claim.role='authenticated';
 SET LOCAL request.jwt.claim.sub='10000000-0000-0000-0000-000000000002';
 DO $$
 BEGIN
+  IF public.staynas_active_property_id('10000000-0000-0000-0000-000000000002') <> '30000000-0000-0000-0000-000000000002' THEN
+    RAISE EXCEPTION 'Service role cannot resolve another user's active property';
+  END IF;
   IF NOT public.staynas_user_has_property_access('10000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000002') THEN
     RAISE EXCEPTION 'Housekeeping cannot access own property';
   END IF;
