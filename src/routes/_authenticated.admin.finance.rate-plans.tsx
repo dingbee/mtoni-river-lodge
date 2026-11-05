@@ -345,7 +345,31 @@ function RatePlans() {
           <div className="flex items-center gap-2 text-sm"><input type="checkbox" checked={dailyActive} onChange={e=>setDailyActive(e.target.checked)}/>Active override <Badge variant="outline">{String(data?.property?.currency??"").toUpperCase()}</Badge></div>
         </div>
         <Button type="button" variant="outline" onClick={addDailyRate}><Plus className="mr-2 h-4 w-4"/>Add daily override</Button>
-        {dailyRateEntries.length>0&&<div className="space-y-2">{dailyRateEntries.sort((a,b)=>a.date.localeCompare(b.date)).map(entry=><div key={entry.date+entry.roomTypeId} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm"><div><span className="font-medium">{entry.date}</span><span className="ml-2 text-xs text-muted-foreground">{(roomTypeData?.roomTypes??[]).find((rt:{id:string})=>rt.id===entry.roomTypeId)?.name??entry.roomTypeId} · {String(entry.value.nightly_rate??"")} {String(entry.value.currency??"")} · {entry.value.active===false?"Inactive":"Active"}</span></div><Button type="button" size="icon" variant="ghost" aria-label={"Clear daily rate "+entry.date} onClick={()=>removeDailyRate(entry.date,entry.roomTypeId)}><Trash2 className="h-4 w-4"/></Button></div>)}</div>}
+        {dailyRateEntries.length>0&&<>
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+            <label className="flex items-center gap-2"><input type="checkbox" checked={selectedDailyRateKeys.length===dailyRateEntries.length&&dailyRateEntries.length>0} onChange={e=>setSelectedDailyRateKeys(e.target.checked?dailyRateEntries.map(entry=>entry.date+"::"+entry.roomTypeId):[])}/>Select all existing overrides</label>
+            <span>{selectedDailyRateKeys.length} selected · {dailyRateEntries.length} total</span>
+          </div>
+          <div className="space-y-2">{dailyRateEntries.sort((a,b)=>a.date.localeCompare(b.date)).map(entry=><div key={entry.date+entry.roomTypeId} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
+            <div className="flex items-center gap-3"><input type="checkbox" aria-label={"Select daily override "+entry.date} checked={selectedDailyRateKeys.includes(entry.date+"::"+entry.roomTypeId)} onChange={e=>setSelectedDailyRateKeys(current=>e.target.checked?[...current,entry.date+"::"+entry.roomTypeId]:current.filter(key=>key!==entry.date+"::"+entry.roomTypeId))}/><div><span className="font-medium">{entry.date}</span><span className="ml-2 text-xs text-muted-foreground">{(roomTypeData?.roomTypes??[]).find((rt:{id:string})=>rt.id===entry.roomTypeId)?.name??entry.roomTypeId} · {String(entry.value.nightly_rate??"")} {String(entry.value.currency??"")} · {entry.value.active===false?"Inactive":"Active"}</span></div></div>
+            <Button type="button" size="icon" variant="ghost" aria-label={"Clear daily rate "+entry.date} onClick={()=>{removeDailyRate(entry.date,entry.roomTypeId);setSelectedDailyRateKeys(current=>current.filter(key=>key!==entry.date+"::"+entry.roomTypeId));}}><Trash2 className="h-4 w-4"/></Button>
+          </div>)}</div>
+          <div className="rounded-md bg-muted/40 p-3 space-y-3">
+            <div><h4 className="text-sm font-medium">Bulk editor</h4><p className="text-xs text-muted-foreground">Applies only to selected existing exact-date overrides. It does not generate date ranges or recurring entries.</p></div>
+            <div className="grid gap-2 md:grid-cols-3">
+              <select className="rounded-md border border-border bg-background px-3 py-2 text-sm" value={bulkMode} onChange={e=>setBulkMode(e.target.value as typeof bulkMode)}>
+                <option value="percent">Adjust by percent (%)</option><option value="amount">Adjust by amount ({String(data?.property?.currency??"").toUpperCase()})</option><option value="set">Set exact nightly rate ({String(data?.property?.currency??"").toUpperCase()})</option>
+              </select>
+              <Input type="number" step="0.01" placeholder={bulkMode==="percent"?"e.g. 10 or -5":"Nightly rate adjustment"} value={bulkValue} onChange={e=>setBulkValue(e.target.value)}/>
+              <Button type="button" variant="outline" disabled={!selectedDailyEntries.length||!bulkValue} onClick={applyBulkDailyRate}>Apply rate change</Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" size="sm" variant="outline" disabled={!selectedDailyEntries.length} onClick={()=>setBulkDailyActive(true)}>Set selected active</Button>
+              <Button type="button" size="sm" variant="outline" disabled={!selectedDailyEntries.length} onClick={()=>setBulkDailyActive(false)}>Set selected inactive</Button>
+              <Button type="button" size="sm" variant="destructive" disabled={!selectedDailyEntries.length} onClick={clearSelectedDailyRates}>Clear selected</Button>
+            </div>
+          </div>
+        </>}
       </div>
       <div className="mt-5 rounded-lg border border-border p-4 space-y-3">
         <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4"/><h3 className="text-sm font-semibold">Stay restrictions</h3></div>
