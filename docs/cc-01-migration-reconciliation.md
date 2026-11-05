@@ -111,16 +111,28 @@
 - The applied migration `20261104232013_grant_room_configuration_write_privileges` was found in commit `35f7d128`; its original SQL was restored unchanged to the repository.
 - The remaining 57 applied migration paths returned no file history in this repository. The original SQL is therefore not recoverable from this repository's Git history. Recovering it would require a separate historical artifact or deployment record; it must not be fabricated from migration names.
 
+## PostgreSQL validation (ephemeral, non-production)
+
+**Result:** Passed. GitHub Actions run [41981386114](https://github.com/dingbee/mtoni-river-lodge/actions/runs/41981386114), job `cc01-postgres`.
+
+- PostgreSQL 17.11 service container; no Supabase branch or persistent database was created.
+- The schema-only fixture was generated from a read-only catalogue inspection: 264 public table definitions, 62 public enum types, and 64 referenced existing public function signatures represented by test stubs. Minimal Auth and Storage shims support the migration's references.
+- `check_function_bodies` was enabled before applying the staged migration.
+- The migration execution step passed. The follow-up assertions passed for the 85-policy final catalogue in the clean fixture, `activity_logs.property_id`, removal of the global-role bootstrap trigger, helper-function ACLs, legacy versus property-scoped room-configuration overloads, pinned search paths, self-only membership checks, multi-role resolution, founder registry authority, service-role membership lookup, and suspended-property denial.
+- All seed users, properties, memberships, and updates were synthetic rows in the ephemeral database.
+
+**Fixture limitation:** This is a schema-shape test fixture, not a byte-for-byte production `pg_dump`. It omits production rows, existing RLS policy definitions, foreign-key/check/index/trigger state not needed by the staged DDL, and uses signature stubs for existing helper-function dependencies. It validates PostgreSQL DDL execution, migration-defined function compilation, policy creation, grants, and selected helper behavior against the current table/column/type/signature shape. It does not certify execution against the exact live schema or replace browser-level UAT.
+
 ## Interpretation and handling rules
 
 1. A missing timestamp or filename is **not proof** that the corresponding schema change is absent. The SQL may have been renamed, consolidated, manually applied, or retained only in historical deployment material.
 2. A same-name file under a different timestamp is a candidate provenance match, not proof that its SQL is identical. Compare the SQL body and verify the resulting schema objects before classifying it as reconciled.
 3. Do not replay missing migrations, insert migration ledger rows, baseline migrations, or alter migration history based only on this inventory.
-4. The staged CC-01 migration `20261104210000_cc01_property_access_and_founder_authority.sql` is not an applied live migration. It remains staged for review and PostgreSQL validation.
+4. The staged CC-01 migration `20261104210000_cc01_property_access_and_founder_authority.sql` remains unapplied to live Supabase. It has passed an ephemeral PostgreSQL 17.11 execution and contract test; see the validation scope below.
 5. Exact-path Git history was checked for all 58 names initially missing from the repository. One source was recovered from commit `35f7d12` and restored under its applied version. The remaining 57 have no matching file history in this repository; their original SQL cannot be reconstructed from this Git repository alone. Treat them as historical applied records with unresolved source provenance, not as unapplied migrations.
 
 ## Execution boundary
 
-This audit used read-only repository and migration-ledger inspection. No migration was applied, no migration history was changed, no database schema or data was modified, and no production deployment occurred.
+This audit used read-only inspection of the live migration ledger and schema catalogue. No migration was applied to live StayNas Supabase, no migration history was changed, no live database schema or data was modified, and no production deployment occurred. The staged migration was executed only in the ephemeral GitHub Actions PostgreSQL service described above.
 
-**Validation limitation:** Existing Nolmark UAT users were used for read-only authenticated-role/JWT-claim RLS checks. No unexpired Auth sessions were present for either UAT account during inspection, so this does not constitute browser sign-in or full application E2E verification. The proposed migration has not been executed against PostgreSQL.
+**Remaining P0 gate:** Existing Nolmark UAT users were used for read-only authenticated-role/JWT-claim RLS checks, but neither account had an unexpired Auth session. Browser sign-in and full application E2E verification therefore remain open. The PostgreSQL test above is not a deployment and does not close that gate.
