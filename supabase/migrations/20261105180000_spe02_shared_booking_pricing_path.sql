@@ -577,7 +577,6 @@ BEGIN
 END;
 $$;
 
- THEN RAISE EXCEPTION 'Valid email required'; END IF;
   IF v_payment_method NOT IN ('online','pay_at_property') THEN RAISE EXCEPTION 'Unsupported booking payment method'; END IF;
 
   SELECT * INTO v_room FROM public.rooms r
