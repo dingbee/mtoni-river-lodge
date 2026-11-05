@@ -1,6 +1,6 @@
 -- SPE-04.03 database contract tests. Run with Supabase pgTAP test runner.
 BEGIN;
-SELECT plan(18);
+SELECT plan(19);
 
 SELECT has_function(
   'public',
@@ -97,6 +97,12 @@ SELECT ok(
   pg_get_functiondef('public.calculate_staynas_room_pricing(uuid,uuid,date,date,integer,integer,integer)'::regprocedure)
     LIKE '%resolve_staynas_published_room_pricing%',
   'Shared accommodation adapter routes published-plan properties through the SPE-04 resolver'
+);
+
+SELECT ok(
+  pg_get_functiondef('public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure)
+    LIKE '%x.publication_number=%',
+  'Implicit plan lookup is constrained to the latest immutable publication'
 );
 
 SELECT ok(
