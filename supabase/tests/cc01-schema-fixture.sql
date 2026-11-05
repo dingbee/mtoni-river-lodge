@@ -4895,4 +4895,10 @@ CREATE FUNCTION public.checkin_verify(_token text, _answer text, _session_id tex
 -- Existing restaurant-domain authorization predicates used by legacy RLS.
 CREATE FUNCTION public.restaurant_can_read(_tenant_id uuid) RETURNS boolean LANGUAGE plpgsql AS $stub$ BEGIN RETURN false; END; $stub$;
 CREATE FUNCTION public.restaurant_can_write(_tenant_id uuid, _roles public.restaurant_role[]) RETURNS boolean LANGUAGE plpgsql AS $stub$ BEGIN RETURN false; END; $stub$;
+-- Existing internal helpers referenced by database-owned workflows.
+CREATE FUNCTION public.checkin_log_activity(_checkin_id uuid, _booking_id uuid, _action text, _session_id text, _detail jsonb DEFAULT '{}'::jsonb) RETURNS void LANGUAGE plpgsql AS $stub$ BEGIN RETURN; END; $stub$;
+CREATE FUNCTION public.checkin_sync_reservation(_checkin_id uuid, _client jsonb DEFAULT '{}'::jsonb) RETURNS jsonb LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
+CREATE FUNCTION public.log_calendar_event(_event_type text, _room_id uuid, _booking_id uuid, _hold_id uuid, _from date, _to date, _payload jsonb) RETURNS uuid LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
+CREATE FUNCTION public.is_guest_pii_staff(_user_id uuid) RETURNS boolean LANGUAGE plpgsql AS $stub$ BEGIN RETURN false; END; $stub$;
+CREATE FUNCTION public.restaurant_is_platform_admin(_user_id uuid) RETURNS boolean LANGUAGE plpgsql AS $stub$ BEGIN RETURN false; END; $stub$;
 SET check_function_bodies = on;
