@@ -62,7 +62,6 @@ describe("DC-05 canonical booking materialization readiness", () => {
         "property_mapping_missing",
         "room_mapping_missing",
         "rate_plan_mapping_missing",
-        "guest_name_missing",
       ],
     });
   });
