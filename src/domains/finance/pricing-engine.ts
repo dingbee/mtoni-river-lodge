@@ -82,6 +82,12 @@ function validMoney(value: number, label: string): number {
   return value;
 }
 
+function isValidDate(value: string): boolean {
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
+  const parsed = new Date(value + "T00:00:00.000Z");
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
 function dateMatches(rule: PropertyPricingRule, date: string): boolean {
   if (!rule.active) return false;
   if (rule.startsOn && date < rule.startsOn) return false;
@@ -144,7 +150,7 @@ export function calculatePricingQuote(input: {
   if (!Number.isSafeInteger(nights) || nights < 1) throw new Error("Stay duration is invalid");
 
   const roomRules = input.rules.filter((rule) => ruleAppliesToRoom(rule, room));
-  const applicableStayRules = roomRules.filter((rule) => dateMatches(rule, checkIn));
+  const applicableStayRules = roomRules.filter((rule) => rule.ruleType === "min_stay" && dateMatches(rule, checkIn));
   const minimumStay = applicableStayRules.reduce((max, rule) => Math.max(max, rule.minStayNights ?? 0), 1);
   if (nights < minimumStay) throw new Error("Minimum stay is " + minimumStay + " nights");
   
