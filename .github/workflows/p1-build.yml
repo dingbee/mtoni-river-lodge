@@ -6,10 +6,12 @@ on:
       - p1-hos-boundary
       - fix/ci-*
       - main
-      - feat/finance-*\n      - feat/spe-03-*\n      - feat/spe-03-*\n      - feat/spe-03-*
+      - feat/finance-*
+      - feat/spe-03-*
   pull_request:
     branches:
       - main
+      - spe-02/**
 
 jobs:
   build:
