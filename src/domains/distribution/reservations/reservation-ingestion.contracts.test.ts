@@ -54,7 +54,7 @@ describe("DC-05 provider-neutral reservation contract", () => {
     const safe = toSafeReservationEventEnvelope(event);
     expect(safe).not.toHaveProperty("guest");
     expect(safe).not.toHaveProperty("grossAmount");
-    expect(safe.hasGuestContact).toBe(true);
+    expect(safe.contactPresent).toBe(true);
     expect(safe.hasFinancialData).toBe(true);
   });
 });
