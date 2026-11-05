@@ -77,6 +77,8 @@ CREATE POLICY "Property finance manage pricing rules"
     AND public.has_any_role((select auth.uid()), ARRAY['owner','manager','finance','admin']::public.app_role[])
   );
 
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.pricing_rules TO authenticated;
+
 CREATE INDEX IF NOT EXISTS pricing_rules_property_active_priority_idx
   ON public.pricing_rules (property_id, active, priority, starts_on, ends_on);
 
