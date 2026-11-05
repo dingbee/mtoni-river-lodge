@@ -186,14 +186,19 @@ export const setStayNasRatePlanRoomType = createServerFn({ method: "POST" })
     if (!(propertyRoomTypes ?? []).some((type: {id:string}) => type.id===data.room_type_id)) {
       throw new Error("Room type is not configured for the active property.");
     }
-    const { data: assignment, error } = await sb.from("staynas_rate_plan_room_types").upsert({
-      property_id:propertyId,
-      rate_plan_id:data.rate_plan_id,
-      room_type_id:data.room_type_id,
-      active:data.active,
-      updated_by:context.userId,
-      ...(data.active ? { created_by:context.userId } : {}),
-    },{onConflict:"property_id,rate_plan_id,room_type_id"}).select("*").single();
+    const { data: existingAssignment, error: existingAssignmentError } = await sb.from("staynas_rate_plan_room_types")
+      .select("id").eq("property_id",propertyId).eq("rate_plan_id",data.rate_plan_id)
+      .eq("room_type_id",data.room_type_id).maybeSingle();
+    if (existingAssignmentError) throw new Error(existingAssignmentError.message);
+    const query = existingAssignment
+      ? sb.from("staynas_rate_plan_room_types").update({
+          active:data.active,updated_by:context.userId,
+        }).eq("id",existingAssignment.id).eq("property_id",propertyId)
+      : sb.from("staynas_rate_plan_room_types").insert({
+          property_id:propertyId,rate_plan_id:data.rate_plan_id,room_type_id:data.room_type_id,
+          active:data.active,created_by:context.userId,updated_by:context.userId,
+        });
+    const { data: assignment, error } = await query.select("*").single();
     if (error) throw new Error(error.message);
     return assignment;
   });
