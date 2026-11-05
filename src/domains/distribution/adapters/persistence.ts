@@ -46,7 +46,7 @@ export const persistedDistributionConnectionSchema = z.object({
   account_grant_id: z.string().uuid(),
   external_account_id: z.string().uuid(),
   provider_key: z.string().min(2).max(64),
-  adapter_version: z.string().regex(/^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?$/),
+  adapter_version: z.string().regex(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/),
   environment: distributionEnvironmentSchema,
   lifecycle: lifecycleSchema,
 });
