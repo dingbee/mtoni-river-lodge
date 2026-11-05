@@ -50,6 +50,13 @@ export const commercialPlanPriceSchema = z.object({
   ...effectiveWindow,
 }).superRefine((value, ctx) => {
   validateEffectiveWindow(value, ctx);
+  if (value.priceMode === "quote_required" && value.planCode !== "enterprise") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["priceMode"],
+      message: "Quote-required pricing is reserved for Enterprise agreements",
+    });
+  }
   if (value.priceMode === "fixed" && (value.baseAmountMinor === null || value.additionalPropertyAmountMinor === null)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
