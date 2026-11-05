@@ -116,11 +116,19 @@ SET search_path=public
 AS $
 DECLARE
   plan_status text;
+  target_property_id uuid;
+  target_rate_plan_id uuid;
 BEGIN
+  IF TG_OP='DELETE' THEN
+    target_property_id := OLD.property_id;
+    target_rate_plan_id := OLD.rate_plan_id;
+  ELSE
+    target_property_id := NEW.property_id;
+    target_rate_plan_id := NEW.rate_plan_id;
+  END IF;
   SELECT publication_status INTO plan_status
   FROM public.staynas_rate_plans
-  WHERE property_id=COALESCE(NEW.property_id,OLD.property_id)
-    AND id=COALESCE(NEW.rate_plan_id,OLD.rate_plan_id);
+  WHERE property_id=target_property_id AND id=target_rate_plan_id;
   IF plan_status='archived' THEN
     RAISE EXCEPTION 'Archived rate plans cannot change room-type assignments';
   END IF;
