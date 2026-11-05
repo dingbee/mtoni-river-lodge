@@ -243,11 +243,6 @@ BEGIN
 
   IF v_plan.pricing_basis='occupancy_based' THEN
     v_occupancy_key:=format('%s:%s:%s',_adults,COALESCE(_children_below_6,0),COALESCE(_children_7_plus,0));
-    IF jsonb_typeof(v_occupancy->v_room.catalogue_type_id::text) IS DISTINCT FROM 'object'
-       OR jsonb_typeof(v_occupancy->v_room.catalogue_type_id::text->v_occupancy_key) IS DISTINCT FROM 'object' THEN
-      RETURN jsonb_build_object('ok',false,'error_code','OCCUPANCY_RATE_MISSING',
-        'message','No exact occupancy rate is published for this room type and guest mix');
-    END IF;
   END IF;
 
   v_day:=_check_in;
