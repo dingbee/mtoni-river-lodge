@@ -1443,7 +1443,8 @@ BEGIN
 END $function$;
 
 
-REVOKE ALL ON FUNCTION public.checkin_eligibility(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.checkin_eligibility(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.arrival_pass_validate_unscoped(text, jsonb) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.checkin_eligibility(uuid) TO authenticated, service_role;
 
 -- Payment RPCs authorize against the locked booking's property and attach that
@@ -2383,7 +2384,7 @@ AS $function$
   SELECT _uid IS NOT NULL AND _uid = auth.uid() AND public.staynas_current_user_has_property_role(public.staynas_active_property_id(_uid), ARRAY['owner','manager','admin']::public.app_role[])
 $function$;
 
-REVOKE ALL ON FUNCTION public.housekeeping_is_supervisor(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.housekeeping_is_supervisor(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.housekeeping_is_supervisor(uuid) TO authenticated, service_role;
 
 
