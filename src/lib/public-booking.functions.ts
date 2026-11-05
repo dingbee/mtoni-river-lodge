@@ -98,6 +98,7 @@ const availabilitySchema = z.object({
   checkIn: dateSchema,
   checkOut: dateSchema,
   guests: z.number().int().min(1).max(8),
+  ratePlanId: z.string().uuid().optional(),
 });
 
 export const searchPublicDemoAvailability = createServerFn({ method: "POST" })
@@ -112,15 +113,25 @@ export const searchPublicDemoAvailability = createServerFn({ method: "POST" })
       _adults: data.guests,
       _children_below_6: 0,
       _children_7_plus: 0,
+      _rate_plan_id: data.ratePlanId ?? null,
     });
     if (error) throw new Error(error.message);
-    const pricingFailure = (rows ?? []).find((room: any) => room.pricing_quote?.ok === false);
+    const ratePlanChoices = await Promise.all((rows ?? []).filter((room: any) => room.pricing_quote?.error_code === "RATE_PLAN_REQUIRED").map(async (room: any) => {
+      const { data: discovery, error: discoveryError } = await (supabaseAdmin as any).rpc("discover_staynas_public_rate_plans", {
+        _property_id: property.id, _room_id: room.room_id, _check_in: data.checkIn, _check_out: data.checkOut,
+        _adults: data.guests, _children_below_6: 0, _children_7_plus: 0,
+      });
+      return { room_id: room.room_id, plans: !discoveryError && discovery?.ok ? discovery.plans : [] };
+    }));
+    const planOptionsByRoom = new Map(ratePlanChoices.map((item: any) => [item.room_id, item.plans]));
+    const pricingFailure = (rows ?? []).find((room: any) => room.pricing_quote?.ok === false && room.pricing_quote?.error_code !== "RATE_PLAN_REQUIRED");
     if (pricingFailure) {
       throw new Error(`Pricing rejected [${pricingFailure.pricing_quote.error_code ?? "INVALID_RATE_CONFIGURATION"}]: ${pricingFailure.pricing_quote.message ?? "Pricing configuration is invalid"}`);
     }
 
     return (rows ?? [])
       .map((room: any) => ({
+        rate_plan_options: planOptionsByRoom.get(room.room_id) ?? [],
         ...room,
         base_price: Number(room.base_price),
         nightly_total: Number(room.pricing_quote?.total ?? room.nightly_total),
@@ -143,6 +154,7 @@ const createBookingSchema = z.object({
   guestPhone: z.string().trim().max(40).optional().or(z.literal("")),
   country: z.string().trim().max(100).optional().or(z.literal("")),
   specialRequests: z.string().trim().max(1000).optional().or(z.literal("")),
+  ratePlanId: z.string().uuid().optional(),
 });
 
 export const createPublicDemoBooking = createServerFn({ method: "POST" })
@@ -173,6 +185,7 @@ export const createPublicDemoBooking = createServerFn({ method: "POST" })
       _hold_id: null,
       _session_id: null,
       _payment_method: "pay_at_property",
+      _rate_plan_id: data.ratePlanId ?? null,
     });
 
     if (error) throw new Error(error.message);
