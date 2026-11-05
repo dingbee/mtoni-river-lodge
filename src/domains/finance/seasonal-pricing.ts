@@ -61,3 +61,23 @@ export function validateSeasonalRateRoomTypes(seasons: SeasonalRates, configured
     }
   }
 }
+
+export function mergeSeasonalRateRecords(
+  parent: Record<string, unknown>,
+  child: Record<string, unknown>,
+): Record<string, unknown> {
+  const merge = (base: unknown, overlay: unknown): unknown => {
+    if (overlay === null || typeof overlay !== "object" || Array.isArray(overlay)) return overlay;
+    const result: Record<string, unknown> =
+      base !== null && typeof base === "object" && !Array.isArray(base)
+        ? { ...(base as Record<string, unknown>) }
+        : {};
+    for (const [key, value] of Object.entries(overlay as Record<string, unknown>)) {
+      result[key] = value !== null && typeof value === "object" && !Array.isArray(value)
+        ? merge(result[key], value)
+        : value;
+    }
+    return result;
+  };
+  return merge(parent, child) as Record<string, unknown>;
+}
