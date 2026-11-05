@@ -296,3 +296,18 @@ The repository/schema baseline and pure contract implementation are recorded. CI
 - Unit tests cover successful context creation, absent property membership and anonymous principal rejection.
 
 **Remaining verification:** the isolated PostgreSQL workflow must pass for all three migrations and the end-to-end database contract. The shared Supabase project has been inspected read-only: the Vault decrypted view exists, service_role can select it, and anon/authenticated cannot. No distribution tables or DC-04 migrations have been installed in that shared project.
+
+
+### DC-04.10 durable outbox dispatch boundary
+
+**Implementation added; isolated migration and CI verification pending.**
+
+- `20261105170000_dc04_distribution_outbox_dispatch.sql` adds service-role-only RPCs for idempotent event enqueue, atomic `SKIP LOCKED` claims, lease ownership and completion.
+- Outbox event keys are unique per property. Reuse with a different event type, operation reference or payload is rejected.
+- Claims use bounded leases and attempt budgets. Expired leases can be reclaimed; exhausted events are terminally failed.
+- `outbox.server.ts` exposes server-only enqueue, claim and finish functions plus an injected internal publisher boundary.
+- Publisher failures are recorded with a safe summary and bounded retry delay. Raw exception messages are not persisted.
+- The publisher boundary does not invoke a distribution provider and cannot synchronize availability, inventory or reservations. It only dispatches already persisted internal events.
+- The isolated PostgreSQL workflow now applies the outbox migration and verifies idempotency, conflicting event reuse, atomic claim and lease completion.
+
+**Verification boundary:** no worker schedule, provider publisher, production migration or live event delivery is enabled. A service-role claim is not authorization to perform a tenant operation; any future worker that invokes a provider must reload the connection and reauthorize the persisted tenant/property grant before execution.
