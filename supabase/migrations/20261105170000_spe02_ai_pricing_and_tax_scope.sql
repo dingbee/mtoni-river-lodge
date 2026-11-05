@@ -92,4 +92,7 @@ CREATE POLICY "Property finance manage tax rules"
     AND public.has_any_role((select auth.uid()), ARRAY['owner','manager','finance','admin']::public.app_role[])
   );
 
+GRANT SELECT, INSERT, UPDATE ON TABLE public.ai_pricing_recommendations TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.staynas_property_tax_rules TO authenticated;
+
 COMMIT;
