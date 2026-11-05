@@ -4,7 +4,7 @@ BEGIN;
 
 ALTER TABLE public.staynas_distribution_webhook_inbox
   ADD COLUMN IF NOT EXISTS attempt_count integer NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
-  ADD COLUMN IF NOT EXISTS max_attempts integer NOT NULL DEFAULT 5 CHECK (max_attempts BETWEEN 1 AND 20),
+  ADD COLUMN IF NOT EXISTS max_attempts integer NOT NULL DEFAULT 5 CHECK (max_attempts BETWEEN 1 AND 40),
   ADD COLUMN IF NOT EXISTS next_attempt_at timestamptz NOT NULL DEFAULT now(),
   ADD COLUMN IF NOT EXISTS lease_started_at timestamptz,\n  ADD COLUMN IF NOT EXISTS lease_token uuid,
   ADD COLUMN IF NOT EXISTS lease_owner text,
@@ -204,7 +204,7 @@ BEGIN
         CASE WHEN _status='retryable_failure' AND i.attempt_count>=i.max_attempts
           THEN 'retry_budget_exhausted' ELSE NULL END),
       safe_error_summary=_safe_summary,
-      lease_token=NULL,lease_owner=NULL,lease_expires_at=NULL
+      lease_started_at=NULL,lease_token=NULL,lease_owner=NULL,lease_expires_at=NULL
   WHERE i.id=_row.id;
 END;
 $function$;
@@ -247,7 +247,7 @@ BEGIN
   UPDATE public.staynas_distribution_webhook_inbox i
   SET processing_status='received',processed_at=NULL,
       max_attempts=least(i.max_attempts+_additional_attempts,40),
-      next_attempt_at=pg_catalog.now(),lease_token=NULL,lease_owner=NULL,lease_expires_at=NULL,
+      next_attempt_at=pg_catalog.now(),lease_started_at=NULL,lease_token=NULL,lease_owner=NULL,lease_expires_at=NULL,
       reconciliation_code=NULL,
       safe_error_summary=NULL
   WHERE i.id=_inbox_id;
