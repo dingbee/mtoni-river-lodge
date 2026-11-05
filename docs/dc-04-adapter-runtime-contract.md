@@ -253,3 +253,21 @@ The repository/schema baseline and pure contract implementation are recorded. CI
 
 **Important boundary:** this step defines the durable schema and pure persisted-record resolver. It does not add a database loader, credential broker, RLS policies for browser access, worker runtime or provider calls. The migration is an artifact only and must not be applied to production or the shared Supabase project. Isolated migration and two-property authorization tests are required before any runtime integration.
 
+
+
+### DC-04.7 server-only credential broker
+
+**Implementation artifacts added; migration remains unapplied.**
+
+- External account `credential_reference` is now constrained to a Vault secret UUID, not an arbitrary URI or inline credential.
+- `staynas_resolve_distribution_credential` is a SECURITY DEFINER database function with an empty search path. It rejects all callers except the `service_role` and revalidates the exact connection, organisation, property, provider, external-account reference, environment, connected lifecycle and active capability grant before reading Vault.
+- The function retrieves the secret by its Vault UUID from `vault.decrypted_secrets`. It never accepts a secret value from the caller.
+- Every successful retrieval writes a `credential.accessed` append-only audit event with the connection, property, grant and correlation ID. No secret material is written to the audit event.
+- Function execution is revoked from PUBLIC, anon and authenticated; only service_role receives EXECUTE. The app server must still authenticate the initiating user and create a trusted `AdapterExecutionContext` before invoking the broker.
+- `credential-broker.server.ts` binds the broker to the server-only Supabase admin client. It returns secret material only to trusted server execution and deliberately replaces database errors with a safe generic error. Do not serialize, log or return its result from route/client functions.
+- Contract tests verify exact scope binding, environment binding, malformed/empty response rejection, preflight context validation and safe error handling.
+
+**Security boundary:** service_role bypasses RLS. The SQL function therefore independently verifies the connection/grant tuple and the exact capability. This broker is not a substitute for the preceding user/property authorization policy. It is not yet wired to a live adapter operation; no provider can be called through this milestone.
+
+**Vault operational prerequisite:** before any isolated migration test, confirm Vault is enabled and the migration owner can read `vault.decrypted_secrets`. Supabase documents Vault as encrypted-at-rest secrets exposed through a decrypted view; access to that view must be restricted carefully. See [Supabase Vault documentation](https://supabase.com/docs/guides/database/vault).
+
