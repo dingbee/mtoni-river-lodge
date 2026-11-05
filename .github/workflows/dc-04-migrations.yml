@@ -1,5 +1,9 @@
 name: StayNas DC-04 migration and credential isolation
 
+concurrency:
+  group: dc04-migrations-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     branches: [main]
