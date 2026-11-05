@@ -11,7 +11,7 @@ export const Route = createFileRoute("/api/public/availability/search")({
         const url = new URL(request.url);
         const checkIn = url.searchParams.get("check_in");
         const checkOut = url.searchParams.get("check_out");
-        const guests = Math.max(1, Math.min(20, Number(url.searchParams.get("guests") ?? "1")));
+        const guests = Math.max(1, Math.min(20, Number(url.searchParams.get("guests") ?? "1")));\n        const ratePlanId = url.searchParams.get("rate_plan_id");\n        if (ratePlanId && !/^[0-9a-f-]{36}$/i.test(ratePlanId)) return Response.json({ error: "rate_plan_id must be a UUID" }, { status: 400 });
         if (!checkIn || !checkOut || !/^\d{4}-\d{2}-\d{2}$/.test(checkIn) || !/^\d{4}-\d{2}-\d{2}$/.test(checkOut)) {
           return Response.json({ error: "check_in and check_out are required (YYYY-MM-DD)" }, { status: 400 });
         }
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/api/public/availability/search")({
         }
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
-        const { data, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced", {
+        const { data, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced_with_rate_plan", {
           _check_in: checkIn,
           _check_out: checkOut,
           _property_id: propertyId,
@@ -32,7 +32,7 @@ export const Route = createFileRoute("/api/public/availability/search")({
         const pricing_errors = (data ?? [])
           .filter((r: any) => r.pricing_quote?.ok === false)
           .map((r: any) => ({ room_id: r.room_id, slug: r.slug, error_code: r.pricing_quote.error_code, message: r.pricing_quote.message }));
-        const rooms = (data ?? [])
+        const planChoices = await Promise.all((data ?? []).filter((r: any) => r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED").map(async (r: any) => {\n          const { data: discovery, error: discoveryError } = await (supabaseAdmin as any).rpc("discover_staynas_public_rate_plans", {\n            _property_id: propertyId, _room_id: r.room_id, _check_in: checkIn, _check_out: checkOut, _adults: guests, _children_below_6: 0, _children_7_plus: 0,\n          });\n          return { room_id: r.room_id, plans: !discoveryError && discovery?.ok ? discovery.plans : [] };\n        }));\n        const planOptionsByRoom = new Map(planChoices.map((x: any) => [x.room_id, x.plans]));\n        const rooms = (data ?? [])
           .filter((r: any) => r.pricing_quote?.ok !== false)
           .map((r: any) => ({
             slug: r.slug,
@@ -46,12 +46,12 @@ export const Route = createFileRoute("/api/public/availability/search")({
             available_units: Math.max(0, r.min_available),
             is_available: r.is_available,
             fits_guests: r.fits_occupancy,
-            pricing_quote: r.pricing_quote,
+            pricing_quote: r.pricing_quote,\n            rate_plan_options: planOptionsByRoom.get(r.room_id) ?? [],
           }))
           .filter((r: any) => r.is_available && r.fits_guests)
           .sort((a: any, b: any) => a.nightly_total - b.nightly_total);
         return Response.json(
-          { check_in: checkIn, check_out: checkOut, guests, rooms, pricing_errors },
+          { check_in: checkIn, check_out: checkOut, guests, rate_plan_id: ratePlanId, rooms, pricing_errors },
           { headers: { "cache-control": "no-store" } },
         );
       },
