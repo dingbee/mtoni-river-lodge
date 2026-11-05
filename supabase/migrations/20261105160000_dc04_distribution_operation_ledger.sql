@@ -266,6 +266,33 @@ BEGIN
     RAISE EXCEPTION 'Invalid worker lease duration.' USING ERRCODE = '22023';
   END IF;
 
+  -- Close expired final attempts instead of leaving them permanently running.
+  INSERT INTO public.staynas_distribution_operation_attempts(
+    operation_id,organisation_id,property_id,attempt_number,worker_id,status,
+    normalized_error_code,safe_summary,correlation_id,started_at,finished_at
+  )
+  SELECT l.id,l.organisation_id,l.property_id,l.attempt_count,
+         coalesce(l.lease_owner,'unknown'),'lease_expired','timeout',
+         'Worker lease expired after the retry budget was exhausted.',
+         l.correlation_id,coalesce(l.lease_expires_at,l.updated_at),pg_catalog.now()
+  FROM public.staynas_distribution_operation_ledger l
+  WHERE l.attempt_count >= l.max_attempts
+    AND l.status='running' AND l.lease_expires_at < pg_catalog.now()
+  ON CONFLICT (operation_id,attempt_number) DO NOTHING;
+
+  UPDATE public.staynas_distribution_operation_ledger l
+  SET status='permanent_failure',
+      completed_at=pg_catalog.now(),
+      lease_token=NULL,lease_owner=NULL,lease_expires_at=NULL,
+      normalized_error_code='timeout',
+      safe_error_summary='Worker lease expired after the retry budget was exhausted.',
+      updated_at=pg_catalog.now()
+  WHERE l.attempt_count >= l.max_attempts
+    AND (
+      l.status IN ('queued','retryable_failure')
+      OR (l.status='running' AND l.lease_expires_at < pg_catalog.now())
+    );
+
   SELECT l.* INTO _row
   FROM public.staynas_distribution_operation_ledger l
   WHERE l.attempt_count < l.max_attempts
