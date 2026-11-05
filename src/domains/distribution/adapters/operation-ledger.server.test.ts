@@ -25,6 +25,18 @@ describe("distribution operation ledger envelope", () => {
     })).toThrow("prohibited sensitive field");
   });
 
+  it("rejects sensitive values and guest-shaped keys even when the field name is innocuous", () => {
+    expect(() => validateDistributionOperationEnvelope("idem-key-0003", {
+      providerNote: "Contact guest@example.test for the booking",
+    })).toThrow("sensitive value");
+    expect(() => validateDistributionOperationEnvelope("idem-key-0004", {
+      guest: { firstName: "Guest", lastName: "Person" },
+    })).toThrow("prohibited sensitive field");
+    expect(() => validateDistributionOperationEnvelope("idem-key-0005", {
+      providerNote: "Bearer abcdefghijklmnopqrstuvwxyz123456",
+    })).toThrow("sensitive value");
+  });
+
   it("rejects weak idempotency keys", () => {
     expect(() => validateDistributionOperationEnvelope("short", { bookingId: "booking-1" }))
       .toThrow("8 to 128 characters");
