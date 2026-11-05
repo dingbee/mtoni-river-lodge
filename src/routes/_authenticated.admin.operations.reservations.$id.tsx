@@ -101,9 +101,12 @@ function ReservationWorkspace() {
           {d.tasks.length === 0 ? <p className="text-sm text-muted-foreground">No tasks yet.</p> : (
             <ul className="divide-y">
               {d.tasks.map((t: any) => (
-                <li key={t.id} className="flex items-center justify-between py-2 text-sm">
-                  <span><ListChecks className="mr-1 inline size-3" />{t.title}</span>
-                  <span className="text-xs text-muted-foreground">{t.status}</span>
+                <li key={t.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 py-3 text-sm">
+                  <span className="flex min-w-0 items-start gap-2">
+                    <ListChecks className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                    <span className="min-w-0 break-words leading-5">{t.title}</span>
+                  </span>
+                  <span className="shrink-0 whitespace-nowrap rounded-full border px-2 py-1 text-[11px] font-medium capitalize text-muted-foreground">{String(t.status).replaceAll("_", " ")}</span>
                 </li>
               ))}
             </ul>

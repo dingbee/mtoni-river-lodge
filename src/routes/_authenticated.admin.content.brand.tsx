@@ -80,14 +80,16 @@ function BrandCentre() {
     <div className="space-y-6">
       <PageHeader title="Brand Centre" description="Logos, colours, fonts, tone of voice and brand guidelines — the single source of truth for the Mtoni brand." />
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Category)} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="logo">Logos</TabsTrigger>
-          <TabsTrigger value="color">Colours</TabsTrigger>
-          <TabsTrigger value="font">Fonts</TabsTrigger>
-          <TabsTrigger value="voice">Tone of voice</TabsTrigger>
-          <TabsTrigger value="guideline">Guidelines</TabsTrigger>
-        </TabsList>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as Category)} className="min-w-0 space-y-4">
+        <div className="-mx-1 w-full overflow-x-auto overscroll-x-contain px-1 pb-1 [scrollbar-width:thin]">
+          <TabsList className="inline-flex h-auto w-max min-w-full flex-nowrap justify-start gap-1">
+            <TabsTrigger className="shrink-0 whitespace-nowrap" value="logo">Logos</TabsTrigger>
+            <TabsTrigger className="shrink-0 whitespace-nowrap" value="color">Colours</TabsTrigger>
+            <TabsTrigger className="shrink-0 whitespace-nowrap" value="font">Fonts</TabsTrigger>
+            <TabsTrigger className="shrink-0 whitespace-nowrap" value="voice">Tone of voice</TabsTrigger>
+            <TabsTrigger className="shrink-0 whitespace-nowrap" value="guideline">Guidelines</TabsTrigger>
+          </TabsList>
+        </div>
 
         {CATEGORIES.map((cat) => (
           <TabsContent key={cat} value={cat} className="space-y-4">

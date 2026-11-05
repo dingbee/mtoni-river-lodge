@@ -462,20 +462,20 @@ function BookPage() {
     <div className="min-h-screen bg-ivory text-charcoal">
       <SiteHeader />
       <main>
-        <section className="border-b border-charcoal/10 bg-ivory px-5 py-10 sm:px-8 lg:px-10 lg:py-16">
-          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
+        <section className="min-w-0 overflow-hidden border-b border-charcoal/10 bg-ivory px-4 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-16">
+          <div className="mx-auto grid min-w-0 max-w-7xl gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] lg:gap-10 lg:items-end">
             <div>
               <BreadcrumbsBar />
               <p className="mt-8 text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-charcoal/55">StayNas · Reservations</p>
-              <h1 className="mt-4 font-display text-5xl leading-[0.98] tracking-tight sm:text-6xl lg:text-7xl">Reserve Your Stay</h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-charcoal/65 sm:text-lg">Select your dates and guests to check real-time availability.</p>
+              <h1 className="mt-4 max-w-full break-words font-display text-[clamp(2.25rem,7.5vw,3.75rem)] leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">Reserve Your Stay</h1>
+              <p className="mt-4 max-w-xl text-base leading-7 text-charcoal/65 sm:mt-5 sm:text-lg">Select your dates and guests to check real-time availability.</p>
               <Stepper step={step} />
             </div>
             <SelectedRoomCard room={selectedRoom ?? results.find((r) => r.slug === incomingRoom) ?? null} inventory={roomInventory} />
           </div>
         </section>
-        <section className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8 lg:px-10 lg:py-14">
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+        <section className="mx-auto w-full min-w-0 max-w-7xl px-4 py-7 sm:px-8 sm:py-10 lg:px-10 lg:py-14">
+          <div className="grid min-w-0 gap-7 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10 lg:items-start">
             <div>
 
           {step === "search" && (
@@ -643,17 +643,17 @@ function BookPage() {
 
 function SelectedRoomCard({ room, inventory }: { room: AvailabilityRoom | null; inventory: { available_units: number; total_units: number } | null }) {
   if (!room) return (
-    <div className="rounded-[24px] border border-charcoal/10 bg-bone p-7 shadow-deep">
+    <div className="min-w-0 rounded-2xl border border-charcoal/10 bg-bone p-5 shadow-sm sm:p-6">
       <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-burgundy">Selected room</p>
-      <p className="mt-3 font-display text-2xl leading-tight">Choose a room to continue</p>
-      <p className="mt-3 text-sm text-charcoal/60">Room details will appear here once availability is checked.</p>
+      <p className="mt-3 break-words font-display text-xl font-medium leading-snug sm:text-2xl">Choose a room to continue</p>
+      <p className="mt-2 break-words text-sm leading-6 text-charcoal/60">Room details will appear here once availability is checked.</p>
     </div>
   );
   const availability = inventory ? inventory.available_units + " of " + inventory.total_units + " available" : room.min_available > 0 ? room.min_available + " available for these dates" : "Live availability after dates are checked";
   return (
     <div className="rounded-[24px] border border-charcoal/10 bg-bone p-7 shadow-deep">
       <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-burgundy">Selected room</p>
-      <h2 className="mt-3 font-display text-3xl leading-tight">{room.name}</h2>
+      <h2 className="mt-3 break-words font-display text-xl font-medium leading-snug sm:text-2xl">{room.name}</h2>
       <p className="mt-3 text-sm text-charcoal/65">Sleeps up to {room.max_occupancy} · {room.currency} {Number(room.base_price).toLocaleString()} / night</p>
       <div className="mt-5 border-t border-charcoal/10 pt-5">
         <div className="flex items-end justify-between gap-3"><p className="font-display text-xl">{availability}</p>{inventory && <span className="text-[0.65rem] font-medium uppercase tracking-[0.16em] text-forest">Live</span>}</div>
@@ -672,14 +672,14 @@ function Stepper({ step }: { step: Step }) {
   ];
   const idx = steps.findIndex((s) => s.k === step);
   return (
-    <div className="mx-auto mt-8 flex max-w-md items-center justify-between gap-2">
+    <div className="mt-7 grid w-full max-w-xl grid-cols-4 gap-2 sm:mt-8 sm:gap-3">
       {steps.map((s, i) => (
-        <div key={s.k} className="flex flex-1 items-center">
-          <div className={`flex h-7 w-7 items-center justify-center rounded-full text-[0.65rem] font-medium ${i <= idx ? "bg-charcoal text-ivory" : "bg-charcoal/10 text-charcoal/50"}`}>
+        <div key={s.k} className="flex min-w-0 flex-col items-center gap-2 text-center">
+          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${i <= idx ? "bg-charcoal text-ivory" : "bg-charcoal/10 text-charcoal/50"}`}>
             {i < idx ? <Check className="h-3.5 w-3.5" /> : i + 1}
           </div>
-          <span className={`ml-2 text-[0.65rem] uppercase tracking-[0.2em] ${i <= idx ? "text-charcoal" : "text-charcoal/40"}`}>{s.label}</span>
-          {i < steps.length - 1 && <div className={`mx-2 h-px flex-1 ${i < idx ? "bg-charcoal" : "bg-charcoal/15"}`} />}
+          <span className={`max-w-full break-words text-[0.62rem] font-medium uppercase leading-tight tracking-[0.12em] sm:text-xs sm:tracking-[0.14em] ${i <= idx ? "text-charcoal" : "text-charcoal/50"}`}>{s.label === "Confirmation" ? "Confirm" : s.label}</span>
+          
         </div>
       ))}
     </div>
@@ -687,7 +687,7 @@ function Stepper({ step }: { step: Step }) {
 }
 
 const field = "w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm text-charcoal placeholder:text-charcoal/40 outline-none focus:border-charcoal focus:ring-2 focus:ring-charcoal/15";
-const labelCls = "text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70";
+const labelCls = "text-xs font-medium uppercase tracking-[0.14em] text-charcoal/75";
 
 function SearchStep(props: {
   checkIn: string; checkOut: string;
@@ -703,7 +703,7 @@ function SearchStep(props: {
   const ADULT_MAX = 5;
   const CHILD_MAX = 5;
   return (
-    <div className="space-y-5 rounded-2xl border border-charcoal/10 bg-ivory p-6 shadow-[0_24px_60px_-30px_rgba(30,45,30,0.35)] sm:p-10">
+    <div className="min-w-0 space-y-5 rounded-2xl border border-charcoal/10 bg-ivory p-5 shadow-sm sm:p-8">
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label className={labelCls}>Check-in</label>

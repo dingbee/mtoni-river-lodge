@@ -256,7 +256,7 @@ function HousekeepingPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {[
           ["Active", dashboard.data?.active_tasks ?? 0],
           ["Unassigned", dashboard.data?.unassigned_tasks ?? 0],
@@ -266,13 +266,16 @@ function HousekeepingPage() {
           ["Open exceptions", dashboard.data?.exceptions_open ?? 0],
           ["Rooms ready", dashboard.data?.rooms_ready ?? 0],
           ["Failed today", dashboard.data?.failed_inspections_today ?? 0],
-          ["Avg cleaning", `${dashboard.data?.avg_cleaning_minutes ?? 0} min`],
         ].map(([label,value]) => (
           <div key={String(label)} className="rounded-xl border bg-card p-4">
             <div className="text-xs text-muted-foreground">{label}</div>
             <div className="mt-1 text-2xl font-semibold">{value}</div>
           </div>
         ))}
+      </div>
+      <div className="flex items-center justify-between rounded-xl border bg-card/70 px-4 py-3 text-xs">
+        <span className="text-muted-foreground">Average cleaning time</span>
+        <span className="font-semibold tabular-nums">{dashboard.data?.avg_cleaning_minutes ?? 0} min</span>
       </div>
       {(intelligence.data ?? []).length > 0 && (
         <section className="rounded-xl border bg-card p-4">
@@ -368,7 +371,7 @@ function HousekeepingPage() {
                         <Play className="h-4 w-4" /> Start cleaning
                       </button>
                     )}
-                    <button className="rounded-lg border px-3 py-2 text-sm" onClick={() => { setExceptionRoom(task); setExceptionTitle(""); setExceptionNotes(""); setError(null); }}>Report issue</button>\n                    {task.status === "in_progress" && (
+                    <button className="rounded-lg border px-3 py-2 text-sm" onClick={() => { setExceptionRoom(task); setExceptionTitle(""); setExceptionNotes(""); setError(null); }}>Report issue</button>                    {task.status === "in_progress" && (
                       <button className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground" onClick={() => setNoteTask(task.id)}>
                         <CheckCircle2 className="h-4 w-4" /> Complete cleaning
                       </button>
@@ -592,7 +595,7 @@ function HousekeepingPage() {
           </div>
         </div>
       )}
-\n      <div className="rounded-xl border border-dashed p-4 text-xs text-muted-foreground">
+      <div className="rounded-xl border border-dashed p-4 text-xs text-muted-foreground">
         <WandSparkles className="mr-1 inline h-3.5 w-3.5" />
         Readiness is controlled: dirty → cleaning task → inspection → passed = ready, or failed → re-clean → inspection.
       </div>

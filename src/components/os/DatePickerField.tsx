@@ -18,7 +18,7 @@ type DatePickerFieldProps = {
 };
 
 function toLocalDate(value: string) {
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return undefined;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
   return parseISO(value);
 }
 
@@ -63,8 +63,9 @@ export function DatePickerField({
           <span>{selected ? format(selected, "PPP") : placeholder}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-auto p-0">
+      <PopoverContent align="center" side="bottom" sideOffset={8} className="w-[min(22rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden p-0">
         <Calendar
+          className="w-full [--cell-size:clamp(2rem,9vw,2.5rem)]"
           mode="single"
           selected={selected}
           onSelect={(date) => {

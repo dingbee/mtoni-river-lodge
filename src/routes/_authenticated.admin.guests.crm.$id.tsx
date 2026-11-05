@@ -71,7 +71,7 @@ function GuestProfilePage() {
   const stats = data.stats ?? { total_stays: 0, total_nights: 0, lifetime_spend: 0, first_stay: null, last_stay: null };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-w-0 space-y-6 overflow-x-clip">
       <Button asChild variant="ghost" size="sm" className="-ml-2">
         <Link to="/admin/guests/crm"><ArrowLeft className="mr-2 size-4" /> Directory</Link>
       </Button>
@@ -84,14 +84,14 @@ function GuestProfilePage() {
 
       <QuickActions guestId={id} guest={g} />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="space-y-4">
-          <div className="rounded-lg border bg-card p-5">
-            <div className="flex items-start gap-4">
+      <div className="grid w-full min-w-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-4">
+          <div className="min-w-0 rounded-lg border bg-card p-5">
+            <div className="flex min-w-0 items-start gap-4">
               <Avatar className="size-14">
                 <AvatarFallback>{initials(g.full_name)}</AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 gap-1 text-sm">
+              <div className="grid min-w-0 flex-1 gap-1 text-sm">
                 {g.email && (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Mail className="size-3.5" /> <span>{g.email}</span>
@@ -132,17 +132,18 @@ function GuestProfilePage() {
             </div>
           </div>
 
-          <Tabs defaultValue="reservations">
-            <TabsList className="flex-wrap">
-              <TabsTrigger value="reservations">Reservations</TabsTrigger>
-              <TabsTrigger value="experiences">Experiences</TabsTrigger>
-              <TabsTrigger value="payments">Payments</TabsTrigger>
-              <TabsTrigger value="notes">Notes</TabsTrigger>
-              <TabsTrigger value="preferences">Preferences</TabsTrigger>
-              <TabsTrigger value="communications">Communications</TabsTrigger>
-              <TabsTrigger value="reviews">Reviews</TabsTrigger>
-              <TabsTrigger value="documents">Documents</TabsTrigger>
-              <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <Tabs defaultValue="reservations" className="min-w-0">
+            <TabsList className="flex w-full flex-nowrap justify-start overflow-x-auto overscroll-x-contain">
+              {/* Keep the nine CRM sections on one scrollable row on narrow screens. */}
+              <TabsTrigger className="shrink-0" value="reservations">Reservations</TabsTrigger>
+              <TabsTrigger className="shrink-0" value="experiences">Experiences</TabsTrigger>
+              <TabsTrigger className="shrink-0" value="payments">Payments</TabsTrigger>
+              <TabsTrigger className="shrink-0" value="notes">Notes</TabsTrigger>
+              <TabsTrigger className="shrink-0" value="preferences">Preferences</TabsTrigger>
+              <TabsTrigger className="shrink-0" value="communications">Communications</TabsTrigger>
+              <TabsTrigger className="shrink-0" value="reviews">Reviews</TabsTrigger>
+              <TabsTrigger className="shrink-0" value="documents">Documents</TabsTrigger>
+              <TabsTrigger className="shrink-0" value="timeline">Timeline</TabsTrigger>
             </TabsList>
             <TabsContent value="reservations" className="pt-4">
               <ReservationList bookings={data.bookings} />
@@ -198,7 +199,7 @@ function GuestProfilePage() {
           </Tabs>
         </div>
 
-        <aside className="space-y-3">
+        <aside className="min-w-0 space-y-3">
           <div className="rounded-lg border bg-card p-4">
             <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Lifetime</h3>
             <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">

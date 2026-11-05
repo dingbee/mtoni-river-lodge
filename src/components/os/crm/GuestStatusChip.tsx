@@ -8,5 +8,5 @@ const map: Record<string, { tone: StatusTone; label: string }> = {
 
 export function GuestStatusChip({ status }: { status: string | null | undefined }) {
   const s = map[status ?? "new"] ?? map.new;
-  return <StatusChip tone={s.tone}>{s.label}</StatusChip>;
+  return <StatusChip tone={s.tone} className="whitespace-nowrap">{s.label}</StatusChip>;
 }
