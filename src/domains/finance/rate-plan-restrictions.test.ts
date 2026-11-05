@@ -82,7 +82,7 @@ describe("SPE-03.08 rate-plan restrictions", () => {
     }) as Record<string, RestrictionRule>;
     const tooLate = evaluateStayNasRestrictions(rules, {
       roomTypeId: ROOM_TYPE, arrivalDate: "2027-01-10", departureDate: "2027-01-12",
-      bookedAt: "2027-01-09T12:00:00Z", arrivalAt: "2027-01-10T12:00:00Z",
+      bookedAt: "2027-01-09T18:00:00Z", arrivalAt: "2027-01-10T12:00:00Z",
     });
     expect(tooLate.reasons[0]).toMatch(/at least 24 hours/);
     const tooEarly = evaluateStayNasRestrictions(rules, {
