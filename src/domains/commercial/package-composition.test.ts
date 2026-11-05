@@ -9,7 +9,7 @@ const composition = {
   planCode: "professional" as const,
   planVersion: 1,
   status: "draft" as const,
-  moduleCodes: ["reservations", "finance"] as const,
+  moduleCodes: ["reservations", "finance"],
   addonCodes: ["advanced_analytics"],
   effectiveFrom: null,
   effectiveTo: null,
