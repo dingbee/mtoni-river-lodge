@@ -46,7 +46,8 @@ function makeRepository(overrides: Partial<DistributionExecutionRepository> = {}
       credential_reference: "40000000-0000-4000-8000-000000000001",
       lifecycle: "connected",
     })),
-    getProperty: vi.fn(async () => ({ organisation_id: "org-1" })),
+    getProperty: vi.fn(async () => ({ organisation_id: "org-1", status: "active" })),
+    getOrganisation: vi.fn(async () => ({ status: "active" })),
     getPropertyMembership: vi.fn(async () => ([{
       property_id: "property-1",
       user_id: "user-1",
