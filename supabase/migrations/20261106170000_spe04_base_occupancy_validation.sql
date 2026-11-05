@@ -153,12 +153,12 @@ BEGIN
     END LOOP;
   END LOOP;
 
-  IF NEW.pricing_basis='occupancy_based' AND jsonb_object_length(v_occupancy_rules)=0 THEN
+  IF NEW.pricing_basis='occupancy_based' AND (SELECT count(*) FROM jsonb_object_keys(v_occupancy_rules))=0 THEN
     RAISE EXCEPTION USING ERRCODE='22023', MESSAGE='INVALID_RATE_CONFIGURATION',
       DETAIL='occupancy_based plans require exact occupancy_rules';
   END IF;
   IF NEW.pricing_basis IN ('per_room','per_person')
-     AND jsonb_object_length(v_occupancy_rules)>0 THEN
+     AND (SELECT count(*) FROM jsonb_object_keys(v_occupancy_rules))>0 THEN
     RAISE EXCEPTION USING ERRCODE='22023', MESSAGE='INVALID_RATE_CONFIGURATION',
       DETAIL='Occupancy overrides for per_room/per_person are not supported until a complete included-occupant and extra-fee contract is implemented';
   END IF;
