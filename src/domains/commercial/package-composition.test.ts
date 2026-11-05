@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  type CommercialPackageComposition,
   commercialAddonCompatibilitySchema,
   commercialPackageCompositionSchema,
   validatePackageComposition,
 } from "./package-composition-contract";
 
-const composition = {
+const composition: CommercialPackageComposition = {
   planCode: "professional" as const,
   planVersion: 1,
   status: "draft" as const,
