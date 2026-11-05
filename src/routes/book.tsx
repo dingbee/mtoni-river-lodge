@@ -387,6 +387,7 @@ function BookPage() {
       const created = await createBookingFn({
         data: {
           roomSlug: selectedRoom.slug,
+          ratePlanId: selectedRoom.selected_rate_plan_id,
           checkIn,
           checkOut,
           adults,
@@ -445,6 +446,7 @@ function BookPage() {
     getBookingQuoteFn({
       data: {
         roomSlug: selectedRoom.slug,
+        ratePlanId: selectedRoom.selected_rate_plan_id,
         checkIn,
         checkOut,
         adults,
@@ -523,7 +525,8 @@ function BookPage() {
                 // First-time pick, or re-picking the same room the session is
                 // already bound to — just proceed to guest details.
                 if (!currentRoomContext || currentRoomContext === r.slug) {
-                  setSelectedRoom(r);
+                  const roomWithPlan = { ...r, selected_rate_plan_id: ratePlanId };
+                  setSelectedRoom(roomWithPlan);
                   setBookingQuote(r.pricing_quote);
                   // Fire-and-forget hold acquisition — 15-minute inventory lock.
                   // Failures are non-blocking; createBooking still runs the same
@@ -807,8 +810,9 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
   results: AvailabilityResult;
   adults: number; childrenBelow6: number; children7Plus: number;
   nights: number;
-  onBack: () => void; onSelect: (r: AvailabilityRoom) => void;
+  onBack: () => void; onSelect: (r: AvailabilityRoom, ratePlanId?: string) => void;
 }) {
+  const [selectedPlans, setSelectedPlans] = useState<Record<string, string>>({});
   const fmt = (n: number, c: string) => new Intl.NumberFormat("en-US", { style: "currency", currency: c, maximumFractionDigits: 0 }).format(n);
   const totalOccupants = adults + childrenBelow6 + children7Plus;
   const paidOccupants = adults + children7Plus;
@@ -819,7 +823,10 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
         const fits = Boolean(r.fits_occupancy);
         const disabled = !r.is_available || !fits;
         // Centralized pricing: per-guest, per-night.
-        const options = r.rate_plan_options ?? [];\n        const selectedPlanId = selectedPlans[r.room_id] ?? "";\n        const selectedPlan = options.find((p) => p.rate_plan_id === selectedPlanId);\n        const displayTotal = Number(selectedPlan?.total ?? r.pricing_quote?.total ?? r.nightly_total ?? 0);
+        const options = r.rate_plan_options ?? [];
+        const selectedPlanId = selectedPlans[r.room_id] ?? "";
+        const selectedPlan = options.find((p) => p.rate_plan_id === selectedPlanId);
+        const displayTotal = Number(selectedPlan?.total ?? r.pricing_quote?.total ?? r.nightly_total ?? 0);
         const nightlyRate = Number(r.pricing_quote?.nightly?.[0]?.nightly_rate ?? 0);
         return (
           <div key={r.room_id} className="flex flex-col gap-4 rounded-2xl border border-charcoal/10 bg-ivory p-6 sm:flex-row sm:items-center sm:justify-between">
@@ -830,7 +837,18 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
             </div>
             <div className="text-right">
               <p className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">{nights} night{nights === 1 ? "" : "s"} total</p>
-              <p className="font-display text-2xl">{fmt(displayTotal, selectedPlan?.currency ?? r.currency)}</p>\n              {options.length > 1 && (\n                <div className="mt-3 text-left">\n                  <label className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-charcoal/60">Choose rate plan</label>\n                  <select value={selectedPlanId} onChange={(e) => setSelectedPlans((current) => ({ ...current, [r.room_id]: e.target.value }))} className="mt-2 w-full rounded-lg border border-charcoal/20 bg-ivory px-3 py-2 text-sm">\n                    <option value="">Select a rate plan</option>\n                    {options.map((plan) => <option key={plan.rate_plan_id} value={plan.rate_plan_id}>{plan.name} — {fmt(Number(plan.total), plan.currency)}</option>)}\n                  </select>\n                  {selectedPlan?.description && <p className="mt-2 text-xs text-charcoal/60">{selectedPlan.description}</p>}\n                  {selectedPlan && <p className="mt-1 text-xs text-charcoal/55">{selectedPlan.meal_plan ?? "No meal plan"} · {selectedPlan.refundable ? "Refundable" : "Non-refundable"}</p>}\n                </div>\n              )}
+              <p className="font-display text-2xl">{fmt(displayTotal, selectedPlan?.currency ?? r.currency)}</p>
+              {options.length > 1 && (
+                <div className="mt-3 text-left">
+                  <label className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-charcoal/60">Choose rate plan</label>
+                  <select value={selectedPlanId} onChange={(e) => setSelectedPlans((current) => ({ ...current, [r.room_id]: e.target.value }))} className="mt-2 w-full rounded-lg border border-charcoal/20 bg-ivory px-3 py-2 text-sm">
+                    <option value="">Select a rate plan</option>
+                    {options.map((plan) => <option key={plan.rate_plan_id} value={plan.rate_plan_id}>{plan.name} — {fmt(Number(plan.total), plan.currency)}</option>)}
+                  </select>
+                  {selectedPlan?.description && <p className="mt-2 text-xs text-charcoal/60">{selectedPlan.description}</p>}
+                  {selectedPlan && <p className="mt-1 text-xs text-charcoal/55">{selectedPlan.meal_plan ?? "No meal plan"} · {selectedPlan.refundable ? "Refundable" : "Non-refundable"}</p>}
+                </div>
+              )}
               <p className="text-xs text-charcoal/55">{fmt(nightlyRate, r.currency)} / night · {paidOccupants} paid · {totalOccupants} total</p>
               <button
                 onClick={() => onSelect(r, selectedPlanId || undefined)} disabled={disabled || (options.length > 1 && !selectedPlanId)}
