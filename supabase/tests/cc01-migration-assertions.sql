@@ -340,7 +340,7 @@ END $$;
 
 -- Non-active lifecycle states must all fail closed, not only "suspended".
 UPDATE public.staynas_properties SET status='inactive' WHERE id='30000000-0000-0000-0000-000000000002';
-DO $
+DO $cc01_lifecycle$
 BEGIN
   IF public.staynas_user_has_property_access('10000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000002') THEN
     RAISE EXCEPTION 'Inactive property retained membership access';
@@ -348,7 +348,7 @@ BEGIN
   IF public.staynas_current_user_has_property_role('30000000-0000-0000-0000-000000000002', ARRAY['housekeeping']::public.app_role[]) THEN
     RAISE EXCEPTION 'Inactive property retained role authorization';
   END IF;
-END $;
+END $cc01_lifecycle$;
 UPDATE public.staynas_properties SET status='active' WHERE id='30000000-0000-0000-0000-000000000002';
 
 SELECT 'CC-01 PostgreSQL migration validation passed' AS result;
