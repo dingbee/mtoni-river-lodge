@@ -332,7 +332,7 @@ BEGIN
   )
   SELECT r.id,r.slug,r.name,r.base_price,r.currency,r.capacity_adults,r.capacity_children,
     r.max_occupancy,r.included_guests,r.extra_guest_fee,(_check_out-_check_in),
-    CASE WHEN q.quote IS NULL THEN 0 ELSE (q.quote->>'accommodation_subtotal')::numeric END,
+    CASE WHEN q.quote IS NULL THEN 0 ELSE (q.quote->>'total')::numeric END,
     COALESCE(s.min_units,0),(COALESCE(s.available,false) AND q.quote IS NOT NULL),
     (_adults<=r.capacity_adults
       AND (_children_below_6+_children_7_plus)<=r.capacity_children
@@ -349,7 +349,7 @@ BEGIN
       AND (_adults+_children_below_6+_children_7_plus)<=r.max_occupancy
   ) q ON true
   WHERE r.property_id=_property_id AND r.status='active'
-  ORDER BY CASE WHEN q.quote IS NULL THEN r.base_price ELSE (q.quote->>'accommodation_subtotal')::numeric END;
+  ORDER BY CASE WHEN q.quote IS NULL THEN r.base_price ELSE (q.quote->>'total')::numeric END;
 END;
 $$;
 
