@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { seasonalRatesSchema, validateSeasonalRateCurrency, validateSeasonalRateRoomTypes } from "@/domains/finance/seasonal-pricing";
 
 async function getActivePropertyId(supabase: any, userId: string): Promise<string> {
   const { data, error } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
@@ -30,7 +31,7 @@ const ratePlanSchema = z.object({
   active: z.boolean().default(true),
   rate_plan_data: z.object({
     base_rates: z.record(z.string(), z.unknown()).optional(),
-    seasonal_rates: z.record(z.string(), z.unknown()).optional(),
+    seasonal_rates: seasonalRatesSchema.optional(),
     daily_rates: z.record(z.string(), z.unknown()).optional(),
     occupancy_rules: z.record(z.string(), z.unknown()).optional(),
     restrictions: z.record(z.string(), z.unknown()).optional(),
@@ -72,10 +73,34 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
       if (existing.publication_status === "archived") throw new Error("Archived rate plans are read-only. Duplicate the plan to create a new version.");
       if (existing.publication_status === "published") throw new Error("Suspend the rate plan before editing its commercial terms.");
     }
+    let inheritedSeasonalRates: Record<string, unknown> = {};
     if (data.parent_rate_plan_id) {
       const { data: parent, error: parentError } = await sb.from("staynas_rate_plans")
         .select("id").eq("id",data.parent_rate_plan_id).eq("property_id",propertyId).maybeSingle();
       if (parentError || !parent) throw new Error("Parent rate plan is not part of the active property.");
+      const { data: inherited, error: inheritanceError } = await sb.rpc(
+        "resolve_staynas_rate_plan_inheritance",
+        { _property_id: propertyId, _rate_plan_id: data.parent_rate_plan_id },
+      );
+      if (inheritanceError) throw new Error(inheritanceError.message);
+      inheritedSeasonalRates = (inherited?.resolved_data?.seasonal_rates ?? {}) as Record<string, unknown>;
+    }
+
+    const seasonalRates = seasonalRatesSchema.parse(data.rate_plan_data.seasonal_rates ?? {});
+    const effectiveSeasonalRates = seasonalRatesSchema.parse({
+      ...inheritedSeasonalRates,
+      ...seasonalRates,
+    });
+    validateSeasonalRateCurrency(effectiveSeasonalRates, String(property.currency));
+    if (Object.keys(effectiveSeasonalRates).length) {
+      const { data: roomTypes, error: roomTypesError } = await sb.rpc(
+        "get_staynas_rate_plan_room_types", { _property_id: propertyId },
+      );
+      if (roomTypesError) throw new Error(roomTypesError.message);
+      validateSeasonalRateRoomTypes(
+        effectiveSeasonalRates,
+        new Set((roomTypes ?? []).map((roomType: { id: string }) => roomType.id)),
+      );
     }
     const payload = {
       ...data,
