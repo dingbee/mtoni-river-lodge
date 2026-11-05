@@ -102,6 +102,13 @@ BEGIN
      OR NOT has_function_privilege('service_role','public.get_booking_hold_for_property(uuid,uuid,text)','EXECUTE')
   THEN RAISE EXCEPTION 'Property hold lookup RPC grants are incorrect'; END IF;
 
+  IF has_function_privilege('anon','public.get_room_availability(date,date,uuid)','EXECUTE')
+     OR NOT has_function_privilege('authenticated','public.get_room_availability(date,date,uuid)','EXECUTE')
+     OR NOT has_function_privilege('service_role','public.get_room_availability(date,date,uuid)','EXECUTE')
+     OR position('staynas_user_has_property_access' in pg_get_functiondef('public.get_room_availability(date,date,uuid)'::regprocedure)) = 0
+     OR position('staynas_property_is_operational' in pg_get_functiondef('public.get_room_availability(date,date,uuid)'::regprocedure)) = 0
+  THEN RAISE EXCEPTION 'Staff availability property guard or grants are incorrect'; END IF;
+
   IF has_function_privilege('anon','public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid)','EXECUTE')
      OR has_function_privilege('anon','public.release_booking_hold(uuid,text)','EXECUTE')
   THEN RAISE EXCEPTION 'Legacy unscoped booking RPC remains anonymously executable'; END IF;
@@ -366,6 +373,13 @@ BEGIN
   IF public.staynas_booking_property_id() <> '30000000-0000-0000-0000-000000000001' THEN
     RAISE EXCEPTION 'Authenticated owner booking resolver did not return selected property';
   END IF;
+  -- Staff availability must not permit a member to query another tenant.
+  BEGIN
+    PERFORM 1 FROM public.get_room_availability(current_date, current_date + 1, '30000000-0000-0000-0000-000000000002');
+    RAISE EXCEPTION 'Owner queried availability for another property';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM NOT LIKE 'Not authorized for requested property%' THEN RAISE; END IF;
+  END;
   IF NOT public.staynas_user_has_property_access('10000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001') THEN
     RAISE EXCEPTION 'Owner cannot access own property';
   END IF;
