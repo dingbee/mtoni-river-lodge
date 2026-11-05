@@ -77,6 +77,14 @@ BEGIN
            OR has_function_privilege('authenticated',p.oid,'EXECUTE'))
   ) THEN RAISE EXCEPTION 'An internal or trigger-only SECURITY DEFINER function remains client-executable'; END IF;
 
+  SELECT count(*) INTO policy_count
+  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+  WHERE n.nspname='public' AND p.prosecdef
+    AND has_function_privilege('anon',p.oid,'EXECUTE');
+  IF policy_count <> 14 THEN
+    RAISE EXCEPTION 'Expected 14 intentionally public guest/booking SECURITY DEFINER endpoints, found %', policy_count;
+  END IF;
+
   IF EXISTS (
     SELECT required.name
     FROM unnest(ARRAY[
