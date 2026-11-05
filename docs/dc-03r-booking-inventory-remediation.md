@@ -36,7 +36,9 @@ The canonical booking RPC sets `staynas.payment_rpc='on'` transaction-locally on
 
 Guest server functions now resolve the Nolmark CDMA demo property through a server-owned allowlist and an active property lookup. The browser cannot submit a property UUID as authority. The resolver does not inspect `Host`, `x-forwarded-host`, or other hostname headers.
 
-The service-role client is used only inside server functions; the credential is not sent to the browser. Guest hold create, lookup, release, availability and booking calls use property-scoped RPCs. Staff functions continue to resolve the authenticated user's active property and membership.
+The service-role client is used only inside server functions; the credential is not sent to the browser. Guest hold create, lookup, release, availability, room catalogue/status, concierge, payment and booking calls use the same server-owned property context. The anonymous `get_room_availability_for_property` RPC is retired. The database `staynas_booking_property_id()` resolver is staff-authenticated only; the hostname-taking overload is removed. Staff functions resolve the authenticated user's active property and membership.
+
+Pesapal callback URLs now require an explicit `PUBLIC_BASE_URL`; the request Host header is not used as a fallback.
 
 This allowlist is deliberately a demo/UAT publication control, not the final multi-property publication-settings architecture. Expanding public property publication requires a separate property-level publication policy.
 
@@ -64,6 +66,6 @@ The unsafe property-first booking overloads and old hardcoded-property hold RPCs
 - No persistent UAT migration or data mutation has been performed.
 - No production database modification or deployment.
 - No Vercel deployment.
-- No hostname-based resolution.
+- No hostname-based resolution or hostname-derived payment callback origin.
 - No provider activation or distribution traffic.
 - Production promotion remains separately gated by explicit authorization.
