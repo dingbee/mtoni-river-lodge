@@ -134,12 +134,12 @@ export const searchPublicDemoAvailability = createServerFn({ method: "POST" })
         rate_plan_options: planOptionsByRoom.get(room.room_id) ?? [],
         ...room,
         base_price: Number(room.base_price),
-        nightly_total: Number(room.pricing_quote?.total ?? room.nightly_total),
+        nightly_total: room.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" ? null : Number(room.pricing_quote?.total ?? room.nightly_total),
         pricing_quote: room.pricing_quote,
         fits_guests: Boolean(room.fits_occupancy),
       }))
       .filter((room: any) => room.is_available && room.fits_guests)
-      .sort((a: any, b: any) => a.nightly_total - b.nightly_total);
+      .sort((a: any, b: any) => (a.nightly_total ?? Number.POSITIVE_INFINITY) - (b.nightly_total ?? Number.POSITIVE_INFINITY));
   });
 
 const createBookingSchema = z.object({
