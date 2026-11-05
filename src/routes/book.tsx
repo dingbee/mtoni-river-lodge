@@ -436,6 +436,7 @@ function BookPage() {
   useEffect(() => {
     if (!selectedRoom || nights < 1) {
       setBookingQuote(null);
+      setQuoteLoading(false);
       return;
     }
     let cancelled = false;
@@ -593,7 +594,7 @@ function BookPage() {
               paidOccupants={paidOccupants}
               childrenBelow6={childrenBelow6}
               breakdown={effectiveQuote}
-              pricingLoading={quoteLoading || !effectiveQuote}
+              pricingLoading={quoteLoading || !bookingQuote}
               extras={extras} selectedExtras={selectedExtras} setSelectedExtras={setSelectedExtras}
               roomTotal={roomTotal} extrasTotal={extrasTotal} grandTotal={grandTotal}
               guest={guest} setGuest={setGuest}
