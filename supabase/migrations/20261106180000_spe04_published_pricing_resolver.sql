@@ -46,6 +46,7 @@ DECLARE
   v_subtotal numeric := 0;
   v_source text;
   v_source_id uuid;
+  v_source_key text;
   v_breakdown jsonb := '[]'::jsonb;
   v_rule record;
   v_min_los integer := 1;
@@ -252,7 +253,7 @@ BEGIN
 
   v_day:=_check_in;
   WHILE v_day<_check_out LOOP
-    v_rate:=NULL; v_source:=NULL; v_source_id:=NULL;
+    v_rate:=NULL; v_source:=NULL; v_source_id:=NULL; v_source_key:=NULL;
 
     -- Approved overrides: exact room/date, plan+room type, room type, then plan.
     SELECT o.* INTO v_override FROM public.staynas_rate_overrides o
@@ -261,7 +262,7 @@ BEGIN
       AND o.effective_from=v_day AND o.effective_to=v_day
     ORDER BY o.approved_at DESC,o.id LIMIT 1;
     IF FOUND THEN v_rate:=jsonb_build_object('nightly_rate',v_override.nightly_rate,'currency',v_override.currency);
-      v_source:='approved_room_date_override'; v_source_id:=v_override.id;
+      v_source:='approved_room_date_override'; v_source_id:=v_override.id; v_source_key:=v_override.id::text;
     ELSE
       SELECT o.* INTO v_override FROM public.staynas_rate_overrides o
       WHERE o.property_id=_property_id AND o.status='approved'
@@ -270,7 +271,7 @@ BEGIN
         AND v_day BETWEEN o.effective_from AND o.effective_to
       ORDER BY o.approved_at DESC,o.id LIMIT 1;
       IF FOUND THEN v_rate:=jsonb_build_object('nightly_rate',v_override.nightly_rate,'currency',v_override.currency);
-        v_source:='approved_plan_room_type_override'; v_source_id:=v_override.id;
+        v_source:='approved_plan_room_type_override'; v_source_id:=v_override.id; v_source_key:=v_override.id::text;
       ELSE
         SELECT o.* INTO v_override FROM public.staynas_rate_overrides o
         WHERE o.property_id=_property_id AND o.status='approved'
@@ -278,7 +279,7 @@ BEGIN
           AND v_day BETWEEN o.effective_from AND o.effective_to
         ORDER BY o.approved_at DESC,o.id LIMIT 1;
         IF FOUND THEN v_rate:=jsonb_build_object('nightly_rate',v_override.nightly_rate,'currency',v_override.currency);
-          v_source:='approved_room_type_override'; v_source_id:=v_override.id;
+          v_source:='approved_room_type_override'; v_source_id:=v_override.id; v_source_key:=v_override.id::text;
         ELSE
           SELECT o.* INTO v_override FROM public.staynas_rate_overrides o
           WHERE o.property_id=_property_id AND o.status='approved'
@@ -286,7 +287,7 @@ BEGIN
             AND v_day BETWEEN o.effective_from AND o.effective_to
           ORDER BY o.approved_at DESC,o.id LIMIT 1;
           IF FOUND THEN v_rate:=jsonb_build_object('nightly_rate',v_override.nightly_rate,'currency',v_override.currency);
-            v_source:='approved_plan_override'; v_source_id:=v_override.id;
+            v_source:='approved_plan_override'; v_source_id:=v_override.id; v_source_key:=v_override.id::text;
           END IF;
         END IF;
       END IF;
@@ -296,7 +297,7 @@ BEGIN
     IF v_rate IS NULL THEN
       v_rate:=v_daily->v_day::text->v_room.catalogue_type_id::text;
       IF v_rate IS NOT NULL AND v_rate<>'null'::jsonb AND COALESCE((v_rate->>'active')::boolean,false) THEN
-        v_source:='published_daily_rate';
+        v_source:='published_daily_rate'; v_source_key:=v_day::text;
       ELSE
         v_rate:=NULL;
       END IF;
@@ -308,7 +309,7 @@ BEGIN
       WHERE value<>'null'::jsonb AND COALESCE((value->>'active')::boolean,false)
         AND (value->>'start_date')::date<=v_day AND (value->>'end_date')::date>=v_day
         AND value->'room_type_ids' @> jsonb_build_array(v_room.catalogue_type_id::text);
-      SELECT s.value INTO v_rate
+      SELECT s.key,s.value INTO v_source_key,v_rate
       FROM jsonb_each(v_seasons) s(key,value)
       WHERE value<>'null'::jsonb AND COALESCE((value->>'active')::boolean,false)
         AND (value->>'start_date')::date<=v_day AND (value->>'end_date')::date>=v_day
@@ -333,11 +334,11 @@ BEGIN
         RETURN jsonb_build_object('ok',false,'error_code','OCCUPANCY_RATE_MISSING',
           'message',format('No exact occupancy rate is published for %s',v_day));
       END IF;
-      v_source:='published_occupancy_rate';
+      v_source:='published_occupancy_rate'; v_source_key:=v_occupancy_key;
     END IF;
     IF v_rate IS NULL AND v_plan.pricing_basis IN ('per_room','per_person') THEN
       v_rate:=v_base->v_room.catalogue_type_id::text;
-      v_source:='published_base_rate';
+      v_source:='published_base_rate'; v_source_key:=v_room.catalogue_type_id::text;
     END IF;
     IF v_rate IS NULL OR v_rate='null'::jsonb
        OR jsonb_typeof(v_rate->'nightly_rate') IS DISTINCT FROM 'number'
@@ -366,7 +367,7 @@ BEGIN
     v_subtotal:=round(v_subtotal+v_nightly_rate,2);
     v_breakdown:=v_breakdown||jsonb_build_array(jsonb_build_object(
       'date',v_day,'nightly_rate',v_nightly_rate,'currency',v_property_currency,
-      'source',v_source,'source_id',v_source_id,
+      'source',v_source,'source_id',v_source_id,'source_key',v_source_key,
       'rate_plan_id',v_plan.id,'publication_id',v_publication.id,
       'publication_number',v_publication.publication_number,
       'rate_plan_version',v_publication.rate_plan_version,
