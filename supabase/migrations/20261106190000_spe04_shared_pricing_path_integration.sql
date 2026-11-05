@@ -391,6 +391,7 @@ BEGIN
     'snapshot_hash',v_publication.snapshot_hash,
     'currency',v_property_currency,'timezone',v_timezone,
     'check_in',_check_in,'check_out',_check_out,'nights',v_nights,
+    'minimum_stay',v_min_los,
     'adults',_adults,'children_below_6',COALESCE(_children_below_6,0),
     'children_7_plus',COALESCE(_children_7_plus,0),'occupants',v_occupants,
     'billable_occupants',v_paid_occupants,'nightly',v_breakdown,
@@ -454,7 +455,7 @@ BEGIN
     'children_7_plus',COALESCE(_children_7_plus,0),
     'occupants',(v_result->>'occupants')::integer,
     'paid_occupants',(v_result->>'billable_occupants')::integer,
-    'extra_occupants',0,'minimum_stay',1,
+    'extra_occupants',0,'minimum_stay',COALESCE((v_result->>'minimum_stay')::integer,1),
     'nightly',v_nightly,
     'accommodation_subtotal',(v_result->>'accommodation_subtotal')::numeric,
     'pricing_evidence',jsonb_build_object(
