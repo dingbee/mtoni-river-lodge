@@ -544,7 +544,7 @@ function BookPage() {
                   trackRoomSelected({
                     room_slug: r.slug,
                     room_name: r.name,
-                    nightly_total: Number(r.nightly_total),
+                    nightly_total: Number(r.pricing_quote?.nightly?.[0]?.nightly_rate ?? r.base_price),
                     currency: r.currency,
                   });
                   // Keep the URL ?room= in sync so refreshes stay consistent.
