@@ -53,8 +53,10 @@ export function createTrustedDistributionExecutionLoader(
       await repository.getAuthenticatedPrincipal(input.accessToken),
       "principal",
     );
-    const bannedUntil = principal.banned_until ? Date.parse(principal.banned_until) : 0;
-    const active = !principal.is_anonymous && (!bannedUntil || bannedUntil <= Date.now());
+    const bannedUntil = principal.banned_until ? Date.parse(principal.banned_until) : null;
+    const active = !principal.is_anonymous && (
+      bannedUntil === null || (Number.isFinite(bannedUntil) && bannedUntil <= Date.now())
+    );
     if (!active) throw new Error("Distribution execution is unavailable for this principal.");
 
     const connection = assertRow(
