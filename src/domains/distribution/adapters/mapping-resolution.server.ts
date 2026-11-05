@@ -1,4 +1,3 @@
-import "server-only";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { AdapterExecutionContext } from "./contracts";
 import {
