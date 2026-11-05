@@ -27,7 +27,9 @@ const availabilitySchema = z.object({
 
 export type PublicRatePlanOption = { rate_plan_id: string; name: string; description: string | null; meal_plan: string | null; refundable: boolean; currency: string; total: number; minimum_stay: number; publication_id: string; publication_number: number; rate_plan_version: number; snapshot_hash: string };
 
-export type AvailabilityRoom = {\n  rate_plan_options?: PublicRatePlanOption[];\n  selected_rate_plan_id?: string;
+export type AvailabilityRoom = {
+  rate_plan_options?: PublicRatePlanOption[];
+  selected_rate_plan_id?: string;
   room_id: string;
   slug: string;
   name: string;
@@ -97,15 +99,28 @@ export const checkAvailability = createServerFn({ method: "POST" })
       _adults: data.adults,
       _children_below_6: data.childrenBelow6,
       _children_7_plus: data.children7Plus,
+      _rate_plan_id: data.ratePlanId ?? null,
     });
     if (error) throw new Error(error.message);
-    return ((rows ?? []) as any[]).map((r) => ({
+    const mapped = await Promise.all(((rows ?? []) as any[]).map(async (r) => {
+      let ratePlanOptions: PublicRatePlanOption[] = [];
+      if (r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED") {
+        const { data: discovery, error: discoveryError } = await (supabaseAdmin as any).rpc("discover_staynas_public_rate_plans", {
+          _property_id: propertyId, _room_id: r.room_id, _check_in: data.checkIn, _check_out: data.checkOut,
+          _adults: data.adults, _children_below_6: data.childrenBelow6, _children_7_plus: data.children7Plus,
+        });
+        if (!discoveryError && discovery?.ok) ratePlanOptions = (discovery.plans ?? []) as PublicRatePlanOption[];
+      }
+      return {
       ...r,
+      rate_plan_options: ratePlanOptions,
       nightly_total: Number(r.nightly_total),
       base_price: Number(r.base_price),
       extra_guest_fee: Number(r.extra_guest_fee),
       pricing_quote: r.pricing_quote as BookingPricingQuote | null,
+    };
     }));
+    return mapped;
   });
 
 export const listExtras = createServerFn({ method: "GET" }).handler(async () => {
