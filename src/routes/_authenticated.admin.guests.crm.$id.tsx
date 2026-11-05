@@ -71,7 +71,7 @@ function GuestProfilePage() {
   const stats = data.stats ?? { total_stays: 0, total_nights: 0, lifetime_spend: 0, first_stay: null, last_stay: null };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-w-0 space-y-6 overflow-x-clip">
       <Button asChild variant="ghost" size="sm" className="-ml-2">
         <Link to="/admin/guests/crm"><ArrowLeft className="mr-2 size-4" /> Directory</Link>
       </Button>
@@ -84,14 +84,14 @@ function GuestProfilePage() {
 
       <QuickActions guestId={id} guest={g} />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="space-y-4">
-          <div className="rounded-lg border bg-card p-5">
-            <div className="flex items-start gap-4">
+      <div className="grid w-full min-w-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-4">
+          <div className="min-w-0 rounded-lg border bg-card p-5">
+            <div className="flex min-w-0 items-start gap-4">
               <Avatar className="size-14">
                 <AvatarFallback>{initials(g.full_name)}</AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 gap-1 text-sm">
+              <div className="grid min-w-0 flex-1 gap-1 text-sm">
                 {g.email && (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Mail className="size-3.5" /> <span>{g.email}</span>
@@ -199,7 +199,7 @@ function GuestProfilePage() {
           </Tabs>
         </div>
 
-        <aside className="space-y-3">
+        <aside className="min-w-0 space-y-3">
           <div className="rounded-lg border bg-card p-4">
             <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Lifetime</h3>
             <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
