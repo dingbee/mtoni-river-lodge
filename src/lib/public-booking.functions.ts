@@ -114,6 +114,10 @@ export const searchPublicDemoAvailability = createServerFn({ method: "POST" })
       _children_7_plus: 0,
     });
     if (error) throw new Error(error.message);
+    const pricingFailure = (rows ?? []).find((room: any) => room.pricing_quote?.ok === false);
+    if (pricingFailure) {
+      throw new Error(`Pricing rejected [${pricingFailure.pricing_quote.error_code ?? "INVALID_RATE_CONFIGURATION"}]: ${pricingFailure.pricing_quote.message ?? "Pricing configuration is invalid"}`);
+    }
 
     return (rows ?? [])
       .map((room: any) => ({
