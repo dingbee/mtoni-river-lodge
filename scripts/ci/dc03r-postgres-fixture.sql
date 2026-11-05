@@ -93,3 +93,16 @@ LANGUAGE sql AS $$ SELECT NULL::uuid,NULL::text,NULL::numeric,NULL::text,NULL::n
 CREATE FUNCTION public.create_booking_hold_for_property(uuid,text,date,date,text,text,integer)
 RETURNS TABLE(hold_id uuid,expires_at timestamptz,room_id uuid)
 LANGUAGE sql AS $$ SELECT NULL::uuid,NULL::timestamptz,NULL::uuid WHERE false $$;
+CREATE FUNCTION public.staynas_booking_property_id() RETURNS uuid
+LANGUAGE sql STABLE AS $$ SELECT NULL::uuid $$;
+GRANT EXECUTE ON FUNCTION public.staynas_booking_property_id() TO anon,authenticated,service_role;
+CREATE FUNCTION public.get_room_availability_for_property(uuid,date,date)
+RETURNS TABLE(room_id uuid,slug text,name text,base_price numeric,currency text,
+  capacity_adults integer,capacity_children integer,max_occupancy integer,nights integer,
+  nightly_total numeric,min_available integer,is_available boolean)
+LANGUAGE sql STABLE AS $$
+  SELECT NULL::uuid,NULL::text,NULL::text,NULL::numeric,NULL::text,
+    NULL::integer,NULL::integer,NULL::integer,NULL::integer,NULL::numeric,NULL::integer,NULL::boolean
+  WHERE false
+$$;
+GRANT EXECUTE ON FUNCTION public.get_room_availability_for_property(uuid,date,date) TO anon,authenticated;
