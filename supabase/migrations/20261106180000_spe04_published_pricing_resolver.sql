@@ -217,18 +217,20 @@ BEGIN
           RETURN jsonb_build_object('ok',false,'error_code','RESTRICTION_BLOCKED','message','Stop sell applies to one or more stay nights');
         END IF;
       WHEN 'advance_booking_min_hours' THEN
-        IF _check_in NOT BETWEEN (v_rule.value->>'start_date')::date AND (v_rule.value->>'end_date')::date THEN EXIT; END IF;
-        v_local_booking:=COALESCE(_booking_timestamp,now()) AT TIME ZONE v_timezone;
-        v_hours:=extract(epoch FROM (_check_in::timestamp-v_local_booking))/3600;
-        IF v_hours < (v_rule.value->>'value')::numeric THEN
-          RETURN jsonb_build_object('ok',false,'error_code','RESTRICTION_BLOCKED','message','Minimum advance booking window not met');
+        IF _check_in BETWEEN (v_rule.value->>'start_date')::date AND (v_rule.value->>'end_date')::date THEN
+          v_local_booking:=COALESCE(_booking_timestamp,now()) AT TIME ZONE v_timezone;
+          v_hours:=extract(epoch FROM (_check_in::timestamp-v_local_booking))/3600;
+          IF v_hours < (v_rule.value->>'value')::numeric THEN
+            RETURN jsonb_build_object('ok',false,'error_code','RESTRICTION_BLOCKED','message','Minimum advance booking window not met');
+          END IF;
         END IF;
       WHEN 'advance_booking_max_days' THEN
-        IF _check_in NOT BETWEEN (v_rule.value->>'start_date')::date AND (v_rule.value->>'end_date')::date THEN EXIT; END IF;
-        v_local_booking:=COALESCE(_booking_timestamp,now()) AT TIME ZONE v_timezone;
-        v_days:=extract(epoch FROM (_check_in::timestamp-v_local_booking))/86400;
-        IF v_days > (v_rule.value->>'value')::numeric THEN
-          RETURN jsonb_build_object('ok',false,'error_code','RESTRICTION_BLOCKED','message','Maximum advance booking window exceeded');
+        IF _check_in BETWEEN (v_rule.value->>'start_date')::date AND (v_rule.value->>'end_date')::date THEN
+          v_local_booking:=COALESCE(_booking_timestamp,now()) AT TIME ZONE v_timezone;
+          v_days:=extract(epoch FROM (_check_in::timestamp-v_local_booking))/86400;
+          IF v_days > (v_rule.value->>'value')::numeric THEN
+            RETURN jsonb_build_object('ok',false,'error_code','RESTRICTION_BLOCKED','message','Maximum advance booking window exceeded');
+          END IF;
         END IF;
       ELSE
         RETURN jsonb_build_object('ok',false,'error_code','INVALID_RATE_CONFIGURATION','message','Unsupported restriction type');
