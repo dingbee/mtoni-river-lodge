@@ -330,3 +330,11 @@ The operation completion RPC rejects completion after the worker lease expires, 
 - Browser roles have no table privileges or RLS policies. The service role may read/insert but cannot update/delete; a database trigger rejects mutation as defence in depth.
 - This milestone persists evidence only. It does not schedule probes, call providers, change connection lifecycle, or enable distribution operations.
 - PostgreSQL 17 smoke coverage asserts scoped writes, history persistence and append-only grants. Full CI certification is required before marking this milestone closed.
+
+### DC-04.12 — canonical mapping contract (persistence gated)
+
+- Added provider-neutral room mapping from an external room identifier to canonical `rooms.id`.
+- Added provider-neutral rate-plan mapping from an external rate-plan identifier to canonical `staynas_rate_plans.id`.
+- Both contracts require organisation, property and connection scope; validate opaque provider identifiers and reject cross-property/connection reuse.
+- Mapping does not write to `rooms.base_price` or `room_inventory.price_override`; provider identifiers never become StayNas authority.
+- **Persistence is intentionally gated:** the SPE-03 branch currently provides SPE-02 pricing migrations but does not yet contain the canonical `staynas_rate_plans` / `staynas_rate_plan_assignments` schema. A mapping table without a real foreign key would permit orphaned or invalid rate-plan references. DC-04.12 is therefore contract-complete but persistence-blocked pending SPE-03 schema certification.
