@@ -2,10 +2,8 @@
 // GET /api/public/availability/search?check_in=YYYY-MM-DD&check_out=YYYY-MM-DD[&guests=2]
 
 import { createFileRoute } from "@tanstack/react-router";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
 import { bookingRpc } from "@/lib/booking-rpc";
-import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
+import { resolvePublicBookingContext } from "@/lib/public-booking-context.server";
 
 export const Route = createFileRoute("/api/public/availability/search")({
   server: {
@@ -21,12 +19,8 @@ export const Route = createFileRoute("/api/public/availability/search")({
         if (checkOut <= checkIn) {
           return Response.json({ error: "check_out must be after check_in" }, { status: 400 });
         }
-        const sb = createClient<Database>(
-          process.env.SUPABASE_URL!,
-          process.env.SUPABASE_PUBLISHABLE_KEY!,
-          { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-        );
-        const propertyId = await getConfiguredBookingPropertyId(sb);
+        const { property, supabaseAdmin: sb } = await resolvePublicBookingContext();
+        const propertyId = property.id;
         const { data, error } = await bookingRpc(sb).rpc("get_room_availability", {
           _check_in: checkIn,
           _check_out: checkOut,
