@@ -1596,7 +1596,7 @@ BEGIN
   IF _adults IS NULL OR _adults < 1 THEN RAISE EXCEPTION 'At least one adult required'; END IF;
   IF _guest_name IS NULL OR length(trim(_guest_name)) < 2 THEN RAISE EXCEPTION 'Guest name required'; END IF;
   IF _guest_email IS NULL OR _guest_email !~* '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$' THEN RAISE EXCEPTION 'Valid email required'; END IF;
-  IF _property_id IS NULL OR NOT EXISTS (SELECT 1 FROM public.staynas_properties p WHERE p.id=_property_id AND p.status='active') THEN
+  IF _property_id IS NULL OR NOT public.staynas_property_is_operational(_property_id) THEN
     RAISE EXCEPTION 'Property is required and must be active';
   END IF;
   IF _jwt_role <> 'service_role' AND (auth.uid() IS NULL OR NOT public.staynas_user_has_property_access(auth.uid(),_property_id)) THEN
@@ -3730,7 +3730,7 @@ BEGIN
   IF _adults IS NULL OR _adults < 1 THEN RAISE EXCEPTION 'At least one adult required'; END IF;
   IF _guest_name IS NULL OR length(trim(_guest_name)) < 2 THEN RAISE EXCEPTION 'Guest name required'; END IF;
   IF _guest_email IS NULL OR _guest_email !~* '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$' THEN RAISE EXCEPTION 'Valid email required'; END IF;
-  IF _property_id IS NULL OR NOT EXISTS (SELECT 1 FROM public.staynas_properties p WHERE p.id=_property_id AND p.status='active') THEN
+  IF _property_id IS NULL OR NOT public.staynas_property_is_operational(_property_id) THEN
     RAISE EXCEPTION 'Property is required and must be active';
   END IF;
   IF _jwt_role <> 'service_role' AND (
