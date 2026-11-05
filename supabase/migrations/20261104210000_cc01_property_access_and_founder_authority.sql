@@ -312,8 +312,23 @@ SECURITY DEFINER
 SET search_path = pg_catalog, public, pg_temp
 AS $function$
 DECLARE
+  _uid uuid := auth.uid();
   _property uuid;
 BEGIN
+  -- Authenticated users resolve only their own selected active property.
+  IF _uid IS NOT NULL THEN
+    _property := public.staynas_active_property_id(_uid);
+    IF _property IS NULL THEN
+      RAISE EXCEPTION 'No active property is assigned to this user';
+    END IF;
+    IF NOT public.staynas_user_has_property_access(_uid, _property) THEN
+      RAISE EXCEPTION 'Active property access denied';
+    END IF;
+    RETURN _property;
+  END IF;
+
+  -- Anonymous guest traffic is restricted to the service-managed public
+  -- booking property. No hostname or caller-supplied tenant ID is trusted.
   SELECT c.property_id INTO _property
   FROM public.staynas_booking_config c
   WHERE c.id = true;
@@ -335,16 +350,32 @@ GRANT EXECUTE ON FUNCTION public.staynas_booking_property_id() TO anon, authenti
 REVOKE ALL ON FUNCTION public.staynas_booking_property_id(text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.staynas_booking_property_id(text) TO service_role;
 
-CREATE OR REPLACE FUNCTION public.get_booking_hold_for_property(_property_id uuid, _hold_id uuid, _session_id text)
- RETURNS TABLE(id uuid, room_id uuid, check_in date, check_out date, expires_at timestamp with time zone, status text)
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'pg_catalog, public, pg_temp'
+CREATE OR REPLACE FUNCTION public.get_booking_hold_for_property(
+  _property_id uuid,
+  _hold_id uuid,
+  _session_id text
+)
+RETURNS TABLE(id uuid, room_id uuid, check_in date, check_out date, expires_at timestamptz, status text)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
 AS $function$
- SELECT h.id,h.room_id,h.check_in,h.check_out,h.expires_at,h.status::text
- FROM public.booking_holds h JOIN public.rooms r ON r.id=h.room_id
- WHERE _property_id IS NOT NULL AND r.property_id=_property_id AND public.staynas_property_is_operational(r.property_id) AND h.id=_hold_id
-   AND _session_id IS NOT NULL AND length(trim(_session_id))>=6 AND h.session_id=_session_id
+BEGIN
+  IF _property_id IS DISTINCT FROM public.staynas_booking_property_id() THEN
+    RAISE EXCEPTION 'Property is not available in this booking context';
+  END IF;
+  IF _session_id IS NULL OR length(trim(_session_id)) < 6 THEN
+    RAISE EXCEPTION 'Valid booking session is required';
+  END IF;
+  RETURN QUERY
+  SELECT h.id, h.room_id, h.check_in, h.check_out, h.expires_at, h.status::text
+  FROM public.booking_holds h
+  JOIN public.rooms r ON r.id = h.room_id
+  WHERE r.property_id = _property_id
+    AND h.id = _hold_id
+    AND h.session_id = _session_id;
+END;
 $function$;
 
 
@@ -357,6 +388,9 @@ AS $function$
 DECLARE _nights integer;
 BEGIN
   IF _property_id IS NULL THEN RAISE EXCEPTION 'property_id is required'; END IF;
+  IF _property_id IS DISTINCT FROM public.staynas_booking_property_id() THEN
+    RAISE EXCEPTION 'Property is not available in this booking context';
+  END IF;
   IF _check_out <= _check_in THEN RAISE EXCEPTION 'check_out must be after check_in'; END IF;
   IF NOT public.staynas_property_is_operational(_property_id) THEN
     RAISE EXCEPTION 'Property not found or inactive';
@@ -2107,6 +2141,9 @@ AS $function$
 DECLARE _h public.booking_holds%ROWTYPE;
 BEGIN
  IF _property_id IS NULL THEN RAISE EXCEPTION 'property_id is required'; END IF;
+ IF _property_id IS DISTINCT FROM public.staynas_booking_property_id() THEN
+   RAISE EXCEPTION 'Property is not available in this booking context';
+ END IF;
  SELECT h.* INTO _h FROM public.booking_holds h JOIN public.rooms r ON r.id=h.room_id
  WHERE h.id=_hold_id AND r.property_id=_property_id FOR UPDATE OF h;
  IF NOT FOUND OR _h.status<>'active' THEN RETURN false; END IF;
@@ -5753,6 +5790,90 @@ REVOKE ALL ON FUNCTION public.staynas_guest_is_accessible(uuid, uuid) FROM PUBLI
 GRANT EXECUTE ON FUNCTION public.staynas_guest_is_accessible(uuid, uuid) TO authenticated, service_role;
 
 
+
+-- Keep the underlying booking implementations private. Public wrappers
+-- bind every anonymous/authenticated call to the caller's resolved property:
+-- authenticated staff use their selected property; anonymous guests use the
+-- service-managed public booking property.
+ALTER FUNCTION public.create_booking_for_property(uuid, text, date, date, integer, integer, text, text, text, text, text, jsonb, integer, integer, uuid, text)
+  RENAME TO create_booking_for_property_internal;
+ALTER FUNCTION public.create_booking_for_property(uuid, text, date, date, integer, integer, text, text, text, text, text, jsonb, integer, integer, uuid, text, text)
+  RENAME TO create_booking_for_property_internal;
+ALTER FUNCTION public.create_booking_hold_for_property(uuid, text, date, date, text, text, integer)
+  RENAME TO create_booking_hold_for_property_internal;
+
+REVOKE ALL ON FUNCTION public.create_booking_for_property_internal(uuid, text, date, date, integer, integer, text, text, text, text, text, jsonb, integer, integer, uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_booking_for_property_internal(uuid, text, date, date, integer, integer, text, text, text, text, text, jsonb, integer, integer, uuid, text) TO service_role;
+REVOKE ALL ON FUNCTION public.create_booking_for_property_internal(uuid, text, date, date, integer, integer, text, text, text, text, text, jsonb, integer, integer, uuid, text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_booking_for_property_internal(uuid, text, date, date, integer, integer, text, text, text, text, text, jsonb, integer, integer, uuid, text, text) TO service_role;
+REVOKE ALL ON FUNCTION public.create_booking_hold_for_property_internal(uuid, text, date, date, text, text, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_booking_hold_for_property_internal(uuid, text, date, date, text, text, integer) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.create_booking_for_property(
+  _property_id uuid, _room_slug text, _check_in date, _check_out date,
+  _adults integer, _children integer, _guest_name text, _guest_email text,
+  _guest_phone text, _country text, _special_requests text, _extras jsonb DEFAULT '[]'::jsonb,
+  _children_below_6 integer DEFAULT NULL, _children_7_plus integer DEFAULT NULL,
+  _hold_id uuid DEFAULT NULL, _session_id text DEFAULT NULL
+)
+RETURNS TABLE(booking_id uuid, reference text, total numeric, currency text)
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $function$
+BEGIN
+  IF _property_id IS DISTINCT FROM public.staynas_booking_property_id() THEN
+    RAISE EXCEPTION 'Property is not available in this booking context';
+  END IF;
+  RETURN QUERY SELECT * FROM public.create_booking_for_property_internal(
+    _property_id, _room_slug, _check_in, _check_out, _adults, _children,
+    _guest_name, _guest_email, _guest_phone, _country, _special_requests,
+    _extras, _children_below_6, _children_7_plus, _hold_id, _session_id
+  );
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.create_booking_for_property(
+  _property_id uuid, _room_slug text, _check_in date, _check_out date,
+  _adults integer, _children integer, _guest_name text, _guest_email text,
+  _guest_phone text, _country text, _special_requests text, _extras jsonb DEFAULT '[]'::jsonb,
+  _children_below_6 integer DEFAULT NULL, _children_7_plus integer DEFAULT NULL,
+  _hold_id uuid DEFAULT NULL, _session_id text DEFAULT NULL,
+  _payment_method text DEFAULT 'online'
+)
+RETURNS TABLE(booking_id uuid, reference text, total numeric, currency text, taxes numeric, tax_addition numeric, tax_breakdown jsonb)
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $function$
+BEGIN
+  IF _property_id IS DISTINCT FROM public.staynas_booking_property_id() THEN
+    RAISE EXCEPTION 'Property is not available in this booking context';
+  END IF;
+  RETURN QUERY SELECT * FROM public.create_booking_for_property_internal(
+    _property_id, _room_slug, _check_in, _check_out, _adults, _children,
+    _guest_name, _guest_email, _guest_phone, _country, _special_requests,
+    _extras, _children_below_6, _children_7_plus, _hold_id, _session_id,
+    _payment_method
+  );
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.create_booking_hold_for_property(
+  _property_id uuid, _room_slug text, _check_in date, _check_out date,
+  _session_id text, _guest_email text DEFAULT NULL, _ttl_seconds integer DEFAULT 900
+)
+RETURNS TABLE(hold_id uuid, expires_at timestamptz, room_id uuid)
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $function$
+BEGIN
+  IF _property_id IS DISTINCT FROM public.staynas_booking_property_id() THEN
+    RAISE EXCEPTION 'Property is not available in this booking context';
+  END IF;
+  RETURN QUERY SELECT * FROM public.create_booking_hold_for_property_internal(
+    _property_id, _room_slug, _check_in, _check_out, _session_id, _guest_email, _ttl_seconds
+  );
+END;
+$function$;
 
 -- Public booking RPCs are an explicit signature allowlist. Revoke
 -- PostgreSQL's default PUBLIC execution before granting only these endpoints.
