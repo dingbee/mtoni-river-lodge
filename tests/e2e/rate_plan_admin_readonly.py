@@ -5,7 +5,8 @@ Required environment:
   STAYNAS_UI_BASE_URL   default http://localhost:8080
   STAYNAS_UI_EMAIL      property finance/owner test account
   STAYNAS_UI_PASSWORD   password for that test account
-  STAYNAS_EXPECTED_CURRENCY optional exact property currency, e.g. USD
+  STAYNAS_EXPECTED_PROPERTY_NAME exact active property name
+  STAYNAS_EXPECTED_CURRENCY exact property currency, e.g. USD
 
 The script never creates, edits, publishes, or deletes rate-plan data.
 """
@@ -25,6 +26,8 @@ EXPECTED_PROPERTY_NAME = os.environ.get("STAYNAS_EXPECTED_PROPERTY_NAME", "").st
 async def main() -> None:
     if not EMAIL or not PASSWORD:
         raise SystemExit("Set STAYNAS_UI_EMAIL and STAYNAS_UI_PASSWORD to run authenticated acceptance.")
+    if not EXPECTED_PROPERTY_NAME or not EXPECTED_CURRENCY:
+        raise SystemExit("Set STAYNAS_EXPECTED_PROPERTY_NAME and STAYNAS_EXPECTED_CURRENCY for explicit property-context verification.")
 
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(headless=True)
