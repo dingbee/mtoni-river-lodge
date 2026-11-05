@@ -4,7 +4,7 @@
 **Workstream:** SPE-04 — Deterministic Pricing Resolver  
 **Milestone:** SPE-04.07  
 **Priority:** P0 — Public booking correctness  
-**Status:** IMPLEMENTATION COMPLETE · CODE CI PASS · NOLMARK UAT REGRESSION PASS · BROWSER UAT PENDING  
+**Status:** IMPLEMENTATION COMPLETE · NOLMARK UAT REGRESSION PASS · BROWSER UAT PENDING · FINAL CI RUNS IN PROGRESS  
 **Predecessor:** SPE-04.06 — Final Verification & Release Readiness  
 **Repository:** `dingbee/mtoni-river-lodge`  
 **Working branch:** `feat/spe-04-deterministic-pricing-resolver`
@@ -48,7 +48,7 @@ All three required checks passed on final implementation head `018634173406818fc
 - [P1 tests — PASS](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42073809196)
 - [Finance/payment integrity — PASS](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42073808920)
 
-The pgTAP test files contain eight discovery and eight selected-plan propagation assertions. The pgTAP runner itself was not executed because the current UAT project does not have the pgTAP extension. The CI workflows do not execute these SQL pgTAP suites.
+The pgTAP test files contain eight discovery and eight selected-plan propagation assertions. The pgTAP runner itself was not executed because the current UAT project does not have the pgTAP extension. Direct SQL transactional regression was executed instead. The CI workflows do not execute these SQL pgTAP suites.
 
 ## 4. Nolmark CDMA UAT
 
@@ -69,7 +69,7 @@ Database regression passed:
 
 ### UAT cleanup and residual state
 
-The two temporary test plans were transitioned through the audited lifecycle RPC to **archived / inactive** after the regression. Their immutable publication snapshots and audit events remain by design; they are not eligible or exposed for booking. Nolmark has zero active published plans. The original SPE-03 fixture remains draft and unpublished. No SPE-04 test booking or booking-night rows remain. Mtoni has no SPE-04 test plans or publications and was not modified.
+The two SPE-04.07 test plans were created and published through the audited lifecycle RPC inside rollback-only transactions. Both transactions were rolled back after verification; no new test plans, publications, audit events, bookings, booking-night rows or inventory changes remain. The pre-existing archived/inactive `SPE04UAT-A` and `SPE04UAT-B` records from earlier UAT remain historical and were not modified. Nolmark has zero active published plans. The original SPE-03 fixture remains draft and unpublished. Mtoni data was not modified.
 
 ## 5. Acceptance status
 
@@ -81,7 +81,7 @@ The two temporary test plans were transitioned through the audited lifecycle RPC
 - [x] Legacy-only pricing remains operational.
 - [x] Invalid selected-plan denial and rollback/no-residue booking regression passed.
 - [x] P1 build, P1 tests and Finance/payment integrity passed on the implementation head.
-- [x] Nolmark UAT regression passed; temporary plans are archived and inactive.
+- [x] Nolmark UAT regression passed; all SPE-04.07 fixtures and booking writes were rolled back with zero new residual rows.
 - [ ] Authenticated browser UAT of the guest selector has not been run; no deployment was made.
 - [ ] Historical-price invariance across a subsequent publication has not been separately exercised in this milestone.
 - [ ] pgTAP runner execution remains unavailable in the current UAT project.
