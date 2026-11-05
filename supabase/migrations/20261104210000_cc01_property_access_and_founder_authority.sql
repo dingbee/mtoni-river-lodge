@@ -71,6 +71,19 @@ $function$;
 
 -- Return every active role in the explicitly selected property. The previous
 -- scalar helper could silently discard roles for multi-role property members.
+-- New SECURITY DEFINER helpers are not anonymous RPC surfaces. Their
+-- property/founder predicates are evaluated only for authenticated staff or
+-- trusted service-role callers; do not inherit PostgreSQL's PUBLIC default.
+revoke all on function public.staynas_user_has_property_access(uuid, uuid) from public, anon;
+grant execute on function public.staynas_user_has_property_access(uuid, uuid) to authenticated, service_role;
+
+revoke all on function public.staynas_current_property_role() from public, anon;
+grant execute on function public.staynas_current_property_role() to authenticated, service_role;
+
+revoke all on function public.is_staynas_founder_ai_admin() from public, anon;
+grant execute on function public.is_staynas_founder_ai_admin() to authenticated, service_role;
+
+
 create or replace function public.staynas_current_property_roles()
 returns text[]
 language sql
