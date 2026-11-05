@@ -62,7 +62,7 @@ describe("SPE-03.06 daily rate calendar", () => {
     ], "percent", 10);
     expect(result["2027-01-01"][ROOM_A]).toMatchObject({ nightly_rate: 220, currency: "USD", active: true });
     expect(result["2027-01-02"][ROOM_A]).toMatchObject({ nightly_rate: 330, currency: "USD", active: false });
-    expect(result["2027-01-03"][ROOM_C].nightly_rate).toBe(400);
+    expect(result["2027-01-03"][ROOM_C]?.nightly_rate).toBe(400);
   });
 
   it("supports fixed and exact bulk rates and rejects non-positive results", () => {
