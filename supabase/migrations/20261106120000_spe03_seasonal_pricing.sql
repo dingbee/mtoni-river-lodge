@@ -154,7 +154,7 @@ $function$;
 
 DROP TRIGGER IF EXISTS staynas_rate_plans_seasonal_rates_guard ON public.staynas_rate_plans;
 CREATE TRIGGER staynas_rate_plans_seasonal_rates_guard
-  BEFORE INSERT OR UPDATE OF property_id,parent_rate_plan_id,rate_plan_data
+  BEFORE INSERT OR UPDATE OF property_id,parent_rate_plan_id,rate_plan_data,publication_status
   ON public.staynas_rate_plans
   FOR EACH ROW EXECUTE FUNCTION public.validate_staynas_rate_plan_seasonal_rates();
 
