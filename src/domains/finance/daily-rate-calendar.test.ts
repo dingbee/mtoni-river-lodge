@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyDailyRateBulkChange,
+  clearDailyRateBulkOverrides,
+  setDailyRateBulkActive,
   dailyRatesSchema,
   mergeDailyRateRecords,
   resolveDailyRate,
@@ -9,6 +12,7 @@ import {
 
 const ROOM_A = "b9061450-e1b5-4f16-9ba5-6e781568be7e";
 const ROOM_B = "7e57cca8-b271-497b-b09b-bcfcab036767";
+const ROOM_C = "6a3c0a5a-1a6e-4c47-8b20-0a5b6453bbe8";
 
 const rate = (nightly_rate = 180, active = true) => ({
   nightly_rate,
@@ -48,36 +52,36 @@ describe("SPE-03.06 daily rate calendar", () => {
 
   it("bulk-adjusts only selected existing dates and preserves currency and active flags", () => {
     const rates = {
-      "2027-01-01": { [ROOM_TYPE_A]: { nightly_rate: 200, currency: "USD", active: true } },
-      "2027-01-02": { [ROOM_TYPE_A]: { nightly_rate: 300, currency: "USD", active: false } },
-      "2027-01-03": { [ROOM_TYPE_B]: { nightly_rate: 400, currency: "USD", active: true } },
+      "2027-01-01": { [ROOM_A]: { nightly_rate: 200, currency: "USD", active: true } },
+      "2027-01-02": { [ROOM_A]: { nightly_rate: 300, currency: "USD", active: false } },
+      "2027-01-03": { [ROOM_C]: { nightly_rate: 400, currency: "USD", active: true } },
     };
     const result = applyDailyRateBulkChange(rates, [
-      { date: "2027-01-01", roomTypeId: ROOM_TYPE_A },
-      { date: "2027-01-02", roomTypeId: ROOM_TYPE_A },
+      { date: "2027-01-01", roomTypeId: ROOM_A },
+      { date: "2027-01-02", roomTypeId: ROOM_A },
     ], "percent", 10);
-    expect(result["2027-01-01"][ROOM_TYPE_A]).toMatchObject({ nightly_rate: 220, currency: "USD", active: true });
-    expect(result["2027-01-02"][ROOM_TYPE_A]).toMatchObject({ nightly_rate: 330, currency: "USD", active: false });
-    expect(result["2027-01-03"][ROOM_TYPE_B].nightly_rate).toBe(400);
+    expect(result["2027-01-01"][ROOM_A]).toMatchObject({ nightly_rate: 220, currency: "USD", active: true });
+    expect(result["2027-01-02"][ROOM_A]).toMatchObject({ nightly_rate: 330, currency: "USD", active: false });
+    expect(result["2027-01-03"][ROOM_C].nightly_rate).toBe(400);
   });
 
   it("supports fixed and exact bulk rates and rejects non-positive results", () => {
-    const rates = { "2027-01-01": { [ROOM_TYPE_A]: { nightly_rate: 200, currency: "USD", active: true } } };
-    expect(applyDailyRateBulkChange(rates,[{date:"2027-01-01",roomTypeId:ROOM_TYPE_A}],"amount",-25)["2027-01-01"][ROOM_TYPE_A]?.nightly_rate).toBe(175);
-    expect(applyDailyRateBulkChange(rates,[{date:"2027-01-01",roomTypeId:ROOM_TYPE_A}],"set",125)["2027-01-01"][ROOM_TYPE_A]?.nightly_rate).toBe(125);
-    expect(() => applyDailyRateBulkChange(rates,[{date:"2027-01-01",roomTypeId:ROOM_TYPE_A}],"percent",-100)).toThrow(/greater than -100/);
-    expect(() => applyDailyRateBulkChange(rates,[{date:"2027-01-01",roomTypeId:ROOM_TYPE_A}],"amount",-250)).toThrow(/non-positive/);
+    const rates = { "2027-01-01": { [ROOM_A]: { nightly_rate: 200, currency: "USD", active: true } } };
+    expect(applyDailyRateBulkChange(rates,[{date:"2027-01-01",roomTypeId:ROOM_A}],"amount",-25)["2027-01-01"][ROOM_A]?.nightly_rate).toBe(175);
+    expect(applyDailyRateBulkChange(rates,[{date:"2027-01-01",roomTypeId:ROOM_A}],"set",125)["2027-01-01"][ROOM_A]?.nightly_rate).toBe(125);
+    expect(() => applyDailyRateBulkChange(rates,[{date:"2027-01-01",roomTypeId:ROOM_A}],"percent",-100)).toThrow(/greater than -100/);
+    expect(() => applyDailyRateBulkChange(rates,[{date:"2027-01-01",roomTypeId:ROOM_A}],"amount",-250)).toThrow(/non-positive/);
   });
 
   it("bulk-activates and clears selected overrides without expanding date ranges", () => {
     const rates = {
-      "2027-01-01": { [ROOM_TYPE_A]: { nightly_rate: 200, currency: "USD", active: false } },
-      "2027-01-02": { [ROOM_TYPE_A]: { nightly_rate: 300, currency: "USD", active: true } },
+      "2027-01-01": { [ROOM_A]: { nightly_rate: 200, currency: "USD", active: false } },
+      "2027-01-02": { [ROOM_A]: { nightly_rate: 300, currency: "USD", active: true } },
     };
-    const targets = [{date:"2027-01-01",roomTypeId:ROOM_TYPE_A}];
-    expect(setDailyRateBulkActive(rates,targets,true)["2027-01-01"][ROOM_TYPE_A]?.active).toBe(true);
-    expect(clearDailyRateBulkOverrides(rates,targets)["2027-01-01"][ROOM_TYPE_A]).toBeNull();
-    expect(rates["2027-01-02"][ROOM_TYPE_A]?.nightly_rate).toBe(300);
+    const targets = [{date:"2027-01-01",roomTypeId:ROOM_A}];
+    expect(setDailyRateBulkActive(rates,targets,true)["2027-01-01"][ROOM_A]?.active).toBe(true);
+    expect(clearDailyRateBulkOverrides(rates,targets)["2027-01-01"][ROOM_A]).toBeNull();
+    expect(rates["2027-01-02"][ROOM_A]?.nightly_rate).toBe(300);
   });
 
   it("resolves only active exact-date overrides", () => {
