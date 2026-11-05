@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
@@ -544,7 +546,7 @@ export const getReconciliation = createServerFn({ method: "POST" })
 // Module 6 — Rate & Pricing Manager
 // ---------------------------------------------------------------------------
 
-async function getActiveFinancePropertyId(supabase: any, userId: string): Promise<string> {
+async function getActiveFinancePropertyId(supabase: SupabaseClient<Database>, userId: string): Promise<string> {
   const { data, error } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
   if (error || !data) throw new Error(error?.message ?? "No active property selected");
   return data as string;
@@ -583,8 +585,7 @@ export const listPricingRules = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
-    const sb: any = context.supabase;
-    const { data, error } = await sb
+    const { data, error } = await context.supabase
       .from("pricing_rules")
       .select("*")
       .eq("property_id", propertyId)
@@ -600,10 +601,9 @@ export const savePricingRule = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
-    const sb: any = context.supabase;
     if (data.scope === "room") {
       if (!data.room_id) throw new Error("A room-specific rule requires a room");
-      const { data: room, error: roomError } = await sb
+      const { data: room, error: roomError } = await context.supabase
         .from("rooms")
         .select("id")
         .eq("id", data.room_id)
@@ -618,7 +618,7 @@ export const savePricingRule = createServerFn({ method: "POST" })
       room_id: data.scope === "room" ? data.room_id : null,
     };
     if (id) {
-      const { data: row, error } = await sb
+      const { data: row, error } = await context.supabase
         .from("pricing_rules")
         .update(payload)
         .eq("id", id)
@@ -628,7 +628,7 @@ export const savePricingRule = createServerFn({ method: "POST" })
       if (error) throw error;
       return row;
     }
-    const { data: row, error } = await sb
+    const { data: row, error } = await context.supabase
       .from("pricing_rules")
       .insert(payload)
       .select("*")
@@ -643,8 +643,7 @@ export const deletePricingRule = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
-    const sb: any = context.supabase;
-    const { error } = await sb
+    const { error } = await context.supabase
       .from("pricing_rules")
       .delete()
       .eq("id", data.id)
