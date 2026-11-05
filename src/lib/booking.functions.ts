@@ -105,7 +105,7 @@ export const checkAvailability = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const mapped = await Promise.all(((rows ?? []) as any[]).map(async (r) => {
       let ratePlanOptions: PublicRatePlanOption[] = [];
-      if (r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED") {
+      if (r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" || r.pricing_quote?.pricing_evidence?.rate_plan_id) {
         const { data: discovery, error: discoveryError } = await (supabaseAdmin as any).rpc("discover_staynas_public_rate_plans", {
           _property_id: propertyId, _room_id: r.room_id, _check_in: data.checkIn, _check_out: data.checkOut,
           _adults: data.adults, _children_below_6: data.childrenBelow6, _children_7_plus: data.children7Plus,
