@@ -62,6 +62,20 @@ BEGIN
      OR NOT has_function_privilege('anon','public.release_booking_hold_for_property(uuid,uuid,text)','EXECUTE')
   THEN RAISE EXCEPTION 'Required public booking RPC signature is not anonymously executable'; END IF;
 
+  IF NOT has_function_privilege('anon','public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)','EXECUTE')
+     OR NOT has_function_privilege('anon','public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)','EXECUTE')
+     OR NOT has_function_privilege('anon','public.create_booking_hold_for_property(uuid,text,date,date,text,text,integer)','EXECUTE')
+     OR NOT has_function_privilege('anon','public.release_booking_hold_for_property(uuid,uuid,text)','EXECUTE')
+  THEN RAISE EXCEPTION 'Required public booking RPC signature is not anonymously executable'; END IF;
+
+  IF has_function_privilege('anon','public.create_booking_for_property_internal(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)','EXECUTE')
+     OR has_function_privilege('authenticated','public.create_booking_for_property_internal(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)','EXECUTE')
+     OR has_function_privilege('anon','public.create_booking_for_property_internal(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)','EXECUTE')
+     OR has_function_privilege('authenticated','public.create_booking_for_property_internal(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)','EXECUTE')
+     OR has_function_privilege('anon','public.create_booking_hold_for_property_internal(uuid,text,date,date,text,text,integer)','EXECUTE')
+     OR has_function_privilege('authenticated','public.create_booking_hold_for_property_internal(uuid,text,date,date,text,text,integer)','EXECUTE')
+  THEN RAISE EXCEPTION 'Private booking implementation remains client-executable'; END IF;
+
   -- Exact RPC signature grants: no implicit PUBLIC execution or accidental overloads.
   IF NOT has_function_privilege('anon','public.staynas_booking_property_id()','EXECUTE')
      OR has_function_privilege('anon','public.staynas_booking_property_id(text)','EXECUTE')
@@ -229,6 +243,67 @@ INSERT INTO public.staynas_properties(id,organisation_id,slug,code,name,timezone
  ('30000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','cc01-property-a','CC01-A','CC01 Test Property A','Africa/Dar_es_Salaam','TZS','active',now(),now()),
  ('30000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000002','cc01-property-b','CC01-B','CC01 Test Property B','Africa/Dar_es_Salaam','TZS','active',now(),now());
 INSERT INTO public.staynas_booking_config(id,property_id) VALUES (true,'30000000-0000-0000-0000-000000000001') ON CONFLICT (id) DO UPDATE SET property_id=EXCLUDED.property_id;
+-- Anonymous booking calls must be pinned to the configured Nolmark property.
+BEGIN;
+SET LOCAL ROLE anon;
+SET LOCAL request.jwt.claim.role='anon';
+SET LOCAL request.jwt.claim.sub='';
+DO $cc01_public_scope$
+DECLARE
+  _denied boolean;
+BEGIN
+  IF public.staynas_booking_property_id() <> '30000000-0000-0000-0000-000000000001' THEN
+    RAISE EXCEPTION 'Anonymous booking resolver did not return configured property';
+  END IF;
+
+  _denied := false;
+  BEGIN
+    PERFORM 1 FROM public.get_room_availability_for_property(
+      '30000000-0000-0000-0000-000000000002', current_date, current_date + 1
+    );
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM LIKE 'Property is not available in this booking context%' THEN
+      _denied := true;
+    ELSE
+      RAISE;
+    END IF;
+  END;
+  IF NOT _denied THEN RAISE EXCEPTION 'Anonymous availability crossed into another property'; END IF;
+
+  _denied := false;
+  BEGIN
+    PERFORM 1 FROM public.create_booking_hold_for_property(
+      '30000000-0000-0000-0000-000000000002', 'unknown-room',
+      current_date + 1, current_date + 2, 'cc01-session-0002', NULL, 900
+    );
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM LIKE 'Property is not available in this booking context%' THEN
+      _denied := true;
+    ELSE
+      RAISE;
+    END IF;
+  END;
+  IF NOT _denied THEN RAISE EXCEPTION 'Anonymous hold creation crossed into another property'; END IF;
+
+  _denied := false;
+  BEGIN
+    PERFORM 1 FROM public.create_booking_for_property(
+      '30000000-0000-0000-0000-000000000002', 'unknown-room',
+      current_date + 1, current_date + 2, 1, 0, 'Guest', 'guest@example.test',
+      NULL, NULL, NULL, '[]'::jsonb, 0, 0, NULL, NULL, 'online'
+    );
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM LIKE 'Property is not available in this booking context%' THEN
+      _denied := true;
+    ELSE
+      RAISE;
+    END IF;
+  END;
+  IF NOT _denied THEN RAISE EXCEPTION 'Anonymous booking creation crossed into another property'; END IF;
+END $cc01_public_scope$;
+ROLLBACK;
+
+
 
 INSERT INTO public.staynas_property_members(property_id,user_id,role,status,created_at,updated_at) VALUES
  ('30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','owner','active',now(),now()),
@@ -248,6 +323,9 @@ SET LOCAL request.jwt.claim.role='authenticated';
 SET LOCAL request.jwt.claim.sub='10000000-0000-0000-0000-000000000001';
 DO $$
 BEGIN
+  IF public.staynas_booking_property_id() <> '30000000-0000-0000-0000-000000000001' THEN
+    RAISE EXCEPTION 'Authenticated owner booking resolver did not return selected property';
+  END IF;
   IF NOT public.staynas_user_has_property_access('10000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001') THEN
     RAISE EXCEPTION 'Owner cannot access own property';
   END IF;
@@ -280,6 +358,9 @@ SET LOCAL request.jwt.claim.role='authenticated';
 SET LOCAL request.jwt.claim.sub='10000000-0000-0000-0000-000000000002';
 DO $$
 BEGIN
+  IF public.staynas_booking_property_id() <> '30000000-0000-0000-0000-000000000002' THEN
+    RAISE EXCEPTION 'Authenticated housekeeping booking resolver did not return selected property';
+  END IF;
   IF public.staynas_active_property_id('10000000-0000-0000-0000-000000000002') <> '30000000-0000-0000-0000-000000000002' THEN
     RAISE EXCEPTION 'Service role cannot resolve another user''s active property';
   END IF;
