@@ -1,4 +1,5 @@
 import type { AdapterExecutionContext, AdapterHealth } from "./contracts";
+import { normalizeAdapterError } from "./lifecycle";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export type DistributionCredentialState = "valid" | "invalid" | "unknown" | "not_checked";
@@ -40,6 +41,17 @@ export function buildDistributionHealthEvidenceArgs(
   if (health.state === "healthy" && health.error) {
     throw new Error("Healthy evidence cannot contain an error.");
   }
+  if (health.error && health.error.correlationId !== context.correlationId) {
+    throw new Error("Distribution health error correlation does not match its execution context.");
+  }
+  const normalizedError = health.error
+    ? normalizeAdapterError({
+        code: health.error.code,
+        correlationId: context.correlationId,
+        retryAfterMs: health.error.retryAfterMs,
+        providerCode: health.error.providerCode,
+      })
+    : null;
   return Object.freeze({
     _organisation_id: context.organisationId,
     _property_id: context.propertyId,
@@ -48,9 +60,9 @@ export function buildDistributionHealthEvidenceArgs(
     _health_state: health.state,
     _checked_at: health.checkedAt,
     _latency_ms: health.latencyMs ?? null,
-    _normalized_error_code: health.error?.code ?? null,
-    _safe_message: health.error?.safeMessage ?? null,
-    _provider_code: health.error?.providerCode ?? null,
+    _normalized_error_code: normalizedError?.code ?? null,
+    _safe_message: normalizedError?.safeMessage ?? null,
+    _provider_code: normalizedError?.providerCode ?? null,
     _adapter_version: context.adapterVersion,
     _credential_state: credentialState,
     _correlation_id: context.correlationId,
