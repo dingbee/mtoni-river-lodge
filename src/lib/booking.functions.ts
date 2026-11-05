@@ -20,6 +20,9 @@ const availabilitySchema = z.object({
   checkIn: dateStr,
   checkOut: dateStr,
   guests: z.number().int().min(1).max(20).optional(),
+  adults: z.number().int().min(1).max(10).default(1),
+  childrenBelow6: z.number().int().min(0).max(10).default(0),
+  children7Plus: z.number().int().min(0).max(10).default(0),
 });
 
 export type AvailabilityRoom = {
@@ -37,6 +40,40 @@ export type AvailabilityRoom = {
   nightly_total: number;
   min_available: number;
   is_available: boolean;
+  fits_occupancy: boolean;
+  pricing_quote: BookingPricingQuote | null;
+};
+
+export type BookingPricingQuote = {
+  property_id: string;
+  room_id: string;
+  currency: string;
+  check_in: string;
+  check_out: string;
+  nights: number;
+  nightly: Array<{
+    date: string;
+    base_rate: number;
+    occupancy_surcharge: number;
+    adjustment: number;
+    nightly_rate: number;
+    currency: string;
+    applied_rule_id: string | null;
+    applied_rule_type: string | null;
+  }>;
+  accommodation_subtotal: number;
+  extras: Array<{ slug: string; name: string; quantity: number; unit_price: number; unit: string; line_total: number; currency: string }>;
+  extras_total: number;
+  taxes: number;
+  tax_addition: number;
+  tax_breakdown: Array<Record<string, unknown>>;
+  total: number;
+  deposit_amount: number;
+  balance_due: number;
+  minimum_stay: number;
+  occupants: number;
+  paid_occupants: number;
+  extra_occupants: number;
 };
 
 export const checkAvailability = createServerFn({ method: "POST" })
@@ -45,24 +82,24 @@ export const checkAvailability = createServerFn({ method: "POST" })
     if (data.checkOut <= data.checkIn) {
       throw new Error("Check-out must be after check-in");
     }
-    const sb = getPublicClient();
-    const propertyId = await getConfiguredBookingPropertyId(sb);
-    const { data: rows, error } = await bookingRpc(sb).rpc("get_room_availability", {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const { data: rows, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced", {
       _check_in: data.checkIn,
       _check_out: data.checkOut,
       _property_id: propertyId,
+      _adults: data.adults,
+      _children_below_6: data.childrenBelow6,
+      _children_7_plus: data.children7Plus,
     });
     if (error) throw new Error(error.message);
-    const guests = data.guests ?? 1;
-    const rooms = (rows ?? []) as AvailabilityRoom[];
-    return rooms
-      .map((r) => ({
-        ...r,
-        nightly_total: Number(r.nightly_total),
-        base_price: Number(r.base_price),
-        fits_guests: guests <= r.max_occupancy,
-      }))
-      .sort((a, b) => a.base_price - b.base_price);
+    return ((rows ?? []) as any[]).map((r) => ({
+      ...r,
+      nightly_total: Number(r.nightly_total),
+      base_price: Number(r.base_price),
+      extra_guest_fee: Number(r.extra_guest_fee),
+      pricing_quote: r.pricing_quote as BookingPricingQuote | null,
+    }));
   });
 
 export const listExtras = createServerFn({ method: "GET" }).handler(async () => {
@@ -111,31 +148,61 @@ const createBookingSchema = z.object({
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 
+export const getBookingQuote = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({
+    roomSlug: z.string().min(1),
+    checkIn: dateStr,
+    checkOut: dateStr,
+    adults: z.number().int().min(1).max(10),
+    childrenBelow6: z.number().int().min(0).max(10).default(0),
+    children7Plus: z.number().int().min(0).max(10).default(0),
+    extras: z.array(extraSchema).max(20).default([]),
+  }).parse(d))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const { data: quote, error } = await (supabaseAdmin as any).rpc("get_staynas_booking_quote", {
+      _property_id: propertyId,
+      _room_slug: data.roomSlug,
+      _check_in: data.checkIn,
+      _check_out: data.checkOut,
+      _adults: data.adults,
+      _children_below_6: data.childrenBelow6,
+      _children_7_plus: data.children7Plus,
+      _extras: data.extras,
+    });
+    if (error) throw new Error(error.message);
+    if (!quote) throw new Error("Pricing quote could not be calculated");
+    return quote as BookingPricingQuote;
+  });
+
 export const createBooking = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createBookingSchema.parse(d))
   .handler(async ({ data }) => {
-    const sb = getPublicClient();
-    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const sb: any = supabaseAdmin;
+    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
     const below6 = data.childrenBelow6 ?? 0;
     const plus7 = data.children7Plus ?? Math.max(0, (data.children ?? 0) - below6);
     const totalChildren = below6 + plus7;
-    const { data: result, error } = await bookingRpc(sb).rpc("create_booking", {
+    const { data: result, error } = await sb.rpc("create_booking_for_property", {
+      _property_id: propertyId,
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
       _check_out: data.checkOut,
       _adults: data.adults,
       _children: totalChildren,
-      _children_below_6: below6,
-      _children_7_plus: plus7,
       _guest_name: data.guestName,
       _guest_email: data.guestEmail,
       _guest_phone: data.guestPhone || null,
       _country: data.country || null,
       _special_requests: data.specialRequests || null,
-      _property_id: propertyId,
       _extras: data.extras,
-      ...(data.holdId ? { _hold_id: data.holdId } : {}),
-      ...(data.sessionId ? { _session_id: data.sessionId } : {}),
+      _children_below_6: below6,
+      _children_7_plus: plus7,
+      _hold_id: data.holdId ?? null,
+      _session_id: data.sessionId ?? null,
+      _payment_method: "online",
     });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
