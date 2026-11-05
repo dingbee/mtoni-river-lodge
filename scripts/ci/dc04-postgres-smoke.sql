@@ -304,6 +304,27 @@ BEGIN
     RAISE EXCEPTION 'Atomic outbox claim failed';
   END IF;
 
+  UPDATE public.staynas_distribution_outbox
+  SET lease_expires_at=pg_catalog.now()-interval '1 second'
+  WHERE id=v_outbox_id;
+
+  BEGIN
+    PERFORM public.staynas_finish_distribution_outbox(
+      v_outbox_id,v_event.lease_token,'dc04-outbox-worker','published',NULL,NULL
+    );
+    RAISE EXCEPTION 'Expired outbox lease unexpectedly completed';
+  EXCEPTION WHEN SQLSTATE '42501' THEN
+    NULL;
+  END;
+
+  SELECT * INTO v_event
+  FROM public.staynas_claim_distribution_outbox('dc04-outbox-worker',45)
+  LIMIT 1;
+  IF v_event.id IS DISTINCT FROM v_outbox_id OR v_event.attempt_count <> 2
+     OR v_event.lease_token IS NULL THEN
+    RAISE EXCEPTION 'Expired outbox lease was not safely reclaimed';
+  END IF;
+
   PERFORM public.staynas_finish_distribution_outbox(
     v_outbox_id,v_event.lease_token,'dc04-outbox-worker','published',NULL,NULL
   );
