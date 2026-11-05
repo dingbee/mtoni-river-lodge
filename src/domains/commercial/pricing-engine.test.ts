@@ -127,8 +127,9 @@ describe("CC02.02 commercial pricing architecture", () => {
       addons: [],
     }, [enterpriseQuote], []);
     expect(result.quoteRequired).toBe(true);
-    expect(result.totalAmountMinor).toBe(0);
+    expect(result.totalAmountMinor).toBeNull();
     expect(result.lines).toEqual([]);
+    expect(result.requestedAddonCodes).toEqual([]);
   });
 
   it("rejects unsafe arithmetic overflow", () => {
