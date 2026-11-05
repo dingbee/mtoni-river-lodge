@@ -99,7 +99,7 @@ export function toSafeReservationEventEnvelope(event: ExternalReservationEvent):
     adults: event.adults,
     children: event.children,
     providerPayloadFingerprint: event.providerPayloadFingerprint,
-    contactPresent: Boolean(event.guest.email || event.guest.phone),
+    privateFieldsPresent: Boolean(event.guest.email || event.guest.phone),
     hasFinancialData: event.grossAmount !== undefined,
   };
 }
