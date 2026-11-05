@@ -14,11 +14,11 @@ ALTER TABLE public.staynas_rate_plans
     AND rate_plan_data - ARRAY[
       'base_rates','seasonal_rates','daily_rates','occupancy_rules','restrictions'
     ]::text[] = '{}'::jsonb
-    AND (NOT rate_plan_data ? 'base_rates' OR jsonb_typeof(rate_plan_data->'base_rates') = 'object')
-    AND (NOT rate_plan_data ? 'seasonal_rates' OR jsonb_typeof(rate_plan_data->'seasonal_rates') = 'object')
-    AND (NOT rate_plan_data ? 'daily_rates' OR jsonb_typeof(rate_plan_data->'daily_rates') = 'object')
-    AND (NOT rate_plan_data ? 'occupancy_rules' OR jsonb_typeof(rate_plan_data->'occupancy_rules') = 'object')
-    AND (NOT rate_plan_data ? 'restrictions' OR jsonb_typeof(rate_plan_data->'restrictions') = 'object')
+    AND (NOT (rate_plan_data ? 'base_rates') OR jsonb_typeof(rate_plan_data->'base_rates') = 'object')
+    AND (NOT (rate_plan_data ? 'seasonal_rates') OR jsonb_typeof(rate_plan_data->'seasonal_rates') = 'object')
+    AND (NOT (rate_plan_data ? 'daily_rates') OR jsonb_typeof(rate_plan_data->'daily_rates') = 'object')
+    AND (NOT (rate_plan_data ? 'occupancy_rules') OR jsonb_typeof(rate_plan_data->'occupancy_rules') = 'object')
+    AND (NOT (rate_plan_data ? 'restrictions') OR jsonb_typeof(rate_plan_data->'restrictions') = 'object')
   );
 
 COMMENT ON COLUMN public.staynas_rate_plans.rate_plan_data IS
@@ -168,7 +168,7 @@ BEGIN
 END;
 $function$;
 
-REVOKE ALL ON FUNCTION public.staynas_rate_plan_jsonb_deep_merge(jsonb,jsonb) FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_rate_plan_jsonb_deep_merge(jsonb,jsonb) FROM PUBLIC,anon;\nGRANT EXECUTE ON FUNCTION public.staynas_rate_plan_jsonb_deep_merge(jsonb,jsonb) TO authenticated;
 REVOKE ALL ON FUNCTION public.resolve_staynas_rate_plan_inheritance(uuid,uuid) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.resolve_staynas_rate_plan_inheritance(uuid,uuid) TO authenticated;
 
