@@ -335,3 +335,5 @@ DROP FUNCTION IF EXISTS public.get_booking_hold_for_session(uuid,text);
 DROP FUNCTION IF EXISTS public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text);
 DROP FUNCTION IF EXISTS public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text);
 DROP FUNCTION IF EXISTS public.create_booking_hold_for_property(uuid,text,date,date,text,text,integer);
+
+NOTIFY pgrst, 'reload schema';
