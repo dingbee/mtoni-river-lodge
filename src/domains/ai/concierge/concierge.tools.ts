@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { ConciergeAvailabilityRoom, ConciergeIntentSignal, ConciergeBookingPlan, ConciergeExperienceCatalogItem } from "./concierge.types";
-import { bookingRpc } from "@/lib/booking-rpc";
 import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 
 function getPublicClient() {
@@ -34,7 +33,10 @@ export function mapAvailabilityForParty(
       adults + children <= maxOccupancy;
     const currency = typeof row.currency === "string" ? row.currency.toUpperCase() : "";
     const basePrice = Number(row.base_price);
-    const nightlyTotal = Number(row.nightly_total);
+    const quote = row.pricing_quote && typeof row.pricing_quote === "object"
+      ? row.pricing_quote as Record<string, unknown>
+      : null;
+    const nightlyTotal = Number(quote?.total ?? row.nightly_total);
     return {
       slug: String(row.slug ?? ""),
       name: String(row.name ?? ""),
@@ -64,10 +66,13 @@ export async function searchAvailability(input: {
   const sb = getPublicClient();
   try {
     const propertyId = await getConfiguredBookingPropertyId(sb);
-    const { data, error } = await bookingRpc(sb).rpc("get_room_availability_for_property", {
+    const { data, error } = await (sb as any).rpc("get_staynas_room_availability_priced", {
       _check_in: input.check_in,
       _check_out: input.check_out,
       _property_id: propertyId,
+      _adults: adults,
+      _children_below_6: 0,
+      _children_7_plus: children,
     });
     if (error || !data) return [];
     return mapAvailabilityForParty(data as unknown as Array<Record<string, unknown>>, adults, children);
