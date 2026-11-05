@@ -30,9 +30,42 @@ BEGIN
       AND t.tgname='staynas_user_role_property_bootstrap' AND NOT t.tgisinternal
   ) THEN RAISE EXCEPTION 'Legacy global-role bootstrap trigger remains'; END IF;
 
+  -- Reject any anonymous overload outside the exact public booking signature set.
+  SELECT string_agg(p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')', ', ' ORDER BY p.proname, pg_get_function_identity_arguments(p.oid))
+  INTO public_definer_list
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid=p.pronamespace
+  WHERE n.nspname='public'
+    AND p.prosecdef
+    AND has_function_privilege('anon',p.oid,'EXECUTE')
+    AND p.proname = ANY(ARRAY[
+      'create_booking_for_property','create_booking_hold_for_property',
+      'get_booking_hold_for_property','get_room_availability_for_property',
+      'release_booking_hold_for_property','staynas_booking_property_id'
+    ])
+    AND p.oid <> ALL(ARRAY[
+      'public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)'::regprocedure,
+      'public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)'::regprocedure,
+      'public.create_booking_hold_for_property(uuid,text,date,date,text,text,integer)'::regprocedure,
+      'public.get_booking_hold_for_property(uuid,uuid,text)'::regprocedure,
+      'public.get_room_availability_for_property(uuid,date,date)'::regprocedure,
+      'public.release_booking_hold_for_property(uuid,uuid,text)'::regprocedure,
+      'public.staynas_booking_property_id()'::regprocedure
+    ]);
+  IF public_definer_list IS NOT NULL THEN
+    RAISE EXCEPTION 'Unexpected anonymous booking SECURITY DEFINER overloads: %', public_definer_list;
+  END IF;
+
+  IF NOT has_function_privilege('anon','public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)','EXECUTE')
+     OR NOT has_function_privilege('anon','public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)','EXECUTE')
+     OR NOT has_function_privilege('anon','public.create_booking_hold_for_property(uuid,text,date,date,text,text,integer)','EXECUTE')
+     OR NOT has_function_privilege('anon','public.release_booking_hold_for_property(uuid,uuid,text)','EXECUTE')
+  THEN RAISE EXCEPTION 'Required public booking RPC signature is not anonymously executable'; END IF;
+
   -- Exact RPC signature grants: no implicit PUBLIC execution or accidental overloads.
   IF NOT has_function_privilege('anon','public.staynas_booking_property_id()','EXECUTE')
      OR has_function_privilege('anon','public.staynas_booking_property_id(text)','EXECUTE')
+     OR has_function_privilege('authenticated','public.staynas_booking_property_id(text)','EXECUTE')
      OR NOT has_function_privilege('authenticated','public.staynas_booking_property_id()','EXECUTE')
      OR NOT has_function_privilege('service_role','public.staynas_booking_property_id()','EXECUTE')
   THEN RAISE EXCEPTION 'Booking property resolver signature/grants are incorrect'; END IF;
