@@ -117,3 +117,58 @@ export const listStayNasRatePlanVersions = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+
+
+export const listStayNasRatePlanRoomTypes = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActivePropertyId(context.supabase, context.userId);
+    const sb: any = context.supabase;
+    const [roomRows, assignmentsResult] = await Promise.all([
+      sb.from("rooms")
+        .select("catalogue_type_id,staynas_room_catalogue_types!inner(id,name,slug)")
+        .eq("property_id",propertyId)
+        .not("catalogue_type_id","is",null),
+      sb.from("staynas_rate_plan_room_types")
+        .select("id,rate_plan_id,room_type_id,active,display_order")
+        .eq("property_id",propertyId),
+    ]);
+    if (roomRows.error) throw new Error(roomRows.error.message);
+    if (assignmentsResult.error) throw new Error(assignmentsResult.error.message);
+    const uniqueTypes = new Map<string,{id:string;name:string;slug:string}>();
+    for (const row of roomRows.data ?? []) {
+      const type = row.staynas_room_catalogue_types;
+      if (type?.id) uniqueTypes.set(type.id,{id:type.id,name:type.name,slug:type.slug});
+    }
+    return { roomTypes:[...uniqueTypes.values()], assignments:assignmentsResult.data ?? [] };
+  });
+
+export const setStayNasRatePlanRoomType = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    rate_plan_id:z.string().uuid(),
+    room_type_id:z.string().uuid(),
+    active:z.boolean(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActivePropertyId(context.supabase, context.userId);
+    const sb: any = context.supabase;
+    const { data: plan, error: planError } = await sb.from("staynas_rate_plans")
+      .select("id").eq("id",data.rate_plan_id).eq("property_id",propertyId).maybeSingle();
+    if (planError || !plan) throw new Error("Rate plan is not part of the active property.");
+    const { data: roomType, error: roomTypeError } = await sb.from("rooms")
+      .select("id").eq("property_id",propertyId).eq("catalogue_type_id",data.room_type_id).limit(1).maybeSingle();
+    if (roomTypeError || !roomType) throw new Error("Room type is not configured for the active property.");
+    const { data: assignment, error } = await sb.from("staynas_rate_plan_room_types").upsert({
+      property_id:propertyId,
+      rate_plan_id:data.rate_plan_id,
+      room_type_id:data.room_type_id,
+      active:data.active,
+      updated_by:context.userId,
+      ...(data.active ? { created_by:context.userId } : {}),
+    },{onConflict:"property_id,rate_plan_id,room_type_id"}).select("*").single();
+    if (error) throw new Error(error.message);
+    return assignment;
+  });
