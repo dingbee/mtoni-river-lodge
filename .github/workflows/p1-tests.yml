@@ -7,7 +7,7 @@ on:
       - fix/pesapal-*
       - fix/ci-*
       - main
-      - feat/finance-*
+      - feat/finance-*\n      - feat/spe-03-*\n      - feat/spe-03-*\n      - feat/spe-03-*
       - spe-02/**
   pull_request:
     branches:
