@@ -45,7 +45,7 @@ describe("connection lifecycle policy", () => {
       actor: { type: "system", id: "health-worker" },
       reason: "Health recovered",
       occurredAt: at,
-    })).toThrow(/not permitted/);
+    })).toThrow(/cannot reactivate/);
   });
 
   it("keeps revoked connections terminal", () => {
