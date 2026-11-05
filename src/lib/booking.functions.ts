@@ -22,9 +22,12 @@ const availabilitySchema = z.object({
   adults: z.number().int().min(1).max(10).default(1),
   childrenBelow6: z.number().int().min(0).max(10).default(0),
   children7Plus: z.number().int().min(0).max(10).default(0),
+  ratePlanId: z.string().uuid().optional(),
 });
 
-export type AvailabilityRoom = {
+export type PublicRatePlanOption = { rate_plan_id: string; name: string; description: string | null; meal_plan: string | null; refundable: boolean; currency: string; total: number; minimum_stay: number; publication_id: string; publication_number: number; rate_plan_version: number; snapshot_hash: string };
+
+export type AvailabilityRoom = {\n  rate_plan_options?: PublicRatePlanOption[];\n  selected_rate_plan_id?: string;
   room_id: string;
   slug: string;
   name: string;
@@ -87,7 +90,7 @@ export const checkAvailability = createServerFn({ method: "POST" })
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
-    const { data: rows, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced", {
+    const { data: rows, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced_with_rate_plan", {
       _check_in: data.checkIn,
       _check_out: data.checkOut,
       _property_id: propertyId,
@@ -164,7 +167,7 @@ export const getBookingQuote = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
-    const { data: quote, error } = await (supabaseAdmin as any).rpc("get_staynas_booking_quote", {
+    const { data: quote, error } = await (supabaseAdmin as any).rpc("get_staynas_booking_quote_with_rate_plan", {
       _property_id: propertyId,
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
@@ -191,7 +194,7 @@ export const createBooking = createServerFn({ method: "POST" })
     const below6 = data.childrenBelow6 ?? 0;
     const plus7 = data.children7Plus ?? Math.max(0, (data.children ?? 0) - below6);
     const totalChildren = below6 + plus7;
-    const { data: result, error } = await sb.rpc("create_booking_for_property", {
+    const { data: result, error } = await sb.rpc("create_booking_for_property_with_rate_plan", {
       _property_id: propertyId,
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
