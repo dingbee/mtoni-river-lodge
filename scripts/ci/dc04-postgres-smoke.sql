@@ -188,8 +188,30 @@ BEGIN
     RAISE EXCEPTION 'Atomic operation claim failed';
   END IF;
 
+  UPDATE public.staynas_distribution_operation_ledger
+  SET lease_expires_at=pg_catalog.now()-interval '1 second'
+  WHERE id=v_operation_id;
+
+  BEGIN
+    PERFORM public.staynas_finish_distribution_operation(
+      v_operation_id,v_claim.lease_token,'dc04-ci-worker','succeeded',
+      NULL,NULL,'stale-provider-ref','stale-result-ref',200,12,NULL
+    );
+    RAISE EXCEPTION 'Expired operation lease unexpectedly completed';
+  EXCEPTION WHEN SQLSTATE '42501' THEN
+    NULL;
+  END;
+
+  SELECT * INTO v_claim
+  FROM public.staynas_claim_distribution_operation('dc04-ci-worker-reclaimed',45)
+  LIMIT 1;
+  IF v_claim.id IS DISTINCT FROM v_operation_id OR v_claim.status <> 'running'
+     OR v_claim.lease_token IS NULL OR v_claim.attempt_count <> 2 THEN
+    RAISE EXCEPTION 'Expired operation lease was not safely reclaimed';
+  END IF;
+
   PERFORM public.staynas_finish_distribution_operation(
-    v_operation_id,v_claim.lease_token,'dc04-ci-worker','succeeded',
+    v_operation_id,v_claim.lease_token,'dc04-ci-worker-reclaimed','succeeded',
     NULL,NULL,'provider-ref-ci','result-ref-ci',200,12,NULL
   );
 
