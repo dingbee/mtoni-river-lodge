@@ -34,8 +34,10 @@ BEGIN
     OR _property_id IS NULL
     OR _provider_key IS NULL
     OR _external_account_reference IS NULL
+    OR _environment IS NULL
     OR _environment NOT IN ('sandbox','live')
     OR _capability IS NULL
+    OR _correlation_id IS NULL
     OR length(trim(_correlation_id)) NOT BETWEEN 1 AND 128
   THEN
     RAISE EXCEPTION 'Invalid credential resolution context.'
