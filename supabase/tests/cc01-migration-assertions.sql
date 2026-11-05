@@ -3,6 +3,7 @@ DO $$
 DECLARE
   policy_count integer;
   search_path_count integer;
+  internal_exposed text;
 BEGIN
   SELECT count(*) INTO policy_count
   FROM pg_policies WHERE schemaname IN ('public','storage');
@@ -61,21 +62,24 @@ BEGIN
      OR has_function_privilege('authenticated','public.current_user_roles()','EXECUTE')
   THEN RAISE EXCEPTION 'Legacy global-role helper remains executable by authenticated clients'; END IF;
 
-  IF EXISTS (
-    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
-    WHERE n.nspname='public'
-      AND p.proname = ANY(ARRAY[
-        'bookings_link_guest','hk_exception_events','hk_inspection_events',
-        'hk_room_state_events','hk_task_events','staynas_enforce_hold_property',
-        'staynas_enforce_ops_task_property','staynas_set_guest_child_property',
-        'arrival_pass_validate_unscoped','checkin_eligibility',
-        'housekeeping_is_supervisor','current_user_roles','checkin_log_activity',
-        'checkin_sync_reservation','log_calendar_event','is_guest_pii_staff',
-        'restaurant_is_platform_admin'
-      ])
-      AND (has_function_privilege('anon',p.oid,'EXECUTE')
-           OR has_function_privilege('authenticated',p.oid,'EXECUTE'))
-  ) THEN RAISE EXCEPTION 'An internal or trigger-only SECURITY DEFINER function remains client-executable'; END IF;
+  SELECT string_agg(p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')', ', ')
+  INTO internal_exposed
+  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+  WHERE n.nspname='public'
+    AND p.proname = ANY(ARRAY[
+      'bookings_link_guest','hk_exception_events','hk_inspection_events',
+      'hk_room_state_events','hk_task_events','staynas_enforce_hold_property',
+      'staynas_enforce_ops_task_property','staynas_set_guest_child_property',
+      'arrival_pass_validate_unscoped','checkin_eligibility',
+      'housekeeping_is_supervisor','current_user_roles','checkin_log_activity',
+      'checkin_sync_reservation','log_calendar_event','is_guest_pii_staff',
+      'restaurant_is_platform_admin'
+    ])
+    AND (has_function_privilege('anon',p.oid,'EXECUTE')
+         OR has_function_privilege('authenticated',p.oid,'EXECUTE'));
+  IF internal_exposed IS NOT NULL THEN
+    RAISE EXCEPTION 'Internal SECURITY DEFINER functions remain client-executable: %', internal_exposed;
+  END IF;
 
   SELECT count(*) INTO policy_count
   FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
