@@ -4910,4 +4910,25 @@ CREATE FUNCTION public.reassign_booking_room(
   _booking_id uuid, _new_room_id uuid, _actor uuid DEFAULT NULL::uuid,
   _reason text DEFAULT NULL::text
 ) RETURNS jsonb LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
+
+-- Property-scoped public booking RPCs must exist in the fixture so their
+-- anonymous/authenticated grants are verified against production signatures.
+CREATE FUNCTION public.create_booking_for_property(
+  _property_id uuid, _room_slug text, _check_in date, _check_out date,
+  _adults integer, _children integer, _guest_name text, _guest_email text,
+  _guest_phone text, _country text, _special_requests text, _extras jsonb,
+  _children_below_6 integer, _children_7_plus integer, _hold_id uuid, _session_id text
+) RETURNS jsonb LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
+CREATE FUNCTION public.create_booking_for_property(
+  _property_id uuid, _room_slug text, _check_in date, _check_out date,
+  _adults integer, _children integer, _guest_name text, _guest_email text,
+  _guest_phone text, _country text, _special_requests text, _extras jsonb,
+  _children_below_6 integer, _children_7_plus integer, _hold_id uuid, _session_id text,
+  _payment_method text
+) RETURNS jsonb LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
+CREATE FUNCTION public.create_booking_hold_for_property(
+  _property_id uuid, _room_slug text, _check_in date, _check_out date,
+  _session_id text, _guest_email text, _ttl_seconds integer
+) RETURNS jsonb LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
+
 SET check_function_bodies = on;
