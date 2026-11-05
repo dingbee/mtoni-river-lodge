@@ -43,7 +43,11 @@ export const listStayNasRateOverrides = createServerFn({ method: "GET" })
 
 export const createStayNasRateOverride = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => rateOverrideSchema.omit({id:true,status:true}).parse(d))
+  .inputValidator((d: unknown) => {
+    const parsed = rateOverrideSchema.parse(d);
+    const { id: _id, status: _status, ...input } = parsed;
+    return input;
+  })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await activeProperty(context.supabase, context.userId);
