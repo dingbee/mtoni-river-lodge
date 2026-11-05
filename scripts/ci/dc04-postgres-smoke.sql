@@ -48,7 +48,7 @@ INSERT INTO public.staynas_distribution_connections(
 
 DO $test$
 BEGIN
-  IF NOT has_table_privilege('anon','public.staynas_distribution_connections','SELECT')
+  IF has_table_privilege('anon','public.staynas_distribution_connections','SELECT')
      OR has_table_privilege('authenticated','public.staynas_distribution_connections','SELECT') THEN
     RAISE EXCEPTION 'Unexpected browser-role table grants';
   END IF;
@@ -74,8 +74,8 @@ BEGIN
       'public.staynas_resolve_distribution_credential(uuid,uuid,uuid,text,text,text,text,text)',
       'EXECUTE'
     ) THEN
-  IF has_table_privilege('anon','public.staynas_distribution_connections','SELECT')
-     OR has_table_privilege('authenticated','public.staynas_distribution_connections','SELECT') THEN
+    RAISE EXCEPTION 'Credential broker execute grants are incorrect';
+  END IF;
 END
 $test$;
 
