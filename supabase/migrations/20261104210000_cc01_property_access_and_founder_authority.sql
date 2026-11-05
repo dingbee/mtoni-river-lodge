@@ -222,7 +222,7 @@ AS $function$
  FROM public.booking_holds h JOIN public.rooms r ON r.id=h.room_id
  WHERE _property_id IS NOT NULL AND r.property_id=_property_id AND public.staynas_property_is_operational(r.property_id) AND h.id=_hold_id
    AND _session_id IS NOT NULL AND length(trim(_session_id))>=6 AND h.session_id=_session_id
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_room_availability_for_property(_property_id uuid, _check_in date, _check_out date)
@@ -258,7 +258,7 @@ BEGIN
   FROM public.rooms r JOIN per_night pn ON pn.room_id=r.id
   WHERE r.status='active' AND r.property_id=_property_id
   GROUP BY r.id;
-END $function$
+END $function$;
 
 
 -- Folio access is always anchored to the booking's owning property. A caller
@@ -1337,7 +1337,7 @@ BEGIN
   END IF;
 
   RETURN jsonb_build_object('ok', true, 'code','eligible','message','Eligible for online check-in','snapshot',_snap);
-END $function$
+END $function$;
 
 
 REVOKE ALL ON FUNCTION public.checkin_eligibility(uuid) FROM PUBLIC, anon;
@@ -1480,7 +1480,7 @@ begin
     'payment_status', v_new_status
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.record_booking_refund(_booking_id uuid, _payment_event_id uuid, _amount numeric, _method text, _note text, _idempotency_key text)
@@ -1648,7 +1648,7 @@ begin
     'paid_amount', v_paid, 'balance_amount', v_balance, 'payment_status', v_status
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.enforce_finance_payment_audit_context()
@@ -1680,7 +1680,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 
@@ -1708,7 +1708,7 @@ BEGIN
 
   RETURN public.arrival_pass_validate_unscoped(_pass_token, COALESCE(_client, '{}'::jsonb));
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.arrival_pass_validate_unscoped(_pass_token text, _client jsonb DEFAULT '{}'::jsonb)
@@ -1805,7 +1805,7 @@ BEGIN
     'checkin', jsonb_build_object('id', _c.id, 'status', _c.status, 'submitted_at', _c.submitted_at),
     'documents', COALESCE(_docs, '{}'::jsonb),
     'eligibility', _e);
-END $function$
+END $function$;
 
 
 CREATE OR REPLACE FUNCTION public.checkin_ensure_for_booking(_booking_id uuid)
@@ -1831,7 +1831,7 @@ BEGIN
   RETURN QUERY
     SELECT c.id, c.token, c.status, c.expires_at
       FROM public.guest_checkins c WHERE c.booking_id = _b.id;
-END $function$
+END $function$;
 
 
 CREATE OR REPLACE FUNCTION public.staynas_enforce_booking_lifecycle()
@@ -1888,7 +1888,7 @@ begin
 
   return new;
 end;
-$function$
+$function$;
 
 
 
@@ -1913,7 +1913,7 @@ BEGIN
  UPDATE public.booking_holds SET status='released',updated_at=now() WHERE id=_hold_id;
  PERFORM public.log_calendar_event('hold.released',_h.room_id,NULL,_h.id,_h.check_in,_h.check_out,jsonb_build_object('property_id',_property_id));
  RETURN true;
-END $function$
+END $function$;
 
 
 CREATE OR REPLACE FUNCTION public.release_booking_hold(_hold_id uuid, _session_id text)
@@ -1936,7 +1936,7 @@ BEGIN
 
   RETURN public.release_booking_hold_for_property(_property_id, _hold_id, _session_id);
 END;
-$function$
+$function$;
 
 
 
@@ -2002,7 +2002,7 @@ BEGIN
   ORDER BY e.created_at DESC
   LIMIT _limit;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.staynas_calendar_list_staff(_property_id uuid)
@@ -2032,7 +2032,7 @@ BEGIN
     AND public.staynas_user_has_property_access(pm.user_id, _property_id)
   ORDER BY 2;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.staynas_calendar_operational_events(_property_id uuid, _from date, _to date)
@@ -2151,7 +2151,7 @@ BEGIN
 
   ORDER BY 4;
 END;
-$function$
+$function$;
 
 
 
@@ -2167,7 +2167,7 @@ AS $function$
       public.staynas_active_property_id(auth.uid()),
       ARRAY['owner','manager','admin','reception','reservations']::public.app_role[]
     )
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.staynas_guest_is_accessible(_uid uuid, _guest_id uuid)
@@ -2187,7 +2187,7 @@ AS $function$
         AND public.staynas_user_has_property_access(_uid, b.property_id)
         AND public.staynas_current_user_has_property_role(b.property_id, ARRAY['owner','manager','admin','reception','reservations']::public.app_role[])
     )
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.staynas_set_guest_child_property()
@@ -2268,7 +2268,7 @@ BEGIN
   NEW := jsonb_populate_record(NEW, jsonb_build_object('property_id', _property_id));
   RETURN NEW;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.housekeeping_is_supervisor(_uid uuid)
@@ -2310,7 +2310,7 @@ BEGIN
  FROM public.ops_tasks t WHERE t.property_id=_property_id AND t.category='housekeeping'
  AND t.completed_at IS NOT NULL AND t.started_at IS NOT NULL AND t.completed_at>=now()-interval '7 days'),0);
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.housekeeping_list_exceptions(_room_state_id uuid DEFAULT NULL::uuid, _open_only boolean DEFAULT true)
@@ -2333,7 +2333,7 @@ BEGIN
  WHERE (_room_state_id IS NULL OR e.room_state_id=_room_state_id) AND (NOT _open_only OR e.status='open')
  ORDER BY e.severity,e.created_at DESC;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.housekeeping_list_intelligence()
@@ -2354,7 +2354,7 @@ BEGIN
  WHERE i.status='pending' AND i.priority IN('critical','high')
  ORDER BY CASE i.priority WHEN 'critical' THEN 1 WHEN 'high' THEN 2 ELSE 3 END,i.created_at DESC LIMIT 20;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.housekeeping_list_inspection_queue()
@@ -2379,7 +2379,7 @@ BEGIN
  LEFT JOIN public.bookings b ON b.id=t.booking_id AND b.property_id=_property_id
  WHERE i.status='pending' ORDER BY t.completed_at NULLS LAST,i.created_at;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.housekeeping_list_work(_mine_only boolean DEFAULT false, _include_completed boolean DEFAULT false)
@@ -2406,7 +2406,7 @@ BEGIN
  AND (NOT _mine_only OR t.assignee_id=_uid)
  ORDER BY CASE WHEN t.priority=1 THEN 0 WHEN t.priority=2 THEN 1 ELSE 2 END,t.due_at NULLS LAST,t.created_at;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.housekeeping_report_exception(_room_state_id uuid, _task_id uuid, _exception_type text, _title text, _notes text DEFAULT NULL::text, _severity integer DEFAULT 2, _evidence jsonb DEFAULT '[]'::jsonb)
@@ -2452,7 +2452,7 @@ BEGIN
 
   RETURN _row;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.housekeeping_resolve_exception(_exception_id uuid, _resolution text DEFAULT NULL::text)
@@ -2477,7 +2477,7 @@ BEGIN
   WHERE id=_exception_id RETURNING * INTO _row;
   RETURN _row;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.housekeeping_submit_inspection(_inspection_id uuid, _checklist jsonb, _passed boolean, _notes text DEFAULT NULL::text, _idempotency_key text DEFAULT NULL::text)
@@ -2577,7 +2577,7 @@ BEGIN
 
   RETURN _inspection;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.housekeeping_transition_room_state(_room_state_id uuid, _to_state room_state, _note text DEFAULT NULL::text, _idempotency_key text DEFAULT NULL::text)
@@ -2674,7 +2674,7 @@ BEGIN
 
   RETURN _result;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.housekeeping_assign_task(_task_id uuid, _assignee_id uuid)
@@ -2704,7 +2704,7 @@ BEGIN
   RETURNING * INTO _task;
   RETURN _task;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.housekeeping_claim_task(_task_id uuid)
@@ -2736,7 +2736,7 @@ BEGIN
   RETURNING * INTO _task;
   RETURN _task;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.housekeeping_claim_task(_task_id uuid, _idempotency_key text DEFAULT NULL::text)
@@ -2797,7 +2797,7 @@ BEGIN
 
   RETURN _task;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.housekeeping_complete_task(_task_id uuid, _note text DEFAULT NULL::text, _idempotency_key text DEFAULT NULL::text)
@@ -2870,7 +2870,7 @@ BEGIN
 
   RETURN _task;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.housekeeping_start_task(_task_id uuid)
@@ -2907,7 +2907,7 @@ BEGIN
   RETURNING * INTO _task;
   RETURN _task;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.housekeeping_start_task(_task_id uuid, _idempotency_key text DEFAULT NULL::text)
@@ -2983,7 +2983,7 @@ BEGIN
 
   RETURN _task;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.knowledge_can_read_document(_doc_id uuid)
@@ -3018,7 +3018,7 @@ AS $function$
         OR public.staynas_current_user_has_property_role(d.property_id, ARRAY['owner','manager','admin']::public.app_role[])
       )
   );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.set_room_block(_room_id uuid, _from date, _to date, _blocked boolean, _reason text DEFAULT NULL::text)
@@ -3050,7 +3050,7 @@ BEGIN
     jsonb_build_object('reason', COALESCE(_reason,''))
   );
   RETURN _n;
-END $function$
+END $function$;
 
 
 CREATE OR REPLACE FUNCTION public.save_room_type_configuration(
