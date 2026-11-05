@@ -59,37 +59,37 @@ CREATE INDEX IF NOT EXISTS ai_pricing_recommendations_property_created_idx
 CREATE POLICY "Property staff read AI pricing recommendations"
   ON public.ai_pricing_recommendations FOR SELECT TO authenticated
   USING (
-    public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','finance','admin']::public.app_role[])
+    public.staynas_user_has_property_access((select auth.uid()), property_id)
+    AND public.has_any_role((select auth.uid()), ARRAY['owner','manager','finance','admin']::public.app_role[])
   );
 
 CREATE POLICY "Property staff create AI pricing recommendations"
   ON public.ai_pricing_recommendations FOR INSERT TO authenticated
   WITH CHECK (
-    public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','finance','admin']::public.app_role[])
+    public.staynas_user_has_property_access((select auth.uid()), property_id)
+    AND public.has_any_role((select auth.uid()), ARRAY['owner','manager','finance','admin']::public.app_role[])
   );
 
 CREATE POLICY "Property staff action AI pricing recommendations"
   ON public.ai_pricing_recommendations FOR UPDATE TO authenticated
   USING (
-    public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','finance','admin']::public.app_role[])
+    public.staynas_user_has_property_access((select auth.uid()), property_id)
+    AND public.has_any_role((select auth.uid()), ARRAY['owner','manager','finance','admin']::public.app_role[])
   )
   WITH CHECK (
-    public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','finance','admin']::public.app_role[])
+    public.staynas_user_has_property_access((select auth.uid()), property_id)
+    AND public.has_any_role((select auth.uid()), ARRAY['owner','manager','finance','admin']::public.app_role[])
   );
 
 CREATE POLICY "Property finance manage tax rules"
   ON public.staynas_property_tax_rules FOR ALL TO authenticated
   USING (
-    public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','finance','admin']::public.app_role[])
+    public.staynas_user_has_property_access((select auth.uid()), property_id)
+    AND public.has_any_role((select auth.uid()), ARRAY['owner','manager','finance','admin']::public.app_role[])
   )
   WITH CHECK (
-    public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','finance','admin']::public.app_role[])
+    public.staynas_user_has_property_access((select auth.uid()), property_id)
+    AND public.has_any_role((select auth.uid()), ARRAY['owner','manager','finance','admin']::public.app_role[])
   );
 
 COMMIT;
