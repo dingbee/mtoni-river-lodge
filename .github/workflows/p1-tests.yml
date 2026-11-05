@@ -8,6 +8,7 @@ on:
       - fix/ci-*
       - main
       - feat/finance-*
+      - spe-02/**
   pull_request:
     branches:
       - main
@@ -38,6 +39,7 @@ jobs:
           src/domains/ai/concierge/request-categorization.test.ts
           src/domains/finance/payment-contract.test.ts
           src/domains/finance/finance-currency.test.ts
+          src/domains/finance/pricing-engine.test.ts
           src/domains/finance/finance-reconciliation.test.ts
           src/lib/pesapal-currency.test.ts
       # TanStack Start generates routeTree.gen.ts during the Vite build.
@@ -52,6 +54,8 @@ jobs:
           src/domains/finance/payment-contract.ts
           src/domains/finance/payment-contract.test.ts
           src/domains/finance/finance-currency.ts
+          src/domains/finance/pricing-engine.ts
+          src/domains/finance/pricing-engine.test.ts
           src/domains/finance/finance-currency.test.ts
           src/domains/finance/finance-reconciliation.ts
           src/domains/finance/finance-reconciliation.test.ts
