@@ -1,28 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { bookingRpc } from "@/lib/booking-rpc";
-
-// First controlled Public Booking Network demo. Keep the UAT property allowlist
-// explicit until StayNas has a property-level publication/visibility setting.
-const PUBLIC_DEMO_PROPERTY_SLUGS = new Set(["nolmark-cdma-staynas"]);
-
-async function resolvePublicDemoProperty(propertySlug: string) {
-  if (!PUBLIC_DEMO_PROPERTY_SLUGS.has(propertySlug)) {
-    throw new Error("This property booking page is not published.");
-  }
-
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await (supabaseAdmin as any)
-    .from("staynas_properties")
-    .select("id, slug, name, currency, timezone, status")
-    .eq("slug", propertySlug)
-    .maybeSingle();
-
-  if (error) throw new Error("Unable to load this property.");
-  if (!data || data.status !== "active") throw new Error("This property is not available for online reservations.");
-
-  return { property: data, supabaseAdmin };
-}
+import { resolvePublicBookingContext } from "@/lib/public-booking-context.server";
 
 const propertySlugSchema = z.string().min(3).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -30,7 +9,7 @@ const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 export const getPublicDemoProperty = createServerFn({ method: "GET" })
   .inputValidator((value: unknown) => z.object({ propertySlug: propertySlugSchema }).parse(value))
   .handler(async ({ data }) => {
-    const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
+    const { property, supabaseAdmin } = await resolvePublicBookingContext(data.propertySlug);
     const { data: rooms, error } = await (supabaseAdmin as any)
       .from("rooms")
       .select("id, slug, name, short_description, bed_label, bathroom_label, amenities, max_occupancy, total_units, base_price, currency, included_guests, extra_guest_fee")
