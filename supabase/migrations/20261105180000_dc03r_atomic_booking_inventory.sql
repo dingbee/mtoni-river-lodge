@@ -311,3 +311,9 @@ GRANT EXECUTE ON FUNCTION public.get_booking_hold_for_session(uuid,text,uuid) TO
 DROP FUNCTION IF EXISTS public.create_booking_hold(text,date,date,text,text,integer);
 DROP FUNCTION IF EXISTS public.release_booking_hold(uuid,text);
 DROP FUNCTION IF EXISTS public.get_booking_hold_for_session(uuid,text);
+
+-- Retire the legacy property-first guest RPCs. They accepted browser-selectable
+-- property IDs and did not share the canonical inventory allocator.
+DROP FUNCTION IF EXISTS public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text);
+DROP FUNCTION IF EXISTS public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text);
+DROP FUNCTION IF EXISTS public.create_booking_hold_for_property(uuid,text,date,date,text,text,integer);
