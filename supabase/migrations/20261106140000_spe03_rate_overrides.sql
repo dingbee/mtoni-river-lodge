@@ -75,6 +75,26 @@ CREATE POLICY "Property finance manage rate overrides"
 GRANT SELECT,INSERT,UPDATE ON public.staynas_rate_overrides TO authenticated;
 REVOKE ALL ON public.staynas_rate_overrides FROM anon;
 
+
+CREATE OR REPLACE FUNCTION public.get_staynas_rate_override_rooms(_property_id uuid)
+RETURNS TABLE(id uuid,name text,room_type_id uuid)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path=public
+AS $function$
+  SELECT r.id,r.name,r.catalogue_type_id
+  FROM public.rooms r
+  WHERE r.property_id=_property_id AND r.status='active'
+    AND (select auth.uid()) IS NOT NULL
+    AND public.staynas_active_property_id((select auth.uid()))=_property_id
+    AND public.staynas_user_has_property_access((select auth.uid()),_property_id)
+    AND public.has_any_role((select auth.uid()),ARRAY['owner','manager','finance','admin']::public.app_role[])
+  ORDER BY r.name;
+$function$;
+REVOKE ALL ON FUNCTION public.get_staynas_rate_override_rooms(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.get_staynas_rate_override_rooms(uuid) TO authenticated;
+
 CREATE TABLE IF NOT EXISTS public.staynas_rate_override_audit (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
