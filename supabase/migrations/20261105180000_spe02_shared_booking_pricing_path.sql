@@ -467,6 +467,39 @@ BEGIN
     IF _session_id IS NULL OR v_hold.session_id<>_session_id THEN RAISE EXCEPTION 'Hold session mismatch'; END IF;
   END IF;
 
+  -- Lock the rows that determine the quote before resolving it. The final
+  -- quote, nightly snapshot and inventory decrement therefore share one
+  -- transactionally consistent pricing/inventory view.
+  v_day := _check_in;
+  WHILE v_day < _check_out LOOP
+    INSERT INTO public.room_inventory(room_id,date,available_units)
+    VALUES(v_room.id,v_day,v_room.total_units)
+    ON CONFLICT(room_id,date) DO NOTHING;
+    PERFORM 1 FROM public.room_inventory i
+    WHERE i.room_id=v_room.id AND i.date=v_day FOR UPDATE;
+    v_day := v_day + 1;
+  END LOOP;
+
+  PERFORM 1 FROM public.pricing_rules pr
+  WHERE pr.property_id=_property_id AND pr.active=true
+    AND (pr.scope='all' OR pr.room_id=v_room.id)
+    AND (pr.starts_on IS NULL OR pr.starts_on<_check_out)
+    AND (pr.ends_on IS NULL OR pr.ends_on>=_check_in)
+  FOR SHARE;
+
+  PERFORM 1 FROM public.staynas_property_tax_rules tr
+  WHERE tr.property_id=_property_id AND tr.active=true
+    AND (tr.valid_from IS NULL OR tr.valid_from<=_check_in)
+    AND (tr.valid_to IS NULL OR tr.valid_to>=_check_in)
+  FOR SHARE;
+
+  PERFORM 1 FROM public.extras e
+  WHERE e.property_id=_property_id AND e.active=true
+    AND e.slug IN (
+      SELECT item->>'slug' FROM jsonb_array_elements(COALESCE(_extras,'[]'::jsonb)) item
+    )
+  FOR SHARE;
+
   v_quote := public.calculate_staynas_booking_quote(
     _property_id,v_room.id,_check_in,_check_out,_adults,v_below6,v_plus7,_extras
   );
