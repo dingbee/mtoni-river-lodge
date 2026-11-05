@@ -416,6 +416,7 @@ DECLARE
   v_extra_line jsonb;
   v_day date;
   v_units integer;
+  v_other_holds integer;
   v_blocked boolean;
   v_booking_id uuid;
   v_reference text;
@@ -503,10 +504,17 @@ BEGIN
     INSERT INTO public.room_inventory(room_id,date,available_units)
     VALUES(v_room.id,v_day,v_room.total_units)
     ON CONFLICT(room_id,date) DO NOTHING;
-    SELECT i.available_units,i.is_blocked INTO v_units,v_blocked
+    SELECT i.available_units,i.is_blocked,
+      (SELECT count(*)::integer FROM public.booking_holds h
+       WHERE h.room_id=v_room.id AND h.status='active' AND h.expires_at>now()
+         AND h.check_in<=v_day AND h.check_out>v_day
+         AND (_hold_id IS NULL OR h.id<>_hold_id))
+    INTO v_units,v_blocked,v_other_holds
     FROM public.room_inventory i WHERE i.room_id=v_room.id AND i.date=v_day FOR UPDATE;
     IF v_blocked THEN RAISE EXCEPTION 'Room blocked on %',v_day; END IF;
-    IF v_units<=0 AND _hold_id IS NULL THEN RAISE EXCEPTION 'No availability on %',v_day; END IF;
+    IF v_units-COALESCE(v_other_holds,0)<=0 THEN
+      RAISE EXCEPTION 'No availability on %',v_day;
+    END IF;
     UPDATE public.room_inventory SET available_units=GREATEST(available_units-1,0)
     WHERE room_id=v_room.id AND date=v_day;
     INSERT INTO public.booking_nights(booking_id,room_id,date,nightly_rate,pricing_snapshot)
