@@ -6,10 +6,8 @@ out of supabase/migrations so the official CLI cannot replay unverified history.
 """
 import hashlib
 import json
-import os
 import pathlib
 import shutil
-import subprocess
 
 root = pathlib.Path(".")
 ledger_path = root / "docs/cc-01-live-migration-ledger.json"
