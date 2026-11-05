@@ -7,7 +7,20 @@ CREATE EXTENSION IF NOT EXISTS citext;
 DO $$ BEGIN CREATE ROLE anon NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE ROLE authenticated NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE ROLE service_role NOLOGIN BYPASSRLS; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-CREATE TABLE auth.users (id uuid PRIMARY KEY);
+CREATE TABLE auth.users (
+  instance_id uuid, id uuid PRIMARY KEY, aud varchar, role varchar, email varchar,
+  encrypted_password varchar, email_confirmed_at timestamptz, invited_at timestamptz,
+  confirmation_token varchar, confirmation_sent_at timestamptz, recovery_token varchar,
+  recovery_sent_at timestamptz, email_change_token_new varchar, email_change varchar,
+  email_change_sent_at timestamptz, last_sign_in_at timestamptz, raw_app_meta_data jsonb,
+  raw_user_meta_data jsonb, is_super_admin boolean, created_at timestamptz,
+  updated_at timestamptz, phone text, phone_confirmed_at timestamptz, phone_change text,
+  phone_change_token varchar, phone_change_sent_at timestamptz, confirmed_at timestamptz,
+  email_change_token_current varchar, email_change_confirm_status smallint,
+  banned_until timestamptz, reauthentication_token varchar,
+  reauthentication_sent_at timestamptz, is_sso_user boolean, deleted_at timestamptz,
+  is_anonymous boolean
+);
 CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $uid$ SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid $uid$;
 CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT current_setting('request.jwt.claim.role', true) $$;
 CREATE TABLE storage.objects (id uuid PRIMARY KEY, bucket_id text, name text, owner_id uuid, metadata jsonb);
@@ -4871,3 +4884,5 @@ CREATE FUNCTION public."staynas_enforce_ops_task_property"() RETURNS trigger LAN
 CREATE FUNCTION public."staynas_guest_is_accessible"(_uid uuid, _guest_id uuid) RETURNS boolean LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
 CREATE FUNCTION public."staynas_set_guest_child_property"() RETURNS trigger LANGUAGE plpgsql AS $stub$ BEGIN RETURN; END; $stub$;
 CREATE FUNCTION public."staynas_user_has_property_access"(_uid uuid, _property_id uuid) RETURNS boolean LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
+
+SET check_function_bodies = on;
