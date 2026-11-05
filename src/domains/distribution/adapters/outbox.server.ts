@@ -1,14 +1,32 @@
 import type { AdapterExecutionContext } from "./contracts";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-const forbiddenKey = /(secret|token|password|authorization|api[_-]?key|client[_-]?secret|guest|customer|travell?er|personal|contact|recipient|first[_-]?name|last[_-]?name|full[_-]?name|email|phone)/i;\n\nfunction validateSafePayloadString(value: string): void {\n  if (value.length > 2048) throw new Error("Distribution outbox string exceeds the safe length limit.");\n  const sensitiveValuePatterns = [\n    /\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b/i,\n    /^\\+?[0-9]{10,15}$/,\n    /\\bBearer\\s+[A-Za-z0-9._~-]{12,}\\b/i,\n    /\\beyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\b/,\n    /\\b(?:sk|pk)_(?:live|test)_[A-Za-z0-9]{12,}\\b/i,\n  ];\n  if (sensitiveValuePatterns.some((pattern) => pattern.test(value))) {\n    throw new Error("Distribution outbox payload contains a sensitive value.");\n  }\n}
+const forbiddenKey = /(secret|token|password|authorization|api[_-]?key|client[_-]?secret|guest|customer|travell?er|personal|contact|recipient|first[_-]?name|last[_-]?name|full[_-]?name|email|phone)/i;
+
+function validateSafePayloadString(value: string): void {
+  if (value.length > 2048) throw new Error("Distribution outbox string exceeds the safe length limit.");
+  const sensitiveValuePatterns = [
+    /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i,
+    /^\+?[0-9]{10,15}$/,
+    /\bBearer\s+[A-Za-z0-9._~-]{12,}\b/i,
+    /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/,
+    /\b(?:sk|pk)_(?:live|test)_[A-Za-z0-9]{12,}\b/i,
+  ];
+  if (sensitiveValuePatterns.some((pattern) => pattern.test(value))) {
+    throw new Error("Distribution outbox payload contains a sensitive value.");
+  }
+}
 
 export function validateDistributionOutboxPayload(value: unknown): asserts value is Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("Distribution outbox payload must be a JSON object.");
   }
   const visit = (item: unknown): void => {
-    if (item === null || typeof item === "boolean") return;\n    if (typeof item === "string") {\n      validateSafePayloadString(item);\n      return;\n    }
+    if (item === null || typeof item === "boolean") return;
+    if (typeof item === "string") {
+      validateSafePayloadString(item);
+      return;
+    }
     if (typeof item === "number") {
       if (!Number.isFinite(item)) throw new Error("Distribution outbox payload contains a non-finite number.");
       return;
