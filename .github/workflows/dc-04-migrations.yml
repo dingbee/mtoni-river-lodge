@@ -12,7 +12,7 @@ on:
       - "supabase/migrations/2026110515*_dc04_distribution_credential_broker.sql"
       - "supabase/migrations/2026110516*_dc04_distribution_operation_ledger.sql"
       - "supabase/migrations/2026110517*_dc04_distribution_outbox_dispatch.sql"
-      - "supabase/migrations/2026110519*_dc04_distribution_health_evidence.sql"
+      - "supabase/migrations/2026110601*_dc04_distribution_health_evidence.sql"
       - "scripts/ci/dc04-postgres-fixture.sql"
       - "scripts/ci/dc04-postgres-smoke.sql"
       - ".github/workflows/dc-04-migrations.yml"
@@ -57,7 +57,7 @@ jobs:
           psql -h localhost -U postgres -d staynas_dc04_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261105150000_dc04_distribution_credential_broker.sql
           psql -h localhost -U postgres -d staynas_dc04_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261105160000_dc04_distribution_operation_ledger.sql
           psql -h localhost -U postgres -d staynas_dc04_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261105170000_dc04_distribution_outbox_dispatch.sql
-          psql -h localhost -U postgres -d staynas_dc04_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261105190000_dc04_distribution_health_evidence.sql
+          psql -h localhost -U postgres -d staynas_dc04_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261106010000_dc04_distribution_health_evidence.sql
       - name: Verify tenant, capability, Vault and audit boundaries
         env:
           PGPASSWORD: postgres
