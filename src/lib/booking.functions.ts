@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
-import { bookingRpc } from "@/lib/booking-rpc";
 import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 import { assertSameProperty } from "@/lib/booking-property";
 
