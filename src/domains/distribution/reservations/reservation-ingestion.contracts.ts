@@ -8,7 +8,11 @@ export const reservationLifecycleEventSchema = z.enum([
   "reservation.refund_notified", "reservation.no_show",
 ]);
 
-const isoDate = z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/);
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}, "Date must be a real calendar date.");
 const money = z.number().finite().nonnegative().max(1_000_000_000);
 
 export const externalReservationSchema = z.object({
@@ -100,6 +104,7 @@ export function toSafeReservationEventEnvelope(event: ExternalReservationEvent):
     children: event.children,
     providerPayloadFingerprint: event.providerPayloadFingerprint,
     privateFieldsPresent: Boolean(event.guest.email || event.guest.phone),
-    hasFinancialData: event.grossAmount !== undefined,
+    hasFinancialData: event.grossAmount !== undefined || event.taxes !== undefined ||
+      event.fees !== undefined || event.channelCommission !== undefined || event.expectedSettlement !== undefined,
   };
 }
