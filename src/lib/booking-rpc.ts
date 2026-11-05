@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Local contracts for the property-scoped booking RPCs defined in
-// supabase/migrations/20261105091956_cc01_property_access_and_founder_authority.sql.
+// supabase/migrations/20261105094635_cc01_property_access_and_founder_authority.sql.
 // The generated database types are stale (they predate the property
 // hardening), so — as with staynas-rpc.ts and housekeeping-rpc.ts — these
 // contracts live here until the migration is applied and types regenerate.

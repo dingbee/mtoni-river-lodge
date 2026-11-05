@@ -60,7 +60,7 @@ jobs:
         run: |
           psql -h 127.0.0.1 -U postgres -d staynas_cc01_test -v ON_ERROR_STOP=1 \
             -f supabase/tests/cc01-schema-fixture.sql \
-            -f supabase/migrations/20261105091956_cc01_property_access_and_founder_authority.sql
+            -f supabase/migrations/20261105094635_cc01_property_access_and_founder_authority.sql
       - name: Verify grants, policies, property isolation and founder authority
         env:
           PGPASSWORD: postgres

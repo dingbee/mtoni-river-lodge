@@ -128,7 +128,7 @@
 1. A missing timestamp or filename is **not proof** that the corresponding schema change is absent. The SQL may have been renamed, consolidated, manually applied, or retained only in historical deployment material.
 2. A same-name file under a different timestamp is a candidate provenance match, not proof that its SQL is identical. Compare the SQL body and verify the resulting schema objects before classifying it as reconciled.
 3. Do not replay missing migrations, insert migration ledger rows, baseline migrations, or alter migration history based only on this inventory.
-4. The staged CC-01 migration `20261105091956_cc01_property_access_and_founder_authority.sql` remains unapplied to live Supabase. It has passed an ephemeral PostgreSQL 17.11 execution and contract test; see the validation scope below.
+4. The staged CC-01 migration `20261105094635_cc01_property_access_and_founder_authority.sql` remains unapplied to live Supabase. It has passed an ephemeral PostgreSQL 17.11 execution and contract test; see the validation scope below.
 5. Exact-path Git history was checked for all 58 names initially missing from the repository. One source was recovered from commit `35f7d12` and restored under its applied version. The remaining 57 have no matching file history in this repository; their original SQL cannot be reconstructed from this Git repository alone. Treat them as historical applied records with unresolved source provenance, not as unapplied migrations.
 
 ## Execution boundary
@@ -136,3 +136,21 @@
 This audit used read-only inspection of the live migration ledger and schema catalogue. No migration was applied to live StayNas Supabase, no migration history was changed, no live database schema or data was modified, and no production deployment occurred. The staged migration was executed only in the ephemeral GitHub Actions PostgreSQL service described above.
 
 **Remaining P0 gate:** Existing Nolmark UAT users were used for read-only authenticated-role/JWT-claim RLS checks, but neither account had an unexpired Auth session. Browser sign-in and full application E2E verification therefore remain open. The PostgreSQL test above is not a deployment and does not close that gate.
+
+
+## Live follow-up — 5 November 2026, 09:46 UTC
+
+The live ledger advanced after the initial 82-record audit and the subsequent 90-record check. The current read-only snapshot contains **92 applied migration records**, with latest version **20261105094416** (spe03_rate_plan_room_type_assignments). The active Nolmark CDMA property remains present, and the founder registry contains one row. The CC-01 booking configuration table remains absent, confirming that the staged CC-01 migration has not been applied.
+
+The two latest SPE-03 migration SQL files were located on branch feat/spe-03-rate-plans-calendar and compared byte-for-byte with their corresponding live ledger statements:
+
+- 20261105094407_spe03_rate_plan_foundation.sql — exact match.
+- 20261105094416_spe03_rate_plan_room_type_assignments.sql — exact match.
+
+Canonical copies are being restored to this branch so the local migration directory can represent those applied records. This does not merge the SPE-03 feature branch or its application code.
+
+The CC-01 migration was regenerated using the Supabase CLI migration new command as 20261105094635_cc01_property_access_and_founder_authority.sql, placing it after the latest live migration version. The previous 20261105091956 file is retired. The new migration remains staged and unapplied.
+
+**Outstanding provenance:** the earlier audit found 68 of the first 90 applied records without an exact SQL match in this branch. Those records still require source-by-source recovery and version reconciliation. The two new SPE-03 records above have exact sources available, so they do not add to that unresolved count. Do not run a production migration push until the complete local-versus-remote history is reconciled and the dry-run shows only the intended CC-01 migration.
+
+**Release status:** no production migration, migration-history repair, merge, or deployment has been performed. The current post-merge CI passed 5/5 checks before these source-only updates; CI must rerun against the next commit.
