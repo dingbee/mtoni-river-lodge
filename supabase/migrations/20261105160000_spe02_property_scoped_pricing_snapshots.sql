@@ -69,12 +69,12 @@ DROP POLICY IF EXISTS "Finance manage pricing rules" ON public.pricing_rules;
 CREATE POLICY "Property finance manage pricing rules"
   ON public.pricing_rules FOR ALL TO authenticated
   USING (
-    public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','finance','admin']::public.app_role[])
+    public.staynas_user_has_property_access((select auth.uid()), property_id)
+    AND public.has_any_role((select auth.uid()), ARRAY['owner','manager','finance','admin']::public.app_role[])
   )
   WITH CHECK (
-    public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','finance','admin']::public.app_role[])
+    public.staynas_user_has_property_access((select auth.uid()), property_id)
+    AND public.has_any_role((select auth.uid()), ARRAY['owner','manager','finance','admin']::public.app_role[])
   );
 
 CREATE INDEX IF NOT EXISTS pricing_rules_property_active_priority_idx
