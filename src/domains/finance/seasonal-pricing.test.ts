@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   mergeSeasonalRateRecords,
   seasonalRatesSchema,
+  resolveSeasonalRateForDate,
   validateSeasonalRateCurrency,
   validateSeasonalRateRoomTypes,
 } from "./seasonal-pricing";
@@ -81,6 +82,16 @@ describe("SPE-03.05 seasonal pricing contract", () => {
   it("allows a child to clear an inherited season by setting its key to null", () => {
     const merged = mergeSeasonalRateRecords({ "festive-2027": season() }, { "festive-2027": null });
     expect(merged["festive-2027"]).toBeNull();
+  });
+
+  it("selects the highest-priority season on inclusive date boundaries", () => {
+    const rates = seasonalRatesSchema.parse({
+      "low-2027": season({ name: "Low", priority: 10, start_date: "2027-01-01", end_date: "2027-03-31" }),
+      "festive-2027": season({ name: "Festive", season_type: "festive", priority: 50, start_date: "2027-03-31", end_date: "2027-04-07", nightly_rate: 300 }),
+    });
+    expect(resolveSeasonalRateForDate(rates, ROOM_A, "2027-03-31")?.name).toBe("Festive");
+    expect(resolveSeasonalRateForDate(rates, ROOM_A, "2027-04-07")?.name).toBe("Festive");
+    expect(resolveSeasonalRateForDate(rates, ROOM_A, "2027-04-08")).toBeNull();
   });
 
   it("requires explicit property currency and room-catalogue membership", () => {
