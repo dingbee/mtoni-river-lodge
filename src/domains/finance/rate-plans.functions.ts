@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
-import { seasonalRatesSchema, validateSeasonalRateCurrency, validateSeasonalRateRoomTypes } from "@/domains/finance/seasonal-pricing";
+import { seasonalRatesSchema, mergeSeasonalRateRecords, validateSeasonalRateCurrency, validateSeasonalRateRoomTypes } from "@/domains/finance/seasonal-pricing";
 
 async function getActivePropertyId(supabase: any, userId: string): Promise<string> {
   const { data, error } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
@@ -31,7 +31,7 @@ const ratePlanSchema = z.object({
   active: z.boolean().default(true),
   rate_plan_data: z.object({
     base_rates: z.record(z.string(), z.unknown()).optional(),
-    seasonal_rates: seasonalRatesSchema.optional(),
+    seasonal_rates: z.record(z.string(), z.unknown()).optional(),
     daily_rates: z.record(z.string(), z.unknown()).optional(),
     occupancy_rules: z.record(z.string(), z.unknown()).optional(),
     restrictions: z.record(z.string(), z.unknown()).optional(),
@@ -86,11 +86,13 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
       inheritedSeasonalRates = (inherited?.resolved_data?.seasonal_rates ?? {}) as Record<string, unknown>;
     }
 
-    const seasonalRates = seasonalRatesSchema.parse(data.rate_plan_data.seasonal_rates ?? {});
-    const effectiveSeasonalRates = seasonalRatesSchema.parse({
-      ...inheritedSeasonalRates,
-      ...seasonalRates,
-    });
+    const ownSeasonalRates = (data.rate_plan_data.seasonal_rates ?? {}) as Record<string, unknown>;
+    const mergedSeasonalRates = mergeSeasonalRateRecords(inheritedSeasonalRates, ownSeasonalRates);
+    // A null season key explicitly clears an inherited season. Remaining active
+    // entries must be complete, valid, and unambiguous after inheritance.
+    const effectiveSeasonalRates = seasonalRatesSchema.parse(
+      Object.fromEntries(Object.entries(mergedSeasonalRates).filter(([, value]) => value !== null)),
+    );
     validateSeasonalRateCurrency(effectiveSeasonalRates, String(property.currency));
     if (Object.keys(effectiveSeasonalRates).length) {
       const { data: roomTypes, error: roomTypesError } = await sb.rpc(
