@@ -991,7 +991,22 @@ function GuestStep(props: {
           )}
           <div className="flex justify-between"><span>Accommodation</span><span>{fmt(props.roomTotal)}</span></div>
           {props.extrasTotal > 0 && <div className="flex justify-between"><span>Extras</span><span>{fmt(props.extrasTotal)}</span></div>}
-          {Number(props.breakdown?.taxes ?? 0) > 0 && <div className="flex justify-between text-charcoal/70"><span>Taxes (incl. any inclusive taxes)</span><span>{fmt(Number(props.breakdown?.taxes ?? 0))}</span></div>}
+          {Number(props.breakdown?.taxes ?? 0) > 0 && (
+            <>
+              {Number(props.breakdown?.taxes ?? 0) > Number(props.breakdown?.tax_addition ?? 0) && (
+                <div className="flex justify-between text-charcoal/60">
+                  <span>Tax included in rates</span>
+                  <span>{fmt(Number(props.breakdown?.taxes ?? 0) - Number(props.breakdown?.tax_addition ?? 0))}</span>
+                </div>
+              )}
+              {Number(props.breakdown?.tax_addition ?? 0) > 0 && (
+                <div className="flex justify-between text-charcoal/70">
+                  <span>Taxes added</span>
+                  <span>{fmt(Number(props.breakdown?.tax_addition ?? 0))}</span>
+                </div>
+              )}
+            </>
+          )}
           <div className="flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(props.grandTotal)}</span></div>
           <div className="flex justify-between text-charcoal/70"><span>Deposit now (50%)</span><span>{fmt(deposit)}</span></div>
           <div className="flex justify-between text-charcoal/70"><span>Balance at check-in (50%)</span><span>{fmt(balance)}</span></div>
