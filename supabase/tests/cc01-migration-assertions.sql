@@ -30,6 +30,27 @@ BEGIN
       AND t.tgname='staynas_user_role_property_bootstrap' AND NOT t.tgisinternal
   ) THEN RAISE EXCEPTION 'Legacy global-role bootstrap trigger remains'; END IF;
 
+  -- Exact RPC signature grants: no implicit PUBLIC execution or accidental overloads.
+  IF NOT has_function_privilege('anon','public.staynas_booking_property_id()','EXECUTE')
+     OR has_function_privilege('anon','public.staynas_booking_property_id(text)','EXECUTE')
+     OR NOT has_function_privilege('authenticated','public.staynas_booking_property_id()','EXECUTE')
+     OR NOT has_function_privilege('service_role','public.staynas_booking_property_id()','EXECUTE')
+  THEN RAISE EXCEPTION 'Booking property resolver signature/grants are incorrect'; END IF;
+
+  IF NOT has_function_privilege('anon','public.get_room_availability_for_property(uuid,date,date)','EXECUTE')
+     OR NOT has_function_privilege('authenticated','public.get_room_availability_for_property(uuid,date,date)','EXECUTE')
+     OR NOT has_function_privilege('service_role','public.get_room_availability_for_property(uuid,date,date)','EXECUTE')
+  THEN RAISE EXCEPTION 'Property availability RPC grants are incorrect'; END IF;
+
+  IF NOT has_function_privilege('anon','public.get_booking_hold_for_property(uuid,uuid,text)','EXECUTE')
+     OR NOT has_function_privilege('authenticated','public.get_booking_hold_for_property(uuid,uuid,text)','EXECUTE')
+     OR NOT has_function_privilege('service_role','public.get_booking_hold_for_property(uuid,uuid,text)','EXECUTE')
+  THEN RAISE EXCEPTION 'Property hold lookup RPC grants are incorrect'; END IF;
+
+  IF has_function_privilege('anon','public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid)','EXECUTE')
+     OR has_function_privilege('anon','public.release_booking_hold(uuid,text)','EXECUTE')
+  THEN RAISE EXCEPTION 'Legacy unscoped booking RPC remains anonymously executable'; END IF;
+
   IF has_function_privilege('anon','public.staynas_user_has_property_access(uuid,uuid)','EXECUTE')
      OR NOT has_function_privilege('authenticated','public.staynas_user_has_property_access(uuid,uuid)','EXECUTE')
      OR NOT has_function_privilege('service_role','public.staynas_user_has_property_access(uuid,uuid)','EXECUTE')
@@ -174,6 +195,8 @@ INSERT INTO public.staynas_organisations(id,slug,name,status,created_at,updated_
 INSERT INTO public.staynas_properties(id,organisation_id,slug,code,name,timezone,currency,status,created_at,updated_at) VALUES
  ('30000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','cc01-property-a','CC01-A','CC01 Test Property A','Africa/Dar_es_Salaam','TZS','active',now(),now()),
  ('30000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000002','cc01-property-b','CC01-B','CC01 Test Property B','Africa/Dar_es_Salaam','TZS','active',now(),now());
+INSERT INTO public.staynas_booking_config(id,property_id) VALUES (true,'30000000-0000-0000-0000-000000000001') ON CONFLICT (id) DO UPDATE SET property_id=EXCLUDED.property_id;
+
 INSERT INTO public.staynas_property_members(property_id,user_id,role,status,created_at,updated_at) VALUES
  ('30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','owner','active',now(),now()),
  ('30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','finance','active',now(),now()),
@@ -281,5 +304,18 @@ BEGIN
     RAISE EXCEPTION 'Suspended property remained operational';
   END IF;
 END $$;
+
+-- Non-active lifecycle states must all fail closed, not only "suspended".
+UPDATE public.staynas_properties SET status='inactive' WHERE id='30000000-0000-0000-0000-000000000002';
+DO $
+BEGIN
+  IF public.staynas_user_has_property_access('10000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000002') THEN
+    RAISE EXCEPTION 'Inactive property retained membership access';
+  END IF;
+  IF public.staynas_current_user_has_property_role('30000000-0000-0000-0000-000000000002', ARRAY['housekeeping']::public.app_role[]) THEN
+    RAISE EXCEPTION 'Inactive property retained role authorization';
+  END IF;
+END $;
+UPDATE public.staynas_properties SET status='active' WHERE id='30000000-0000-0000-0000-000000000002';
 
 SELECT 'CC-01 PostgreSQL migration validation passed' AS result;
