@@ -58,6 +58,12 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
     const { data: property, error: propertyError } = await sb.from("staynas_properties")
       .select("currency").eq("id",propertyId).single();
     if (propertyError || !property?.currency) throw new Error("Property currency must be configured before managing rate plans.");
+    if (data.id) {
+      const { data: existing, error: existingError } = await sb.from("staynas_rate_plans")
+        .select("publication_status").eq("id",data.id).eq("property_id",propertyId).maybeSingle();
+      if (existingError || !existing) throw new Error("Rate plan is not part of the active property.");
+      if (existing.publication_status === "archived") throw new Error("Archived rate plans are read-only. Duplicate the plan to create a new version.");
+    }
     if (data.parent_rate_plan_id) {
       const { data: parent, error: parentError } = await sb.from("staynas_rate_plans")
         .select("id").eq("id",data.parent_rate_plan_id).eq("property_id",propertyId).maybeSingle();
@@ -91,6 +97,16 @@ export const setStayNasRatePlanPublication = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: current, error: currentError } = await sb.from("staynas_rate_plans")
+      .select("id,publication_status,active").eq("id",data.id).eq("property_id",propertyId).maybeSingle();
+    if (currentError || !current) throw new Error("Rate plan is not part of the active property.");
+    if (current.publication_status === "archived") throw new Error("Archived rate plans are terminal and cannot be changed.");
+    const nextActive = data.publication_status === "archived"
+      ? false
+      : (data.active ?? current.active);
+    if (data.publication_status === "published" && !nextActive) {
+      throw new Error("An inactive rate plan cannot be published.");
+    }
     if (data.publication_status === "published") {
       const { count, error: assignmentError } = await sb.from("staynas_rate_plan_room_types")
         .select("id",{count:"exact",head:true})
@@ -101,7 +117,7 @@ export const setStayNasRatePlanPublication = createServerFn({ method: "POST" })
     const { data: row, error } = await sb.from("staynas_rate_plans")
       .update({
         publication_status: data.publication_status,
-        ...(data.active === undefined ? {} : { active: data.active }),
+        active: nextActive,
         ...(data.publication_status === "published" ? {
           published_by: context.userId,
           published_at: new Date().toISOString(),
@@ -165,8 +181,9 @@ export const setStayNasRatePlanRoomType = createServerFn({ method: "POST" })
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
     const { data: plan, error: planError } = await sb.from("staynas_rate_plans")
-      .select("id").eq("id",data.rate_plan_id).eq("property_id",propertyId).maybeSingle();
+      .select("id,publication_status").eq("id",data.rate_plan_id).eq("property_id",propertyId).maybeSingle();
     if (planError || !plan) throw new Error("Rate plan is not part of the active property.");
+    if (plan.publication_status === "archived") throw new Error("Archived rate plans cannot change room-type assignments.");
     const { data: roomType, error: roomTypeError } = await sb.from("rooms")
       .select("id").eq("property_id",propertyId).eq("catalogue_type_id",data.room_type_id).limit(1).maybeSingle();
     if (roomTypeError || !roomType) throw new Error("Room type is not configured for the active property.");
