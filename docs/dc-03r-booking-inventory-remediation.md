@@ -48,7 +48,7 @@ The unsafe property-first booking overloads and old hardcoded-property hold RPCs
 
 ## Verification required
 
-1. CI: property-isolation tests, hold-policy tests, build, TypeScript and targeted lint.
+1. CI: PostgreSQL 17 migration and concurrency suite, property-isolation tests, hold-policy tests, public allowlist tests, build, TypeScript and targeted lint.
 2. UAT transactional dry-run: execute the migration and functional regression scenarios inside a transaction, then roll back. No persistent test booking or hold is allowed.
 3. Allocation tests:
    - hold blocks a no-hold booking for the final unit;
@@ -59,6 +59,7 @@ The unsafe property-first booking overloads and old hardcoded-property hold RPCs
    - concurrent final-unit holds produce exactly one success;
    - hold-versus-booking race produces at most one success.
 4. Verify existing staff reservation creation uses the same canonical allocator and still checks property membership.
+5. Confirm the exact preview environment has `PUBLIC_BASE_URL` configured before testing Pesapal callbacks; the connected Vercel project list did not return this repository.
 5. Re-read the Nolmark CDMA UAT snapshot and confirm the pre-existing booking, room data, memberships and inventory are unchanged after rollback.
 
 ## Safety
