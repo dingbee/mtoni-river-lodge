@@ -77,7 +77,6 @@ export function isNewerProviderEvent(
   const incomingTime = incoming.providerModifiedAt ? Date.parse(incoming.providerModifiedAt) : Number.NaN;
   const currentTime = current.providerModifiedAt ? Date.parse(current.providerModifiedAt) : Number.NaN;
   if (Number.isFinite(incomingTime) && Number.isFinite(currentTime)) return incomingTime > currentTime;
-  if (Number.isFinite(incomingTime) && !Number.isFinite(currentTime)) return true;
   return false;
 }
 
