@@ -1,5 +1,5 @@
 -- DC-05.05 database-level retry, lease, replay and authorization checks.
-\\set ON_ERROR_STOP on
+\set ON_ERROR_STOP on
 
 DO $privileges$
 BEGIN
