@@ -203,16 +203,29 @@ BEGIN
   IF TG_OP='INSERT' AND NEW.status='approved' THEN
     RAISE EXCEPTION 'Create rate overrides as pending, then approve them';
   END IF;
-  IF TG_OP='UPDATE' AND OLD.status='approved' AND NEW.status='pending' THEN
-    RAISE EXCEPTION 'An approved override cannot return to pending';
-  END IF;
-  IF TG_OP='UPDATE' AND OLD.status='approved' AND NEW.status='approved'
-     AND (to_jsonb(OLD) - 'updated_at' - 'approved_by' - 'approved_at')
-       IS DISTINCT FROM (to_jsonb(NEW) - 'updated_at' - 'approved_by' - 'approved_at') THEN
-    RAISE EXCEPTION 'Approved rate override terms are immutable; revoke and create a new override';
-  END IF;
   IF TG_OP='UPDATE' AND OLD.status IN ('rejected','revoked') AND NEW.status<>OLD.status THEN
     RAISE EXCEPTION 'Rejected and revoked overrides are terminal';
+  END IF;
+  IF TG_OP='UPDATE' AND OLD.status='pending' AND NEW.status NOT IN ('pending','approved','rejected') THEN
+    RAISE EXCEPTION 'Pending overrides may only be approved or rejected';
+  END IF;
+  IF TG_OP='UPDATE' AND OLD.status='approved' AND NEW.status NOT IN ('approved','revoked') THEN
+    RAISE EXCEPTION 'Approved overrides may only be revoked';
+  END IF;
+  IF TG_OP='UPDATE' AND OLD.status='approved'
+     AND (to_jsonb(OLD) - 'updated_at' - 'approved_by' - 'approved_at' - 'status' - 'revoked_by' - 'revoked_at')
+       IS DISTINCT FROM (to_jsonb(NEW) - 'updated_at' - 'approved_by' - 'approved_at' - 'status' - 'revoked_by' - 'revoked_at') THEN
+    RAISE EXCEPTION 'Approved rate override terms are immutable; revoke and create a new override';
+  END IF;
+  IF TG_OP='UPDATE' AND OLD.scope='room_date' AND OLD.status='pending'
+     AND NEW.status='approved'
+     AND current_setting('staynas.rate_override_rpc',true) IS DISTINCT FROM 'approve' THEN
+    RAISE EXCEPTION 'Exact room/date overrides must be approved through the inventory-safe approval RPC';
+  END IF;
+  IF TG_OP='UPDATE' AND OLD.scope='room_date' AND OLD.status='approved'
+     AND NEW.status='revoked'
+     AND current_setting('staynas.rate_override_rpc',true) IS DISTINCT FROM 'revoke' THEN
+    RAISE EXCEPTION 'Exact room/date overrides must be revoked through the inventory-safe revocation RPC';
   END IF;
   IF NEW.status='approved' AND (TG_OP='INSERT' OR OLD.status IS DISTINCT FROM 'approved') THEN
     IF NEW.rate_plan_id IS NOT NULL
@@ -401,6 +414,7 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Inventory calendar row is missing; rate override was not applied';
   END IF;
+  PERFORM set_config('staynas.rate_override_rpc','approve',true);
   UPDATE public.staynas_rate_overrides
   SET status='approved',previous_inventory_price_override=v_inventory.price_override,applied_at=now()
   WHERE id=_override_id;
@@ -453,6 +467,7 @@ BEGIN
   WHERE room_id=v_override.room_id AND date=v_override.effective_from;
   IF NOT FOUND THEN RAISE EXCEPTION 'Inventory calendar row is missing; override was not revoked'; END IF;
 
+  PERFORM set_config('staynas.rate_override_rpc','revoke',true);
   UPDATE public.staynas_rate_overrides SET status='revoked' WHERE id=_override_id;
   RETURN jsonb_build_object('override_id',_override_id,'status','revoked',
     'restored_price_override',v_override.previous_inventory_price_override);
