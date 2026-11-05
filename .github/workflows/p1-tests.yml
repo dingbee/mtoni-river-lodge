@@ -64,7 +64,6 @@ jobs:
           src/domains/finance/finance-reconciliation.test.ts
           src/domains/finance/seasonal-pricing.ts
           src/domains/finance/seasonal-pricing.test.ts
-          src/domains/finance/rate-plans.functions.ts
           src/lib/finance-rpc.ts
           src/lib/pricing.ts
           src/routes/_authenticated.admin.finance.payments.tsx
