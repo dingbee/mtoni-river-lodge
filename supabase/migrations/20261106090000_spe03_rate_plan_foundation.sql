@@ -92,7 +92,19 @@ BEGIN
     SELECT * INTO parent_row FROM public.staynas_rate_plans
     WHERE id=NEW.parent_rate_plan_id AND property_id=NEW.property_id;
     IF NOT FOUND THEN RAISE EXCEPTION 'Parent rate plan must belong to the same property'; END IF;
-    IF parent_row.parent_rate_plan_id = NEW.id THEN
+    IF EXISTS (
+      WITH RECURSIVE ancestors(id,parent_rate_plan_id,path,cycle) AS (
+        SELECT p.id,p.parent_rate_plan_id,ARRAY[p.id],false
+        FROM public.staynas_rate_plans p
+        WHERE p.id=NEW.parent_rate_plan_id AND p.property_id=NEW.property_id
+        UNION ALL
+        SELECT p.id,p.parent_rate_plan_id,a.path||p.id,p.id=ANY(a.path)
+        FROM public.staynas_rate_plans p
+        JOIN ancestors a ON p.id=a.parent_rate_plan_id
+        WHERE p.property_id=NEW.property_id AND NOT a.cycle
+      )
+      SELECT 1 FROM ancestors WHERE id=NEW.id OR cycle
+    ) THEN
       RAISE EXCEPTION 'Circular rate-plan inheritance is not permitted';
     END IF;
   END IF;
@@ -130,7 +142,22 @@ CREATE POLICY "Property finance read rate plan versions"
     AND public.has_any_role((select auth.uid()),ARRAY['owner','manager','finance','admin']::public.app_role[])
   );
 GRANT SELECT ON public.staynas_rate_plan_versions TO authenticated;
-REVOKE ALL ON public.staynas_rate_plan_versions FROM anon,authenticated;
+REVOKE ALL ON public.staynas_rate_plan_versions FROM anon;
+
+CREATE OR REPLACE FUNCTION public.prepare_staynas_rate_plan_version()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path=public
+AS $$
+BEGIN
+  IF TG_OP='INSERT' THEN
+    NEW.version := 1;
+  ELSIF (to_jsonb(OLD) - 'updated_at' - 'version') IS DISTINCT FROM (to_jsonb(NEW) - 'updated_at' - 'version') THEN
+    NEW.version := OLD.version + 1;
+  END IF;
+  RETURN NEW;
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION public.capture_staynas_rate_plan_version()
 RETURNS trigger
@@ -140,31 +167,23 @@ SET search_path=public
 AS $$
 DECLARE
   snapshot_value jsonb;
-  next_version integer;
   actor uuid := auth.uid();
 BEGIN
-  IF TG_OP='INSERT' THEN
-    NEW.version := 1;
-    snapshot_value := to_jsonb(NEW) - 'created_at' - 'updated_at';
-    INSERT INTO public.staynas_rate_plan_versions(property_id,rate_plan_id,version,snapshot,changed_by,change_reason)
-    VALUES(NEW.property_id,NEW.id,1,snapshot_value,actor,'created');
-    RETURN NEW;
-  END IF;
-
-  IF (to_jsonb(OLD) - 'updated_at' - 'version') IS DISTINCT FROM (to_jsonb(NEW) - 'updated_at' - 'version') THEN
-    next_version := OLD.version + 1;
-    NEW.version := next_version;
-    snapshot_value := to_jsonb(NEW) - 'created_at' - 'updated_at';
-    INSERT INTO public.staynas_rate_plan_versions(property_id,rate_plan_id,version,snapshot,changed_by,change_reason)
-    VALUES(NEW.property_id,NEW.id,next_version,snapshot_value,actor,'updated');
-  END IF;
+  snapshot_value := to_jsonb(NEW) - 'created_at' - 'updated_at';
+  INSERT INTO public.staynas_rate_plan_versions(property_id,rate_plan_id,version,snapshot,changed_by,change_reason)
+  VALUES(NEW.property_id,NEW.id,NEW.version,snapshot_value,actor,
+    CASE WHEN TG_OP='INSERT' THEN 'created' ELSE 'updated' END);
   RETURN NEW;
 END;
 $$;
 
 DROP TRIGGER IF EXISTS staynas_rate_plans_version_capture ON public.staynas_rate_plans;
-CREATE TRIGGER staynas_rate_plans_version_capture
+DROP TRIGGER IF EXISTS staynas_rate_plans_version_prepare ON public.staynas_rate_plans;
+CREATE TRIGGER staynas_rate_plans_version_prepare
   BEFORE INSERT OR UPDATE ON public.staynas_rate_plans
+  FOR EACH ROW EXECUTE FUNCTION public.prepare_staynas_rate_plan_version();
+CREATE TRIGGER staynas_rate_plans_version_capture
+  AFTER INSERT OR UPDATE ON public.staynas_rate_plans
   FOR EACH ROW EXECUTE FUNCTION public.capture_staynas_rate_plan_version();
 
 COMMIT;
