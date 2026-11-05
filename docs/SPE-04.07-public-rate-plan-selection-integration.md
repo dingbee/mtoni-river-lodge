@@ -4,7 +4,7 @@
 **Workstream:** SPE-04 — Deterministic Pricing Resolver  
 **Milestone:** SPE-04.07  
 **Priority:** P0 — Public booking correctness  
-**Status:** IMPLEMENTATION COMPLETE · NOLMARK UAT REGRESSION PASS · BROWSER UAT PENDING · FINAL CI RUNS IN PROGRESS  
+**Status:** IMPLEMENTATION COMPLETE · CI PASS · NOLMARK UAT REGRESSION PASS · BROWSER UAT PENDING  
 **Predecessor:** SPE-04.06 — Final Verification & Release Readiness  
 **Repository:** `dingbee/mtoni-river-lodge`  
 **Working branch:** `feat/spe-04-deterministic-pricing-resolver`
@@ -31,22 +31,22 @@ SPE-04.07 closes the SPE-04.06 public-booking limitation. Eligible published pla
 - Booking persistence continues to store the quote snapshot; nightly evidence carries plan ID, publication ID/number, version and snapshot hash.
 
 ### C. Public server functions and guest UI
-- `src/lib/booking.functions.ts` now supports optional `ratePlanId` in availability, quote and booking.
+- `src/lib/booking.functions.ts` now supports optional `ratePlanId` in availability, quote and booking. It also returns guest-safe metadata for an implicitly selected single eligible plan.
 - When availability returns `RATE_PLAN_REQUIRED`, the server resolves guest-safe choices for that room.
 - `src/routes/book.tsx` presents a selector only when multiple eligible plans exist. It displays plan name, meal plan, refundability and the property-currency accommodation total.
 - Selecting a plan triggers a fresh authoritative quote; the selected ID is carried into booking submission and the booking summary.
-- `src/routes/api/public/availability.search.ts` accepts optional `rate_plan_id` and returns plan choices for ambiguous rooms.
-- `src/lib/public-booking.functions.ts` carries optional plan IDs through the controlled public demo availability and booking contracts.
-- `src/routes/$propertySlug.tsx` now renders the plan selector in the public property booking page, shows guest-facing terms/prices, carries the selection to booking, and refreshes the selected-plan state when changed.
+- `src/routes/api/public/availability.search.ts` accepts optional `rate_plan_id` and returns guest-safe plan metadata for ambiguous and implicitly selected single-plan rooms.
+- `src/lib/public-booking.functions.ts` carries optional plan IDs through the controlled public demo availability and booking contracts, and resolves metadata for both single-plan and multi-plan results.
+- `src/routes/$propertySlug.tsx` renders the plan selector in the public property booking page, shows guest-facing terms/prices for single and multiple plans, carries the selection to booking, and avoids presenting legacy fallback prices when a plan choice is required.
 - No TypeScript monetary calculator was introduced.
 
 ## 3. CI evidence
 
-All three required checks passed on final implementation head `018634173406818fcde3323bfecb302e78205f7a`:
+All three required checks passed on implementation head `3b2c7eb627a2194f813f5195d4cfbf45af9e19d4`:
 
-- [P1 build — PASS](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42073809038)
-- [P1 tests — PASS](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42073809196)
-- [Finance/payment integrity — PASS](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42073808920)
+- [P1 build — PASS](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42076443858)
+- [P1 tests — PASS](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42076444272)
+- [Finance/payment integrity — PASS](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42076444227)
 
 The pgTAP test files contain eight discovery and eight selected-plan propagation assertions. The pgTAP runner itself was not executed because the current UAT project does not have the pgTAP extension. Direct SQL transactional regression was executed instead. The CI workflows do not execute these SQL pgTAP suites.
 
@@ -69,7 +69,7 @@ Database regression passed:
 
 ### UAT cleanup and residual state
 
-The two SPE-04.07 test plans were created and published through the audited lifecycle RPC inside rollback-only transactions. Both transactions were rolled back after verification; no new test plans, publications, audit events, bookings, booking-night rows or inventory changes remain. The pre-existing archived/inactive `SPE04UAT-A` and `SPE04UAT-B` records from earlier UAT remain historical and were not modified. Nolmark has zero active published plans. The original SPE-03 fixture remains draft and unpublished. Mtoni data was not modified.
+The two SPE-04.07 test plans were created and published through the audited lifecycle RPC inside rollback-only transactions. Both transactions were rolled back after verification; no new test plans, publications, audit events, bookings, booking-night rows or inventory changes remain. A separate rollback-only historical-price test published USD 100, created a booking, republished the plan at USD 110, and confirmed the existing booking and nightly snapshots remained at USD 200 / USD 100 with the original publication ID and hash. The pre-existing archived/inactive `SPE04UAT-A` and `SPE04UAT-B` records from earlier UAT remain historical and were not modified. Nolmark has zero active published plans. The original SPE-03 fixture remains draft and unpublished. Mtoni data was not modified.
 
 ## 5. Acceptance status
 
