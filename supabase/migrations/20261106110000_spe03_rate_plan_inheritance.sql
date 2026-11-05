@@ -168,7 +168,8 @@ BEGIN
 END;
 $function$;
 
-REVOKE ALL ON FUNCTION public.staynas_rate_plan_jsonb_deep_merge(jsonb,jsonb) FROM PUBLIC,anon;\nGRANT EXECUTE ON FUNCTION public.staynas_rate_plan_jsonb_deep_merge(jsonb,jsonb) TO authenticated;
+REVOKE ALL ON FUNCTION public.staynas_rate_plan_jsonb_deep_merge(jsonb,jsonb) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.staynas_rate_plan_jsonb_deep_merge(jsonb,jsonb) TO authenticated;
 REVOKE ALL ON FUNCTION public.resolve_staynas_rate_plan_inheritance(uuid,uuid) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.resolve_staynas_rate_plan_inheritance(uuid,uuid) TO authenticated;
 
