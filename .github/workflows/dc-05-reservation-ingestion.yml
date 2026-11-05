@@ -10,6 +10,7 @@ on:
     paths:
       - "src/domains/distribution/reservations/**"
       - "src/domains/distribution/adapters/**"
+      - "supabase/migrations/**"
       - ".github/workflows/dc-05-reservation-ingestion.yml"
 
 jobs:
