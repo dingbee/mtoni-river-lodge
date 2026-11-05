@@ -51,6 +51,36 @@ BEGIN
      OR has_function_privilege('authenticated','public.current_user_roles()','EXECUTE')
   THEN RAISE EXCEPTION 'Legacy global-role helper remains executable by authenticated clients'; END IF;
 
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname='public'
+      AND p.proname = ANY(ARRAY[
+        'bookings_link_guest','hk_exception_events','hk_inspection_events',
+        'hk_room_state_events','hk_task_events','staynas_enforce_hold_property',
+        'staynas_enforce_ops_task_property','staynas_set_guest_child_property',
+        'arrival_pass_validate_unscoped','checkin_eligibility',
+        'housekeeping_is_supervisor','current_user_roles'
+      ])
+      AND (has_function_privilege('anon',p.oid,'EXECUTE')
+           OR has_function_privilege('authenticated',p.oid,'EXECUTE'))
+  ) THEN RAISE EXCEPTION 'An internal or trigger-only SECURITY DEFINER function remains client-executable'; END IF;
+
+  IF EXISTS (
+    SELECT required.name
+    FROM unnest(ARRAY[
+      'create_booking_for_property','create_booking_hold_for_property',
+      'get_booking_hold_for_property','get_room_availability_for_property',
+      'release_booking_hold_for_property','staynas_booking_property_id',
+      'arrival_pass_ensure','arrival_pass_fetch','checkin_fetch_summary',
+      'checkin_save_draft','checkin_submit','checkin_verify'
+    ]) required(name)
+    WHERE NOT EXISTS (
+      SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+      WHERE n.nspname='public' AND p.proname=required.name
+        AND has_function_privilege('anon',p.oid,'EXECUTE')
+    )
+  ) THEN RAISE EXCEPTION 'An intended public booking/check-in endpoint lost anonymous execution'; END IF;
+
   IF has_function_privilege('anon','public.restaurant_can_read(uuid)','EXECUTE')
      OR NOT has_function_privilege('authenticated','public.restaurant_can_read(uuid)','EXECUTE')
      OR NOT has_function_privilege('service_role','public.restaurant_can_read(uuid)','EXECUTE')
