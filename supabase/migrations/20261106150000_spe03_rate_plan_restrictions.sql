@@ -51,7 +51,7 @@ BEGIN
     END IF;
 
     v_type := v_rule->>'type';
-    IF v_type NOT IN (
+    IF v_type IS NULL OR v_type NOT IN (
       'min_los','max_los','closed_to_arrival','closed_to_departure',
       'stop_sell','advance_booking_min_hours','advance_booking_max_days'
     ) THEN
