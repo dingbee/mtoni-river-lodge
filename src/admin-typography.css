@@ -1,0 +1,52 @@
+/* StayNas OS typography refinement — scoped to the authenticated admin shell. */
+.mtoni-os {
+  font-family: "Manrope", "Inter", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: -0.008em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.mtoni-os :is(h1, h2, h3, h4, [class*="font-display"]) {
+  font-family: "Manrope", "Inter", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.18;
+}
+.mtoni-os :is(button, input, textarea, select, label, nav, [role="button"]) {
+  font-family: "Manrope", "Inter", system-ui, sans-serif;
+}
+.mtoni-os :is(nav a, nav button, [role="navigation"] a) {
+  font-size: 0.9375rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.mtoni-os :is(.text-xs, .text-sm) {
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.mtoni-os :is(.font-bold, .font-extrabold, .font-black) {
+  font-weight: 600;
+}
+.mtoni-os :is(.font-semibold) {
+  font-weight: 600;
+}
+.mtoni-os :is(.font-medium) {
+  font-weight: 500;
+}
+.mtoni-os p {
+  line-height: 1.6;
+}
+@media (max-width: 767px) {
+  .mtoni-os {
+    font-size: 14.5px;
+  }
+  .mtoni-os :is(h1, h2, h3, h4) {
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  .mtoni-os .text-xl { font-size: 1.0625rem; }
+  .mtoni-os .text-2xl { font-size: 1.1875rem; }
+  .mtoni-os .text-3xl { font-size: 1.375rem; }
+  .mtoni-os .text-4xl { font-size: 1.625rem; }
+}
