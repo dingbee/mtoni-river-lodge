@@ -16,7 +16,7 @@
 | Exact version-and-name matches | 6 |
 | Live records whose name exists under another timestamp | 19 |
 | Live records with no same-name repository file | 57 |
-| Repository versions not present in live ledger | 146 |
+| Repository versions not present in live ledger | 147 |
 
 ## Live ledger mapping
 
