@@ -171,40 +171,22 @@ export const setStayNasRatePlanPublication = createServerFn({ method: "POST" })
     id: z.string().uuid(),
     publication_status: z.enum(["draft","published","suspended","archived"]),
     active: z.boolean().optional(),
+    change_reason: z.string().trim().min(5).max(500),
   }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
-    const sb: any = context.supabase;
-    const { data: current, error: currentError } = await sb.from("staynas_rate_plans")
-      .select("id,publication_status,active").eq("id",data.id).eq("property_id",propertyId).maybeSingle();
-    if (currentError || !current) throw new Error("Rate plan is not part of the active property.");
-    if (current.publication_status === "archived") throw new Error("Archived rate plans are terminal and cannot be changed.");
-    const nextActive = data.publication_status === "archived"
-      ? false
-      : (data.active ?? current.active);
-    if (data.publication_status === "published" && !nextActive) {
-      throw new Error("An inactive rate plan cannot be published.");
-    }
-    if (data.publication_status === "published") {
-      const { count, error: assignmentError } = await sb.from("staynas_rate_plan_room_types")
-        .select("id",{count:"exact",head:true})
-        .eq("property_id",propertyId).eq("rate_plan_id",data.id).eq("active",true);
-      if (assignmentError) throw new Error(assignmentError.message);
-      if (!count) throw new Error("Assign at least one property room type before publishing this rate plan.");
-    }
-    const { data: row, error } = await sb.from("staynas_rate_plans")
-      .update({
-        publication_status: data.publication_status,
-        active: nextActive,
-        ...(data.publication_status === "published" ? {
-          published_by: context.userId,
-          published_at: new Date().toISOString(),
-        } : {}),
-        updated_by: context.userId,
-      })
-      .eq("id",data.id).eq("property_id",propertyId).select("*").single();
+    const { data: row, error } = await (context.supabase as any).rpc(
+      "set_staynas_rate_plan_publication",
+      {
+        _rate_plan_id: data.id,
+        _publication_status: data.publication_status,
+        _active: data.active ?? null,
+        _change_reason: data.change_reason,
+      },
+    );
     if (error) throw new Error(error.message);
+    if (!row || row.property_id !== propertyId) throw new Error("Rate plan is not part of the active property.");
     return row;
   });
 
@@ -220,6 +202,31 @@ export const listStayNasRatePlanVersions = createServerFn({ method: "POST" })
       .eq("rate_plan_id",data.id).eq("property_id",propertyId).order("version",{ascending:false});
     if (error) throw new Error(error.message);
     return rows ?? [];
+  });
+
+
+export const listStayNasRatePlanPublicationEvents = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActivePropertyId(context.supabase, context.userId);
+    const { data: rows, error } = await (context.supabase as any).from("staynas_rate_plan_publication_events")
+      .select("id,rate_plan_id,rate_plan_version,previous_status,new_status,previous_active,new_active,event_type,actor_id,change_reason,created_at")
+      .eq("rate_plan_id",data.id).eq("property_id",propertyId).order("created_at",{ascending:false});
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const listStayNasPublishedRatePlans = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const propertyId = await getActivePropertyId(context.supabase, context.userId);
+    const { data, error } = await (context.supabase as any).rpc(
+      "get_staynas_published_rate_plans", { _property_id: propertyId },
+    );
+    if (error) throw new Error(error.message);
+    return data ?? [];
   });
 
 
