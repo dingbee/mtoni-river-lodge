@@ -95,8 +95,11 @@ export function evaluateStayNasRestrictions(
     };
   }
 
-  const leadHours = input.bookedAt && input.arrivalAt
+  const computedLeadHours = input.bookedAt && input.arrivalAt
     ? (Date.parse(input.arrivalAt) - Date.parse(input.bookedAt)) / 3_600_000
+    : Number.NaN;
+  const leadHours = Number.isFinite(computedLeadHours) && computedLeadHours >= 0
+    ? computedLeadHours
     : null;
 
   const activeRules = Object.entries(rules).filter(([, rule]) =>
@@ -135,14 +138,18 @@ export function evaluateStayNasRestrictions(
         if (matched) reason = `Stop-sell applies to one or more nights in this stay: ${rule.reason}`;
         break;
       case "advance_booking_min_hours":
-        matched = arrivalInPeriod && leadHours !== null;
-        if (matched && leadHours !== null && leadHours < rule.value) {
+        matched = arrivalInPeriod;
+        if (matched && leadHours === null) {
+          reason = `Booking and arrival timestamps are required to evaluate the minimum advance window: ${rule.reason}`;
+        } else if (matched && leadHours !== null && leadHours < rule.value) {
           reason = `Booking must be made at least ${rule.value} hours before arrival: ${rule.reason}`;
         }
         break;
       case "advance_booking_max_days":
-        matched = arrivalInPeriod && leadHours !== null;
-        if (matched && leadHours !== null && leadHours > rule.value * 24) {
+        matched = arrivalInPeriod;
+        if (matched && leadHours === null) {
+          reason = `Booking and arrival timestamps are required to evaluate the maximum advance window: ${rule.reason}`;
+        } else if (matched && leadHours !== null && leadHours > rule.value * 24) {
           reason = `Booking cannot be made more than ${rule.value} days before arrival: ${rule.reason}`;
         }
         break;
