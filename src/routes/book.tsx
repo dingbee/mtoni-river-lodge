@@ -838,7 +838,11 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
             </div>
             <div className="text-right">
               <p className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">{nights} night{nights === 1 ? "" : "s"} total</p>
-              <p className="font-display text-2xl">{fmt(displayTotal, selectedPlan?.currency ?? r.currency)}</p>
+              {requiresPlanChoice && options.length > 1 && !selectedPlan ? (
+                <p className="font-display text-base text-charcoal/65">Choose a rate plan to view the total</p>
+              ) : (
+                <p className="font-display text-2xl">{fmt(displayTotal, selectedPlan?.currency ?? r.currency)}</p>
+              )}
               {options.length > 1 && (
                 <div className="mt-3 text-left">
                   <label className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-charcoal/60">Choose rate plan</label>
