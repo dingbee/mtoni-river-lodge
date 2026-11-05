@@ -87,6 +87,14 @@ revoke all on function public.is_staynas_founder_ai_admin() from public, anon;
 grant execute on function public.is_staynas_founder_ai_admin() to authenticated, service_role;
 
 
+-- Restaurant-domain predicates are authenticated membership helpers, not
+-- anonymous RPC surfaces. Preserve authenticated and service-role access.
+revoke all on function public.restaurant_can_read(uuid) from public, anon;
+grant execute on function public.restaurant_can_read(uuid) to authenticated, service_role;
+revoke all on function public.restaurant_can_write(uuid, public.restaurant_role[]) from public, anon;
+grant execute on function public.restaurant_can_write(uuid, public.restaurant_role[]) to authenticated, service_role;
+
+
 create or replace function public.staynas_current_property_roles()
 returns text[]
 language sql
