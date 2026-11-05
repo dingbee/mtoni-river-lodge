@@ -24,6 +24,9 @@ CREATE TABLE IF NOT EXISTS public.staynas_rate_plan_publications (
   CONSTRAINT staynas_rate_plan_publications_plan_fk
     FOREIGN KEY(property_id,rate_plan_id)
     REFERENCES public.staynas_rate_plans(property_id,id) ON DELETE RESTRICT,
+  CONSTRAINT staynas_rate_plan_publications_version_fk
+    FOREIGN KEY(rate_plan_id,rate_plan_version)
+    REFERENCES public.staynas_rate_plan_versions(rate_plan_id,version) ON DELETE RESTRICT,
   CONSTRAINT staynas_rate_plan_publications_number_positive CHECK (publication_number>0),
   CONSTRAINT staynas_rate_plan_publications_version_positive CHECK (rate_plan_version>0),
   CONSTRAINT staynas_rate_plan_publications_currency_check CHECK (currency ~ '^[A-Z]{3}$'),
@@ -61,6 +64,9 @@ CREATE TABLE IF NOT EXISTS public.staynas_rate_plan_publication_events (
   CONSTRAINT staynas_rate_plan_publication_events_plan_fk
     FOREIGN KEY(property_id,rate_plan_id)
     REFERENCES public.staynas_rate_plans(property_id,id) ON DELETE RESTRICT,
+  CONSTRAINT staynas_rate_plan_publication_events_version_fk
+    FOREIGN KEY(rate_plan_id,rate_plan_version)
+    REFERENCES public.staynas_rate_plan_versions(rate_plan_id,version) ON DELETE RESTRICT,
   CONSTRAINT staynas_rate_plan_publication_events_type_check
     CHECK (event_type IN ('published','suspended','archived','draft_restored','activated','deactivated')),
   CONSTRAINT staynas_rate_plan_publication_events_reason_check
@@ -218,7 +224,8 @@ END;
 $function$;
 
 DROP TRIGGER IF EXISTS staynas_rate_plan_publication_event_capture ON public.staynas_rate_plans;
-CREATE TRIGGER staynas_rate_plan_publication_event_capture
+DROP TRIGGER IF EXISTS zy_staynas_rate_plan_publication_event_capture ON public.staynas_rate_plans;
+CREATE TRIGGER zy_staynas_rate_plan_publication_event_capture
   AFTER UPDATE OF publication_status,active ON public.staynas_rate_plans
   FOR EACH ROW EXECUTE FUNCTION public.audit_staynas_rate_plan_publication_event();
 
