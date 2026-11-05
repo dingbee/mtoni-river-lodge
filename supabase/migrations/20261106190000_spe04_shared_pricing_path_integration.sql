@@ -860,6 +860,39 @@ BEGIN
 END;
 $$;
 
+-- The historical 16-argument booking RPC must not retain its older direct-pricing
+-- implementation. Keep its return shape and delegate to the shared 17-argument path.
+CREATE OR REPLACE FUNCTION public.create_booking_for_property(
+  _property_id uuid,
+  _room_slug text,
+  _check_in date,
+  _check_out date,
+  _adults integer,
+  _children integer,
+  _guest_name text,
+  _guest_email text,
+  _guest_phone text,
+  _country text,
+  _special_requests text,
+  _extras jsonb DEFAULT '[]'::jsonb,
+  _children_below_6 integer DEFAULT NULL,
+  _children_7_plus integer DEFAULT NULL,
+  _hold_id uuid DEFAULT NULL,
+  _session_id text DEFAULT NULL
+)
+RETURNS TABLE(booking_id uuid,reference text,total numeric,currency text)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path=public
+AS $compat$
+  SELECT b.booking_id,b.reference,b.total,b.currency
+  FROM public.create_booking_for_property(
+    _property_id,_room_slug,_check_in,_check_out,_adults,_children,
+    _guest_name,_guest_email,_guest_phone,_country,_special_requests,
+    _extras,_children_below_6,_children_7_plus,_hold_id,_session_id,'online'
+  ) b;
+$compat$;
+
 -- Keep the adapter internal, matching the SPE-02 RPC privilege boundary.
 REVOKE ALL ON FUNCTION public.calculate_staynas_room_pricing(uuid,uuid,date,date,integer,integer,integer)
   FROM PUBLIC,anon,authenticated,service_role;
