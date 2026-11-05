@@ -131,6 +131,3 @@ describe("CC02.06 commercial API contracts", () => {
   });
 });
 
-function awaitableObjectSchema() {
-  return (await import("zod")).z.object({ accepted: (await import("zod")).z.boolean() });
-}
