@@ -17,7 +17,7 @@ BEGIN
 
   IF EXISTS (
     SELECT 1 FROM pg_policies
-    WHERE (coalesce(qual,'') || ' ' || coalesce(with_check,'')) ~* '(has_any_role|has_role|is_any_staff|is_staff|current_user_roles)\s*\('
+    WHERE (coalesce(qual,'') || ' ' || coalesce(with_check,'')) ~* '(has_any_role|has_role|is_any_staff|is_staff|current_user_roles)[[:space:]]*[(]'
   ) THEN RAISE EXCEPTION 'A staged RLS policy still calls a legacy global-role helper'; END IF;
 
   IF EXISTS (
