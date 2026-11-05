@@ -33,9 +33,24 @@ describe("DC-05 provider-neutral reservation contract", () => {
       { providerStatus: "confirmed", providerModifiedAt: "2026-11-04T10:00:00Z", providerEventId: "e1" },
     )).toBe(false);
   });
-  it("fails closed when opaque event IDs cannot establish ordering", () => {
+  it("accepts only strictly newer timestamps when both events are comparable", () => {
+    const current = { providerStatus: "confirmed", providerModifiedAt: "2026-11-04T10:00:00Z", providerEventId: "e1" };
+    expect(isNewerProviderEvent(
+      { providerStatus: "cancelled", providerModifiedAt: "2026-11-05T10:00:00Z", providerEventId: "e2" },
+      current,
+    )).toBe(true);
+    expect(isNewerProviderEvent(
+      { providerStatus: "cancelled", providerModifiedAt: "2026-11-04T10:00:00Z", providerEventId: "e3" },
+      current,
+    )).toBe(false);
+  });
+  it("fails closed when either event lacks a comparable timestamp", () => {
     expect(isNewerProviderEvent(
       { providerStatus: "cancelled", providerModifiedAt: null, providerEventId: "event-99" },
+      { providerStatus: "confirmed", providerModifiedAt: null, providerEventId: "event-1" },
+    )).toBe(false);
+    expect(isNewerProviderEvent(
+      { providerStatus: "cancelled", providerModifiedAt: "2026-11-05T10:00:00Z", providerEventId: "event-2" },
       { providerStatus: "confirmed", providerModifiedAt: null, providerEventId: "event-1" },
     )).toBe(false);
   });
