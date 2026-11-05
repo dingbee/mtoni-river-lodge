@@ -18,7 +18,8 @@ on:
       - fix/pesapal-*
       - fix/ci-*
       - main
-      - feat/finance-*\n      - feat/spe-03-*\n      - feat/spe-03-*\n      - feat/spe-03-*
+      - feat/finance-*
+      - feat/spe-03-*
 
 jobs:
   finance-payment-integrity:
