@@ -14,7 +14,7 @@ export async function resolvePublicBookingContext(propertySlug = "nolmark-cdma-s
   }
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: property, error } = await (supabaseAdmin as any)
+  const { data: property, error } = await supabaseAdmin
     .from("staynas_properties")
     .select("id, slug, name, currency, timezone, status")
     .eq("slug", propertySlug)
