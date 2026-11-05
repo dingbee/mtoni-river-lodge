@@ -20,6 +20,8 @@ describe("DC-05.05 webhook processing migration contract", () => {
   });
   it("requires an operator reason for replay and preserves provider event identity", () => {
     expect(migration).toContain("_reason text");
+    expect(migration).toContain("staynas_distribution_webhook_replay_audit");
+    expect(migration).toContain("prior_reconciliation_code");
     expect(migration).toContain("Only terminal exception events may be manually requeued.");
     expect(migration).not.toContain("DELETE FROM public.staynas_distribution_webhook_inbox");
     expect(migration).not.toContain("provider_event_id =");

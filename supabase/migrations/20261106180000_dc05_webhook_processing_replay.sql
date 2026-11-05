@@ -55,6 +55,23 @@ CREATE TABLE IF NOT EXISTS public.staynas_distribution_webhook_attempts (
   UNIQUE (inbox_id, attempt_number)
 );
 
+CREATE TABLE IF NOT EXISTS public.staynas_distribution_webhook_replay_audit (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  inbox_id uuid NOT NULL REFERENCES public.staynas_distribution_webhook_inbox(id) ON DELETE RESTRICT,
+  operator_id text NOT NULL CHECK (length(trim(operator_id)) BETWEEN 1 AND 128),
+  reason text NOT NULL CHECK (length(trim(reason)) BETWEEN 8 AND 500),
+  prior_status text NOT NULL CHECK (prior_status IN ('manual_reconciliation','permanent_failure','ignored')),
+  prior_reconciliation_code text,
+  prior_attempt_count integer NOT NULL CHECK (prior_attempt_count >= 0),
+  prior_max_attempts integer NOT NULL CHECK (prior_max_attempts BETWEEN 1 AND 40),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.staynas_distribution_webhook_replay_audit ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.staynas_distribution_webhook_replay_audit FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT ON public.staynas_distribution_webhook_replay_audit TO service_role;
+REVOKE UPDATE, DELETE, TRUNCATE ON public.staynas_distribution_webhook_replay_audit FROM service_role;
+
 CREATE INDEX IF NOT EXISTS staynas_distribution_webhook_inbox_claim_idx
   ON public.staynas_distribution_webhook_inbox(next_attempt_at, received_at, id)
   WHERE processing_status IN ('received','retryable_failure','processing');
@@ -219,13 +236,20 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
 
+  INSERT INTO public.staynas_distribution_webhook_replay_audit(
+    inbox_id,operator_id,reason,prior_status,prior_reconciliation_code,
+    prior_attempt_count,prior_max_attempts
+  ) VALUES (
+    _row.id,pg_catalog.btrim(_operator_id),pg_catalog.btrim(_reason),
+    _row.processing_status,_row.reconciliation_code,_row.attempt_count,_row.max_attempts
+  );
+
   UPDATE public.staynas_distribution_webhook_inbox i
   SET processing_status='received',processed_at=NULL,
       max_attempts=least(i.max_attempts+_additional_attempts,40),
       next_attempt_at=pg_catalog.now(),lease_token=NULL,lease_owner=NULL,lease_expires_at=NULL,
       reconciliation_code=NULL,
-      safe_error_summary='Manually requeued by ' || pg_catalog.btrim(_operator_id) ||
-        ': ' || pg_catalog.btrim(_reason)
+      safe_error_summary=NULL
   WHERE i.id=_inbox_id;
 END;
 $function$;
