@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { seasonalRatesSchema, mergeSeasonalRateRecords, validateSeasonalRateCurrency, validateSeasonalRateRoomTypes } from "@/domains/finance/seasonal-pricing";
+import { dailyRatesSchema, mergeDailyRateRecords, validateDailyRateCurrency, validateDailyRateRoomTypes } from "@/domains/finance/daily-rate-calendar";
 
 async function getActivePropertyId(supabase: any, userId: string): Promise<string> {
   const { data, error } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
@@ -74,6 +75,7 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
       if (existing.publication_status === "published") throw new Error("Suspend the rate plan before editing its commercial terms.");
     }
     let inheritedSeasonalRates: Record<string, unknown> = {};
+    let inheritedDailyRates: Record<string, unknown> = {};
     if (data.parent_rate_plan_id) {
       const { data: parent, error: parentError } = await sb.from("staynas_rate_plans")
         .select("id").eq("id",data.parent_rate_plan_id).eq("property_id",propertyId).maybeSingle();
@@ -84,6 +86,7 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
       );
       if (inheritanceError) throw new Error(inheritanceError.message);
       inheritedSeasonalRates = (inherited?.resolved_data?.seasonal_rates ?? {}) as Record<string, unknown>;
+      inheritedDailyRates = (inherited?.resolved_data?.daily_rates ?? {}) as Record<string, unknown>;
     }
 
     const ownSeasonalRates = (data.rate_plan_data.seasonal_rates ?? {}) as Record<string, unknown>;
@@ -101,6 +104,31 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
       if (roomTypesError) throw new Error(roomTypesError.message);
       validateSeasonalRateRoomTypes(
         effectiveSeasonalRates,
+        new Set((roomTypes ?? []).map((roomType: { id: string }) => roomType.id)),
+      );
+    }
+    const ownDailyRates = (data.rate_plan_data.daily_rates ?? {}) as Record<string, unknown>;
+    const mergedDailyRates = mergeDailyRateRecords(inheritedDailyRates, ownDailyRates);
+    const normalizedDailyRates = Object.fromEntries(
+      Object.entries(mergedDailyRates)
+        .filter(([, value]) => value !== null && typeof value === "object" && !Array.isArray(value))
+        .map(([date, value]) => [
+          date,
+          Object.fromEntries(
+            Object.entries(value as Record<string, unknown>).filter(([, rate]) => rate !== null),
+          ),
+        ])
+        .filter(([, roomRates]) => Object.keys(roomRates as Record<string, unknown>).length > 0),
+    );
+    const effectiveDailyRates = dailyRatesSchema.parse(normalizedDailyRates);
+    validateDailyRateCurrency(effectiveDailyRates, String(property.currency));
+    if (Object.keys(effectiveDailyRates).length) {
+      const { data: roomTypes, error: roomTypesError } = await sb.rpc(
+        "get_staynas_rate_plan_room_types", { _property_id: propertyId },
+      );
+      if (roomTypesError) throw new Error(roomTypesError.message);
+      validateDailyRateRoomTypes(
+        effectiveDailyRates,
         new Set((roomTypes ?? []).map((roomType: { id: string }) => roomType.id)),
       );
     }
