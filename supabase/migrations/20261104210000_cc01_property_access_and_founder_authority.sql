@@ -1475,7 +1475,7 @@ BEGIN
   IF _jwt_role <> 'service_role' AND (auth.uid() IS NULL OR NOT public.staynas_user_has_property_access(auth.uid(),_property_id)) THEN
     RAISE EXCEPTION 'Not authorized for requested property';
   END IF;
-  IF _jwt_role <> 'service_role' AND NOT public.staynas_current_user_has_property_role(_property_id, ARRAY['owner','manager','reservations','reception']::public.app_role[]) THEN
+  IF _jwt_role <> 'service_role' AND NOT public.staynas_current_user_has_property_role(_property_id, ARRAY['owner','manager','admin','reservations','reception']::public.app_role[]) THEN
     RAISE EXCEPTION 'Reservation permission required for this property';
   END IF;
   SELECT * INTO _room FROM public.rooms WHERE slug=_room_slug AND status='active' AND property_id=_property_id FOR UPDATE;
