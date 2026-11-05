@@ -4,7 +4,7 @@
 **Workstream:** SPE-04 — Deterministic Pricing Resolver  
 **Milestone:** SPE-04.07  
 **Priority:** P0 — Public booking correctness  
-**Status:** IMPLEMENTATION COMPLETE · NOLMARK UAT REGRESSION PASS · RELEASE HOLD  
+**Status:** IMPLEMENTATION COMPLETE · CODE CI PASS · NOLMARK UAT REGRESSION PASS · BROWSER UAT PENDING  
 **Predecessor:** SPE-04.06 — Final Verification & Release Readiness  
 **Repository:** `dingbee/mtoni-river-lodge`  
 **Working branch:** `feat/spe-04-deterministic-pricing-resolver`
@@ -36,16 +36,17 @@ SPE-04.07 closes the SPE-04.06 public-booking limitation. Eligible published pla
 - `src/routes/book.tsx` presents a selector only when multiple eligible plans exist. It displays plan name, meal plan, refundability and the property-currency accommodation total.
 - Selecting a plan triggers a fresh authoritative quote; the selected ID is carried into booking submission and the booking summary.
 - `src/routes/api/public/availability.search.ts` accepts optional `rate_plan_id` and returns plan choices for ambiguous rooms.
-- `src/lib/public-booking.functions.ts` also carries optional plan IDs through the controlled public demo availability and booking contracts.
+- `src/lib/public-booking.functions.ts` carries optional plan IDs through the controlled public demo availability and booking contracts.
+- `src/routes/$propertySlug.tsx` now renders the plan selector in the public property booking page, shows guest-facing terms/prices, carries the selection to booking, and refreshes the selected-plan state when changed.
 - No TypeScript monetary calculator was introduced.
 
 ## 3. CI evidence
 
-All three required checks passed on implementation head `044c2d60097441f245683fb59c0d5384f72a1367`:
+All three required checks passed on final implementation head `018634173406818fcde3323bfecb302e78205f7a`:
 
-- [P1 build — PASS](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42071735878)
-- [P1 tests — PASS](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42071735842)
-- [Finance/payment integrity — PASS](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42071735810)
+- [P1 build — PASS](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42073809038)
+- [P1 tests — PASS](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42073809196)
+- [Finance/payment integrity — PASS](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42073808920)
 
 The pgTAP test files contain eight discovery and eight selected-plan propagation assertions. The pgTAP runner itself was not executed because the current UAT project does not have the pgTAP extension. The CI workflows do not execute these SQL pgTAP suites.
 
