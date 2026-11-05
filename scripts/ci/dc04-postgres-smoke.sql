@@ -390,3 +390,45 @@ $outbox$;
 RESET ROLE;
 
 SELECT 'DC-04 migration, credential broker and outbox smoke tests passed' AS result;
+
+
+-- DC-04.11: health history is append-only and restricted to server-side recording.
+SET ROLE service_role;
+DO $health$
+DECLARE health_id uuid;
+BEGIN
+  health_id := public.staynas_record_distribution_health_check(
+    '20000000-0000-4000-8000-000000000001',
+    '30000000-0000-4000-8000-000000000001',
+    '70000000-0000-4000-8000-000000000001',
+    'availability.read','healthy',pg_catalog.now(),125,
+    NULL,NULL,NULL,'1.0.0','valid',
+    'dc04-health-correlation-001','dc04-health-worker'
+  );
+  IF health_id IS NULL THEN RAISE EXCEPTION 'Health evidence insert returned no id'; END IF;
+END
+$health$;
+RESET ROLE;
+
+DO $health$
+DECLARE health_id uuid;
+BEGIN
+  SELECT id INTO health_id FROM public.staynas_distribution_health_checks
+  WHERE correlation_id='dc04-health-correlation-001';
+  IF health_id IS NULL THEN RAISE EXCEPTION 'Persisted health evidence missing'; END IF;
+
+  IF has_table_privilege('anon','public.staynas_distribution_health_checks','SELECT')
+     OR has_table_privilege('authenticated','public.staynas_distribution_health_checks','SELECT')
+     OR has_table_privilege('service_role','public.staynas_distribution_health_checks','UPDATE')
+     OR has_table_privilege('service_role','public.staynas_distribution_health_checks','DELETE') THEN
+    RAISE EXCEPTION 'Health evidence table grants are not append-only/server-only';
+  END IF;
+
+  BEGIN
+    UPDATE public.staynas_distribution_health_checks SET health_state='degraded' WHERE id=health_id;
+    RAISE EXCEPTION 'Health evidence update unexpectedly succeeded';
+  EXCEPTION WHEN SQLSTATE '42501' THEN
+    NULL;
+  END;
+END
+$health$;
