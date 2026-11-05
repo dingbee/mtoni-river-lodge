@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resolvePersistedAdapterExecution } from "./persistence";
-import type { AdapterManifest } from "./contracts";
+import type { AdapterManifest, DistributionCapability, DistributionEnvironment } from "./contracts";
 
 const ids = {
   organisation: "10000000-0000-4000-8000-000000000001",
@@ -61,8 +61,8 @@ const base = () => ({
     canManageDistribution: true,
   },
   manifest,
-  capability: "availability.read" as const,
-  environment: "sandbox" as const,
+  capability: "availability.read" as DistributionCapability,
+  environment: "sandbox" as DistributionEnvironment,
   operation: "availability.pull",
   correlationId: "corr-dc04-1",
 });
