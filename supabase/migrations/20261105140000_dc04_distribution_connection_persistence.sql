@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS public.staynas_distribution_external_accounts (
   provider_key text NOT NULL CHECK (provider_key ~ '^[a-z][a-z0-9_-]{1,63}$'),
   external_account_reference text NOT NULL CHECK (length(trim(external_account_reference)) BETWEEN 1 AND 256),
   environment text NOT NULL CHECK (environment IN ('sandbox','live')),
-  credential_reference text NOT NULL CHECK (credential_reference ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}
+  credential_reference uuid NOT NULL,
   lifecycle text NOT NULL DEFAULT 'pending_validation'
     CHECK (lifecycle IN ('pending_validation','connected','degraded','suspended','revoked','error')),
   created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
