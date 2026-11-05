@@ -153,7 +153,7 @@ BEGIN
  END;
  IF NOT v_failed THEN RAISE EXCEPTION 'Cross-property authenticated booking was allowed'; END IF;
 END;
-$;
+$$;
 SQL
 
 # Concurrent final-unit hold race: exactly one request must win.
