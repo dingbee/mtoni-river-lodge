@@ -161,11 +161,9 @@ const repository: DistributionExecutionRepository = {
   },
 };
 
-export const loadTrustedDistributionExecutionContext =
-  createTrustedDistributionExecutionLoader(repository, {
-    resolve(providerKey, adapterVersion) {
-      throw new Error(
-        `No server adapter registry has been configured for ${providerKey}@${adapterVersion}.`,
-      );
-    },
-  });
+/** Bind the loader to the application's server-owned adapter registry. */
+export function createSupabaseDistributionExecutionLoader(
+  registry: Pick<DistributionAdapterRegistry, "resolve">,
+) {
+  return createTrustedDistributionExecutionLoader(repository, registry);
+}
