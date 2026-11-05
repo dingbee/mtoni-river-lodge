@@ -33,10 +33,11 @@ SELECT ok(
 );
 
 SELECT ok(
-  NOT has_function_privilege(
-    'public',
-    'public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)',
-    'EXECUTE'
+  NOT EXISTS (
+    SELECT 1 FROM pg_proc p,
+      LATERAL aclexplode(COALESCE(p.proacl,acldefault('f',p.proowner))) acl
+    WHERE p.oid='public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure
+      AND acl.grantee=0 AND acl.privilege_type='EXECUTE'
   ),
   'PUBLIC cannot execute the resolver'
 );
