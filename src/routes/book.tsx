@@ -837,7 +837,7 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
               {!fits && <p className="mt-1 text-xs text-red-600">Does not fit {totalOccupants} occupant{totalOccupants === 1 ? "" : "s"}</p>}
             </div>
             <div className="text-right">
-              <p className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">{nights} night{nights === 1 ? "" : "s"} total</p>
+              <p className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">{nights} night{nights === 1 ? "" : "s"} · accommodation subtotal</p>
               {requiresPlanChoice && options.length === 0 ? (
                 <p className="font-display text-base text-red-700">Rate plans unavailable — please try again</p>
               ) : requiresPlanChoice && options.length > 1 && !selectedPlan ? (
@@ -854,6 +854,7 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
                   </select>
                   {selectedPlan?.description && <p className="mt-2 text-xs text-charcoal/60">{selectedPlan.description}</p>}
                   {selectedPlan && <p className="mt-1 text-xs text-charcoal/55">{selectedPlan.meal_plan ?? "No meal plan"} · {selectedPlan.refundable ? "Refundable" : "Non-refundable"}</p>}
+                  {selectedPlan && <p className="mt-1 text-[0.65rem] text-charcoal/50">Taxes and selected extras are calculated in the next step.</p>}
                 </div>
               )}
               <p className="text-xs text-charcoal/55">{fmt(nightlyRate, r.currency)} / night · {paidOccupants} paid · {totalOccupants} total</p>
