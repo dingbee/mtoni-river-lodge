@@ -97,8 +97,10 @@ export function toSafeReservationEventEnvelope(event: ExternalReservationEvent):
     adults: event.adults,
     children: event.children,
     providerPayloadFingerprint: event.providerPayloadFingerprint,
-    privateFieldsPresent: Boolean(event.guest.email || event.guest.phone),
+    privateFieldsPresent: Object.values(event.guest).some((value) => Boolean(value)),
     hasFinancialData: event.grossAmount !== undefined || event.taxes !== undefined ||
-      event.fees !== undefined || event.channelCommission !== undefined || event.expectedSettlement !== undefined,
+      event.fees !== undefined || event.channelCommission !== undefined ||
+      event.expectedSettlement !== undefined || event.paymentReference !== undefined ||
+      event.settlementReference !== undefined,
   };
 }
