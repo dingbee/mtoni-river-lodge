@@ -4885,4 +4885,7 @@ CREATE FUNCTION public."staynas_guest_is_accessible"(_uid uuid, _guest_id uuid) 
 CREATE FUNCTION public."staynas_set_guest_child_property"() RETURNS trigger LANGUAGE plpgsql AS $stub$ BEGIN RETURN; END; $stub$;
 CREATE FUNCTION public."staynas_user_has_property_access"(_uid uuid, _property_id uuid) RETURNS boolean LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
 
+-- Existing restaurant-domain authorization predicates used by legacy RLS.
+CREATE FUNCTION public.restaurant_can_read(_tenant_id uuid) RETURNS boolean LANGUAGE plpgsql AS $stub$ BEGIN RETURN false; END; $stub$;
+CREATE FUNCTION public.restaurant_can_write(_tenant_id uuid, _roles public.restaurant_role[]) RETURNS boolean LANGUAGE plpgsql AS $stub$ BEGIN RETURN false; END; $stub$;
 SET check_function_bodies = on;
