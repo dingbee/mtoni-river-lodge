@@ -361,7 +361,7 @@ BEGIN
     _row.id,_row.organisation_id,_row.property_id,_row.attempt_count,_worker_id,
     _status,_normalized_error_code,_safe_summary,_provider_reference,_response_code,
     _duration_ms,_row.correlation_id,
-    coalesce(_row.lease_expires_at - pg_catalog.make_interval(secs=>60),_row.updated_at),
+    _row.updated_at,
     pg_catalog.now()
   );
 
