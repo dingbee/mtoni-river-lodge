@@ -23,8 +23,9 @@ export interface CommercialPriceResolution {
   propertyCount: number;
   asOf: string;
   lines: CommercialPriceLine[];
-  totalAmountMinor: number;
+  totalAmountMinor: number | null;
   quoteRequired: boolean;
+  requestedAddonCodes: string[];
 }
 
 /** Resolve one exact currency/term/version price; never perform FX conversion. */
@@ -61,8 +62,9 @@ export function resolveCommercialPrice(
       propertyCount: input.propertyCount,
       asOf: input.asOf,
       lines: [],
-      totalAmountMinor: 0,
+      totalAmountMinor: null,
       quoteRequired: true,
+      requestedAddonCodes: input.addons.map((addon) => addon.addonCode),
     };
   }
 
@@ -130,6 +132,7 @@ export function resolveCommercialPrice(
     lines,
     totalAmountMinor,
     quoteRequired: false,
+    requestedAddonCodes: input.addons.map((addon) => addon.addonCode),
   };
 }
 
