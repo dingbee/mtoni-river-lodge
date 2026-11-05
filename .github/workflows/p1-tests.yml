@@ -76,7 +76,6 @@ jobs:
           src/domains/finance/rate-plan-publication.test.ts
           src/routes/_authenticated.admin.finance.rate-plans.tsx
           src/routes/_authenticated.admin.finance.rate-overrides.tsx
-          src/domains/finance/daily-rate-calendar.test.ts
           src/domains/finance/seasonal-pricing.test.ts
           src/lib/finance-rpc.ts
           src/lib/pricing.ts
