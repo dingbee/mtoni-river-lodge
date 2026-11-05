@@ -12,6 +12,7 @@ import {
   Activity,
 } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
+import { Tags } from "lucide-react";
 import { SectionCard } from "@/components/os/SectionCard";
 import { StatCard } from "@/components/os/StatCard";
 import { LoadingState } from "@/components/os/LoadingState";
@@ -62,6 +63,7 @@ function RevenueDashboard() {
         description="Live financial performance for Mtoni River Lodge."
         actions={
           <div className="flex gap-2">
+            <Link to="/admin/finance/rate-plans" className="text-sm text-primary hover:underline">Rate Plans</Link>
             <Link to="/admin/finance/payments" className="text-sm text-primary hover:underline">
               Payments
             </Link>
