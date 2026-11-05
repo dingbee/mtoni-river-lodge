@@ -278,7 +278,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $spe02_safe$
 BEGIN
   RETURN public.calculate_staynas_booking_quote(
     _property_id,_room_id,_check_in,_check_out,_adults,_children_below_6,_children_7_plus,'[]'::jsonb
@@ -286,7 +286,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN
   RETURN NULL;
 END;
-$;
+$spe02_safe$;
 
 CREATE OR REPLACE FUNCTION public.get_staynas_room_availability_priced(
   _check_in date,
