@@ -132,13 +132,6 @@ export async function publishNextDistributionOutboxEvent(
 
   try {
     await publish(event);
-    await finishDistributionOutboxEvent({
-      outboxId: event.id,
-      leaseToken: event.lease_token,
-      workerId,
-      status: "published",
-    });
-    return Object.freeze({ claimed: true, published: true });
   } catch {
     await finishDistributionOutboxEvent({
       outboxId: event.id,
@@ -150,4 +143,12 @@ export async function publishNextDistributionOutboxEvent(
     });
     return Object.freeze({ claimed: true, published: false });
   }
+
+  await finishDistributionOutboxEvent({
+    outboxId: event.id,
+    leaseToken: event.lease_token,
+    workerId,
+    status: "published",
+  });
+  return Object.freeze({ claimed: true, published: true });
 }
