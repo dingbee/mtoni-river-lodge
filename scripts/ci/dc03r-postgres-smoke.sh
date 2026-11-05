@@ -108,14 +108,14 @@ BEGIN
  IF to_regprocedure('public.staynas_booking_property_id(text)') IS NOT NULL THEN
   RAISE EXCEPTION 'Hostname property resolver overload remains';
  END IF;
- IF to_regprocedure('public.get_room_availability_for_property(uuid,date,date)') IS NOT NULL THEN
-  RAISE EXCEPTION 'Legacy anonymous availability RPC remains';
+ IF has_function_privilege('anon','public.get_room_availability_for_property(uuid,date,date)'::regprocedure,'EXECUTE') THEN
+  RAISE EXCEPTION 'Anonymous property availability RPC privilege remains';
  END IF;
- IF to_regprocedure('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)') IS NOT NULL THEN
-  RAISE EXCEPTION 'Legacy property-first booking RPC remains';
+ IF has_function_privilege('anon','public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)'::regprocedure,'EXECUTE') THEN
+  RAISE EXCEPTION 'Anonymous property-first booking RPC privilege remains';
  END IF;
- IF to_regprocedure('public.create_booking_hold_for_property(uuid,text,date,date,text,text,integer)') IS NOT NULL THEN
-  RAISE EXCEPTION 'Legacy property-first hold RPC remains';
+ IF has_function_privilege('anon','public.create_booking_hold_for_property(uuid,text,date,date,text,text,integer)'::regprocedure,'EXECUTE') THEN
+  RAISE EXCEPTION 'Anonymous property-first hold RPC privilege remains';
  END IF;
  IF has_function_privilege('anon','public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid,text)'::regprocedure,'EXECUTE') THEN
   RAISE EXCEPTION 'Anonymous booking RPC privilege remains';
