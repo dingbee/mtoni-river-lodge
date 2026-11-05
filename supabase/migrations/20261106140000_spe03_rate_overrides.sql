@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS public.staynas_rate_overrides (
   rejected_at timestamptz,
   revoked_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   revoked_at timestamptz,
+  previous_inventory_price_override numeric(12,2),
+  applied_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT staynas_rate_overrides_scope_check CHECK (
@@ -175,6 +177,11 @@ BEGIN
   END IF;
   IF TG_OP='UPDATE' AND OLD.status='approved' AND NEW.status='pending' THEN
     RAISE EXCEPTION 'An approved override cannot return to pending';
+  END IF;
+  IF TG_OP='UPDATE' AND OLD.status='approved' AND NEW.status='approved'
+     AND (to_jsonb(OLD) - 'updated_at' - 'approved_by' - 'approved_at')
+       IS DISTINCT FROM (to_jsonb(NEW) - 'updated_at' - 'approved_by' - 'approved_at') THEN
+    RAISE EXCEPTION 'Approved rate override terms are immutable; revoke and create a new override';
   END IF;
   IF TG_OP='UPDATE' AND OLD.status IN ('rejected','revoked') AND NEW.status<>OLD.status THEN
     RAISE EXCEPTION 'Rejected and revoked overrides are terminal';
@@ -360,15 +367,18 @@ BEGIN
   END IF;
   IF v_override.status<>'pending' THEN RAISE EXCEPTION 'Only pending rate overrides can be approved'; END IF;
 
-  UPDATE public.staynas_rate_overrides SET status='approved'
+  SELECT * INTO v_inventory FROM public.room_inventory
+  WHERE room_id=v_override.room_id AND date=v_override.effective_from FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Inventory calendar row is missing; rate override was not applied';
+  END IF;
+  UPDATE public.staynas_rate_overrides
+  SET status='approved',previous_inventory_price_override=v_inventory.price_override,applied_at=now()
   WHERE id=_override_id;
 
   UPDATE public.room_inventory
   SET price_override=v_override.nightly_rate,updated_at=now()
   WHERE room_id=v_override.room_id AND date=v_override.effective_from;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Inventory calendar row is missing; rate override was not applied';
-  END IF;
 
   RETURN jsonb_build_object('override_id',_override_id,'status','approved',
     'nightly_rate',v_override.nightly_rate,'currency',v_override.currency);
@@ -381,8 +391,44 @@ REVOKE ALL ON FUNCTION public.audit_staynas_inventory_price_override() FROM PUBL
 REVOKE ALL ON FUNCTION public.prevent_staynas_rate_override_audit_mutation() FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.apply_staynas_room_date_rate_override(uuid,uuid,date,numeric,text) FROM PUBLIC,anon;
 REVOKE ALL ON FUNCTION public.approve_staynas_room_date_rate_override(uuid) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.revoke_staynas_room_date_rate_override(uuid) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.apply_staynas_room_date_rate_override(uuid,uuid,date,numeric,text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.approve_staynas_room_date_rate_override(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.revoke_staynas_room_date_rate_override(uuid) TO authenticated;
+
+
+CREATE OR REPLACE FUNCTION public.revoke_staynas_room_date_rate_override(_override_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path=public
+AS $function$
+DECLARE
+  v_override public.staynas_rate_overrides%ROWTYPE;
+  v_actor uuid := auth.uid();
+BEGIN
+  SELECT * INTO v_override FROM public.staynas_rate_overrides
+  WHERE id=_override_id AND scope='room_date'
+  FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Room/date rate override not found'; END IF;
+  IF v_actor IS NULL
+     OR public.staynas_active_property_id(v_actor) IS DISTINCT FROM v_override.property_id
+     OR NOT public.staynas_user_has_property_access(v_actor,v_override.property_id)
+     OR NOT public.has_any_role(v_actor,ARRAY['owner','manager','finance','admin']::public.app_role[]) THEN
+    RAISE EXCEPTION 'Rate override revocation access denied';
+  END IF;
+  IF v_override.status<>'approved' THEN RAISE EXCEPTION 'Only approved overrides can be revoked'; END IF;
+
+  UPDATE public.room_inventory
+  SET price_override=v_override.previous_inventory_price_override,updated_at=now()
+  WHERE room_id=v_override.room_id AND date=v_override.effective_from;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Inventory calendar row is missing; override was not revoked'; END IF;
+
+  UPDATE public.staynas_rate_overrides SET status='revoked' WHERE id=_override_id;
+  RETURN jsonb_build_object('override_id',_override_id,'status','revoked',
+    'restored_price_override',v_override.previous_inventory_price_override);
+END;
+$function$;
 
 COMMENT ON TABLE public.staynas_rate_overrides IS
   'Property-scoped override proposals and approvals. Rate-plan/room-type scopes are metadata for SPE-04 resolution; exact room/date approval writes only the legacy room_inventory.price_override field.';
