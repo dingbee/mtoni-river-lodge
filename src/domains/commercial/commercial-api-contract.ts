@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { catalogueReadSchema, planDetailsSchema } from "./catalogue-contract";
 import { commercialPriceResolutionInputSchema } from "./pricing-contract";
-import { commercialPackageCompositionSchema } from "./package-composition-contract";
+import { commercialAddonCompatibilitySchema, commercialPackageCompositionSchema } from "./package-composition-contract";
 import { commercialTrialPolicyResolutionInputSchema } from "./trial-configuration-contract";
 import { COMMERCIAL_ADMIN_ACTIONS } from "./founder-administration-contract";
 
@@ -42,7 +42,7 @@ export const commercialApiCompositionValidationRequestSchema = commercialApiRequ
   body: z.object({
     composition: commercialPackageCompositionSchema,
     // Compatibility rules are explicitly supplied; absent rules are not inferred.
-    compatibilityRules: z.array(z.unknown()).default([]),
+    compatibilityRules: z.array(commercialAddonCompatibilitySchema).default([]),
   }),
 });
 export const commercialApiTrialPolicyRequestSchema = commercialApiRequestMetaSchema.extend({
