@@ -386,6 +386,7 @@ BEGIN
     'snapshot_hash',v_publication.snapshot_hash,
     'currency',v_property_currency,'timezone',v_timezone,
     'check_in',_check_in,'check_out',_check_out,'nights',v_nights,
+    'minimum_stay',v_min_los,
     'adults',_adults,'children_below_6',COALESCE(_children_below_6,0),
     'children_7_plus',COALESCE(_children_7_plus,0),'occupants',v_occupants,
     'billable_occupants',v_paid_occupants,'nightly',v_breakdown,
