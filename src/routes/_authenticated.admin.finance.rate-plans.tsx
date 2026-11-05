@@ -419,6 +419,21 @@ function RatePlans() {
       {!data?.plans?.length&&<tr><td colSpan={9} className="py-8 text-center text-muted-foreground">No rate plans yet. Create the first commercial plan above.</td></tr>}
       </tbody></table></div>
     </SectionCard>}
+    <SectionCard title="Authorized published-rate catalogue" description="Read-only integration view of the publication RPC. Only the latest snapshot for currently published and active plans is returned; drafts and suspended plans are excluded.">
+      {publishedLoading?<LoadingState/>:publishedError?<p className="text-sm text-destructive">{(publishedErrorValue as Error)?.message??"Unable to load published rate plans."}</p>:(
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">{(publishedData??[]).length} currently published plan(s) for this property.</p>
+          {(publishedData??[]).map((item:{publication_id:string;rate_plan_id:string;publication_number:number;rate_plan_version:number;code:string;name:string;currency:string;effective_from:string|null;effective_to:string|null;published_at:string;room_type_assignments:{room_type_id:string;name:string}[]})=>
+            <div key={item.publication_id} className="flex flex-wrap items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
+              <div className="min-w-0 flex-1"><span className="font-medium">{item.name}</span><span className="ml-2 text-xs text-muted-foreground">{item.code} · {item.currency} · {item.effective_from??"Any"} → {item.effective_to??"Open"}</span><p className="text-xs text-muted-foreground">{(item.room_type_assignments??[]).map(room=>room.name).join(", ")}</p></div>
+              <Badge>Published</Badge><Badge variant="outline">Publication {item.publication_number}</Badge><Badge variant="outline">v{item.rate_plan_version}</Badge>
+              <span className="text-xs text-muted-foreground">{new Date(item.published_at).toLocaleString()}</span>
+            </div>
+          )}
+          {!(publishedData??[]).length&&<p className="py-5 text-center text-sm text-muted-foreground">No active published rate plans. Drafts and suspended plans are intentionally hidden.</p>}
+        </div>
+      )}
+    </SectionCard>
     {detailsPlan&&<SectionCard title={"Rate plan details — "+detailsPlan.name} description="Read-only view of the selected property's commercial terms and configuration.">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div><span className="text-xs text-muted-foreground">Plan code</span><p className="font-medium">{detailsPlan.code}</p></div>
