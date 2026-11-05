@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { bookingRpc } from "@/lib/booking-rpc";
 
 // First controlled Public Booking Network demo. Keep the UAT property allowlist
 // explicit until StayNas has a property-level publication/visibility setting.
@@ -106,10 +105,13 @@ export const searchPublicDemoAvailability = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in.");
     const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
-    const { data: rows, error } = await bookingRpc(supabaseAdmin).rpc("get_room_availability", {
+    const { data: rows, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced", {
       _check_in: data.checkIn,
       _check_out: data.checkOut,
       _property_id: property.id,
+      _adults: data.guests,
+      _children_below_6: 0,
+      _children_7_plus: 0,
     });
     if (error) throw new Error(error.message);
 
@@ -117,11 +119,12 @@ export const searchPublicDemoAvailability = createServerFn({ method: "POST" })
       .map((room: any) => ({
         ...room,
         base_price: Number(room.base_price),
-        nightly_total: Number(room.nightly_total),
-        fits_guests: data.guests <= room.max_occupancy,
+        nightly_total: Number(room.pricing_quote?.total ?? room.nightly_total),
+        pricing_quote: room.pricing_quote,
+        fits_guests: Boolean(room.fits_occupancy),
       }))
       .filter((room: any) => room.is_available && room.fits_guests)
-      .sort((a: any, b: any) => a.base_price - b.base_price);
+      .sort((a: any, b: any) => a.nightly_total - b.nightly_total);
   });
 
 const createBookingSchema = z.object({
@@ -148,25 +151,24 @@ export const createPublicDemoBooking = createServerFn({ method: "POST" })
     // role is confined to this server function; the property ID is resolved
     // server-side from the explicit UAT demo allowlist and never trusted from
     // the browser.
-    const { data: rows, error } = await bookingRpc(supabaseAdmin).rpc("create_booking", {
+    const { data: rows, error } = await (supabaseAdmin as any).rpc("create_booking_for_property", {
+      _property_id: property.id,
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
       _check_out: data.checkOut,
       _adults: data.adults,
       _children: data.children,
-      _children_below_6: 0,
-      _children_7_plus: data.children,
-      // The deployed property-scoped RPC requires explicit hold arguments.
-      // Direct guest checkout does not create a hold, so pass nulls.
-      _hold_id: null,
-      _session_id: null,
       _guest_name: data.guestName,
       _guest_email: data.guestEmail,
       _guest_phone: data.guestPhone || null,
       _country: data.country || null,
       _special_requests: data.specialRequests || null,
-      _property_id: property.id,
       _extras: [],
+      _children_below_6: 0,
+      _children_7_plus: data.children,
+      _hold_id: null,
+      _session_id: null,
+      _payment_method: "pay_at_property",
     });
 
     if (error) throw new Error(error.message);
