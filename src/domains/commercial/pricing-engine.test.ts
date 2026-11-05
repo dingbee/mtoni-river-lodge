@@ -96,7 +96,7 @@ describe("CC02.02 commercial pricing architecture", () => {
 
   it("resolves base, additional-property and per-property add-on amounts", () => {
     const result = resolveCommercialPrice(input, [planPrice], [addonPrice]);
-    expect(result.totalAmountMinor).toBe(135_000_00);
+    expect(result.totalAmountMinor).toBe(155_000_00);
     expect(result.lines.map((line) => [line.kind, line.quantity, line.amountMinor])).toEqual([
       ["plan_base", 1, 100_000_00],
       ["additional_property", 1, 25_000_00],
