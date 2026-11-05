@@ -287,6 +287,38 @@ BEGIN
 
   _denied := false;
   BEGIN
+    PERFORM 1 FROM public.get_booking_hold_for_property(
+      '30000000-0000-0000-0000-000000000002',
+      '40000000-0000-0000-0000-000000000099',
+      'cc01-session-0002'
+    );
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM LIKE 'Property is not available in this booking context%' THEN
+      _denied := true;
+    ELSE
+      RAISE;
+    END IF;
+  END;
+  IF NOT _denied THEN RAISE EXCEPTION 'Anonymous hold lookup crossed into another property'; END IF;
+
+  _denied := false;
+  BEGIN
+    PERFORM public.release_booking_hold_for_property(
+      '30000000-0000-0000-0000-000000000002',
+      '40000000-0000-0000-0000-000000000099',
+      'cc01-session-0002'
+    );
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM LIKE 'Property is not available in this booking context%' THEN
+      _denied := true;
+    ELSE
+      RAISE;
+    END IF;
+  END;
+  IF NOT _denied THEN RAISE EXCEPTION 'Anonymous hold release crossed into another property'; END IF;
+
+  _denied := false;
+  BEGIN
     PERFORM 1 FROM public.create_booking_for_property(
       '30000000-0000-0000-0000-000000000002', 'unknown-room',
       current_date + 1, current_date + 2, 1, 0, 'Guest', 'guest@example.test',
