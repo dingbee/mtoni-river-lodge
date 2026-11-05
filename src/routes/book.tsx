@@ -819,7 +819,7 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
         const fits = Boolean(r.fits_occupancy);
         const disabled = !r.is_available || !fits;
         // Centralized pricing: per-guest, per-night.
-        const displayTotal = Number(r.pricing_quote?.accommodation_subtotal ?? 0);
+        const displayTotal = Number(r.pricing_quote?.total ?? r.nightly_total ?? 0);
         const nightlyRate = Number(r.pricing_quote?.nightly?.[0]?.nightly_rate ?? 0);
         return (
           <div key={r.room_id} className="flex flex-col gap-4 rounded-2xl border border-charcoal/10 bg-ivory p-6 sm:flex-row sm:items-center sm:justify-between">
