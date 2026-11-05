@@ -286,6 +286,19 @@ BEGIN
   SELECT * INTO v_event
   FROM public.staynas_claim_distribution_outbox('dc04-outbox-worker',45)
   LIMIT 1;
+  -- The earlier ledger smoke fixture inserted one pending event directly.
+  -- Complete it first if it is the next ordered claim, then claim our RPC event.
+  IF v_event.id IS DISTINCT FROM v_outbox_id THEN
+    IF v_event.status <> 'publishing' OR v_event.lease_token IS NULL THEN
+      RAISE EXCEPTION 'Unexpected pre-existing outbox claim state';
+    END IF;
+    PERFORM public.staynas_finish_distribution_outbox(
+      v_event.id,v_event.lease_token,'dc04-outbox-worker','published',NULL,NULL
+    );
+    SELECT * INTO v_event
+    FROM public.staynas_claim_distribution_outbox('dc04-outbox-worker',45)
+    LIMIT 1;
+  END IF;
   IF v_event.id IS DISTINCT FROM v_outbox_id OR v_event.status <> 'publishing'
      OR v_event.lease_token IS NULL OR v_event.attempt_count <> 1 THEN
     RAISE EXCEPTION 'Atomic outbox claim failed';
