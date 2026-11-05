@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Local contracts for the property-scoped booking RPCs defined in
-// supabase/review/20261024090000_staynas_booking_property_isolation.sql.
+// supabase/migrations/20261104210000_cc01_property_access_and_founder_authority.sql.
 // The generated database types are stale (they predate the property
 // hardening), so — as with staynas-rpc.ts and housekeeping-rpc.ts — these
 // contracts live here until the migration is applied and types regenerate.
@@ -43,6 +43,9 @@ export interface CreateBookingRow {
   reference: string;
   total: number;
   currency: string;
+  taxes?: number;
+  tax_addition?: number;
+  tax_breakdown?: unknown;
 }
 
 export interface CreateBookingArgs {
@@ -62,6 +65,7 @@ export interface CreateBookingArgs {
   _children_7_plus?: number;
   _hold_id?: string | null;
   _session_id?: string | null;
+  _payment_method?: string;
 }
 
 export interface BookingPropertyRpc {
@@ -94,6 +98,28 @@ export interface BookingPropertyRpc {
     fn: "get_booking_hold_for_session",
     args: { _hold_id: string; _session_id: string; _property_id: string },
   ): Result<HoldSessionRow[]>;
+  rpc(fn: "create_booking_for_property", args: CreateBookingArgs): Result<CreateBookingRow[]>;
+  rpc(
+    fn: "create_booking_hold_for_property",
+    args: {
+      _property_id: string;
+      _room_slug: string;
+      _check_in: string;
+      _check_out: string;
+      _session_id: string;
+      _guest_email?: string;
+      _ttl_seconds?: number;
+    },
+  ): Result<HoldCreatedRow[]>;
+  rpc(
+    fn: "release_booking_hold_for_property",
+    args: { _property_id: string; _hold_id: string; _session_id: string },
+  ): Result<boolean>;
+  rpc(
+    fn: "get_booking_hold_for_property",
+    args: { _property_id: string; _hold_id: string; _session_id: string },
+  ): Result<HoldSessionRow[]>;
+  rpc(fn: "checkin_eligibility_for_property", args: { _booking_id: string }): Result<any>;
   rpc(fn: "create_booking", args: CreateBookingArgs): Result<CreateBookingRow[]>;
 }
 

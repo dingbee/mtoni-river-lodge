@@ -27,7 +27,7 @@ export const Route = createFileRoute("/api/public/availability/search")({
           { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
         );
         const propertyId = await getConfiguredBookingPropertyId(sb);
-        const { data, error } = await bookingRpc(sb).rpc("get_room_availability", {
+        const { data, error } = await bookingRpc(sb).rpc("get_room_availability_for_property", {
           _check_in: checkIn,
           _check_out: checkOut,
           _property_id: propertyId,

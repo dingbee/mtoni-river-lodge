@@ -4899,4 +4899,15 @@ CREATE FUNCTION public.restaurant_can_write(_tenant_id uuid, _roles public.resta
 CREATE FUNCTION public.checkin_sync_reservation(_checkin_id uuid, _client jsonb DEFAULT '{}'::jsonb) RETURNS jsonb LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
 CREATE FUNCTION public.restaurant_is_platform_admin(_user_id uuid) RETURNS boolean LANGUAGE plpgsql AS $stub$ BEGIN RETURN false; END; $stub$;
 CREATE FUNCTION public.staynas_ai_property_in_active_context(p_property_id uuid, p_allowed_roles public.app_role[]) RETURNS boolean LANGUAGE plpgsql AS $stub$ BEGIN RETURN false; END; $stub$;
+CREATE FUNCTION public.create_booking(
+  _room_slug text, _check_in date, _check_out date, _adults integer, _children integer,
+  _guest_name text, _guest_email text, _guest_phone text, _country text,
+  _special_requests text, _extras jsonb, _children_below_6 integer,
+  _children_7_plus integer, _hold_id uuid, _session_id text, _property_id uuid
+) RETURNS TABLE(booking_id uuid, reference text, total numeric, currency text)
+LANGUAGE plpgsql AS $stub$ BEGIN RETURN; END; $stub$;
+CREATE FUNCTION public.reassign_booking_room(
+  _booking_id uuid, _new_room_id uuid, _actor uuid DEFAULT NULL::uuid,
+  _reason text DEFAULT NULL::text
+) RETURNS jsonb LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
 SET check_function_bodies = on;

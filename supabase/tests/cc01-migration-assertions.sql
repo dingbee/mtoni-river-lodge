@@ -38,6 +38,29 @@ BEGIN
      OR NOT has_function_privilege('service_role','public.staynas_ai_property_in_active_context(uuid,app_role[])','EXECUTE')
   THEN RAISE EXCEPTION 'AI active-property helper grants are incorrect'; END IF;
 
+  IF has_function_privilege('anon','public.housekeeping_is_supervisor(uuid)','EXECUTE')
+     OR NOT has_function_privilege('authenticated','public.housekeeping_is_supervisor(uuid)','EXECUTE')
+     OR NOT has_function_privilege('service_role','public.housekeeping_is_supervisor(uuid)','EXECUTE')
+  THEN RAISE EXCEPTION 'Housekeeping supervisor helper grants are incorrect'; END IF;
+
+  IF has_function_privilege('anon','public.checkin_eligibility_for_property(uuid)','EXECUTE')
+     OR NOT has_function_privilege('authenticated','public.checkin_eligibility_for_property(uuid)','EXECUTE')
+     OR NOT has_function_privilege('service_role','public.checkin_eligibility_for_property(uuid)','EXECUTE')
+  THEN RAISE EXCEPTION 'Property-scoped check-in eligibility grants are incorrect'; END IF;
+
+  IF has_function_privilege('anon','public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid)','EXECUTE')
+     OR NOT has_function_privilege('authenticated','public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid)','EXECUTE')
+     OR NOT has_function_privilege('service_role','public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid)','EXECUTE')
+     OR position('staynas_current_user_has_property_role' in pg_get_functiondef('public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid)'::regprocedure)) = 0
+  THEN RAISE EXCEPTION 'Staff create_booking role guard or grants are incorrect'; END IF;
+
+  IF has_function_privilege('anon','public.reassign_booking_room(uuid,uuid,uuid,text)','EXECUTE')
+     OR NOT has_function_privilege('authenticated','public.reassign_booking_room(uuid,uuid,uuid,text)','EXECUTE')
+     OR NOT has_function_privilege('service_role','public.reassign_booking_room(uuid,uuid,uuid,text)','EXECUTE')
+     OR position('staynas_current_user_has_property_role' in pg_get_functiondef('public.reassign_booking_room(uuid,uuid,uuid,text)'::regprocedure)) = 0
+     OR position('property_id IS DISTINCT FROM' in pg_get_functiondef('public.reassign_booking_room(uuid,uuid,uuid,text)'::regprocedure)) = 0
+  THEN RAISE EXCEPTION 'Room reassignment property/role guard or grants are incorrect'; END IF;
+
   IF has_function_privilege('anon','public.staynas_active_property_id(uuid)','EXECUTE')
      OR NOT has_function_privilege('authenticated','public.staynas_active_property_id(uuid)','EXECUTE')
      OR NOT has_function_privilege('service_role','public.staynas_active_property_id(uuid)','EXECUTE')
@@ -71,7 +94,7 @@ BEGIN
       'hk_room_state_events','hk_task_events','staynas_enforce_hold_property',
       'staynas_enforce_ops_task_property','staynas_set_guest_child_property',
       'arrival_pass_validate_unscoped','checkin_eligibility',
-      'housekeeping_is_supervisor','current_user_roles','checkin_log_activity',
+      'current_user_roles','checkin_log_activity',
       'checkin_sync_reservation','log_calendar_event','is_guest_pii_staff',
       'restaurant_is_platform_admin'
     ])

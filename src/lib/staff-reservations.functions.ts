@@ -9,7 +9,6 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { logActivity } from "@/lib/activity-log.server";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { bookingRpc } from "@/lib/booking-rpc";
-import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 import { requireStayNasCoreStaffAccess } from "@/lib/staynas-authorization.server";
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- untyped RPC surfaces, matching existing admin services */
@@ -58,9 +57,14 @@ export const createStaffReservation = createServerFn({ method: "POST" })
     const below6 = data.childrenBelow6 ?? 0;
     const plus7 = data.children7Plus ?? 0;
 
-    // Staff reservations are created against the same configured booking
-    // property as the public engine; the RPC enforces it.
-    const propertyId = await getConfiguredBookingPropertyId(sb);
+    // Staff reservations follow the authenticated user's active property.
+    const { data: propertyId, error: propertyError } = await sb.rpc(
+      "staynas_active_property_id",
+      { _uid: context.userId },
+    );
+    if (propertyError || !propertyId) {
+      throw new Error(propertyError?.message ?? "Active property context is required.");
+    }
     const { data: result, error } = await bookingRpc(sb).rpc("create_booking", {
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
@@ -97,7 +101,7 @@ export const createStaffReservation = createServerFn({ method: "POST" })
       token: null, status: null, eligible: false,
     };
     try {
-      const { data: elig } = await sb.rpc("checkin_eligibility", { _booking_id: bookingId });
+      const { data: elig } = await bookingRpc(sb).rpc("checkin_eligibility_for_property", { _booking_id: bookingId });
       const eligible = Boolean(elig?.eligible);
       checkin.eligible = eligible;
       if (eligible) {
@@ -130,7 +134,7 @@ export const getReservationCheckinAccess = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const { data: elig, error } = await sb.rpc("checkin_eligibility", { _booking_id: data.bookingId });
+    const { data: elig, error } = await bookingRpc(sb).rpc("checkin_eligibility_for_property", { _booking_id: data.bookingId });
     if (error) throw new Error(error.message);
     const eligible = Boolean(elig?.eligible);
     const { data: existing } = await sb.from("guest_checkins").select("token, status, expires_at, submitted_at").eq("booking_id", data.bookingId).maybeSingle();
