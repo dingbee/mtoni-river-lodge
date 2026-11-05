@@ -3,9 +3,7 @@ import type { AdapterExecutionContext } from "../adapters/contracts";
 import { assertVerifiedReservationWebhook, type VerifiedReservationWebhook } from "./provider-signature-verification.server";
 import { receiveDistributionWebhook } from "../adapters/operation-ledger.server";
 import {
-  externalReservationSchema,
   toSafeReservationEventEnvelope,
-  type ExternalReservationEvent,
 } from "./reservation-ingestion.contracts";
 
 /**
