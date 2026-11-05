@@ -525,7 +525,7 @@ function BookPage() {
                 // First-time pick, or re-picking the same room the session is
                 // already bound to — just proceed to guest details.
                 if (!currentRoomContext || currentRoomContext === r.slug) {
-                  const roomWithPlan = { ...r, selected_rate_plan_id: ratePlanId };
+                  const roomWithPlan = { ...r, selected_rate_plan_id: ratePlanId, selected_rate_plan: r.rate_plan_options?.find((plan) => plan.rate_plan_id === ratePlanId) ?? (r.rate_plan_options?.length === 1 ? r.rate_plan_options[0] : undefined) };
                   setSelectedRoom(roomWithPlan);
                   setBookingQuote(r.pricing_quote);
                   // Fire-and-forget hold acquisition — 15-minute inventory lock.
@@ -828,7 +828,7 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
         const selectedPlan = options.find((p) => p.rate_plan_id === selectedPlanId) ?? (options.length === 1 ? options[0] : undefined);
         const requiresPlanChoice = r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED";
         const displayTotal = Number(selectedPlan?.total ?? r.pricing_quote?.total ?? r.nightly_total ?? 0);
-        const nightlyRate = Number(r.pricing_quote?.nightly?.[0]?.nightly_rate ?? 0);
+        const nightlyRate = selectedPlan ? Number(selectedPlan.total) / Math.max(1, nights) : Number(r.pricing_quote?.nightly?.[0]?.nightly_rate ?? 0);
         return (
           <div key={r.room_id} className="flex flex-col gap-4 rounded-2xl border border-charcoal/10 bg-ivory p-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -986,6 +986,7 @@ function GuestStep(props: {
         <h4 className="font-display text-lg">Your Stay</h4>
         <div className="space-y-1 text-sm">
           <p className="font-medium">{props.room.name}</p>
+          {props.room.selected_rate_plan && <p className="text-xs text-charcoal/65">{props.room.selected_rate_plan.name} · {props.room.selected_rate_plan.meal_plan ?? "No meal plan"} · {props.room.selected_rate_plan.refundable ? "Refundable" : "Non-refundable"}</p>}
           <p className="text-xs text-charcoal/60">
             {props.nights} night{props.nights === 1 ? "" : "s"} · {props.totalOccupants} occupant{props.totalOccupants === 1 ? "" : "s"}
             {props.childrenBelow6 > 0 && ` (incl. ${props.childrenBelow6} under 6)`}
