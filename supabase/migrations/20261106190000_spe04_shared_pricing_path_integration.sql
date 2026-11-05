@@ -552,6 +552,7 @@ BEGIN
     'property_id',_property_id,'room_id',_room_id,'currency',v_currency,
     'check_in',_check_in,'check_out',_check_out,'nights',v_nights,
     'nightly',v_room_quote->'nightly',
+    'pricing_evidence',v_room_quote->'pricing_evidence',
     'accommodation_subtotal',(v_room_quote->>'accommodation_subtotal')::numeric,
     'extras',v_extra_lines,'extras_total',v_extras_total,
     'taxes',v_tax_total,'tax_addition',v_tax_addition,
