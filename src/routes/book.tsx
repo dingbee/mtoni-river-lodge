@@ -825,7 +825,8 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
         // Centralized pricing: per-guest, per-night.
         const options = r.rate_plan_options ?? [];
         const selectedPlanId = selectedPlans[r.room_id] ?? "";
-        const selectedPlan = options.find((p) => p.rate_plan_id === selectedPlanId);
+        const selectedPlan = options.find((p) => p.rate_plan_id === selectedPlanId) ?? (options.length === 1 ? options[0] : undefined);
+        const requiresPlanChoice = r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED";
         const displayTotal = Number(selectedPlan?.total ?? r.pricing_quote?.total ?? r.nightly_total ?? 0);
         const nightlyRate = Number(r.pricing_quote?.nightly?.[0]?.nightly_rate ?? 0);
         return (
@@ -851,7 +852,7 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
               )}
               <p className="text-xs text-charcoal/55">{fmt(nightlyRate, r.currency)} / night · {paidOccupants} paid · {totalOccupants} total</p>
               <button
-                onClick={() => onSelect(r, selectedPlanId || undefined)} disabled={disabled || (options.length > 1 && !selectedPlanId)}
+                onClick={() => onSelect(r, selectedPlanId || undefined)} disabled={disabled || (requiresPlanChoice && options.length === 0) || (options.length > 1 && !selectedPlanId)}
                 className="mt-3 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
                 style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
               >
