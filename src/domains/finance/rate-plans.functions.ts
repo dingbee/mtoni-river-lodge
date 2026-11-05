@@ -224,3 +224,18 @@ export const resolveStayNasRatePlanInheritance = createServerFn({ method: "POST"
     if (error) throw new Error(error.message);
     return resolved;
   });
+
+
+export const createStayNasRatePlanInheritanceSnapshot = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActivePropertyId(context.supabase, context.userId);
+    const { data: snapshot, error } = await context.supabase.rpc(
+      "create_staynas_rate_plan_inheritance_snapshot",
+      { _property_id: propertyId, _rate_plan_id: data.id },
+    );
+    if (error) throw new Error(error.message);
+    return snapshot;
+  });
