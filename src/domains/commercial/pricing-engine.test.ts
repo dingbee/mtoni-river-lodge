@@ -67,6 +67,12 @@ describe("CC02.02 commercial pricing architecture", () => {
     }).success).toBe(true);
     expect(commercialPlanPriceSchema.safeParse({
       ...planPrice,
+      priceMode: "quote_required",
+      baseAmountMinor: null,
+      additionalPropertyAmountMinor: null,
+    }).success).toBe(false);
+    expect(commercialPlanPriceSchema.safeParse({
+      ...planPrice,
       planCode: "enterprise",
       priceMode: "quote_required",
     }).success).toBe(false);
