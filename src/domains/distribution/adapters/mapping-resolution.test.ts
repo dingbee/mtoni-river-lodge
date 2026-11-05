@@ -80,6 +80,7 @@ describe("DC-05.02 reservation mapping resolution", () => {
       ...base,
       listings: [{ ...base.listings[0], mappingStatus: "pending" as const }],
       rooms: [{ ...base.rooms[0], mappingStatus: "disabled" as const }],
+      ratePlans: [{ ...base.ratePlans[0], mappingStatus: "disabled" as const }],
     };
     expect(resolveReservationDistributionMappings(event, scope, inactive)).toMatchObject({
       kind: "manual_reconciliation", reasons: ["room_mapping_missing", "rate_plan_mapping_missing"],
