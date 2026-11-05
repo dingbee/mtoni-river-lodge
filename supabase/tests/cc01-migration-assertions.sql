@@ -225,7 +225,7 @@ SET LOCAL request.jwt.claim.sub='10000000-0000-0000-0000-000000000002';
 DO $$
 BEGIN
   IF public.staynas_active_property_id('10000000-0000-0000-0000-000000000002') <> '30000000-0000-0000-0000-000000000002' THEN
-    RAISE EXCEPTION 'Service role cannot resolve another user's active property';
+    RAISE EXCEPTION 'Service role cannot resolve another user''s active property';
   END IF;
   IF NOT public.staynas_user_has_property_access('10000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000002') THEN
     RAISE EXCEPTION 'Housekeeping cannot access own property';
@@ -239,7 +239,7 @@ BEGIN
 END $$;
 ROLLBACK;
 
--- Trusted service-role workflow can check another user's property membership.
+-- Trusted service-role workflow can check another user''s property membership.
 BEGIN;
 SET LOCAL ROLE service_role;
 SET LOCAL request.jwt.claim.role='service_role';
