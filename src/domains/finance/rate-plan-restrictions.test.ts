@@ -92,6 +92,14 @@ describe("SPE-03.08 rate-plan restrictions", () => {
     expect(tooEarly.reasons[0]).toMatch(/more than 30 days/);
   });
 
+  it("rejects impossible arrival and departure calendar dates", () => {
+    const result = evaluateStayNasRestrictions({}, {
+      roomTypeId: ROOM_TYPE, arrivalDate: "2027-02-30", departureDate: "2027-03-02",
+    });
+    expect(result.sellable).toBe(false);
+    expect(result.reasons[0]).toMatch(/Invalid stay dates/);
+  });
+
   it("returns an explicit unsellable reason for invalid dates and contradictory LOS rules", () => {
     const invalid = evaluateStayNasRestrictions({}, {
       roomTypeId: ROOM_TYPE, arrivalDate: "2027-01-02", departureDate: "2027-01-02",
