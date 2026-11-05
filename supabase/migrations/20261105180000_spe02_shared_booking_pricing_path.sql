@@ -503,6 +503,7 @@ BEGIN
   v_quote := public.calculate_staynas_booking_quote(
     _property_id,v_room.id,_check_in,_check_out,_adults,v_below6,v_plus7,_extras
   );
+  v_room.currency := upper(v_room.currency);
   v_subtotal := (v_quote->>'accommodation_subtotal')::numeric;
   v_extras_total := (v_quote->>'extras_total')::numeric;
   v_taxes := (v_quote->>'taxes')::numeric;
