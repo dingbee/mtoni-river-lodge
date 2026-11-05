@@ -60,6 +60,8 @@ jobs:
           src/domains/finance/finance-reconciliation.ts
           src/domains/finance/finance-reconciliation.test.ts
           src/lib/finance-rpc.ts
+          src/lib/pricing.ts
+          src/domains/ai/revenue-intelligence.functions.ts
           src/routes/_authenticated.admin.finance.payments.tsx
           src/lib/staff-reservations.functions.ts
           src/components/os/reservations/NewReservationDialog.tsx
