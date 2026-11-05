@@ -4,6 +4,7 @@ DECLARE
   policy_count integer;
   search_path_count integer;
   internal_exposed text;
+  public_definer_list text;
 BEGIN
   SELECT count(*) INTO policy_count
   FROM pg_policies WHERE schemaname IN ('public','storage');
@@ -104,12 +105,13 @@ BEGIN
     RAISE EXCEPTION 'Internal SECURITY DEFINER functions remain client-executable: %', internal_exposed;
   END IF;
 
-  SELECT count(*) INTO policy_count
+  SELECT count(*), string_agg(p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')', ', ' ORDER BY p.proname, pg_get_function_identity_arguments(p.oid))
+  INTO policy_count, public_definer_list
   FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
   WHERE n.nspname='public' AND p.prosecdef
     AND has_function_privilege('anon',p.oid,'EXECUTE');
   IF policy_count <> 14 THEN
-    RAISE EXCEPTION 'Expected 14 intentionally public guest/booking SECURITY DEFINER endpoints, found %', policy_count;
+    RAISE EXCEPTION 'Expected 14 intentionally public guest/booking SECURITY DEFINER endpoints, found %: %', policy_count, public_definer_list;
   END IF;
 
   IF EXISTS (
