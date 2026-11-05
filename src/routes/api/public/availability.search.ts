@@ -32,7 +32,7 @@ export const Route = createFileRoute("/api/public/availability/search")({
         });
         if (error) return Response.json({ error: error.message }, { status: 500 });
         const pricing_errors = (data ?? [])
-          .filter((r: any) => r.pricing_quote?.ok === false)
+          .filter((r: any) => r.pricing_quote?.ok === false && r.pricing_quote?.error_code !== "RATE_PLAN_REQUIRED")
           .map((r: any) => ({ room_id: r.room_id, slug: r.slug, error_code: r.pricing_quote.error_code, message: r.pricing_quote.message }));
         const planChoices = await Promise.all((data ?? []).filter((r: any) => r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED").map(async (r: any) => {
           const { data: discovery, error: discoveryError } = await (supabaseAdmin as any).rpc("discover_staynas_public_rate_plans", {
@@ -42,7 +42,7 @@ export const Route = createFileRoute("/api/public/availability/search")({
         }));
         const planOptionsByRoom = new Map(planChoices.map((x: any) => [x.room_id, x.plans]));
         const rooms = (data ?? [])
-          .filter((r: any) => r.pricing_quote?.ok !== false)
+          .filter((r: any) => r.pricing_quote?.ok !== false || r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED")
           .map((r: any) => ({
             slug: r.slug,
             name: r.name,
@@ -56,6 +56,7 @@ export const Route = createFileRoute("/api/public/availability/search")({
             is_available: r.is_available,
             fits_guests: r.fits_occupancy,
             pricing_quote: r.pricing_quote,
+            rate_plan_options: planOptionsByRoom.get(r.room_id) ?? [],
             rate_plan_options: planOptionsByRoom.get(r.room_id) ?? [],
           }))
           .filter((r: any) => r.is_available && r.fits_guests)
