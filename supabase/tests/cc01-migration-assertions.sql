@@ -195,12 +195,20 @@ BEGIN
   FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
   WHERE n.nspname='public' AND p.prosecdef
     AND has_function_privilege('anon',p.oid,'EXECUTE')
-    AND p.proname <> ALL(ARRAY[
-      'create_booking_for_property','create_booking_hold_for_property',
-      'get_booking_hold_for_property','get_room_availability_for_property',
-      'release_booking_hold_for_property','staynas_booking_property_id',
-      'arrival_pass_ensure','arrival_pass_fetch','checkin_fetch_summary',
-      'checkin_save_draft','checkin_submit','checkin_verify'
+    AND p.oid <> ALL(ARRAY[
+      'public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)'::regprocedure,
+      'public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)'::regprocedure,
+      'public.create_booking_hold_for_property(uuid,text,date,date,text,text,integer)'::regprocedure,
+      'public.get_booking_hold_for_property(uuid,uuid,text)'::regprocedure,
+      'public.get_room_availability_for_property(uuid,date,date)'::regprocedure,
+      'public.release_booking_hold_for_property(uuid,uuid,text)'::regprocedure,
+      'public.staynas_booking_property_id()'::regprocedure,
+      'public.arrival_pass_ensure(text)'::regprocedure,
+      'public.arrival_pass_fetch(text)'::regprocedure,
+      'public.checkin_fetch_summary(text)'::regprocedure,
+      'public.checkin_save_draft(text,text,jsonb,jsonb,integer)'::regprocedure,
+      'public.checkin_submit(text,text,jsonb,jsonb,boolean,text,jsonb)'::regprocedure,
+      'public.checkin_verify(text,text,text)'::regprocedure
     ]);
   IF policy_count <> 0 THEN
     RAISE EXCEPTION 'Unexpected anonymous SECURITY DEFINER functions remain outside the guest/booking allowlist: %', public_definer_list;
