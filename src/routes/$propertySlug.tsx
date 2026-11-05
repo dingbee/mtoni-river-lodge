@@ -29,6 +29,7 @@ type AvailableRoom = {
   room_id: string; slug: string; name: string; base_price: number; currency: string;
   max_occupancy: number; nightly_total: number; nights: number; min_available: number;
   is_available: boolean; fits_guests: boolean; rate_plan_options?: RatePlanOption[];
+  pricing_quote?: { ok?: boolean; error_code?: string; total?: number };
 };
 
 const isoDate = (date: Date) => {
@@ -181,7 +182,7 @@ function PublicPropertyBookingPage() {
               <span aria-hidden="true" className="mt-1 flex items-center justify-between gap-2 text-[13px] font-semibold text-[#26352c]">
                 <span>{prettyDate(checkIn).toLocaleUpperCase("en-GB")}</span><ChevronDown className="h-4 w-4 shrink-0 text-[#526257]"/>
               </span>
-              <input aria-label="Check-in date" type="date" min={isoDate(new Date())} value={checkIn} onChange={(event) => { setCheckIn(event.target.value); if (checkOut <= event.target.value) setCheckOut(addDays(2)); setHasSearched(false); }} className="absolute inset-0 h-full w-full cursor-pointer opacity-0"/>
+              <input aria-label="Check-in date" type="date" min={isoDate(new Date())} value={checkIn} onChange={(event) => { setCheckIn(event.target.value); if (checkOut <= event.target.value) setCheckOut(addDays(2)); setHasSearched(false); setSelectedRoom(null); setSelectedRatePlanId(""); }} className="absolute inset-0 h-full w-full cursor-pointer opacity-0"/>
             </label>
             <label className="relative block min-w-0 rounded-xl border border-[#e8e8e1] bg-[#fafaf8] px-3 py-2.5 transition focus-within:border-[#758a7d] focus-within:bg-white">
               <span className="block text-[9px] font-semibold uppercase tracking-[0.17em] text-[#7b877e]">Check-out</span>
@@ -193,8 +194,8 @@ function PublicPropertyBookingPage() {
             <div className="col-span-2 flex items-center justify-between rounded-xl border border-[#e8e8e1] bg-[#fafaf8] px-3 py-2.5 sm:col-span-1">
               <div><span className="block text-[9px] font-semibold uppercase tracking-[0.17em] text-[#7b877e]">Guests</span><span className="mt-1 block text-[13px] font-semibold text-[#26352c]">{guests} {guests === 1 ? "guest" : "guests"}</span></div>
               <div className="flex items-center gap-2">
-                <button type="button" aria-label="Remove guest" disabled={guests <= 1} onClick={() => { setGuests((value) => Math.max(1, value - 1)); setHasSearched(false); }} className="flex h-7 w-7 items-center justify-center rounded-full border border-[#dedfd7] text-[#526257] disabled:opacity-30"><Minus className="h-3.5 w-3.5"/></button>
-                <button type="button" aria-label="Add guest" disabled={guests >= 8} onClick={() => { setGuests((value) => Math.min(8, value + 1)); setHasSearched(false); }} className="flex h-7 w-7 items-center justify-center rounded-full border border-[#dedfd7] text-[#526257] disabled:opacity-30"><Plus className="h-3.5 w-3.5"/></button>
+                <button type="button" aria-label="Remove guest" disabled={guests <= 1} onClick={() => { setGuests((value) => Math.max(1, value - 1)); setHasSearched(false); setSelectedRoom(null); setSelectedRatePlanId(""); }} className="flex h-7 w-7 items-center justify-center rounded-full border border-[#dedfd7] text-[#526257] disabled:opacity-30"><Minus className="h-3.5 w-3.5"/></button>
+                <button type="button" aria-label="Add guest" disabled={guests >= 8} onClick={() => { setGuests((value) => Math.min(8, value + 1)); setHasSearched(false); setSelectedRoom(null); setSelectedRatePlanId(""); }} className="flex h-7 w-7 items-center justify-center rounded-full border border-[#dedfd7] text-[#526257] disabled:opacity-30"><Plus className="h-3.5 w-3.5"/></button>
               </div>
             </div>
             <button type="button" disabled={nights < 1 || availabilityMutation.isPending} onClick={runAvailability} className="col-span-2 flex h-[48px] items-center justify-center gap-2 rounded-xl bg-[var(--direct-primary)] px-5 text-[13px] font-semibold text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1">
