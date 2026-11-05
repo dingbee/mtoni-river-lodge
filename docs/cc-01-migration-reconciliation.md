@@ -128,7 +128,7 @@
 1. A missing timestamp or filename is **not proof** that the corresponding schema change is absent. The SQL may have been renamed, consolidated, manually applied, or retained only in historical deployment material.
 2. A same-name file under a different timestamp is a candidate provenance match, not proof that its SQL is identical. Compare the SQL body and verify the resulting schema objects before classifying it as reconciled.
 3. Do not replay missing migrations, insert migration ledger rows, baseline migrations, or alter migration history based only on this inventory.
-4. The staged CC-01 migration `20261104210000_cc01_property_access_and_founder_authority.sql` remains unapplied to live Supabase. It has passed an ephemeral PostgreSQL 17.11 execution and contract test; see the validation scope below.
+4. The staged CC-01 migration `20261105091956_cc01_property_access_and_founder_authority.sql` remains unapplied to live Supabase. It has passed an ephemeral PostgreSQL 17.11 execution and contract test; see the validation scope below.
 5. Exact-path Git history was checked for all 58 names initially missing from the repository. One source was recovered from commit `35f7d12` and restored under its applied version. The remaining 57 have no matching file history in this repository; their original SQL cannot be reconstructed from this Git repository alone. Treat them as historical applied records with unresolved source provenance, not as unapplied migrations.
 
 ## Execution boundary
