@@ -183,6 +183,57 @@ function RatePlans() {
       : [],
   );
 
+  const selectedDailyEntries=dailyRateEntries.filter(entry=>selectedDailyRateKeys.includes(entry.date+"::"+entry.roomTypeId));
+  const applyBulkDailyRate=()=>{
+    if(!selectedDailyEntries.length){toast.error("Select one or more existing daily overrides first.");return;}
+    const value=Number(bulkValue);
+    if(!bulkValue||!Number.isFinite(value)||(bulkMode!=="set"&&value<=-100)){
+      toast.error("Enter a valid bulk rate value.");return;
+    }
+    try {
+      const parsed=JSON.parse(ratePlanDataText||"{}") as Record<string,unknown>;
+      const dates=(parsed.daily_rates??{}) as Record<string,Record<string,Record<string,unknown>|null>>;
+      for(const entry of selectedDailyEntries){
+        const current=dates[entry.date]?.[entry.roomTypeId];
+        if(!current||typeof current!=="object")continue;
+        const oldRate=Number(current.nightly_rate);
+        const nextRate=bulkMode==="set"?value:bulkMode==="amount"?oldRate+value:oldRate*(1+value/100);
+        if(!Number.isFinite(nextRate)||nextRate<=0){throw new Error("Bulk change would create a non-positive nightly rate for "+entry.date);}
+        dates[entry.date]={...(dates[entry.date]??{}),[entry.roomTypeId]:{...current,nightly_rate:Math.round(nextRate*100)/100}};
+      }
+      parsed.daily_rates=dates;setRatePlanDataText(JSON.stringify(parsed,null,2));
+      toast.success("Bulk rate changes applied to "+selectedDailyEntries.length+" selected overrides. Save the rate plan to persist.");
+    } catch(e){toast.error((e as Error).message||"Unable to apply bulk rate changes.");}
+  };
+  const setBulkDailyActive=(active:boolean)=>{
+    if(!selectedDailyEntries.length){toast.error("Select one or more existing daily overrides first.");return;}
+    try {
+      const parsed=JSON.parse(ratePlanDataText||"{}") as Record<string,unknown>;
+      const dates=(parsed.daily_rates??{}) as Record<string,Record<string,Record<string,unknown>|null>>;
+      for(const entry of selectedDailyEntries){
+        const current=dates[entry.date]?.[entry.roomTypeId];
+        if(current&&typeof current==="object"){
+          dates[entry.date]={...(dates[entry.date]??{}),[entry.roomTypeId]:{...current,active}};
+        }
+      }
+      parsed.daily_rates=dates;setRatePlanDataText(JSON.stringify(parsed,null,2));
+      setBulkActive(active);
+      toast.success("Selected daily overrides set "+(active?"active":"inactive")+". Save the rate plan to persist.");
+    } catch {toast.error("Unable to update selected daily overrides.");}
+  };
+  const clearSelectedDailyRates=()=>{
+    if(!selectedDailyEntries.length){toast.error("Select one or more existing daily overrides first.");return;}
+    try {
+      const parsed=JSON.parse(ratePlanDataText||"{}") as Record<string,unknown>;
+      const dates=(parsed.daily_rates??{}) as Record<string,Record<string,unknown>>;
+      for(const entry of selectedDailyEntries){
+        dates[entry.date]={...(dates[entry.date]??{}),[entry.roomTypeId]:null};
+      }
+      parsed.daily_rates=dates;setRatePlanDataText(JSON.stringify(parsed,null,2));
+      setSelectedDailyRateKeys([]);
+      toast.success("Selected overrides cleared. Child null entries reveal inherited parent values.");
+    } catch {toast.error("Unable to clear selected daily overrides.");}
+  };
   const readRestrictions=():Record<string,Record<string,unknown>>=>{
     try {
       const parsed=JSON.parse(ratePlanDataText||"{}") as {restrictions?:Record<string,Record<string,unknown>|null>};
