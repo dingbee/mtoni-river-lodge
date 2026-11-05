@@ -154,3 +154,16 @@ The CC-01 migration was regenerated using the Supabase CLI migration new command
 **Outstanding provenance:** the earlier audit found 68 of the first 90 applied records without an exact SQL match in this branch. Those records still require source-by-source recovery and version reconciliation. The two new SPE-03 records above have exact sources available, so they do not add to that unresolved count. Do not run a production migration push until the complete local-versus-remote history is reconciled and the dry-run shows only the intended CC-01 migration.
 
 **Release status:** no production migration, migration-history repair, merge, or deployment has been performed. The current post-merge CI passed 5/5 checks before these source-only updates; CI must rerun against the next commit.
+
+
+## Authoritative source recovery — 5 November 2026
+
+The earlier Git-history-only recovery assessment is superseded by this read-only export of the live production migration ledger. The table `supabase_migrations.schema_migrations` contains **94 applied records** and **462,237 characters of stored SQL**. All 94 rows have a non-empty `statements` array (one statement payload per row).
+
+- **92 records** contain the SQL payload itself in the live ledger and are preserved verbatim in [`docs/cc-01-live-migration-ledger.json`](./cc-01-live-migration-ledger.json).
+- **2 records** (`finance_payment_integrity_phase1` and `pesapal_atomic_finance_finalization`) contain a manual-application provenance marker rather than SQL. Their referenced source migration files already exist at the exact applied version/name paths in `supabase/migrations/`.
+- The two SPE-03 records added after the earlier 92-row snapshot are `20261105095249_spe03_rate_plan_inheritance` and `20261105095358_spe03_rate_plan_inheritance_snapshots`; their source SQL was verified byte-for-byte against the corresponding feature-branch files. The earlier two SPE-03 records were also exact matches.
+- Repository migration directory at this snapshot contains **158 SQL files**. Only **8** currently use an exact version-and-name path from the 94-row live ledger. The ledger export now makes all applied source SQL recoverable, but the active directory still needs canonical file restoration and the remaining local-only migration files need classification before a CLI dry-run can be trusted.
+- No migration-history repair, production DDL, data update, merge, or deployment was performed. This JSON is a read-only provenance snapshot, not a migration to execute.
+
+**Release gate:** Do not run `supabase db push` until the active migration directory is reconciled against this 94-row snapshot and the official CLI dry-run shows only the intended CC-01 migration as pending.
