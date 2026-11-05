@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import {
   COMMERCIAL_API_PATHS,
   commercialApiCatalogueRequestSchema,
@@ -98,8 +99,7 @@ describe("CC02.06 commercial API contracts", () => {
 
   it("uses discriminated success and failure response envelopes", () => {
     const schema = commercialApiEnvelopeSchema(
-      // Generic data payload for envelope shape verification.
-      import.meta.env.MODE === "test" ? (awaitableObjectSchema()) : awaitableObjectSchema(),
+      z.object({ accepted: z.boolean() }),
     );
     expect(schema.safeParse({ ok: true, requestId: "req-7", data: { accepted: true } }).success).toBe(true);
     expect(schema.safeParse({
