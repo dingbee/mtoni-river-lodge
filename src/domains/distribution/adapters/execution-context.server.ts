@@ -14,7 +14,8 @@ export type DistributionExecutionRepository = Readonly<{
   getConnection(connectionId: string): Promise<unknown | null>;
   getAccountGrant(grantId: string): Promise<unknown | null>;
   getExternalAccount(accountId: string): Promise<unknown | null>;
-  getProperty(propertyId: string): Promise<{ organisation_id: string } | null>;
+  getProperty(propertyId: string): Promise<{ organisation_id: string; status: string } | null>;
+  getOrganisation(organisationId: string): Promise<{ status: string } | null>;
   getPropertyMembership(propertyId: string, userId: string): Promise<ReadonlyArray<{
     property_id: string;
     user_id: string;
@@ -72,6 +73,13 @@ export function createTrustedDistributionExecutionLoader(
     ]);
 
     const trustedProperty = assertRow(property, "property");
+    const organisation = assertRow(
+      await repository.getOrganisation(trustedProperty.organisation_id),
+      "organisation",
+    );
+    if (trustedProperty.status !== "active" || organisation.status !== "active") {
+      throw new Error("Distribution execution is unavailable for an inactive property or organisation.");
+    }
     const adapter = registry.resolve(
       String(connection.provider_key ?? ""),
       String(connection.adapter_version ?? ""),
@@ -147,10 +155,19 @@ const repository: DistributionExecutionRepository = {
   async getProperty(propertyId) {
     const { data, error } = await (supabaseAdmin as any)
       .from("staynas_properties")
-      .select("organisation_id")
+      .select("organisation_id,status")
       .eq("id", propertyId)
       .maybeSingle();
     if (error) throw new Error("Distribution property lookup failed.");
+    return data;
+  },
+  async getOrganisation(organisationId) {
+    const { data, error } = await (supabaseAdmin as any)
+      .from("staynas_organisations")
+      .select("status")
+      .eq("id", organisationId)
+      .maybeSingle();
+    if (error) throw new Error("Distribution organisation lookup failed.");
     return data;
   },
   async getPropertyMembership(propertyId, userId) {
