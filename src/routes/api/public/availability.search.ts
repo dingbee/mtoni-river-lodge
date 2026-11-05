@@ -2,9 +2,6 @@
 // GET /api/public/availability/search?check_in=YYYY-MM-DD&check_out=YYYY-MM-DD[&guests=2]
 
 import { createFileRoute } from "@tanstack/react-router";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
-import { bookingRpc } from "@/lib/booking-rpc";
 import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 
 export const Route = createFileRoute("/api/public/availability/search")({
@@ -21,16 +18,15 @@ export const Route = createFileRoute("/api/public/availability/search")({
         if (checkOut <= checkIn) {
           return Response.json({ error: "check_out must be after check_in" }, { status: 400 });
         }
-        const sb = createClient<Database>(
-          process.env.SUPABASE_URL!,
-          process.env.SUPABASE_PUBLISHABLE_KEY!,
-          { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-        );
-        const propertyId = await getConfiguredBookingPropertyId(sb);
-        const { data, error } = await bookingRpc(sb).rpc("get_room_availability", {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+        const { data, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced", {
           _check_in: checkIn,
           _check_out: checkOut,
           _property_id: propertyId,
+          _adults: guests,
+          _children_below_6: 0,
+          _children_7_plus: 0,
         });
         if (error) return Response.json({ error: error.message }, { status: 500 });
         const rooms = (data ?? [])
@@ -41,13 +37,15 @@ export const Route = createFileRoute("/api/public/availability/search")({
             currency: r.currency,
             max_occupancy: r.max_occupancy,
             nights: r.nights,
-            nightly_total: Number(r.nightly_total),
+            nightly_total: Number(r.pricing_quote?.total ?? r.nightly_total),
+            nightly_rate: Number(r.pricing_quote?.nightly?.[0]?.nightly_rate ?? r.base_price),
             available_units: Math.max(0, r.min_available),
             is_available: r.is_available,
-            fits_guests: guests <= r.max_occupancy,
+            fits_guests: r.fits_occupancy,
+            pricing_quote: r.pricing_quote,
           }))
-          .filter((r) => r.is_available && r.fits_guests)
-          .sort((a, b) => a.base_price - b.base_price);
+          .filter((r: any) => r.is_available && r.fits_guests)
+          .sort((a: any, b: any) => a.nightly_total - b.nightly_total);
         return Response.json(
           { check_in: checkIn, check_out: checkOut, guests, rooms },
           { headers: { "cache-control": "no-store" } },
