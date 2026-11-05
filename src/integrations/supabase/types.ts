@@ -2782,6 +2782,7 @@ export type Database = {
           expected_impact: number | null
           id: string
           model: string | null
+          property_id: string
           reasoning: string
           room_id: string | null
           status: string
@@ -2803,6 +2804,7 @@ export type Database = {
           expected_impact?: number | null
           id?: string
           model?: string | null
+          property_id: string
           reasoning: string
           room_id?: string | null
           status?: string
@@ -2824,6 +2826,7 @@ export type Database = {
           expected_impact?: number | null
           id?: string
           model?: string | null
+          property_id?: string
           reasoning?: string
           room_id?: string | null
           status?: string
@@ -2839,6 +2842,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rooms"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_pricing_recommendations_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_pricing_recommendations_room_property_fkey"
+            columns: ["room_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id", "property_id"]
           },
         ]
       }
