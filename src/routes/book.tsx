@@ -857,6 +857,9 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
                   {selectedPlan && <p className="mt-1 text-[0.65rem] text-charcoal/50">Taxes and selected extras are calculated in the next step.</p>}
                 </div>
               )}
+              {options.length === 1 && selectedPlan && (
+                <p className="mt-2 text-xs text-charcoal/55">{selectedPlan.name} · {selectedPlan.meal_plan ?? "No meal plan"} · {selectedPlan.refundable ? "Refundable" : "Non-refundable"}</p>
+              )}
               <p className="text-xs text-charcoal/55">{requiresPlanChoice && !selectedPlan ? "Select a rate plan to see nightly pricing" : `${fmt(nightlyRate, selectedPlan?.currency ?? r.currency)} average / night`} · {paidOccupants} paid · {totalOccupants} total</p>
               <button
                 onClick={() => onSelect(r, selectedPlanId || undefined)} disabled={disabled || (requiresPlanChoice && options.length === 0) || (options.length > 1 && !selectedPlanId)}
