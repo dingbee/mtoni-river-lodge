@@ -44,6 +44,10 @@ export type AvailabilityRoom = {
 };
 
 export type BookingPricingQuote = {
+  ok?: boolean;
+  error_code?: string;
+  message?: string;
+  pricing_evidence?: Record<string, string | number | null>;
   property_id: string;
   room_id: string;
   currency: string;
@@ -172,6 +176,9 @@ export const getBookingQuote = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     if (!quote) throw new Error("Pricing quote could not be calculated");
+    if (quote.ok === false) {
+      throw new Error(`Pricing rejected [${quote.error_code ?? "INVALID_RATE_CONFIGURATION"}]: ${quote.message ?? "Pricing configuration is invalid"}`);
+    }
     return quote as BookingPricingQuote;
   });
 
