@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { AdapterExecutionContext } from "../adapters/contracts";
+import { assertVerifiedReservationWebhook, type VerifiedReservationWebhook } from "./provider-signature-verification.server";
 import { receiveDistributionWebhook } from "../adapters/operation-ledger.server";
 import {
   externalReservationSchema,
@@ -20,7 +21,7 @@ export type ReservationIngressExecutionContext = AdapterExecutionContext & Reado
 
 export type IngestExternalReservationInput = Readonly<{
   context: ReservationIngressExecutionContext;
-  event: unknown;
+  verifiedWebhook: VerifiedReservationWebhook;
 }>;
 
 export type IngestExternalReservationResult = Readonly<{
@@ -43,7 +44,8 @@ export type IngestExternalReservationResult = Readonly<{
 export async function ingestExternalReservationEvent(
   input: IngestExternalReservationInput,
 ): Promise<IngestExternalReservationResult> {
-  const event: ExternalReservationEvent = externalReservationSchema.parse(input.event);
+  assertVerifiedReservationWebhook(input.verifiedWebhook);
+  const event: ExternalReservationEvent = input.verifiedWebhook.event;
   if (!input.context.accountGrantId.trim() || !input.context.externalAccountId.trim()) {
     throw new Error("Distribution account grant and external account must be resolved server-side.");
   }
