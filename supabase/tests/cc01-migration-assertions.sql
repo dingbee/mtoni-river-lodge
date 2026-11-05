@@ -6,8 +6,8 @@ DECLARE
 BEGIN
   SELECT count(*) INTO policy_count
   FROM pg_policies WHERE schemaname IN ('public','storage');
-  IF policy_count <> 89 THEN
-    RAISE EXCEPTION 'Expected 89 staged policies, found %', policy_count;
+  IF policy_count <> 85 THEN
+    RAISE EXCEPTION 'Expected 85 final staged policies, found %', policy_count;
   END IF;
 
   IF NOT EXISTS (
