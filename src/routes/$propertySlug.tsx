@@ -27,7 +27,7 @@ type PropertyPageData = Awaited<ReturnType<typeof getPublicDemoProperty>>;
 type RatePlanOption = { rate_plan_id: string; name: string; description: string | null; meal_plan: string | null; refundable: boolean; currency: string; total: number; minimum_stay: number; publication_id: string; publication_number: number; rate_plan_version: number; snapshot_hash: string };
 type AvailableRoom = {
   room_id: string; slug: string; name: string; base_price: number; currency: string;
-  max_occupancy: number; nightly_total: number; nights: number; min_available: number;
+  max_occupancy: number; nightly_total: number | null; nights: number; min_available: number;
   is_available: boolean; fits_guests: boolean; rate_plan_options?: RatePlanOption[];
   pricing_quote?: { ok?: boolean; error_code?: string; total?: number };
 };
