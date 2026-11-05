@@ -320,3 +320,13 @@ The outbox completion RPC now rejects a worker completion when its lease has exp
 ### DC-04.8 lease-expiry hardening
 
 The operation completion RPC rejects completion after the worker lease expires, even when the operation has not yet been reclaimed. The claim RPC also terminalizes an expired final attempt as `permanent_failure` and writes `lease_expired` attempt evidence, rather than leaving an unclaimable operation in `running`. The isolated PostgreSQL smoke test covers stale completion rejection, reclaim under a fresh lease, and terminalization when the retry budget is exhausted.
+
+
+### DC-04.11 — durable connection-health evidence
+
+- Added append-only, property/organisation/connection-scoped health history with per-capability state, check time, bounded latency, adapter version, credential validity status, correlation ID and worker attribution.
+- Health evidence contains only normalized error codes, allow-listed provider codes and safe messages. Raw provider bodies, tokens and secret material are excluded.
+- The write RPC is service-role-only, revalidates the persisted connection, active property grant, provider account, adapter version and granted capability, and rejects suspended/revoked records.
+- Browser roles have no table privileges or RLS policies. The service role may read/insert but cannot update/delete; a database trigger rejects mutation as defence in depth.
+- This milestone persists evidence only. It does not schedule probes, call providers, change connection lifecycle, or enable distribution operations.
+- PostgreSQL 17 smoke coverage asserts scoped writes, history persistence and append-only grants. Full CI certification is required before marking this milestone closed.
