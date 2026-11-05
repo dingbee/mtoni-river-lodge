@@ -19,6 +19,7 @@ on:
       - fix/ci-*
       - main
       - feat/finance-*
+      - feat/cc01-p0-commercial-foundation
 
 jobs:
   finance-payment-integrity:
