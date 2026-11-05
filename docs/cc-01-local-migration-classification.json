@@ -1,0 +1,1063 @@
+{
+  "schema_version": "1.0",
+  "audit_date": "2026-11-05",
+  "production_project_ref": "hpsryyywolitgeaacpoy",
+  "verified_live_ledger_entries": 94,
+  "staged_release_migration": "20261105100000_cc01_property_access_and_founder_authority.sql",
+  "moved_from_active_this_run": [
+    "20260717131722_73422435-2f5e-4f12-a177-8d0fb874433c.sql",
+    "20260717133331_95a9efd5-bcf9-4270-bacf-c3a2cb2a572f.sql",
+    "20260717134609_e206cadd-a69f-4da3-9234-fab6291636fd.sql",
+    "20260717150655_a06e59e2-5ea3-47ca-abfc-ca3b83a1ec95.sql",
+    "20260717151519_969da2a5-3963-4bb5-a397-d25cbe154ca4.sql",
+    "20260717152513_68076119-474c-4ba4-9b5e-6aac95e76d55.sql",
+    "20260717153548_678d1610-55f4-4d7c-9532-40c4ce7bbefe.sql",
+    "20260717154459_0e7fcb72-0a07-482f-9cfc-9249225fa229.sql",
+    "20260717155416_6fa5a235-cc2a-4b79-9dce-3a8cb0dae7f9.sql",
+    "20260717160455_0421f104-467c-43dd-9629-23d99bd996c0.sql",
+    "20260717163900_12cbff3d-61ed-4e53-86a8-744ce3b7d496.sql",
+    "20260717165418_71227f2d-c887-4e56-b47f-873d884055ac.sql",
+    "20260717165915_502a5d15-5ae0-4c00-891f-9fc34da9820b.sql",
+    "20260717170403_407cb92a-a477-43ca-9475-2df12c60db0e.sql",
+    "20260717171226_db392f46-3101-4222-bded-87d532f7a708.sql",
+    "20260717172212_b31212e7-247c-450e-aef0-3a7444949ac6.sql",
+    "20260717175926_475f0bb0-9a9e-4d98-85e6-6bb9e3313036.sql",
+    "20260719102130_1f00dbf9-b1c8-4f8d-a136-fb6ad7833ca4.sql",
+    "20260721122907_cceb9707-4a81-4f4a-8075-bf01d851ab5b.sql",
+    "20260721144859_b10a8bc5-70f4-451d-9560-c7a3011c4128.sql",
+    "20260721162632_a3f6bacf-08a8-4b49-9f0e-9319f5e25c3f.sql",
+    "20260806125800_c8ec52dd-06f5-4ca7-b88a-e24e80a955cd.sql",
+    "20260806130139_4a167960-a209-4a95-93e9-50d2852ac654.sql",
+    "20260806131110_ce7f3ca8-ce9a-4fd7-b695-e1443a42028f.sql",
+    "20260806131710_87f6f006-7f4f-4a97-9ebb-23f9716e0094.sql",
+    "20260806132728_89c62236-4238-49fd-9654-a9b0a934ae96.sql",
+    "20260806134708_f40e1c16-b925-4c38-a78b-fc58de8ba1db.sql",
+    "20260806134805_f008a6fc-f55e-4b02-9228-961b7e62ef9a.sql",
+    "20260806141447_aea60869-a77e-495b-b0a9-965261a063c2.sql",
+    "20260806142337_0c977466-741b-4cd6-bc22-892f03edb5bd.sql",
+    "20260806151734_fef8abc5-7bf2-42db-a29e-a48e6567853a.sql",
+    "20260806152604_f37659c2-9e95-44ca-a0ff-d3aba4782fb4.sql",
+    "20260806152619_4247f351-498f-4f60-b637-b74a69ab84d6.sql",
+    "20260806153326_86fbd729-0848-4af8-8cdc-ddab91f26ae4.sql",
+    "20260807101141_2228e760-af38-4afa-a626-5a88c51933ff.sql",
+    "20260807102951_53ab2c57-e735-460d-9e2a-75f8fd6694f7.sql",
+    "20260807112206_e7e523a2-018a-4265-a910-4600f7df289b.sql",
+    "20260807122322_3c1fbe90-6b97-4156-989f-f0c6254806ba.sql",
+    "20260807123840_4acdd152-0054-4097-8d17-80240d66b034.sql",
+    "20260807132910_4b1598ee-6c9f-4921-8155-55ecb3c97672.sql",
+    "20260807133012_c2ec058b-1c93-4515-a305-15e455713094.sql",
+    "20260807141356_ffc7cfa0-00fc-4adc-ac46-d898a54c0271.sql",
+    "20260807193903_dfc6cad9-f695-40f8-bd4d-f2e293cfe527.sql",
+    "20260807193935_505229a1-f63e-46f4-8045-ccdf39530ab0.sql",
+    "20260807200043_99b631a4-0bc1-4076-8f96-475dec064a0c.sql",
+    "20260807203012_626fffd2-7bfe-44ed-9c62-9691468f4f2d.sql",
+    "20260807213129_cb214ce0-d0ef-4290-828c-d956643f5921.sql",
+    "20260808070213_c6a22219-0117-4423-b6ac-735bc046877e.sql",
+    "20260808072307_3092d003-3a74-4b98-af5e-d8e38361d998.sql",
+    "20260808082538_3fea6cc9-bb17-4068-9b31-8651e2437fb3.sql",
+    "20260808085108_bd2e2fb8-1772-4c91-a4ec-2fd6afdc3860.sql",
+    "20260808091351_267b9b74-e23b-45d5-8439-bd94546121d1.sql",
+    "20260808102902_0ff283c2-48da-4680-8fd3-39dbdb2dd84a.sql",
+    "20260808105014_4f74825f-4b65-4f43-ac15-4a01383ce755.sql",
+    "20260808111657_f141cc97-7b3b-4b2d-b32c-f60d9917ae8e.sql",
+    "20260808115109_2ab57bf3-326c-4253-a9e6-950208d7ae25.sql",
+    "20260808123919_da42f63f-a1c6-44c0-9e08-1e55bb9fab50.sql",
+    "20260816154603_c99e71a8-a3ac-4865-a9f3-fb45f024d6fa.sql",
+    "20260816164742_b846ba0e-0fd3-45af-85cf-5e10ee986b72.sql",
+    "20260816175159_f8662466-9320-4391-b0a7-93c7aaf775f6.sql",
+    "20260816184703_83e17a5a-61a4-449b-9ee2-7f12743f674d.sql",
+    "20260817083809_e7bd01b4-bb95-4898-8b90-39c6508e9d65.sql",
+    "20260817091611_f1c6174f-9718-4985-95bf-6587b2d73c3a.sql",
+    "20260817143223_85b6e3b2-84e3-4eb9-9b11-f5ef692d0073.sql",
+    "20260817143316_bccd958a-dc68-4775-8cc8-22eb4d7a921d.sql",
+    "20260818161419_ce7034cb-bf6f-4080-8c2e-46207b6c0d89.sql",
+    "20260818163514_bae0146a-04ad-4f4c-ae82-1295f9ac245e.sql",
+    "20260818163630_1c46bc01-83ae-47e1-9081-55f6f1ceb885.sql",
+    "20260818165025_35f02ebe-d8ff-4897-8b6d-f5c10b341d78.sql",
+    "20260819165322_fd057865-23e4-4394-b8a9-9444a5670617.sql",
+    "20260923120000_staynas_room_management.sql",
+    "20260924130000_hk_s1_domain_integrity.sql",
+    "20260924150000_hk_s2_staff_execution.sql",
+    "20260924151000_hk_s2_staff_directory.sql",
+    "20260924152000_hk_s2_task_room_backfill.sql",
+    "20260924170000_hk_s3_inspection_readiness.sql",
+    "20260924190000_hk_s4_exceptions.sql",
+    "20260926120000_hk_s5_realtime_intelligence.sql",
+    "20260926120100_hk_s5_hardening.sql",
+    "20260926123000_hk_s5_final_certification.sql",
+    "20260926140000_hk_s6_certification.sql",
+    "20260926150100_staynas_property_room_hardening_fix.sql",
+    "20260926150200_staynas_property_room_configuration.sql",
+    "20261030200000_sn_iq_04_omnichannel_ledger.sql",
+    "20261031150000_sn_iq_05_guest_request_intake.sql",
+    "20261031160000_sn_iq_05_guest_request_dispatch.sql",
+    "20261103140000_sn_iq_05_execution_hk_x_integration.sql",
+    "20261103190000_staynas_platform_room_catalogue.sql",
+    "20261103200000_restore_platform_room_guest_content.sql",
+    "20261104143000_property_scoped_room_configuration.sql",
+    "20261105103000_fix_property_rpc_jwt_role_claim_resolution.sql",
+    "20261105123000_property_branding_storage.sql"
+  ],
+  "candidate_file_count": 137,
+  "files": [
+    {
+      "path": "supabase/migration-history-candidates/20260617134425_b38419f9-d4d3-4c4d-a904-c121c59355a9.sql",
+      "git_blob_sha": "eb14bdbc4f244a2429cab016e88a976d59e99300",
+      "size_bytes": 15951,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260617184625_f94c7f24-ed4a-4ff6-b013-d5e72d39e3d8.sql",
+      "git_blob_sha": "ff6eb78d67d059e110d2afc3c16e971aab3671fd",
+      "size_bytes": 5214,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260617225918_4cf9d48a-9785-4193-bb36-86b04d0e9d73.sql",
+      "git_blob_sha": "86de918f9e0978d624b4bc67a13b16234cc8f5fe",
+      "size_bytes": 6816,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260618134140_ff34ad50-8792-43fa-960e-d7876dd4e1e9.sql",
+      "git_blob_sha": "d7c2133334e619ac64e983eab5ac033a672f907f",
+      "size_bytes": 855,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260619165028_af84279a-c222-47ea-92b0-b9269b1af9dc.sql",
+      "git_blob_sha": "e1419ec7a8fdd913aa430a4da859996293dba1ea",
+      "size_bytes": 1675,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260623091014_8fcf8496-8f55-4950-befe-8edefe277413.sql",
+      "git_blob_sha": "e011f47ae9e3a34a33acc3b44e0c5993ffd25a12",
+      "size_bytes": 5862,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260623094853_37edbfa5-916d-4908-9a41-26aaebd3a013.sql",
+      "git_blob_sha": "94caee6fe4e9b0921a283f4a8fbcacb9a5ddca07",
+      "size_bytes": 36,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260623112859_4e19dc9b-33c4-4ea6-934a-23c51091abad.sql",
+      "git_blob_sha": "42f0d91ba43100e3290e4ac41c799c0e23ac0c0d",
+      "size_bytes": 5381,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260623122621_4687c4f5-11bb-4eaa-991b-0aa3b7ed76d4.sql",
+      "git_blob_sha": "5e2b8a05658ef8e54a5c07e9049aa2a4a0bfe139",
+      "size_bytes": 72,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260623144039_email_infra.sql",
+      "git_blob_sha": "0aa11bba4ba0c4d95c42f37aaf957a1d007f7011",
+      "size_bytes": 11730,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260623144233_email_infra.sql",
+      "git_blob_sha": "0aa11bba4ba0c4d95c42f37aaf957a1d007f7011",
+      "size_bytes": 11730,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260623154347_9e592c97-e628-40fb-8d95-081b4230b3de.sql",
+      "git_blob_sha": "47986372e023394c332c6d364715293a3c68b220",
+      "size_bytes": 10652,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260623154607_b4436297-973a-4a3b-8f6b-f58d7fc8e43e.sql",
+      "git_blob_sha": "c62a783d675dd9e132175b37ffcc1fb8e433b65e",
+      "size_bytes": 70,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260709175214_4e132979-2edf-4245-8208-b9000b456952.sql",
+      "git_blob_sha": "08549b8000e83fc846fd67da2ad0132a3fd88b43",
+      "size_bytes": 3605,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260710074720_2088e862-e173-4e36-8ec3-e0ba294d98bf.sql",
+      "git_blob_sha": "1856b31a46fe66d778dc512acc35eba2f02c022e",
+      "size_bytes": 439,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260710074738_12800560-d0c9-4d36-91c3-109706abac9e.sql",
+      "git_blob_sha": "feb4b19655c1f326bc2620cc7d20e20dbdc17da3",
+      "size_bytes": 1217,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260713102207_1a53fe96-887d-46f1-9230-cc72b115eb6b.sql",
+      "git_blob_sha": "8e03ac875b59a623425005a2c8a45bab5ffd1182",
+      "size_bytes": 10654,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260713104054_f3cf186a-229a-4106-8b64-ce4ae9245393.sql",
+      "git_blob_sha": "14460e2c1995cd136def9aa38b170cbbfb8e230e",
+      "size_bytes": 596,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260713110100_15c07bf9-e897-433f-85e2-112855788e90.sql",
+      "git_blob_sha": "856065cc035d684ded6c8ea0abe4f5999bb147be",
+      "size_bytes": 5177,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260713110117_4e6bf974-fdf5-495d-93ec-d47eb639f515.sql",
+      "git_blob_sha": "84489141730e254b0e86a2cbbd694fc790d73175",
+      "size_bytes": 133,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260713113045_9a81b133-ee1a-4713-aa5a-13dc5208a841.sql",
+      "git_blob_sha": "715a1ed7316f1e9cef0ea732de67f2e4a74f7edc",
+      "size_bytes": 4915,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260715075152_d3ca6d87-6afa-4e92-b268-dda5b0cad357.sql",
+      "git_blob_sha": "51a88e6cf326bf0340f0c226d7c9c3b715edf14b",
+      "size_bytes": 13037,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260716083720_1174c314-ecaf-491a-9311-073eefd4419b.sql",
+      "git_blob_sha": "b61e5e64417208b1c1fd7759cdf74a5181dde2c8",
+      "size_bytes": 5753,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717065351_afb4ad6a-e70c-47bf-b699-fc9c9dbfae27.sql",
+      "git_blob_sha": "c07c7b21c2bb097abbb8a87c68877753efd57792",
+      "size_bytes": 1095,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717070700_439e1c27-a1b9-45f9-9e5d-1da7f2370c90.sql",
+      "git_blob_sha": "b2ee2748e4de9ae5a9eae1e873c96acbda194307",
+      "size_bytes": 1132,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717074003_5a819d03-b00e-4da6-ba8c-abe7da04a18a.sql",
+      "git_blob_sha": "81065d5c6c66f0160356765092dd38ad789a3dc2",
+      "size_bytes": 711,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717074846_1a56aef8-d97b-48bf-8b69-501708619658.sql",
+      "git_blob_sha": "560a6ea2ce8f6e2706c002e06bc7a6bcfb7dda2c",
+      "size_bytes": 3697,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717082409_73e7f75e-cc4d-402c-a80a-ee747c275c86.sql",
+      "git_blob_sha": "96544eddbe9159f6f75fba1c04b97ceac4927a49",
+      "size_bytes": 11124,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717103344_405eca5c-d82b-46d8-b862-33825137a673.sql",
+      "git_blob_sha": "8c5040e94ff55db529343ebc500c8d71c4783845",
+      "size_bytes": 1465,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717104421_e0b21870-1a2b-4500-ba9a-32967f555e29.sql",
+      "git_blob_sha": "b9bbcd37832680490a874e3a901faf7de7b7241a",
+      "size_bytes": 8811,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717104450_93234b22-92df-46cf-a512-d0910dee1d4f.sql",
+      "git_blob_sha": "fa5ef0d41d92be131072777bd66b735fd2c7ab6c",
+      "size_bytes": 941,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717105601_1db874db-a927-4000-8587-9d397f079593.sql",
+      "git_blob_sha": "4847cb8541716db5958f1ede825e647e647e49a3",
+      "size_bytes": 4291,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717110649_986b9bda-2779-4f13-a733-20ea3f3c832b.sql",
+      "git_blob_sha": "ac5ec0505cbda2c8a867632203ea1a7bc0d49529",
+      "size_bytes": 6660,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717112801_274c20ad-4f2a-4527-99d8-f8d470a2e931.sql",
+      "git_blob_sha": "a08890b7a83b497b7a7b02638663968d0624ecd2",
+      "size_bytes": 5912,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717120735_8854ce89-6c8f-489b-9dd1-8545df108c09.sql",
+      "git_blob_sha": "c5c04eb72101832b67337fef96e21d2a306b20c8",
+      "size_bytes": 4557,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717124315_368d46e3-46fd-42d6-bec0-5708e123653e.sql",
+      "git_blob_sha": "0877a7e86459d2f04bed04b800aa39710c234ecf",
+      "size_bytes": 9440,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717125651_c3cb6457-3b86-488a-8326-ade8575bd534.sql",
+      "git_blob_sha": "296dc68934162ddebd6edabd9a77ca84aef90365",
+      "size_bytes": 3566,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717131722_73422435-2f5e-4f12-a177-8d0fb874433c.sql",
+      "git_blob_sha": "71e2f6d0fd17d8943eae23319452f99bf2401473",
+      "size_bytes": 3927,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717133331_95a9efd5-bcf9-4270-bacf-c3a2cb2a572f.sql",
+      "git_blob_sha": "1097d61e3b6360d8fb3397f40f00af6318317a2c",
+      "size_bytes": 4979,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717134609_e206cadd-a69f-4da3-9234-fab6291636fd.sql",
+      "git_blob_sha": "76d1a923bba8e66d67190053aa24f2ed8d700845",
+      "size_bytes": 8541,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717150655_a06e59e2-5ea3-47ca-abfc-ca3b83a1ec95.sql",
+      "git_blob_sha": "5edccc280cb7978f0c7dc9e0422923bada5e7d3b",
+      "size_bytes": 4305,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717151519_969da2a5-3963-4bb5-a397-d25cbe154ca4.sql",
+      "git_blob_sha": "ecc9da08a3515dcca54c74f024c2f5521ab3f405",
+      "size_bytes": 4654,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717152513_68076119-474c-4ba4-9b5e-6aac95e76d55.sql",
+      "git_blob_sha": "1de9a1daf4a6a82af020733967c62d6e7c2f6c46",
+      "size_bytes": 4642,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717153548_678d1610-55f4-4d7c-9532-40c4ce7bbefe.sql",
+      "git_blob_sha": "66b469257face3a1f5d37e807af8126d24b91823",
+      "size_bytes": 4239,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717154459_0e7fcb72-0a07-482f-9cfc-9249225fa229.sql",
+      "git_blob_sha": "3adf3cccf032976f701e3714964f72f4d0ab2d21",
+      "size_bytes": 7703,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717155416_6fa5a235-cc2a-4b79-9dce-3a8cb0dae7f9.sql",
+      "git_blob_sha": "17d2ccfbe754ac8a2d51f54c20e0be6d93122ecf",
+      "size_bytes": 4629,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717160455_0421f104-467c-43dd-9629-23d99bd996c0.sql",
+      "git_blob_sha": "a3bc37466304304dd10136c27f7836d232bff8ff",
+      "size_bytes": 5755,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717163900_12cbff3d-61ed-4e53-86a8-744ce3b7d496.sql",
+      "git_blob_sha": "7ac61983386b8d770d9877499c740f33a89c03b6",
+      "size_bytes": 8246,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717165418_71227f2d-c887-4e56-b47f-873d884055ac.sql",
+      "git_blob_sha": "7919ce325e64b3fd09a76139a602fbf9a45190df",
+      "size_bytes": 791,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717165915_502a5d15-5ae0-4c00-891f-9fc34da9820b.sql",
+      "git_blob_sha": "64bd5245dbe190810f5f5d81ede0b99f6f35f433",
+      "size_bytes": 3180,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717170403_407cb92a-a477-43ca-9475-2df12c60db0e.sql",
+      "git_blob_sha": "7f15e1de0f3c256a0d8fa37d07c1e201b2d22a9e",
+      "size_bytes": 3071,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717171226_db392f46-3101-4222-bded-87d532f7a708.sql",
+      "git_blob_sha": "25e3fe2ecac12e04bd222a680152387f890e6328",
+      "size_bytes": 19334,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717172212_b31212e7-247c-450e-aef0-3a7444949ac6.sql",
+      "git_blob_sha": "8c4a8c00b385db4f5a75180cd313d3333458b707",
+      "size_bytes": 3719,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260717175926_475f0bb0-9a9e-4d98-85e6-6bb9e3313036.sql",
+      "git_blob_sha": "8baa7dac5d0247e0f7afa111c52fa0a8ab7313cc",
+      "size_bytes": 271,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260719102130_1f00dbf9-b1c8-4f8d-a136-fb6ad7833ca4.sql",
+      "git_blob_sha": "d4b52a4cca5678b5cbb6da292ff3686e07371ff5",
+      "size_bytes": 689,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260721122907_cceb9707-4a81-4f4a-8075-bf01d851ab5b.sql",
+      "git_blob_sha": "d0c47d8ba8d0fbf9bb47caa9ed16edd3cbb9488e",
+      "size_bytes": 75,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260721144859_b10a8bc5-70f4-451d-9560-c7a3011c4128.sql",
+      "git_blob_sha": "f82e93815ecd91a65e2daee9a95343f4990ad5f6",
+      "size_bytes": 1012,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260721162632_a3f6bacf-08a8-4b49-9f0e-9319f5e25c3f.sql",
+      "git_blob_sha": "b3dbf672d203c3aab8fe44514d324ef1755068f7",
+      "size_bytes": 277,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260806125800_c8ec52dd-06f5-4ca7-b88a-e24e80a955cd.sql",
+      "git_blob_sha": "68e1d0adc63b473ba2b9f991267abf4db887f8d5",
+      "size_bytes": 4534,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260806130139_4a167960-a209-4a95-93e9-50d2852ac654.sql",
+      "git_blob_sha": "ceb62f68f5f992397b2483b70341a6066b737918",
+      "size_bytes": 10018,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260806131110_ce7f3ca8-ce9a-4fd7-b695-e1443a42028f.sql",
+      "git_blob_sha": "7e919eb7d9c0db460fc27466c7255740c0783718",
+      "size_bytes": 16845,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260806131710_87f6f006-7f4f-4a97-9ebb-23f9716e0094.sql",
+      "git_blob_sha": "99a909e4f17535fd31295b754e91a2fe7b1da4ea",
+      "size_bytes": 13927,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260806132728_89c62236-4238-49fd-9654-a9b0a934ae96.sql",
+      "git_blob_sha": "fc2ed69fceb528f4ab96a1571bfb65abf15476bc",
+      "size_bytes": 999,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260806134708_f40e1c16-b925-4c38-a78b-fc58de8ba1db.sql",
+      "git_blob_sha": "8a06bad41850ac55eadbd57f549dd0a7518befe2",
+      "size_bytes": 21441,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260806134805_f008a6fc-f55e-4b02-9228-961b7e62ef9a.sql",
+      "git_blob_sha": "9b9462913bde1bb7f056b6f7ded0e65a748e6e59",
+      "size_bytes": 189,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260806141447_aea60869-a77e-495b-b0a9-965261a063c2.sql",
+      "git_blob_sha": "00441458e2d6789a9d34c085fa4e4f7f33636346",
+      "size_bytes": 708,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260806142337_0c977466-741b-4cd6-bc22-892f03edb5bd.sql",
+      "git_blob_sha": "7b05ae423cf56c2c184aed9472ab5951dba47733",
+      "size_bytes": 4153,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260806151734_fef8abc5-7bf2-42db-a29e-a48e6567853a.sql",
+      "git_blob_sha": "bf8251477dd41f3844c7c70ebf3444df8aba3759",
+      "size_bytes": 14970,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260806152604_f37659c2-9e95-44ca-a0ff-d3aba4782fb4.sql",
+      "git_blob_sha": "d515302c4e02ded07d821d54291c551c21926b38",
+      "size_bytes": 7490,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260806152619_4247f351-498f-4f60-b637-b74a69ab84d6.sql",
+      "git_blob_sha": "abc5332e5479c2b551ed23a08e1efc41a3fddc86",
+      "size_bytes": 373,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260806153326_86fbd729-0848-4af8-8cdc-ddab91f26ae4.sql",
+      "git_blob_sha": "1e4930c58f6549239c324bbc5541e2776a571bbe",
+      "size_bytes": 10601,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260807101141_2228e760-af38-4afa-a626-5a88c51933ff.sql",
+      "git_blob_sha": "ba54b5e16220b855ec673952d56bb1b4b60059ad",
+      "size_bytes": 16357,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260807102951_53ab2c57-e735-460d-9e2a-75f8fd6694f7.sql",
+      "git_blob_sha": "05d50f796e44a0b449e769cc2023cbd346382859",
+      "size_bytes": 638,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260807112206_e7e523a2-018a-4265-a910-4600f7df289b.sql",
+      "git_blob_sha": "9940f2a4df55b0c37615383f4e17e4f0cf4453d3",
+      "size_bytes": 933,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260807122322_3c1fbe90-6b97-4156-989f-f0c6254806ba.sql",
+      "git_blob_sha": "533fde4331f54bc0fea0c54431d93d31d4a30096",
+      "size_bytes": 6574,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260807123840_4acdd152-0054-4097-8d17-80240d66b034.sql",
+      "git_blob_sha": "04922a27d6ab7308332985a59e28b7c4b75b776a",
+      "size_bytes": 6533,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260807132910_4b1598ee-6c9f-4921-8155-55ecb3c97672.sql",
+      "git_blob_sha": "c2217d116a720e8f473ade142a5db4e85f1db12f",
+      "size_bytes": 29081,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260807133012_c2ec058b-1c93-4515-a305-15e455713094.sql",
+      "git_blob_sha": "d9782d93cc768fe11d109e1afc6741a1232ba6ed",
+      "size_bytes": 583,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260807141356_ffc7cfa0-00fc-4adc-ac46-d898a54c0271.sql",
+      "git_blob_sha": "74ad7fe6e2e29468f2c587146e5a3b6316d15977",
+      "size_bytes": 22594,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260807193903_dfc6cad9-f695-40f8-bd4d-f2e293cfe527.sql",
+      "git_blob_sha": "3f6031fa1881df701bd808de6f3f6c48a40f81d4",
+      "size_bytes": 29539,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260807193935_505229a1-f63e-46f4-8045-ccdf39530ab0.sql",
+      "git_blob_sha": "dfbb30efbf63e24b8f40d40bb4c3fdc837534281",
+      "size_bytes": 217,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260807200043_99b631a4-0bc1-4076-8f96-475dec064a0c.sql",
+      "git_blob_sha": "84f5184c8627b3d34790fb0d616db627abad7a22",
+      "size_bytes": 21439,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260807203012_626fffd2-7bfe-44ed-9c62-9691468f4f2d.sql",
+      "git_blob_sha": "8baf156ed8100b6145376e5b1dafb1f38f7eda4d",
+      "size_bytes": 22813,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260807213129_cb214ce0-d0ef-4290-828c-d956643f5921.sql",
+      "git_blob_sha": "e70c70d22e016b58dd5442e4178ce59f40fac432",
+      "size_bytes": 18237,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260808070213_c6a22219-0117-4423-b6ac-735bc046877e.sql",
+      "git_blob_sha": "938a4954fa11fac6005d04ba2f884496394bab6c",
+      "size_bytes": 3866,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260808072307_3092d003-3a74-4b98-af5e-d8e38361d998.sql",
+      "git_blob_sha": "a90f6130f248112ba71a158687eb1dbab4300873",
+      "size_bytes": 4243,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260808082538_3fea6cc9-bb17-4068-9b31-8651e2437fb3.sql",
+      "git_blob_sha": "26bb4760387b30efef12abe2e9b212adf96546b9",
+      "size_bytes": 809,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260808085108_bd2e2fb8-1772-4c91-a4ec-2fd6afdc3860.sql",
+      "git_blob_sha": "af1c57083d0216c5aad1215f736a5ae8924941c6",
+      "size_bytes": 4880,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260808091351_267b9b74-e23b-45d5-8439-bd94546121d1.sql",
+      "git_blob_sha": "5e1b5004141b7e13be4716dd98c4862afba24f50",
+      "size_bytes": 1415,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260808102902_0ff283c2-48da-4680-8fd3-39dbdb2dd84a.sql",
+      "git_blob_sha": "56d71ab86bf840afac22cf393ad3ead58b2cc502",
+      "size_bytes": 954,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260808105014_4f74825f-4b65-4f43-ac15-4a01383ce755.sql",
+      "git_blob_sha": "fa99124ef5d1204d9836822b1fa55a35e9e8ee6a",
+      "size_bytes": 2990,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260808111657_f141cc97-7b3b-4b2d-b32c-f60d9917ae8e.sql",
+      "git_blob_sha": "be1b4cf935ec3be08579fd6e2ecb016a44c2606c",
+      "size_bytes": 9107,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260808115109_2ab57bf3-326c-4253-a9e6-950208d7ae25.sql",
+      "git_blob_sha": "c0204669b5605af906418c931ad4b7f5d4401747",
+      "size_bytes": 2495,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260808123919_da42f63f-a1c6-44c0-9e08-1e55bb9fab50.sql",
+      "git_blob_sha": "52206f589f3dc5e5e7887426385a7ce211373845",
+      "size_bytes": 6956,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260816154603_c99e71a8-a3ac-4865-a9f3-fb45f024d6fa.sql",
+      "git_blob_sha": "f288f939a1d8c51b8715d1fe007a035e68134b83",
+      "size_bytes": 30,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260816164742_b846ba0e-0fd3-45af-85cf-5e10ee986b72.sql",
+      "git_blob_sha": "af2b8161a97dcbef048a80fbcac3bbff4147a643",
+      "size_bytes": 11005,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260816175159_f8662466-9320-4391-b0a7-93c7aaf775f6.sql",
+      "git_blob_sha": "2848e37e5accc5013f28b74df95c865737825234",
+      "size_bytes": 2185,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260816184703_83e17a5a-61a4-449b-9ee2-7f12743f674d.sql",
+      "git_blob_sha": "88cdaa20cd4822dd335933a8d001e5cf4097f0bb",
+      "size_bytes": 2053,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260817083809_e7bd01b4-bb95-4898-8b90-39c6508e9d65.sql",
+      "git_blob_sha": "0013b94af8fbed4cfecc93bb4bb2267bd646ad01",
+      "size_bytes": 4314,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260817091611_f1c6174f-9718-4985-95bf-6587b2d73c3a.sql",
+      "git_blob_sha": "56bac16e320ff823149be32547cb3185fc9a6664",
+      "size_bytes": 2775,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260817143223_85b6e3b2-84e3-4eb9-9b11-f5ef692d0073.sql",
+      "git_blob_sha": "aa48bbb86d6b5bdae18d8884e7f2fa08e7fc042e",
+      "size_bytes": 1243,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260817143316_bccd958a-dc68-4775-8cc8-22eb4d7a921d.sql",
+      "git_blob_sha": "c7e4c8edb1327526d48f1ee5b88231510b419248",
+      "size_bytes": 1041,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260818161419_ce7034cb-bf6f-4080-8c2e-46207b6c0d89.sql",
+      "git_blob_sha": "200739d59082863928b8f423e59f3ed2954e8658",
+      "size_bytes": 5228,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260818163514_bae0146a-04ad-4f4c-ae82-1295f9ac245e.sql",
+      "git_blob_sha": "7468ca54773bcfcd30e57fa6042a76749df91151",
+      "size_bytes": 8007,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260818163630_1c46bc01-83ae-47e1-9081-55f6f1ceb885.sql",
+      "git_blob_sha": "49ba2f351f401be115412b5574cf4dfa3ad49f27",
+      "size_bytes": 214,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260818165025_35f02ebe-d8ff-4897-8b6d-f5c10b341d78.sql",
+      "git_blob_sha": "871a5f7549931bab13ff08929987524ad93a20a1",
+      "size_bytes": 4464,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260819165322_fd057865-23e4-4394-b8a9-9444a5670617.sql",
+      "git_blob_sha": "620c03b0bbb16e6f44d0cb3b82b4dae5b84e9697",
+      "size_bytes": 3744,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260923120000_staynas_room_management.sql",
+      "git_blob_sha": "98674eb5f4fcd8dfbcddfa0bc19fae69632a04cc",
+      "size_bytes": 7983,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260924130000_hk_s1_domain_integrity.sql",
+      "git_blob_sha": "c6e64c2076b5e68a0d3a3c314367a6696e6bb4fb",
+      "size_bytes": 5059,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260924150000_hk_s2_staff_execution.sql",
+      "git_blob_sha": "f955871684c73946ae95de983e6fb78b771948f1",
+      "size_bytes": 9898,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260924151000_hk_s2_staff_directory.sql",
+      "git_blob_sha": "996015dd5ea106d641a61ecd9a9a9e695fe1e889",
+      "size_bytes": 729,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260924152000_hk_s2_task_room_backfill.sql",
+      "git_blob_sha": "200d8a244d2c92073ec4d4f2271ae58599c06919",
+      "size_bytes": 372,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260924170000_hk_s3_inspection_readiness.sql",
+      "git_blob_sha": "021263bb8c39402b1121b696087e553b43568e94",
+      "size_bytes": 12219,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260924190000_hk_s4_exceptions.sql",
+      "git_blob_sha": "a090a6dda8f8d31e5257be2980ef8ab2f57abe86",
+      "size_bytes": 7559,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260926120000_hk_s5_realtime_intelligence.sql",
+      "git_blob_sha": "ef295c148280c9065f12c2c139f968f34064f017",
+      "size_bytes": 14527,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260926120100_hk_s5_hardening.sql",
+      "git_blob_sha": "420133a56e0d93ab3f0e45318b61e07adfa41c2a",
+      "size_bytes": 2256,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260926123000_hk_s5_final_certification.sql",
+      "git_blob_sha": "f4c12c2d89fc74788b87c785549e9c721eff4186",
+      "size_bytes": 4346,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260926140000_hk_s6_certification.sql",
+      "git_blob_sha": "d041f3177d19d7302fc779d833e5f75016e77f6b",
+      "size_bytes": 12669,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260926150000_staynas_property_room_hardening.sql",
+      "git_blob_sha": "2322c96ff8565a37574d0e39c94411b08167c66c",
+      "size_bytes": 19884,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260926150100_staynas_property_room_hardening_fix.sql",
+      "git_blob_sha": "150e56947d16c0efa793dc4be5a12808be1c3ff1",
+      "size_bytes": 6012,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20260926150200_staynas_property_room_configuration.sql",
+      "git_blob_sha": "7f0833accf974a968a1abd76be4c82c30093c953",
+      "size_bytes": 7902,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261030200000_sn_iq_04_omnichannel_ledger.sql",
+      "git_blob_sha": "8287cbc787455ec0acdf51312c94458472d6b5d6",
+      "size_bytes": 11604,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261030213000_sn_iq_04_4_provider_routing_and_property_settings.sql",
+      "git_blob_sha": "2ea6e70fa1962018d910fa501c569e02b916704c",
+      "size_bytes": 2780,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261030214000_sn_iq_04_4_webhook_inbox.sql",
+      "git_blob_sha": "cd184c4cf2b6f08d48fed61b1492181780218c25",
+      "size_bytes": 1235,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261030220000_sn_iq_04_5_inbox_processing.sql",
+      "git_blob_sha": "2afab764f302793b66d70fca4aa1c7d74fdbd03f",
+      "size_bytes": 1612,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261031150000_sn_iq_05_guest_request_intake.sql",
+      "git_blob_sha": "11f24e16dca9d2a4391d0725fca0d2ddd4a0b40f",
+      "size_bytes": 4065,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261031160000_sn_iq_05_guest_request_dispatch.sql",
+      "git_blob_sha": "ed1f90bdd213d471f194d7ee37d75c8432808f11",
+      "size_bytes": 5934,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261031190000_sn_iq_04_active_property_authorization_helpers.sql",
+      "git_blob_sha": "0ced7170c333990e6c3f0449cd7f2226c21f62c7",
+      "size_bytes": 2700,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261031200000_sn_iq_04_6_atomic_inbound_processing.sql",
+      "git_blob_sha": "208e8cde41e532b538a5ddb15aa46a8ca504ce41",
+      "size_bytes": 4913,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261103140000_sn_iq_05_execution_hk_x_integration.sql",
+      "git_blob_sha": "626d1ab3c42121af994ab6c20126499e5f652301",
+      "size_bytes": 12640,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261103190000_staynas_platform_room_catalogue.sql",
+      "git_blob_sha": "1a83a3d2184dd43dc0bd1e8e078d192aacbd9287",
+      "size_bytes": 6143,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261103200000_restore_platform_room_guest_content.sql",
+      "git_blob_sha": "f5f4cc518992ad14514ee81b69d597c2e06ab72b",
+      "size_bytes": 549,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261104143000_property_scoped_room_configuration.sql",
+      "git_blob_sha": "98841582ab36c5bea8425775d16b2786185ad2f1",
+      "size_bytes": 2611,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261104194709_phase5_revenue_ledger_property_rls.sql",
+      "git_blob_sha": "039b34f567c60b7c564754e88c9281d8ecb08f67",
+      "size_bytes": 805,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261105103000_fix_property_rpc_jwt_role_claim_resolution.sql",
+      "git_blob_sha": "e61ff024302faeaf18cfd9496be07b19e77c8204",
+      "size_bytes": 1112,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261105110000_staynas_property_branding.sql",
+      "git_blob_sha": "2fe4261334d78e4440908ee8596a918e50204be2",
+      "size_bytes": 1880,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261105123000_property_branding_storage.sql",
+      "git_blob_sha": "6b7e46935a478e87111fd8c2df52fc79f4866858",
+      "size_bytes": 2339,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    }
+  ]
+}
