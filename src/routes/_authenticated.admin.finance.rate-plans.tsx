@@ -62,6 +62,14 @@ function RatePlans() {
   const [dailyRoomType,setDailyRoomType]=useState("");
   const [dailyRate,setDailyRate]=useState("");
   const [dailyActive,setDailyActive]=useState(true);
+  const [restrictionKey,setRestrictionKey]=useState("");
+  const [restrictionType,setRestrictionType]=useState<"min_los"|"max_los"|"closed_to_arrival"|"closed_to_departure"|"stop_sell"|"advance_booking_min_hours"|"advance_booking_max_days">("min_los");
+  const [restrictionStart,setRestrictionStart]=useState("");
+  const [restrictionEnd,setRestrictionEnd]=useState("");
+  const [restrictionValue,setRestrictionValue]=useState("");
+  const [restrictionRoomTypes,setRestrictionRoomTypes]=useState<string[]>([]);
+  const [restrictionReason,setRestrictionReason]=useState("");
+  const [restrictionActive,setRestrictionActive]=useState(true);
 
   const reset=()=>{setEditing(null);setCode("");setName("");setDescription("");setCategory("standard_flexible");setBasis("per_room");setMealPlan("room_only");setRefundable(true);setFrom("");setTo("");setParent("");setRatePlanDataText("{}");setInheritancePreview(null);};
   const startEdit=(p:Plan)=>{setEditing(p);setCode(p.code);setName(p.name);setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));setInheritancePreview(null);};
@@ -154,6 +162,72 @@ function RatePlans() {
       : [],
   );
 
+  const readRestrictions=():Record<string,Record<string,unknown>>=>{
+    try {
+      const parsed=JSON.parse(ratePlanDataText||"{}") as {restrictions?:Record<string,Record<string,unknown>|null>};
+      return Object.fromEntries(Object.entries(parsed.restrictions??{}).filter(([,value])=>value&&typeof value==="object")) as Record<string,Record<string,unknown>>;
+    } catch { return {}; }
+  };
+  const assignedRestrictionRoomTypes=(roomTypeData?.roomTypes??[]).filter((rt:{id:string})=>
+    !!editing && (roomTypeData?.assignments??[]).some((a:{rate_plan_id:string;room_type_id:string;active:boolean})=>
+      a.rate_plan_id===editing.id&&a.room_type_id===rt.id&&a.active,
+    ),
+  );
+  const addRestriction=()=>{
+    if(!editing){toast.error("Create the rate plan, assign room types, then edit it to add restrictions.");return;}
+    if(!restrictionKey.trim()||!restrictionStart||!restrictionEnd||!restrictionRoomTypes.length||restrictionReason.trim().length<5){
+      toast.error("Complete the rule key, dates, room types and reason.");return;
+    }
+    if(restrictionEnd<restrictionStart){toast.error("Restriction end date must be on or after its start date.");return;}
+    if(restrictionRoomTypes.some(id=>!assignedRestrictionRoomTypes.some(rt=>rt.id===id))){
+      toast.error("Restrictions can only target room types actively assigned to this rate plan.");return;
+    }
+    const requiresValue=["min_los","max_los","advance_booking_min_hours","advance_booking_max_days"].includes(restrictionType);
+    const value=Number(restrictionValue);
+    if(requiresValue&&(!restrictionValue||!Number.isInteger(value)||value<0)){
+      toast.error("Enter a whole-number value for this restriction.");return;
+    }
+    if((restrictionType==="min_los"||restrictionType==="max_los")&&(value<1||value>365)){
+      toast.error("Length of stay must be between 1 and 365 nights.");return;
+    }
+    if(restrictionType==="advance_booking_min_hours"&&value>87600){
+      toast.error("Minimum advance booking must not exceed 87,600 hours.");return;
+    }
+    if(restrictionType==="advance_booking_max_days"&&value>3650){
+      toast.error("Maximum advance booking must not exceed 3,650 days.");return;
+    }
+    try {
+      const parsed=JSON.parse(ratePlanDataText||"{}") as Record<string,unknown>;
+      const restrictions=(parsed.restrictions&&typeof parsed.restrictions==="object"?parsed.restrictions:{}) as Record<string,unknown>;
+      if(Object.prototype.hasOwnProperty.call(restrictions,restrictionKey.trim())&&restrictions[restrictionKey.trim()]!==null){
+        toast.error("A restriction with this key already exists. Choose another key or clear the existing rule first.");return;
+      }
+      restrictions[restrictionKey.trim()] = {
+        type:restrictionType,
+        ...(requiresValue?{value}:{}),
+        start_date:restrictionStart,
+        end_date:restrictionEnd,
+        room_type_ids:restrictionRoomTypes,
+        active:restrictionActive,
+        reason:restrictionReason.trim(),
+      };
+      parsed.restrictions=restrictions;
+      setRatePlanDataText(JSON.stringify(parsed,null,2));
+      setRestrictionKey("");setRestrictionStart("");setRestrictionEnd("");setRestrictionValue("");
+      setRestrictionRoomTypes([]);setRestrictionReason("");setRestrictionActive(true);
+      toast.success("Restriction added. Save the rate plan to validate and persist it.");
+    } catch { toast.error("Fix the rate-data JSON before adding a restriction."); }
+  };
+  const removeRestriction=(key:string)=>{
+    try {
+      const parsed=JSON.parse(ratePlanDataText||"{}") as Record<string,unknown>;
+      const restrictions=(parsed.restrictions??{}) as Record<string,unknown>;
+      restrictions[key]=null;
+      parsed.restrictions=restrictions;
+      setRatePlanDataText(JSON.stringify(parsed,null,2));
+    } catch { toast.error("Fix the rate-data JSON before clearing a restriction."); }
+  };
+  const restrictionEntries=Object.entries(readRestrictions());
   return <div className="space-y-6">
     <PageHeader title="Rate Plans" description="Manage property-scoped commercial accommodation products, room eligibility, seasonal pricing, daily rate overrides and publication." />
     {data?.property&&<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><span className="font-medium text-foreground">{data.property.name}</span><Badge variant="outline">{String(data.property.currency).toUpperCase()}</Badge><span>{data.property.timezone}</span></div>}
@@ -200,6 +274,44 @@ function RatePlans() {
         </div>
         <Button type="button" variant="outline" onClick={addDailyRate}><Plus className="mr-2 h-4 w-4"/>Add daily override</Button>
         {dailyRateEntries.length>0&&<div className="space-y-2">{dailyRateEntries.sort((a,b)=>a.date.localeCompare(b.date)).map(entry=><div key={entry.date+entry.roomTypeId} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm"><div><span className="font-medium">{entry.date}</span><span className="ml-2 text-xs text-muted-foreground">{(roomTypeData?.roomTypes??[]).find((rt:{id:string})=>rt.id===entry.roomTypeId)?.name??entry.roomTypeId} · {String(entry.value.nightly_rate??"")} {String(entry.value.currency??"")} · {entry.value.active===false?"Inactive":"Active"}</span></div><Button type="button" size="icon" variant="ghost" aria-label={"Clear daily rate "+entry.date} onClick={()=>removeDailyRate(entry.date,entry.roomTypeId)}><Trash2 className="h-4 w-4"/></Button></div>)}</div>}
+      </div>
+      <div className="mt-5 rounded-lg border border-border p-4 space-y-3">
+        <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4"/><h3 className="text-sm font-semibold">Stay restrictions</h3></div>
+        <p className="text-xs text-muted-foreground">Restrictions are separate from inventory. Stop-sell never changes room counts or blocked state. Length-of-stay and advance-booking rules use the arrival date; closed-to-departure checks the checkout date; stop-sell applies to any occupied night. Dates are property-local and inclusive.</p>
+        {!editing?<p className="text-sm text-muted-foreground">Create this rate plan and assign room types first. Then edit it to configure restrictions.</p>:(
+          <>
+            <div className="grid gap-3 md:grid-cols-3">
+              <Input placeholder="Rule key (e.g. peak-min-stay)" value={restrictionKey} onChange={e=>setRestrictionKey(e.target.value)}/>
+              <select className="rounded-md border border-border bg-background px-3 py-2 text-sm" value={restrictionType} onChange={e=>setRestrictionType(e.target.value as typeof restrictionType)}>
+                <option value="min_los">Minimum length of stay</option>
+                <option value="max_los">Maximum length of stay</option>
+                <option value="closed_to_arrival">Closed to arrival</option>
+                <option value="closed_to_departure">Closed to departure</option>
+                <option value="stop_sell">Stop sell</option>
+                <option value="advance_booking_min_hours">Minimum advance booking (hours)</option>
+                <option value="advance_booking_max_days">Maximum advance booking (days)</option>
+              </select>
+              {["min_los","max_los","advance_booking_min_hours","advance_booking_max_days"].includes(restrictionType)&&
+                <Input type="number" min="0" step="1" placeholder={restrictionType==="min_los"||restrictionType==="max_los"?"Nights":restrictionType==="advance_booking_min_hours"?"Hours before arrival":"Days before arrival"} value={restrictionValue} onChange={e=>setRestrictionValue(e.target.value)}/>}
+              <Input type="date" aria-label="Restriction effective from" value={restrictionStart} onChange={e=>setRestrictionStart(e.target.value)}/>
+              <Input type="date" aria-label="Restriction effective to" min={restrictionStart||undefined} value={restrictionEnd} onChange={e=>setRestrictionEnd(e.target.value)}/>
+              <Input placeholder="Reason shown when the stay is unsellable" maxLength={500} value={restrictionReason} onChange={e=>setRestrictionReason(e.target.value)}/>
+            </div>
+            <div className="space-y-2"><p className="text-xs font-medium">Assigned room types affected</p>
+              <div className="flex flex-wrap gap-4">{assignedRestrictionRoomTypes.map((rt:{id:string;name:string})=>
+                <label key={rt.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={restrictionRoomTypes.includes(rt.id)} onChange={e=>setRestrictionRoomTypes(current=>e.target.checked?[...current,rt.id]:current.filter(id=>id!==rt.id))}/>{rt.name}</label>)}
+                {!assignedRestrictionRoomTypes.length&&<span className="text-xs text-muted-foreground">Assign room types to this plan before adding restrictions.</span>}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-sm"><label className="flex items-center gap-2"><input type="checkbox" checked={restrictionActive} onChange={e=>setRestrictionActive(e.target.checked)}/>Active rule</label>
+              <Button type="button" variant="outline" disabled={!assignedRestrictionRoomTypes.length} onClick={addRestriction}><Plus className="mr-2 h-4 w-4"/>Add restriction</Button>
+            </div>
+          </>
+        )}
+        {restrictionEntries.length>0&&<div className="space-y-2">{restrictionEntries.map(([key,value])=><div key={key} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
+          <div><span className="font-medium">{key}</span><span className="ml-2 text-xs text-muted-foreground">{String(value.type).replaceAll("_"," ")} · {String(value.start_date)} → {String(value.end_date)} · {value.active===false?"Inactive":"Active"}{value.value!==undefined?" · "+String(value.value):""}</span><p className="text-xs text-muted-foreground">{String(value.reason??"")}</p></div>
+          <Button type="button" size="icon" variant="ghost" aria-label={"Clear restriction "+key} onClick={()=>removeRestriction(key)}><Trash2 className="h-4 w-4"/></Button>
+        </div>)}</div>}
       </div>
       <div className="mt-3 flex flex-wrap gap-2"><Button disabled={!code.trim()||!name.trim()||save.isPending} onClick={()=>save.mutate()}><Plus className="mr-2 h-4 w-4"/>{editing?"Save changes":"Create rate plan"}</Button>{editing&&<Button variant="outline" onClick={reset}>Cancel edit</Button>}</div>
       <p className="mt-2 text-xs text-muted-foreground">Currency is inherited from the active property and cannot be overridden. New plans start as Draft. Missing rate-data keys inherit from the parent; matching child keys override parent values. Cancellation and refundability remain independent.</p>
