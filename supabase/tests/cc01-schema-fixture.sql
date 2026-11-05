@@ -4898,4 +4898,5 @@ CREATE FUNCTION public.restaurant_can_write(_tenant_id uuid, _roles public.resta
 -- Existing internal helpers referenced by database-owned workflows.
 CREATE FUNCTION public.checkin_sync_reservation(_checkin_id uuid, _client jsonb DEFAULT '{}'::jsonb) RETURNS jsonb LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
 CREATE FUNCTION public.restaurant_is_platform_admin(_user_id uuid) RETURNS boolean LANGUAGE plpgsql AS $stub$ BEGIN RETURN false; END; $stub$;
+CREATE FUNCTION public.staynas_ai_property_in_active_context(p_property_id uuid, p_allowed_roles public.app_role[]) RETURNS boolean LANGUAGE plpgsql AS $stub$ BEGIN RETURN false; END; $stub$;
 SET check_function_bodies = on;
