@@ -29,7 +29,8 @@ export type PublicRatePlanOption = { rate_plan_id: string; name: string; descrip
 
 export type AvailabilityRoom = {
   rate_plan_options?: PublicRatePlanOption[];
-  selected_rate_plan_id?: string;\n  selected_rate_plan?: PublicRatePlanOption;
+  selected_rate_plan_id?: string;
+  selected_rate_plan?: PublicRatePlanOption;
   room_id: string;
   slug: string;
   name: string;
