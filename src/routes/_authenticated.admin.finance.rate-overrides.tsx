@@ -97,7 +97,7 @@ function RateOverrides() {
           <span>{data.property.timezone}</span>
         </div>
       )}
-      <SectionCard title="Create override proposal" description="Every proposal starts pending. Approval is separately recorded; approved commercial terms are immutable.">
+      <SectionCard title="Create override proposal" description="Every proposal starts pending. Approval is separately recorded; approved commercial terms are immutable. SPE-04 precedence: approved exact-date override → published daily rate → seasonal rate → inherited/base rate.">
         <div className="grid gap-3 md:grid-cols-3">
           <label className="text-sm">Override scope
             <select className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2" value={scope} onChange={e => {
