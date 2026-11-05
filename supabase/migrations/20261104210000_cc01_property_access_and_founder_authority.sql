@@ -134,6 +134,38 @@ REVOKE ALL ON FUNCTION public.log_calendar_event(text, uuid, uuid, uuid, date, d
 REVOKE ALL ON FUNCTION public.is_guest_pii_staff(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.restaurant_is_platform_admin(uuid) FROM PUBLIC, anon, authenticated;
 
+-- AI/knowledge access must inherit organisation lifecycle checks as well
+-- as active-property membership and role checks.
+CREATE OR REPLACE FUNCTION public.staynas_ai_property_in_active_context(
+  p_property_id uuid,
+  p_allowed_roles public.app_role[]
+)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $function$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.staynas_property_members AS member
+    JOIN public.staynas_user_property_context AS active_context
+      ON active_context.user_id = member.user_id
+     AND active_context.property_id = member.property_id
+    JOIN public.staynas_properties AS property
+      ON property.id = member.property_id
+    WHERE member.user_id = auth.uid()
+      AND member.property_id = p_property_id
+      AND member.status = 'active'
+      AND member.role = ANY (p_allowed_roles)
+      AND property.status = 'active'
+      AND public.staynas_user_has_property_access(auth.uid(), p_property_id)
+  );
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_ai_property_in_active_context(uuid, public.app_role[]) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.staynas_ai_property_in_active_context(uuid, public.app_role[]) TO authenticated, service_role;
+
 -- Restaurant-domain predicates are authenticated membership helpers, not
 -- anonymous RPC surfaces. Preserve authenticated and service-role access.
 revoke all on function public.restaurant_can_read(uuid) from public, anon;
