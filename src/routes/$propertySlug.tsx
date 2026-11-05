@@ -24,10 +24,11 @@ export const Route = createFileRoute("/$propertySlug")({
 });
 
 type PropertyPageData = Awaited<ReturnType<typeof getPublicDemoProperty>>;
+type RatePlanOption = { rate_plan_id: string; name: string; description: string | null; meal_plan: string | null; refundable: boolean; currency: string; total: number; minimum_stay: number; publication_id: string; publication_number: number; rate_plan_version: number; snapshot_hash: string };
 type AvailableRoom = {
   room_id: string; slug: string; name: string; base_price: number; currency: string;
   max_occupancy: number; nightly_total: number; nights: number; min_available: number;
-  is_available: boolean; fits_guests: boolean;
+  is_available: boolean; fits_guests: boolean; rate_plan_options?: RatePlanOption[];
 };
 
 const isoDate = (date: Date) => {
@@ -68,6 +69,8 @@ function PublicPropertyBookingPage() {
   const [availableRooms, setAvailableRooms] = useState<AvailableRoom[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<AvailableRoom | null>(null);
+  const [selectedRatePlanId, setSelectedRatePlanId] = useState("");
+  const [selectedRatePlans, setSelectedRatePlans] = useState<Record<string, string>>({});
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
@@ -96,6 +99,8 @@ function PublicPropertyBookingPage() {
       setAvailableRooms(rooms as AvailableRoom[]);
       setHasSearched(true);
       setSelectedRoom(null);
+      setSelectedRatePlanId("");
+      setSelectedRatePlans({});
       setConfirmation(null);
       window.setTimeout(() => document.getElementById("room-results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
     },
@@ -106,7 +111,7 @@ function PublicPropertyBookingPage() {
       if (!selectedRoom) throw new Error("Select a room to continue.");
       return createBooking({
         data: {
-          propertySlug, roomSlug: selectedRoom.slug, checkIn, checkOut,
+          propertySlug, roomSlug: selectedRoom.slug, ratePlanId: selectedRatePlanId || undefined, checkIn, checkOut,
           adults: guests, children: 0, guestName, guestEmail, guestPhone, country, specialRequests,
         },
       });
@@ -137,7 +142,8 @@ function PublicPropertyBookingPage() {
     "--direct-background": branding.backgroundColor,
     "--direct-text": branding.textColor,
   } as React.CSSProperties;
-  const selectedTotal = selectedRoom ? selectedRoom.nightly_total : 0;
+  const selectedPlan = selectedRoom?.rate_plan_options?.find((plan) => plan.rate_plan_id === selectedRatePlanId) ?? (selectedRoom?.rate_plan_options?.length === 1 ? selectedRoom.rate_plan_options[0] : undefined);
+  const selectedTotal = selectedRoom ? Number(selectedPlan?.total ?? selectedRoom.nightly_total) : 0;
 
   return (
     <main style={brandStyle} className="min-h-screen bg-[var(--direct-background)] pb-28 text-[var(--direct-text)] selection:bg-[#dce8df]">
@@ -210,6 +216,9 @@ function PublicPropertyBookingPage() {
           {rooms.map((room: any, index: number) => {
             const live = availableRooms.find((item) => item.slug === room.slug);
             const isSelected = selectedRoom?.slug === room.slug;
+            const planOptions: RatePlanOption[] = live?.rate_plan_options ?? [];
+            const selectedPlanForRoom = planOptions.find((plan) => plan.rate_plan_id === (selectedRatePlans[room.slug] ?? "")) ?? (planOptions.length === 1 ? planOptions[0] : undefined);
+            const needsPlanChoice = live?.pricing_quote?.error_code === "RATE_PLAN_REQUIRED";
             const notReturned = hasSearched && !live;
             return <article key={room.id} className={`group overflow-hidden rounded-[1.4rem] border bg-white transition duration-200 ${isSelected ? "border-[#68816f] ring-2 ring-[#dce7dd]" : "border-[#e8e7df] hover:-translate-y-0.5 hover:shadow-[0_14px_35px_rgba(33,43,36,0.08)]"}`}>
               <div className="relative aspect-[16/10] overflow-hidden bg-[#e9e9e1]">
@@ -227,8 +236,9 @@ function PublicPropertyBookingPage() {
                   {room.bed_label && <span className="inline-flex items-center gap-1"><BedDouble className="h-3.5 w-3.5"/>{room.bed_label}</span>}
                 </div>
                 {live ? <div className="mt-4 border-t border-[#f0f0eb] pt-3">
-                  <div className="flex items-center justify-between gap-2"><span className="text-[10px] font-medium text-[#4d7059]">{live.min_available} available</span><span className="text-xs font-semibold text-[#26382d]">{money(live.nightly_total, live.currency)} <span className="font-normal text-[#899188]">stay total</span></span></div>
-                  <button type="button" onClick={() => { setSelectedRoom(live); setConfirmation(null); window.setTimeout(() => document.getElementById("guest-details")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80); }} className={`mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-xs font-semibold transition ${isSelected ? "bg-[#e5eee6] text-[#31523b]" : "bg-[var(--direct-primary)] text-white hover:opacity-90"}`}>{isSelected ? "Room selected" : "Choose this room"}<ArrowRight className="h-3.5 w-3.5"/></button>
+                  <div className="flex items-center justify-between gap-2"><span className="text-[10px] font-medium text-[#4d7059]">{live.min_available} available</span><span className="text-xs font-semibold text-[#26382d]">{needsPlanChoice && planOptions.length > 1 && !selectedPlanForRoom ? "Choose a rate plan" : money(Number(selectedPlanForRoom?.total ?? live.nightly_total), selectedPlanForRoom?.currency ?? live.currency)} <span className="font-normal text-[#899188]">stay total</span></span></div>
+                  {planOptions.length > 1 && <div className="mt-3"><label className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#718078]">Choose a rate plan</label><select value={selectedRatePlans[room.slug] ?? ""} onChange={(event) => setSelectedRatePlans((current) => ({ ...current, [room.slug]: event.target.value }))} className="mt-1.5 h-10 w-full rounded-lg border border-[#e5e6df] bg-[#fcfcfa] px-3 text-xs text-[#253229]"><option value="">Select a rate plan</option>{planOptions.map((plan) => <option key={plan.rate_plan_id} value={plan.rate_plan_id}>{plan.name} — {money(Number(plan.total), plan.currency)}</option>)}</select>{selectedPlanForRoom && <p className="mt-1.5 text-[10px] text-[#7b877e]">{selectedPlanForRoom.description || selectedPlanForRoom.meal_plan || "Published rate plan"} · {selectedPlanForRoom.refundable ? "Refundable" : "Non-refundable"}</p>}</div>}
+                  <button type="button" disabled={needsPlanChoice && planOptions.length === 0 || planOptions.length > 1 && !selectedRatePlans[room.slug]} onClick={() => { setSelectedRoom(live); setSelectedRatePlanId(selectedRatePlans[room.slug] ?? ""); setConfirmation(null); window.setTimeout(() => document.getElementById("guest-details")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80); }} className={`mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${isSelected ? "bg-[#e5eee6] text-[#31523b]" : "bg-[var(--direct-primary)] text-white hover:opacity-90"}`}>{isSelected ? "Room selected" : "Choose this room"}<ArrowRight className="h-3.5 w-3.5"/></button>
                 </div> : notReturned ? <div className="mt-4 border-t border-[#f0f0eb] pt-3"><p className="text-xs text-[#8b7460]">Not available for these dates</p></div> : <p className="mt-4 border-t border-[#f0f0eb] pt-3 text-[10px] text-[#9a9f97]">Search dates to check availability</p>}
               </div>
             </article>;
@@ -239,7 +249,7 @@ function PublicPropertyBookingPage() {
 
         {selectedRoom && !confirmation && <form id="guest-details" onSubmit={(event) => { event.preventDefault(); bookingMutation.mutate(); }} className="mt-7 scroll-mt-5 rounded-[1.5rem] border border-[#e6e4dc] bg-white p-5 shadow-[0_12px_35px_rgba(33,43,36,0.06)] sm:p-7">
           <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#718078]">Your reservation</p><h2 className="mt-1 text-2xl font-medium tracking-[-0.045em] text-[#202820]">A few details before we confirm</h2></div><span className="rounded-full bg-[#edf3ed] px-3 py-1.5 text-[10px] font-semibold text-[#416149]">Room selected</span></div>
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#f7f7f2] p-4"><div><p className="text-sm font-semibold text-[#29372e]">{selectedRoom.name}</p><p className="mt-1 text-[11px] text-[#7d887f]">{prettyDate(checkIn)} — {prettyDate(checkOut)} · {guests} guests</p></div><div className="text-right"><p className="text-lg font-semibold text-[#29372e]">{money(selectedTotal, selectedRoom.currency)}</p><p className="text-[10px] text-[#7d887f]">estimated stay total</p></div></div>
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#f7f7f2] p-4"><div><p className="text-sm font-semibold text-[#29372e]">{selectedRoom.name}</p>{selectedPlan && <p className="mt-1 text-[11px] text-[#65776a]">{selectedPlan.name} · {selectedPlan.meal_plan || "No meal plan"} · {selectedPlan.refundable ? "Refundable" : "Non-refundable"}</p>}<p className="mt-1 text-[11px] text-[#7d887f]">{prettyDate(checkIn)} — {prettyDate(checkOut)} · {guests} guests</p></div><div className="text-right"><p className="text-lg font-semibold text-[#29372e]">{money(selectedTotal, selectedRoom.currency)}</p><p className="text-[10px] text-[#7d887f]">estimated stay total</p></div></div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <label className="grid gap-1.5 text-[11px] font-semibold text-[#526057]">Full name<input required minLength={2} maxLength={100} value={guestName} onChange={(event) => setGuestName(event.target.value)} className="h-11 rounded-xl border border-[#e5e6df] bg-[#fcfcfa] px-3 text-sm font-normal text-[#253229] outline-none focus:border-[#78917e]" placeholder="Your full name"/></label>
             <label className="grid gap-1.5 text-[11px] font-semibold text-[#526057]">Email address<input required type="email" value={guestEmail} onChange={(event) => setGuestEmail(event.target.value)} className="h-11 rounded-xl border border-[#e5e6df] bg-[#fcfcfa] px-3 text-sm font-normal text-[#253229] outline-none focus:border-[#78917e]" placeholder="you@example.com"/></label>
