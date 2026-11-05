@@ -335,6 +335,7 @@ BEGIN
   FROM public.staynas_distribution_operation_ledger l
   WHERE l.id=_operation_id AND l.status='running'
     AND l.lease_token=_lease_token AND l.lease_owner=_worker_id
+    AND l.lease_expires_at > pg_catalog.now()
   FOR UPDATE;
 
   IF _row.id IS NULL THEN
