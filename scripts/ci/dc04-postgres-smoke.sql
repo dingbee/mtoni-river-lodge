@@ -130,4 +130,113 @@ BEGIN
 END
 $test$;
 
+
+SET ROLE service_role;
+DO $ledger$
+DECLARE
+  v_operation_id uuid;
+  v_duplicate_id uuid;
+  v_created boolean;
+  v_claim public.staynas_distribution_operation_ledger%ROWTYPE;
+  v_inbox_id uuid;
+  v_duplicate_inbox_id uuid;
+  v_inbox_created boolean;
+BEGIN
+  SELECT operation_id,created INTO v_operation_id,v_created
+  FROM public.staynas_enqueue_distribution_operation(
+    '20000000-0000-4000-8000-000000000001',
+    '30000000-0000-4000-8000-000000000001',
+    '70000000-0000-4000-8000-000000000001',
+    'test_provider','sandbox','availability.pull','availability.read',
+    'idem-dc04-test-0001',repeat('a',64),'dc04-operation-correlation-001',
+    '{"room_type_id":"room-type-1","from":"2027-01-01","to":"2027-01-02"}'::jsonb
+  );
+  IF NOT v_created THEN RAISE EXCEPTION 'First enqueue was not created'; END IF;
+
+  SELECT operation_id,created INTO v_duplicate_id,v_created
+  FROM public.staynas_enqueue_distribution_operation(
+    '20000000-0000-4000-8000-000000000001',
+    '30000000-0000-4000-8000-000000000001',
+    '70000000-0000-4000-8000-000000000001',
+    'test_provider','sandbox','availability.pull','availability.read',
+    'idem-dc04-test-0001',repeat('a',64),'dc04-operation-correlation-duplicate',
+    '{"room_type_id":"room-type-1","from":"2027-01-01","to":"2027-01-02"}'::jsonb
+  );
+  IF v_created OR v_duplicate_id <> v_operation_id THEN
+    RAISE EXCEPTION 'Operation idempotency did not return the original operation';
+  END IF;
+
+  BEGIN
+    PERFORM * FROM public.staynas_enqueue_distribution_operation(
+      '20000000-0000-4000-8000-000000000001',
+      '30000000-0000-4000-8000-000000000001',
+      '70000000-0000-4000-8000-000000000001',
+      'test_provider','sandbox','availability.pull','availability.read',
+      'idem-dc04-test-0001',repeat('b',64),'dc04-operation-correlation-conflict',
+      '{"room_type_id":"room-type-2"}'::jsonb
+    );
+    RAISE EXCEPTION 'Changed request reused an idempotency key';
+  EXCEPTION WHEN SQLSTATE '22023' THEN
+    NULL;
+  END;
+
+  SELECT * INTO v_claim
+  FROM public.staynas_claim_distribution_operation('dc04-ci-worker',45)
+  LIMIT 1;
+  IF v_claim.id IS DISTINCT FROM v_operation_id OR v_claim.status <> 'running'
+     OR v_claim.lease_token IS NULL OR v_claim.attempt_count <> 1 THEN
+    RAISE EXCEPTION 'Atomic operation claim failed';
+  END IF;
+
+  PERFORM public.staynas_finish_distribution_operation(
+    v_operation_id,v_claim.lease_token,'dc04-ci-worker','succeeded',
+    NULL,NULL,'provider-ref-ci','result-ref-ci',200,12,NULL
+  );
+
+  IF (SELECT status FROM public.staynas_distribution_operation_ledger WHERE id=v_operation_id) <> 'succeeded'
+     OR (SELECT count(*) FROM public.staynas_distribution_operation_attempts
+         WHERE operation_id=v_operation_id AND attempt_number=1 AND status='succeeded') <> 1 THEN
+    RAISE EXCEPTION 'Operation completion or attempt evidence failed';
+  END IF;
+
+  INSERT INTO public.staynas_distribution_outbox(
+    organisation_id,property_id,connection_id,operation_id,event_key,event_type,
+    event_payload,correlation_id
+  ) VALUES (
+    '20000000-0000-4000-8000-000000000001',
+    '30000000-0000-4000-8000-000000000001',
+    '70000000-0000-4000-8000-000000000001',
+    v_operation_id,'dc04-outbox-event-001','availability.snapshot_requested',
+    '{"operation_id":"ci"}'::jsonb,'dc04-operation-correlation-001'
+  );
+
+  SELECT inbox_id,created INTO v_inbox_id,v_inbox_created
+  FROM public.staynas_receive_distribution_webhook(
+    '20000000-0000-4000-8000-000000000001',
+    '30000000-0000-4000-8000-000000000001',
+    '60000000-0000-4000-8000-000000000001',
+    '50000000-0000-4000-8000-000000000001',
+    'test_provider','sandbox','provider-event-001','availability.updated',
+    repeat('c',64),'{"availability_version":"v1"}'::jsonb,
+    'dc04-webhook-correlation-001'
+  );
+  IF NOT v_inbox_created THEN RAISE EXCEPTION 'First webhook event was not inserted'; END IF;
+
+  SELECT inbox_id,created INTO v_duplicate_inbox_id,v_inbox_created
+  FROM public.staynas_receive_distribution_webhook(
+    '20000000-0000-4000-8000-000000000001',
+    '30000000-0000-4000-8000-000000000001',
+    '60000000-0000-4000-8000-000000000001',
+    '50000000-0000-4000-8000-000000000001',
+    'test_provider','sandbox','provider-event-001','availability.updated',
+    repeat('c',64),'{"availability_version":"v1"}'::jsonb,
+    'dc04-webhook-correlation-002'
+  );
+  IF v_inbox_created OR v_duplicate_inbox_id <> v_inbox_id THEN
+    RAISE EXCEPTION 'Webhook event deduplication failed';
+  END IF;
+END
+$ledger$;
+RESET ROLE;
+
 SELECT 'DC-04 migration and credential broker smoke tests passed' AS result;
