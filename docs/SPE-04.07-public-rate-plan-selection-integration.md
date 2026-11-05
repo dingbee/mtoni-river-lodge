@@ -4,86 +4,88 @@
 **Workstream:** SPE-04 — Deterministic Pricing Resolver  
 **Milestone:** SPE-04.07  
 **Priority:** P0 — Public booking correctness  
-**Status:** IN PROGRESS — discovery RPC implemented on feature branch; end-to-end selector propagation pending  
+**Status:** IMPLEMENTATION COMPLETE · NOLMARK UAT REGRESSION PASS · RELEASE HOLD  
 **Predecessor:** SPE-04.06 — Final Verification & Release Readiness  
 **Repository:** `dingbee/mtoni-river-lodge`  
 **Working branch:** `feat/spe-04-deterministic-pricing-resolver`
 
-## 1. Purpose
+## 1. Outcome
 
-Close the SPE-04.06 release limitation: public booking contracts currently do not carry an explicit `rate_plan_id` end-to-end. The resolver correctly rejects ambiguous plan selection with `RATE_PLAN_REQUIRED`; this milestone exposes a safe, property-scoped guest selection path so multiple eligible published plans can be offered without weakening the resolver's fail-closed behaviour.
+SPE-04.07 closes the SPE-04.06 public-booking limitation. Eligible published plans can be discovered safely and a guest-selected `rate_plan_id` now flows through availability, quote and booking. The database resolver remains the only pricing authority and revalidates the selected plan at each pricing/booking boundary.
 
-## 2. Scope
+## 2. Implemented
 
-### A. Public eligible-plan discovery
-- Add a server-side, property-scoped discovery contract for rate plans eligible for the requested room, stay dates and occupancy.
-- Return only guest-safe fields required to distinguish plans (stable plan ID, display name/label, currency, pricing basis and any approved guest-facing description/terms).
-- Eligibility must use the same active state, room-type assignment, plan effective dates and latest immutable publication snapshot rules as the pricing resolver.
-- Never expose draft plans, unpublished snapshots, internal notes, commercial administration metadata or another property's plans.
-- Do not trust a property ID supplied by the browser; resolve property context server-side from the existing booking-property configuration / public property allowlist.
+### A. Guest-safe plan discovery
+- Added `public.discover_staynas_public_rate_plans(...)` in `20261106210000_spe04_public_rate_plan_discovery.sql`.
+- Discovery scopes by server-resolved property, active room, room catalogue assignment, occupancy, complete stay dates and latest immutable publication.
+- Each candidate is checked by `resolve_staynas_published_room_pricing`; ineligible plans are excluded.
+- Guest response is limited to plan ID, name, description, meal plan, refundable flag, currency, accommodation total, minimum stay and immutable publication evidence.
+- Mutable `rate_plan_data`, internal policy JSON and administrative metadata are not returned.
+- Direct RPC execution is restricted to `service_role`; the browser reaches it only through server-side booking functions.
 
-### B. End-to-end selected plan contract
-- Add optional `rate_plan_id` to public availability, quote and booking request schemas and pass it through to the database pricing path.
-- Availability results and quote responses must include selected plan ID plus publication/version/hash evidence.
-- Revalidate selected plan eligibility on every quote and booking call. Never trust a plan merely because it appeared in a previous availability response.
-- A booking must persist the exact resolved plan/publication snapshot and nightly evidence; later publication changes must not reprice historical bookings.
-- When one eligible plan exists, retain deterministic implicit selection for backwards compatibility.
-- When multiple plans exist and no plan is selected, return `RATE_PLAN_REQUIRED` plus safe selectable choices where the API contract permits. Do not silently pick the cheapest or first plan.
-- Invalid, stale, cross-property, unassigned or out-of-date selected plan IDs must fail closed with structured errors.
+### B. Selected-plan propagation
+- Added selected-plan wrappers for shared availability, quote and booking contracts in `20261106220000_spe04_public_rate_plan_propagation.sql`.
+- The shared pricing adapter reads a transaction-local selected-plan context. Quote and booking wrappers set that context locally, then invoke the existing shared path.
+- Explicit plan IDs are revalidated by the authoritative resolver on every quote and booking call. Invalid, stale, cross-property, unassigned or out-of-period selections fail closed.
+- Existing RPC signatures and single-plan/legacy behaviour remain intact.
+- Booking persistence continues to store the quote snapshot; nightly evidence carries plan ID, publication ID/number, version and snapshot hash.
 
-### C. Guest booking journey
-- Add plan selection to the room/offer selection stage only when more than one eligible plan exists.
-- Display clear guest-facing plan names, inclusions/terms and total price in the property currency.
-- Recalculate the quote when the guest changes plan; clear stale quotes/holds when the selected plan changes.
-- Carry the selected plan through guest details and final booking submission.
-- Preserve the existing journey for single-plan and legacy-only properties.
+### C. Public server functions and guest UI
+- `src/lib/booking.functions.ts` now supports optional `ratePlanId` in availability, quote and booking.
+- When availability returns `RATE_PLAN_REQUIRED`, the server resolves guest-safe choices for that room.
+- `src/routes/book.tsx` presents a selector only when multiple eligible plans exist. It displays plan name, meal plan, refundability and the property-currency accommodation total.
+- Selecting a plan triggers a fresh authoritative quote; the selected ID is carried into booking submission and the booking summary.
+- `src/routes/api/public/availability.search.ts` accepts optional `rate_plan_id` and returns plan choices for ambiguous rooms.
+- `src/lib/public-booking.functions.ts` also carries optional plan IDs through the controlled public demo availability and booking contracts.
+- No TypeScript monetary calculator was introduced.
 
-### D. Public API and compatibility
-- Update `/api/public/availability/search` and existing server functions without breaking current single-plan clients.
-- Define explicit behaviour for external clients that omit a plan selector.
-- Ensure all entry points share the same resolver and no old RPC overload bypasses the selected plan.
-- Do not introduce a second pricing calculator in TypeScript.
+## 3. CI evidence
 
-## 3. SPE-04.07.01 — discovery contract implementation\n\nAdded `public.discover_staynas_public_rate_plans(...)` in migration `20261106210000_spe04_public_rate_plan_discovery.sql`. It resolves the room under the supplied property, enumerates only active/published plans assigned to that room catalogue type, constrains plan and latest-publication effective dates to the full stay, and calls the authoritative resolver for each candidate. It returns only guest-safe fields (plan ID/name/description/meal plan/refundable/currency/total/minimum stay and immutable publication evidence). It does not return mutable `rate_plan_data`, internal policy JSON or administrative metadata. Direct execution is revoked from PUBLIC/anon/authenticated and granted to `service_role`; the existing server-side property resolver remains the only intended public entry point.\n\nAdded eight pgTAP contract assertions in `supabase/tests/spe04_public_rate_plan_discovery.test.sql`. These are authored tests, not yet executed; pgTAP is unavailable in the current UAT project.\n\n## 4. Required verification
+All three required checks passed on implementation head `044c2d60097441f245683fb59c0d5384f72a1367`:
 
-1. Single eligible plan selected implicitly; existing clients remain compatible.
-2. Multiple eligible plans returned as safe options; missing selector fails closed.
-3. Each valid explicit plan produces the matching quote and nightly evidence.
-4. Stale publication, inactive/unpublished plan, unassigned room type, out-of-period plan and cross-property plan are rejected.
-5. Availability, quote and booking use the same selected plan.
-6. A changed plan invalidates any prior quote/hold binding where required.
-7. Booking persists plan ID, publication ID/number, version, snapshot hash and per-night source evidence.
-8. Historical booking snapshot remains unchanged after a later plan publication.
-9. Legacy-only property path remains unchanged.
-10. No price/rate or room availability mutation during discovery or quote.
-11. All current P1 build, P1 tests and Finance/payment integrity CI pass on the exact milestone head.
-12. Nolmark CDMA UAT tenant regression passes; Mtoni tenant and production remain untouched.
+- [P1 build — PASS](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42071735878)
+- [P1 tests — PASS](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42071735842)
+- [Finance/payment integrity — PASS](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42071735810)
 
-## 5. Security and data boundaries
+The pgTAP test files contain eight discovery and eight selected-plan propagation assertions. The pgTAP runner itself was not executed because the current UAT project does not have the pgTAP extension. The CI workflows do not execute these SQL pgTAP suites.
 
-- Property identity is resolved server-side; every plan query is tenant/property scoped.
-- Public discovery exposes only guest-safe plan fields.
-- Resolver remains authoritative and performs final eligibility validation.
-- No service-role credentials or privileged plan data reach the browser.
-- No changes to existing bookings, invoices, payments, room inventory, room catalogue, memberships or tenant configuration.
-- No production migrations, deployments, commercial rate changes or merges without separate authorization.
-- Do not publish or assign the synthetic SPE-03 UAT fixture.
+## 4. Nolmark CDMA UAT
 
-## 6. Acceptance gates
+Applied only to the existing shared UAT Supabase project; no production migration or deployment:
 
-- [ ] Discovery contract returns only eligible, guest-safe plans for the correct property, room and stay.
-- [ ] Selected plan is propagated through availability → quote → booking.
-- [ ] Multiple-plan ambiguity is resolved only by an explicit guest selection.
-- [ ] Every selected plan is revalidated server-side at quote and booking time.
-- [ ] Booking snapshot and historical-price invariance are verified.
-- [ ] Legacy and single-plan compatibility are verified.
-- [ ] Cross-property and stale-plan denial tests pass.
-- [ ] CI passes on the exact final commit.
-- [ ] Nolmark UAT regression passes with no residual test data.
-- [ ] SPE-04.07 accepted before release-readiness is reconsidered.
+1. `spe04_public_rate_plan_discovery`
+2. `spe04_public_rate_plan_propagation`
 
-## 7. Execution sequence
+Database regression passed:
+- Two temporary plans assigned to the same Nolmark room type were discovered as two guest-safe options.
+- An implicit quote with two eligible plans returned `RATE_PLAN_REQUIRED`.
+- Explicit plan A and B produced the expected two-night accommodation totals: USD 200 and USD 260.
+- Availability remained selectable while the plan choice was required.
+- Explicit-plan availability returned the selected plan's matching quote.
+- A booking was created inside a rollback-only subtransaction; its booking snapshot and both booking-night records were checked for selected plan/publication evidence. The deliberate rollback removed the booking and booking-night writes and restored inventory counts.
+- An invalid selected plan returned `NO_ELIGIBLE_RATE_PLAN` before booking persistence.
+- Legacy-only Nolmark quote and availability behaviour remained operational before the temporary published-plan test.
 
-Inspect current plan/publication schema and existing public booking UI contracts → define safe discovery/query contract → implement server and database propagation → wire guest selection → run unit/contract/CI checks → run Nolmark UAT regression → verify no residual data → report acceptance.
+### UAT cleanup and residual state
 
-**No production release is included in SPE-04.07.**
+The two temporary test plans were transitioned through the audited lifecycle RPC to **archived / inactive** after the regression. Their immutable publication snapshots and audit events remain by design; they are not eligible or exposed for booking. Nolmark has zero active published plans. The original SPE-03 fixture remains draft and unpublished. No SPE-04 test booking or booking-night rows remain. Mtoni has no SPE-04 test plans or publications and was not modified.
+
+## 5. Acceptance status
+
+- [x] Guest-safe discovery is property-, room-, occupancy- and stay-scoped.
+- [x] Multiple eligible plans are returned; missing selector fails closed.
+- [x] Explicit plan selection is propagated through availability, quote and booking.
+- [x] Selected plans are revalidated server-side at quote and booking.
+- [x] Booking and booking-night snapshots retain selected publication evidence.
+- [x] Legacy-only pricing remains operational.
+- [x] Invalid selected-plan denial and rollback/no-residue booking regression passed.
+- [x] P1 build, P1 tests and Finance/payment integrity passed on the implementation head.
+- [x] Nolmark UAT regression passed; temporary plans are archived and inactive.
+- [ ] Authenticated browser UAT of the guest selector has not been run; no deployment was made.
+- [ ] Historical-price invariance across a subsequent publication has not been separately exercised in this milestone.
+- [ ] pgTAP runner execution remains unavailable in the current UAT project.
+
+## 6. Release boundary
+
+PR #151 remains draft and unmerged. No production migrations, deployment, merge, live rate changes, booking changes, invoice/payment changes, room/inventory changes, membership changes or tenant-configuration changes were made. Production release remains a separate authorization decision.
+
