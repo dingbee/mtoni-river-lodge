@@ -271,3 +271,28 @@ The repository/schema baseline and pure contract implementation are recorded. CI
 
 **Vault operational prerequisite:** before any isolated migration test, confirm Vault is enabled and the migration owner can read `vault.decrypted_secrets`. Supabase documents Vault as encrypted-at-rest secrets exposed through a decrypted view; access to that view must be restricted carefully. See [Supabase Vault documentation](https://supabase.com/docs/guides/database/vault).
 
+
+
+### DC-04.8 durable operation, inbox and outbox ledger
+
+**Implementation artifacts added; migration and runtime tests are pending CI verification.**
+
+- `20261105160000_dc04_distribution_operation_ledger.sql` adds a property-scoped operation ledger, append-only attempt evidence, provider webhook inbox and outbound event outbox.
+- Operation idempotency is unique per property, connection, operation and idempotency key. Reusing a key with a different request fingerprint is rejected.
+- Worker claims use row locking with `SKIP LOCKED`, lease tokens and bounded lease durations. A worker must present the current lease token and identity to complete an operation.
+- Retry evidence records attempt number, normalized error, safe summary, response code, duration and correlation ID. Raw provider response bodies and credentials are not stored in attempt evidence.
+- Webhook ingestion is deduplicated by provider, external account and provider event ID. Reuse of an event ID with a different payload fingerprint is rejected.
+- Browser roles receive no table grants or policies. The service role is the only runtime principal for the ledger tables and RPCs.
+- `operation-ledger.server.ts` exposes server-only enqueue, claim, finish and verified-webhook persistence calls. It rejects credential and guest contact fields from durable operation payloads and hashes canonical JSON for request identity.
+
+**Execution boundary:** the ledger is durable infrastructure, not an active worker or synchronization engine. No provider is registered or connected. Workers must re-load and re-authorize the persisted connection before executing every claimed operation; a service-role queue claim is not tenant authorization. Provider webhook signature verification and normalization must happen before calling the inbox writer.
+
+### DC-04.9 trusted server execution-context loader
+
+- `execution-context.server.ts` verifies the supplied access token with Supabase Auth, then loads the connection, grant, external account, property and all active property memberships using the server-only Supabase admin client.
+- Tenant role authority is derived from persisted property membership. Browser-supplied property, organisation, grant, account or adapter manifest objects are not accepted as trusted records.
+- The adapter manifest is resolved from the server-owned registry. A provider/version that is not registered fails closed.
+- The loader does not infer platform-admin authority from tenant roles. A separate trusted platform-admin authority source is required before any platform-admin membership bypass is enabled.
+- Unit tests cover successful context creation, absent property membership and anonymous principal rejection.
+
+**Remaining verification:** the isolated PostgreSQL workflow must pass for all three migrations and the end-to-end database contract. The shared Supabase project has been inspected read-only: the Vault decrypted view exists, service_role can select it, and anon/authenticated cannot. No distribution tables or DC-04 migrations have been installed in that shared project.
