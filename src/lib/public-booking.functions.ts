@@ -156,6 +156,10 @@ export const createPublicDemoBooking = createServerFn({ method: "POST" })
       _children: data.children,
       _children_below_6: 0,
       _children_7_plus: data.children,
+      // The deployed property-scoped RPC requires explicit hold arguments.
+      // Direct guest checkout does not create a hold, so pass nulls.
+      _hold_id: null,
+      _session_id: null,
       _guest_name: data.guestName,
       _guest_email: data.guestEmail,
       _guest_phone: data.guestPhone || null,

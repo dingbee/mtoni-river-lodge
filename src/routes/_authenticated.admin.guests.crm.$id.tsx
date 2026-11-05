@@ -132,17 +132,18 @@ function GuestProfilePage() {
             </div>
           </div>
 
-          <Tabs defaultValue="reservations">
-            <TabsList className="flex-wrap">
-              <TabsTrigger value="reservations">Reservations</TabsTrigger>
-              <TabsTrigger value="experiences">Experiences</TabsTrigger>
-              <TabsTrigger value="payments">Payments</TabsTrigger>
-              <TabsTrigger value="notes">Notes</TabsTrigger>
-              <TabsTrigger value="preferences">Preferences</TabsTrigger>
-              <TabsTrigger value="communications">Communications</TabsTrigger>
-              <TabsTrigger value="reviews">Reviews</TabsTrigger>
-              <TabsTrigger value="documents">Documents</TabsTrigger>
-              <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <Tabs defaultValue="reservations" className="min-w-0">
+            <TabsList className="flex w-full flex-nowrap justify-start overflow-x-auto overscroll-x-contain">
+              {/* Keep the nine CRM sections on one scrollable row on narrow screens. */}
+              <TabsTrigger className="shrink-0" value="reservations">Reservations</TabsTrigger>
+              <TabsTrigger className="shrink-0" value="experiences">Experiences</TabsTrigger>
+              <TabsTrigger className="shrink-0" value="payments">Payments</TabsTrigger>
+              <TabsTrigger className="shrink-0" value="notes">Notes</TabsTrigger>
+              <TabsTrigger className="shrink-0" value="preferences">Preferences</TabsTrigger>
+              <TabsTrigger className="shrink-0" value="communications">Communications</TabsTrigger>
+              <TabsTrigger className="shrink-0" value="reviews">Reviews</TabsTrigger>
+              <TabsTrigger className="shrink-0" value="documents">Documents</TabsTrigger>
+              <TabsTrigger className="shrink-0" value="timeline">Timeline</TabsTrigger>
             </TabsList>
             <TabsContent value="reservations" className="pt-4">
               <ReservationList bookings={data.bookings} />
