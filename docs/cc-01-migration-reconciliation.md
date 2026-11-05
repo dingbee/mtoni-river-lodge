@@ -167,3 +167,16 @@ The earlier Git-history-only recovery assessment is superseded by this read-only
 - No migration-history repair, production DDL, data update, merge, or deployment was performed. This JSON is a read-only provenance snapshot, not a migration to execute.
 
 **Release gate:** Do not run `supabase db push` until the active migration directory is reconciled against this 94-row snapshot and the official CLI dry-run shows only the intended CC-01 migration as pending.
+
+
+## Canonical restoration — 5 November 2026
+
+The live-ledger snapshot was then used to restore the active migration paths on the CC-01 branch:
+
+- All **94/94 applied records** now have a canonical `supabase/migrations/{version}_{name}.sql` path.
+- **92 SQL files** are restored verbatim from the live ledger's stored `statements` payloads. The two manually applied records retain their original source files at the exact applied version/name paths; their ledger entries are provenance markers, not SQL payloads.
+- **13 duplicate timestamp variants** whose SQL exactly matched an applied record were removed from the active migration directory after their canonical versions were restored.
+- **8 divergent timestamp variants** were moved unchanged to `supabase/migration-history-candidates/` so they remain available for review but cannot be accidentally run as migrations.
+- The authoritative 94-row ledger export remains at `docs/cc-01-live-migration-ledger.json`.
+
+**Important remaining distinction:** the active migration directory contains **130 local-only migration files** whose versions are not in the live ledger. They are preserved because their role (legacy bootstrap, superseded history, or genuinely pending work) has not yet been proven. They must not be pushed or marked applied blindly. The production migration ledger was not edited. The applied history is now represented at canonical paths; the local-only set still requires classification before the official CLI dry-run can be treated as safe.
