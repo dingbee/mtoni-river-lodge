@@ -22,7 +22,7 @@ All amounts are integer ISO-4217 minor units. TZS and USD amounts are never mixe
 
 ## Output and boundaries
 
-The resolver returns a line-item breakdown and a price-code/version reference suitable for a later immutable quote or subscription snapshot. It does not create subscriptions, invoices, payments, tax entries or entitlements.
+The resolver returns a line-item breakdown and a price-code/version reference suitable for a later immutable quote or subscription snapshot. It does not create subscriptions, invoices, payments, tax entries or entitlements. Tax calculation and tax treatment are deliberately deferred to the billing/compliance layer; this resolver returns pre-tax commercial amounts only.
 
 ## Not included
 
