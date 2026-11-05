@@ -124,7 +124,8 @@ BEGIN
   IF plan_status='archived' THEN
     RAISE EXCEPTION 'Archived rate plans cannot change room-type assignments';
   END IF;
-  RETURN COALESCE(NEW,OLD);
+  IF TG_OP='DELETE' THEN RETURN OLD; END IF;
+  RETURN NEW;
 END;
 $;
 
