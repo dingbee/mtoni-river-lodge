@@ -14,7 +14,8 @@ This is an adversarial internal code review with migration-level PostgreSQL 17 v
 3. **Tenant/property authority — guarded.** The server execution loader verifies the Auth access token, active property and organisation, active membership and explicit account grant. It does not grant platform-admin bypass from tenant roles. The database credential broker independently rechecks connection, organisation, property, provider, environment, active grant, capability and connected lifecycle.
 4. **Secret boundary — guarded.** Credential resolution is service-role-only; secret values are not placed in execution context, operation/outbox payloads, health evidence or audit details. Browser roles have no distribution table privileges.
 5. **Health evidence integrity — guarded.** Health records are append-only, use a composite connection/organisation/property foreign key, and the writer RPC rechecks active grant and capability. Browser roles cannot read/write; service_role can read/insert only.
-6. **Operation/outbox leases — previously remediated.** Completion requires the current unexpired lease token/owner; exhausted retries are terminalized with durable evidence.
+6. **Durable payload PII/secret leakage — corrected.** Operation-ledger and outbox validators now reject guest/customer/person/contact fields, common email/phone values, bearer/JWT/payment-secret patterns, and oversized free-text values. This is defence in depth; provider-specific payloads should continue to use typed, minimal allow-listed schemas rather than arbitrary guest or provider response objects.
+7. **Operation/outbox leases — previously remediated.** Completion requires the current unexpired lease token/owner; exhausted retries are terminalized with durable evidence.
 
 ## Required independent sign-off
 
