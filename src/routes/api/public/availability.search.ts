@@ -29,6 +29,7 @@ export const Route = createFileRoute("/api/public/availability/search")({
           _adults: guests,
           _children_below_6: 0,
           _children_7_plus: 0,
+          _rate_plan_id: ratePlanId,
         });
         if (error) return Response.json({ error: error.message }, { status: 500 });
         const pricing_errors = (data ?? [])
@@ -56,7 +57,6 @@ export const Route = createFileRoute("/api/public/availability/search")({
             is_available: r.is_available,
             fits_guests: r.fits_occupancy,
             pricing_quote: r.pricing_quote,
-            rate_plan_options: planOptionsByRoom.get(r.room_id) ?? [],
             rate_plan_options: planOptionsByRoom.get(r.room_id) ?? [],
           }))
           .filter((r: any) => r.is_available && r.fits_guests)
