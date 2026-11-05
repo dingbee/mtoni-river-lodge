@@ -1,6 +1,6 @@
 -- SPE-04.03 database contract tests. Run with Supabase pgTAP test runner.
 BEGIN;
-SELECT plan(10);
+SELECT plan(17);
 
 SELECT has_function(
   'public',
@@ -76,6 +76,54 @@ SELECT ok(
    WHERE p.proname = 'resolve_staynas_published_room_pricing'
      AND p.prosecdef IS FALSE),
   'No invoker-security duplicate resolver exists'
+);
+
+
+SELECT has_function(
+  'public',
+  'calculate_staynas_room_pricing_legacy',
+  ARRAY['uuid','uuid','date','date','integer','integer','integer'],
+  'SPE-02 calculator is preserved as the legacy-only implementation'
+);
+
+SELECT has_function(
+  'public',
+  'calculate_staynas_room_pricing',
+  ARRAY['uuid','uuid','date','date','integer','integer','integer'],
+  'Shared accommodation pricing adapter retains its established signature'
+);
+
+SELECT ok(
+  pg_get_functiondef('public.calculate_staynas_room_pricing(uuid,uuid,date,date,integer,integer,integer)'::regprocedure)
+    LIKE '%resolve_staynas_published_room_pricing%',
+  'Shared accommodation adapter routes published-plan properties through the SPE-04 resolver'
+);
+
+SELECT ok(
+  pg_get_functiondef('public.calculate_staynas_booking_quote(uuid,uuid,date,date,integer,integer,integer,jsonb)'::regprocedure)
+    LIKE '%v_room_quote->>''ok''=''false''%',
+  'Quote composition propagates structured resolver failures before extras and tax calculation'
+);
+
+SELECT ok(
+  pg_get_functiondef('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)'::regprocedure)
+    LIKE '%StayNas pricing rejected%',
+  'Booking creation rejects failed pricing before booking persistence'
+);
+
+SELECT ok(
+  pg_get_functiondef('public.get_staynas_room_availability_priced(date,date,uuid,integer,integer,integer)'::regprocedure)
+    LIKE '%q.quote->>''ok''=''false''%',
+  'Availability never marks a structured pricing failure as sellable'
+);
+
+SELECT ok(
+  NOT has_function_privilege(
+    'anon',
+    'public.calculate_staynas_room_pricing(uuid,uuid,date,date,integer,integer,integer)',
+    'EXECUTE'
+  ),
+  'Anonymous role cannot execute the shared accommodation adapter'
 );
 
 SELECT * FROM finish();
