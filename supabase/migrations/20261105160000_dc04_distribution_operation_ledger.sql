@@ -274,8 +274,8 @@ BEGIN
       OR (l.status='running' AND l.lease_expires_at < pg_catalog.now())
     )
   ORDER BY l.next_attempt_at,l.created_at,l.id
-  FOR UPDATE SKIP LOCKED
-  LIMIT 1;
+  LIMIT 1
+  FOR UPDATE SKIP LOCKED;
 
   IF _row.id IS NULL THEN
     RETURN;
