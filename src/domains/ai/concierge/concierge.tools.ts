@@ -53,6 +53,7 @@ export async function searchAvailability(input: {
   if (!Number.isInteger(adults) || !Number.isInteger(children) || adults < 1 || children < 0 || adults + children > 20) return [];
   try {
     const { property, supabaseAdmin: sb } = await resolvePublicBookingContext();
+    const propertyId = property.id;
     const { data, error } = await bookingRpc(sb).rpc("get_room_availability", {
       _check_in: input.check_in,
       _check_out: input.check_out,
