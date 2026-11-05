@@ -91,12 +91,21 @@ export const setStayNasRatePlanPublication = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
+    if (data.publication_status === "published") {
+      const { count, error: assignmentError } = await sb.from("staynas_rate_plan_room_types")
+        .select("id",{count:"exact",head:true})
+        .eq("property_id",propertyId).eq("rate_plan_id",data.id).eq("active",true);
+      if (assignmentError) throw new Error(assignmentError.message);
+      if (!count) throw new Error("Assign at least one property room type before publishing this rate plan.");
+    }
     const { data: row, error } = await sb.from("staynas_rate_plans")
       .update({
         publication_status: data.publication_status,
         ...(data.active === undefined ? {} : { active: data.active }),
-        published_by: data.publication_status === "published" ? context.userId : null,
-        published_at: data.publication_status === "published" ? new Date().toISOString() : null,
+        ...(data.publication_status === "published" ? {
+          published_by: context.userId,
+          published_at: new Date().toISOString(),
+        } : {}),
         updated_by: context.userId,
       })
       .eq("id",data.id).eq("property_id",propertyId).select("*").single();
