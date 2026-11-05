@@ -33,8 +33,8 @@ async def main() -> None:
         page.on("pageerror", lambda error: console_errors.append(str(error)))
 
         await page.goto(f"{BASE}/auth", wait_until="networkidle")
-        await page.get_by_label("Email").fill(EMAIL)
-        await page.get_by_label("Password").fill(PASSWORD)
+        await page.locator('input[type="email"]').fill(EMAIL)
+        await page.locator('input[type="password"]').fill(PASSWORD)
         await page.get_by_role("button", name="Sign in").click()
         await page.wait_for_url("**/admin/**", timeout=30_000)
 
