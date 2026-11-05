@@ -29,7 +29,11 @@ export const Route = createFileRoute("/api/public/availability/search")({
           _children_7_plus: 0,
         });
         if (error) return Response.json({ error: error.message }, { status: 500 });
+        const pricing_errors = (data ?? [])
+          .filter((r: any) => r.pricing_quote?.ok === false)
+          .map((r: any) => ({ room_id: r.room_id, slug: r.slug, error_code: r.pricing_quote.error_code, message: r.pricing_quote.message }));
         const rooms = (data ?? [])
+          .filter((r: any) => r.pricing_quote?.ok !== false)
           .map((r: any) => ({
             slug: r.slug,
             name: r.name,
@@ -47,7 +51,7 @@ export const Route = createFileRoute("/api/public/availability/search")({
           .filter((r: any) => r.is_available && r.fits_guests)
           .sort((a: any, b: any) => a.nightly_total - b.nightly_total);
         return Response.json(
-          { check_in: checkIn, check_out: checkOut, guests, rooms },
+          { check_in: checkIn, check_out: checkOut, guests, rooms, pricing_errors },
           { headers: { "cache-control": "no-store" } },
         );
       },
