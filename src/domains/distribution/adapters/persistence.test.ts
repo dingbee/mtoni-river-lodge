@@ -50,7 +50,7 @@ const base = () => ({
     provider_key: "sample_ota",
     external_account_reference: "acct-demo-17",
     environment: "sandbox",
-    credential_reference: "vault://distribution/sample-ota/demo",
+    credential_reference: "80000000-0000-4000-8000-000000000008",
     lifecycle: "connected",
   },
   propertyMembership: {
