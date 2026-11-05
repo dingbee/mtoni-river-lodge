@@ -246,7 +246,7 @@ BEGIN;
 SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claim.role='authenticated';
 SET LOCAL request.jwt.claim.sub='10000000-0000-0000-0000-000000000001';
-DO $
+DO $$
 BEGIN
   IF public.staynas_ai_property_in_active_context('30000000-0000-0000-0000-000000000001', ARRAY['owner']::public.app_role[]) THEN
     RAISE EXCEPTION 'Suspended organisation retained AI property access';
@@ -254,7 +254,7 @@ BEGIN
   IF public.staynas_active_property_id('10000000-0000-0000-0000-000000000001') IS NOT NULL THEN
     RAISE EXCEPTION 'Suspended organisation retained active-property resolution';
   END IF;
-END $;
+END $$;
 ROLLBACK;
 UPDATE public.staynas_organisations SET status='active' WHERE id='20000000-0000-0000-0000-000000000001';
 
