@@ -105,7 +105,7 @@ export const searchPublicDemoAvailability = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in.");
     const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
-    const { data: rows, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced", {
+    const { data: rows, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced_with_rate_plan", {
       _check_in: data.checkIn,
       _check_out: data.checkOut,
       _property_id: property.id,
@@ -155,7 +155,7 @@ export const createPublicDemoBooking = createServerFn({ method: "POST" })
     // role is confined to this server function; the property ID is resolved
     // server-side from the explicit UAT demo allowlist and never trusted from
     // the browser.
-    const { data: rows, error } = await (supabaseAdmin as any).rpc("create_booking_for_property", {
+    const { data: rows, error } = await (supabaseAdmin as any).rpc("create_booking_for_property_with_rate_plan", {
       _property_id: property.id,
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
