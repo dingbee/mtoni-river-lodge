@@ -63,6 +63,7 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
         .select("publication_status").eq("id",data.id).eq("property_id",propertyId).maybeSingle();
       if (existingError || !existing) throw new Error("Rate plan is not part of the active property.");
       if (existing.publication_status === "archived") throw new Error("Archived rate plans are read-only. Duplicate the plan to create a new version.");
+      if (existing.publication_status === "published") throw new Error("Suspend the rate plan before editing its commercial terms.");
     }
     if (data.parent_rate_plan_id) {
       const { data: parent, error: parentError } = await sb.from("staynas_rate_plans")
