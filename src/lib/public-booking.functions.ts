@@ -84,7 +84,7 @@ export const searchPublicDemoAvailability = createServerFn({ method: "POST" })
   .inputValidator((value: unknown) => availabilitySchema.parse(value))
   .handler(async ({ data }) => {
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in.");
-    const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
+    const { property, supabaseAdmin } = await resolvePublicBookingContext(data.propertySlug);
     const { data: rows, error } = await bookingRpc(supabaseAdmin).rpc("get_room_availability", {
       _check_in: data.checkIn,
       _check_out: data.checkOut,
@@ -121,7 +121,7 @@ export const createPublicDemoBooking = createServerFn({ method: "POST" })
   .inputValidator((value: unknown) => createBookingSchema.parse(value))
   .handler(async ({ data }) => {
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in.");
-    const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
+    const { property, supabaseAdmin } = await resolvePublicBookingContext(data.propertySlug);
 
     // Use the existing property-scoped transactional booking RPC. The service
     // role is confined to this server function; the property ID is resolved
