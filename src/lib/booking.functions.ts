@@ -56,8 +56,8 @@ export const checkAvailability = createServerFn({ method: "POST" })
   });
 
 export const listExtras = createServerFn({ method: "GET" }).handler(async () => {
-  const sb = getPublicClient();
-  const propertyId = await getConfiguredBookingPropertyId(sb);
+  const { property, supabaseAdmin: sb } = await resolvePublicBookingContext();
+  const propertyId = property.id;
   // Generated types predate the property hardening; query through an
   // untyped alias so the property filter compiles against stale types.
   const { data, error } = await (sb as any)
@@ -104,8 +104,8 @@ export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 export const createBooking = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createBookingSchema.parse(d))
   .handler(async ({ data }) => {
-    const sb = getPublicClient();
-    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { property, supabaseAdmin: sb } = await resolvePublicBookingContext();
+    const propertyId = property.id;
     const below6 = data.childrenBelow6 ?? 0;
     const plus7 = data.children7Plus ?? Math.max(0, (data.children ?? 0) - below6);
     const totalChildren = below6 + plus7;
