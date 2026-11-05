@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -80,7 +80,7 @@ const NUM_TO_STEP: Record<1 | 2 | 3 | 4, Step> = {
   4: "confirmation",
 };
 
-type AvailabilityResult = (AvailabilityRoom & { fits_guests: boolean })[];
+type AvailabilityResult = AvailabilityRoom[];
 
 type SelectedExtra = { slug: string; quantity: number };
 
@@ -175,6 +175,7 @@ function BookPage() {
   const [guest, setGuest] = useState(p.guest ?? { name: "", email: "", phone: "", country: "", requests: "", purpose: "" });
   const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string } | null>(null);
   const [bookingQuote, setBookingQuote] = useState<BookingPricingQuote | null>(p.selectedRoom?.pricing_quote ?? null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
   const [hold, setHold] = useState<{ id: string; expiresAt: string; roomSlug: string } | null>(null);
   const [roomInventory, setRoomInventory] = useState<{ available_units: number; total_units: number } | null>(null);
 
@@ -438,6 +439,8 @@ function BookPage() {
       return;
     }
     let cancelled = false;
+    setQuoteLoading(true);
+    setBookingQuote(null);
     getBookingQuoteFn({
       data: {
         roomSlug: selectedRoom.slug,
@@ -449,10 +452,14 @@ function BookPage() {
         extras: selectedExtras,
       },
     }).then((quote) => {
-      if (!cancelled) setBookingQuote(quote);
+      if (!cancelled) {
+        setBookingQuote(quote);
+        setQuoteLoading(false);
+      }
     }).catch((error) => {
       if (!cancelled) {
         setBookingQuote(null);
+        setQuoteLoading(false);
         console.error("[book] authoritative pricing quote failed", error);
       }
     });
@@ -586,7 +593,7 @@ function BookPage() {
               paidOccupants={paidOccupants}
               childrenBelow6={childrenBelow6}
               breakdown={effectiveQuote}
-              pricingLoading={!effectiveQuote}
+              pricingLoading={quoteLoading || !effectiveQuote}
               extras={extras} selectedExtras={selectedExtras} setSelectedExtras={setSelectedExtras}
               roomTotal={roomTotal} extrasTotal={extrasTotal} grandTotal={grandTotal}
               guest={guest} setGuest={setGuest}
