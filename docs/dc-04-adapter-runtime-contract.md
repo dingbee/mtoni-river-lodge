@@ -311,3 +311,8 @@ The repository/schema baseline and pure contract implementation are recorded. CI
 - The isolated PostgreSQL workflow now applies the outbox migration and verifies idempotency, conflicting event reuse, atomic claim and lease completion.
 
 **Verification boundary:** no worker schedule, provider publisher, production migration or live event delivery is enabled. A service-role claim is not authorization to perform a tenant operation; any future worker that invokes a provider must reload the connection and reauthorize the persisted tenant/property grant before execution.
+
+
+### DC-04.10 lease-expiry hardening
+
+The outbox completion RPC now rejects a worker completion when its lease has expired, even if another worker has not yet reclaimed the event. The isolated PostgreSQL smoke test expires a claimed lease, verifies stale completion is rejected, reclaims the event under a new lease, and then verifies successful completion. This prevents a stale worker from committing after its authority window has ended.
