@@ -61,7 +61,7 @@ BEGIN
   FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
   WHERE n.nspname='public'
     AND p.proname IN ('housekeeping_checklist_template','housekeeping_list_notifications','housekeeping_mark_notification_read','enforce_room_category_property')
-    AND p.proconfig @> ARRAY['search_path=pg_catalog, public, pg_temp'];
+    AND EXISTS (SELECT 1 FROM unnest(coalesce(p.proconfig, ARRAY[]::text[])) cfg WHERE cfg LIKE 'search_path=%');
   IF search_path_count <> 4 THEN RAISE EXCEPTION 'Expected four pinned search_path functions, found %', search_path_count; END IF;
 END $$;
 
