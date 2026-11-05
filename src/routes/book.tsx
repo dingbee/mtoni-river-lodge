@@ -465,7 +465,7 @@ function BookPage() {
       }
     });
     return () => { cancelled = true; };
-  }, [getBookingQuoteFn, selectedRoom?.slug, checkIn, checkOut, adults, childrenBelow6, children7Plus, selectedExtras, nights]);
+  }, [getBookingQuoteFn, selectedRoom, checkIn, checkOut, adults, childrenBelow6, children7Plus, selectedExtras, nights]);
 
   const effectiveQuote = bookingQuote ?? selectedRoom?.pricing_quote ?? null;
   const roomTotal = Number(effectiveQuote?.accommodation_subtotal ?? 0);
