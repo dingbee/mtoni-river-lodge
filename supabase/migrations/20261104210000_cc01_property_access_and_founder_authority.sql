@@ -87,6 +87,53 @@ revoke all on function public.is_staynas_founder_ai_admin() from public, anon;
 grant execute on function public.is_staynas_founder_ai_admin() to authenticated, service_role;
 
 
+-- Active-property resolution must not accept another user's ID from an
+-- authenticated client. Trusted service-role workflows may resolve another user.
+CREATE OR REPLACE FUNCTION public.staynas_active_property_id(_uid uuid DEFAULT auth.uid())
+RETURNS uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $function$
+  SELECT CASE
+    WHEN _uid IS NULL OR (_uid <> auth.uid() AND auth.role() <> 'service_role')
+      THEN NULL::uuid
+    ELSE COALESCE(
+      (
+        SELECT c.property_id
+        FROM public.staynas_user_property_context c
+        WHERE c.user_id = _uid
+          AND public.staynas_user_has_property_access(_uid, c.property_id)
+        LIMIT 1
+      ),
+      (
+        SELECT pm.property_id
+        FROM public.staynas_property_members pm
+        JOIN public.staynas_properties p ON p.id = pm.property_id
+        JOIN public.staynas_organisations o ON o.id = p.organisation_id
+        WHERE pm.user_id = _uid
+          AND pm.status = 'active'
+          AND p.status = 'active'
+          AND o.status = 'active'
+        ORDER BY p.created_at, p.id
+        LIMIT 1
+      )
+    )
+  END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_active_property_id(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.staynas_active_property_id(uuid) TO authenticated, service_role;
+
+-- These are internal workflow helpers. Security-definer callers execute as
+-- their owner; direct client RPC execution is neither needed nor permitted.
+REVOKE ALL ON FUNCTION public.checkin_log_activity(uuid, uuid, text, text, jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.checkin_sync_reservation(uuid, jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.log_calendar_event(text, uuid, uuid, uuid, date, date, jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.is_guest_pii_staff(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.restaurant_is_platform_admin(uuid) FROM PUBLIC, anon, authenticated;
+
 -- Restaurant-domain predicates are authenticated membership helpers, not
 -- anonymous RPC surfaces. Preserve authenticated and service-role access.
 revoke all on function public.restaurant_can_read(uuid) from public, anon;
