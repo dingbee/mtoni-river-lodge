@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-/** Provider-neutral reservation event contract. Guest fields are deliberately
- * separate from the durable DC-04 webhook envelope, which rejects PII. */
 export const reservationLifecycleEventSchema = z.enum([
   "reservation.created", "reservation.confirmed", "reservation.modified",
   "reservation.cancelled", "reservation.reinstated", "reservation.payment_updated",
@@ -54,8 +52,7 @@ export const externalReservationSchema = z.object({
     ctx.addIssue({ code: "custom", path: ["departureDate"], message: "Departure must be after arrival." });
   }
   if ((event.grossAmount !== undefined || event.taxes !== undefined || event.fees !== undefined ||
-       event.channelCommission !== undefined || event.expectedSettlement !== undefined) &&
-      !event.originalCurrency) {
+       event.channelCommission !== undefined || event.expectedSettlement !== undefined) && !event.originalCurrency) {
     ctx.addIssue({ code: "custom", path: ["originalCurrency"], message: "Financial values require the provider's original currency." });
   }
   if (event.expectedSettlement !== undefined && event.grossAmount !== undefined &&
@@ -65,13 +62,13 @@ export const externalReservationSchema = z.object({
 });
 
 export type ExternalReservationEvent = z.infer<typeof externalReservationSchema>;
-
 export type ReservationProviderState = Readonly<{
   providerStatus: string;
   providerModifiedAt: string | null;
   providerEventId: string;
 }>;
 
+/** Without provider modification timestamps, event IDs are opaque and cannot establish ordering. */
 export function isNewerProviderEvent(
   incoming: ReservationProviderState,
   current: ReservationProviderState | null,
@@ -81,12 +78,9 @@ export function isNewerProviderEvent(
   const currentTime = current.providerModifiedAt ? Date.parse(current.providerModifiedAt) : Number.NaN;
   if (Number.isFinite(incomingTime) && Number.isFinite(currentTime)) return incomingTime > currentTime;
   if (Number.isFinite(incomingTime) && !Number.isFinite(currentTime)) return true;
-  if (!Number.isFinite(incomingTime) && Number.isFinite(currentTime)) return false;
-  return incoming.providerEventId !== current.providerEventId;
+  return false;
 }
 
-/** Only provider metadata belongs in the DC-04 inbox; guest/financial PII stays
- * in the canonical booking and finance domains, never in adapter diagnostics. */
 export function toSafeReservationEventEnvelope(event: ExternalReservationEvent): Record<string, unknown> {
   return {
     schemaVersion: 1,
