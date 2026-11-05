@@ -8,13 +8,16 @@ SET request.jwt.claim.role='service_role';
 INSERT INTO public.staynas_properties(id,status) VALUES
  ('10000000-0000-4000-8000-000000000001','active'),
  ('10000000-0000-4000-8000-000000000002','active');
+INSERT INTO public.staynas_property_members(user_id,property_id,status)
+VALUES('50000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','active');
 INSERT INTO public.rooms(id,property_id,slug,name,total_units,base_price,currency,max_occupancy)
 VALUES
  ('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','one-unit','One unit',1,100,'USD',4),
  ('20000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001','same-session','Same session',5,100,'USD',4),
  ('20000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000001','multi-night','Multi night',1,100,'USD',4),
  ('20000000-0000-4000-8000-000000000004','10000000-0000-4000-8000-000000000001','race-hold','Race hold',1,100,'USD',4),
- ('20000000-0000-4000-8000-000000000005','10000000-0000-4000-8000-000000000001','race-mixed','Race mixed',1,100,'USD',4);
+ ('20000000-0000-4000-8000-000000000005','10000000-0000-4000-8000-000000000001','race-mixed','Race mixed',1,100,'USD',4),
+ ('20000000-0000-4000-8000-000000000006','10000000-0000-4000-8000-000000000002','foreign-room','Foreign room',1,100,'USD',4);
 INSERT INTO public.room_inventory(room_id,date,available_units,is_blocked)
 VALUES('20000000-0000-4000-8000-000000000003','2032-01-11',1,true);
 SQL
@@ -97,8 +100,54 @@ BEGIN
  IF public.release_booking_hold(v_same,repeat('b',32),'10000000-0000-4000-8000-000000000002') THEN
   RAISE EXCEPTION 'Cross-property hold release succeeded';
  END IF;
+
+ -- Anonymous callers cannot execute property-ID resolvers or booking/hold RPCs.
+ IF has_function_privilege('anon','public.staynas_booking_property_id()'::regprocedure,'EXECUTE') THEN
+  RAISE EXCEPTION 'Anonymous property resolver privilege remains';
+ END IF;
+ IF to_regprocedure('public.get_room_availability_for_property(uuid,date,date)') IS NOT NULL THEN
+  RAISE EXCEPTION 'Legacy anonymous availability RPC remains';
+ END IF;
+ IF to_regprocedure('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)') IS NOT NULL THEN
+  RAISE EXCEPTION 'Legacy property-first booking RPC remains';
+ END IF;
+ IF to_regprocedure('public.create_booking_hold_for_property(uuid,text,date,date,text,text,integer)') IS NOT NULL THEN
+  RAISE EXCEPTION 'Legacy property-first hold RPC remains';
+ END IF;
+ IF has_function_privilege('anon','public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid,text)'::regprocedure,'EXECUTE') THEN
+  RAISE EXCEPTION 'Anonymous booking RPC privilege remains';
+ END IF;
+ IF has_function_privilege('anon','public.create_booking_hold(text,date,date,text,uuid,text,integer)'::regprocedure,'EXECUTE') THEN
+  RAISE EXCEPTION 'Anonymous hold RPC privilege remains';
+ END IF;
+ IF has_function_privilege('anon','public.release_booking_hold(uuid,text,uuid)'::regprocedure,'EXECUTE') THEN
+  RAISE EXCEPTION 'Anonymous hold release privilege remains';
+ END IF;
+ IF has_function_privilege('anon','public.get_booking_hold_for_session(uuid,text,uuid)'::regprocedure,'EXECUTE') THEN
+  RAISE EXCEPTION 'Anonymous hold lookup privilege remains';
+ END IF;
+
+ -- An authenticated Nolmark member can create a scoped booking; the same user
+ -- cannot operate on another property's room.
+ PERFORM set_config('request.jwt.claim.role','authenticated',true);
+ PERFORM set_config('request.jwt.claim.sub','50000000-0000-4000-8000-000000000001',true);
+ PERFORM set_config('request.jwt.claims','{"role":"authenticated","sub":"50000000-0000-4000-8000-000000000001"}',true);
+ PERFORM 1 FROM public.create_booking(
+  'race-hold','2032-05-01','2032-05-02',1,0,'Staff UAT','staff@example.com',
+  NULL,NULL,NULL,'[]'::jsonb,0,0,NULL,NULL,'10000000-0000-4000-8000-000000000001');
+ v_failed:=false;
+ BEGIN
+  PERFORM 1 FROM public.create_booking(
+   'foreign-room','2032-05-01','2032-05-02',1,0,'Cross Tenant','foreign@example.com',
+   NULL,NULL,NULL,'[]'::jsonb,0,0,NULL,NULL,'10000000-0000-4000-8000-000000000002');
+ EXCEPTION WHEN OTHERS THEN
+  GET STACKED DIAGNOSTICS v_message=MESSAGE_TEXT;
+  v_failed:=v_message='Not authorized for requested property';
+  IF NOT v_failed THEN RAISE; END IF;
+ END;
+ IF NOT v_failed THEN RAISE EXCEPTION 'Cross-property authenticated booking was allowed'; END IF;
 END;
-$$;
+$;
 SQL
 
 # Concurrent final-unit hold race: exactly one request must win.
