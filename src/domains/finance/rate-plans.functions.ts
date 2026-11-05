@@ -175,7 +175,9 @@ export const setStayNasRatePlanRoomType = createServerFn({ method: "POST" })
     const { data: plan, error: planError } = await sb.from("staynas_rate_plans")
       .select("id,publication_status").eq("id",data.rate_plan_id).eq("property_id",propertyId).maybeSingle();
     if (planError || !plan) throw new Error("Rate plan is not part of the active property.");
-    if (plan.publication_status === "archived") throw new Error("Archived rate plans cannot change room-type assignments.");
+    if (plan.publication_status === "published" || plan.publication_status === "archived") {
+      throw new Error("Suspend the rate plan before changing room-type assignments.");
+    }
     const { data: propertyRoomTypes, error: roomTypeError } = await sb.rpc(
       "get_staynas_rate_plan_room_types",{_property_id:propertyId},
     );
