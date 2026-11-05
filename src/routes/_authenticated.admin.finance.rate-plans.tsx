@@ -70,7 +70,6 @@ function RatePlans() {
   const [selectedDailyRateKeys,setSelectedDailyRateKeys]=useState<string[]>([]);
   const [bulkMode,setBulkMode]=useState<"set"|"amount"|"percent">("percent");
   const [bulkValue,setBulkValue]=useState("");
-  const [bulkActive,setBulkActive]=useState(true);
   const [restrictionKey,setRestrictionKey]=useState("");
   const [restrictionType,setRestrictionType]=useState<"min_los"|"max_los"|"closed_to_arrival"|"closed_to_departure"|"stop_sell"|"advance_booking_min_hours"|"advance_booking_max_days">("min_los");
   const [restrictionStart,setRestrictionStart]=useState("");
@@ -80,8 +79,8 @@ function RatePlans() {
   const [restrictionReason,setRestrictionReason]=useState("");
   const [restrictionActive,setRestrictionActive]=useState(true);
 
-  const reset=()=>{setEditing(null);setCode("");setName("");setDescription("");setCategory("standard_flexible");setBasis("per_room");setMealPlan("room_only");setRefundable(true);setFrom("");setTo("");setParent("");setRatePlanDataText("{}");setInheritancePreview(null);};
-  const startEdit=(p:Plan)=>{setEditing(p);setCode(p.code);setName(p.name);setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));setInheritancePreview(null);};
+  const reset=()=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode("");setName("");setDescription("");setCategory("standard_flexible");setBasis("per_room");setMealPlan("room_only");setRefundable(true);setFrom("");setTo("");setParent("");setRatePlanDataText("{}");setInheritancePreview(null);};
+  const startEdit=(p:Plan)=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(p);setCode(p.code);setName(p.name);setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));setInheritancePreview(null);};
   const save=useMutation({
     mutationFn:()=>saveFn({data:{...(editing?{id:editing.id}:{}),code,name,description:description||null,category,pricing_basis:basis as "per_room"|"per_person"|"occupancy_based",meal_plan:mealPlan as "room_only"|"bed_breakfast"|"half_board"|"full_board"|"all_inclusive"|"custom",refundable,effective_from:from||null,effective_to:to||null,parent_rate_plan_id:parent||null,active:editing?.active??true,cancellation_policy:editing?.cancellation_policy??{},booking_conditions:editing?.booking_conditions??{},rate_plan_data:JSON.parse(ratePlanDataText||"{}")}}),
     onSuccess:()=>{toast.success("Rate plan saved");reset();qc.invalidateQueries({queryKey:["staynas.rate-plans"]});},
@@ -107,19 +106,26 @@ function RatePlans() {
   };
   const inheritanceMutation=useMutation({mutationFn:(id:string)=>resolveInheritanceFn({data:{id}}),onSuccess:(value)=>setInheritancePreview(value && typeof value === "object" ? value as Record<string,unknown> : {result:value}),onError:(e:unknown)=>toast.error((e as Error).message)});
   const roomTypeMutation=useMutation({mutationFn:(v:{rate_plan_id:string;room_type_id:string;active:boolean})=>setRoomTypeFn({data:v}),onSuccess:()=>{qc.invalidateQueries({queryKey:["staynas.rate-plan-room-types"]});toast.success("Room-type assignment updated");},onError:(e:unknown)=>toast.error((e as Error).message)});
-  const duplicate=(p:Plan)=>{setEditing(null);setCode(p.code+"-COPY");setName(p.name+" copy");setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));window.scrollTo({top:0,behavior:"smooth"});};
+  const duplicate=(p:Plan)=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode(p.code+"-COPY");setName(p.name+" copy");setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));window.scrollTo({top:0,behavior:"smooth"});};
   const readSeasonalRates=():Record<string,Record<string,unknown>>=>{
     try {
       const parsed=JSON.parse(ratePlanDataText||"{}") as {seasonal_rates?:Record<string,Record<string,unknown>>};
       return parsed.seasonal_rates??{};
     } catch { return {}; }
   };
+  const assignedPlanRoomTypes=((roomTypeData?.roomTypes??[]) as {id:string;name:string}[]).filter((rt:{id:string})=>
+    !!editing && (roomTypeData?.assignments??[]).some((a:{rate_plan_id:string;room_type_id:string;active:boolean})=>
+      a.rate_plan_id===editing.id&&a.room_type_id===rt.id&&a.active,
+    ),
+  );
   const addSeason=()=>{
+    if(!editing){toast.error("Create the rate plan and assign room types before adding seasonal rates.");return;}
     if(!seasonKey.trim()||!seasonName.trim()||!seasonStart||!seasonEnd||!seasonRate||!seasonRoomTypes.length){
       toast.error("Complete the season key, name, dates, nightly rate and at least one room type.");
       return;
     }
     if(seasonEnd<seasonStart){toast.error("Season end date must be on or after its start date.");return;}
+    if(seasonRoomTypes.some(id=>!assignedPlanRoomTypes.some(rt=>rt.id===id))){toast.error("Seasonal rates can target only room types assigned to this plan.");return;}
     const nightlyRate=Number(seasonRate), priority=Number(seasonPriority);
     if(!Number.isFinite(nightlyRate)||nightlyRate<=0||!Number.isInteger(priority)||priority<0){
       toast.error("Enter a positive nightly rate and a non-negative whole-number priority.");
@@ -152,7 +158,9 @@ function RatePlans() {
     } catch { return {}; }
   };
   const addDailyRate=()=>{
+    if(!editing){toast.error("Create the rate plan and assign room types before adding daily rates.");return;}
     if(!dailyDate||!dailyRoomType||!dailyRate){toast.error("Choose a date and room type, then enter a nightly rate.");return;}
+    if(!assignedPlanRoomTypes.some(rt=>rt.id===dailyRoomType)){toast.error("Daily rates can target only room types assigned to this plan.");return;}
     const amount=Number(dailyRate);
     if(!Number.isFinite(amount)||amount<=0){toast.error("Daily nightly rate must be a positive number.");return;}
     try {
@@ -217,7 +225,6 @@ function RatePlans() {
         }
       }
       parsed.daily_rates=dates;setRatePlanDataText(JSON.stringify(parsed,null,2));
-      setBulkActive(active);
       toast.success("Selected daily overrides set "+(active?"active":"inactive")+". Save the rate plan to persist.");
     } catch {toast.error("Unable to update selected daily overrides.");}
   };
@@ -331,8 +338,8 @@ function RatePlans() {
           <Input type="number" placeholder="Priority (higher wins)" value={seasonPriority} onChange={e=>setSeasonPriority(e.target.value)}/>
           <div className="flex items-center gap-2 text-sm"><input type="checkbox" checked={seasonActive} onChange={e=>setSeasonActive(e.target.checked)}/>Active season <Badge variant="outline">{String(data?.property?.currency??"").toUpperCase()}</Badge></div>
         </div>
-        <div className="space-y-2"><p className="text-xs font-medium">Applicable room types</p><div className="flex flex-wrap gap-4">{(roomTypeData?.roomTypes??[]).map((rt:{id:string;name:string})=><label key={rt.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={seasonRoomTypes.includes(rt.id)} onChange={e=>setSeasonRoomTypes(current=>e.target.checked?[...current,rt.id]:current.filter(id=>id!==rt.id))}/>{rt.name}</label>)}</div></div>
-        <Button type="button" variant="outline" onClick={addSeason}><Plus className="mr-2 h-4 w-4"/>Add season</Button>
+        <div className="space-y-2"><p className="text-xs font-medium">Applicable room types</p><div className="flex flex-wrap gap-4">{assignedPlanRoomTypes.map((rt:{id:string;name:string})=><label key={rt.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={seasonRoomTypes.includes(rt.id)} onChange={e=>setSeasonRoomTypes(current=>e.target.checked?[...current,rt.id]:current.filter(id=>id!==rt.id))}/>{rt.name}</label>)}</div></div>
+        <Button type="button" variant="outline" disabled={!editing||!assignedPlanRoomTypes.length} onClick={addSeason}><Plus className="mr-2 h-4 w-4"/>Add season</Button>
         {seasonalEntries.length>0&&<div className="space-y-2">{seasonalEntries.map(([key,value])=><div key={key} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm"><div><span className="font-medium">{String(value.name??key)}</span><span className="ml-2 text-xs text-muted-foreground">{String(value.start_date??"")} → {String(value.end_date??"")} · {String(value.nightly_rate??"")} {String(value.currency??"")} · priority {String(value.priority??"—")}</span></div><Button type="button" size="icon" variant="ghost" aria-label={"Remove season "+key} onClick={()=>removeSeason(key)}><Trash2 className="h-4 w-4"/></Button></div>)}</div>}
       </div>
       <div className="mt-5 rounded-lg border border-border p-4 space-y-3">
@@ -340,11 +347,11 @@ function RatePlans() {
         <p className="text-xs text-muted-foreground">Set an exact-date nightly override for an individual room type. Dates use the property-local calendar. Active daily overrides take precedence over seasonal and base rates for that night. Clearing a child entry reveals the inherited parent rate again.</p>
         <div className="grid gap-3 md:grid-cols-3">
           <Input type="date" aria-label="Daily rate date" value={dailyDate} onChange={e=>setDailyDate(e.target.value)}/>
-          <select className="rounded-md border border-border bg-background px-3 py-2 text-sm" value={dailyRoomType} onChange={e=>setDailyRoomType(e.target.value)}><option value="">Choose room type</option>{(roomTypeData?.roomTypes??[]).map((rt:{id:string;name:string})=><option key={rt.id} value={rt.id}>{rt.name}</option>)}</select>
+          <select className="rounded-md border border-border bg-background px-3 py-2 text-sm" value={dailyRoomType} onChange={e=>setDailyRoomType(e.target.value)}><option value="">Choose room type</option>{assignedPlanRoomTypes.map((rt:{id:string;name:string})=><option key={rt.id} value={rt.id}>{rt.name}</option>)}</select>
           <Input type="number" min="0.01" step="0.01" placeholder="Nightly rate" value={dailyRate} onChange={e=>setDailyRate(e.target.value)}/>
           <div className="flex items-center gap-2 text-sm"><input type="checkbox" checked={dailyActive} onChange={e=>setDailyActive(e.target.checked)}/>Active override <Badge variant="outline">{String(data?.property?.currency??"").toUpperCase()}</Badge></div>
         </div>
-        <Button type="button" variant="outline" onClick={addDailyRate}><Plus className="mr-2 h-4 w-4"/>Add daily override</Button>
+        <Button type="button" variant="outline" disabled={!editing||!assignedPlanRoomTypes.length} onClick={addDailyRate}><Plus className="mr-2 h-4 w-4"/>Add daily override</Button>
         {dailyRateEntries.length>0&&<>
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
             <label className="flex items-center gap-2"><input type="checkbox" checked={selectedDailyRateKeys.length===dailyRateEntries.length&&dailyRateEntries.length>0} onChange={e=>setSelectedDailyRateKeys(e.target.checked?dailyRateEntries.map(entry=>entry.date+"::"+entry.roomTypeId):[])}/>Select all existing overrides</label>
