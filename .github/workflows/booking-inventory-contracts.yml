@@ -12,6 +12,7 @@ on:
       - "src/lib/availability.functions.ts"
       - "src/lib/public-booking.functions.ts"
       - "src/lib/public-booking-context.server.ts"
+      - "src/lib/public-booking-context.server.test.ts"
       - "src/lib/booking-session.tsx"
       - "supabase/migrations/*booking*"
       - "scripts/ci/dc03r-*"
@@ -65,6 +66,8 @@ jobs:
         run: bunx vitest run src/lib/booking-property.test.ts
       - name: Booking hold policy tests
         run: bunx vitest run src/lib/booking-hold-policy.test.ts
+      - name: Public booking property allowlist tests
+        run: bunx vitest run src/lib/public-booking-context.server.test.ts
       - name: Generate routes and verify production build
         run: bun run build
       - name: TypeScript verification
