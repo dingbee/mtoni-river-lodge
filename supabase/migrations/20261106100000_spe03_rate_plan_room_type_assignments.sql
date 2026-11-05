@@ -104,6 +104,9 @@ BEGIN
   IF TG_OP='UPDATE' AND OLD.publication_status='archived' THEN
     RAISE EXCEPTION 'Archived rate plans are terminal and cannot be changed';
   END IF;
+  IF TG_OP='UPDATE' AND OLD.publication_status='published' AND NEW.publication_status='draft' THEN
+    RAISE EXCEPTION 'Suspend a published rate plan before returning it to draft';
+  END IF;
   IF NEW.publication_status='archived' THEN
     NEW.active := false;
     NEW.archived_at := COALESCE(NEW.archived_at,now());
@@ -153,8 +156,8 @@ BEGIN
   SELECT publication_status INTO plan_status
   FROM public.staynas_rate_plans
   WHERE property_id=target_property_id AND id=target_rate_plan_id;
-  IF plan_status='archived' THEN
-    RAISE EXCEPTION 'Archived rate plans cannot change room-type assignments';
+  IF plan_status IN ('published','archived') THEN
+    RAISE EXCEPTION 'Suspend the rate plan before changing room-type assignments';
   END IF;
   IF TG_OP='DELETE' THEN RETURN OLD; END IF;
   RETURN NEW;
