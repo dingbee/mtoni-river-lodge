@@ -33,7 +33,10 @@ DECLARE
   v_adjust numeric;
   v_rate numeric;
   v_rule record;
-  v_selected_rule record;
+  v_rule_id uuid;
+  v_rule_type text;
+  v_rule_adjust_kind text;
+  v_rule_adjust_value numeric;
   v_nightly jsonb := '[]'::jsonb;
   v_subtotal numeric := 0;
 BEGIN
@@ -110,36 +113,36 @@ BEGIN
     v_pre := round(v_base + v_surcharge,2);
     v_adjust := 0;
     v_rate := v_pre;
-    v_selected_rule := NULL;
+    v_rule_id := NULL;
+    v_rule_type := NULL;
+    v_rule_adjust_kind := NULL;
+    v_rule_adjust_value := NULL;
 
-    FOR v_rule IN
-      SELECT pr.*
-      FROM public.pricing_rules pr
-      WHERE pr.property_id = _property_id
-        AND pr.active = true
-        AND pr.rule_type NOT IN ('min_stay','blackout')
-        AND pr.adjust_kind IS NOT NULL
-        AND pr.adjust_value IS NOT NULL
-        AND (pr.scope = 'all' OR pr.room_id = _room_id)
-        AND (pr.starts_on IS NULL OR pr.starts_on <= v_day)
-        AND (pr.ends_on IS NULL OR pr.ends_on >= v_day)
-        AND (pr.weekdays IS NULL OR cardinality(pr.weekdays)=0 OR extract(dow from v_day)::integer = ANY(pr.weekdays))
-      ORDER BY CASE WHEN pr.room_id = _room_id THEN 0 ELSE 1 END,
-               pr.priority ASC, pr.id ASC
-      LIMIT 1
-    LOOP
-      v_selected_rule := v_rule;
-    END LOOP;
+    SELECT pr.id,pr.rule_type,pr.adjust_kind,pr.adjust_value
+    INTO v_rule_id,v_rule_type,v_rule_adjust_kind,v_rule_adjust_value
+    FROM public.pricing_rules pr
+    WHERE pr.property_id = _property_id
+      AND pr.active = true
+      AND pr.rule_type NOT IN ('min_stay','blackout')
+      AND pr.adjust_kind IS NOT NULL
+      AND pr.adjust_value IS NOT NULL
+      AND (pr.scope = 'all' OR pr.room_id = _room_id)
+      AND (pr.starts_on IS NULL OR pr.starts_on <= v_day)
+      AND (pr.ends_on IS NULL OR pr.ends_on >= v_day)
+      AND (pr.weekdays IS NULL OR cardinality(pr.weekdays)=0 OR extract(dow from v_day)::integer = ANY(pr.weekdays))
+    ORDER BY CASE WHEN pr.room_id = _room_id THEN 0 ELSE 1 END,
+             pr.priority ASC, pr.id ASC
+    LIMIT 1;
 
-    IF v_selected_rule.id IS NOT NULL THEN
-      IF v_selected_rule.adjust_kind = 'percent' THEN
-        v_adjust := round(v_pre * v_selected_rule.adjust_value / 100,2);
+    IF v_rule_id IS NOT NULL THEN
+      IF v_rule_adjust_kind = 'percent' THEN
+        v_adjust := round(v_pre * v_rule_adjust_value / 100,2);
         v_rate := round(v_pre + v_adjust,2);
-      ELSIF v_selected_rule.adjust_kind = 'fixed' THEN
-        v_adjust := round(v_selected_rule.adjust_value,2);
+      ELSIF v_rule_adjust_kind = 'fixed' THEN
+        v_adjust := round(v_rule_adjust_value,2);
         v_rate := round(v_pre + v_adjust,2);
-      ELSIF v_selected_rule.adjust_kind = 'override' THEN
-        v_rate := round(v_selected_rule.adjust_value,2);
+      ELSIF v_rule_adjust_kind = 'override' THEN
+        v_rate := round(v_rule_adjust_value,2);
         v_adjust := round(v_rate - v_pre,2);
       ELSE
         RAISE EXCEPTION 'Unsupported pricing adjustment kind';
@@ -151,7 +154,7 @@ BEGIN
     v_nightly := v_nightly || jsonb_build_array(jsonb_build_object(
       'date',v_day,'base_rate',v_base,'occupancy_surcharge',v_surcharge,
       'adjustment',v_adjust,'nightly_rate',v_rate,'currency',v_property_currency,
-      'applied_rule_id',v_selected_rule.id,'applied_rule_type',v_selected_rule.rule_type
+      'applied_rule_id',v_rule_id,'applied_rule_type',v_rule_type
     ));
     v_day := v_day + 1;
   END LOOP;
