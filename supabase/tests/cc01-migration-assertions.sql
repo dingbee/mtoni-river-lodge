@@ -32,6 +32,11 @@ BEGIN
      OR NOT has_function_privilege('service_role','public.staynas_user_has_property_access(uuid,uuid)','EXECUTE')
   THEN RAISE EXCEPTION 'Property access helper grants are incorrect'; END IF;
 
+  IF has_function_privilege('anon','public.staynas_ai_property_in_active_context(uuid,app_role[])','EXECUTE')
+     OR NOT has_function_privilege('authenticated','public.staynas_ai_property_in_active_context(uuid,app_role[])','EXECUTE')
+     OR NOT has_function_privilege('service_role','public.staynas_ai_property_in_active_context(uuid,app_role[])','EXECUTE')
+  THEN RAISE EXCEPTION 'AI active-property helper grants are incorrect'; END IF;
+
   IF has_function_privilege('anon','public.staynas_active_property_id(uuid)','EXECUTE')
      OR NOT has_function_privilege('authenticated','public.staynas_active_property_id(uuid)','EXECUTE')
      OR NOT has_function_privilege('service_role','public.staynas_active_property_id(uuid)','EXECUTE')
@@ -152,6 +157,9 @@ BEGIN
   IF public.staynas_active_property_id('10000000-0000-0000-0000-000000000001') <> '30000000-0000-0000-0000-000000000001' THEN
     RAISE EXCEPTION 'Owner active-property resolution failed';
   END IF;
+  IF NOT public.staynas_ai_property_in_active_context('30000000-0000-0000-0000-000000000001', ARRAY['owner']::public.app_role[]) THEN
+    RAISE EXCEPTION 'Owner AI access to active property failed';
+  END IF;
   IF public.staynas_active_property_id('10000000-0000-0000-0000-000000000002') IS NOT NULL THEN
     RAISE EXCEPTION 'Authenticated user can resolve another user active property';
   END IF;
@@ -196,6 +204,24 @@ BEGIN
   END IF;
 END $$;
 ROLLBACK;
+
+-- Organisation suspension must also close AI/property access.
+UPDATE public.staynas_organisations SET status='suspended' WHERE id='20000000-0000-0000-0000-000000000001';
+BEGIN;
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.role='authenticated';
+SET LOCAL request.jwt.claim.sub='10000000-0000-0000-0000-000000000001';
+DO $
+BEGIN
+  IF public.staynas_ai_property_in_active_context('30000000-0000-0000-0000-000000000001', ARRAY['owner']::public.app_role[]) THEN
+    RAISE EXCEPTION 'Suspended organisation retained AI property access';
+  END IF;
+  IF public.staynas_active_property_id('10000000-0000-0000-0000-000000000001') IS NOT NULL THEN
+    RAISE EXCEPTION 'Suspended organisation retained active-property resolution';
+  END IF;
+END $;
+ROLLBACK;
+UPDATE public.staynas_organisations SET status='active' WHERE id='20000000-0000-0000-0000-000000000001';
 
 -- Lifecycle suspension closes property access.
 UPDATE public.staynas_properties SET status='suspended' WHERE id='30000000-0000-0000-0000-000000000002';
