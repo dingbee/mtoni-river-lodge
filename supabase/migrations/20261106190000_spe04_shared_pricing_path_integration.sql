@@ -858,4 +858,11 @@ BEGIN
 END;
 $$;
 
+-- Keep the adapter internal, matching the SPE-02 RPC privilege boundary.
+REVOKE ALL ON FUNCTION public.calculate_staynas_room_pricing(uuid,uuid,date,date,integer,integer,integer)
+  FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.calculate_staynas_room_pricing_legacy(uuid,uuid,date,date,integer,integer,integer)
+  FROM PUBLIC,anon,authenticated,service_role;
+
+
 COMMIT;
