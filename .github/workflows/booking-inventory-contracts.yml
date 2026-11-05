@@ -4,6 +4,12 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - "src/lib/payments.functions.ts"
+      - "src/domains/ai/concierge/concierge.server.ts"
+      - "src/domains/ai/concierge/concierge.tools.ts"
+      - "src/routes/api/public/rooms.catalog.ts"
+      - "src/routes/api/public/availability.search.ts"
+      - "src/routes/api/public/rooms.status.ts"
       - "src/lib/booking-property.ts"
       - "src/lib/booking-property.test.ts"
       - "src/lib/booking-property.server.ts"
