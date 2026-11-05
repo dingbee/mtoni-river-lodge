@@ -1,4 +1,4 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter } from "@tanstack/react-router";
+import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter } from "react";
 import { useRef, useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import appCss from "../styles.css?url";
@@ -6,6 +6,9 @@ import { PWALifecycle } from "@/components/site/PWALifecycle";
 import { ConciergeWidget } from "@/components/site/ConciergeWidget";
 import { Toaster } from "@/components/ui/sonner";
 import { trackPageView } from "@/lib/analytics";
+
+const GTM_CONTAINER_ID = "GTM-KP6N7226";
+const GA_MEASUREMENT_ID = "G-367QZR4VD6";
 
 function NotFoundComponent() { return <div className="flex min-h-screen items-center justify-center bg-background px-4"><div className="max-w-md text-center"><h1 className="text-7xl font-bold">404</h1><h2 className="mt-4 text-xl font-semibold">Page not found</h2><p className="mt-2 text-sm text-muted-foreground">The page you're looking for doesn't exist or has been moved.</p><Link to="/rooms" className="mt-6 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">View rooms</Link></div></div>; }
 const fallbackQueryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60 * 1000, refetchOnWindowFocus: false } } });
@@ -31,19 +34,29 @@ function GoogleAnalytics(){
   const initialized=useRef(false);
 
   useEffect(()=>{
-    const measurementId=import.meta.env.VITE_GA_MEASUREMENT_ID?.trim();
-    if(!measurementId || initialized.current) return;
+    if(initialized.current) return;
 
+    // One shared dataLayer feeds GTM and the direct GA4 Google tag.
     window.dataLayer=window.dataLayer||[];
+    window.dataLayer.push({"gtm.start":new Date().getTime(),event:"gtm.js"});
+
+    const gtmScript=document.createElement("script");
+    gtmScript.async=true;
+    gtmScript.src=`https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(GTM_CONTAINER_ID)}`;
+    gtmScript.dataset.gtm="true";
+    document.head.appendChild(gtmScript);
+
+    // GA4 is initialized directly so page views and existing custom events
+    // continue working while GTM remains available for additional tags.
     window.gtag=(...args:unknown[])=>{window.dataLayer.push(args);};
     window.gtag("js",new Date());
-    window.gtag("config",measurementId,{send_page_view:false});
+    window.gtag("config",GA_MEASUREMENT_ID,{send_page_view:false});
 
-    const script=document.createElement("script");
-    script.async=true;
-    script.src=`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
-    script.dataset.ga4="true";
-    document.head.appendChild(script);
+    const gaScript=document.createElement("script");
+    gaScript.async=true;
+    gaScript.src=`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA_MEASUREMENT_ID)}`;
+    gaScript.dataset.ga4="true";
+    document.head.appendChild(gaScript);
     initialized.current=true;
   },[]);
 
