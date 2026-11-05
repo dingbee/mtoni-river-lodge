@@ -3,14 +3,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, Archive, Copy, History, Pencil, Upload, PauseCircle, GitBranch, CalendarDays, Trash2 } from "lucide-react";
+import { Plus, Archive, Copy, History, Pencil, Upload, PauseCircle, GitBranch, CalendarDays, Trash2, Eye } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { LoadingState } from "@/components/os/LoadingState";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { listStayNasRatePlans, saveStayNasRatePlan, setStayNasRatePlanPublication, listStayNasRatePlanVersions, listStayNasRatePlanPublicationEvents, listStayNasRatePlanRoomTypes, setStayNasRatePlanRoomType, resolveStayNasRatePlanInheritance } from "@/domains/finance/rate-plans.functions";
+import { listStayNasRatePlans, saveStayNasRatePlan, setStayNasRatePlanPublication, listStayNasRatePlanVersions, listStayNasRatePlanPublicationEvents, listStayNasRatePlanRoomTypes, setStayNasRatePlanRoomType, resolveStayNasRatePlanInheritance, listStayNasPublishedRatePlans } from "@/domains/finance/rate-plans.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/finance/rate-plans")({
   head: () => ({ meta: [{ title: "Rate Plans — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -38,10 +38,13 @@ function RatePlans() {
   const roomTypesFn=useServerFn(listStayNasRatePlanRoomTypes);
   const setRoomTypeFn=useServerFn(setStayNasRatePlanRoomType);
   const resolveInheritanceFn=useServerFn(resolveStayNasRatePlanInheritance);
+  const publishedFn=useServerFn(listStayNasPublishedRatePlans);
   const qc=useQueryClient();
   const {data,isLoading}=useQuery({queryKey:["staynas.rate-plans"],queryFn:()=>listFn()});
   const {data:roomTypeData}=useQuery({queryKey:["staynas.rate-plan-room-types"],queryFn:()=>roomTypesFn()});
+  const {data:publishedData,isLoading:publishedLoading,isError:publishedError,error:publishedErrorValue}=useQuery({queryKey:["staynas.published-rate-plans"],queryFn:()=>publishedFn()});
   const [editing,setEditing]=useState<Plan|null>(null);
+  const [detailsPlan,setDetailsPlan]=useState<Plan|null>(null);
   const [code,setCode]=useState(""); const [name,setName]=useState(""); const [description,setDescription]=useState("");
   const [category,setCategory]=useState("standard_flexible"); const [basis,setBasis]=useState("per_room");
   const [mealPlan,setMealPlan]=useState("room_only"); const [refundable,setRefundable]=useState(true);
@@ -64,6 +67,10 @@ function RatePlans() {
   const [dailyRoomType,setDailyRoomType]=useState("");
   const [dailyRate,setDailyRate]=useState("");
   const [dailyActive,setDailyActive]=useState(true);
+  const [selectedDailyRateKeys,setSelectedDailyRateKeys]=useState<string[]>([]);
+  const [bulkMode,setBulkMode]=useState<"set"|"amount"|"percent">("percent");
+  const [bulkValue,setBulkValue]=useState("");
+  const [bulkActive,setBulkActive]=useState(true);
   const [restrictionKey,setRestrictionKey]=useState("");
   const [restrictionType,setRestrictionType]=useState<"min_los"|"max_los"|"closed_to_arrival"|"closed_to_departure"|"stop_sell"|"advance_booking_min_hours"|"advance_booking_max_days">("min_los");
   const [restrictionStart,setRestrictionStart]=useState("");
@@ -83,7 +90,7 @@ function RatePlans() {
   const changeStatus=useMutation({
     mutationFn:(p:{id:string;status:"published"|"suspended"|"archived"|"draft";active?:boolean;change_reason:string})=>
       publishFn({data:{id:p.id,publication_status:p.status,active:p.active,change_reason:p.change_reason}}),
-    onSuccess:()=>{toast.success("Rate plan status updated");qc.invalidateQueries({queryKey:["staynas.rate-plans"]});},
+    onSuccess:()=>{toast.success("Rate plan status updated");qc.invalidateQueries({queryKey:["staynas.rate-plans"]});qc.invalidateQueries({queryKey:["staynas.published-rate-plans"]});},
     onError:(e:unknown)=>toast.error((e as Error).message),
   });
   const loadHistory=async(id:string)=>{
