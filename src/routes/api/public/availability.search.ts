@@ -35,7 +35,7 @@ export const Route = createFileRoute("/api/public/availability/search")({
         const pricing_errors = (data ?? [])
           .filter((r: any) => r.pricing_quote?.ok === false && r.pricing_quote?.error_code !== "RATE_PLAN_REQUIRED")
           .map((r: any) => ({ room_id: r.room_id, slug: r.slug, error_code: r.pricing_quote.error_code, message: r.pricing_quote.message }));
-        const planChoices = await Promise.all((data ?? []).filter((r: any) => r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED").map(async (r: any) => {
+        const planChoices = await Promise.all((data ?? []).filter((r: any) => r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" || r.pricing_quote?.pricing_evidence?.rate_plan_id).map(async (r: any) => {
           const { data: discovery, error: discoveryError } = await (supabaseAdmin as any).rpc("discover_staynas_public_rate_plans", {
             _property_id: propertyId, _room_id: r.room_id, _check_in: checkIn, _check_out: checkOut, _adults: guests, _children_below_6: 0, _children_7_plus: 0,
           });
