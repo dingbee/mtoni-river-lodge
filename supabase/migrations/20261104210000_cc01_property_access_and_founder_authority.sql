@@ -24,7 +24,7 @@ as $function$
     where pm.user_id = _uid
       and pm.property_id = _property_id
       and pm.status = 'active'
-      and p.status <> 'suspended'
+      and p.status = 'active'
       and o.status = 'active'
       -- Authenticated clients may only evaluate their own membership. Trusted
       -- service-role callers may evaluate another user for server workflows.
@@ -50,7 +50,7 @@ as $function$
     on o.id = p.organisation_id
   where c.user_id = auth.uid()
     and pm.status = 'active'
-    and p.status <> 'suspended'
+    and p.status = 'active'
     and o.status = 'active'
   limit 1;
 $function$;
@@ -192,7 +192,7 @@ as $function$
     on o.id = p.organisation_id
   where c.user_id = auth.uid()
     and pm.status = 'active'
-    and p.status <> 'suspended'
+    and p.status = 'active'
     and o.status = 'active';
 $function$;
 
@@ -283,7 +283,28 @@ REVOKE ALL ON FUNCTION public.staynas_enforce_booking_property() FROM PUBLIC, an
 REVOKE ALL ON FUNCTION public.staynas_enforce_hold_property() FROM PUBLIC, anon, authenticated;
 
 -- Resolve public booking tenants only through verified domains of active tenants.
-CREATE OR REPLACE FUNCTION public.staynas_booking_property_id(_hostname text)
+-- One explicitly configured public-booking property. The resolver is
+-- intentionally hostname-independent; property selection is controlled by
+-- the service-managed singleton, not caller-supplied tenant identifiers.
+CREATE TABLE IF NOT EXISTS public.staynas_booking_config (
+  id boolean PRIMARY KEY DEFAULT true CHECK (id),
+  property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.staynas_booking_config ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.staynas_booking_config FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.staynas_booking_config TO service_role;
+
+-- Seed only when the established Nolmark CDMA booking property exists.
+-- Existing configuration is never overwritten by this migration.
+INSERT INTO public.staynas_booking_config (id, property_id)
+SELECT true, p.id
+FROM public.staynas_properties p
+WHERE p.slug = 'nolmark-cdma-staynas'
+  AND p.status = 'active'
+ON CONFLICT (id) DO NOTHING;
+
+CREATE OR REPLACE FUNCTION public.staynas_booking_property_id()
 RETURNS uuid
 LANGUAGE plpgsql
 STABLE
@@ -292,28 +313,23 @@ SET search_path = pg_catalog, public, pg_temp
 AS $function$
 DECLARE
   _property uuid;
-  _host text;
 BEGIN
-  _host := lower(trim(split_part(COALESCE(_hostname, ''), ':', 1)));
-  IF _host = '' OR _host !~ '^[a-z0-9.-]+$' THEN
-    RAISE EXCEPTION 'Valid property hostname is required';
-  END IF;
-
-  SELECT d.property_id INTO _property
-  FROM public.staynas_property_domains d
-  JOIN public.staynas_properties p ON p.id = d.property_id
-  JOIN public.staynas_organisations o ON o.id = p.organisation_id
-  WHERE d.hostname = _host
-    AND d.verified_at IS NOT NULL
-    AND p.status = 'active'
-    AND o.status = 'active';
+  SELECT c.property_id INTO _property
+  FROM public.staynas_booking_config c
+  WHERE c.id = true;
 
   IF _property IS NULL THEN
-    RAISE EXCEPTION 'No active property is configured for this hostname';
+    RAISE EXCEPTION 'Booking property is not configured';
+  END IF;
+  IF NOT public.staynas_property_is_operational(_property) THEN
+    RAISE EXCEPTION 'Configured booking property is not active';
   END IF;
   RETURN _property;
 END;
 $function$;
+
+REVOKE ALL ON FUNCTION public.staynas_booking_property_id() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_booking_property_id() TO anon, authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.get_booking_hold_for_property(_property_id uuid, _hold_id uuid, _session_id text)
  RETURNS TABLE(id uuid, room_id uuid, check_in date, check_out date, expires_at timestamp with time zone, status text)
@@ -384,7 +400,7 @@ as $function$
     where pm.user_id = auth.uid()
       and pm.property_id = _property_id
       and pm.status = 'active'
-      and p.status <> 'suspended'
+      and p.status = 'active'
       and o.status = 'active'
       and pm.role = any(_roles)
   );
@@ -2874,7 +2890,7 @@ BEGIN
     THEN RAISE EXCEPTION 'Supervisor access required'; END IF;
   SELECT * INTO _task FROM public.ops_tasks WHERE id = _task_id AND category = 'housekeeping' AND property_id = public.staynas_active_property_id(_uid) FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Housekeeping task not found'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.staynas_property_members pm JOIN public.staynas_properties p ON p.id=pm.property_id JOIN public.staynas_organisations o ON o.id=p.organisation_id WHERE pm.user_id=_assignee_id AND pm.property_id=_task.property_id AND pm.status='active' AND pm.role='housekeeping' AND p.status <> 'suspended' AND o.status='active') THEN RAISE EXCEPTION 'Assignee must have an active housekeeping role in this property'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.staynas_property_members pm JOIN public.staynas_properties p ON p.id=pm.property_id JOIN public.staynas_organisations o ON o.id=p.organisation_id WHERE pm.user_id=_assignee_id AND pm.property_id=_task.property_id AND pm.status='active' AND pm.role='housekeeping' AND p.status = 'active' AND o.status='active') THEN RAISE EXCEPTION 'Assignee must have an active housekeeping role in this property'; END IF;
   IF _task.status IN ('completed','cancelled') THEN RAISE EXCEPTION 'Task is closed'; END IF;
 
   UPDATE public.ops_tasks
@@ -5167,7 +5183,7 @@ BEGIN
     THEN RAISE EXCEPTION 'Supervisor access required'; END IF;
   SELECT * INTO _task FROM public.ops_tasks WHERE id = _task_id AND category = 'housekeeping' AND property_id = public.staynas_active_property_id(_uid) FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Housekeeping task not found'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.staynas_property_members pm JOIN public.staynas_properties p ON p.id=pm.property_id JOIN public.staynas_organisations o ON o.id=p.organisation_id WHERE pm.user_id=_assignee_id AND pm.property_id=_task.property_id AND pm.status='active' AND pm.role='housekeeping' AND p.status <> 'suspended' AND o.status='active') THEN RAISE EXCEPTION 'Assignee must have an active housekeeping role in this property'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.staynas_property_members pm JOIN public.staynas_properties p ON p.id=pm.property_id JOIN public.staynas_organisations o ON o.id=p.organisation_id WHERE pm.user_id=_assignee_id AND pm.property_id=_task.property_id AND pm.status='active' AND pm.role='housekeeping' AND p.status = 'active' AND o.status='active') THEN RAISE EXCEPTION 'Assignee must have an active housekeeping role in this property'; END IF;
   IF _task.status IN ('completed','cancelled') THEN RAISE EXCEPTION 'Task is closed'; END IF;
 
   UPDATE public.ops_tasks
@@ -5734,11 +5750,22 @@ GRANT EXECUTE ON FUNCTION public.staynas_guest_is_accessible(uuid, uuid) TO auth
 
 
 
--- Public booking entry points are intentionally anonymous, but remain
--- property-scoped and validate active tenant, room, hold and booking inputs.
-GRANT EXECUTE ON FUNCTION public.create_booking_for_property(uuid, text, date, date, integer, integer, text, text, text, text, text, jsonb, integer, integer, uuid, text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.create_booking_for_property(uuid, text, date, date, integer, integer, text, text, text, text, text, jsonb, integer, integer, uuid, text, text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.create_booking_hold_for_property(uuid, text, date, date, text, text, integer) TO anon, authenticated;
+-- Public booking RPCs are an explicit signature allowlist. Revoke
+-- PostgreSQL's default PUBLIC execution before granting only these endpoints.
+REVOKE ALL ON FUNCTION public.create_booking_for_property(uuid, text, date, date, integer, integer, text, text, text, text, text, jsonb, integer, integer, uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_booking_for_property(uuid, text, date, date, integer, integer, text, text, text, text, text, jsonb, integer, integer, uuid, text) TO anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.create_booking_for_property(uuid, text, date, date, integer, integer, text, text, text, text, text, jsonb, integer, integer, uuid, text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_booking_for_property(uuid, text, date, date, integer, integer, text, text, text, text, text, jsonb, integer, integer, uuid, text, text) TO anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.create_booking_hold_for_property(uuid, text, date, date, text, text, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_booking_hold_for_property(uuid, text, date, date, text, text, integer) TO anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.get_booking_hold_for_property(uuid, uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_booking_hold_for_property(uuid, uuid, text) TO anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.get_room_availability_for_property(uuid, date, date) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_room_availability_for_property(uuid, date, date) TO anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.release_booking_hold_for_property(uuid, uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.release_booking_hold_for_property(uuid, uuid, text) TO anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.staynas_booking_property_id() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_booking_property_id() TO anon, authenticated, service_role;
 
 
 COMMIT;
