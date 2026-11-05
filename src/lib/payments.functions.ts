@@ -1,18 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getRequestHeader } from "@tanstack/react-start/server";
 import { resolvePublicBookingContext } from "@/lib/public-booking-context.server";
 import { assertSameProperty } from "@/lib/booking-property";
 
 function deriveBaseUrl(): string {
   const envUrl = process.env.PUBLIC_BASE_URL;
-  if (envUrl) return envUrl.replace(/\/$/, "");
-  const proto = getRequestHeader("x-forwarded-proto") ?? "https";
-  const host = getRequestHeader("host") ?? "";
-  if (!host) {
-    console.warn("[pesapal] deriveBaseUrl: no host header and no PUBLIC_BASE_URL set");
+  if (!envUrl) {
+    throw new Error("PUBLIC_BASE_URL must be configured for Pesapal callback URLs.");
   }
-  return `${proto}://${host}`;
+  return envUrl.replace(/\/$/, "");
 }
 
 export const initiatePayment = createServerFn({ method: "POST" })
