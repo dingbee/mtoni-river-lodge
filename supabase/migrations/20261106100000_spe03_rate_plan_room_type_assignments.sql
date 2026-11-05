@@ -75,7 +75,7 @@ CREATE OR REPLACE FUNCTION public.enforce_staynas_rate_plan_lifecycle()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path=public
-AS $
+AS $function$
 BEGIN
   IF TG_OP='UPDATE' AND OLD.publication_status='archived' THEN
     RAISE EXCEPTION 'Archived rate plans are terminal and cannot be changed';
@@ -101,7 +101,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$function$;
 
 DROP TRIGGER IF EXISTS staynas_rate_plans_lifecycle_guard ON public.staynas_rate_plans;
 CREATE TRIGGER staynas_rate_plans_lifecycle_guard
@@ -113,7 +113,7 @@ CREATE OR REPLACE FUNCTION public.prevent_archived_rate_plan_assignment_changes(
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path=public
-AS $
+AS $function$
 DECLARE
   plan_status text;
   target_property_id uuid;
@@ -135,7 +135,7 @@ BEGIN
   IF TG_OP='DELETE' THEN RETURN OLD; END IF;
   RETURN NEW;
 END;
-$;
+$function$;
 
 DROP TRIGGER IF EXISTS staynas_rate_plan_room_types_archive_guard ON public.staynas_rate_plan_room_types;
 CREATE TRIGGER staynas_rate_plan_room_types_archive_guard
