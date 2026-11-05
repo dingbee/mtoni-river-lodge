@@ -5,6 +5,7 @@ import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { seasonalRatesSchema, mergeSeasonalRateRecords, validateSeasonalRateCurrency, validateSeasonalRateRoomTypes } from "@/domains/finance/seasonal-pricing";
 import { dailyRatesSchema, mergeDailyRateRecords, validateDailyRateCurrency, validateDailyRateRoomTypes } from "@/domains/finance/daily-rate-calendar";
 import { restrictionRulesSchema, mergeRestrictionRecords, validateRestrictionRoomTypes, type RestrictionRule } from "@/domains/finance/rate-plan-restrictions";
+import { assertRatePlanRoomTypeAssignments } from "@/domains/finance/rate-plan-publication";
 
 async function getActivePropertyId(supabase: any, userId: string): Promise<string> {
   const { data, error } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
@@ -176,7 +177,22 @@ export const setStayNasRatePlanPublication = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
-    const { data: row, error } = await (context.supabase as any).rpc(
+    const sb: any = context.supabase;
+    if (data.publication_status === "published") {
+      const { data: resolved, error: resolveError } = await sb.rpc(
+        "resolve_staynas_rate_plan_inheritance",
+        { _property_id: propertyId, _rate_plan_id: data.id },
+      );
+      if (resolveError) throw new Error(resolveError.message);
+      const { data: assignments, error: assignmentError } = await sb.from("staynas_rate_plan_room_types")
+        .select("room_type_id").eq("property_id",propertyId).eq("rate_plan_id",data.id).eq("active",true);
+      if (assignmentError) throw new Error(assignmentError.message);
+      assertRatePlanRoomTypeAssignments(
+        (resolved?.resolved_data ?? {}) as Record<string, unknown>,
+        new Set((assignments ?? []).map((assignment: { room_type_id: string }) => assignment.room_type_id)),
+      );
+    }
+    const { data: row, error } = await sb.rpc(
       "set_staynas_rate_plan_publication",
       {
         _rate_plan_id: data.id,
