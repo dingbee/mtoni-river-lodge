@@ -158,6 +158,8 @@ CREATE TRIGGER staynas_rate_plans_seasonal_rates_guard
   ON public.staynas_rate_plans
   FOR EACH ROW EXECUTE FUNCTION public.validate_staynas_rate_plan_seasonal_rates();
 
+REVOKE ALL ON FUNCTION public.validate_staynas_rate_plan_seasonal_rates() FROM PUBLIC,anon,authenticated;
+
 COMMENT ON FUNCTION public.validate_staynas_rate_plan_seasonal_rates() IS
   'Validates effective inherited seasonal rate entries, property currency/timezone, room catalogue scope, date boundaries and deterministic priority conflict rules.';
 
