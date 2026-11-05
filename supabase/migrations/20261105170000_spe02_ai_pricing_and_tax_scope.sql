@@ -81,13 +81,6 @@ CREATE POLICY "Property staff action AI pricing recommendations"
     AND public.has_any_role(auth.uid(), ARRAY['owner','manager','finance','admin']::public.app_role[])
   );
 
-CREATE POLICY "Property staff read tax rules"
-  ON public.staynas_property_tax_rules FOR SELECT TO authenticated
-  USING (
-    public.staynas_user_has_property_access(auth.uid(), property_id)
-    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','finance','admin']::public.app_role[])
-  );
-
 CREATE POLICY "Property finance manage tax rules"
   ON public.staynas_property_tax_rules FOR ALL TO authenticated
   USING (
