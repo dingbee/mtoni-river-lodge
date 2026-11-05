@@ -239,4 +239,67 @@ END
 $ledger$;
 RESET ROLE;
 
-SELECT 'DC-04 migration and credential broker smoke tests passed' AS result;
+
+SET ROLE service_role;
+DO $outbox$
+DECLARE
+  v_outbox_id uuid;
+  v_duplicate_outbox_id uuid;
+  v_created boolean;
+  v_event public.staynas_distribution_outbox%ROWTYPE;
+BEGIN
+  SELECT outbox_id,created INTO v_outbox_id,v_created
+  FROM public.staynas_enqueue_distribution_outbox(
+    '20000000-0000-4000-8000-000000000001',
+    '30000000-0000-4000-8000-000000000001',
+    '70000000-0000-4000-8000-000000000001',
+    NULL,'dc04-outbox-idempotency-001','availability.snapshot_requested',
+    '{"snapshot":"v1"}'::jsonb,'dc04-outbox-correlation-001'
+  );
+  IF NOT v_created THEN RAISE EXCEPTION 'First outbox event was not created'; END IF;
+
+  SELECT outbox_id,created INTO v_duplicate_outbox_id,v_created
+  FROM public.staynas_enqueue_distribution_outbox(
+    '20000000-0000-4000-8000-000000000001',
+    '30000000-0000-4000-8000-000000000001',
+    '70000000-0000-4000-8000-000000000001',
+    NULL,'dc04-outbox-idempotency-001','availability.snapshot_requested',
+    '{"snapshot":"v1"}'::jsonb,'dc04-outbox-correlation-duplicate'
+  );
+  IF v_created OR v_duplicate_outbox_id <> v_outbox_id THEN
+    RAISE EXCEPTION 'Outbox idempotency failed';
+  END IF;
+
+  BEGIN
+    PERFORM * FROM public.staynas_enqueue_distribution_outbox(
+      '20000000-0000-4000-8000-000000000001',
+      '30000000-0000-4000-8000-000000000001',
+      '70000000-0000-4000-8000-000000000001',
+      NULL,'dc04-outbox-idempotency-001','availability.snapshot_requested',
+      '{"snapshot":"v2"}'::jsonb,'dc04-outbox-correlation-conflict'
+    );
+    RAISE EXCEPTION 'Outbox key accepted a changed event';
+  EXCEPTION WHEN SQLSTATE '22023' THEN
+    NULL;
+  END;
+
+  SELECT * INTO v_event
+  FROM public.staynas_claim_distribution_outbox('dc04-outbox-worker',45)
+  LIMIT 1;
+  IF v_event.id IS DISTINCT FROM v_outbox_id OR v_event.status <> 'publishing'
+     OR v_event.lease_token IS NULL OR v_event.attempt_count <> 1 THEN
+    RAISE EXCEPTION 'Atomic outbox claim failed';
+  END IF;
+
+  PERFORM public.staynas_finish_distribution_outbox(
+    v_outbox_id,v_event.lease_token,'dc04-outbox-worker','published',NULL,NULL
+  );
+  IF (SELECT status FROM public.staynas_distribution_outbox WHERE id=v_outbox_id) <> 'published'
+     OR (SELECT published_at FROM public.staynas_distribution_outbox WHERE id=v_outbox_id) IS NULL THEN
+    RAISE EXCEPTION 'Outbox publication completion failed';
+  END IF;
+END
+$outbox$;
+RESET ROLE;
+
+SELECT 'DC-04 migration, credential broker and outbox smoke tests passed' AS result;
