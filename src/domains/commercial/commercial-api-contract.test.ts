@@ -105,7 +105,7 @@ describe("CC02.06 commercial API contracts", () => {
     expect(schema.safeParse({
       ok: false,
       requestId: "req-8",
-      error: { code: "FORBIDDEN", message: "Founder authority required" },
+      error: { code: "FORBIDDEN", message: "Founder authority required", fieldErrors: [], retryable: false },
     }).success).toBe(true);
     expect(schema.safeParse({ ok: "true", requestId: "req-9", data: {} }).success).toBe(false);
   });
@@ -114,6 +114,8 @@ describe("CC02.06 commercial API contracts", () => {
     expect(createCommercialApiFailure("req-10", {
       code: "FORBIDDEN",
       message: "Founder authority required",
+      fieldErrors: [],
+      retryable: false,
     })).toEqual({
       ok: false,
       requestId: "req-10",
@@ -127,6 +129,8 @@ describe("CC02.06 commercial API contracts", () => {
     expect(() => createCommercialApiFailure("", {
       code: "INTERNAL_ERROR",
       message: "Failure",
+      fieldErrors: [],
+      retryable: false,
     })).toThrow();
   });
 });
