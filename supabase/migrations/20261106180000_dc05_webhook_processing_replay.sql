@@ -6,7 +6,8 @@ ALTER TABLE public.staynas_distribution_webhook_inbox
   ADD COLUMN IF NOT EXISTS attempt_count integer NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
   ADD COLUMN IF NOT EXISTS max_attempts integer NOT NULL DEFAULT 5 CHECK (max_attempts BETWEEN 1 AND 40),
   ADD COLUMN IF NOT EXISTS next_attempt_at timestamptz NOT NULL DEFAULT now(),
-  ADD COLUMN IF NOT EXISTS lease_started_at timestamptz,\n  ADD COLUMN IF NOT EXISTS lease_token uuid,
+  ADD COLUMN IF NOT EXISTS lease_started_at timestamptz,
+  ADD COLUMN IF NOT EXISTS lease_token uuid,
   ADD COLUMN IF NOT EXISTS lease_owner text,
   ADD COLUMN IF NOT EXISTS lease_expires_at timestamptz,
   ADD COLUMN IF NOT EXISTS reconciliation_code text;
@@ -223,7 +224,11 @@ DECLARE
 BEGIN
   IF _operator_id IS NULL OR length(pg_catalog.btrim(_operator_id)) NOT BETWEEN 1 AND 128
     OR _reason IS NULL OR length(pg_catalog.btrim(_reason)) NOT BETWEEN 8 AND 500
-    OR _additional_attempts IS NULL OR _additional_attempts NOT BETWEEN 1 AND 10\n    OR _reason ~* '[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}'\n    OR _reason ~ '\\+?[0-9]{10,15}' OR _reason ~* 'bearer[[:space:]]+' THEN
+    OR _additional_attempts IS NULL OR _additional_attempts NOT BETWEEN 1 AND 10
+    OR _reason ~* '[A-Z0-9._%+-]+@[A-Z0-9.-]+[.][A-Z]{2,}'
+    OR _reason ~ '[+]?[0-9]{10,15}'
+    OR _reason ~* 'bearer[[:space:]]+'
+    OR _reason ~* 'eyJ[A-Za-z0-9_-]{10,}[.][A-Za-z0-9_-]{10,}[.]' THEN
     RAISE EXCEPTION 'Manual webhook replay requires operator, reason and bounded retry budget.'
       USING ERRCODE = '22023';
   END IF;
