@@ -5,6 +5,7 @@ DECLARE
   search_path_count integer;
   internal_exposed text;
   public_definer_list text;
+  missing_public_endpoints text;
 BEGIN
   SELECT count(*) INTO policy_count
   FROM pg_policies WHERE schemaname IN ('public','storage');
@@ -121,21 +122,23 @@ BEGIN
     RAISE EXCEPTION 'Unexpected anonymous SECURITY DEFINER functions remain outside the guest/booking allowlist: %', public_definer_list;
   END IF;
 
-  IF EXISTS (
-    SELECT required.name
-    FROM unnest(ARRAY[
-      'create_booking_for_property','create_booking_hold_for_property',
-      'get_booking_hold_for_property','get_room_availability_for_property',
-      'release_booking_hold_for_property','staynas_booking_property_id',
-      'arrival_pass_ensure','arrival_pass_fetch','checkin_fetch_summary',
-      'checkin_save_draft','checkin_submit','checkin_verify'
-    ]) required(name)
-    WHERE NOT EXISTS (
-      SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
-      WHERE n.nspname='public' AND p.proname=required.name
-        AND has_function_privilege('anon',p.oid,'EXECUTE')
-    )
-  ) THEN RAISE EXCEPTION 'An intended public booking/check-in endpoint lost anonymous execution'; END IF;
+  SELECT string_agg(required.name, ', ' ORDER BY required.name)
+  INTO missing_public_endpoints
+  FROM unnest(ARRAY[
+    'create_booking_for_property','create_booking_hold_for_property',
+    'get_booking_hold_for_property','get_room_availability_for_property',
+    'release_booking_hold_for_property','staynas_booking_property_id',
+    'arrival_pass_ensure','arrival_pass_fetch','checkin_fetch_summary',
+    'checkin_save_draft','checkin_submit','checkin_verify'
+  ]) required(name)
+  WHERE NOT EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname='public' AND p.proname=required.name
+      AND has_function_privilege('anon',p.oid,'EXECUTE')
+  );
+  IF missing_public_endpoints IS NOT NULL THEN
+    RAISE EXCEPTION 'Intended public booking/check-in endpoints lost anonymous execution: %', missing_public_endpoints;
+  END IF;
 
   IF has_function_privilege('anon','public.restaurant_can_read(uuid)','EXECUTE')
      OR NOT has_function_privilege('authenticated','public.restaurant_can_read(uuid)','EXECUTE')
