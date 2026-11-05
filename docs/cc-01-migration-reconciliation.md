@@ -11,12 +11,12 @@
 | Measure | Count |
 |---|---:|
 | Applied records in live migration ledger | 82 |
-| Unique migration version identifiers in repository | 152 |
-| Unique migration names in repository | 151 |
-| Exact version-and-name matches | 5 |
+| Unique migration version identifiers in repository | 153 |
+| Unique migration names in repository | 152 |
+| Exact version-and-name matches | 6 |
 | Live records whose name exists under another timestamp | 19 |
-| Live records with no same-name repository file | 58 |
-| Repository versions not present in live ledger | 147 |
+| Live records with no same-name repository file | 57 |
+| Repository versions not present in live ledger | 146 |
 
 ## Live ledger mapping
 
@@ -103,7 +103,13 @@
 | 20261104225700 | `staynas_property_branding` | No same-name migration file |
 | 20261104230152 | `property_branding_storage_bucket` | No same-name migration file |
 | 20261104230157 | `property_branding_storage_policies` | No same-name migration file |
-| 20261104232013 | `grant_room_configuration_write_privileges` | No same-name migration file |
+| 20261104232013 | `grant_room_configuration_write_privileges` | Exact version + name (restored from commit `35f7d12`) |
+
+## Historical source recovery
+
+- Exact-path Git commit history was queried for all 58 applied names that initially had no same-name file in the current migration directory.
+- The applied migration `20261104232013_grant_room_configuration_write_privileges` was found in commit `35f7d128`; its original SQL was restored unchanged to the repository.
+- The remaining 57 applied migration paths returned no file history in this repository. The original SQL is therefore not recoverable from this repository's Git history. Recovering it would require a separate historical artifact or deployment record; it must not be fabricated from migration names.
 
 ## Interpretation and handling rules
 
@@ -111,7 +117,7 @@
 2. A same-name file under a different timestamp is a candidate provenance match, not proof that its SQL is identical. Compare the SQL body and verify the resulting schema objects before classifying it as reconciled.
 3. Do not replay missing migrations, insert migration ledger rows, baseline migrations, or alter migration history based only on this inventory.
 4. The staged CC-01 migration `20261104210000_cc01_property_access_and_founder_authority.sql` is not an applied live migration. It remains staged for review and PostgreSQL validation.
-5. The next reconciliation step is to map each unmatched live record to its historical SQL source or to a verified schema-effect fingerprint, then document unresolved items individually.
+5. Exact-path Git history was checked for all 58 names initially missing from the repository. One source was recovered from commit `35f7d12` and restored under its applied version. The remaining 57 have no matching file history in this repository; their original SQL cannot be reconstructed from this Git repository alone. Treat them as historical applied records with unresolved source provenance, not as unapplied migrations.
 
 ## Execution boundary
 
