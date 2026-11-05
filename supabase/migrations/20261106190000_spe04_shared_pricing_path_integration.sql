@@ -371,7 +371,7 @@ BEGIN
     END IF;
     v_subtotal:=round(v_subtotal+v_nightly_rate,2);
     v_breakdown:=v_breakdown||jsonb_build_array(jsonb_build_object(
-      'date',v_day,'nightly_rate',v_nightly_rate,'currency',v_property_currency,
+      'date',v_day,'nightly_rate',v_nightly_rate,'source_rate',v_rate_amount,'currency',v_property_currency,
       'source',v_source,'source_id',v_source_id,'source_key',v_source_key,
       'rate_plan_id',v_plan.id,'publication_id',v_publication.id,
       'publication_number',v_publication.publication_number,
@@ -437,7 +437,7 @@ BEGIN
   WHERE r.id=_room_id AND r.property_id=_property_id AND r.status='active';
   SELECT COALESCE(jsonb_agg(
     n.value || jsonb_build_object(
-      'base_rate',n.value->'nightly_rate',
+      'base_rate',n.value->'source_rate',
       'occupancy_surcharge',0,
       'adjustment',0,
       'applied_rule_id',NULL,
