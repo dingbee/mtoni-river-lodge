@@ -1,6 +1,6 @@
 -- SPE-04.03 database contract tests. Run with Supabase pgTAP test runner.
 BEGIN;
-SELECT plan(17);
+SELECT plan(18);
 
 SELECT has_function(
   'public',
@@ -124,6 +124,13 @@ SELECT ok(
     'EXECUTE'
   ),
   'Anonymous role cannot execute the shared accommodation adapter'
+);
+
+
+SELECT ok(
+  pg_get_functiondef('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)'::regprocedure)
+    LIKE '%''online''%',
+  'Legacy 16-argument booking RPC delegates to the shared pricing-aware booking path'
 );
 
 SELECT * FROM finish();
