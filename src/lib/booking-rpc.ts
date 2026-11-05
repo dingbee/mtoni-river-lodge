@@ -78,26 +78,6 @@ export interface BookingPropertyRpc {
     fn: "get_room_availability_for_property",
     args: { _check_in: string; _check_out: string; _property_id: string },
   ): Result<AvailabilityRow[]>;
-  rpc(
-    fn: "create_booking_hold",
-    args: {
-      _room_slug: string;
-      _check_in: string;
-      _check_out: string;
-      _session_id: string;
-      _property_id: string;
-      _guest_email?: string;
-      _ttl_seconds?: number;
-    },
-  ): Result<HoldCreatedRow[]>;
-  rpc(
-    fn: "release_booking_hold",
-    args: { _hold_id: string; _session_id: string; _property_id: string },
-  ): Result<boolean>;
-  rpc(
-    fn: "get_booking_hold_for_session",
-    args: { _hold_id: string; _session_id: string; _property_id: string },
-  ): Result<HoldSessionRow[]>;
   rpc(fn: "create_booking_for_property", args: CreateBookingArgs): Result<CreateBookingRow[]>;
   rpc(
     fn: "create_booking_hold_for_property",
