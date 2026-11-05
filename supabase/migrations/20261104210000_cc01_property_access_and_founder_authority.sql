@@ -1526,10 +1526,7 @@ BEGIN
   PERFORM public.log_calendar_event('reservation.created',_room.id,_booking_id,_hold_id,_check_in,_check_out,jsonb_build_object('reference',_reference,'total',_total));
   RETURN QUERY SELECT _booking_id,_reference,_total,_room.currency;
 END
-$function$
-
-
--- Payment RPCs authorize against the locked booking's property and attach that
+$function$;-- Payment RPCs authorize against the locked booking's property and attach that
 -- property to their immutable audit entries.
 CREATE OR REPLACE FUNCTION public.record_booking_payment(_booking_id uuid, _amount numeric, _event_type text, _method text, _note text, _idempotency_key text)
  RETURNS jsonb
