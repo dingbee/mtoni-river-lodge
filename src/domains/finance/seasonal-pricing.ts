@@ -8,7 +8,7 @@ export const seasonalRateSchema = z.object({
   season_type: z.enum(SEASON_TYPES),
   start_date: z.string().date(),
   end_date: z.string().date(),
-  room_type_ids: z.array(z.string().uuid()).min(1),
+  room_type_ids: z.array(z.string().uuid()).min(1).refine((ids) => new Set(ids).size === ids.length, { message: "Room types must be unique." }),
   currency: z.string().regex(/^[A-Z]{3}$/),
   nightly_rate: z.number().finite().positive(),
   priority: z.number().int().min(0).max(10000),
