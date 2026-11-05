@@ -169,6 +169,7 @@ DECLARE
   snapshot_value jsonb;
   actor uuid := auth.uid();
 BEGIN
+  IF TG_OP='UPDATE' AND NEW.version=OLD.version THEN RETURN NEW; END IF;
   snapshot_value := to_jsonb(NEW) - 'created_at' - 'updated_at';
   INSERT INTO public.staynas_rate_plan_versions(property_id,rate_plan_id,version,snapshot,changed_by,change_reason)
   VALUES(NEW.property_id,NEW.id,NEW.version,snapshot_value,actor,
