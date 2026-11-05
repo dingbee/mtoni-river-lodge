@@ -107,6 +107,16 @@ BEGIN
   IF TG_OP='UPDATE' AND OLD.publication_status='published' AND NEW.publication_status='draft' THEN
     RAISE EXCEPTION 'Suspend a published rate plan before returning it to draft';
   END IF;
+  IF TG_OP='UPDATE' AND OLD.publication_status='published'
+     AND NEW.publication_status IN ('suspended','archived')
+     AND (to_jsonb(OLD) - 'publication_status' - 'updated_at' - 'updated_by' - 'active' - 'archived_at')
+       IS DISTINCT FROM
+         (to_jsonb(NEW) - 'publication_status' - 'updated_at' - 'updated_by' - 'active' - 'archived_at') THEN
+    RAISE EXCEPTION 'Suspend or archive a published rate plan without changing its commercial terms';
+  END IF;
+  IF TG_OP='UPDATE' AND OLD.publication_status='published' AND NEW.publication_status='published' THEN
+    RAISE EXCEPTION 'Suspend the rate plan before editing its commercial terms';
+  END IF;
   IF NEW.publication_status='archived' THEN
     NEW.active := false;
     NEW.archived_at := COALESCE(NEW.archived_at,now());
