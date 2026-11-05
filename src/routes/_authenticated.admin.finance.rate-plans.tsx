@@ -114,7 +114,7 @@ function RatePlans() {
   const seasonalEntries=Object.entries(readSeasonalRates());
 
   return <div className="space-y-6">
-    <PageHeader title="Rate Plans" description="Manage property-scoped commercial accommodation products, eligibility and publication. Rate amounts and calendar rules are delivered in the next pricing milestones." />
+    <PageHeader title="Rate Plans" description="Manage property-scoped commercial accommodation products, room eligibility, seasonal pricing and publication." />
     {data?.property&&<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><span className="font-medium text-foreground">{data.property.name}</span><Badge variant="outline">{String(data.property.currency).toUpperCase()}</Badge><span>{data.property.timezone}</span></div>}
     <SectionCard title={editing?"Edit rate plan":"Create rate plan"} description="A rate plan defines the commercial terms applied to one or more room types. Room assignments are managed separately.">
       <div className="grid gap-3 md:grid-cols-3">
