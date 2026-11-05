@@ -106,6 +106,39 @@ describe("CC02.02 commercial pricing architecture", () => {
     expect(result.quoteRequired).toBe(false);
   });
 
+  it("does not charge for properties within the included allowance", () => {
+    const result = resolveCommercialPrice({
+      ...input,
+      propertyCount: 2,
+      addons: [],
+    }, [planPrice], []);
+    expect(result.totalAmountMinor).toBe(100_000_00);
+    expect(result.lines).toHaveLength(1);
+  });
+
+  it("charges flat add-ons once regardless of property count", () => {
+    const flatAddon: CommercialAddonPrice = {
+      ...addonPrice,
+      chargeModel: "flat",
+    };
+    const result = resolveCommercialPrice(input, [planPrice], [flatAddon]);
+    expect(result.lines.find((line) => line.kind === "addon")?.quantity).toBe(1);
+    expect(result.lines.find((line) => line.kind === "addon")?.amountMinor).toBe(10_000_00);
+  });
+
+  it("treats effective start and end dates as inclusive", () => {
+    const boundedPrice: CommercialPlanPrice = {
+      ...planPrice,
+      effectiveFrom: "2026-11-05",
+      effectiveTo: "2026-11-05",
+    };
+    expect(() => resolveCommercialPrice(input, [boundedPrice], [addonPrice])).not.toThrow();
+    expect(() => resolveCommercialPrice({
+      ...input,
+      asOf: "2026-11-06",
+    }, [boundedPrice], [addonPrice])).toThrow(/No active plan price/);
+  });
+
   it("never falls back or converts when requested currency is unavailable", () => {
     expect(() => resolveCommercialPrice({
       ...input,
