@@ -139,14 +139,19 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
     const mergedRestrictions = mergeRestrictionRecords(inheritedRestrictions, ownRestrictions);
     const effectiveRestrictions = restrictionRulesSchema.parse(mergedRestrictions) as Record<string, RestrictionRule>;
     if (Object.keys(effectiveRestrictions).length) {
-      const { data: roomTypes, error: roomTypesError } = await sb.rpc(
-        "get_staynas_rate_plan_room_types", { _property_id: propertyId },
+      if (!data.id) {
+        throw new Error("Create the rate plan and assign its room types before adding stay restrictions.");
+      }
+      const { data: assignments, error: assignmentError } = await sb.from("staynas_rate_plan_room_types")
+        .select("room_type_id").eq("property_id",propertyId).eq("rate_plan_id",data.id).eq("active",true);
+      if (assignmentError) throw new Error(assignmentError.message);
+      const assignedRoomTypeIds = new Set(
+        (assignments ?? []).map((assignment: { room_type_id: string }) => assignment.room_type_id),
       );
-      if (roomTypesError) throw new Error(roomTypesError.message);
-      validateRestrictionRoomTypes(
-        effectiveRestrictions,
-        new Set((roomTypes ?? []).map((roomType: { id: string }) => roomType.id)),
-      );
+      if (!assignedRoomTypeIds.size) {
+        throw new Error("Assign at least one room type to this rate plan before adding stay restrictions.");
+      }
+      validateRestrictionRoomTypes(effectiveRestrictions,assignedRoomTypeIds);
     }
     const payload = {
       ...data,
