@@ -109,9 +109,16 @@ BEGIN
   INTO policy_count, public_definer_list
   FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
   WHERE n.nspname='public' AND p.prosecdef
-    AND has_function_privilege('anon',p.oid,'EXECUTE');
-  IF policy_count <> 14 THEN
-    RAISE EXCEPTION 'Expected 14 intentionally public guest/booking SECURITY DEFINER endpoints, found %: %', policy_count, public_definer_list;
+    AND has_function_privilege('anon',p.oid,'EXECUTE')
+    AND p.proname <> ALL(ARRAY[
+      'create_booking_for_property','create_booking_hold_for_property',
+      'get_booking_hold_for_property','get_room_availability_for_property',
+      'release_booking_hold_for_property','staynas_booking_property_id',
+      'arrival_pass_ensure','arrival_pass_fetch','checkin_fetch_summary',
+      'checkin_save_draft','checkin_submit','checkin_verify'
+    ]);
+  IF policy_count <> 0 THEN
+    RAISE EXCEPTION 'Unexpected anonymous SECURITY DEFINER functions remain outside the guest/booking allowlist: %', public_definer_list;
   END IF;
 
   IF EXISTS (
