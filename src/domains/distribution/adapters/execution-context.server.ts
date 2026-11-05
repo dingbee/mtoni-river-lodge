@@ -15,12 +15,12 @@ export type DistributionExecutionRepository = Readonly<{
   getAccountGrant(grantId: string): Promise<unknown | null>;
   getExternalAccount(accountId: string): Promise<unknown | null>;
   getProperty(propertyId: string): Promise<{ organisation_id: string } | null>;
-  getPropertyMembership(propertyId: string, userId: string): Promise<{
+  getPropertyMembership(propertyId: string, userId: string): Promise<ReadonlyArray<{
     property_id: string;
     user_id: string;
     role: string;
     status: string;
-  } | null>;
+  }>>;
 }>;
 
 export type TrustedDistributionExecutionInput = Readonly<{
@@ -64,7 +64,7 @@ export function createTrustedDistributionExecutionLoader(
       "connection",
     ) as Record<string, any>;
 
-    const [grant, account, property, membership] = await Promise.all([
+    const [grant, account, property, memberships] = await Promise.all([
       repository.getAccountGrant(String(connection.account_grant_id ?? "")),
       repository.getExternalAccount(String(connection.external_account_id ?? "")),
       repository.getProperty(String(connection.property_id ?? "")),
@@ -77,13 +77,16 @@ export function createTrustedDistributionExecutionLoader(
       String(connection.adapter_version ?? ""),
     );
 
-    const propertyMembership = membership && membership.status === "active"
+    const membership = memberships.find((row) =>
+      row.status === "active" && ["owner", "manager", "admin"].includes(row.role),
+    );
+    const propertyMembership = membership
       ? {
           userId: membership.user_id,
           organisationId: trustedProperty.organisation_id,
           propertyId: membership.property_id,
           active: true,
-          canManageDistribution: ["owner", "manager", "admin"].includes(membership.role),
+          canManageDistribution: true,
         }
       : null;
 
@@ -156,10 +159,9 @@ const repository: DistributionExecutionRepository = {
       .select("property_id,user_id,role,status")
       .eq("property_id", propertyId)
       .eq("user_id", userId)
-      .eq("status", "active")
-      .maybeSingle();
+      .eq("status", "active");
     if (error) throw new Error("Distribution property membership lookup failed.");
-    return data;
+    return data ?? [];
   },
 };
 
