@@ -39,7 +39,7 @@ describe("DC-04.11 durable health evidence contract", () => {
       _health_state: "degraded",
       _latency_ms: 180,
       _normalized_error_code: "rate_limited",
-      _safe_message: "The provider rate limit was reached.",
+      _safe_message: "The provider rate limit was reached. Retry after the indicated delay.",
       _provider_code: "RATE_LIMIT",
       _credential_state: "valid",
       _worker_id: "health-worker-01",
@@ -76,6 +76,17 @@ describe("DC-04.11 durable health evidence contract", () => {
     expect(() => buildDistributionHealthEvidenceArgs(
       context, { state: "healthy", checkedAt: "2026-11-05T09:00:00Z" }, " ",
     )).toThrow(/incomplete/);
+  });
+
+  it("rejects mismatched error correlation identifiers", () => {
+    expect(() => buildDistributionHealthEvidenceArgs(
+      context,
+      {
+        state: "degraded", checkedAt: "2026-11-05T09:00:00Z",
+        error: { code: "unknown", retryable: false, safeMessage: "raw", correlationId: "other-correlation" },
+      },
+      "worker",
+    )).toThrow(/correlation/);
   });
 
   it("rejects an error attached to a healthy assessment", () => {
