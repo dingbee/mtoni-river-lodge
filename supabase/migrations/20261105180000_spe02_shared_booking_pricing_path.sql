@@ -326,9 +326,9 @@ BEGIN
     LEFT JOIN public.room_inventory i ON i.room_id=r.id AND i.date=dr.d
     WHERE r.property_id=_property_id AND r.status='active'
   ), stock AS (
-    SELECT room_id, min(greatest(units-hold_count,0))::integer AS min_units,
+    SELECT inventory.room_id, min(greatest(units-hold_count,0))::integer AS min_units,
       bool_and(NOT blocked AND units-hold_count>0) AS available
-    FROM inventory GROUP BY room_id
+    FROM inventory GROUP BY inventory.room_id
   )
   SELECT r.id,r.slug,r.name,r.base_price,r.currency,r.capacity_adults,r.capacity_children,
     r.max_occupancy,r.included_guests,r.extra_guest_fee,(_check_out-_check_in),
