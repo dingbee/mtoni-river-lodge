@@ -32,7 +32,6 @@ DECLARE
   v_pre numeric;
   v_adjust numeric;
   v_rate numeric;
-  v_rule record;
   v_rule_id uuid;
   v_rule_type text;
   v_rule_adjust_kind text;
@@ -266,6 +265,29 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.try_calculate_staynas_booking_quote(
+  _property_id uuid,
+  _room_id uuid,
+  _check_in date,
+  _check_out date,
+  _adults integer,
+  _children_below_6 integer DEFAULT 0,
+  _children_7_plus integer DEFAULT 0
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $
+BEGIN
+  RETURN public.calculate_staynas_booking_quote(
+    _property_id,_room_id,_check_in,_check_out,_adults,_children_below_6,_children_7_plus,'[]'::jsonb
+  );
+EXCEPTION WHEN OTHERS THEN
+  RETURN NULL;
+END;
+$;
+
 CREATE OR REPLACE FUNCTION public.get_staynas_room_availability_priced(
   _check_in date,
   _check_out date,
@@ -311,7 +333,7 @@ BEGIN
   SELECT r.id,r.slug,r.name,r.base_price,r.currency,r.capacity_adults,r.capacity_children,
     r.max_occupancy,r.included_guests,r.extra_guest_fee,(_check_out-_check_in),
     CASE WHEN q.quote IS NULL THEN 0 ELSE (q.quote->>'accommodation_subtotal')::numeric END,
-    COALESCE(s.min_units,0),COALESCE(s.available,false),
+    COALESCE(s.min_units,0),(COALESCE(s.available,false) AND q.quote IS NOT NULL),
     (_adults<=r.capacity_adults
       AND (_children_below_6+_children_7_plus)<=r.capacity_children
       AND (_adults+_children_below_6+_children_7_plus)<=r.max_occupancy),
@@ -319,8 +341,8 @@ BEGIN
   FROM public.rooms r
   LEFT JOIN stock s ON s.room_id=r.id
   LEFT JOIN LATERAL (
-    SELECT public.calculate_staynas_booking_quote(
-      _property_id,r.id,_check_in,_check_out,_adults,_children_below_6,_children_7_plus,'[]'::jsonb
+    SELECT public.try_calculate_staynas_booking_quote(
+      _property_id,r.id,_check_in,_check_out,_adults,_children_below_6,_children_7_plus
     ) AS quote
     WHERE _adults<=r.capacity_adults
       AND (_children_below_6+_children_7_plus)<=r.capacity_children
@@ -426,6 +448,9 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'Room not found for property'; END IF;
 
   v_children_total := v_below6 + v_plus7;
+  IF _children IS NOT NULL AND _children <> v_children_total THEN
+    RAISE EXCEPTION 'Child counts do not match the supplied occupancy';
+  END IF;
   v_nights := _check_out - _check_in;
   IF _hold_id IS NOT NULL THEN
     SELECT h.* INTO v_hold FROM public.booking_holds h
@@ -514,6 +539,7 @@ GRANT EXECUTE ON FUNCTION public.get_staynas_room_availability_priced(date,date,
 GRANT EXECUTE ON FUNCTION public.get_staynas_booking_quote(uuid,text,date,date,integer,integer,integer,jsonb) TO anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.calculate_staynas_room_pricing(uuid,uuid,date,date,integer,integer,integer) TO anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.calculate_staynas_booking_quote(uuid,uuid,date,date,integer,integer,integer,jsonb) TO anon,authenticated,service_role;
+GRANT EXECUTE ON FUNCTION public.try_calculate_staynas_booking_quote(uuid,uuid,date,date,integer,integer,integer) TO anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text) TO anon,authenticated,service_role;
 
 COMMIT;
