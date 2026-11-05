@@ -185,4 +185,15 @@ describe("calculatePricingQuote", () => {
     expect(quote(rooms[2], { adults: 4, childrenBelow6: 2 }).subtotal).toBe(480);
     expect(rooms.every((item) => item.currency === "USD")).toBe(true);
   });
+  it("rejects impossible calendar dates", () => {
+    expect(() => calculatePricingQuote({
+      room,
+      checkIn: "2026-02-31",
+      checkOut: "2026-03-02",
+      occupancy: { adults: 2 },
+      inventory: [],
+      rules: [],
+    })).toThrow(/valid check-in/i);
+  });
+
 });
