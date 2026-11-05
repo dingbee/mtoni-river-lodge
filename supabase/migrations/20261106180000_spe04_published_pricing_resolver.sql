@@ -136,12 +136,17 @@ BEGIN
       'message','More than one eligible published rate plan applies; select one explicitly');
   END IF;
   IF v_plan_count=0 THEN
-    IF v_active_plan_count>0 THEN
+    IF v_active_plan_count>0 OR _rate_plan_id IS NOT NULL THEN
       RETURN jsonb_build_object('ok',false,'error_code','NO_ELIGIBLE_RATE_PLAN',
         'message','Property has active published plans but none is eligible for this room and stay');
     END IF;
-    RETURN jsonb_build_object('ok',false,'error_code','NO_ELIGIBLE_RATE_PLAN',
-      'message','No published plan is eligible; use the legacy compatibility path only when no active published plan exists');
+    RETURN jsonb_build_object(
+      'ok',true,'mode','legacy','rate_plan_id',NULL,'publication_id',NULL,
+      'pricing',public.calculate_staynas_room_pricing(
+        _property_id,_room_id,_check_in,_check_out,_adults,
+        COALESCE(_children_below_6,0),COALESCE(_children_7_plus,0)
+      )
+    );
   END IF;
 
   SELECT p.id,p.code,p.name,p.currency,p.pricing_basis,p.version,p.property_id
