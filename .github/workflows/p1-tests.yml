@@ -46,6 +46,7 @@ jobs:
           src/domains/finance/seasonal-pricing.test.ts
           src/domains/finance/daily-rate-calendar.test.ts
           src/domains/finance/rate-overrides.test.ts
+          src/domains/finance/rate-overrides.test.ts
           src/lib/pesapal-currency.test.ts
       # TanStack Start generates routeTree.gen.ts during the Vite build.
       - name: Generate routes and verify production build
@@ -66,6 +67,9 @@ jobs:
           src/domains/finance/finance-reconciliation.test.ts
           src/domains/finance/seasonal-pricing.ts
           src/domains/finance/daily-rate-calendar.ts
+          src/domains/finance/rate-overrides.ts
+          src/domains/finance/rate-overrides.test.ts
+          src/routes/_authenticated.admin.finance.rate-overrides.tsx
           src/domains/finance/rate-overrides.ts
           src/domains/finance/rate-overrides.test.ts
           src/domains/finance/daily-rate-calendar.test.ts
