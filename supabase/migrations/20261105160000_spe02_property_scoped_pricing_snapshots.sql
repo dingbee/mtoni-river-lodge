@@ -99,8 +99,7 @@ LANGUAGE plpgsql
 SET search_path = public
 AS $$
 BEGIN
-  IF OLD.pricing_snapshot IS DISTINCT FROM NEW.pricing_snapshot
-     AND OLD.pricing_snapshot <> '{}'::jsonb THEN
+  IF OLD.pricing_snapshot IS DISTINCT FROM NEW.pricing_snapshot THEN
     RAISE EXCEPTION 'Booking pricing snapshots are immutable';
   END IF;
   RETURN NEW;
