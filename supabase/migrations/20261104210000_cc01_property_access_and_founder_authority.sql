@@ -4437,6 +4437,9 @@ AS $function$
 DECLARE _h public.booking_holds%ROWTYPE;
 BEGIN
  IF _property_id IS NULL THEN RAISE EXCEPTION 'property_id is required'; END IF;
+ IF _property_id IS DISTINCT FROM public.staynas_booking_property_id() THEN
+   RAISE EXCEPTION 'Property is not available in this booking context';
+ END IF;
  SELECT h.* INTO _h FROM public.booking_holds h JOIN public.rooms r ON r.id=h.room_id
  WHERE h.id=_hold_id AND r.property_id=_property_id FOR UPDATE OF h;
  IF NOT FOUND OR _h.status<>'active' THEN RETURN false; END IF;
