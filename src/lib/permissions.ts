@@ -152,7 +152,10 @@ export function canAccessModule(moduleId: string, roles: readonly string[]): boo
   if (stayNasModule) return hasStayNasEntitlement(stayNasModule, roles);
 
   const allowed = MODULE_ROLES[moduleId];
-  if (allowed === null || allowed === undefined) return true;
+  // Unknown module IDs must fail closed. Only explicitly registered null
+  // entries grant visibility to every operational staff role.
+  if (allowed === undefined) return false;
+  if (allowed === null) return true;
 
   const normalizedRoles = normalizeStayNasRoles(roles);
   return normalizedRoles.some((role) => allowed.includes(role));
