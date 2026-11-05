@@ -35,7 +35,8 @@ function RatePlans() {
   const publishFn=useServerFn(setStayNasRatePlanPublication);
   const versionsFn=useServerFn(listStayNasRatePlanVersions);
   const roomTypesFn=useServerFn(listStayNasRatePlanRoomTypes);
-  const setRoomTypeFn=useServerFn(setStayNasRatePlanRoomType);\n  const resolveInheritanceFn=useServerFn(resolveStayNasRatePlanInheritance);
+  const setRoomTypeFn=useServerFn(setStayNasRatePlanRoomType);
+  const resolveInheritanceFn=useServerFn(resolveStayNasRatePlanInheritance);
   const qc=useQueryClient();
   const {data,isLoading}=useQuery({queryKey:["staynas.rate-plans"],queryFn:()=>listFn()});
   const {data:roomTypeData}=useQuery({queryKey:["staynas.rate-plan-room-types"],queryFn:()=>roomTypesFn()});
@@ -43,7 +44,9 @@ function RatePlans() {
   const [code,setCode]=useState(""); const [name,setName]=useState(""); const [description,setDescription]=useState("");
   const [category,setCategory]=useState("standard_flexible"); const [basis,setBasis]=useState("per_room");
   const [mealPlan,setMealPlan]=useState("room_only"); const [refundable,setRefundable]=useState(true);
-  const [from,setFrom]=useState(""); const [to,setTo]=useState(""); const [parent,setParent]=useState("");\n  const [ratePlanDataText,setRatePlanDataText]=useState("{}");\n  const [inheritancePreview,setInheritancePreview]=useState<Record<string,unknown>|null>(null);
+  const [from,setFrom]=useState(""); const [to,setTo]=useState(""); const [parent,setParent]=useState("");
+  const [ratePlanDataText,setRatePlanDataText]=useState("{}");
+  const [inheritancePreview,setInheritancePreview]=useState<Record<string,unknown>|null>(null);
   const [history,setHistory]=useState<{id:string;version:number;snapshot:Record<string,unknown>;created_at:string}[]|null>(null);
 
   const reset=()=>{setEditing(null);setCode("");setName("");setDescription("");setCategory("standard_flexible");setBasis("per_room");setMealPlan("room_only");setRefundable(true);setFrom("");setTo("");setParent("");setRatePlanDataText("{}");setInheritancePreview(null);};
@@ -59,7 +62,8 @@ function RatePlans() {
     onError:(e:unknown)=>toast.error((e as Error).message),
   });
   const loadHistory=async(id:string)=>{try{setHistory(await versionsFn({data:{id}}));}catch(e){toast.error((e as Error).message);}};
-  const inheritanceMutation=useMutation({mutationFn:(id:string)=>resolveInheritanceFn({data:{id}}),onSuccess:(value)=>setInheritancePreview(value as Record<string,unknown>),onError:(e:unknown)=>toast.error((e as Error).message)});\n  const roomTypeMutation=useMutation({mutationFn:(v:{rate_plan_id:string;room_type_id:string;active:boolean})=>setRoomTypeFn({data:v}),onSuccess:()=>{qc.invalidateQueries({queryKey:["staynas.rate-plan-room-types"]});toast.success("Room-type assignment updated");},onError:(e:unknown)=>toast.error((e as Error).message)});
+  const inheritanceMutation=useMutation({mutationFn:(id:string)=>resolveInheritanceFn({data:{id}}),onSuccess:(value)=>setInheritancePreview(value as Record<string,unknown>),onError:(e:unknown)=>toast.error((e as Error).message)});
+  const roomTypeMutation=useMutation({mutationFn:(v:{rate_plan_id:string;room_type_id:string;active:boolean})=>setRoomTypeFn({data:v}),onSuccess:()=>{qc.invalidateQueries({queryKey:["staynas.rate-plan-room-types"]});toast.success("Room-type assignment updated");},onError:(e:unknown)=>toast.error((e as Error).message)});
   const duplicate=(p:Plan)=>{setEditing(null);setCode(p.code+"-COPY");setName(p.name+" copy");setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));window.scrollTo({top:0,behavior:"smooth"});};
 
   return <div className="space-y-6">
@@ -76,7 +80,8 @@ function RatePlans() {
         <Input type="date" value={from} onChange={e=>setFrom(e.target.value)} aria-label="Effective from"/>
         <Input type="date" value={to} onChange={e=>setTo(e.target.value)} aria-label="Effective to"/>
         <select className="rounded-md border border-border bg-background px-3 py-2 text-sm" value={refundable?"refundable":"non_refundable"} onChange={e=>setRefundable(e.target.value==="refundable")}><option value="refundable">Refundable</option><option value="non_refundable">Non-refundable</option></select>
-        <Input className="md:col-span-3" placeholder="Description and booking conditions" value={description} onChange={e=>setDescription(e.target.value)}/>\n        <label className="md:col-span-3 space-y-1 text-sm"><span className="font-medium">Inheritable rate data (JSON)</span><textarea className="min-h-40 w-full rounded-md border border-border bg-background p-3 font-mono text-xs" value={ratePlanDataText} onChange={e=>setRatePlanDataText(e.target.value)} spellCheck={false}/><span className="block text-xs text-muted-foreground">Allowed keys: base_rates, seasonal_rates, daily_rates, occupancy_rules, restrictions. Use keyed objects; JSON null explicitly clears an inherited key.</span></label>
+        <Input className="md:col-span-3" placeholder="Description and booking conditions" value={description} onChange={e=>setDescription(e.target.value)}/>
+        <label className="md:col-span-3 space-y-1 text-sm"><span className="font-medium">Inheritable rate data (JSON)</span><textarea className="min-h-40 w-full rounded-md border border-border bg-background p-3 font-mono text-xs" value={ratePlanDataText} onChange={e=>setRatePlanDataText(e.target.value)} spellCheck={false}/><span className="block text-xs text-muted-foreground">Allowed keys: base_rates, seasonal_rates, daily_rates, occupancy_rules, restrictions. Use keyed objects; JSON null explicitly clears an inherited key.</span></label>
       </div>
       <div className="mt-3 flex flex-wrap gap-2"><Button disabled={!code.trim()||!name.trim()||save.isPending} onClick={()=>save.mutate()}><Plus className="mr-2 h-4 w-4"/>{editing?"Save changes":"Create rate plan"}</Button>{editing&&<Button variant="outline" onClick={reset}>Cancel edit</Button>}</div>
       <p className="mt-2 text-xs text-muted-foreground">Currency is inherited from the active property and cannot be overridden. New plans start as Draft. Missing rate-data keys inherit from the parent; matching child keys override parent values. Cancellation and refundability remain independent.</p>
@@ -88,6 +93,7 @@ function RatePlans() {
       {!data?.plans?.length&&<tr><td colSpan={9} className="py-8 text-center text-muted-foreground">No rate plans yet. Create the first commercial plan above.</td></tr>}
       </tbody></table></div>
     </SectionCard>}
-    {inheritancePreview&&<SectionCard title="Resolved rate-plan inheritance" description="Child values override matching parent keys. Cancellation, refundability and booking conditions are taken from the selected plan only."><pre className="max-h-96 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(inheritancePreview,null,2)}</pre><Button className="mt-2" variant="outline" onClick={()=>setInheritancePreview(null)}>Close preview</Button></SectionCard>}\n    {history&&<SectionCard title="Rate plan version history" description="Immutable snapshots retained for audit."><div className="space-y-2">{history.map(v=><div key={v.id} className="rounded-md border border-border p-3 text-sm"><div className="font-medium">Version {v.version}</div><div className="text-xs text-muted-foreground">{new Date(v.created_at).toLocaleString()}</div><pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(v.snapshot,null,2)}</pre></div>)}{!history.length&&<p className="text-sm text-muted-foreground">No version history found.</p>}</div></SectionCard>}
+    {inheritancePreview&&<SectionCard title="Resolved rate-plan inheritance" description="Child values override matching parent keys. Cancellation, refundability and booking conditions are taken from the selected plan only."><pre className="max-h-96 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(inheritancePreview,null,2)}</pre><Button className="mt-2" variant="outline" onClick={()=>setInheritancePreview(null)}>Close preview</Button></SectionCard>}
+    {history&&<SectionCard title="Rate plan version history" description="Immutable snapshots retained for audit."><div className="space-y-2">{history.map(v=><div key={v.id} className="rounded-md border border-border p-3 text-sm"><div className="font-medium">Version {v.version}</div><div className="text-xs text-muted-foreground">{new Date(v.created_at).toLocaleString()}</div><pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(v.snapshot,null,2)}</pre></div>)}{!history.length&&<p className="text-sm text-muted-foreground">No version history found.</p>}</div></SectionCard>}
   </div>;
 }
