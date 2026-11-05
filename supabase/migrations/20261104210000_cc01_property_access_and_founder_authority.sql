@@ -5733,4 +5733,12 @@ REVOKE ALL ON FUNCTION public.staynas_guest_is_accessible(uuid, uuid) FROM PUBLI
 GRANT EXECUTE ON FUNCTION public.staynas_guest_is_accessible(uuid, uuid) TO authenticated, service_role;
 
 
+
+-- Public booking entry points are intentionally anonymous, but remain
+-- property-scoped and validate active tenant, room, hold and booking inputs.
+GRANT EXECUTE ON FUNCTION public.create_booking_for_property(uuid, text, date, date, integer, integer, text, text, text, text, text, jsonb, integer, integer, uuid, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_booking_for_property(uuid, text, date, date, integer, integer, text, text, text, text, text, jsonb, integer, integer, uuid, text, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_booking_hold_for_property(uuid, text, date, date, text, text, integer) TO anon, authenticated;
+
+
 COMMIT;
