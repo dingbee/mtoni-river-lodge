@@ -337,3 +337,11 @@ DROP FUNCTION IF EXISTS public.create_booking_for_property(uuid,text,date,date,i
 DROP FUNCTION IF EXISTS public.create_booking_hold_for_property(uuid,text,date,date,text,text,integer);
 
 NOTIFY pgrst, 'reload schema';
+
+-- The no-argument resolver is staff-only. Guest requests use the server-owned
+-- publication allowlist; anonymous callers must not invoke hostname resolution.
+REVOKE ALL ON FUNCTION public.staynas_booking_property_id() FROM PUBLIC,anon;
+
+-- Retire the anonymous property-id availability RPC. Guest availability now
+-- calls get_room_availability through the server-only public context boundary.
+DROP FUNCTION IF EXISTS public.get_room_availability_for_property(uuid,date,date);
