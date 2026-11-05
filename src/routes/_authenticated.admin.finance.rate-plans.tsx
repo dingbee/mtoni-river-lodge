@@ -26,7 +26,7 @@ const CATEGORIES = [
 type Plan = {
   id:string; code:string; name:string; description:string|null; category:string; pricing_basis:string; currency:string;
   meal_plan:string; refundable:boolean; effective_from:string|null; effective_to:string|null; parent_rate_plan_id:string|null;
-  publication_status:string; active:boolean; version:number;
+  publication_status:string; active:boolean; version:number; cancellation_policy:Record<string,unknown>; booking_conditions:Record<string,unknown>;
 };
 
 function RatePlans() {
@@ -46,7 +46,7 @@ function RatePlans() {
   const reset=()=>{setEditing(null);setCode("");setName("");setDescription("");setCategory("standard_flexible");setBasis("per_room");setMealPlan("room_only");setRefundable(true);setFrom("");setTo("");setParent("");};
   const startEdit=(p:Plan)=>{setEditing(p);setCode(p.code);setName(p.name);setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");};
   const save=useMutation({
-    mutationFn:()=>saveFn({data:{...(editing?{id:editing.id}:{}),code,name,description:description||null,category,pricing_basis:basis as "per_room"|"per_person"|"occupancy_based",meal_plan:mealPlan as "room_only"|"bed_breakfast"|"half_board"|"full_board"|"all_inclusive"|"custom",refundable,effective_from:from||null,effective_to:to||null,parent_rate_plan_id:parent||null,active:true,cancellation_policy:editing?{}:{},booking_conditions:{}}}),
+    mutationFn:()=>saveFn({data:{...(editing?{id:editing.id}:{}),code,name,description:description||null,category,pricing_basis:basis as "per_room"|"per_person"|"occupancy_based",meal_plan:mealPlan as "room_only"|"bed_breakfast"|"half_board"|"full_board"|"all_inclusive"|"custom",refundable,effective_from:from||null,effective_to:to||null,parent_rate_plan_id:parent||null,active:editing?.active??true,cancellation_policy:editing?.cancellation_policy??{},booking_conditions:editing?.booking_conditions??{}}}),
     onSuccess:()=>{toast.success("Rate plan saved");reset();qc.invalidateQueries({queryKey:["staynas.rate-plans"]});},
     onError:(e:unknown)=>toast.error((e as Error).message),
   });
