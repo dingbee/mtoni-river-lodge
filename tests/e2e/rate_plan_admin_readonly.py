@@ -56,6 +56,10 @@ async def main() -> None:
 
         # Read-only details, inheritance and publication history checks.
         detail_buttons = page.get_by_role("button", name="Details")
+        assert await detail_buttons.count() > 0, (
+            "No rate-plan fixture is available. This acceptance requires at least one existing UAT rate plan; "
+            "an empty catalogue must not silently skip details, inheritance and publication-history checks."
+        )
         if await detail_buttons.count():
             await detail_buttons.first.click()
             await page.get_by_text("Cancellation policy").wait_for()
