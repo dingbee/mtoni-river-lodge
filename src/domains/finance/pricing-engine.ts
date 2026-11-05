@@ -123,7 +123,7 @@ export function calculatePricingQuote(input: {
   rules: PropertyPricingRule[];
 }): PricingQuote {
   const { room, checkIn, checkOut, occupancy } = input;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(checkIn) || !/^\d{4}-\d{2}-\d{2}$/.test(checkOut) || checkOut <= checkIn) {
+  if (!isValidDate(checkIn) || !isValidDate(checkOut) || checkOut <= checkIn) {
     throw new Error("A valid check-in and later check-out date are required");
   }
   if (!room.id || !room.propertyId) throw new Error("Property and room are required");
