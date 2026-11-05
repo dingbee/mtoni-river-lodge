@@ -1,98 +1,158 @@
 # SPE-04 — Deterministic Pricing Resolver
 
 **Priority:** P0 — Revenue correctness  
-**Programme:** StayNas Revenue Management  
-**Status:** OPEN — SPE-04.01 discovery complete; SPE-04.02 contract pending  
-**Base:** promoted SPE-03 feature baseline
+**Status:** SPE-04.01 COMPLETE · SPE-04.02 CONTRACT BASELINED · SPE-04.03 NOT STARTED  
+**Base:** promoted SPE-03 feature baseline  
+**Branch:** feat/spe-04-deterministic-pricing-resolver
 
-## Objective
+## 1. Objective
 
-Implement one deterministic, property-scoped pricing resolver that consumes immutable SPE-03 publication snapshots and becomes the authoritative nightly-rate source for guest quotes, availability pricing and booking creation.
+Implement one database-authoritative, property-scoped resolver over immutable SPE-03 publication snapshots. Availability, guest quotes and booking creation must consume the same resolved nightly amounts and restrictions.
 
-## SPE-04.01 — repository audit
+This document is the binding SPE-04.02 contract. Implementation must not silently reinterpret it. Any deviation requires an amended contract and explicit approval before code or migration.
 
-### Existing authoritative path
+## 2. Existing architecture — SPE-04.01 findings
 
-- SPE-02 introduced `public.calculate_staynas_room_pricing(...)`.
-- `calculate_staynas_booking_quote(...)` calls the room resolver and adds extras and property tax calculations.
-- `get_staynas_booking_quote(...)` resolves a room slug and calls the shared booking quote.
-- `get_staynas_room_availability_priced(...)` calls `try_calculate_staynas_booking_quote(...)` for each eligible room.
-- `create_booking_for_property(...)` calls `calculate_staynas_booking_quote(...)` before persisting the booking totals.
-- Server entry points in `src/lib/booking.functions.ts`, `src/lib/public-booking.functions.ts` and `src/routes/api/public/availability.search.ts` call these database RPCs. These are the integration points to preserve.
+- `calculate_staynas_room_pricing(...)` is the current SPE-02 nightly calculator.
+- `calculate_staynas_booking_quote(...)` adds extras and property tax calculation to the room quote.
+- `get_staynas_booking_quote(...)` resolves a room slug and calls the shared quote function.
+- `get_staynas_room_availability_priced(...)` calls the safe quote wrapper for eligible rooms.
+- `create_booking_for_property(...)` calls the shared booking quote before persisting booking totals.
+- Server call sites include `src/lib/booking.functions.ts`, `src/lib/public-booking.functions.ts` and `src/routes/api/public/availability.search.ts`.
+- SPE-03 introduced immutable publication snapshots, inheritance, seasonal and daily rates, restrictions, room-type assignments and approved override records. The SPE-02 calculation does not yet consume these structures.
+- Existing quote RPCs have no selected rate-plan argument. Multiple published plans may be assigned to one room type; no default-plan selector exists.
+- The availability safe wrapper currently maps all calculation exceptions to NULL. SPE-04 must retain availability filtering while making configuration/integrity failures observable and distinguishable.
 
-### Current SPE-02 calculation behaviour
+## 3. Rate-plan selection contract
 
-The existing room resolver currently:
-- Requires a valid active property, room belonging to that property, explicit property currency, matching room currency, valid dates and valid occupancy.
-- Starts from `rooms.base_price`, overridden by `room_inventory.price_override` for an exact room/date.
-- Adds the extra-occupant surcharge.
-- Applies one eligible `pricing_rules` adjustment per night, ordered by room specificity, ascending priority, then stable rule ID.
-- Applies minimum-stay and blackout constraints.
-- Returns nightly rows and accommodation subtotal; the booking quote then adds extras and taxes.
+1. The resolver accepts `property_id`, `room_id`, `rate_plan_id` (nullable only for the compatibility-selection rule), stay dates, occupancy and booking timestamp where required.
+2. The room must be active and belong to the supplied property. Its catalogue type must be configured for that same property.
+3. A candidate plan must be active, have `publication_status='published'`, have a current immutable publication snapshot, be effective for every stay night, and have an active assignment to the room's catalogue type.
+4. If a rate-plan ID is supplied, it must satisfy every candidate condition. Otherwise:
+   - Exactly one eligible plan: select it.
+   - More than one eligible plan: return `RATE_PLAN_REQUIRED`; never select by name, creation order, display order or arbitrary UUID.
+   - No eligible plan while the property has any active published rate plan: return `NO_ELIGIBLE_RATE_PLAN`. This is a configuration failure, not legacy fallback.
+   - No active published rate plans anywhere in the property: use the legacy compatibility resolver for that property/room only. This preserves pre-SPE-03 properties during controlled migration.
+5. A selected plan is fixed for the quote and booking. The booking record/snapshot must retain plan ID, publication ID, publication number, version and snapshot hash. Do not re-select a plan later when displaying or reconciling that booking.
+6. Plan effective dates and publication effective dates are inclusive calendar dates. A plan must cover every night of the stay; checkout is not a charged night.
 
-### SPE-03 pricing structures now available
+## 4. Published snapshot and currency contract
 
-- `staynas_rate_plans.rate_plan_data` contains inheritable `base_rates`, `seasonal_rates`, `daily_rates`, `occupancy_rules` and `restrictions`.
-- Parent/child data is resolved by `resolve_staynas_rate_plan_inheritance`.
-- Publishing creates an immutable `staynas_rate_plan_publications` snapshot with resolved data, lineage, inheritance trace, policy, room-type assignments, version and snapshot hash.
-- `get_staynas_published_rate_plans` returns the latest publication snapshot for each currently published and active plan.
-- Assignments are property-scoped in `staynas_rate_plan_room_types`. The assignment model has display order but no default-plan flag.
-- `staynas_rate_overrides` supports `room_date`, `room_type`, `rate_plan` and `rate_plan_room_type` scopes with pending/approved/rejected/revoked lifecycle and immutable approved terms.
-- SPE-03 explicitly documents the first part of the precedence: approved exact-date override → published daily calendar → seasonal rate → inherited/base rate. Non-room-date override scopes are recorded for SPE-04 but their precedence is not yet specified.
+- Read commercial rate data from the latest immutable publication snapshot for the selected plan, not mutable draft data or a newly recalculated inheritance tree.
+- The snapshot's `resolved_data`, publication metadata, room-type assignments and hash form the pricing evidence.
+- Property currency must be explicitly configured and valid. Publication currency, selected override currency, daily-rate currency and seasonal-rate currency must equal the property currency. Any mismatch is `CURRENCY_MISMATCH`; no USD or other fallback.
+- Property timezone must be explicitly configured and valid. Stay dates are property-local ISO calendar dates. Do not convert a date through server-local timezone or UTC midnight in a way that changes the property's calendar date.
+- Resolve the publication snapshot once per quote and use that exact snapshot for every night.
 
-### Confirmed integration gap
+## 5. Nightly rate-source precedence
 
-The SPE-02 booking/availability SQL path does not currently consume SPE-03 publication snapshots, inherited rate-plan rates, seasonal rates, daily rates or the non-room-date override scopes. The live calculation remains legacy room/inventory/pricing_rules based. SPE-03 deliberately deferred that integration to SPE-04.
+For each charged property-local night and room catalogue type, select exactly one source in this order:
 
-### Additional parity and observability risks
+1. **Approved exact room/date override** — `staynas_rate_overrides.scope='room_date'`, matching property, room and date, status approved.
+2. **Approved plan + room-type override** — scope `rate_plan_room_type`, matching selected plan, room type and date.
+3. **Approved room-type override** — scope `room_type`, matching room type and date.
+4. **Approved plan override** — scope `rate_plan`, matching selected plan and date.
+5. **Published daily rate** — `resolved_data.daily_rates[date][room_type_id]`, active and currency-matched.
+6. **Published seasonal rate** — active season containing the property-local date and room type. Highest numeric priority wins. Equal-priority overlapping candidates are invalid configuration and fail closed; lexical key order is not a pricing decision.
+7. **Published inherited/base rate** — `resolved_data.base_rates[room_type_id]`, after inheritance has already been resolved into the immutable publication.
 
-- The current quote/availability/booking RPC signatures do not accept a rate-plan identifier or code.
-- Multiple published plans may be assigned to one room type, but no default-plan selector exists. Selection cannot safely depend on row order or plan name.
-- `try_calculate_staynas_booking_quote` catches all exceptions and returns NULL; SPE-04 must ensure invalid configuration is not silently misrepresented as ordinary unavailability.
-- `src/domains/finance/pricing-engine.ts` is a deterministic TypeScript calculator for the legacy room/rule model. `src/lib/pricing.ts` adapts legacy display data into it with empty inventory and rules. It is not the database-authoritative SPE-03 resolver and must not become a competing quote authority.
+Additional rules:
+- Override date ranges are inclusive. An override is eligible only when its status is approved and it belongs to the same property. Pending, rejected and revoked overrides never affect a quote.
+- If more than one approved override matches at the same scope and precedence, return `AMBIGUOUS_RATE_SOURCE`; do not pick an arbitrary row. The SPE-03 overlap validator remains the first line of defence.
+- Existing `room_inventory.price_override` values are legacy exact-room/date inputs. During compatibility transition, they may be used only in legacy mode. In published-plan mode they are not an untracked override source. Approved SPE-03 room/date overrides are the only exact-room/date override source.
+- The selected source must be recorded for every night: source kind, source record/key, plan/publication/version/hash where applicable, effective date, original amount and currency.
+- No rate source, inactive daily rate with no lower-priority source, or malformed rate value must never produce a zero price. Continue to the next lower source only when the higher-priority source is absent or inactive by contract; malformed or currency-invalid configured data is an error, not a reason to fall through.
 
-## SPE-04.02 — contract decisions required before implementation
+## 6. Canonical rate data contract
 
-1. **Plan selection:** require an explicit plan identifier/code when multiple published plans are assigned; permit implicit selection only when exactly one eligible published plan exists, unless a separately approved default-plan mechanism is added. If no eligible plan exists, define an explicit legacy-compatibility policy rather than silently selecting.
-2. **Rate-source precedence:** preserve the documented exact-date override → published daily rate → seasonal rate → inherited/base rate ordering. Define how approved `rate_plan_room_type`, `room_type` and `rate_plan` overrides fit without ambiguous overlap.
-3. **Occupancy and adjustment semantics:** specify whether occupancy rules are rate-plan base inputs or post-rate surcharges, and define interaction with legacy extra-guest fees and `pricing_rules` so no adjustment is applied twice.
-4. **Restrictions:** reconcile SPE-03 rate-plan restrictions with SPE-02 minimum-stay/blackout `pricing_rules`; define deterministic conflict handling.
-5. **Snapshot policy:** use immutable publication snapshot content as the commercial rate source. A later draft edit or publication must not mutate a quote already issued or a booking already stored.
-6. **Error contract:** distinguish unavailable inventory from invalid/missing rate configuration and authorization failures; do not collapse all resolver errors into a NULL quote.
+SPE-04.03 must add strict runtime/database validation for the following canonical shapes. SPE-03's generic JSON object storage does not itself guarantee these structures.
 
-## Resolver contract
+### Base rates
 
-- Resolve only an active property, an active room belonging to it, and an eligible published rate-plan snapshot assigned to that room's catalogue type.
-- Resolve inherited values from the immutable publication snapshot, not mutable draft rows.
-- Enforce effective dates, currency, timezone, occupancy, restrictions, minimum-stay and blackout constraints exactly once.
-- Return a structured, auditable nightly breakdown including property, room, selected plan, publication/version/hash, source rate domain/key, applied override/rule, adjustments, currency and totals.
-- Availability, guest quote and booking creation must call the same authoritative resolver and produce identical totals for identical inputs.
-- Preserve historical booking snapshots; resolver changes must not rewrite existing reservations or invoices.
-- Enforce property isolation and authorization. No cross-property rate-plan or room-type resolution.
+`base_rates[room_type_id] = { nightly_rate: positive decimal, currency: ISO-4217 code }`
 
-## Execution sequence
+The amount is interpreted using the selected plan's `pricing_basis`:
+- `per_room`: nightly amount per room, regardless of guest count within room capacity.
+- `per_person`: nightly amount multiplied by billable occupants (adults + children aged 7+; children below 6 are non-billable, preserving the existing occupancy convention).
+- `occupancy_based`: exact occupancy lookup in `occupancy_rules`; no matching entry is `OCCUPANCY_RATE_MISSING`. Never approximate, interpolate or fall back to per-room pricing.
 
-- **SPE-04.01 — Discovery and gap report:** COMPLETE. Existing paths, data structures, deferred integration and unresolved selection/precedence decisions documented here.
-- **SPE-04.02 — Deterministic contract:** publish typed resolver inputs/outputs, plan selection policy, override precedence, occupancy/restriction semantics and error taxonomy.
-- **SPE-04.03 — Resolver implementation:** implement the database-authoritative resolver against immutable publication snapshots.
-- **SPE-04.04 — Shared-path integration:** route availability, quote and booking creation through the same resolver; remove duplicate calculations only after parity tests.
-- **SPE-04.05 — Regression suite:** precedence, overlaps, inheritance, unpublished/inactive plans, occupancy, restrictions, min-stay, blackout, currency, timezone/date boundaries, property isolation, rounding, errors and snapshot stability.
-- **SPE-04.06 — Verification:** CI and read-only UAT; prove quote/availability/booking parity before any migration or deployment approval.
+### Occupancy rules
 
-## Guardrails
+For `occupancy_based`, use an exact key `adults:children_below_6:children_7_plus` under `occupancy_rules[room_type_id]`, with value `{ nightly_rate: positive decimal, currency: ISO-4217 code }`.
+
+For `per_room` and `per_person`, occupancy rules may define explicit included occupants and extra-guest fees only if the complete rule shape is validated. Until that schema is implemented and validated, the legacy room extra-guest fee is not added in published-plan mode. This prevents double charging. Existing room capacity limits remain hard constraints in all modes.
+
+### Daily and seasonal rates
+
+- Daily rate shape remains the SPE-03 contract: `daily_rates[YYYY-MM-DD][room_type_id] = { nightly_rate, currency, active }`.
+- Seasonal rate shape remains the SPE-03 contract: `seasonal_rates[season_key] = { start_date, end_date, room_type_ids, nightly_rate, currency, priority, active, ...metadata }`.
+- Seasonal date bounds are inclusive. Higher numeric priority wins. Equal-priority overlapping active seasons for the same room type are invalid and fail closed.
+
+## 7. Occupancy, restrictions and legacy-rule interaction
+
+- Room adult, child and maximum occupancy limits are enforced before pricing in both modes.
+- Published-plan mode uses the selected snapshot's `occupancy_rules` and `restrictions`; legacy `rooms.extra_guest_fee` and legacy `pricing_rules` monetary adjustments are not layered on top. This prevents duplicate charges.
+- Legacy mode continues the existing SPE-02 rules and calculations unchanged until a property is explicitly migrated to published plans.
+- All active restrictions that apply to the room type are cumulative; any blocking restriction makes the stay unsellable:
+  - `min_los`: arrival date must be within rule dates and stay nights must meet the maximum applicable minimum.
+  - `max_los`: arrival date must be within rule dates and stay nights must not exceed the minimum applicable maximum.
+  - `closed_to_arrival`: arrival date in rule period blocks the stay.
+  - `closed_to_departure`: checkout date in rule period blocks the stay.
+  - `stop_sell`: any overlap with a charged night blocks the stay.
+  - `advance_booking_min_hours` and `advance_booking_max_days`: require a valid booking timestamp and property-timezone arrival timestamp; missing timestamps when the rule applies are a configuration/input error, not an automatic pass.
+- Contradictory minimum/maximum LOS or any restriction that makes the stay impossible fails closed with an explicit restriction reason.
+- Restrictions do not mutate inventory, room availability or room status.
+
+## 8. Quote composition and rounding
+
+- The nightly resolver returns accommodation amounts only, plus structured source/adjustment evidence.
+- The existing booking quote layer remains responsible for add-ons/extras and property tax calculation. Those amounts are applied once, after nightly accommodation resolution.
+- Existing tax inclusion/addition policy and extra-item validation remain unchanged in SPE-04 unless a separate approved change is raised.
+- Use PostgreSQL `numeric` arithmetic; no binary floating-point for monetary calculations. Preserve the current persisted two-decimal accommodation/tax precision and existing documented tax-rounding semantics. Round each nightly amount once to two decimal places, then sum rounded nights for the accommodation subtotal.
+- Availability and quote endpoints must return the same accommodation subtotal, extras/tax breakdown and total for identical input, property context and selected plan.
+
+## 9. Error taxonomy and availability behaviour
+
+The resolver must expose stable machine-readable error codes, including:
+- `PROPERTY_CONTEXT_INVALID`
+- `ROOM_NOT_IN_PROPERTY`
+- `RATE_PLAN_REQUIRED`
+- `NO_ELIGIBLE_RATE_PLAN`
+- `RATE_PLAN_NOT_PUBLISHED`
+- `RATE_PLAN_NOT_ASSIGNED`
+- `RATE_PLAN_OUT_OF_EFFECTIVE_PERIOD`
+- `RATE_SOURCE_MISSING`
+- `AMBIGUOUS_RATE_SOURCE`
+- `CURRENCY_MISMATCH`
+- `OCCUPANCY_RATE_MISSING`
+- `RESTRICTION_BLOCKED`
+- `INVALID_RATE_CONFIGURATION`
+- `AUTHORIZATION_DENIED`
+
+Availability may classify a valid room/date/occupancy combination blocked by inventory or a commercial restriction as unavailable. It must not silently convert invalid rate configuration, currency mismatch, ambiguous source or authorization failure into ordinary unavailability. Those failures must surface as a structured error and be logged with property/room/plan context without exposing secrets or cross-tenant data.
+
+## 10. Shared-path and historical snapshot contract
+
+- `calculate_staynas_room_pricing` (or its versioned replacement) is the sole nightly pricing authority.
+- `calculate_staynas_booking_quote`, `get_staynas_booking_quote`, `get_staynas_room_availability_priced` and `create_booking_for_property` must all consume that same resolver result.
+- TypeScript UI calculators may format/display the database result but must not calculate a second authoritative amount.
+- Booking creation persists the selected plan/publication evidence, nightly breakdown, currency, accommodation subtotal, extras and tax snapshot. A later publication cannot change an existing booking's stored commercial snapshot.
+- Do not recalculate historical bookings, invoices, payments or completed folios using the current publication.
+- Preserve current RPC signatures where feasible. Any required API signature extension must be backward-compatible for legacy-mode properties and validated across every server/public entry point.
+
+## 11. SPE-04 execution gates
+
+- **SPE-04.01 — Discovery:** COMPLETE.
+- **SPE-04.02 — Deterministic contract:** BASELINED in this document.
+- **SPE-04.03 — Resolver implementation:** next; no production migration or deployment.
+- **SPE-04.04 — Shared-path integration:** only after resolver tests pass.
+- **SPE-04.05 — Regression:** prove precedence, all override scopes, overlap rejection, inheritance snapshots, inactive/unpublished plans, exact occupancy, restrictions, currency, timezone, property isolation, error taxonomy, rounding and historical snapshot stability.
+- **SPE-04.06 — Verification:** CI and isolated read-only UAT. Production release requires separate approval.
+
+## 12. Guardrails
 
 - No production migration, production deployment or live commercial rate changes without separate approval.
-- No parallel quote calculator.
-- Do not alter existing bookings, invoices, payments, inventory, room data, membership roles or tenant configuration.
-- Use isolated UAT fixtures; do not invent sellable prices.
-- Keep work in this feature branch. Do not merge until all acceptance gates pass.
-
-## Acceptance gates
-
-- One authoritative resolver for all three pricing entry points.
-- Deterministic plan selection and rate-source precedence with no ambiguous overlaps or silent fallback.
-- Exact currency and tenant/property scoping.
-- Stable historical booking snapshots.
-- Correct distinction between unavailable inventory and invalid pricing configuration.
-- CI green and regression tests prove exact parity across availability, quote and booking creation.
-- Read-only UAT and explicit release approval.
+- No edits to existing bookings, invoices, payments, inventory, room data, membership roles or tenant configuration.
+- Do not publish or assign the synthetic SPE-03 UAT fixture. It is non-commercial and remains draft.
+- Do not create fabricated sellable rates to make tests pass.
+- Keep SPE-04 changes on `feat/spe-04-deterministic-pricing-resolver`; PR remains draft until its release gates pass.
