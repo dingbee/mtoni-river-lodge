@@ -535,11 +535,14 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.calculate_staynas_room_pricing(uuid,uuid,date,date,integer,integer,integer) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.calculate_staynas_booking_quote(uuid,uuid,date,date,integer,integer,integer,jsonb) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.try_calculate_staynas_booking_quote(uuid,uuid,date,date,integer,integer,integer) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.get_staynas_room_availability_priced(date,date,uuid,integer,integer,integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.get_staynas_booking_quote(uuid,text,date,date,integer,integer,integer,jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_staynas_room_availability_priced(date,date,uuid,integer,integer,integer) TO anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.get_staynas_booking_quote(uuid,text,date,date,integer,integer,integer,jsonb) TO anon,authenticated,service_role;
-GRANT EXECUTE ON FUNCTION public.calculate_staynas_room_pricing(uuid,uuid,date,date,integer,integer,integer) TO anon,authenticated,service_role;
-GRANT EXECUTE ON FUNCTION public.calculate_staynas_booking_quote(uuid,uuid,date,date,integer,integer,integer,jsonb) TO anon,authenticated,service_role;
-GRANT EXECUTE ON FUNCTION public.try_calculate_staynas_booking_quote(uuid,uuid,date,date,integer,integer,integer) TO anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text) TO anon,authenticated,service_role;
 
 COMMIT;
