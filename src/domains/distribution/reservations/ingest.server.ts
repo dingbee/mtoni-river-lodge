@@ -2,9 +2,7 @@ import { createHash } from "node:crypto";
 import type { AdapterExecutionContext } from "../adapters/contracts";
 import { assertVerifiedReservationWebhook, type VerifiedReservationWebhook } from "./provider-signature-verification.server";
 import { receiveDistributionWebhook } from "../adapters/operation-ledger.server";
-import {
-  toSafeReservationEventEnvelope,
-} from "./reservation-ingestion.contracts";
+import { toSafeReservationEventEnvelope, type ExternalReservationEvent } from "./reservation-ingestion.contracts";
 
 /**
  * Reservation ingress context is assembled by the trusted server-side connection
@@ -18,7 +16,6 @@ export type ReservationIngressExecutionContext = AdapterExecutionContext & Reado
 }>;
 
 export type IngestExternalReservationInput = Readonly<{
-  context: ReservationIngressExecutionContext;
   verifiedWebhook: VerifiedReservationWebhook;
 }>;
 
@@ -44,16 +41,17 @@ export async function ingestExternalReservationEvent(
 ): Promise<IngestExternalReservationResult> {
   assertVerifiedReservationWebhook(input.verifiedWebhook);
   const event: ExternalReservationEvent = input.verifiedWebhook.event;
-  if (!input.context.accountGrantId.trim() || !input.context.externalAccountId.trim()) {
+  const context = input.verifiedWebhook.context;
+  if (!context.accountGrantId.trim() || !context.externalAccountId.trim()) {
     throw new Error("Distribution account grant and external account must be resolved server-side.");
   }
-  if (event.providerKey !== input.context.providerKey ||
-      event.externalAccountReference !== input.context.externalAccountReference) {
+  if (event.providerKey !== context.providerKey ||
+      event.externalAccountReference !== context.externalAccountReference) {
     throw new Error("Provider event does not match the authorized distribution connection.");
   }
-  if (input.context.capability !== "reservation.import" &&
-      input.context.capability !== "reservation.update" &&
-      input.context.capability !== "reservation.cancel") {
+  if (context.capability !== "reservation.import" &&
+      context.capability !== "reservation.update" &&
+      context.capability !== "reservation.cancel") {
     throw new Error("Distribution connection does not grant reservation ingestion capability.");
   }
 
@@ -63,9 +61,9 @@ export async function ingestExternalReservationEvent(
     .digest("hex");
 
   const stored = await receiveDistributionWebhook({
-    context: input.context,
-    accountGrantId: input.context.accountGrantId,
-    externalAccountId: input.context.externalAccountId,
+    context,
+    accountGrantId: context.accountGrantId,
+    externalAccountId: context.externalAccountId,
     providerEventId: event.providerEventId,
     eventType: event.eventType,
     normalizedEvent: safeEnvelope,
@@ -75,6 +73,6 @@ export async function ingestExternalReservationEvent(
   return Object.freeze({
     inboxId: stored.inboxId,
     created: stored.created,
-    correlationId: input.context.correlationId,
+    correlationId: context.correlationId,
   });
 }
