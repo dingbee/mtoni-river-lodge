@@ -149,6 +149,9 @@ DECLARE
   v_room_property uuid;
   v_room_type uuid;
   v_plan_status text;
+  v_plan_active boolean;
+  v_plan_effective_from date;
+  v_plan_effective_to date;
 BEGIN
   SELECT upper(currency) INTO v_currency
   FROM public.staynas_properties WHERE id=NEW.property_id;
@@ -179,10 +182,15 @@ BEGIN
     RAISE EXCEPTION 'Override room must have a configured room catalogue type';
   END IF;
   IF NEW.rate_plan_id IS NOT NULL THEN
-    SELECT publication_status INTO v_plan_status
+    SELECT publication_status,active,effective_from,effective_to
+      INTO v_plan_status,v_plan_active,v_plan_effective_from,v_plan_effective_to
     FROM public.staynas_rate_plans
     WHERE id=NEW.rate_plan_id AND property_id=NEW.property_id;
     IF v_plan_status IS NULL THEN RAISE EXCEPTION 'Rate plan must belong to the same property'; END IF;
+    IF NEW.effective_from < COALESCE(v_plan_effective_from,NEW.effective_from)
+       OR NEW.effective_to > COALESCE(v_plan_effective_to,NEW.effective_to) THEN
+      RAISE EXCEPTION 'Override effective dates must fall within the rate plan effective period';
+    END IF;
     IF NEW.room_type_id IS NOT NULL AND NOT EXISTS (
       SELECT 1 FROM public.staynas_rate_plan_room_types a
       WHERE a.property_id=NEW.property_id AND a.rate_plan_id=NEW.rate_plan_id
@@ -207,8 +215,9 @@ BEGIN
     RAISE EXCEPTION 'Rejected and revoked overrides are terminal';
   END IF;
   IF NEW.status='approved' AND (TG_OP='INSERT' OR OLD.status IS DISTINCT FROM 'approved') THEN
-    IF NEW.rate_plan_id IS NOT NULL AND v_plan_status IS DISTINCT FROM 'published' THEN
-      RAISE EXCEPTION 'Overrides for a rate plan can be approved only while that plan is published';
+    IF NEW.rate_plan_id IS NOT NULL
+       AND (v_plan_status IS DISTINCT FROM 'published' OR v_plan_active IS DISTINCT FROM true) THEN
+      RAISE EXCEPTION 'Overrides for a rate plan can be approved only while that plan is published and active';
     END IF;
     NEW.approved_by := auth.uid();
     NEW.approved_at := now();
@@ -451,7 +460,7 @@ END;
 $function$;
 
 COMMENT ON TABLE public.staynas_rate_overrides IS
-  'Property-scoped override proposals and approvals. Rate-plan/room-type scopes are metadata for SPE-04 resolution; exact room/date approval writes only the legacy room_inventory.price_override field.';
+  'Property-scoped override proposals and approvals. Resolution precedence for SPE-04: approved exact-date override, published daily calendar, seasonal rate, then inherited/base rate. Rate-plan/room-type scopes are recorded here for SPE-04; exact room/date approval writes only the legacy room_inventory.price_override field.';
 COMMENT ON TABLE public.staynas_rate_override_audit IS
   'Append-only audit trail for rate override lifecycle and legacy room_inventory.price_override changes.';
 COMMENT ON FUNCTION public.apply_staynas_room_date_rate_override(uuid,uuid,date,numeric,text) IS
