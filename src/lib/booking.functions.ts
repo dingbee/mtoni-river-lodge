@@ -150,6 +150,7 @@ const extraSchema = z.object({
 
 const createBookingSchema = z.object({
   roomSlug: z.string().min(1),
+  ratePlanId: z.string().uuid().optional(),
   checkIn: dateStr,
   checkOut: dateStr,
   adults: z.number().int().min(1).max(10),
@@ -172,6 +173,7 @@ export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 export const getBookingQuote = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({
     roomSlug: z.string().min(1),
+    ratePlanId: z.string().uuid().optional(),
     checkIn: dateStr,
     checkOut: dateStr,
     adults: z.number().int().min(1).max(10),
@@ -191,6 +193,7 @@ export const getBookingQuote = createServerFn({ method: "POST" })
       _children_below_6: data.childrenBelow6,
       _children_7_plus: data.children7Plus,
       _extras: data.extras,
+      _rate_plan_id: data.ratePlanId ?? null,
     });
     if (error) throw new Error(error.message);
     if (!quote) throw new Error("Pricing quote could not be calculated");
@@ -227,6 +230,7 @@ export const createBooking = createServerFn({ method: "POST" })
       _hold_id: data.holdId ?? null,
       _session_id: data.sessionId ?? null,
       _payment_method: "online",
+      _rate_plan_id: data.ratePlanId ?? null,
     });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
