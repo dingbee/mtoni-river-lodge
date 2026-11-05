@@ -5677,4 +5677,60 @@ REVOKE ALL ON FUNCTION public.save_room_type_configuration(
   uuid,text,text,uuid,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text
 ) FROM PUBLIC, anon, authenticated;
 
+
+-- Explicitly close anonymous execution on authenticated operational RPCs.
+-- Preserve authenticated staff calls where the routine enforces property roles;
+-- retain service-only access on legacy/internal overloads.
+REVOKE ALL ON FUNCTION public.arrival_pass_validate(text, jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.arrival_pass_validate(text, jsonb) TO authenticated;
+REVOKE ALL ON FUNCTION public.checkin_ensure_for_booking(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.checkin_ensure_for_booking(uuid) TO authenticated;
+
+REVOKE ALL ON FUNCTION public.housekeeping_assign_task(uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.housekeeping_assign_task(uuid, uuid) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.housekeeping_claim_task(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.housekeeping_claim_task(uuid) TO service_role;
+REVOKE ALL ON FUNCTION public.housekeeping_claim_task(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.housekeeping_claim_task(uuid, text) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.housekeeping_complete_task(uuid, text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.housekeeping_complete_task(uuid, text, text) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.housekeeping_get_dashboard() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.housekeeping_get_dashboard() TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.housekeeping_list_exceptions(uuid, boolean) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.housekeeping_list_exceptions(uuid, boolean) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.housekeeping_list_inspection_queue() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.housekeeping_list_inspection_queue() TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.housekeeping_list_intelligence() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.housekeeping_list_intelligence() TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.housekeeping_list_work(boolean, boolean) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.housekeeping_list_work(boolean, boolean) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.housekeeping_report_exception(uuid, uuid, text, text, text, integer, jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.housekeeping_report_exception(uuid, uuid, text, text, text, integer, jsonb) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.housekeeping_resolve_exception(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.housekeeping_resolve_exception(uuid, text) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.housekeeping_start_task(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.housekeeping_start_task(uuid) TO service_role;
+REVOKE ALL ON FUNCTION public.housekeeping_start_task(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.housekeeping_start_task(uuid, text) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.housekeeping_submit_inspection(uuid, jsonb, boolean, text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.housekeeping_submit_inspection(uuid, jsonb, boolean, text, text) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.housekeeping_transition_room_state(uuid, public.room_state, text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.housekeeping_transition_room_state(uuid, public.room_state, text, text) TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.knowledge_can_read_document(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.knowledge_can_read_document(uuid) TO authenticated;
+REVOKE ALL ON FUNCTION public.release_booking_hold(uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.release_booking_hold(uuid, text) TO service_role;
+REVOKE ALL ON FUNCTION public.set_room_block(uuid, date, date, boolean, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.set_room_block(uuid, date, date, boolean, text) TO authenticated;
+REVOKE ALL ON FUNCTION public.staynas_calendar_audit_events(uuid, date, date, integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.staynas_calendar_audit_events(uuid, date, date, integer) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.staynas_calendar_list_staff(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.staynas_calendar_list_staff(uuid) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.staynas_calendar_operational_events(uuid, date, date) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.staynas_calendar_operational_events(uuid, date, date) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.staynas_guest_is_accessible(uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.staynas_guest_is_accessible(uuid, uuid) TO authenticated, service_role;
+
+
 COMMIT;
