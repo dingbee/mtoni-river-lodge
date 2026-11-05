@@ -150,6 +150,7 @@ BEGIN
   FROM public.staynas_distribution_outbox o
   WHERE o.id=_outbox_id AND o.status='publishing'
     AND o.lease_token=_lease_token AND o.lease_owner=_worker_id
+    AND o.lease_expires_at > pg_catalog.now()
   FOR UPDATE;
 
   IF _row.id IS NULL THEN
