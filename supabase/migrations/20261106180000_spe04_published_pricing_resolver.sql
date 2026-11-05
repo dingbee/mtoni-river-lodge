@@ -197,14 +197,12 @@ BEGIN
   FOR v_rule IN SELECT key,value FROM jsonb_each(v_restrictions)
     WHERE value<>'null'::jsonb AND value->>'active'='true'
   LOOP
-    IF NOT (v_rule.value->'room_type_ids' @> jsonb_build_array(v_room.catalogue_type_id::text))
-       OR (v_rule.value->>'start_date')::date>_check_out
-       OR (v_rule.value->>'end_date')::date<_check_in THEN
+    IF NOT (v_rule.value->'room_type_ids' @> jsonb_build_array(v_room.catalogue_type_id::text)) THEN
       CONTINUE;
     END IF;
     CASE v_rule.value->>'type'
-      WHEN 'min_los' THEN v_min_los:=GREATEST(v_min_los,(v_rule.value->>'value')::integer);
-      WHEN 'max_los' THEN v_max_los:=LEAST(COALESCE(v_max_los,365),(v_rule.value->>'value')::integer);
+      WHEN 'min_los' THEN IF _check_in BETWEEN (v_rule.value->>'start_date')::date AND (v_rule.value->>'end_date')::date THEN v_min_los:=GREATEST(v_min_los,(v_rule.value->>'value')::integer); END IF;
+      WHEN 'max_los' THEN IF _check_in BETWEEN (v_rule.value->>'start_date')::date AND (v_rule.value->>'end_date')::date THEN v_max_los:=LEAST(COALESCE(v_max_los,365),(v_rule.value->>'value')::integer); END IF;
       WHEN 'closed_to_arrival' THEN
         IF _check_in BETWEEN (v_rule.value->>'start_date')::date AND (v_rule.value->>'end_date')::date THEN
           RETURN jsonb_build_object('ok',false,'error_code','RESTRICTION_BLOCKED','message','Closed to arrival');
@@ -219,14 +217,16 @@ BEGIN
           RETURN jsonb_build_object('ok',false,'error_code','RESTRICTION_BLOCKED','message','Stop sell applies to one or more stay nights');
         END IF;
       WHEN 'advance_booking_min_hours' THEN
+        IF _check_in NOT BETWEEN (v_rule.value->>'start_date')::date AND (v_rule.value->>'end_date')::date THEN EXIT; END IF;
         v_local_booking:=COALESCE(_booking_timestamp,now()) AT TIME ZONE v_timezone;
-        v_hours:=((_check_in::timestamp-v_local_booking) * interval '1 day') / interval '1 hour';
+        v_hours:=extract(epoch FROM (_check_in::timestamp-v_local_booking))/3600;
         IF v_hours < (v_rule.value->>'value')::numeric THEN
           RETURN jsonb_build_object('ok',false,'error_code','RESTRICTION_BLOCKED','message','Minimum advance booking window not met');
         END IF;
       WHEN 'advance_booking_max_days' THEN
+        IF _check_in NOT BETWEEN (v_rule.value->>'start_date')::date AND (v_rule.value->>'end_date')::date THEN EXIT; END IF;
         v_local_booking:=COALESCE(_booking_timestamp,now()) AT TIME ZONE v_timezone;
-        v_days:=((_check_in::timestamp-v_local_booking) * interval '1 day') / interval '1 day';
+        v_days:=extract(epoch FROM (_check_in::timestamp-v_local_booking))/86400;
         IF v_days > (v_rule.value->>'value')::numeric THEN
           RETURN jsonb_build_object('ok',false,'error_code','RESTRICTION_BLOCKED','message','Maximum advance booking window exceeded');
         END IF;
@@ -327,9 +327,13 @@ BEGIN
 
     IF v_rate IS NULL AND v_plan.pricing_basis='occupancy_based' THEN
       v_rate:=v_occupancy->v_room.catalogue_type_id::text->v_occupancy_key;
+      IF v_rate IS NULL OR v_rate='null'::jsonb THEN
+        RETURN jsonb_build_object('ok',false,'error_code','OCCUPANCY_RATE_MISSING',
+          'message',format('No exact occupancy rate is published for %s',v_day));
+      END IF;
       v_source:='published_occupancy_rate';
     END IF;
-    IF v_rate IS NULL THEN
+    IF v_rate IS NULL AND v_plan.pricing_basis IN ('per_room','per_person') THEN
       v_rate:=v_base->v_room.catalogue_type_id::text;
       v_source:='published_base_rate';
     END IF;
