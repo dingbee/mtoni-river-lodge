@@ -4885,6 +4885,13 @@ CREATE FUNCTION public."staynas_guest_is_accessible"(_uid uuid, _guest_id uuid) 
 CREATE FUNCTION public."staynas_set_guest_child_property"() RETURNS trigger LANGUAGE plpgsql AS $stub$ BEGIN RETURN; END; $stub$;
 CREATE FUNCTION public."staynas_user_has_property_access"(_uid uuid, _property_id uuid) RETURNS boolean LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
 
+-- Existing guest check-in token endpoints remain public by design.
+CREATE FUNCTION public.arrival_pass_ensure(_checkin_token text) RETURNS jsonb LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
+CREATE FUNCTION public.arrival_pass_fetch(_pass_token text) RETURNS jsonb LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
+CREATE FUNCTION public.checkin_fetch_summary(_token text) RETURNS TABLE(reference text, check_in date, check_out date, nights integer, room_name text, status public.checkin_status, expires_at timestamptz, email_hint text, surname_hint text, locked boolean, has_draft boolean, draft_step smallint, submitted_at timestamptz, eligible boolean, eligibility_code text, eligibility_message text) LANGUAGE plpgsql AS $stub$ BEGIN RETURN; END; $stub$;
+CREATE FUNCTION public.checkin_save_draft(_token text, _session_id text, _guest jsonb, _arrival jsonb, _step integer) RETURNS jsonb LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
+CREATE FUNCTION public.checkin_submit(_token text, _answer text, _guest jsonb, _arrival jsonb, _final boolean DEFAULT true, _session_id text DEFAULT NULL::text, _client jsonb DEFAULT '{}'::jsonb) RETURNS jsonb LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
+CREATE FUNCTION public.checkin_verify(_token text, _answer text, _session_id text DEFAULT NULL::text) RETURNS jsonb LANGUAGE plpgsql AS $stub$ BEGIN RETURN NULL; END; $stub$;
 -- Existing restaurant-domain authorization predicates used by legacy RLS.
 CREATE FUNCTION public.restaurant_can_read(_tenant_id uuid) RETURNS boolean LANGUAGE plpgsql AS $stub$ BEGIN RETURN false; END; $stub$;
 CREATE FUNCTION public.restaurant_can_write(_tenant_id uuid, _roles public.restaurant_role[]) RETURNS boolean LANGUAGE plpgsql AS $stub$ BEGIN RETURN false; END; $stub$;
