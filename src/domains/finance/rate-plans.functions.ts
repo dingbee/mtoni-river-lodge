@@ -28,6 +28,13 @@ const ratePlanSchema = z.object({
   effective_to: z.string().date().nullable().optional(),
   parent_rate_plan_id: z.string().uuid().nullable().optional(),
   active: z.boolean().default(true),
+  rate_plan_data: z.object({
+    base_rates: z.record(z.string(), z.unknown()).optional(),
+    seasonal_rates: z.record(z.string(), z.unknown()).optional(),
+    daily_rates: z.record(z.string(), z.unknown()).optional(),
+    occupancy_rules: z.record(z.string(), z.unknown()).optional(),
+    restrictions: z.record(z.string(), z.unknown()).optional(),
+  }).default({}),
 }).refine((v) => !v.effective_from || !v.effective_to || v.effective_to >= v.effective_from, {
   message: "Effective end date must be on or after the start date.",
   path: ["effective_to"],
@@ -201,4 +208,19 @@ export const setStayNasRatePlanRoomType = createServerFn({ method: "POST" })
     const { data: assignment, error } = await query.select("*").single();
     if (error) throw new Error(error.message);
     return assignment;
+  });
+
+
+export const resolveStayNasRatePlanInheritance = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActivePropertyId(context.supabase, context.userId);
+    const { data: resolved, error } = await context.supabase.rpc(
+      "resolve_staynas_rate_plan_inheritance",
+      { _property_id: propertyId, _rate_plan_id: data.id },
+    );
+    if (error) throw new Error(error.message);
+    return resolved;
   });
