@@ -432,3 +432,61 @@ BEGIN
   END;
 END
 $health$;
+
+
+-- DC-04.11/13 adversarial authorization checks for health evidence.
+DO $health_grants$
+BEGIN
+  IF has_function_privilege(
+       'anon',
+       'public.staynas_record_distribution_health_check(uuid,uuid,uuid,text,text,timestamptz,integer,text,text,text,text,text,text,text)',
+       'EXECUTE'
+     )
+     OR has_function_privilege(
+       'authenticated',
+       'public.staynas_record_distribution_health_check(uuid,uuid,uuid,text,text,timestamptz,integer,text,text,text,text,text,text,text)',
+       'EXECUTE'
+     )
+     OR NOT has_function_privilege(
+       'service_role',
+       'public.staynas_record_distribution_health_check(uuid,uuid,uuid,text,text,timestamptz,integer,text,text,text,text,text,text,text)',
+       'EXECUTE'
+     ) THEN
+    RAISE EXCEPTION 'Health evidence RPC execute grants are not server-only';
+  END IF;
+END
+$health_grants$;
+
+SET ROLE service_role;
+DO $health_scope$
+BEGIN
+  BEGIN
+    PERFORM public.staynas_record_distribution_health_check(
+      '20000000-0000-4000-8000-000000000001',
+      '30000000-0000-4000-8000-000000000002',
+      '70000000-0000-4000-8000-000000000001',
+      'availability.read','healthy',pg_catalog.now(),125,
+      NULL,NULL,NULL,'1.0.0','valid',
+      'dc04-health-correlation-cross-property','dc04-health-worker'
+    );
+    RAISE EXCEPTION 'Cross-property health evidence unexpectedly succeeded';
+  EXCEPTION WHEN SQLSTATE 'P0002' THEN
+    NULL;
+  END;
+
+  BEGIN
+    PERFORM public.staynas_record_distribution_health_check(
+      '20000000-0000-4000-8000-000000000001',
+      '30000000-0000-4000-8000-000000000001',
+      '70000000-0000-4000-8000-000000000001',
+      'reservation.import','healthy',pg_catalog.now(),125,
+      NULL,NULL,NULL,'1.0.0','valid',
+      'dc04-health-correlation-capability','dc04-health-worker'
+    );
+    RAISE EXCEPTION 'Un-granted capability health evidence unexpectedly succeeded';
+  EXCEPTION WHEN SQLSTATE 'P0002' THEN
+    NULL;
+  END;
+END
+$health_scope$;
+RESET ROLE;
