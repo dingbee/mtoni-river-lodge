@@ -111,7 +111,7 @@ function RatePlans() {
       setRatePlanDataText(JSON.stringify(parsed,null,2));
     } catch { toast.error("Fix the rate-data JSON before removing a season."); }
   };
-  const seasonalEntries=Object.entries(readSeasonalRates());
+  const seasonalEntries=Object.entries(readSeasonalRates()).filter(([,value])=>value&&typeof value==="object");
 
   return <div className="space-y-6">
     <PageHeader title="Rate Plans" description="Manage property-scoped commercial accommodation products, room eligibility, seasonal pricing and publication." />
