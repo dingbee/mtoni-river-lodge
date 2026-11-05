@@ -345,3 +345,38 @@ REVOKE ALL ON FUNCTION public.staynas_booking_property_id() FROM PUBLIC,anon;
 -- Retire the anonymous property-id availability RPC. Guest availability now
 -- calls get_room_availability through the server-only public context boundary.
 DROP FUNCTION IF EXISTS public.get_room_availability_for_property(uuid,date,date);
+
+-- The legacy no-argument resolver previously fell back to Host headers for
+-- anonymous callers. It is now strictly an authenticated staff-membership
+-- resolver; public guests use the explicit server-side publication allowlist.
+CREATE OR REPLACE FUNCTION public.staynas_booking_property_id()
+RETURNS uuid
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path=public
+AS $function$
+DECLARE
+  _uid uuid:=auth.uid();
+  _property uuid;
+BEGIN
+  IF _uid IS NULL THEN
+    RAISE EXCEPTION 'Authenticated staff context is required to resolve a property'
+      USING ERRCODE='42501';
+  END IF;
+  _property:=public.staynas_active_property_id(_uid);
+  IF _property IS NULL THEN
+    RAISE EXCEPTION 'No active property is assigned to this user'
+      USING ERRCODE='42501';
+  END IF;
+  IF NOT public.staynas_user_has_property_access(_uid,_property) THEN
+    RAISE EXCEPTION 'Active property access denied'
+      USING ERRCODE='42501';
+  END IF;
+  RETURN _property;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_booking_property_id() FROM PUBLIC,anon,service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_booking_property_id() TO authenticated;
+DROP FUNCTION IF EXISTS public.staynas_booking_property_id(text);
