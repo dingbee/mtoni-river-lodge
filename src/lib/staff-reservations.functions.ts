@@ -102,7 +102,7 @@ export const createStaffReservation = createServerFn({ method: "POST" })
     };
     try {
       const { data: elig } = await bookingRpc(sb).rpc("checkin_eligibility_for_property", { _booking_id: bookingId });
-      const eligible = Boolean(elig?.eligible);
+      const eligible = Boolean(elig?.eligible ?? (elig?.ok === true && elig?.code === "eligible"));
       checkin.eligible = eligible;
       if (eligible) {
         const { data: ensured } = await sb.rpc("checkin_ensure_for_booking", { _booking_id: bookingId });
@@ -136,7 +136,7 @@ export const getReservationCheckinAccess = createServerFn({ method: "POST" })
     const sb: any = context.supabase;
     const { data: elig, error } = await bookingRpc(sb).rpc("checkin_eligibility_for_property", { _booking_id: data.bookingId });
     if (error) throw new Error(error.message);
-    const eligible = Boolean(elig?.eligible);
+    const eligible = Boolean(elig?.eligible ?? (elig?.ok === true && elig?.code === "eligible"));
     const { data: existing } = await sb.from("guest_checkins").select("token, status, expires_at, submitted_at").eq("booking_id", data.bookingId).maybeSingle();
     const { data: arrivalPass } = await sb
       .from("arrival_passes")
