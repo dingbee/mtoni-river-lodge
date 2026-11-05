@@ -87,9 +87,15 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=public
 AS $availability$
 BEGIN
   PERFORM set_config('staynas.rate_plan_id',COALESCE(_rate_plan_id::text,''),true);
-  RETURN QUERY SELECT * FROM public.get_staynas_room_availability_priced(
+  RETURN QUERY
+  SELECT a.room_id,a.slug,a.name,a.base_price,a.currency,a.capacity_adults,a.capacity_children,
+    a.max_occupancy,a.included_guests,a.extra_guest_fee,a.nights,a.nightly_total,a.min_available,
+    CASE WHEN a.pricing_quote->>'error_code'='RATE_PLAN_REQUIRED'
+      THEN a.min_available>0 ELSE a.is_available END AS is_available,
+    a.fits_occupancy,a.pricing_quote
+  FROM public.get_staynas_room_availability_priced(
     _check_in,_check_out,_property_id,_adults,_children_below_6,_children_7_plus
-  );
+  ) a;
 END;
 $availability$;
 
