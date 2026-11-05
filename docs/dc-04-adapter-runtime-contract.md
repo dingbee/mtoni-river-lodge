@@ -236,3 +236,20 @@ The registry is an in-memory code registry only. It is not a connection store, t
 ## Verification boundary
 
 The repository/schema baseline and pure contract implementation are recorded. CI workflow and tests are authored but have not yet been observed passing. The existing integration table is not certified as secure for distribution use. No database schema or data was modified. No provider credentials were used. No provider connection, synchronization, or deployment was performed.
+
+
+### DC-04.6 durable connection persistence contract
+
+**Implementation artifacts added; migration remains unapplied.**
+
+- `20261105140000_dc04_distribution_connection_persistence.sql` defines separate organisation-owned external accounts, explicit property account grants, property-scoped adapter connections and append-only audit events.
+- Composite foreign keys bind property, organisation, external account, provider and environment together. A connection cannot point to a grant for a different tenant, account, provider or environment.
+- Grants carry an explicit capability allow-list. A connected adapter context is not issued unless the account is connected, the grant is active, and the requested capability is granted.
+- Credential storage is represented only by an opaque server-side reference. Raw provider credentials are not represented in the application contract and must be resolved by a later server-only credential broker.
+- Browser roles receive no grants and no RLS policies are created for these tables. Service-role access is restricted to trusted server code; service-role use alone is not tenant authorization.
+- Audit events are append-only and actor-attributed. The database trigger rejects update/delete, and table privileges also withhold those operations.
+- `persistence.ts` validates server-loaded persisted rows and composes them with the DC-04.4 authorization policy. It fails closed on mismatched account/grant/connection scope, environment, lifecycle or capability.
+- `persistence.test.ts` covers tenant scope, grant status, capability, environment, malformed records and credential-reference non-disclosure.
+
+**Important boundary:** this step defines the durable schema and pure persisted-record resolver. It does not add a database loader, credential broker, RLS policies for browser access, worker runtime or provider calls. The migration is an artifact only and must not be applied to production or the shared Supabase project. Isolated migration and two-property authorization tests are required before any runtime integration.
+
