@@ -49,7 +49,12 @@ export type RestrictionEvaluation = {
 };
 
 function dateOrdinal(value: string): number {
-  return Date.parse(`${value}T00:00:00.000Z`) / 86_400_000;
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return Number.NaN;
+  const timestamp = Date.parse(`${value}T00:00:00.000Z`);
+  if (!Number.isFinite(timestamp) || new Date(timestamp).toISOString().slice(0, 10) !== value) {
+    return Number.NaN;
+  }
+  return timestamp / 86_400_000;
 }
 
 export function mergeRestrictionRecords(
