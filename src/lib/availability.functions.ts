@@ -193,8 +193,8 @@ export const releaseHoldStaff = createServerFn({ method: "POST" })
       .eq("id", data.holdId)
       .maybeSingle();
     if (e1 || !row) throw new Error(e1?.message ?? "Hold not found");
-    const propertyId = await getConfiguredBookingPropertyId(sb);
-    const { error } = await bookingRpc(sb).rpc("release_booking_hold", {
+    const propertyId = row.property_id as string;
+    const { error } = await bookingRpc(sb).rpc("release_booking_hold_for_property", {
       _hold_id: data.holdId,
       _session_id: row.session_id,
       _property_id: propertyId,
