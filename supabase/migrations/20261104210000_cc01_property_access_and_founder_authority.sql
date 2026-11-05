@@ -26,6 +26,9 @@ as $function$
       and pm.status = 'active'
       and p.status <> 'suspended'
       and o.status = 'active'
+      -- Authenticated clients may only evaluate their own membership. Trusted
+      -- service-role callers may evaluate another user for server workflows.
+      and (_uid = auth.uid() or auth.role() = 'service_role')
   );
 $function$;
 
