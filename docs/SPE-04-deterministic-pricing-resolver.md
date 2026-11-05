@@ -1,7 +1,7 @@
 # SPE-04 — Deterministic Pricing Resolver
 
 **Priority:** P0 — Revenue correctness  
-**Status:** SPE-04.01 COMPLETE · SPE-04.02 CONTRACT BASELINED · SPE-04.03 NOT STARTED  
+**Status:** SPE-04.01 COMPLETE · SPE-04.02 CONTRACT BASELINED · SPE-04.03 IMPLEMENTATION IN PROGRESS  
 **Base:** promoted SPE-03 feature baseline  
 **Branch:** feat/spe-04-deterministic-pricing-resolver
 
@@ -156,3 +156,10 @@ Availability may classify a valid room/date/occupancy combination blocked by inv
 - Do not publish or assign the synthetic SPE-03 UAT fixture. It is non-commercial and remains draft.
 - Do not create fabricated sellable rates to make tests pass.
 - Keep SPE-04 changes on `feat/spe-04-deterministic-pricing-resolver`; PR remains draft until its release gates pass.
+
+
+### SPE-04.03 implementation log — first database guard
+
+Migration `20261106170000_spe04_base_occupancy_validation.sql` adds a database trigger that validates canonical `base_rates` and exact `occupancy_rules` JSON shapes before a rate-plan row can be inserted or changed. It enforces property-catalogue room-type scope, positive numeric rates, uppercase ISO-4217 currency matching, exact occupancy key format, supported count bounds, and pricing-basis compatibility. It raises stable `INVALID_RATE_CONFIGURATION` or `CURRENCY_MISMATCH` error identifiers. The migration is committed to the SPE-04 feature branch only and has not been applied to any database.
+
+This is the first SPE-04.03 implementation slice, not resolver completion. The database-authoritative published-snapshot resolver, source precedence, restrictions, shared-path integration, and resolver-level tests remain open. Do not route quote/availability/booking calls through this guard or describe SPE-04.03 as passed until those pieces are implemented and verified.
