@@ -105,6 +105,9 @@ BEGIN
  IF has_function_privilege('anon','public.staynas_booking_property_id()'::regprocedure,'EXECUTE') THEN
   RAISE EXCEPTION 'Anonymous property resolver privilege remains';
  END IF;
+ IF to_regprocedure('public.staynas_booking_property_id(text)') IS NOT NULL THEN
+  RAISE EXCEPTION 'Hostname property resolver overload remains';
+ END IF;
  IF to_regprocedure('public.get_room_availability_for_property(uuid,date,date)') IS NOT NULL THEN
   RAISE EXCEPTION 'Legacy anonymous availability RPC remains';
  END IF;
@@ -132,6 +135,9 @@ BEGIN
  PERFORM set_config('request.jwt.claim.role','authenticated',true);
  PERFORM set_config('request.jwt.claim.sub','50000000-0000-4000-8000-000000000001',true);
  PERFORM set_config('request.jwt.claims','{"role":"authenticated","sub":"50000000-0000-4000-8000-000000000001"}',true);
+ IF public.staynas_booking_property_id()<>'10000000-0000-4000-8000-000000000001' THEN
+  RAISE EXCEPTION 'Authenticated staff property resolver returned wrong property';
+ END IF;
  PERFORM 1 FROM public.create_booking(
   'race-hold','2032-05-01','2032-05-02',1,0,'Staff UAT','staff@example.com',
   NULL,NULL,NULL,'[]'::jsonb,0,0,NULL,NULL,'10000000-0000-4000-8000-000000000001');
