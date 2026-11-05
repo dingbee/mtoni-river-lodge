@@ -33,9 +33,12 @@ function RatePlans() {
   const listFn=useServerFn(listStayNasRatePlans);
   const saveFn=useServerFn(saveStayNasRatePlan);
   const publishFn=useServerFn(setStayNasRatePlanPublication);
-  const versionsFn=useServerFn(listStayNasRatePlanVersions);\n  const roomTypesFn=useServerFn(listStayNasRatePlanRoomTypes);\n  const setRoomTypeFn=useServerFn(setStayNasRatePlanRoomType);
+  const versionsFn=useServerFn(listStayNasRatePlanVersions);
+  const roomTypesFn=useServerFn(listStayNasRatePlanRoomTypes);
+  const setRoomTypeFn=useServerFn(setStayNasRatePlanRoomType);
   const qc=useQueryClient();
-  const {data,isLoading}=useQuery({queryKey:["staynas.rate-plans"],queryFn:()=>listFn()});\n  const {data:roomTypeData}=useQuery({queryKey:["staynas.rate-plan-room-types"],queryFn:()=>roomTypesFn()});
+  const {data,isLoading}=useQuery({queryKey:["staynas.rate-plans"],queryFn:()=>listFn()});
+  const {data:roomTypeData}=useQuery({queryKey:["staynas.rate-plan-room-types"],queryFn:()=>roomTypesFn()});
   const [editing,setEditing]=useState<Plan|null>(null);
   const [code,setCode]=useState(""); const [name,setName]=useState(""); const [description,setDescription]=useState("");
   const [category,setCategory]=useState("standard_flexible"); const [basis,setBasis]=useState("per_room");
@@ -55,7 +58,8 @@ function RatePlans() {
     onSuccess:()=>{toast.success("Rate plan status updated");qc.invalidateQueries({queryKey:["staynas.rate-plans"]});},
     onError:(e:unknown)=>toast.error((e as Error).message),
   });
-  const loadHistory=async(id:string)=>{try{setHistory(await versionsFn({data:{id}}));}catch(e){toast.error((e as Error).message);}};\n  const roomTypeMutation=useMutation({mutationFn:(v:{rate_plan_id:string;room_type_id:string;active:boolean})=>setRoomTypeFn({data:v}),onSuccess:()=>{qc.invalidateQueries({queryKey:["staynas.rate-plan-room-types"]});toast.success("Room-type assignment updated");},onError:(e:unknown)=>toast.error((e as Error).message)});
+  const loadHistory=async(id:string)=>{try{setHistory(await versionsFn({data:{id}}));}catch(e){toast.error((e as Error).message);}};
+  const roomTypeMutation=useMutation({mutationFn:(v:{rate_plan_id:string;room_type_id:string;active:boolean})=>setRoomTypeFn({data:v}),onSuccess:()=>{qc.invalidateQueries({queryKey:["staynas.rate-plan-room-types"]});toast.success("Room-type assignment updated");},onError:(e:unknown)=>toast.error((e as Error).message)});
   const duplicate=(p:Plan)=>{setEditing(null);setCode(p.code+"-COPY");setName(p.name+" copy");setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");window.scrollTo({top:0,behavior:"smooth"});};
 
   return <div className="space-y-6">
