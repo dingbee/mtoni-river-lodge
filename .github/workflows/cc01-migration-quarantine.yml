@@ -1,0 +1,36 @@
+name: CC-01 migration history quarantine
+
+on:
+  push:
+    branches:
+      - feat/cc01-p0-commercial-foundation
+    paths:
+      - "scripts/cc01-quarantine-nonledger-migrations.py"
+      - ".github/workflows/cc01-migration-quarantine.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  quarantine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Preserve non-ledger migrations outside the executable directory
+        run: python3 scripts/cc01-quarantine-nonledger-migrations.py
+      - name: Commit preserved history and classification manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A supabase/migrations supabase/migration-history-candidates docs/cc-01-local-migration-classification.json
+          if git diff --cached --quiet; then
+            echo "Migration history already reconciled."
+            exit 0
+          fi
+          git commit -m "chore(cc01): quarantine non-ledger migration history"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
