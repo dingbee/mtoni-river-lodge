@@ -4,21 +4,12 @@
 // Staff-only RPCs: room blocks, calendar events, unified calendar payload.
 
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Database } from "@/integrations/supabase/types";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { bookingRpc } from "@/lib/booking-rpc";
 import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
-
-function publicClient() {
-  return createClient<Database>(
-    process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-  );
-}
+import { resolvePublicBookingContext } from "@/lib/public-booking-context.server";
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date");
 
@@ -28,7 +19,7 @@ const createHoldSchema = z.object({
   roomSlug: z.string().min(1).max(80),
   checkIn: dateStr,
   checkOut: dateStr,
-  sessionId: z.string().min(6).max(120),
+  sessionId: z.string().min(24).max(120),
   guestEmail: z.string().email().max(255).optional(),
   ttlSeconds: z.number().int().min(60).max(3600).optional(),
 });
@@ -37,8 +28,8 @@ export const createBookingHold = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createHoldSchema.parse(d))
   .handler(async ({ data }) => {
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in");
-    const sb = publicClient();
-    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { property, supabaseAdmin: sb } = await resolvePublicBookingContext();
+    const propertyId = property.id;
     const { data: rows, error } = await bookingRpc(sb).rpc("create_booking_hold", {
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
@@ -60,7 +51,7 @@ export const createBookingHold = createServerFn({ method: "POST" })
 
 export const releaseBookingHold = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
-    z.object({ holdId: z.string().uuid(), sessionId: z.string().min(6) }).parse(d),
+    z.object({ holdId: z.string().uuid(), sessionId: z.string().min(24).max(120) }).parse(d),
   )
   .handler(async ({ data }) => {
     const sb = publicClient();
