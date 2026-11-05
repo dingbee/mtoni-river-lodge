@@ -136,8 +136,10 @@ DO $ledger$
 DECLARE
   v_operation_id uuid;
   v_duplicate_id uuid;
+  v_final_id uuid;
   v_created boolean;
   v_claim public.staynas_distribution_operation_ledger%ROWTYPE;
+  v_final_claim public.staynas_distribution_operation_ledger%ROWTYPE;
   v_inbox_id uuid;
   v_duplicate_inbox_id uuid;
   v_inbox_created boolean;
@@ -217,8 +219,37 @@ BEGIN
 
   IF (SELECT status FROM public.staynas_distribution_operation_ledger WHERE id=v_operation_id) <> 'succeeded'
      OR (SELECT count(*) FROM public.staynas_distribution_operation_attempts
-         WHERE operation_id=v_operation_id AND attempt_number=1 AND status='succeeded') <> 1 THEN
+         WHERE operation_id=v_operation_id AND attempt_number=2 AND status='succeeded') <> 1 THEN
     RAISE EXCEPTION 'Operation completion or attempt evidence failed';
+  END IF;
+
+  SELECT operation_id INTO v_final_id
+  FROM public.staynas_enqueue_distribution_operation(
+    '20000000-0000-4000-8000-000000000001',
+    '30000000-0000-4000-8000-000000000001',
+    '70000000-0000-4000-8000-000000000001',
+    'test_provider','sandbox','availability.final-attempt','availability.read',
+    'idem-dc04-final-attempt-001',repeat('d',64),'dc04-operation-correlation-final',
+    '{"room_type_id":"room-type-final"}'::jsonb
+  );
+  UPDATE public.staynas_distribution_operation_ledger
+  SET max_attempts=1
+  WHERE id=v_final_id;
+  SELECT * INTO v_final_claim
+  FROM public.staynas_claim_distribution_operation('dc04-ci-final-worker',45)
+  LIMIT 1;
+  IF v_final_claim.id IS DISTINCT FROM v_final_id OR v_final_claim.attempt_count <> 1 THEN
+    RAISE EXCEPTION 'Final-attempt operation claim failed';
+  END IF;
+  UPDATE public.staynas_distribution_operation_ledger
+  SET lease_expires_at=pg_catalog.now()-interval '1 second'
+  WHERE id=v_final_id;
+  PERFORM * FROM public.staynas_claim_distribution_operation('dc04-ci-final-reaper',45);
+  IF (SELECT status FROM public.staynas_distribution_operation_ledger WHERE id=v_final_id) <> 'permanent_failure'
+     OR (SELECT completed_at FROM public.staynas_distribution_operation_ledger WHERE id=v_final_id) IS NULL
+     OR (SELECT count(*) FROM public.staynas_distribution_operation_attempts
+         WHERE operation_id=v_final_id AND attempt_number=1 AND status='lease_expired') <> 1 THEN
+    RAISE EXCEPTION 'Exhausted expired operation was not terminalized with evidence';
   END IF;
 
   INSERT INTO public.staynas_distribution_outbox(
