@@ -67,4 +67,70 @@ CREATE TRIGGER staynas_rate_plan_room_types_context_guard
   BEFORE INSERT OR UPDATE ON public.staynas_rate_plan_room_types
   FOR EACH ROW EXECUTE FUNCTION public.validate_staynas_rate_plan_room_type();
 
+
+-- Enforce publication and archive invariants at the database boundary as well
+-- as in the server actions. The assignment table now exists, so publication
+-- can be gated on at least one active room-type mapping.
+CREATE OR REPLACE FUNCTION public.enforce_staynas_rate_plan_lifecycle()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path=public
+AS $
+BEGIN
+  IF TG_OP='UPDATE' AND OLD.publication_status='archived' THEN
+    RAISE EXCEPTION 'Archived rate plans are terminal and cannot be changed';
+  END IF;
+  IF NEW.publication_status='archived' THEN
+    NEW.active := false;
+    NEW.archived_at := COALESCE(NEW.archived_at,now());
+  ELSIF NEW.publication_status='published' THEN
+    IF NOT NEW.active THEN
+      RAISE EXCEPTION 'An inactive rate plan cannot be published';
+    END IF;
+    IF TG_OP='INSERT' THEN
+      RAISE EXCEPTION 'Create the rate plan as draft, assign room types, then publish';
+    END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM public.staynas_rate_plan_room_types a
+      WHERE a.property_id=NEW.property_id
+        AND a.rate_plan_id=NEW.id
+        AND a.active=true
+    ) THEN
+      RAISE EXCEPTION 'At least one active room-type assignment is required before publication';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$;
+
+DROP TRIGGER IF EXISTS staynas_rate_plans_lifecycle_guard ON public.staynas_rate_plans;
+CREATE TRIGGER staynas_rate_plans_lifecycle_guard
+  BEFORE INSERT OR UPDATE ON public.staynas_rate_plans
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_staynas_rate_plan_lifecycle();
+
+-- Assignment changes are frozen after the associated plan is archived.
+CREATE OR REPLACE FUNCTION public.prevent_archived_rate_plan_assignment_changes()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path=public
+AS $
+DECLARE
+  plan_status text;
+BEGIN
+  SELECT publication_status INTO plan_status
+  FROM public.staynas_rate_plans
+  WHERE property_id=COALESCE(NEW.property_id,OLD.property_id)
+    AND id=COALESCE(NEW.rate_plan_id,OLD.rate_plan_id);
+  IF plan_status='archived' THEN
+    RAISE EXCEPTION 'Archived rate plans cannot change room-type assignments';
+  END IF;
+  RETURN COALESCE(NEW,OLD);
+END;
+$;
+
+DROP TRIGGER IF EXISTS staynas_rate_plan_room_types_archive_guard ON public.staynas_rate_plan_room_types;
+CREATE TRIGGER staynas_rate_plan_room_types_archive_guard
+  BEFORE INSERT OR UPDATE OR DELETE ON public.staynas_rate_plan_room_types
+  FOR EACH ROW EXECUTE FUNCTION public.prevent_archived_rate_plan_assignment_changes();
+
 COMMIT;
