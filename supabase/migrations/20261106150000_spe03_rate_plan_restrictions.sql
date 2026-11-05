@@ -131,14 +131,14 @@ BEGIN
       ) THEN
         RAISE EXCEPTION 'Restriction % references a room type outside the property catalogue',v_key;
       END IF;
-      IF NOT EXISTS (
+      IF NEW.publication_status='published' AND NOT EXISTS (
         SELECT 1 FROM public.staynas_rate_plan_room_types a
         WHERE a.property_id=NEW.property_id
           AND a.rate_plan_id=NEW.id
           AND a.room_type_id=v_room_type
           AND a.active=true
-      ) AND NEW.id IS NOT NULL THEN
-        RAISE EXCEPTION 'Restriction % room type must be actively assigned to this rate plan',v_key;
+      ) THEN
+        RAISE EXCEPTION 'Published restriction % must target room types actively assigned to this rate plan',v_key;
       END IF;
     END LOOP;
   END LOOP;
