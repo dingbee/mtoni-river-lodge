@@ -198,16 +198,51 @@ REVOKE ALL ON FUNCTION public.create_booking(text,date,date,integer,integer,text
 GRANT EXECUTE ON FUNCTION public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid,text)
   TO authenticated,service_role;
 
--- The older public property-first overloads are retired from guest/authenticated
--- execution. The server uses create_booking above; no client may assert property scope.
-REVOKE ALL ON FUNCTION public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)
-  FROM PUBLIC,anon,authenticated;
+-- Keep the property-first booking signatures as safe wrappers over the
+-- canonical allocator. Authenticated users remain membership-checked; anon is denied.
+CREATE OR REPLACE FUNCTION public.create_booking_for_property(
+  _property_id uuid,_room_slug text,_check_in date,_check_out date,
+  _adults integer,_children integer,_guest_name text,_guest_email text,
+  _guest_phone text,_country text,_special_requests text,_extras jsonb DEFAULT '[]'::jsonb,
+  _children_below_6 integer DEFAULT NULL,_children_7_plus integer DEFAULT NULL,
+  _hold_id uuid DEFAULT NULL,_session_id text DEFAULT NULL
+) RETURNS TABLE(booking_id uuid,reference text,total numeric,currency text)
+LANGUAGE sql SECURITY DEFINER SET search_path=public
+AS $function$
+  SELECT x.booking_id,x.reference,x.total,x.currency
+  FROM public.create_booking(
+    _room_slug,_check_in,_check_out,_adults,_children,_guest_name,_guest_email,
+    _guest_phone,_country,_special_requests,_extras,_children_below_6,_children_7_plus,
+    _hold_id,_session_id,_property_id,'online'
+  ) x;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.create_booking_for_property(
+  _property_id uuid,_room_slug text,_check_in date,_check_out date,
+  _adults integer,_children integer,_guest_name text,_guest_email text,
+  _guest_phone text,_country text,_special_requests text,_extras jsonb DEFAULT '[]'::jsonb,
+  _children_below_6 integer DEFAULT NULL,_children_7_plus integer DEFAULT NULL,
+  _hold_id uuid DEFAULT NULL,_session_id text DEFAULT NULL,
+  _payment_method text DEFAULT 'online'
+) RETURNS TABLE(booking_id uuid,reference text,total numeric,currency text,taxes numeric,tax_addition numeric,tax_breakdown jsonb)
+LANGUAGE sql SECURITY DEFINER SET search_path=public
+AS $function$
+  SELECT x.booking_id,x.reference,x.total,x.currency,x.taxes,x.tax_addition,x.tax_breakdown
+  FROM public.create_booking(
+    _room_slug,_check_in,_check_out,_adults,_children,_guest_name,_guest_email,
+    _guest_phone,_country,_special_requests,_extras,_children_below_6,_children_7_plus,
+    _hold_id,_session_id,_property_id,_payment_method
+  ) x;
+$function$;
+
 REVOKE ALL ON FUNCTION public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)
-  FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)
-  TO service_role;
+  FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)
+  FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)
-  TO service_role;
+  TO authenticated,service_role;
+GRANT EXECUTE ON FUNCTION public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)
+  TO authenticated,service_role;
 
 CREATE OR REPLACE FUNCTION public.create_booking_hold(
   _room_slug text,_check_in date,_check_out date,_session_id text,
@@ -325,16 +360,21 @@ $function$;
 REVOKE ALL ON FUNCTION public.get_booking_hold_for_session(uuid,text,uuid) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.get_booking_hold_for_session(uuid,text,uuid) TO authenticated,service_role;
 
--- Remove unscoped hold RPCs that embed a single property UUID.
-DROP FUNCTION IF EXISTS public.create_booking_hold(text,date,date,text,text,integer);
-DROP FUNCTION IF EXISTS public.release_booking_hold(uuid,text);
-DROP FUNCTION IF EXISTS public.get_booking_hold_for_session(uuid,text);
-
--- Retire the legacy property-first guest RPCs. They accepted browser-selectable
--- property IDs and did not share the canonical inventory allocator.
-DROP FUNCTION IF EXISTS public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text);
-DROP FUNCTION IF EXISTS public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text);
-DROP FUNCTION IF EXISTS public.create_booking_hold_for_property(uuid,text,date,date,text,text,integer);
+-- Retain the property-first hold RPC as a wrapper over the same lock protocol.
+CREATE OR REPLACE FUNCTION public.create_booking_hold_for_property(
+  _property_id uuid,_room_slug text,_check_in date,_check_out date,
+  _session_id text,_guest_email text DEFAULT NULL,_ttl_seconds integer DEFAULT 900
+) RETURNS TABLE(hold_id uuid,expires_at timestamptz,room_id uuid)
+LANGUAGE sql SECURITY DEFINER SET search_path=public
+AS $function$
+  SELECT * FROM public.create_booking_hold(
+    _room_slug,_check_in,_check_out,_session_id,_property_id,_guest_email,_ttl_seconds
+  );
+$function$;
+REVOKE ALL ON FUNCTION public.create_booking_hold_for_property(uuid,text,date,date,text,text,integer)
+  FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.create_booking_hold_for_property(uuid,text,date,date,text,text,integer)
+  TO authenticated,service_role;
 
 NOTIFY pgrst, 'reload schema';
 
@@ -342,9 +382,23 @@ NOTIFY pgrst, 'reload schema';
 -- publication allowlist; anonymous callers must not invoke hostname resolution.
 REVOKE ALL ON FUNCTION public.staynas_booking_property_id() FROM PUBLIC,anon;
 
--- Retire the anonymous property-id availability RPC. Guest availability now
--- calls get_room_availability through the server-only public context boundary.
-DROP FUNCTION IF EXISTS public.get_room_availability_for_property(uuid,date,date);
+-- Preserve the property-aware availability signature for trusted callers;
+-- delegate to the membership-checked canonical availability RPC.
+CREATE OR REPLACE FUNCTION public.get_room_availability_for_property(
+  _property_id uuid,_check_in date,_check_out date
+) RETURNS TABLE(
+  room_id uuid,slug text,name text,base_price numeric,currency text,
+  capacity_adults integer,capacity_children integer,max_occupancy integer,
+  nights integer,nightly_total numeric,min_available integer,is_available boolean
+)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public
+AS $function$
+  SELECT * FROM public.get_room_availability(_check_in,_check_out,_property_id);
+$function$;
+REVOKE ALL ON FUNCTION public.get_room_availability_for_property(uuid,date,date)
+  FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.get_room_availability_for_property(uuid,date,date)
+  TO authenticated,service_role;
 
 -- The legacy no-argument resolver previously fell back to Host headers for
 -- anonymous callers. It is now strictly an authenticated staff-membership
