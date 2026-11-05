@@ -2,10 +2,8 @@
 // Returns: {rooms: [{slug, name, total, available, blocked, held}]}.
 
 import { createFileRoute } from "@tanstack/react-router";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
 import { bookingRpc } from "@/lib/booking-rpc";
-import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
+import { resolvePublicBookingContext } from "@/lib/public-booking-context.server";
 
 export const Route = createFileRoute("/api/public/rooms/status")({
   server: {
@@ -20,13 +18,8 @@ export const Route = createFileRoute("/api/public/rooms/status")({
         next.setUTCDate(next.getUTCDate() + 1);
         const nextIso = next.toISOString().slice(0, 10);
 
-        const sb = createClient<Database>(
-          process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL!,
-          process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
-          { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-        );
-        // Scope every inventory read to the configured booking property.
-        const propertyId = await getConfiguredBookingPropertyId(sb);
+        const { property, supabaseAdmin: sb } = await resolvePublicBookingContext();
+        const propertyId = property.id;
         const [{ data, error }, { data: catalog, error: catalogError }] = await Promise.all([
           bookingRpc(sb).rpc("get_room_availability", { _check_in: date, _check_out: nextIso, _property_id: propertyId }),
           (sb as any).from("rooms").select("slug,total_units").eq("status", "active").eq("property_id", propertyId),

@@ -14,7 +14,7 @@ import type { ConciergeRoomCatalogItem, ConciergeExperienceCatalogItem } from ".
 import { searchAvailability, buildBookingPlan } from "./concierge.tools";
 import { loadConciergeMemoryContext, suggestMemoriesFromMessage } from "./memory.context";
 import { AI_GATEWAY_DEFAULT_MODEL, callAiGateway, parseAiJson } from "@/lib/ai-gateway.server";
-import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
+import { resolvePublicBookingContext } from "@/lib/public-booking-context.server";
 
 const MODEL = AI_GATEWAY_DEFAULT_MODEL;
 const MAX_MESSAGE_LEN = 1000;
@@ -150,8 +150,8 @@ export async function handleConciergeChat(
   const locale = safeString(input.locale, 16);
   const page = safeString(input.page, 200);
 
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+  const { property, supabaseAdmin } = await resolvePublicBookingContext();
+  const propertyId = property.id;
   const [roomCatalog, experienceCatalog, propertyFacts] = await Promise.all([
     loadRoomCatalog(supabaseAdmin, propertyId),
     loadExperienceCatalog(supabaseAdmin, propertyId),
@@ -326,8 +326,8 @@ export async function handleConciergeChat(
 }
 
 export async function loadConciergeSession(token: string): Promise<{ token: string; messages: ConciergeMessage[] } | null> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+  const { property, supabaseAdmin } = await resolvePublicBookingContext();
+  const propertyId = property.id;
   const { data: session } = await (supabaseAdmin as any).from("ai_concierge_sessions").select("id, session_token").eq("session_token", token).eq("property_id", propertyId).maybeSingle();
   if (!session) return null;
   const { data: rows } = await supabaseAdmin.from("ai_concierge_messages").select("id, role, content, citations, confidence, escalated, created_at").eq("session_id", session.id).order("created_at", { ascending: true }).limit(50);
