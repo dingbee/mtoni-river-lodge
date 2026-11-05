@@ -103,6 +103,29 @@ CREATE TRIGGER staynas_rate_plan_publication_events_immutable
   BEFORE UPDATE OR DELETE ON public.staynas_rate_plan_publication_events
   FOR EACH ROW EXECUTE FUNCTION public.prevent_staynas_rate_plan_publication_mutation();
 
+CREATE OR REPLACE FUNCTION public.require_staynas_rate_plan_publication_reason()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path=public
+AS $function$
+DECLARE
+  v_reason text := current_setting('staynas.rate_plan_publication_reason',true);
+BEGIN
+  IF OLD.publication_status IS DISTINCT FROM NEW.publication_status
+     OR OLD.active IS DISTINCT FROM NEW.active THEN
+    IF auth.uid() IS NULL OR length(trim(COALESCE(v_reason,''))) NOT BETWEEN 5 AND 500 THEN
+      RAISE EXCEPTION 'Publication and activation changes must use the audited publication RPC with a reason';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS staynas_rate_plan_publication_reason_guard ON public.staynas_rate_plans;
+CREATE TRIGGER staynas_rate_plan_publication_reason_guard
+  BEFORE UPDATE OF publication_status,active ON public.staynas_rate_plans
+  FOR EACH ROW EXECUTE FUNCTION public.require_staynas_rate_plan_publication_reason();
+
 CREATE OR REPLACE FUNCTION public.capture_staynas_rate_plan_publication()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -353,6 +376,11 @@ END;
 $function$;
 REVOKE ALL ON FUNCTION public.get_staynas_published_rate_plans(uuid) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.get_staynas_published_rate_plans(uuid) TO authenticated,service_role;
+
+REVOKE ALL ON FUNCTION public.prevent_staynas_rate_plan_publication_mutation() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.require_staynas_rate_plan_publication_reason() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.capture_staynas_rate_plan_publication() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.audit_staynas_rate_plan_publication_event() FROM PUBLIC,anon,authenticated;
 
 COMMENT ON TABLE public.staynas_rate_plan_publications IS
   'Immutable, property-scoped resolved rate-plan publication snapshots. Only the latest publication of currently published and active plans is exposed to authorized consumers.';
