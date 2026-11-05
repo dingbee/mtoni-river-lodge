@@ -63,7 +63,7 @@ function RatePlans() {
   const duplicate=(p:Plan)=>{setEditing(null);setCode(p.code+"-COPY");setName(p.name+" copy");setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");window.scrollTo({top:0,behavior:"smooth"});};
 
   return <div className="space-y-6">
-    <PageHeader title="Rate Plans" description="Manage property-scoped commercial accommodation products. Rates are published independently from room configuration." />
+    <PageHeader title="Rate Plans" description="Manage property-scoped commercial accommodation products, eligibility and publication. Rate amounts and calendar rules are delivered in the next pricing milestones." />
     {data?.property&&<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><span className="font-medium text-foreground">{data.property.name}</span><Badge variant="outline">{String(data.property.currency).toUpperCase()}</Badge><span>{data.property.timezone}</span></div>}
     <SectionCard title={editing?"Edit rate plan":"Create rate plan"} description="A rate plan defines the commercial terms applied to one or more room types. Room assignments are managed separately.">
       <div className="grid gap-3 md:grid-cols-3">
