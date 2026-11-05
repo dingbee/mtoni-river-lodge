@@ -59,9 +59,9 @@ BEGIN
       AND p.archived_at IS NULL
       AND p.publication_status='published'
       AND (p.effective_from IS NULL OR p.effective_from<=_check_in)
-      AND (p.effective_to IS NULL OR p.effective_to>=_check_out)
+      AND (p.effective_to IS NULL OR p.effective_to>=(_check_out-1))
       AND (latest.effective_from IS NULL OR latest.effective_from<=_check_in)
-      AND (latest.effective_to IS NULL OR latest.effective_to>=_check_out)
+      AND (latest.effective_to IS NULL OR latest.effective_to>=(_check_out-1))
     ORDER BY p.name,p.id
   LOOP
     v_quote := public.resolve_staynas_published_room_pricing(
