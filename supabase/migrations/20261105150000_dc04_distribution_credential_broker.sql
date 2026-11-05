@@ -24,10 +24,8 @@ DECLARE
   _resolved_secret text;
   _grant_id uuid;
 BEGIN
-  IF coalesce(auth.role(), '') <> 'service_role' THEN
-    RAISE EXCEPTION 'Credential resolution is restricted to trusted server execution.'
-      USING ERRCODE = '42501';
-  END IF;
+  -- EXECUTE is revoked from PUBLIC/anon/authenticated and granted only to service_role below.
+  -- PostgreSQL enforces that privilege before entering this SECURITY DEFINER function.
 
   IF _connection_id IS NULL
     OR _organisation_id IS NULL
