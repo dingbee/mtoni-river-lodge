@@ -51,6 +51,16 @@ BEGIN
      OR has_function_privilege('authenticated','public.current_user_roles()','EXECUTE')
   THEN RAISE EXCEPTION 'Legacy global-role helper remains executable by authenticated clients'; END IF;
 
+  IF has_function_privilege('anon','public.restaurant_can_read(uuid)','EXECUTE')
+     OR NOT has_function_privilege('authenticated','public.restaurant_can_read(uuid)','EXECUTE')
+     OR NOT has_function_privilege('service_role','public.restaurant_can_read(uuid)','EXECUTE')
+  THEN RAISE EXCEPTION 'Restaurant read predicate grants are incorrect'; END IF;
+
+  IF has_function_privilege('anon','public.restaurant_can_write(uuid,restaurant_role[])','EXECUTE')
+     OR NOT has_function_privilege('authenticated','public.restaurant_can_write(uuid,restaurant_role[])','EXECUTE')
+     OR NOT has_function_privilege('service_role','public.restaurant_can_write(uuid,restaurant_role[])','EXECUTE')
+  THEN RAISE EXCEPTION 'Restaurant write predicate grants are incorrect'; END IF;
+
   IF has_function_privilege('authenticated','public.save_room_type_configuration(uuid,text,text,uuid,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text)','EXECUTE')
   THEN RAISE EXCEPTION 'Legacy global-role room configuration overload remains executable'; END IF;
 
