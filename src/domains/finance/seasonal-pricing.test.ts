@@ -27,7 +27,7 @@ function season(overrides: Record<string, unknown> = {}) {
 }
 
 describe("SPE-03.05 seasonal pricing contract", () => {
-  it.each(["low", "high", "festive"])("accepts the %s season category", (season_type) => {
+  it.each(["low", "shoulder", "high", "peak", "festive", "event", "custom"])("accepts the %s season category", (season_type) => {
     expect(seasonalRatesSchema.parse({ "season-a": season({ season_type }) })["season-a"].season_type)
       .toBe(season_type);
   });
