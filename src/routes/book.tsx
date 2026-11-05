@@ -454,7 +454,7 @@ function BookPage() {
       },
     }).then((quote) => {
       if (!cancelled) {
-        setBookingQuote(quote);
+        setBookingQuote(quote as BookingPricingQuote);
         setQuoteLoading(false);
       }
     }).catch((error) => {
