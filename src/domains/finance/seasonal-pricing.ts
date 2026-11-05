@@ -81,3 +81,23 @@ export function mergeSeasonalRateRecords(
   };
   return merge(parent, child) as Record<string, unknown>;
 }
+
+/**
+ * Resolve an applicable season for a property-local calendar date.
+ * Date bounds are inclusive. A larger priority value takes precedence.
+ * Equal-priority overlaps are rejected by seasonalRatesSchema before resolution.
+ */
+export function resolveSeasonalRateForDate(
+  seasons: SeasonalRates,
+  roomTypeId: string,
+  propertyLocalDate: string,
+): SeasonalRate | null {
+  const matches = Object.values(seasons).filter((season) =>
+    season.active &&
+    season.room_type_ids.includes(roomTypeId) &&
+    season.start_date <= propertyLocalDate &&
+    season.end_date >= propertyLocalDate
+  );
+  if (matches.length === 0) return null;
+  return matches.sort((a, b) => b.priority - a.priority)[0] ?? null;
+}
