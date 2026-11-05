@@ -10,8 +10,7 @@ import pathlib
 import shutil
 
 root = pathlib.Path(".")
-ledger_path = root / "docs/cc-01-live-migration-ledger.json"
-ledger = json.loads(ledger_path.read_text())
+ledger = json.loads((root / "docs/cc-01-live-migration-ledger.json").read_text())
 records = ledger.get("records", [])
 canonical = {f"{r['version']}_{r['name']}.sql" for r in records}
 staged = "20261105100000_cc01_property_access_and_founder_authority.sql"
@@ -37,7 +36,7 @@ for path in sorted(candidates.glob("*.sql")):
     data = path.read_bytes()
     entries.append({
         "path": str(path),
-        "git_blob_sha": hashlib.sha1(f"blob {len(data)}\\0".encode() + data).hexdigest(),
+        "git_blob_sha": hashlib.sha1(f"blob {len(data)}\0".encode() + data).hexdigest(),
         "size_bytes": len(data),
         "classification": "historical_candidate_not_in_verified_live_migration_path",
         "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
@@ -54,6 +53,6 @@ manifest = {
     "files": entries
 }
 (root / "docs/cc-01-local-migration-classification.json").write_text(
-    json.dumps(manifest, indent=2) + "\\n"
+    json.dumps(manifest, indent=2) + "\n"
 )
 print(f"Preserved {len(moved)} non-ledger migrations; {len(entries)} total candidate files retained.")
