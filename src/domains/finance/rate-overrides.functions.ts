@@ -99,7 +99,7 @@ export const setStayNasRateOverrideStatus = createServerFn({ method: "POST" })
     }
     const { data: row, error } = await sb.from("staynas_rate_overrides")
       .update({ status: data.status })
-      .eq("id",data.id).eq("property_id",propertyId).eq("status",data.status === "rejected" ? "pending" : "pending")
+      .eq("id",data.id).eq("property_id",propertyId).eq("status",data.status === "revoked" ? "approved" : "pending")
       .select("*").single();
     if (error) throw new Error(error.message);
     return row;
