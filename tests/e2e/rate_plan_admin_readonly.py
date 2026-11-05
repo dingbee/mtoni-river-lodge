@@ -19,6 +19,7 @@ BASE = os.environ.get("STAYNAS_UI_BASE_URL", "http://localhost:8080")
 EMAIL = os.environ.get("STAYNAS_UI_EMAIL", "")
 PASSWORD = os.environ.get("STAYNAS_UI_PASSWORD", "")
 EXPECTED_CURRENCY = os.environ.get("STAYNAS_EXPECTED_CURRENCY", "").upper()
+EXPECTED_PROPERTY_NAME = os.environ.get("STAYNAS_EXPECTED_PROPERTY_NAME", "").strip()
 
 
 async def main() -> None:
@@ -30,7 +31,14 @@ async def main() -> None:
         context = await browser.new_context(viewport={"width": 1440, "height": 1000})
         page = await context.new_page()
         console_errors: list[str] = []
+        mutating_rest_requests: list[str] = []
         page.on("pageerror", lambda error: console_errors.append(str(error)))
+        page.on(
+            "request",
+            lambda request: mutating_rest_requests.append(f"{request.method} {request.url}")
+            if "/rest/v1/" in request.url and request.method not in ("GET", "HEAD", "OPTIONS")
+            else None,
+        )
 
         await page.goto(f"{BASE}/auth", wait_until="networkidle")
         await page.locator('input[type="email"]').fill(EMAIL)
@@ -44,6 +52,10 @@ async def main() -> None:
         await page.get_by_text("Property rate plans").wait_for()
 
         body = await page.locator("body").inner_text()
+        if EXPECTED_PROPERTY_NAME:
+            assert EXPECTED_PROPERTY_NAME in body, (
+                f"Expected active property {EXPECTED_PROPERTY_NAME!r} was not visible in the rate-plan workspace."
+            )
         currency_candidates = ["TZS", "USD", "EUR", "GBP", "KES"]
         if EXPECTED_CURRENCY:
             assert EXPECTED_CURRENCY in body, (
@@ -55,6 +67,7 @@ async def main() -> None:
             )
 
         # Read-only details, inheritance and publication history checks.
+        plan_rows_before = await page.locator("table tbody").inner_text()
         detail_buttons = page.get_by_role("button", name="Details")
         assert await detail_buttons.count() > 0, (
             "No rate-plan fixture is available. This acceptance requires at least one existing UAT rate plan; "
@@ -75,11 +88,25 @@ async def main() -> None:
             await page.get_by_text("Rate plan version history").wait_for()
             await page.get_by_text("Publication audit").wait_for()
 
+        # Read-only navigation must not alter the visible plan register or issue REST writes.
+        assert await page.locator("table tbody").inner_text() == plan_rows_before, (
+            "Rate-plan register changed during read-only acceptance."
+        )
+        assert not mutating_rest_requests, (
+            "Unexpected mutating Supabase REST requests: " + " | ".join(mutating_rest_requests)
+        )
+
         # Verify the responsive shell at a mobile viewport without changing data.
         await page.set_viewport_size({"width": 390, "height": 844})
         await page.reload(wait_until="networkidle")
         await page.get_by_role("heading", name="Rate Plans").wait_for()
         assert await page.get_by_text("Authorized published-rate catalogue").is_visible()
+        assert await page.locator("table tbody").inner_text() == plan_rows_before, (
+            "Rate-plan register changed after mobile reload."
+        )
+        assert not mutating_rest_requests, (
+            "Unexpected mutating Supabase REST requests: " + " | ".join(mutating_rest_requests)
+        )
 
         assert not console_errors, "Browser runtime errors: " + " | ".join(console_errors)
         print("PASS — authenticated rate-plan UI, property currency, published catalogue, details/history and mobile shell.")
