@@ -330,6 +330,10 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.staynas_booking_property_id() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.staynas_booking_property_id() TO anon, authenticated, service_role;
+-- Retire the hostname-argument overload; this deployment uses the explicit
+-- service-managed booking configuration and does not accept caller hostnames.
+REVOKE ALL ON FUNCTION public.staynas_booking_property_id(text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_booking_property_id(text) TO service_role;
 
 CREATE OR REPLACE FUNCTION public.get_booking_hold_for_property(_property_id uuid, _hold_id uuid, _session_id text)
  RETURNS TABLE(id uuid, room_id uuid, check_in date, check_out date, expires_at timestamp with time zone, status text)
