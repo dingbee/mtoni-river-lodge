@@ -18,6 +18,9 @@ DECLARE
   v_account uuid := '20000000-0000-4000-8000-000000000001';
   v_subscription uuid := '30000000-0000-4000-8000-000000000001';
   v_event uuid;
+  v_user uuid := '40000000-0000-4000-8000-000000000001';
+  v_other_user uuid := '40000000-0000-4000-8000-000000000002';
+  v_property uuid := '50000000-0000-4000-8000-000000000001';
 BEGIN
   FOREACH v_table IN ARRAY v_tables LOOP
     IF NOT EXISTS (
@@ -77,12 +80,43 @@ BEGIN
     RAISE EXCEPTION 'Subscription event idempotency constraint is missing';
   END IF;
 
+  IF has_function_privilege('anon', 'public.commercial_is_founder_admin(uuid)', 'EXECUTE')
+    OR NOT has_function_privilege('authenticated', 'public.commercial_is_founder_admin(uuid)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Founder helper grants are not least-privilege';
+  END IF;
+
   IF (SELECT count(*) FROM public.commercial_founder_tenant_config) <> 0
     OR (SELECT count(*) FROM public.commercial_founder_admin_memberships) <> 0 THEN
     RAISE EXCEPTION 'Migration must not seed founder authority or tenant identifiers';
   END IF;
 
+  INSERT INTO auth.users(id) VALUES (v_user), (v_other_user);
   INSERT INTO public.staynas_organisations(id) VALUES (v_org);
+  INSERT INTO public.staynas_properties(id, organisation_id, status)
+  VALUES (v_property, v_org, 'active');
+  INSERT INTO public.staynas_property_members(property_id, user_id, status, role)
+  VALUES (v_property, v_user, 'active', 'owner');
+  INSERT INTO public.commercial_founder_tenant_config(singleton, founder_organisation_id)
+  VALUES (true, v_org);
+  INSERT INTO public.commercial_founder_admin_memberships(
+    principal_id, organisation_id, status, verified_at
+  ) VALUES (v_user, v_org, 'active', now());
+
+  PERFORM set_config('request.jwt.claim.sub', v_user::text, true);
+  IF NOT public.commercial_is_founder_admin(v_user) THEN
+    RAISE EXCEPTION 'Verified founder principal was not authorized';
+  END IF;
+  IF public.commercial_is_founder_admin(v_other_user) THEN
+    RAISE EXCEPTION 'Founder helper allowed a cross-user principal probe';
+  END IF;
+  UPDATE public.commercial_founder_admin_memberships
+  SET status = 'revoked' WHERE principal_id = v_user;
+  IF public.commercial_is_founder_admin(v_user) THEN
+    RAISE EXCEPTION 'Revoked founder principal remained authorized';
+  END IF;
+  UPDATE public.commercial_founder_admin_memberships
+  SET status = 'active' WHERE principal_id = v_user;
+
   INSERT INTO public.commercial_accounts(id, organisation_id)
   VALUES (v_account, v_org);
 
