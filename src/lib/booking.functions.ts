@@ -69,6 +69,9 @@ export type BookingPricingQuote = {
     currency: string;
     applied_rule_id: string | null;
     applied_rule_type: string | null;
+    source?: string;
+    source_rate?: number;
+    pricing_basis?: string;
   }>;
   accommodation_subtotal: number;
   extras: Array<{ slug: string; name: string; quantity: number; unit_price: number; unit: string; line_total: number; currency: string }>;
