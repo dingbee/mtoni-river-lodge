@@ -68,7 +68,7 @@ export function resolveCommercialPrice(
     };
   }
 
-  if (planPrice.baseAmountMinor === null || planPrice.additionalPropertyAmountMinor === null) {
+  if (planPrice.baseAmountMinor === null || planPrice.additionalPropertyAmountMinor === null || planPrice.includedProperties === null) {
     throw new Error("Fixed plan price is missing a required amount");
   }
 
