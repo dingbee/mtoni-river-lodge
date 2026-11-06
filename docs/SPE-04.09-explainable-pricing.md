@@ -16,7 +16,7 @@ Provide a guest-safe explanation for every accommodation night, derived exclusiv
 - Public output is deliberately allowlisted. Internal override/source IDs, room-type keys, publication hashes and resolver internals are not exposed.
 - Added average nightly rate and retained accommodation subtotal, plan terms and publication identity/version metadata.
 - Corrected eligibility boundaries to treat checkout as exclusive: plan and publication effective-to dates need to cover the final charged night (`check_out - 1`), not the checkout date.
-- Updated the public booking page's selected-reservation summary to display a per-night breakdown and source explanation. No client-side amount calculation was introduced; displayed amounts come from the server discovery response.
+- Updated both guest booking experiences: the property direct-booking page renders a nightly breakdown from guest-safe plan discovery, and the main `/book` quote summary displays each nightly amount with its resolver source and pricing basis. No client-side amount calculation was introduced; displayed amounts come from server pricing responses.
 - Updated the booking option TypeScript contract.
 
 ## Nolmark UAT evidence
