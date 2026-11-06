@@ -51,6 +51,11 @@ describe("CC02.04 commercial trial configuration", () => {
     });
   });
 
+  it("rejects trial activation outside the policy effective window", () => {
+    expect(() => createCommercialTrialWindow({ ...policy, effectiveFrom: "2026-11-06" }, "2026-11-05T10:30:00Z")).toThrow(/not yet effective/);
+    expect(() => createCommercialTrialWindow({ ...policy, effectiveTo: "2026-11-04" }, "2026-11-05T10:30:00Z")).toThrow(/expired/);
+  });
+
   it("rejects a disabled policy", () => {
     expect(() => createCommercialTrialWindow({
       ...policy,
