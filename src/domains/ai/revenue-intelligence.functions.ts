@@ -219,12 +219,12 @@ export const generatePricingRecommendations = createServerFn({ method: "POST" })
     const from = today();
     const to = daysFromNow(30);
     const [{ data: rooms }, { data: forward }, { data: cancelled }] = await Promise.all([
-      context.supabase.from("rooms").select("id, name, base_price, total_units, currency").eq("status","active"),
+      context.supabase.from("rooms").select("id, property_id, name, base_price, total_units, currency").eq("status","active"),
       context.supabase.from("bookings").select("room_id, nights, status, total, check_in").gte("check_in", from).lte("check_in", to).in("status", ["confirmed","pending","checked_in"]),
       context.supabase.from("bookings").select("id, room_id, created_at").eq("status","cancelled").gte("created_at", daysAgo(14)),
     ]);
 
-    const recs: Array<{ room_id: string | null; room_name: string; action: string; current_rate: number; suggested_rate: number; delta_pct: number; reasoning: string; expected_impact: number; confidence: number; evidence: any[] }> = [];
+    const recs: Array<{ property_id: string; room_id: string | null; room_name: string; action: string; current_rate: number; suggested_rate: number; delta_pct: number; reasoning: string; expected_impact: number; confidence: number; evidence: any[] }> = [];
 
     for (const r of (rooms ?? []) as any[]) {
       const roomForward = (forward ?? []).filter((b: any) => b.room_id === r.id && b.status !== "pending");
@@ -258,6 +258,7 @@ export const generatePricingRecommendations = createServerFn({ method: "POST" })
       }
 
       recs.push({
+        property_id: r.property_id,
         room_id: r.id,
         room_name: r.name,
         action,
@@ -278,6 +279,7 @@ export const generatePricingRecommendations = createServerFn({ method: "POST" })
     if (data.persist && recs.length) {
       await context.supabase.from("ai_pricing_recommendations").insert(
         recs.map((r: any) => ({
+          property_id: r.property_id,
           room_id: r.room_id,
           window_from: from, window_to: to,
           action: r.action,
