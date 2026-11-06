@@ -108,7 +108,6 @@ export const checkAvailability = createServerFn({ method: "POST" })
       _children_below_6: data.childrenBelow6,
       _children_7_plus: data.children7Plus,
       _rate_plan_id: data.ratePlanId ?? null,
-      _promo_code: data.promoCode?.trim() || null,
     });
     if (error) throw new Error(error.message);
     const mapped = await Promise.all(((rows ?? []) as any[]).map(async (r) => {
