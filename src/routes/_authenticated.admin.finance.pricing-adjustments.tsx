@@ -59,7 +59,7 @@ function PricingAdjustments() {
     booking_window_to:dateOrNull(promo.booking_window_to),stay_from:dateOrNull(promo.stay_from),stay_to:dateOrNull(promo.stay_to),
     valid_from:isoOrNull(promo.valid_from),valid_to:isoOrNull(promo.valid_to),
     usage_limit:numOrNull(promo.usage_limit),per_guest_limit:numOrNull(promo.per_guest_limit),
-    auto_apply:promo.auto_apply,stackable:false,priority:Number(promo.priority),status:promo.status,
+    auto_apply:promo.auto_apply,stackable:promo.stackable,priority:Number(promo.priority),status:promo.status,
   }}),onSuccess:()=>{toast.success("Promotion saved");setPromo(emptyPromo());refresh();},onError:(e:unknown)=>toast.error((e as Error).message)});
 
   const field="grid gap-1.5 text-xs text-muted-foreground";
@@ -119,7 +119,7 @@ function PricingAdjustments() {
       <SectionCard title="Property fee rules"><div className="divide-y divide-border">{(data?.fees??[]).map((r:any)=><div key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><div className="font-medium text-sm">{r.name} <Badge variant={r.active?"default":"secondary"}>{r.active?"Active":"Inactive"}</Badge></div><p className="text-xs text-muted-foreground">{r.code} · {r.calculation_type} · {r.amount} {r.currency||data?.property.currency} · {r.taxable?"taxable":"not taxable"}</p></div><Button size="sm" variant="outline" onClick={()=>setFee({...r,amount:String(r.amount),priority:String(r.priority),minimum_amount:r.minimum_amount==null?"":String(r.minimum_amount),maximum_amount:r.maximum_amount==null?"":String(r.maximum_amount),currency:r.currency||"",valid_from:r.valid_from||"",valid_to:r.valid_to||""})}>Edit</Button></div>)}{!data?.fees?.length&&<p className="py-4 text-sm text-muted-foreground">No fee rules configured.</p>}</div></SectionCard>
     </>}
     {tab==="promo" && <>
-      <SectionCard title={promo.id?"Edit promotion":"Create promotion"} description="Promotions are validated against property, room, rate plan, booking window, stay dates, minimums and usage limits. One promotion is applied per booking in this release; stacking is disabled.">
+      <SectionCard title={promo.id?"Edit promotion":"Create promotion"} description="Promotions are validated against property, room, rate plan, booking window, stay dates, minimums and usage limits. Stacking is allowed only when every applied promotion is explicitly marked stackable.">
         <form className="grid gap-4 md:grid-cols-3" onSubmit={e=>{e.preventDefault();promoSave.mutate();}}>
           <label className={field}>Promotion code (blank for auto-apply)<Input value={promo.code} onChange={e=>setPromo({...promo,code:e.target.value.toUpperCase()})}/></label>
           <label className={field}>Name<Input required value={promo.name} onChange={e=>setPromo({...promo,name:e.target.value})}/></label>
@@ -141,6 +141,7 @@ function PricingAdjustments() {
           <label className={field}>Priority<Input type="number" min="0" value={promo.priority} onChange={e=>setPromo({...promo,priority:e.target.value})}/></label>
           <label className={field}>Status<select className={selectCls} value={promo.status} onChange={e=>setPromo({...promo,status:e.target.value})}>{["draft","scheduled","active","suspended","revoked"].map(v=><option key={v} value={v}>{v}</option>)}</select></label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={promo.auto_apply} onChange={e=>setPromo({...promo,auto_apply:e.target.checked})}/> Automatically apply when eligible</label>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={promo.stackable} onChange={e=>setPromo({...promo,stackable:e.target.checked})}/> May stack with other stackable promotions</label>
           <div className="flex gap-2 md:col-span-3"><Button type="submit" disabled={promoSave.isPending||!promo.name||!promo.discount_value}>{promoSave.isPending?"Saving…":promo.id?"Update promotion":"Save promotion"}</Button><Button type="button" variant="outline" onClick={()=>setPromo(emptyPromo())}>Clear</Button></div>
         </form>
       </SectionCard>
