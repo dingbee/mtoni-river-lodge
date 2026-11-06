@@ -91,6 +91,9 @@ BEGIN
 END;
 $function$;
 
+REVOKE ALL ON FUNCTION public.validate_staynas_distribution_room_type_mapping()
+  FROM PUBLIC,anon,authenticated;
+
 CREATE OR REPLACE FUNCTION public.validate_staynas_distribution_rate_plan_mapping()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -112,6 +115,9 @@ BEGIN
   RETURN NEW;
 END;
 $function$;
+
+REVOKE ALL ON FUNCTION public.validate_staynas_distribution_rate_plan_mapping()
+  FROM PUBLIC,anon,authenticated;
 
 DROP TRIGGER IF EXISTS staynas_distribution_listing_mapping_scope_guard
   ON public.staynas_distribution_listing_mappings;
