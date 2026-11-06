@@ -53,9 +53,12 @@ export async function ingestExternalReservationEvent(
       event.externalAccountReference !== context.externalAccountReference) {
     throw new Error("Provider event does not match the authorized distribution connection.");
   }
+  const providerReportsCancellation = event.eventType === "reservation.cancelled" ||
+    (event.eventType === "reservation.modified" &&
+      ["cancelled", "canceled"].includes(event.providerStatus.toLowerCase()));
   const requiredCapability = event.eventType === "reservation.created" || event.eventType === "reservation.confirmed"
     ? "reservation.import"
-    : event.eventType === "reservation.cancelled"
+    : providerReportsCancellation
       ? "reservation.cancel"
       : "reservation.update";
   if (context.capability !== requiredCapability) {
