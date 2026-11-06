@@ -16,6 +16,22 @@ Define the durable persistence boundary for StayNas commercial accounts and subs
 - Never reuse restaurant_subscriptions; it belongs to the LexiBite/FnB domain.
 - Subscription state must not be treated as payment state or entitlement state.
 
+## Live-schema inspection findings (6 November 2026)
+
+Read-only inspection of the StayNas Supabase project hpsryyywolitgeaacpoy confirmed:
+
+- Canonical organisation table: public.staynas_organisations (id, slug, name, status, created_at, updated_at).
+- Property-to-organisation link: public.staynas_properties.organisation_id.
+- Current membership relation: public.staynas_property_members (property_id, user_id, role, status); no dedicated organisation-membership table was identified in the inspected schema.
+- public.staynas_organisations currently has a SELECT policy based on an active membership in at least one property belonging to the organisation.
+- public.staynas_platform_admins is a user allow-list, not proof of the SCEF founder-admin authority contract.
+- Existing public.is_staynas_founder_ai_admin() checks an owner property role and hardcodes organisation.slug = 'nolmark-cdma'. It is not reusable as the CC-03 commercial founder authority check because SCEF requires a verified founder_admin identity in a configured founder tenant, not a hardcoded slug or generic owner role.
+- Existing property access helper is property-scoped. CC-03 must not assume it provides commercial-account or founder authorization.
+- Existing public.activity_logs is operational activity logging with staff policies; it is not a substitute for a dedicated append-only commercial audit ledger.
+- No CC-03 commercial-account, subscription, trial-claim or subscription-event tables were found in the inspected schema. The production migration ledger contains CC-01 authorization identity scope, but no CC-02 or CC-03 database migration.
+
+Consequences: the commercial account must reference public.staynas_organisations(id). Tenant read authorization must be designed from the verified organisation → properties → active property-membership relationship and tested against cross-property/cross-organisation cases. Founder authorization requires a separately verified configurable authority source before SQL/RLS implementation. Do not infer it from staynas_platform_admins, is_staynas_founder_ai_admin(), user_roles, or a property owner role.
+
 ## Proposed persistence objects
 Final table names and foreign keys remain subject to inspection of the exact live schema and CC-01 helper contracts.
 
