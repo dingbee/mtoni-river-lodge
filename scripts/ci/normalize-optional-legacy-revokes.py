@@ -143,3 +143,49 @@ if duplicate_version_source.exists():
     if duplicate_version_target.exists():
         raise SystemExit("Ephemeral migration version normalization target already exists.")
     duplicate_version_source.rename(duplicate_version_target)
+
+# The clean migration chain does not define the two legacy RPC overloads
+# targeted by this compatibility migration. Preserve the compatibility fix
+# for environments where either overload exists, but skip absent overloads.
+jwt_compat_migration = Path(
+    "supabase/migrations/20261105103000_fix_property_rpc_jwt_role_claim_resolution.sql"
+)
+jwt_compat_source = jwt_compat_migration.read_text()
+declaration = "  v_signature regprocedure;"
+if declaration not in jwt_compat_source:
+    raise SystemExit("Expected legacy JWT compatibility declaration was not found.")
+jwt_compat_source = jwt_compat_source.replace(
+    declaration,
+    declaration + "\\n  v_signature_text text;",
+    1,
+)
+old_loop = """  FOREACH v_signature IN ARRAY ARRAY[
+    'public.get_room_availability(date,date,uuid)'::regprocedure,
+    'public.create_booking(text,date,date,integer,integer,text,text,text,jsonb,integer,integer,uuid,text,uuid)'::regprocedure
+  ]
+  LOOP
+    v_definition := pg_get_functiondef(v_signature);
+    IF position(v_old in v_definition) = 0 THEN
+      RAISE EXCEPTION 'Expected legacy JWT role check not found in %', v_signature;
+    END IF;
+    v_definition := replace(v_definition, v_old, v_new);
+    EXECUTE v_definition;
+  END LOOP;"""
+new_loop = """  FOREACH v_signature_text IN ARRAY ARRAY[
+    'public.get_room_availability(date,date,uuid)',
+    'public.create_booking(text,date,date,integer,integer,text,text,text,jsonb,integer,integer,uuid,text,uuid)'
+  ]
+  LOOP
+    v_signature := to_regprocedure(v_signature_text);
+    IF v_signature IS NOT NULL THEN
+      v_definition := pg_get_functiondef(v_signature);
+      IF position(v_old in v_definition) = 0 THEN
+        RAISE EXCEPTION 'Expected legacy JWT role check not found in %', v_signature;
+      END IF;
+      v_definition := replace(v_definition, v_old, v_new);
+      EXECUTE v_definition;
+    END IF;
+  END LOOP;"""
+if old_loop not in jwt_compat_source:
+    raise SystemExit("Expected legacy JWT compatibility function loop was not found.")
+jwt_compat_migration.write_text(jwt_compat_source.replace(old_loop, new_loop, 1))
