@@ -122,6 +122,7 @@ BEGIN
     'tax_breakdown',COALESCE(v_adjustments->'taxes','[]'::jsonb),
     'fees',COALESCE(v_adjustments->'fees','[]'::jsonb),'fee_total',v_fee_total,
     'discount_total',v_discount_total,'promotion',v_adjustments->'promotion',
+    'promotions',COALESCE(v_adjustments->'promotions','[]'::jsonb),
     'pricing_engine_version','SPE-05.1',
     'total',v_total,'deposit_amount',round(v_total/2,2),
     'balance_due',v_total-round(v_total/2,2),
