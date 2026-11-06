@@ -61,6 +61,11 @@ jobs:
           PGPASSWORD: postgres
         run: |
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc05-canonical-materialization-fixture.sql
+      - name: Apply canonical DC-03R atomic booking and inventory allocator
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261105180000_dc03r_atomic_booking_inventory.sql
       - name: Apply DC-05.02 property-scoped resource mappings
         env:
           PGPASSWORD: postgres
