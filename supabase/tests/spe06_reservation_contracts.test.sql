@@ -1,6 +1,6 @@
 -- SPE-06 structural contract tests. No live property records are written.
 BEGIN;
-SELECT plan(21);
+SELECT plan(20);
 
 SELECT has_table('public','staynas_reservation_quotes','Durable accepted reservation quotes exist');
 SELECT has_table('public','staynas_reservation_idempotency','Reservation idempotency ledger exists');
