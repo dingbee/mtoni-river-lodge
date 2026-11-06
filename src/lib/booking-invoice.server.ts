@@ -139,6 +139,7 @@ export async function buildInvoicePdf(data: InvoiceData): Promise<Uint8Array> {
     ["Extras", data.extrasTotal, false],
     ["Fees", data.feeTotal, false],
     ["Promotion discount", -data.discountTotal, false],
+    ["Tax included in accommodation (disclosure)", data.taxIncluded, false],
     ["Taxes added", data.taxAddition, false],
     ["Total", data.total, true],
     ["Deposit paid", -data.depositPaid, false],
