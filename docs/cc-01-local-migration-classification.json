@@ -7,8 +7,36 @@
     "20261105100000_cc01_property_access_and_founder_authority.sql",
     "20261106210000_spe04_public_rate_plan_discovery.sql"
   ],
-  "moved_from_active_this_run": [],
-  "candidate_file_count": 137,
+  "moved_from_active_this_run": [
+    "20261105160000_spe02_property_scoped_pricing_snapshots.sql",
+    "20261105170000_spe02_ai_pricing_and_tax_scope.sql",
+    "20261105180000_spe02_shared_booking_pricing_path.sql",
+    "20261105190000_spe02_fix_priced_availability_room_scope.sql",
+    "20261105200000_spe02_fix_booking_email_validation.sql",
+    "20261105210000_spe02_remove_duplicate_read_policies.sql",
+    "20261105220000_spe02_policy_performance_and_fk_indexes.sql",
+    "20261105230000_spe02_authenticated_pricing_table_grants.sql",
+    "20261106090000_spe03_rate_plan_foundation.sql",
+    "20261106100000_spe03_rate_plan_room_type_assignments.sql",
+    "20261106110000_spe03_rate_plan_inheritance.sql",
+    "20261106113000_spe03_rate_plan_inheritance_snapshots.sql",
+    "20261106120000_spe03_seasonal_pricing.sql",
+    "20261106130000_spe03_daily_rate_calendar.sql",
+    "20261106140000_spe03_rate_overrides.sql",
+    "20261106141000_spe03_rate_override_overlap_serialization.sql",
+    "20261106150000_spe03_rate_plan_restrictions.sql",
+    "20261106160000_spe03_rate_plan_publication_versioning.sql",
+    "20261106170000_spe04_base_occupancy_validation.sql",
+    "20261106180000_spe04_published_pricing_resolver.sql",
+    "20261106190000_spe04_shared_pricing_path_integration.sql",
+    "20261106200000_spe04_latest_publication_selection_fix.sql",
+    "20261106220000_spe04_public_rate_plan_propagation.sql",
+    "20261106225900_spe04_resolver_jwt_role_claim_compatibility.sql",
+    "20261106230000_spe04_08_publication_quote_consistency.sql",
+    "20261106240000_spe04_09_explainable_pricing.sql",
+    "20261106250000_spe04_10_canonical_service_integration.sql"
+  ],
+  "candidate_file_count": 164,
   "files": [
     {
       "path": "supabase/migration-history-candidates/20260617134425_b38419f9-d4d3-4c4d-a904-c121c59355a9.sql",
@@ -966,6 +994,195 @@
       "path": "supabase/migration-history-candidates/20261105123000_property_branding_storage.sql",
       "git_blob_sha": "6b7e46935a478e87111fd8c2df52fc79f4866858",
       "size_bytes": 2339,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261105160000_spe02_property_scoped_pricing_snapshots.sql",
+      "git_blob_sha": "1619e471f990183b9a32e4bf01dccf3b7edc71b9",
+      "size_bytes": 4105,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261105170000_spe02_ai_pricing_and_tax_scope.sql",
+      "git_blob_sha": "260af7253f0fb11e14e89a9cbccdb0616e187e6f",
+      "size_bytes": 3772,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261105180000_spe02_shared_booking_pricing_path.sql",
+      "git_blob_sha": "360a17623fdcc777eb3cdb80631166bab54de449",
+      "size_bytes": 25212,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261105190000_spe02_fix_priced_availability_room_scope.sql",
+      "git_blob_sha": "a33b6fe1973a8e7e7748a3e6b303fdaba3820688",
+      "size_bytes": 3044,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261105200000_spe02_fix_booking_email_validation.sql",
+      "git_blob_sha": "f5ed092167476d7d25acadd5fd7e4cacac4e13af",
+      "size_bytes": 8717,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261105210000_spe02_remove_duplicate_read_policies.sql",
+      "git_blob_sha": "36c0329b94b26b1f7baa312509090f9b1d2e78ab",
+      "size_bytes": 284,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261105220000_spe02_policy_performance_and_fk_indexes.sql",
+      "git_blob_sha": "f89baa9b699b4af9c5347c06144ba9d5346194ef",
+      "size_bytes": 2549,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261105230000_spe02_authenticated_pricing_table_grants.sql",
+      "git_blob_sha": "c608e18bc9ce383202477f0cfef6bb01e4209a67",
+      "size_bytes": 388,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106090000_spe03_rate_plan_foundation.sql",
+      "git_blob_sha": "2dae4f78eab31c389a94c2350e11ae8a34cae231",
+      "size_bytes": 8643,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106100000_spe03_rate_plan_room_type_assignments.sql",
+      "git_blob_sha": "5fa17ccd18c06adbe2297aa85101e8bbb5edc8ad",
+      "size_bytes": 7748,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106110000_spe03_rate_plan_inheritance.sql",
+      "git_blob_sha": "12c16c09d672a6f579ee916a1a9ca85d0d754d33",
+      "size_bytes": 10196,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106113000_spe03_rate_plan_inheritance_snapshots.sql",
+      "git_blob_sha": "c25484db4a95af0deedacb729a09950bdc2388ea",
+      "size_bytes": 4615,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106120000_spe03_seasonal_pricing.sql",
+      "git_blob_sha": "ca4df4eef67051c38fbad63af87b45347cf591cf",
+      "size_bytes": 7582,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106130000_spe03_daily_rate_calendar.sql",
+      "git_blob_sha": "ce1ad03e082e166c2f58c14e1b55112347db916b",
+      "size_bytes": 4542,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106140000_spe03_rate_overrides.sql",
+      "git_blob_sha": "68c9be2df62c468ca52946b7d340faaa6909f3bb",
+      "size_bytes": 23040,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106141000_spe03_rate_override_overlap_serialization.sql",
+      "git_blob_sha": "e30bfd051209ec228fc125c29c30ad75822d01f5",
+      "size_bytes": 6166,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106150000_spe03_rate_plan_restrictions.sql",
+      "git_blob_sha": "ab5751f8a1e814a9add0304f4b1cc437b9c8d94c",
+      "size_bytes": 8059,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106160000_spe03_rate_plan_publication_versioning.sql",
+      "git_blob_sha": "e8241597a561a0559fde94210c08843614022b84",
+      "size_bytes": 17679,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106170000_spe04_base_occupancy_validation.sql",
+      "git_blob_sha": "be457eedf5ccd9fcf6cd58d005e8680f33db5abf",
+      "size_bytes": 8519,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106180000_spe04_published_pricing_resolver.sql",
+      "git_blob_sha": "f8c4ba5f421b245952cadd01409fbd2380707bf3",
+      "size_bytes": 21071,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106190000_spe04_shared_pricing_path_integration.sql",
+      "git_blob_sha": "6c39941b8e6765310032e750948c436fc387ec15",
+      "size_bytes": 40914,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106200000_spe04_latest_publication_selection_fix.sql",
+      "git_blob_sha": "dce6906cb7ce0671638790cc60fade7ab8f5f413",
+      "size_bytes": 20638,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106220000_spe04_public_rate_plan_propagation.sql",
+      "git_blob_sha": "7ea8b378b921553dd5147786e89737b0e47d43a9",
+      "size_bytes": 6835,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106225900_spe04_resolver_jwt_role_claim_compatibility.sql",
+      "git_blob_sha": "783997ef77199c07fd2278e577280280465e52eb",
+      "size_bytes": 20513,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106230000_spe04_08_publication_quote_consistency.sql",
+      "git_blob_sha": "0db39f8e0e34a487cf74e9c3f6be7b51422a139e",
+      "size_bytes": 21474,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106240000_spe04_09_explainable_pricing.sql",
+      "git_blob_sha": "9208002576c2d80da35fb2833ed28032e0ad2c1b",
+      "size_bytes": 5616,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106250000_spe04_10_canonical_service_integration.sql",
+      "git_blob_sha": "9937276635b604a891b99d306745c40ab6f5fe41",
+      "size_bytes": 21779,
       "classification": "historical_candidate_not_in_verified_live_migration_path",
       "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
     }
