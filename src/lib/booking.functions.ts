@@ -243,6 +243,7 @@ export const createBooking = createServerFn({ method: "POST" })
       _session_id: data.sessionId ?? null,
       _payment_method: "online",
       _rate_plan_id: data.ratePlanId ?? null,
+      _promo_code: data.promoCode?.trim() || null,
     });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
