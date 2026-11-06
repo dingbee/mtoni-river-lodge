@@ -1,5 +1,5 @@
 -- DC-05.03 corrective contract: SPE-04 success quotes omit ok=true.
--- Require complete canonical quote and immutable publication evidence.
+-- Channel bookings remain unpaid until DC-05.06 settlement.
 BEGIN;
 CREATE OR REPLACE FUNCTION public.staynas_materialize_distribution_reservation(
   _inbox_id uuid,
