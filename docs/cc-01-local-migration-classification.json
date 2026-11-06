@@ -4,8 +4,8 @@
   "production_project_ref": "hpsryyywolitgeaacpoy",
   "verified_live_ledger_entries": 132,
   "staged_release_migrations": [
-    "20261106220000_cc01_property_access_and_founder_authority.sql",
-    "20261106210000_spe04_public_rate_plan_discovery.sql"
+    "20261106210000_spe04_public_rate_plan_discovery.sql",
+    "20261106220000_cc01_property_access_and_founder_authority.sql"
   ],
   "moved_from_active_this_run": [],
   "candidate_file_count": 164,
