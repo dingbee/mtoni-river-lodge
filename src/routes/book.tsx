@@ -387,6 +387,7 @@ function BookPage() {
       const created = await createBookingFn({
         data: {
           roomSlug: selectedRoom.slug,
+          ratePlanId: selectedRoom.selected_rate_plan_id,
           checkIn,
           checkOut,
           adults,
@@ -445,6 +446,7 @@ function BookPage() {
     getBookingQuoteFn({
       data: {
         roomSlug: selectedRoom.slug,
+        ratePlanId: selectedRoom.selected_rate_plan_id,
         checkIn,
         checkOut,
         adults,
@@ -514,7 +516,7 @@ function BookPage() {
               children7Plus={children7Plus}
               nights={nights}
               onBack={() => goToStep("search", "user_back_from_select")}
-              onSelect={(r) => {
+              onSelect={(r, ratePlanId) => {
                 // The "room context" for this session is whichever room the
                 // session is currently bound to: either the previously
                 // selected room, or the URL ?room= slug the user arrived with.
@@ -523,7 +525,8 @@ function BookPage() {
                 // First-time pick, or re-picking the same room the session is
                 // already bound to — just proceed to guest details.
                 if (!currentRoomContext || currentRoomContext === r.slug) {
-                  setSelectedRoom(r);
+                  const roomWithPlan = { ...r, selected_rate_plan_id: ratePlanId, selected_rate_plan: r.rate_plan_options?.find((plan) => plan.rate_plan_id === ratePlanId) ?? (r.rate_plan_options?.length === 1 ? r.rate_plan_options[0] : undefined) };
+                  setSelectedRoom(roomWithPlan);
                   setBookingQuote(r.pricing_quote);
                   // Fire-and-forget hold acquisition — 15-minute inventory lock.
                   // Failures are non-blocking; createBooking still runs the same
@@ -807,8 +810,9 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
   results: AvailabilityResult;
   adults: number; childrenBelow6: number; children7Plus: number;
   nights: number;
-  onBack: () => void; onSelect: (r: AvailabilityRoom) => void;
+  onBack: () => void; onSelect: (r: AvailabilityRoom, ratePlanId?: string) => void;
 }) {
+  const [selectedPlans, setSelectedPlans] = useState<Record<string, string>>({});
   const fmt = (n: number, c: string) => new Intl.NumberFormat("en-US", { style: "currency", currency: c, maximumFractionDigits: 0 }).format(n);
   const totalOccupants = adults + childrenBelow6 + children7Plus;
   const paidOccupants = adults + children7Plus;
@@ -819,8 +823,12 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
         const fits = Boolean(r.fits_occupancy);
         const disabled = !r.is_available || !fits;
         // Centralized pricing: per-guest, per-night.
-        const displayTotal = Number(r.pricing_quote?.total ?? r.nightly_total ?? 0);
-        const nightlyRate = Number(r.pricing_quote?.nightly?.[0]?.nightly_rate ?? 0);
+        const options = r.rate_plan_options ?? [];
+        const selectedPlanId = selectedPlans[r.room_id] ?? "";
+        const selectedPlan = options.find((p) => p.rate_plan_id === selectedPlanId) ?? (options.length === 1 ? options[0] : undefined);
+        const requiresPlanChoice = r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED";
+        const displayTotal = Number(selectedPlan?.total ?? r.pricing_quote?.total ?? r.nightly_total ?? 0);
+        const nightlyRate = selectedPlan ? Number(selectedPlan.total) / Math.max(1, nights) : Number(r.pricing_quote?.nightly?.[0]?.nightly_rate ?? 0);
         return (
           <div key={r.room_id} className="flex flex-col gap-4 rounded-2xl border border-charcoal/10 bg-ivory p-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -829,15 +837,36 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
               {!fits && <p className="mt-1 text-xs text-red-600">Does not fit {totalOccupants} occupant{totalOccupants === 1 ? "" : "s"}</p>}
             </div>
             <div className="text-right">
-              <p className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">{nights} night{nights === 1 ? "" : "s"} total</p>
-              <p className="font-display text-2xl">{fmt(displayTotal, r.currency)}</p>
-              <p className="text-xs text-charcoal/55">{fmt(nightlyRate, r.currency)} / night · {paidOccupants} paid · {totalOccupants} total</p>
+              <p className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">{nights} night{nights === 1 ? "" : "s"} · accommodation subtotal</p>
+              {requiresPlanChoice && options.length === 0 ? (
+                <p className="font-display text-base text-red-700">Rate plans unavailable — please try again</p>
+              ) : requiresPlanChoice && options.length > 1 && !selectedPlan ? (
+                <p className="font-display text-base text-charcoal/65">Choose a rate plan to view the total</p>
+              ) : (
+                <p className="font-display text-2xl">{fmt(displayTotal, selectedPlan?.currency ?? r.currency)}</p>
+              )}
+              {options.length > 1 && (
+                <div className="mt-3 text-left">
+                  <label className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-charcoal/60">Choose rate plan</label>
+                  <select value={selectedPlanId} onChange={(e) => setSelectedPlans((current) => ({ ...current, [r.room_id]: e.target.value }))} className="mt-2 w-full rounded-lg border border-charcoal/20 bg-ivory px-3 py-2 text-sm">
+                    <option value="">Select a rate plan</option>
+                    {options.map((plan) => <option key={plan.rate_plan_id} value={plan.rate_plan_id}>{plan.name} — {fmt(Number(plan.total), plan.currency)}</option>)}
+                  </select>
+                  {selectedPlan?.description && <p className="mt-2 text-xs text-charcoal/60">{selectedPlan.description}</p>}
+                  {selectedPlan && <p className="mt-1 text-xs text-charcoal/55">{selectedPlan.meal_plan ?? "No meal plan"} · {selectedPlan.refundable ? "Refundable" : "Non-refundable"}</p>}
+                  {selectedPlan && <p className="mt-1 text-[0.65rem] text-charcoal/50">Taxes and selected extras are calculated in the next step.</p>}
+                </div>
+              )}
+              {options.length === 1 && selectedPlan && (
+                <p className="mt-2 text-xs text-charcoal/55">{selectedPlan.name} · {selectedPlan.meal_plan ?? "No meal plan"} · {selectedPlan.refundable ? "Refundable" : "Non-refundable"}</p>
+              )}
+              <p className="text-xs text-charcoal/55">{requiresPlanChoice && !selectedPlan ? "Select a rate plan to see nightly pricing" : `${fmt(nightlyRate, selectedPlan?.currency ?? r.currency)} average / night`} · {paidOccupants} paid · {totalOccupants} total</p>
               <button
-                onClick={() => onSelect(r)} disabled={disabled}
+                onClick={() => onSelect(r, selectedPlanId || undefined)} disabled={disabled || (requiresPlanChoice && options.length === 0) || (options.length > 1 && !selectedPlanId)}
                 className="mt-3 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
                 style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
               >
-                {r.is_available ? "Select" : "Unavailable"} →
+                {!r.is_available ? "Unavailable" : options.length > 1 && !selectedPlanId ? "Choose a rate plan" : "Select"} →
               </button>
             </div>
           </div>
@@ -967,6 +996,7 @@ function GuestStep(props: {
         <h4 className="font-display text-lg">Your Stay</h4>
         <div className="space-y-1 text-sm">
           <p className="font-medium">{props.room.name}</p>
+          {props.room.selected_rate_plan && <p className="text-xs text-charcoal/65">{props.room.selected_rate_plan.name} · {props.room.selected_rate_plan.meal_plan ?? "No meal plan"} · {props.room.selected_rate_plan.refundable ? "Refundable" : "Non-refundable"}</p>}
           <p className="text-xs text-charcoal/60">
             {props.nights} night{props.nights === 1 ? "" : "s"} · {props.totalOccupants} occupant{props.totalOccupants === 1 ? "" : "s"}
             {props.childrenBelow6 > 0 && ` (incl. ${props.childrenBelow6} under 6)`}
@@ -976,9 +1006,9 @@ function GuestStep(props: {
           {props.breakdown && (
             <>
               {props.breakdown.nightly.map((night) => (
-                <div key={night.date} className="flex justify-between text-charcoal/70">
-                  <span>{night.date}</span>
-                  <span>{fmt(night.nightly_rate)}</span>
+                <div key={night.date} className="flex items-center justify-between gap-3 text-charcoal/70">
+                  <span><span className="block">{night.date}</span><span className="mt-0.5 block text-[10px] capitalize text-charcoal/45">{(night.applied_rule_type ?? night.source ?? "published rate").replaceAll("_", " ")}{night.pricing_basis ? ` · ${night.pricing_basis.replaceAll("_", " ")}` : ""}</span></span>
+                  <span className="shrink-0">{fmt(night.nightly_rate)}</span>
                 </div>
               ))}
               {props.childrenBelow6 > 0 && (
