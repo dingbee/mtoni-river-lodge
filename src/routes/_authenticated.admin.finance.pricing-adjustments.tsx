@@ -36,7 +36,7 @@ function PricingAdjustments() {
   const [fee,setFee]=useState<any>(emptyFee());
   const [promo,setPromo]=useState<any>(emptyPromo());
   const [tab,setTab]=useState<"tax"|"fee"|"promo"|"preview"|"audit">("tax");
-  const [previewInput,setPreviewInput]=useState({room_id:"",check_in:"",check_out:"",adults:"2",rate_plan_id:"",promo_code:"",guest_email:""});
+  const [previewInput,setPreviewInput]=useState({room_id:"",check_in:"",check_out:"",adults:"2",rate_plan_id:"",promo_code:"",guest_email:"",extras:[] as string[]});
 
   const refresh=()=>qc.invalidateQueries({queryKey:["staynas.pricing-adjustments"]});
   const taxSave=useMutation({mutationFn:()=>saveTaxFn({data:{
@@ -55,7 +55,7 @@ function PricingAdjustments() {
   }}),onSuccess:()=>{toast.success("Fee rule saved");setFee(emptyFee());refresh();},onError:(e:unknown)=>toast.error((e as Error).message)});
   const preview=useMutation({mutationFn:()=>previewFn({data:{
     room_id:previewInput.room_id,check_in:previewInput.check_in,check_out:previewInput.check_out,
-    adults:Number(previewInput.adults),children_below_6:0,children_7_plus:0,extras:[],
+    adults:Number(previewInput.adults),children_below_6:0,children_7_plus:0,extras:previewInput.extras.map(slug=>({slug,quantity:1})),
     rate_plan_id:previewInput.rate_plan_id||null,promo_code:previewInput.promo_code.trim()||null,
     guest_email:previewInput.guest_email.trim()||null,
   }}),onError:(e:unknown)=>toast.error((e as Error).message)});
@@ -164,6 +164,7 @@ function PricingAdjustments() {
           <label className={field}>Check-in<Input required type="date" value={previewInput.check_in} onChange={e=>setPreviewInput({...previewInput,check_in:e.target.value})}/></label>
           <label className={field}>Check-out<Input required type="date" value={previewInput.check_out} onChange={e=>setPreviewInput({...previewInput,check_out:e.target.value})}/></label>
           <label className={field}>Promotion code(s)<Input maxLength={64} value={previewInput.promo_code} onChange={e=>setPreviewInput({...previewInput,promo_code:e.target.value.toUpperCase()})} placeholder="CODE or CODE1,CODE2"/></label>
+          <label className={field}>Extras (optional)<select multiple className="min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground" value={previewInput.extras} onChange={e=>setPreviewInput({...previewInput,extras:Array.from(e.target.selectedOptions).map(o=>o.value)})}>{(data?.extras??[]).map((x:any)=><option key={x.slug} value={x.slug}>{x.name}</option>)}</select></label>
           <label className={field}>Guest email (for per-guest limits)<Input type="email" value={previewInput.guest_email} onChange={e=>setPreviewInput({...previewInput,guest_email:e.target.value})}/></label>
           <div className="flex items-end"><Button type="submit" disabled={preview.isPending||!previewInput.room_id||!previewInput.check_in||!previewInput.check_out}>{preview.isPending?"Calculating…":"Preview quote"}</Button></div>
         </form>
