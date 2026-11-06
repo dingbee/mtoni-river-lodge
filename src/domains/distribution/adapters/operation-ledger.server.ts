@@ -149,9 +149,11 @@ export async function receiveDistributionWebhook(input: Readonly<{
   // never be passed through or persisted here.
   canonicalize(input.normalizedEvent);
   const { data, error } = await (supabaseAdmin as any).rpc(
-    "staynas_receive_distribution_webhook",
+    "staynas_receive_distribution_webhook_scoped",
     {
       _organisation_id: input.context.organisationId,
+      _connection_id: input.context.connectionId,
+      _capability: input.context.capability,
       _property_id: input.context.propertyId,
       _account_grant_id: input.accountGrantId,
       _external_account_id: input.externalAccountId,
@@ -168,4 +170,32 @@ export async function receiveDistributionWebhook(input: Readonly<{
     throw new Error("Distribution webhook event could not be durably recorded.");
   }
   return Object.freeze({ inboxId: data[0].inbox_id, created: data[0].created === true });
+}
+
+
+export async function storeEncryptedReservationPayload(input: Readonly<{
+  inboxId: string;
+  payloadFingerprint: string;
+  ciphertext: string;
+  nonce: string;
+  authTag: string;
+  keyVersion: string;
+}>): Promise<void> {
+  if (!input.inboxId.trim() || !/^[0-9a-f]{64}$/.test(input.payloadFingerprint) ||
+      !input.ciphertext || !input.nonce || !input.authTag ||
+      !/^[A-Za-z0-9_-]{1,32}$/.test(input.keyVersion)) {
+    throw new Error("Encrypted reservation payload envelope is invalid.");
+  }
+  const { error } = await (supabaseAdmin as any).rpc(
+    "staynas_store_distribution_reservation_payload",
+    {
+      _inbox_id: input.inboxId,
+      _payload_fingerprint: input.payloadFingerprint,
+      _ciphertext: input.ciphertext,
+      _nonce: input.nonce,
+      _auth_tag: input.authTag,
+      _key_version: input.keyVersion,
+    },
+  );
+  if (error) throw new Error("Encrypted reservation payload could not be durably stored.");
 }
