@@ -8,7 +8,6 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { logActivity } from "@/lib/activity-log.server";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
-import { bookingRpc } from "@/lib/booking-rpc";
 import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- untyped RPC surfaces, matching existing admin services */
@@ -34,12 +33,16 @@ const createSchema = z.object({
   guestPhone: z.string().trim().max(40).optional().or(z.literal("")),
   country: z.string().trim().max(100).optional().or(z.literal("")),
   roomSlug: z.string().min(1).max(80),
+  ratePlanId: z.string().uuid().optional(),
+  promoCode: z.string().trim().max(64).optional().or(z.literal("")),
+  extras: z.array(z.object({ slug: z.string().min(1).max(80), quantity: z.number().int().min(1).max(20) })).max(20).default([]),
+  paymentMethod: z.enum(["online", "pay_at_property"]).default("online"),
   checkIn: dateStr,
   checkOut: dateStr,
   adults: z.number().int().min(1).max(10),
   childrenBelow6: z.number().int().min(0).max(10).default(0),
   children7Plus: z.number().int().min(0).max(10).default(0),
-  status: z.enum(["pending", "confirmed"]).default("confirmed"),
+  status: z.enum(["pending", "confirmed"]).default("pending"),
   source: z.enum(STAFF_SOURCES).default("direct"),
   specialRequests: z.string().trim().max(1000).optional().or(z.literal("")),
   notes: z.string().trim().max(2000).optional().or(z.literal("")),
@@ -59,40 +62,55 @@ export const createStaffReservation = createServerFn({ method: "POST" })
     const below6 = data.childrenBelow6 ?? 0;
     const plus7 = data.children7Plus ?? 0;
 
-    // Staff reservations are created against the same configured booking
-    // property as the public engine; the RPC enforces it.
+    // Resolve property from the authenticated staff context, then perform all
+    // privileged booking writes through the server-only service client.
     const propertyId = await getConfiguredBookingPropertyId(sb);
-    const { data: result, error } = await bookingRpc(sb).rpc("create_booking", {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const admin: any = supabaseAdmin;
+
+    const { data: quote, error: quoteError } = await admin.rpc("staynas_create_reservation_quote", {
+      _property_id: propertyId,
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
       _check_out: data.checkOut,
       _adults: data.adults,
-      _children: below6 + plus7,
       _children_below_6: below6,
       _children_7_plus: plus7,
+      _extras: data.extras,
+      _rate_plan_id: data.ratePlanId ?? null,
+      _promo_code: data.promoCode?.trim() || null,
+      _guest_email: data.guestEmail,
+      _ttl_seconds: 600,
+    });
+    if (quoteError) throw new Error(quoteError.message);
+    if (!quote?.quote_id) {
+      throw new Error(`Staff reservation quote rejected [${quote?.error_code ?? "QUOTE_FAILED"}]: ${quote?.message ?? "Pricing could not be resolved"}`);
+    }
+
+    const { data: result, error } = await admin.rpc("staynas_create_reservation_from_quote", {
+      _quote_id: quote.quote_id,
+      _property_id: propertyId,
+      _idempotency_key: quote.quote_id,
       _guest_name: data.guestName,
       _guest_email: data.guestEmail,
       _guest_phone: data.guestPhone || null,
       _country: data.country || null,
       _special_requests: data.specialRequests || null,
-      _property_id: propertyId,
-      _extras: [],
+      _payment_method: data.paymentMethod,
+      _source: data.source,
       _hold_id: null,
       _session_id: null,
+      _target_status: data.status,
+      _actor_id: context.userId,
+      _visit_purpose: null,
+      _notes: data.notes || null,
     });
     if (error) throw new Error(error.message);
-    const row = Array.isArray(result) ? result[0] : result;
-    if (!row?.booking_id) throw new Error("Reservation could not be created");
-    const bookingId = row.booking_id as string;
-
-    const patch: Record<string, unknown> = {
-      source: data.source,
-      status: data.status,
-    };
-    if (data.status === "confirmed") patch["confirmed_at"] = new Date().toISOString();
-    if (data.notes) patch["notes"] = data.notes;
-    const { error: patchError } = await sb.from("bookings").update(patch).eq("id", bookingId);
-    if (patchError) throw new Error(patchError.message);
+    if (result?.ok === false) {
+      throw new Error(`Staff reservation rejected [${result.error_code ?? "RESERVATION_REJECTED"}]: ${result.message ?? "The reservation could not be created"}`);
+    }
+    if (!result?.booking_id) throw new Error("Reservation could not be created");
+    const bookingId = result.booking_id as string;
 
     let checkin: { token: string | null; status: string | null; eligible: boolean } = {
       token: null, status: null, eligible: false,
