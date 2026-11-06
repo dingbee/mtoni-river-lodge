@@ -25,7 +25,7 @@ const availabilitySchema = z.object({
   ratePlanId: z.string().uuid().optional(),
 });
 
-export type PublicRatePlanOption = { rate_plan_id: string; name: string; description: string | null; meal_plan: string | null; refundable: boolean; currency: string; total: number; minimum_stay: number; publication_id: string; publication_number: number; rate_plan_version: number; snapshot_hash: string };
+export type PublicRatePlanOption = { rate_plan_id: string; name: string; description: string | null; meal_plan: string | null; refundable: boolean; currency: string; total: number; average_nightly_rate: number; minimum_stay: number; nightly_breakdown: Array<{ date: string; nightly_rate: number; currency: string; source_label: string; pricing_basis: string; source_rate: number }>; publication_id: string; publication_number: number; rate_plan_version: number; snapshot_hash: string };
 
 export type AvailabilityRoom = {
   rate_plan_options?: PublicRatePlanOption[];
