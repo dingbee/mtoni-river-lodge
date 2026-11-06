@@ -1,0 +1,306 @@
+-- CC-03.02 — Durable commercial account and subscription persistence.
+-- Additive schema only. No seed records, tenant role changes, membership changes,
+-- subscription activation, production data backfill, or entitlement writes.
+--
+-- IMPORTANT:
+--   * CC-02 owns catalogue/pricing/trial policy.
+--   * CC-03 owns account/subscription lifecycle.
+--   * CC-04 owns invoices/payments/collections/refunds.
+--   * CC-05 owns runtime entitlements.
+--   * restaurant_subscriptions is deliberately not reused.
+--   * Founder authority is a separate commercial principal mapping, not app_role.
+
+CREATE TABLE IF NOT EXISTS public.commercial_accounts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id) ON DELETE RESTRICT,
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'closed')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT commercial_accounts_organisation_unique UNIQUE (organisation_id)
+);
+
+COMMENT ON TABLE public.commercial_accounts IS
+  'StayNas commercial account per organisation. Separate from restaurant/FnB subscriptions.';
+
+CREATE TABLE IF NOT EXISTS public.commercial_subscriptions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id uuid NOT NULL REFERENCES public.commercial_accounts(id) ON DELETE RESTRICT,
+  plan_code text NOT NULL CHECK (plan_code IN ('essential', 'professional', 'enterprise')),
+  plan_version integer NOT NULL CHECK (plan_version > 0),
+  currency text NOT NULL CHECK (currency IN ('TZS', 'USD')),
+  billing_term text NOT NULL CHECK (billing_term IN ('monthly', 'annual')),
+  property_count integer NOT NULL CHECK (property_count > 0),
+  addon_codes text[] NOT NULL DEFAULT '{}',
+  price_resolution_ref text NOT NULL CHECK (length(btrim(price_resolution_ref)) BETWEEN 1 AND 200),
+  accepted_price_snapshot jsonb NOT NULL CHECK (
+    jsonb_typeof(accepted_price_snapshot) = 'object'
+    AND accepted_price_snapshot ? 'currency'
+    AND accepted_price_snapshot->>'currency' = currency
+  ),
+  quote_required boolean NOT NULL DEFAULT false,
+  commercial_acceptance_ref text,
+  status text NOT NULL DEFAULT 'pending_activation'
+    CHECK (status IN ('pending_activation', 'trialing', 'active', 'suspended', 'cancelled', 'expired')),
+  activated_at timestamptz,
+  trial_policy_version integer CHECK (trial_policy_version IS NULL OR trial_policy_version > 0),
+  trial_started_at timestamptz,
+  trial_ends_at timestamptz,
+  current_period_starts_at timestamptz,
+  current_period_ends_at timestamptz,
+  cancel_at_period_end boolean NOT NULL DEFAULT false,
+  cancellation_requested_at timestamptz,
+  suspended_at timestamptz,
+  suspension_reason_code text,
+  suspended_from_status text CHECK (suspended_from_status IS NULL OR suspended_from_status IN ('trialing', 'active')),
+  ended_at timestamptz,
+  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT commercial_subscriptions_id_account_unique UNIQUE (id, account_id),
+  CONSTRAINT commercial_subscriptions_quote_consistency CHECK (
+    NOT quote_required OR (
+      plan_code = 'enterprise'
+      AND accepted_price_snapshot->>'quoteRequired' = 'true'
+      AND NOT (accepted_price_snapshot ? 'total')
+      AND coalesce(jsonb_array_length(
+        CASE
+          WHEN jsonb_typeof(accepted_price_snapshot->'lineItems') = 'array'
+            THEN accepted_price_snapshot->'lineItems'
+          ELSE '[]'::jsonb
+        END
+      ), 0) = 0
+    )
+  ),
+  CONSTRAINT commercial_subscriptions_paid_acceptance CHECK (
+    status <> 'active' OR (
+      commercial_acceptance_ref IS NOT NULL
+      AND length(btrim(commercial_acceptance_ref)) BETWEEN 1 AND 300
+      AND current_period_starts_at IS NOT NULL
+      AND current_period_ends_at > current_period_starts_at
+    )
+  ),
+  CONSTRAINT commercial_subscriptions_trial_window CHECK (
+    status <> 'trialing' OR (
+      activated_at IS NOT NULL
+      AND trial_policy_version IS NOT NULL
+      AND trial_started_at IS NOT NULL
+      AND trial_ends_at = trial_started_at + interval '14 days'
+    )
+  ),
+  CONSTRAINT commercial_subscriptions_suspension_evidence CHECK (
+    (status = 'suspended'
+      AND suspended_at IS NOT NULL
+      AND suspended_from_status IS NOT NULL
+      AND suspension_reason_code IS NOT NULL
+      AND length(btrim(suspension_reason_code)) BETWEEN 1 AND 120)
+    OR
+    (status <> 'suspended'
+      AND suspended_at IS NULL
+      AND suspended_from_status IS NULL
+      AND suspension_reason_code IS NULL)
+  ),
+  CONSTRAINT commercial_subscriptions_terminal_evidence CHECK (
+    (status IN ('cancelled', 'expired') AND ended_at IS NOT NULL)
+    OR
+    (status NOT IN ('cancelled', 'expired') AND ended_at IS NULL)
+  ),
+  CONSTRAINT commercial_subscriptions_scheduled_cancellation CHECK (
+    NOT cancel_at_period_end
+    OR (
+      cancellation_requested_at IS NOT NULL
+      AND (
+        (status = 'trialing' AND trial_ends_at IS NOT NULL)
+        OR (status = 'active' AND current_period_ends_at IS NOT NULL)
+        OR (status = 'suspended' AND (
+          (suspended_from_status = 'trialing' AND trial_ends_at IS NOT NULL)
+          OR (suspended_from_status = 'active' AND current_period_ends_at IS NOT NULL)
+        ))
+      )
+    )
+  )
+);
+
+COMMENT ON TABLE public.commercial_subscriptions IS
+  'StayNas subscription lifecycle state and immutable accepted price snapshot. Not an invoice, payment, or entitlement record.';
+
+CREATE UNIQUE INDEX IF NOT EXISTS commercial_subscriptions_one_current_per_account
+  ON public.commercial_subscriptions(account_id)
+  WHERE status IN ('pending_activation', 'trialing', 'active', 'suspended');
+
+CREATE INDEX IF NOT EXISTS commercial_subscriptions_account_created_idx
+  ON public.commercial_subscriptions(account_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.commercial_trial_claims (
+  account_id uuid PRIMARY KEY REFERENCES public.commercial_accounts(id) ON DELETE RESTRICT,
+  subscription_id uuid NOT NULL,
+  policy_version integer NOT NULL CHECK (policy_version > 0),
+  claimed_at timestamptz NOT NULL DEFAULT now(),
+  trial_started_at timestamptz NOT NULL,
+  trial_ends_at timestamptz NOT NULL,
+  CONSTRAINT commercial_trial_claims_exact_window CHECK (
+    trial_ends_at = trial_started_at + interval '14 days'
+  ),
+  CONSTRAINT commercial_trial_claims_subscription_unique UNIQUE (subscription_id),
+  CONSTRAINT commercial_trial_claims_subscription_account_fk
+    FOREIGN KEY (subscription_id, account_id)
+    REFERENCES public.commercial_subscriptions(id, account_id)
+    ON DELETE RESTRICT
+);
+
+COMMENT ON TABLE public.commercial_trial_claims IS
+  'Permanent one-time trial claim per commercial account. Never delete/reset on cancellation, expiry, or plan change.';
+
+CREATE TABLE IF NOT EXISTS public.commercial_subscription_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id uuid NOT NULL REFERENCES public.commercial_accounts(id) ON DELETE RESTRICT,
+  subscription_id uuid NOT NULL,
+  event_type text NOT NULL CHECK (event_type IN (
+    'created', 'activate_trial', 'activate_paid', 'suspend', 'reinstate',
+    'request_cancellation', 'cancel_immediately', 'expire', 'renewal_authorized'
+  )),
+  occurred_at timestamptz NOT NULL,
+  idempotency_key text NOT NULL CHECK (length(btrim(idempotency_key)) BETWEEN 8 AND 200),
+  actor_user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  actor_organisation_id uuid REFERENCES public.staynas_organisations(id) ON DELETE RESTRICT,
+  actor_role text NOT NULL CHECK (actor_role IN (
+    'founder_admin', 'tenant_admin', 'tenant_staff', 'service_principal'
+  )),
+  reason_code text,
+  event_metadata jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(event_metadata) = 'object'),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT commercial_subscription_events_subscription_account_fk
+    FOREIGN KEY (subscription_id, account_id)
+    REFERENCES public.commercial_subscriptions(id, account_id)
+    ON DELETE RESTRICT,
+  CONSTRAINT commercial_subscription_events_idempotency_unique
+    UNIQUE (account_id, idempotency_key)
+);
+
+CREATE INDEX IF NOT EXISTS commercial_subscription_events_subscription_time_idx
+  ON public.commercial_subscription_events(subscription_id, occurred_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.commercial_audit_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id text NOT NULL CHECK (length(btrim(request_id)) BETWEEN 1 AND 200),
+  actor_user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  actor_organisation_id uuid REFERENCES public.staynas_organisations(id) ON DELETE RESTRICT,
+  actor_role text NOT NULL CHECK (actor_role IN (
+    'founder_admin', 'tenant_admin', 'tenant_staff', 'service_principal'
+  )),
+  action text NOT NULL CHECK (length(btrim(action)) BETWEEN 1 AND 120),
+  resource_type text NOT NULL CHECK (resource_type IN (
+    'commercial_account', 'subscription', 'trial_claim', 'subscription_event'
+  )),
+  resource_ref text NOT NULL CHECK (length(btrim(resource_ref)) BETWEEN 1 AND 300),
+  outcome text NOT NULL CHECK (outcome IN ('allowed', 'denied', 'succeeded', 'failed')),
+  reason_code text,
+  occurred_at timestamptz NOT NULL DEFAULT now(),
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(metadata) = 'object')
+);
+
+CREATE INDEX IF NOT EXISTS commercial_audit_events_occurred_idx
+  ON public.commercial_audit_events(occurred_at DESC);
+
+-- Dedicated commercial founder authority. This deliberately does not reuse
+-- public.app_role, staynas_platform_admins, or property owner/manager roles.
+-- No founder is seeded by this migration. Provisioning is a controlled
+-- service-role operation after identity and founder-tenant membership review.
+CREATE TABLE IF NOT EXISTS public.commercial_founder_tenant_config (
+  singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
+  founder_organisation_id uuid NOT NULL
+    REFERENCES public.staynas_organisations(id) ON DELETE RESTRICT,
+  updated_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.commercial_founder_admin_memberships (
+  principal_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE RESTRICT,
+  organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id) ON DELETE RESTRICT,
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'revoked')),
+  verified_at timestamptz NOT NULL,
+  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT commercial_founder_admin_membership_matches_config
+    CHECK (organisation_id IS NOT NULL)
+);
+
+COMMENT ON TABLE public.commercial_founder_admin_memberships IS
+  'Separate founder_admin authority mapping. Managed only through controlled service-role provisioning; never derived from app_role or property owner status.';
+
+-- Enforce that every active founder principal belongs to the configured
+-- founder organisation at authorization time in the server-side policy.
+-- Config and membership rows are intentionally unseeded here.
+
+CREATE OR REPLACE FUNCTION public.reject_commercial_history_mutation()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog
+AS $function$
+BEGIN
+  RAISE EXCEPTION 'Commercial history is append-only'
+    USING ERRCODE = '55000';
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.reject_commercial_history_mutation() FROM PUBLIC, anon, authenticated, service_role;
+
+DROP TRIGGER IF EXISTS commercial_subscription_events_append_only
+  ON public.commercial_subscription_events;
+CREATE TRIGGER commercial_subscription_events_append_only
+  BEFORE UPDATE OR DELETE ON public.commercial_subscription_events
+  FOR EACH ROW EXECUTE FUNCTION public.reject_commercial_history_mutation();
+
+DROP TRIGGER IF EXISTS commercial_audit_events_append_only
+  ON public.commercial_audit_events;
+CREATE TRIGGER commercial_audit_events_append_only
+  BEFORE UPDATE OR DELETE ON public.commercial_audit_events
+  FOR EACH ROW EXECUTE FUNCTION public.reject_commercial_history_mutation();
+
+-- RLS is enabled and forced. No anon/authenticated policies or table grants
+-- are created. Runtime access is through authenticated server handlers that
+-- perform tenant/founder authorization before using the service-role client.
+DO $block$
+DECLARE
+  v_table regclass;
+BEGIN
+  FOREACH v_table IN ARRAY ARRAY[
+    'public.commercial_accounts'::regclass,
+    'public.commercial_subscriptions'::regclass,
+    'public.commercial_trial_claims'::regclass,
+    'public.commercial_subscription_events'::regclass,
+    'public.commercial_audit_events'::regclass,
+    'public.commercial_founder_tenant_config'::regclass,
+    'public.commercial_founder_admin_memberships'::regclass
+  ]
+  LOOP
+    EXECUTE format('ALTER TABLE %s ENABLE ROW LEVEL SECURITY', v_table);
+    EXECUTE format('ALTER TABLE %s FORCE ROW LEVEL SECURITY', v_table);
+  END LOOP;
+END;
+$block$;
+
+REVOKE ALL ON TABLE
+  public.commercial_accounts,
+  public.commercial_subscriptions,
+  public.commercial_trial_claims,
+  public.commercial_subscription_events,
+  public.commercial_audit_events,
+  public.commercial_founder_tenant_config,
+  public.commercial_founder_admin_memberships
+FROM PUBLIC, anon, authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
+  public.commercial_accounts,
+  public.commercial_subscriptions,
+  public.commercial_trial_claims,
+  public.commercial_founder_tenant_config,
+  public.commercial_founder_admin_memberships
+TO service_role;
+
+GRANT SELECT, INSERT ON TABLE
+  public.commercial_subscription_events,
+  public.commercial_audit_events
+TO service_role;
+
+-- No production bootstrap, tenant assignment, subscription record, or founder
+-- principal is created by this migration.
