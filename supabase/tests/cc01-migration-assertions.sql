@@ -133,6 +133,10 @@ BEGIN
      OR NOT has_function_privilege('service_role','public.housekeeping_is_supervisor(uuid)','EXECUTE')
   THEN RAISE EXCEPTION 'Housekeeping supervisor helper grants are incorrect'; END IF;
 
+  IF position('_uid = auth.uid()' in pg_get_functiondef('public.housekeeping_is_supervisor(uuid)'::regprocedure)) = 0
+     OR position('staynas_current_user_has_property_role' in pg_get_functiondef('public.housekeeping_is_supervisor(uuid)'::regprocedure)) = 0
+  THEN RAISE EXCEPTION 'Housekeeping supervisor helper is not restricted to the caller''s active property'; END IF;
+
   IF has_function_privilege('anon','public.checkin_eligibility_for_property(uuid)','EXECUTE')
      OR NOT has_function_privilege('authenticated','public.checkin_eligibility_for_property(uuid)','EXECUTE')
      OR NOT has_function_privilege('service_role','public.checkin_eligibility_for_property(uuid)','EXECUTE')
@@ -187,7 +191,8 @@ BEGIN
       'arrival_pass_validate_unscoped','checkin_eligibility',
       'current_user_roles','checkin_log_activity',
       'checkin_sync_reservation','log_calendar_event','is_guest_pii_staff',
-      'restaurant_is_platform_admin'
+      'restaurant_is_platform_admin','capture_staynas_rate_plan_version',
+      'validate_staynas_rate_plan_context','validate_staynas_rate_plan_room_type'
     ])
     AND (has_function_privilege('anon',p.oid,'EXECUTE')
          OR has_function_privilege('authenticated',p.oid,'EXECUTE'));

@@ -5972,4 +5972,25 @@ REVOKE ALL ON FUNCTION public.staynas_booking_property_id() FROM PUBLIC, anon, a
 GRANT EXECUTE ON FUNCTION public.staynas_booking_property_id() TO anon, authenticated, service_role;
 
 
-COMMIT;
+
+-- Trigger-only SPE-03 functions are not client RPC entry points. These were
+-- present in the live schema before CC-01 and must not inherit PUBLIC EXECUTE.
+DO $cc01_trigger_rpc_grants$
+DECLARE
+  _signature text;
+  _function regprocedure;
+BEGIN
+  FOREACH _signature IN ARRAY ARRAY[
+    'public.capture_staynas_rate_plan_version()',
+    'public.validate_staynas_rate_plan_context()',
+    'public.validate_staynas_rate_plan_room_type()'
+  ] LOOP
+    _function := to_regprocedure(_signature);
+    IF _function IS NOT NULL THEN
+      EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated', _function);
+    END IF;
+  END LOOP;
+END
+$cc01_trigger_rpc_grants$;
+
+commit;
