@@ -320,12 +320,11 @@ BEGIN
     END IF;
     UPDATE public.room_inventory SET available_units=GREATEST(available_units-1,0)
     WHERE room_id=v_room.id AND date=v_day;
+    -- Nightly snapshots retain the nightly accommodation evidence only.
+    -- Booking-level fees, discounts, promotions and taxes live in the immutable
+    -- bookings.pricing_snapshot and are not duplicated on every night.
     INSERT INTO public.booking_nights(booking_id,room_id,date,nightly_rate,pricing_snapshot)
-    VALUES(v_booking_id,v_room.id,v_day,(v_night->>'nightly_rate')::numeric,
-      v_night || jsonb_build_object('pricing_adjustments',jsonb_build_object(
-        'discount_total',v_discount_total,'fee_total',v_fee_total,'tax_total',v_taxes,
-        'tax_addition',v_tax_addition,'promotion',v_promotion,'promotions',v_promotions,'currency',v_room.currency
-      )));
+    VALUES(v_booking_id,v_room.id,v_day,(v_night->>'nightly_rate')::numeric,v_night);
   END LOOP;
 
   FOR v_extra_line IN SELECT value FROM jsonb_array_elements(v_quote->'extras')
