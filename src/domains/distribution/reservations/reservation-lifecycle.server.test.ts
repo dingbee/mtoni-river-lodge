@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DistributionWebhookLease } from "../adapters/webhook-processing.server";
 import { externalReservationSchema } from "./reservation-ingestion.contracts";
+import { fingerprintReservationPayload } from "./reservation-payload-crypto.server";
 import { buildReservationLifecycleRpcArgs } from "./reservation-lifecycle.server";
 
 const base = {
@@ -31,7 +32,7 @@ function fixture(eventInput: Record<string, unknown> = base) {
     external_account_id: "account-1",
     provider_event_id: event.providerEventId,
     event_type: event.eventType,
-    payload_fingerprint: "fingerprint",
+    payload_fingerprint: fingerprintReservationPayload(event),
     lease_token: "lease-token",
     lease_owner: "worker-1",
     normalized_event: {
