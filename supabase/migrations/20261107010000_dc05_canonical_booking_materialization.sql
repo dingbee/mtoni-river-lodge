@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS public.staynas_distribution_reservation_payloads (
 );
 ALTER TABLE public.staynas_distribution_reservation_payloads ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.staynas_distribution_reservation_payloads FROM PUBLIC,anon,authenticated;
-GRANT SELECT,INSERT,DELETE ON public.staynas_distribution_reservation_payloads TO service_role;
+GRANT SELECT,INSERT ON public.staynas_distribution_reservation_payloads TO service_role;
 REVOKE UPDATE,TRUNCATE ON public.staynas_distribution_reservation_payloads FROM service_role;
 
 CREATE OR REPLACE FUNCTION public.staynas_receive_distribution_webhook_scoped(
