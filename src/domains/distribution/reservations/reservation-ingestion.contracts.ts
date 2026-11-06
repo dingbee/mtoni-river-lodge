@@ -164,8 +164,7 @@ export function toSafeReservationEventEnvelope(event: ExternalReservationEvent):
     privateFieldsPresent: Object.values(event.guest).some((value) => Boolean(value)),
     hasFinancialData: event.grossAmount !== undefined || event.taxes !== undefined ||
       event.fees !== undefined || event.channelCommission !== undefined ||
-      event.expectedSettlement !== undefined || event.paymentAmount !== undefined ||
-      event.paymentAmount !== undefined || event.paymentCurrency !== undefined ||
+      event.expectedSettlement !== undefined || event.paymentAmount !== undefined || event.paymentCurrency !== undefined ||
       event.paymentStatus !== undefined || event.paymentReference !== undefined ||
       event.settlementReference !== undefined || event.settlementAmount !== undefined ||
       event.settlementCurrency !== undefined || event.settlementAt !== undefined ||
