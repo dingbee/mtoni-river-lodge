@@ -62,6 +62,8 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
+      - name: Normalize optional legacy function revoke in ephemeral checkout
+        run: python3 scripts/ci/normalize-optional-legacy-revokes.py
       - name: Start local Supabase database
         run: supabase start --exclude studio,inbucket,storage-api,imgproxy,vector
       - name: Apply migrations and run pgTAP contract suite
