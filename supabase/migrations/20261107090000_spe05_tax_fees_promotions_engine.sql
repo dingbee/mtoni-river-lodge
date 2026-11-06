@@ -340,11 +340,11 @@ BEGIN
       RETURN jsonb_build_object('ok',false,'error_code','INVALID_TAX_CONFIGURATION','message','Unsupported tax calculation type','tax_rule_id',v_tax.id);
     END IF;
     v_tax_total:=round(v_tax_total+v_tax_amount,2);
-    IF CASE
+    IF (CASE
       WHEN v_tax.calculation_type='inclusive_percent' THEN false
       WHEN v_tax.calculation_type='exclusive_percent' THEN true
       ELSE v_tax.tax_mode='exclusive'
-    END THEN v_tax_addition:=round(v_tax_addition+v_tax_amount,2); END IF;
+    END) THEN v_tax_addition:=round(v_tax_addition+v_tax_amount,2); END IF;
     v_tax_lines:=v_tax_lines||jsonb_build_array(jsonb_build_object('id',v_tax.id,'name',v_tax.name,
       'label',COALESCE(v_tax.display_label,v_tax.name),'tax_code',v_tax.tax_code,'version',v_tax.version,
       'rate',v_tax.rate,'calculation_type',v_tax.calculation_type,
