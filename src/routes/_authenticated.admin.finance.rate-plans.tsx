@@ -304,33 +304,33 @@ function RatePlans() {
     } catch { toast.error("Fix the rate-data JSON before clearing a restriction."); }
   };
   const restrictionEntries=Object.entries(readRestrictions());
-  return <div className="space-y-6">
+  return <div className="w-full min-w-0 max-w-full space-y-6 overflow-x-clip">
     <PageHeader title="Rate Plans" description="Manage property-scoped commercial accommodation products, room eligibility, seasonal pricing, daily rate overrides and publication." />
     {data?.property&&<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><span className="font-medium text-foreground">{data.property.name}</span><Badge variant="outline">{String(data.property.currency).toUpperCase()}</Badge><span>{data.property.timezone}</span></div>}
-    <SectionCard title={editing?"Edit rate plan":"Create rate plan"} description="A rate plan defines the commercial terms applied to one or more room types. Room assignments are managed separately.">
-      <div className="grid gap-3 md:grid-cols-3">
+    <SectionCard className="min-w-0" title={editing?"Edit rate plan":"Create rate plan"} description="A rate plan defines the commercial terms applied to one or more room types. Room assignments are managed separately.">
+      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Input placeholder="Plan code (e.g. FLEX)" value={code} onChange={e=>setCode(e.target.value.toUpperCase())}/>
         <Input placeholder="Rate plan name" value={name} onChange={e=>setName(e.target.value)}/>
-        <select className="rounded-md border border-border bg-background px-3 py-2 text-sm" value={category} onChange={e=>setCategory(e.target.value)}>{CATEGORIES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select>
-        <select className="rounded-md border border-border bg-background px-3 py-2 text-sm" value={basis} onChange={e=>setBasis(e.target.value)}><option value="per_room">Per room</option><option value="per_person">Per person</option><option value="occupancy_based">Occupancy-based</option></select>
-        <select className="rounded-md border border-border bg-background px-3 py-2 text-sm" value={mealPlan} onChange={e=>setMealPlan(e.target.value)}><option value="room_only">Room only</option><option value="bed_breakfast">Bed & Breakfast</option><option value="half_board">Half Board</option><option value="full_board">Full Board</option><option value="all_inclusive">All inclusive</option><option value="custom">Custom</option></select>
-        <select className="rounded-md border border-border bg-background px-3 py-2 text-sm" value={parent} onChange={e=>setParent(e.target.value)}><option value="">No parent — standalone</option>{(data?.plans??[]).filter((p:Plan)=>p.id!==editing?.id).map((p:Plan)=><option key={p.id} value={p.id}>{p.name} ({p.code})</option>)}</select>
-        <label className="block min-w-0 space-y-1 text-xs text-muted-foreground"><span>Effective from</span><Input type="date" value={from} onChange={e=>setFrom(e.target.value)} aria-label="Effective from"/></label>
-        <label className="block min-w-0 space-y-1 text-xs text-muted-foreground"><span>Effective to</span><Input type="date" value={to} onChange={e=>setTo(e.target.value)} aria-label="Effective to"/></label>
-        <select className="rounded-md border border-border bg-background px-3 py-2 text-sm" value={refundable?"refundable":"non_refundable"} onChange={e=>setRefundable(e.target.value==="refundable")}><option value="refundable">Refundable</option><option value="non_refundable">Non-refundable</option></select>
+        <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={category} onChange={e=>setCategory(e.target.value)}>{CATEGORIES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select>
+        <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={basis} onChange={e=>setBasis(e.target.value)}><option value="per_room">Per room</option><option value="per_person">Per person</option><option value="occupancy_based">Occupancy-based</option></select>
+        <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={mealPlan} onChange={e=>setMealPlan(e.target.value)}><option value="room_only">Room only</option><option value="bed_breakfast">Bed & Breakfast</option><option value="half_board">Half Board</option><option value="full_board">Full Board</option><option value="all_inclusive">All inclusive</option><option value="custom">Custom</option></select>
+        <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={parent} onChange={e=>setParent(e.target.value)}><option value="">No parent — standalone</option>{(data?.plans??[]).filter((p:Plan)=>p.id!==editing?.id).map((p:Plan)=><option key={p.id} value={p.id}>{p.name} ({p.code})</option>)}</select>
+        <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Effective from</span><Input type="date" value={from} onChange={e=>setFrom(e.target.value)} aria-label="Effective from"/></label>
+        <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Effective to</span><Input type="date" value={to} onChange={e=>setTo(e.target.value)} aria-label="Effective to"/></label>
+        <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={refundable?"refundable":"non_refundable"} onChange={e=>setRefundable(e.target.value==="refundable")}><option value="refundable">Refundable</option><option value="non_refundable">Non-refundable</option></select>
         <Input className="md:col-span-3" placeholder="Description and booking conditions" value={description} onChange={e=>setDescription(e.target.value)}/>
-        <label className="md:col-span-3 space-y-1 text-sm"><span className="font-medium">Advanced inheritance data (JSON)</span><textarea className="min-h-40 w-full rounded-md border border-border bg-background p-3 font-mono text-xs" value={ratePlanDataText} onChange={e=>setRatePlanDataText(e.target.value)} spellCheck={false}/><span className="block text-xs text-muted-foreground">Allowed keys: base_rates, seasonal_rates, daily_rates, occupancy_rules, restrictions. Seasonal and daily rates can be managed above. Use keyed objects; JSON null explicitly clears an inherited key.</span></label>
+        <label className="md:col-span-3 space-y-1 text-sm"><span className="font-medium">Advanced inheritance data (JSON)</span><textarea className="min-h-40 w-full min-w-0 max-w-full rounded-md border border-border bg-background p-3 font-mono text-xs" value={ratePlanDataText} onChange={e=>setRatePlanDataText(e.target.value)} spellCheck={false}/><span className="block text-xs text-muted-foreground">Allowed keys: base_rates, seasonal_rates, daily_rates, occupancy_rules, restrictions. Seasonal and daily rates can be managed above. Use keyed objects; JSON null explicitly clears an inherited key.</span></label>
       </div>
-      <div className="mt-5 rounded-lg border border-border p-4 space-y-3">
+      <div className="mt-5 min-w-0 rounded-lg border border-border p-3 sm:p-4 space-y-3">
         <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4"/><h3 className="text-sm font-semibold">Seasonal pricing</h3></div>
         <p className="text-xs text-muted-foreground">Add low, shoulder, high, peak, festive, event or custom seasons. Dates are inclusive property-local calendar dates; annual recurrence is not enabled. Higher priority wins when active seasons overlap.</p>
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Input placeholder="Season key (e.g. festive-2027)" value={seasonKey} onChange={e=>setSeasonKey(e.target.value)}/>
           <Input placeholder="Season name" value={seasonName} onChange={e=>setSeasonName(e.target.value)}/>
-          <select className="rounded-md border border-border bg-background px-3 py-2 text-sm" value={seasonType} onChange={e=>setSeasonType(e.target.value as typeof seasonType)}>{["low","shoulder","high","peak","festive","event","custom"].map(v=><option key={v} value={v}>{v[0].toUpperCase()+v.slice(1)}</option>)}</select>
+          <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={seasonType} onChange={e=>setSeasonType(e.target.value as typeof seasonType)}>{["low","shoulder","high","peak","festive","event","custom"].map(v=><option key={v} value={v}>{v[0].toUpperCase()+v.slice(1)}</option>)}</select>
           <Input placeholder="Description" value={seasonDescription} onChange={e=>setSeasonDescription(e.target.value)}/>
-          <label className="block min-w-0 space-y-1 text-xs text-muted-foreground"><span>Season starts</span><Input type="date" aria-label="Season start date" value={seasonStart} onChange={e=>setSeasonStart(e.target.value)}/></label>
-          <label className="block min-w-0 space-y-1 text-xs text-muted-foreground"><span>Season ends</span><Input type="date" aria-label="Season end date" value={seasonEnd} onChange={e=>setSeasonEnd(e.target.value)}/></label>
+          <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Season starts</span><Input type="date" aria-label="Season start date" value={seasonStart} onChange={e=>setSeasonStart(e.target.value)}/></label>
+          <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Season ends</span><Input type="date" aria-label="Season end date" value={seasonEnd} onChange={e=>setSeasonEnd(e.target.value)}/></label>
           <Input type="number" placeholder="Nightly rate" value={seasonRate} onChange={e=>setSeasonRate(e.target.value)}/>
           <Input type="number" placeholder="Priority (higher wins)" value={seasonPriority} onChange={e=>setSeasonPriority(e.target.value)}/>
           <div className="flex items-center gap-2 text-sm"><input type="checkbox" checked={seasonActive} onChange={e=>setSeasonActive(e.target.checked)}/>Active season <Badge variant="outline">{String(data?.property?.currency??"").toUpperCase()}</Badge></div>
@@ -339,12 +339,12 @@ function RatePlans() {
         <Button type="button" variant="outline" disabled={!editing||!assignedPlanRoomTypes.length} onClick={addSeason}><Plus className="mr-2 h-4 w-4"/>Add season</Button>
         {seasonalEntries.length>0&&<div className="space-y-2">{seasonalEntries.map(([key,value])=><div key={key} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm"><div><span className="font-medium">{String(value.name??key)}</span><span className="ml-2 text-xs text-muted-foreground">{String(value.start_date??"")} → {String(value.end_date??"")} · {String(value.nightly_rate??"")} {String(value.currency??"")} · priority {String(value.priority??"—")}</span></div><Button type="button" size="icon" variant="ghost" aria-label={"Remove season "+key} onClick={()=>removeSeason(key)}><Trash2 className="h-4 w-4"/></Button></div>)}</div>}
       </div>
-      <div className="mt-5 rounded-lg border border-border p-4 space-y-3">
+      <div className="mt-5 min-w-0 rounded-lg border border-border p-3 sm:p-4 space-y-3">
         <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4"/><h3 className="text-sm font-semibold">Daily rate calendar</h3></div>
         <p className="text-xs text-muted-foreground">Set an exact-date nightly override for an individual room type. Dates use the property-local calendar. Active daily overrides take precedence over seasonal and base rates for that night. Clearing a child entry reveals the inherited parent rate again.</p>
-        <div className="grid gap-3 md:grid-cols-3">
-          <label className="block min-w-0 space-y-1 text-xs text-muted-foreground"><span>Rate date</span><Input type="date" aria-label="Daily rate date" value={dailyDate} onChange={e=>setDailyDate(e.target.value)}/></label>
-          <select className="rounded-md border border-border bg-background px-3 py-2 text-sm" value={dailyRoomType} onChange={e=>setDailyRoomType(e.target.value)}><option value="">Choose room type</option>{assignedPlanRoomTypes.map((rt:{id:string;name:string})=><option key={rt.id} value={rt.id}>{rt.name}</option>)}</select>
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Rate date</span><Input type="date" aria-label="Daily rate date" value={dailyDate} onChange={e=>setDailyDate(e.target.value)}/></label>
+          <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={dailyRoomType} onChange={e=>setDailyRoomType(e.target.value)}><option value="">Choose room type</option>{assignedPlanRoomTypes.map((rt:{id:string;name:string})=><option key={rt.id} value={rt.id}>{rt.name}</option>)}</select>
           <Input type="number" min="0.01" step="0.01" placeholder="Nightly rate" value={dailyRate} onChange={e=>setDailyRate(e.target.value)}/>
           <div className="flex items-center gap-2 text-sm"><input type="checkbox" checked={dailyActive} onChange={e=>setDailyActive(e.target.checked)}/>Active override <Badge variant="outline">{String(data?.property?.currency??"").toUpperCase()}</Badge></div>
         </div>
@@ -355,13 +355,13 @@ function RatePlans() {
             <span>{selectedDailyRateKeys.length} selected · {dailyRateEntries.length} total</span>
           </div>
           <div className="space-y-2">{dailyRateEntries.sort((a,b)=>a.date.localeCompare(b.date)).map(entry=><div key={entry.date+entry.roomTypeId} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
-            <div className="flex items-center gap-3"><input type="checkbox" aria-label={"Select daily override "+entry.date} checked={selectedDailyRateKeys.includes(entry.date+"::"+entry.roomTypeId)} onChange={e=>setSelectedDailyRateKeys(current=>e.target.checked?[...current,entry.date+"::"+entry.roomTypeId]:current.filter(key=>key!==entry.date+"::"+entry.roomTypeId))}/><div><span className="font-medium">{entry.date}</span><span className="ml-2 text-xs text-muted-foreground">{(roomTypeData?.roomTypes??[]).find((rt:{id:string})=>rt.id===entry.roomTypeId)?.name??entry.roomTypeId} · {String(entry.value.nightly_rate??"")} {String(entry.value.currency??"")} · {entry.value.active===false?"Inactive":"Active"}</span></div></div>
+            <div className="flex min-w-0 items-start gap-3"><input type="checkbox" aria-label={"Select daily override "+entry.date} checked={selectedDailyRateKeys.includes(entry.date+"::"+entry.roomTypeId)} onChange={e=>setSelectedDailyRateKeys(current=>e.target.checked?[...current,entry.date+"::"+entry.roomTypeId]:current.filter(key=>key!==entry.date+"::"+entry.roomTypeId))}/><div><span className="font-medium">{entry.date}</span><span className="ml-2 text-xs text-muted-foreground">{(roomTypeData?.roomTypes??[]).find((rt:{id:string})=>rt.id===entry.roomTypeId)?.name??entry.roomTypeId} · {String(entry.value.nightly_rate??"")} {String(entry.value.currency??"")} · {entry.value.active===false?"Inactive":"Active"}</span></div></div>
             <Button type="button" size="icon" variant="ghost" aria-label={"Clear daily rate "+entry.date} onClick={()=>{removeDailyRate(entry.date,entry.roomTypeId);setSelectedDailyRateKeys(current=>current.filter(key=>key!==entry.date+"::"+entry.roomTypeId));}}><Trash2 className="h-4 w-4"/></Button>
           </div>)}</div>
           <div className="rounded-md bg-muted/40 p-3 space-y-3">
             <div><h4 className="text-sm font-medium">Bulk editor</h4><p className="text-xs text-muted-foreground">Applies only to selected existing exact-date overrides. It does not generate date ranges or recurring entries.</p></div>
-            <div className="grid gap-2 md:grid-cols-3">
-              <select className="rounded-md border border-border bg-background px-3 py-2 text-sm" value={bulkMode} onChange={e=>setBulkMode(e.target.value as typeof bulkMode)}>
+            <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={bulkMode} onChange={e=>setBulkMode(e.target.value as typeof bulkMode)}>
                 <option value="percent">Adjust by percent (%)</option><option value="amount">Adjust by amount ({String(data?.property?.currency??"").toUpperCase()})</option><option value="set">Set exact nightly rate ({String(data?.property?.currency??"").toUpperCase()})</option>
               </select>
               <Input type="number" step="0.01" placeholder={bulkMode==="percent"?"e.g. 10 or -5":"Nightly rate adjustment"} value={bulkValue} onChange={e=>setBulkValue(e.target.value)}/>
@@ -375,14 +375,14 @@ function RatePlans() {
           </div>
         </>}
       </div>
-      <div className="mt-5 rounded-lg border border-border p-4 space-y-3">
+      <div className="mt-5 min-w-0 rounded-lg border border-border p-3 sm:p-4 space-y-3">
         <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4"/><h3 className="text-sm font-semibold">Stay restrictions</h3></div>
         <p className="text-xs text-muted-foreground">Restrictions are separate from inventory. Stop-sell never changes room counts or blocked state. Length-of-stay and advance-booking rules use the arrival date; closed-to-departure checks the checkout date; stop-sell applies to any occupied night. Dates are property-local and inclusive.</p>
         {!editing?<p className="text-sm text-muted-foreground">Create this rate plan and assign room types first. Then edit it to configure restrictions.</p>:(
           <>
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <Input placeholder="Rule key (e.g. peak-min-stay)" value={restrictionKey} onChange={e=>setRestrictionKey(e.target.value)}/>
-              <select className="rounded-md border border-border bg-background px-3 py-2 text-sm" value={restrictionType} onChange={e=>setRestrictionType(e.target.value as typeof restrictionType)}>
+              <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={restrictionType} onChange={e=>setRestrictionType(e.target.value as typeof restrictionType)}>
                 <option value="min_los">Minimum length of stay</option>
                 <option value="max_los">Maximum length of stay</option>
                 <option value="closed_to_arrival">Closed to arrival</option>
@@ -393,8 +393,8 @@ function RatePlans() {
               </select>
               {["min_los","max_los","advance_booking_min_hours","advance_booking_max_days"].includes(restrictionType)&&
                 <Input type="number" min="0" step="1" placeholder={restrictionType==="min_los"||restrictionType==="max_los"?"Nights":restrictionType==="advance_booking_min_hours"?"Hours before arrival":"Days before arrival"} value={restrictionValue} onChange={e=>setRestrictionValue(e.target.value)}/>}
-              <label className="block min-w-0 space-y-1 text-xs text-muted-foreground"><span>Restriction starts</span><Input type="date" aria-label="Restriction effective from" value={restrictionStart} onChange={e=>setRestrictionStart(e.target.value)}/></label>
-              <label className="block min-w-0 space-y-1 text-xs text-muted-foreground"><span>Restriction ends</span><Input type="date" aria-label="Restriction effective to" min={restrictionStart||undefined} value={restrictionEnd} onChange={e=>setRestrictionEnd(e.target.value)}/></label>
+              <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Restriction starts</span><Input type="date" aria-label="Restriction effective from" value={restrictionStart} onChange={e=>setRestrictionStart(e.target.value)}/></label>
+              <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Restriction ends</span><Input type="date" aria-label="Restriction effective to" min={restrictionStart||undefined} value={restrictionEnd} onChange={e=>setRestrictionEnd(e.target.value)}/></label>
               <Input placeholder="Reason shown when the stay is unsellable" maxLength={500} value={restrictionReason} onChange={e=>setRestrictionReason(e.target.value)}/>
             </div>
             <div className="space-y-2"><p className="text-xs font-medium">Assigned room types affected</p>
@@ -463,16 +463,29 @@ function RatePlans() {
         {!data?.plans?.length&&<p className="py-6 text-center text-sm text-muted-foreground">No rate plans yet. Create the first commercial plan above.</p>}
       </div>
     </SectionCard>}
-    <SectionCard title="Authorized published-rate catalogue" description="Read-only integration view of the publication RPC. Only the latest snapshot for currently published and active plans is returned; drafts and suspended plans are excluded.">
+    <SectionCard className="min-w-0" title="Authorized published-rate catalogue" description="Read-only integration view of the publication RPC. Only the latest snapshot for currently published and active plans is returned; drafts and suspended plans are excluded.">
       {publishedLoading?<LoadingState/>:publishedError?<p className="text-sm text-destructive">{(publishedErrorValue as Error)?.message??"Unable to load published rate plans."}</p>:(
-        <div className="space-y-2">
+        <div className="grid min-w-0 grid-cols-1 gap-3">
           <p className="text-xs text-muted-foreground">{(publishedData??[]).length} currently published plan(s) for this property.</p>
           {(publishedData??[]).map((item:{publication_id:string;rate_plan_id:string;publication_number:number;rate_plan_version:number;code:string;name:string;currency:string;effective_from:string|null;effective_to:string|null;published_at:string;room_type_assignments:{room_type_id:string;name:string}[]})=>
-            <div key={item.publication_id} className="flex flex-wrap items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
-              <div className="min-w-0 flex-1"><span className="font-medium">{item.name}</span><span className="ml-2 text-xs text-muted-foreground">{item.code} · {item.currency} · {item.effective_from??"Any"} → {item.effective_to??"Open"}</span><p className="text-xs text-muted-foreground">{(item.room_type_assignments??[]).map(room=>room.name).join(", ")}</p></div>
-              <Badge>Published</Badge><Badge variant="outline">Publication {item.publication_number}</Badge><Badge variant="outline">v{item.rate_plan_version}</Badge>
-              <span className="text-xs text-muted-foreground">{new Date(item.published_at).toLocaleString()}</span>
-            </div>
+            <article key={item.publication_id} className="grid min-w-0 gap-3 rounded-lg border border-border/80 bg-background/40 p-3 sm:p-4">
+              <div className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                <div className="min-w-0">
+                  <h3 className="break-words [overflow-wrap:anywhere] text-base font-semibold leading-snug">{item.name}</h3>
+                  <p className="mt-1 break-words text-xs text-muted-foreground">{item.code} · {item.currency}</p>
+                  <p className="mt-1 break-words text-xs text-muted-foreground">{item.effective_from??"Any"} → {item.effective_to??"Open"}</p>
+                </div>
+                <div className="flex min-w-0 flex-wrap gap-1.5 sm:justify-end">
+                  <Badge>Published</Badge>
+                  <Badge variant="outline">Publication {item.publication_number}</Badge>
+                  <Badge variant="outline">v{item.rate_plan_version}</Badge>
+                </div>
+              </div>
+              <div className="grid min-w-0 gap-2 border-t border-border/70 pt-3 text-xs sm:grid-cols-2">
+                <div className="min-w-0"><p className="font-medium text-muted-foreground">Assigned room types</p><p className="mt-1 break-words">{(item.room_type_assignments??[]).map(room=>room.name).join(", ")||"No room types assigned"}</p></div>
+                <div className="min-w-0 sm:text-right"><p className="font-medium text-muted-foreground">Published</p><p className="mt-1 break-words">{new Date(item.published_at).toLocaleString()}</p></div>
+              </div>
+            </article>
           )}
           {!(publishedData??[]).length&&<p className="py-5 text-center text-sm text-muted-foreground">No active published rate plans. Drafts and suspended plans are intentionally hidden.</p>}
         </div>
