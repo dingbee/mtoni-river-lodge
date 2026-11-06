@@ -180,7 +180,14 @@ DECLARE
   v_fee_lines jsonb := '[]'::jsonb;
   v_tax_lines jsonb := '[]'::jsonb;
   v_promo jsonb := NULL;
+  v_promotions jsonb := '[]'::jsonb;
   v_promo_row public.staynas_property_promotions%ROWTYPE;
+  v_promo_codes text[];
+  v_promo_count integer := 0;
+  v_selected_count integer := 0;
+  v_auto_primary_stackable boolean := false;
+  v_discount_amount numeric := 0;
+  v_promo_item jsonb;
   v_fee record;
   v_tax record;
   v_taxable numeric;
@@ -231,25 +238,84 @@ BEGIN
     );
   END LOOP;
 
-  -- Select one promotion deterministically. A code selects only that promotion;
-  -- automatic promotions are considered only when no code was supplied.
+  -- Explicit codes may be comma-separated. Multiple explicit promotions are
+  -- accepted only when every selected promotion is explicitly stackable.
   IF _promo_code IS NOT NULL AND btrim(_promo_code) <> '' THEN
-    SELECT * INTO v_promo_row FROM public.staynas_property_promotions p
-    WHERE p.property_id=_property_id AND upper(p.code)=upper(btrim(_promo_code))
-    FOR SHARE;
-    IF NOT FOUND THEN
-      RETURN jsonb_build_object('ok',false,'error_code','PROMOTION_INVALID','message','Promotion code is not recognised');
+    SELECT array_agg(upper(btrim(code_part)))
+      INTO v_promo_codes
+    FROM unnest(string_to_array(_promo_code,',')) AS code_part
+    WHERE btrim(code_part)<>'';
+    IF COALESCE(cardinality(v_promo_codes),0)=0
+       OR cardinality(v_promo_codes)<>(SELECT count(DISTINCT x) FROM unnest(v_promo_codes) x) THEN
+      RETURN jsonb_build_object('ok',false,'error_code','PROMOTION_INVALID','message','Promotion codes must be non-empty and unique');
+    END IF;
+    SELECT count(*) INTO v_promo_count
+    FROM public.staynas_property_promotions p
+    WHERE p.property_id=_property_id AND upper(p.code)=ANY(v_promo_codes);
+    IF v_promo_count<>cardinality(v_promo_codes) THEN
+      RETURN jsonb_build_object('ok',false,'error_code','PROMOTION_INVALID','message','One or more promotion codes are not recognised');
+    END IF;
+    IF v_promo_count>1 AND EXISTS(
+      SELECT 1 FROM public.staynas_property_promotions p
+      WHERE p.property_id=_property_id AND upper(p.code)=ANY(v_promo_codes) AND p.stackable=false
+    ) THEN
+      RETURN jsonb_build_object('ok',false,'error_code','PROMOTION_STACKING_CONFLICT',
+        'message','Every promotion in a stacked code set must be configured as stackable');
     END IF;
   ELSE
-    SELECT * INTO v_promo_row FROM public.staynas_property_promotions p
+    SELECT p.stackable INTO v_auto_primary_stackable
+    FROM public.staynas_property_promotions p
     WHERE p.property_id=_property_id AND p.auto_apply=true AND p.status='active'
       AND (p.valid_from IS NULL OR p.valid_from<=now())
       AND (p.valid_to IS NULL OR p.valid_to>now())
-    ORDER BY p.priority,p.id LIMIT 1 FOR SHARE;
+      AND (p.booking_window_from IS NULL OR p.booking_window_from<=v_booking_date)
+      AND (p.booking_window_to IS NULL OR p.booking_window_to>=v_booking_date)
+      AND (p.stay_from IS NULL OR p.stay_from<=_check_in)
+      AND (p.stay_to IS NULL OR p.stay_to>=_check_out-1)
+      AND p.minimum_nights<=v_nights
+      AND (cardinality(p.eligible_room_ids)=0 OR _room_id=ANY(p.eligible_room_ids))
+      AND (cardinality(p.eligible_rate_plan_ids)=0 OR _rate_plan_id=ANY(p.eligible_rate_plan_ids))
+      AND v_component_total>=p.minimum_booking_value
+      AND (p.currency IS NULL OR upper(p.currency)=v_currency)
+      AND (p.usage_limit IS NULL OR p.usage_count<p.usage_limit)
+      AND (_guest_key IS NULL OR p.per_guest_limit IS NULL OR
+        (SELECT count(*) FROM public.staynas_promotion_redemptions r
+         WHERE r.promotion_id=p.id AND r.guest_key=_guest_key)<p.per_guest_limit)
+    ORDER BY p.priority,p.id LIMIT 1;
   END IF;
 
-  IF v_promo_row.id IS NOT NULL THEN
-    IF v_promo_row.status <> 'active' OR (v_promo_row.valid_from IS NOT NULL AND v_promo_row.valid_from>now())
+  FOR v_promo_row IN
+    SELECT p.* FROM public.staynas_property_promotions p
+    WHERE p.property_id=_property_id
+      AND (
+        (_promo_codes IS NOT NULL AND upper(p.code)=ANY(v_promo_codes))
+        OR
+        (_promo_codes IS NULL AND p.auto_apply=true AND p.status='active'
+          AND (p.valid_from IS NULL OR p.valid_from<=now())
+          AND (p.valid_to IS NULL OR p.valid_to>now())
+          AND (p.booking_window_from IS NULL OR p.booking_window_from<=v_booking_date)
+          AND (p.booking_window_to IS NULL OR p.booking_window_to>=v_booking_date)
+          AND (p.stay_from IS NULL OR p.stay_from<=_check_in)
+          AND (p.stay_to IS NULL OR p.stay_to>=_check_out-1)
+          AND p.minimum_nights<=v_nights
+          AND (cardinality(p.eligible_room_ids)=0 OR _room_id=ANY(p.eligible_room_ids))
+          AND (cardinality(p.eligible_rate_plan_ids)=0 OR _rate_plan_id=ANY(p.eligible_rate_plan_ids))
+          AND v_component_total>=p.minimum_booking_value
+          AND (p.currency IS NULL OR upper(p.currency)=v_currency)
+          AND (p.usage_limit IS NULL OR p.usage_count<p.usage_limit)
+          AND (_guest_key IS NULL OR p.per_guest_limit IS NULL OR
+            (SELECT count(*) FROM public.staynas_promotion_redemptions r
+             WHERE r.promotion_id=p.id AND r.guest_key=_guest_key)<p.per_guest_limit))
+      )
+    ORDER BY p.priority,p.id
+    FOR SHARE
+  LOOP
+    IF _promo_codes IS NULL AND v_selected_count>0
+       AND (NOT v_auto_primary_stackable OR NOT v_promo_row.stackable) THEN
+      EXIT;
+    END IF;
+    IF v_promo_row.status <> 'active'
+       OR (v_promo_row.valid_from IS NOT NULL AND v_promo_row.valid_from>now())
        OR (v_promo_row.valid_to IS NOT NULL AND v_promo_row.valid_to<=now())
        OR (v_promo_row.booking_window_from IS NOT NULL AND v_booking_date<v_promo_row.booking_window_from)
        OR (v_promo_row.booking_window_to IS NOT NULL AND v_booking_date>v_promo_row.booking_window_to)
@@ -267,21 +333,24 @@ BEGIN
       RETURN jsonb_build_object('ok',false,'error_code','PROMOTION_INELIGIBLE','message','Promotion does not satisfy its configured eligibility rules',
         'promotion_id',v_promo_row.id,'promotion_version',v_promo_row.version);
     END IF;
-    IF v_promo_row.stackable THEN
-      RETURN jsonb_build_object('ok',false,'error_code','PROMOTION_STACKING_UNSUPPORTED','message','This release applies one promotion per quote; stacking is not enabled');
-    END IF;
-    v_discount_base := v_component_total;
+
+    v_discount_base := GREATEST(0,v_component_total-v_discount);
     IF v_promo_row.discount_type='percentage' THEN
-      v_discount := round(v_discount_base*v_promo_row.discount_value/100,2);
+      v_discount_amount := round(v_discount_base*v_promo_row.discount_value/100,2);
     ELSE
-      v_discount := LEAST(v_discount_base,round(v_promo_row.discount_value,2));
+      v_discount_amount := LEAST(v_discount_base,round(v_promo_row.discount_value,2));
     END IF;
-    v_discount := LEAST(v_discount,v_component_total);
-    v_applied_promo_id := v_promo_row.id;
-    v_promo := jsonb_build_object('id',v_promo_row.id,'code',v_promo_row.code,'name',v_promo_row.name,
+    v_discount_amount := LEAST(v_discount_amount,v_discount_base);
+    v_discount := round(v_discount+v_discount_amount,2);
+    v_promo_item := jsonb_build_object('id',v_promo_row.id,'code',v_promo_row.code,'name',v_promo_row.name,
       'version',v_promo_row.version,'discount_type',v_promo_row.discount_type,
-      'discount_value',v_promo_row.discount_value,'discount_amount',v_discount,'currency',v_currency);
-  END IF;
+      'discount_value',v_promo_row.discount_value,'discount_amount',v_discount_amount,'currency',v_currency,
+      'stackable',v_promo_row.stackable,'priority',v_promo_row.priority);
+    v_promotions := v_promotions || jsonb_build_array(v_promo_item);
+    IF v_promo IS NULL THEN v_promo:=v_promo_item; END IF;
+    v_applied_promo_id := v_promo_row.id;
+    v_selected_count := v_selected_count+1;
+  END LOOP;
 
   -- Fees are calculated after discounts. The applicable base is explicitly
   -- derived from component tags; no hidden country or tax assumptions exist.
@@ -388,7 +457,7 @@ BEGIN
   END LOOP;
 
   RETURN jsonb_build_object('ok',true,'property_id',_property_id,'currency',v_currency,'timezone',v_timezone,
-    'component_subtotal',v_component_total,'discount_total',v_discount,'promotion',v_promo,
+    'component_subtotal',v_component_total,'discount_total',v_discount,'promotion',v_promo,'promotions',v_promotions,
     'fees',v_fee_lines,'fee_total',v_fee_total,'taxes',v_tax_lines,'tax_total',v_tax_total,
     'tax_addition',v_tax_addition,'total',round(v_component_total-v_discount+v_fee_total+v_tax_addition,2),
     'check_in',_check_in,'check_out',_check_out,'nights',v_nights);
