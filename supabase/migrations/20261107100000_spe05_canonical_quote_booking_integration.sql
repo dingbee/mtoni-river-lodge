@@ -389,4 +389,37 @@ REVOKE ALL ON FUNCTION public.get_staynas_booking_quote_with_rate_plan_and_promo
 GRANT EXECUTE ON FUNCTION public.get_staynas_booking_quote_with_rate_plan_and_promo(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text)
   TO service_role;
 
+-- Promotion-aware booking wrapper preserves the existing transactional booking RPC.
+CREATE OR REPLACE FUNCTION public.create_booking_for_property_with_rate_plan_and_promo(
+  _property_id uuid,_room_slug text,_check_in date,_check_out date,_adults integer,_children integer,
+  _guest_name text,_guest_email text,_guest_phone text,_country text,_special_requests text,
+  _extras jsonb DEFAULT '[]'::jsonb,_children_below_6 integer DEFAULT NULL,
+  _children_7_plus integer DEFAULT NULL,_hold_id uuid DEFAULT NULL,_session_id text DEFAULT NULL,
+  _payment_method text DEFAULT 'online',_rate_plan_id uuid DEFAULT NULL,_promo_code text DEFAULT NULL
+)
+RETURNS TABLE(
+  booking_id uuid,reference text,total numeric,currency text,taxes numeric,tax_addition numeric,tax_breakdown jsonb
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path=public
+AS $booking_wrapper$
+BEGIN
+  PERFORM set_config('staynas.rate_plan_id',COALESCE(_rate_plan_id::text,''),true);
+  PERFORM set_config('staynas.promo_code',COALESCE(_promo_code,''),true);
+  RETURN QUERY SELECT * FROM public.create_booking_for_property(
+    _property_id,_room_slug,_check_in,_check_out,_adults,_children,_guest_name,_guest_email,
+    _guest_phone,_country,_special_requests,_extras,_children_below_6,_children_7_plus,
+    _hold_id,_session_id,_payment_method
+  );
+END;
+$booking_wrapper$;
+
+REVOKE ALL ON FUNCTION public.create_booking_for_property_with_rate_plan_and_promo(
+  uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text,uuid,text
+) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.create_booking_for_property_with_rate_plan_and_promo(
+  uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text,uuid,text
+) TO service_role;
+
 COMMIT;
