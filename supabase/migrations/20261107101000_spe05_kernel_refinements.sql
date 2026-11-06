@@ -344,7 +344,7 @@ BEGIN
       'tax_mode',CASE WHEN v_tax.calculation_type='inclusive_percent' THEN 'inclusive'
                       WHEN v_tax.calculation_type='exclusive_percent' THEN 'exclusive'
                       ELSE v_tax.tax_mode END,
-      'taxable_amount',v_taxable,'amount',v_tax_amount,'currency',v_currency));
+      'taxable_amount',v_tax_base,'gross_taxable_amount',v_taxable,'amount',v_tax_amount,'currency',v_currency));
   END LOOP;
 
   RETURN jsonb_build_object('ok',true,'property_id',_property_id,'currency',v_currency,'timezone',v_timezone,
