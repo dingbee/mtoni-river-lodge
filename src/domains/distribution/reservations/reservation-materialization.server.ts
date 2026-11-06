@@ -185,7 +185,8 @@ export async function processNextDistributionReservationMaterialization(
   workerId: string,
   leaseSeconds = 60,
 ): Promise<ReservationMaterializationRpcResult | null> {
-  const lease = await claimDistributionReservationMaterialization(workerId, leaseSeconds);
+  const normalizedWorkerId = workerId.trim();
+  const lease = await claimDistributionReservationMaterialization(normalizedWorkerId, leaseSeconds);
   if (!lease) return null;
 
   try {
@@ -194,7 +195,7 @@ export async function processNextDistributionReservationMaterialization(
       await finishDistributionWebhook({
         inboxId: lease.id,
         leaseToken: lease.lease_token,
-        workerId,
+        workerId: normalizedWorkerId,
         status: "processed",
       });
     } else if (result.outcome === "manual_reconciliation") {
@@ -221,7 +222,7 @@ export async function processNextDistributionReservationMaterialization(
     await finishDistributionWebhook({
       inboxId: lease.id,
       leaseToken: lease.lease_token,
-      workerId,
+      workerId: normalizedWorkerId,
       status: "retryable_failure",
       safeSummary: "Reservation materialization failed before canonical booking completion.",
       retryAfterSeconds: 60,
