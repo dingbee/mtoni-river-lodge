@@ -159,6 +159,41 @@ export const searchPublicDemoAvailability = createServerFn({ method: "POST" })
       .sort((a: any, b: any) => (a.nightly_total ?? Number.POSITIVE_INFINITY) - (b.nightly_total ?? Number.POSITIVE_INFINITY));
   });
 
+const publicQuoteSchema = z.object({
+  propertySlug: propertySlugSchema,
+  quoteId: z.string().uuid(),
+  roomSlug: z.string().min(1).max(80),
+  checkIn: dateSchema,
+  checkOut: dateSchema,
+  adults: z.number().int().min(1).max(8),
+  ratePlanId: z.string().uuid(),
+  guestEmail: z.string().trim().email().max(255),
+});
+
+export const getPublicDemoQuote = createServerFn({ method: "POST" })
+  .inputValidator((value: unknown) => publicQuoteSchema.parse(value))
+  .handler(async ({ data }) => {
+    if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in.");
+    const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
+    const { data: quote, error } = await (supabaseAdmin as any).rpc("staynas_create_reservation_quote", {
+      _property_id: property.id,
+      _room_slug: data.roomSlug,
+      _check_in: data.checkIn,
+      _check_out: data.checkOut,
+      _adults: data.adults,
+      _children_below_6: 0,
+      _children_7_plus: 0,
+      _extras: [],
+      _rate_plan_id: data.ratePlanId,
+      _promo_code: null,
+      _guest_email: data.guestEmail,
+      _ttl_seconds: 600,
+    });
+    if (error) throw new Error(error.message);
+    if (!quote?.quote_id) throw new Error(`Pricing quote rejected [${quote?.error_code ?? "QUOTE_FAILED"}]: ${quote?.message ?? "The final price could not be calculated"}`);
+    return quote;
+  });
+
 const createBookingSchema = z.object({
   propertySlug: propertySlugSchema,
   roomSlug: z.string().min(1).max(80),
@@ -180,40 +215,37 @@ export const createPublicDemoBooking = createServerFn({ method: "POST" })
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in.");
     const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
 
-    // Use the existing property-scoped transactional booking RPC. The service
-    // role is confined to this server function; the property ID is resolved
-    // server-side from the explicit UAT demo allowlist and never trusted from
-    // the browser.
-    const { data: rows, error } = await (supabaseAdmin as any).rpc("create_booking_for_property_with_rate_plan", {
+    // The guest submits the exact server-issued quote. The database rechecks
+    // its expiry, pricing evidence, inventory and idempotency in one transaction.
+    const { data: result, error } = await (supabaseAdmin as any).rpc("staynas_create_reservation_from_quote", {
+      _quote_id: data.quoteId,
       _property_id: property.id,
-      _room_slug: data.roomSlug,
-      _check_in: data.checkIn,
-      _check_out: data.checkOut,
-      _adults: data.adults,
-      _children: data.children,
+      _idempotency_key: data.quoteId,
       _guest_name: data.guestName,
       _guest_email: data.guestEmail,
       _guest_phone: data.guestPhone || null,
       _country: data.country || null,
       _special_requests: data.specialRequests || null,
-      _extras: [],
-      _children_below_6: 0,
-      _children_7_plus: data.children,
+      _payment_method: "pay_at_property",
+      _source: "website",
       _hold_id: null,
       _session_id: null,
-      _payment_method: "pay_at_property",
-      _rate_plan_id: data.ratePlanId ?? null,
+      _target_status: "pending",
+      _actor_id: null,
+      _visit_purpose: null,
+      _notes: null,
     });
-
     if (error) throw new Error(error.message);
-    const row = Array.isArray(rows) ? rows[0] : rows;
-    if (!row) throw new Error("The reservation could not be created.");
+    if (result?.ok === false) {
+      throw new Error(`Reservation rejected [${result.error_code ?? "RESERVATION_REJECTED"}]: ${result.message ?? "The reservation could not be created"}`);
+    }
+    if (!result?.booking_id) throw new Error("The reservation could not be created.");
 
     return {
-      bookingId: row.booking_id,
-      reference: row.reference,
-      total: Number(row.total),
-      currency: row.currency,
+      bookingId: result.booking_id,
+      reference: result.reference,
+      total: Number(result.total),
+      currency: result.currency,
       propertyName: property.name,
       paymentStatus: "unpaid" as const,
       paymentEnabled: false,
