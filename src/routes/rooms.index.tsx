@@ -27,13 +27,10 @@ function RoomsIndexPage() {
     (async () => {
       const { data, error } = await supabase.auth.getUser();
       if (cancelled || error || !data.user) return;
-      const [{ data: roles, error: roleError }, { data: properties, error: propertyError }] = await Promise.all([
-        supabase.rpc("current_user_roles"),
-        staynasRpc(supabase).rpc("staynas_list_properties"),
-      ]);
-      const hasStaffRole = !roleError && Array.isArray(roles) && roles.length > 0;
+      const { data: properties, error: propertyError } =
+        await staynasRpc(supabase).rpc("staynas_list_properties");
       const hasPropertyAccess = !propertyError && Array.isArray(properties) && properties.length > 0;
-      if (!cancelled && (hasStaffRole || hasPropertyAccess)) {
+      if (!cancelled && hasPropertyAccess) {
         await navigate({ to: "/admin" });
       }
     })().catch((error) => console.error("[StayNas public rooms] Staff session routing failed", error));

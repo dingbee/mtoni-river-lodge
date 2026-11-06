@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireStayNasFounderAdmin } from "@/lib/staynas-authorization.server";
 import { defineAiInterface, aiPlaceholder } from "@/domains/_platform/ai/interface";
 
 export type CampaignInput = {
@@ -24,6 +25,7 @@ export type CampaignInput = {
 export const listCampaigns = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("campaigns")
       .select("*")
@@ -36,6 +38,7 @@ export const saveCampaign = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: CampaignInput) => d)
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const payload = {
       name: data.name,
       objective: data.objective ?? null,
@@ -71,6 +74,7 @@ export const deleteCampaign = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => d)
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { error } = await context.supabase.from("campaigns").delete().eq("id", data.id);
     if (error) throw error;
     return { ok: true };

@@ -1,0 +1,1 @@
+ALTER TABLE public.ai_concierge_sessions ADD COLUMN IF NOT EXISTS property_id uuid;

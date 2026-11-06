@@ -31,8 +31,12 @@ export interface FolioPostingResult {
 }
 
 async function assertStaff(sb: Sb, userId: string) {
-  const { data, error } = await sb.rpc("is_any_staff", { _user_id: userId });
-  if (error || !data) throw new Error(folioFailureMessage("unauthorised"));
+  if (!userId) throw new Error(folioFailureMessage("unauthorised"));
+  const { data, error } = await sb.rpc("staynas_current_property_roles");
+  const allowed = ["owner", "manager", "finance", "reception"];
+  if (error || !Array.isArray(data) || !data.some((role: string) => allowed.includes(role))) {
+    throw new Error(folioFailureMessage("unauthorised"));
+  }
 }
 
 function toStay(b: any, unitLabel: string | null, roomName: string | null): FolioStay {

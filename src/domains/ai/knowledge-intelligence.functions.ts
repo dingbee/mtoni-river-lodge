@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireStayNasStaffAccess, requireStayNasPropertyRole } from "@/lib/staynas-authorization.server";
 
 const MANAGER_ROLES = ["owner", "manager"] as const;
 
@@ -15,17 +16,10 @@ const DEFAULT_FRESHNESS: Record<string, number> = {
 };
 
 async function assertStaff(sb: any, userId: string) {
-  const { data, error } = await sb.rpc("is_any_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasStaffAccess(sb, userId);
 }
 async function assertManager(sb: any, userId: string) {
-  const { data, error } = await sb.rpc("has_any_role", {
-    _user_id: userId,
-    _roles: [...MANAGER_ROLES],
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasPropertyRole(sb, userId, MANAGER_ROLES);
 }
 
 function daysBetween(a: string | null | undefined, b: Date = new Date()) {

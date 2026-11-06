@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { FounderAdminGate } from "@/components/os/FounderAdminGate";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
@@ -19,7 +20,7 @@ import { listCampaigns, saveCampaign, deleteCampaign, type CampaignInput } from 
 
 export const Route = createFileRoute("/_authenticated/admin/marketing/campaigns")({
   head: () => ({ meta: [{ title: "Campaigns — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
-  component: Campaigns,
+  component: CampaignsPage
 });
 
 const STATUSES = ["draft", "scheduled", "running", "paused", "completed", "archived"] as const;
@@ -42,6 +43,10 @@ function buildUtmUrl(landing: string, f: CampaignInput): string {
     set("utm_content", f.utm_content);
     return url.toString();
   } catch { return landing; }
+}
+
+function CampaignsPage() {
+  return <FounderAdminGate description="Campaign records are currently platform-wide and are restricted until a property_id contract is implemented."><Campaigns /></FounderAdminGate>;
 }
 
 function Campaigns() {

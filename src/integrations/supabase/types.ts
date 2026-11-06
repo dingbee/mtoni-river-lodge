@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       activity_logs: {
         Row: {
+          property_id: string | null
           action: string
           actor_email: string | null
           actor_id: string | null
@@ -34,6 +35,7 @@ export type Database = {
           user_agent: string | null
         }
         Insert: {
+          property_id?: string | null
           action: string
           actor_email?: string | null
           actor_id?: string | null
@@ -52,6 +54,7 @@ export type Database = {
           user_agent?: string | null
         }
         Update: {
+          property_id?: string | null
           action?: string
           actor_email?: string | null
           actor_id?: string | null
@@ -18716,6 +18719,14 @@ export type Database = {
       }
     }
     Functions: {
+      is_staynas_founder_ai_admin: {
+        Args: Record<string, never>
+        Returns: boolean
+      }
+      staynas_current_property_roles: {
+        Args: Record<string, never>
+        Returns: string[]
+      }
       staynas_transition_booking: {
         Args: { _booking_id: string; _target_status: string; _notes?: string | null }
         Returns: Json

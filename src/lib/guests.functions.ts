@@ -1,14 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { requireStayNasModuleAccess, requireStayNasStaffAccess, requireStayNasFounderAdmin } from "@/lib/staynas-authorization.server";
 import { logActivity } from "@/lib/activity-log.server";
 
 // Any-staff gate; RLS enforces the same, but we fail fast with a friendly message.
 async function assertStaff(supabase: any, userId: string) {
-  const { data, error } = await supabase.rpc("is_any_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasStaffAccess(supabase, userId);
 }
 
 const listSchema = z.object({
@@ -139,15 +137,7 @@ export const getGuestSummary = createServerFn({ method: "POST" })
       ? await sb.from("guest_tags").select("id, slug, label, color").in("id", tagIds)
       : { data: [] as any[] };
 
-    // Reviews joined by email
-    const { data: reviews } = guest.email
-      ? await sb
-          .from("reviews")
-          .select("id, source, rating, title, body, guest_name, submitted_at, status, source_url")
-          .ilike("guest_email", guest.email)
-          .order("submitted_at", { ascending: false })
-          .limit(50)
-      : { data: [] as any[] };
+    // Reviews are not yet property-keyed; do not join global review history to tenant guest profiles.
 
     return {
       guest,
@@ -169,7 +159,7 @@ export const getGuestSummary = createServerFn({ method: "POST" })
       tags: tags ?? [],
       notes: notes ?? [],
       communications: comms ?? [],
-      reviews: reviews ?? [],
+      reviews: [],
     };
   });
 
@@ -356,8 +346,7 @@ export const createGuestTag = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
-    await assertStaff(context.supabase, context.userId);
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const sb: any = context.supabase;
     const slug = data.label
       .toLowerCase()

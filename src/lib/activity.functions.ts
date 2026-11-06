@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json } from "@/integrations/supabase/types";
+import { requireStayNasCoreStaffAccess } from "@/lib/staynas-authorization.server";
 
 export type ActivityLogEntry = {
   id: string;
@@ -23,9 +24,7 @@ export type ActivityLogEntry = {
 };
 
 async function assertStaff(supabase: any, userId: string) {
-  const { data, error } = await supabase.rpc("is_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasCoreStaffAccess(supabase, userId);
 }
 
 const listSchema = z.object({

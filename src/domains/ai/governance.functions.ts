@@ -2,27 +2,36 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
-function assertManager(roles: string[]) {
-  if (!roles.some((r) => ["owner", "manager"].includes(r))) {
-    throw new Error("Forbidden: manager role required.");
-  }
+async function assertFounderAdmin(supabase: any) {
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error("Forbidden");
+  const { data, error } = await supabase
+    .from("staynas_platform_admins")
+    .select("user_id")
+    .eq("user_id", authData.user.id)
+    .maybeSingle();
+  if (error || !data) throw new Error("Forbidden: StayNas founder administration required.");
 }
-function assertAdmin(roles: string[]) {
-  if (!roles.some((r) => ["owner"].includes(r))) {
-    throw new Error("Forbidden: admin role required.");
-  }
-}
-async function getRoles(supabase: any): Promise<string[]> {
-  const { data } = await supabase.rpc("current_user_roles");
-  return (data ?? []) as string[];
-}
+
+
+export const isFounderAiAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("staynas_platform_admins")
+      .select("user_id")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (error) throw new Error("Unable to verify founder administration access.");
+    return Boolean(data);
+  });
 
 /* ---------- Configurations ---------- */
 
 export const listAiConfigurations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "system");
+    await assertFounderAdmin(context.supabase);
     const { data, error } = await context.supabase
       .from("ai_configurations")
       .select("*")
@@ -36,9 +45,7 @@ export const updateAiConfiguration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string; setting_value: unknown; description?: string | null }) => input)
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "system");
-    const roles = await getRoles(context.supabase);
-    assertManager(roles);
+    await assertFounderAdmin(context.supabase);
     const { data: existing, error: readErr } = await context.supabase
       .from("ai_configurations").select("version").eq("id", data.id).maybeSingle();
     if (readErr) throw readErr;
@@ -70,9 +77,7 @@ export const updateAiConfiguration = createServerFn({ method: "POST" })
 export const listAiPrompts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "system");
-    const roles = await getRoles(context.supabase);
-    assertManager(roles);
+    await assertFounderAdmin(context.supabase);
     const { data, error } = await context.supabase
       .from("ai_prompt_versions").select("*")
       .order("module", { ascending: true })
@@ -85,9 +90,7 @@ export const createAiPromptVersion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { module: string; prompt_key: string; prompt_text: string; notes?: string }) => i)
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "system");
-    const roles = await getRoles(context.supabase);
-    assertAdmin(roles);
+    await assertFounderAdmin(context.supabase);
     const { data: prev } = await context.supabase
       .from("ai_prompt_versions").select("version")
       .eq("module", data.module).eq("prompt_key", data.prompt_key)
@@ -110,9 +113,7 @@ export const activateAiPromptVersion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { id: string }) => i)
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "system");
-    const roles = await getRoles(context.supabase);
-    assertAdmin(roles);
+    await assertFounderAdmin(context.supabase);
     const { data: target, error: e1 } = await context.supabase
       .from("ai_prompt_versions").select("module, prompt_key").eq("id", data.id).single();
     if (e1) throw e1;
@@ -154,7 +155,7 @@ export const submitAiFeedback = createServerFn({ method: "POST" })
 export const listAiFeedback = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "system");
+    await assertFounderAdmin(context.supabase);
     const { data, error } = await context.supabase
       .from("ai_feedback").select("*")
       .order("created_at", { ascending: false }).limit(200);
@@ -167,9 +168,7 @@ export const listAiFeedback = createServerFn({ method: "GET" })
 export const getAiPerformance = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "system");
-    const roles = await getRoles(context.supabase);
-    assertManager(roles);
+    await assertFounderAdmin(context.supabase);
     const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
     const { data: logs } = await context.supabase
       .from("ai_activity_logs")
@@ -206,11 +205,7 @@ export const getAiPerformance = createServerFn({ method: "GET" })
 export const getAiUsageMetrics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "system");
-    const roles = await getRoles(context.supabase);
-    if (!roles.some((r) => ["owner", "manager", "finance"].includes(r))) {
-      throw new Error("Forbidden");
-    }
+    await assertFounderAdmin(context.supabase);
     const { data, error } = await context.supabase
       .from("ai_usage_metrics").select("*")
       .order("day", { ascending: false }).limit(90);
@@ -223,9 +218,7 @@ export const getAiUsageMetrics = createServerFn({ method: "GET" })
 export const listAiHealthEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "system");
-    const roles = await getRoles(context.supabase);
-    assertManager(roles);
+    await assertFounderAdmin(context.supabase);
     const { data, error } = await context.supabase
       .from("ai_health_events").select("*")
       .order("created_at", { ascending: false }).limit(200);
@@ -237,9 +230,7 @@ export const resolveAiHealthEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { id: string; resolved: boolean }) => i)
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "system");
-    const roles = await getRoles(context.supabase);
-    assertAdmin(roles);
+    await assertFounderAdmin(context.supabase);
     const { error } = await context.supabase
       .from("ai_health_events").update({ resolved: data.resolved }).eq("id", data.id);
     if (error) throw error;
@@ -252,9 +243,7 @@ export const searchAiAudit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { module?: string; tool?: string; status?: string; from?: string; to?: string; limit?: number } | undefined) => i ?? {})
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "system");
-    const roles = await getRoles(context.supabase);
-    assertManager(roles);
+    await assertFounderAdmin(context.supabase);
     let q = context.supabase.from("ai_activity_logs")
       .select("id, user_id, question, domains_accessed, tool_called, response, recommendation, model, status, error, duration_ms, created_at")
       .order("created_at", { ascending: false })
@@ -274,9 +263,7 @@ export const searchAiAudit = createServerFn({ method: "POST" })
 export const getAiSystems = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "system");
-    const roles = await getRoles(context.supabase);
-    assertManager(roles);
+    await assertFounderAdmin(context.supabase);
     const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
     const { data: logs } = await context.supabase
       .from("ai_activity_logs").select("domains_accessed, status, created_at").gte("created_at", since);
@@ -307,7 +294,7 @@ export const getAiSystems = createServerFn({ method: "GET" })
 export const getAiScopeContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "system");
+    await assertFounderAdmin(context.supabase);
     const { data: orgs } = await context.supabase.from("ai_organisations").select("*");
     const { data: props } = await context.supabase.from("ai_properties").select("*");
     return { organisations: orgs ?? [], properties: props ?? [] };

@@ -41,24 +41,20 @@ function AuthPage() {
         return;
       }
 
-      // Accept either a legacy global staff role or an active property-scoped membership.
-      const [{ data: roles, error: roleError }, { data: properties, error: propertyError }] =
-        await Promise.all([
-          supabase.rpc("current_user_roles"),
-          staynasRpc(supabase).rpc("staynas_list_properties"),
-        ]);
-
-      const hasLegacyStaffRole = !roleError && Boolean(roles?.length);
+      // Operational access is property-scoped. Founder administration is a separate platform authority.
+      const { data: properties, error: propertyError } =
+        await staynasRpc(supabase).rpc("staynas_list_properties");
       const accessibleProperties = !propertyError && Array.isArray(properties) ? properties : [];
+      const { data: founderAdmin, error: founderAdminError } =
+        await staynasRpc(supabase).rpc("is_staynas_founder_ai_admin");
+      const hasFounderAdmin = !founderAdminError && founderAdmin === true;
 
-      if (!hasLegacyStaffRole && accessibleProperties.length === 0) {
+      if ((propertyError || accessibleProperties.length === 0) && !hasFounderAdmin) {
         await supabase.auth.signOut();
         toast.error(
-          roleError
-            ? "Could not verify staff roles. Please try again."
-            : propertyError
-              ? "Could not load your property access. Please try again."
-              : "Your account does not have StayNas staff access.",
+          propertyError
+            ? "Could not load your property access. Please try again."
+            : "Your account does not have StayNas property or founder access.",
         );
         return;
       }
@@ -82,22 +78,28 @@ function AuthPage() {
         return;
       }
 
-      // Route housekeeping-only staff directly to their operational workspace.
-      const normalizedRoles = (Array.isArray(roles) ? roles : []).map((entry: unknown) => {
-        if (typeof entry === "string") return entry.toLowerCase();
-        if (entry && typeof entry === "object") {
-          const record = entry as Record<string, unknown>;
-          return String(record.role ?? record.name ?? record.app_role ?? "").toLowerCase();
-        }
-        return "";
-      });
+      // Route from the selected property's active membership, never legacy global roles.
+      const { data: propertyRoles, error: propertyRolesError } =
+        await staynasRpc(supabase).rpc("staynas_current_property_roles");
+      const normalizedRoles = Array.isArray(propertyRoles) ? propertyRoles.map((role) => String(role).toLowerCase()) : [];
+      if ((propertyRolesError || normalizedRoles.length === 0) && !hasFounderAdmin) {
+        await supabase.auth.signOut();
+        toast.error(
+          propertyRolesError
+            ? "Could not verify your property role. Please try again."
+            : "Your selected property has no active staff role for this account.",
+        );
+        return;
+      }
       const housekeepingOnly =
         normalizedRoles.includes("housekeeping") &&
         !normalizedRoles.some((role: string) =>
           ["owner", "manager", "admin", "reception", "front_desk"].includes(role),
         );
       await navigate({
-        to: housekeepingOnly ? "/admin/operations/housekeeping" : "/admin/bookings",
+        to: hasFounderAdmin && normalizedRoles.length === 0
+          ? "/admin/ai/settings"
+          : housekeepingOnly ? "/admin/operations/housekeeping" : "/admin/bookings",
       });
     } catch (error) {
       console.error("[StayNas auth] Sign-in flow failed", error);

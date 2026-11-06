@@ -5,6 +5,7 @@
  * calendar_events, room_inventory, rooms, pricing_rules or any other
  * production table. It only touches the `respad_*` staging tables.
  */
+import { requireStayNasFounderAdmin } from "@/lib/staynas-authorization.server";
 import {
   buildNormalizedAccounts,
   detectDuplicates,
@@ -16,15 +17,8 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Sb = any;
 
-export const ADMIN_ROLES = ["owner", "manager"] as const;
-
 export async function assertMigrationAdmin(supabase: Sb, userId: string) {
-  const { data, error } = await supabase.rpc("has_any_role", {
-    _user_id: userId,
-    _roles: [...ADMIN_ROLES],
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden: migration tools are owner/manager only");
+  await requireStayNasFounderAdmin(supabase, userId);
 }
 
 async function audit(

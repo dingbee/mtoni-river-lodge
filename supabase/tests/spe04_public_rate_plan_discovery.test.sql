@@ -1,6 +1,6 @@
 -- SPE-04.07.01 — public discovery contract
 BEGIN;
-SELECT plan(8);
+SELECT plan(9);
 SELECT has_function('public','discover_staynas_public_rate_plans',
   ARRAY['uuid','uuid','date','date','integer','integer','integer'],
   'Guest-safe rate-plan discovery function exists');
@@ -29,5 +29,12 @@ SELECT ok(pg_get_functiondef(
   'public.discover_staynas_public_rate_plans(uuid,uuid,date,date,integer,integer,integer)'::regprocedure
   ) NOT LIKE '%rate_plan_data%',
   'Discovery does not expose mutable internal plan configuration');
+SELECT ok(
+  pg_get_functiondef('public.discover_staynas_public_rate_plans(uuid,uuid,date,date,integer,integer,integer)'::regprocedure)
+    LIKE '%effective_to>=(_check_out-1)%'
+    AND pg_get_functiondef('public.discover_staynas_public_rate_plans(uuid,uuid,date,date,integer,integer,integer)'::regprocedure)
+    NOT LIKE '%effective_to>=_check_out%',
+  'Rate-plan eligibility covers the final charged night, not the checkout date'
+);
 SELECT * FROM finish();
 ROLLBACK;

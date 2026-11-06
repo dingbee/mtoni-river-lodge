@@ -21,6 +21,7 @@ on:
       - feat/finance-*
       - feat/spe-03-*
       - feat/spe-04-*
+      - feat/cc01-p0-commercial-foundation
 
 jobs:
   finance-payment-integrity:

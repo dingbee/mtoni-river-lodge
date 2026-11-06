@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { requireStayNasModuleAccess, requireStayNasPropertyRole } from "@/lib/staynas-authorization.server";
 import { financeRpc } from "@/lib/finance-rpc";
 import { recordManualPaymentInputSchema } from "./payment-contract";
 import { moneyByCurrency, sumCurrency } from "./finance-currency";
@@ -566,7 +566,7 @@ const pricingRuleSchema = z.object({
     "min_stay",
     "blackout",
   ]),
-  scope: z.enum(["all", "room"]).default("all"),
+  scope: z.enum(["all", "room"]).default("room"),
   room_id: z.string().uuid().nullable().optional(),
   starts_on: z.string().nullable().optional(),
   ends_on: z.string().nullable().optional(),
@@ -578,6 +578,13 @@ const pricingRuleSchema = z.object({
   priority: z.number().int().default(100),
   active: z.boolean().default(true),
   notes: z.string().nullable().optional(),
+}).superRefine((value, ctx) => {
+  if (value.scope === "room" && !value.room_id) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["room_id"], message: "Select a room for a room-scoped pricing rule." });
+  }
+  if (value.scope === "all" && value.room_id) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["room_id"], message: "Property-wide pricing rules cannot target an individual room." });
+  }
 });
 
 export const listPricingRules = createServerFn({ method: "GET" })
@@ -600,6 +607,7 @@ export const savePricingRule = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => pricingRuleSchema.parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    await requireStayNasPropertyRole(context.supabase, context.userId, ["owner", "manager", "finance", "admin"]);
     const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
     if (data.scope === "room") {
       if (!data.room_id) throw new Error("A room-specific rule requires a room");
@@ -642,6 +650,7 @@ export const deletePricingRule = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    await requireStayNasPropertyRole(context.supabase, context.userId, ["owner", "manager", "finance", "admin"]);
     const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
     const { error } = await context.supabase
       .from("pricing_rules")
@@ -739,11 +748,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
-    const { data: allowed } = await context.supabase.rpc("has_any_role", {
-      _user_id: context.userId,
-      _roles: ["owner", "manager", "finance"] as never,
-    });
-    if (!allowed) throw new Error("Forbidden");
+    await requireStayNasPropertyRole(context.supabase, context.userId, ["owner", "manager", "finance"]);
 
     const inserts: Array<Record<string, unknown>> = [];
     const today = todayISO();

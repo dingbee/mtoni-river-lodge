@@ -7,10 +7,12 @@ on:
       - fix/sn-iq-04-*
       - fix/ci-*
       - feat/sn-iq-04-clean
+      - feat/cc01-p0-commercial-foundation
     paths:
       - "src/domains/ai/concierge/**"
       - "src/routes/_authenticated.admin.ai.concierge.conversations.tsx"
       - "src/routes/api/public/*webhook*"
+      - ".github/workflows/sn-iq-04-verification.yml"
   pull_request:
     branches:
       - main

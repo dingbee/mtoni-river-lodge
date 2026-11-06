@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { FounderAdminGate } from "@/components/os/FounderAdminGate";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -18,7 +19,7 @@ import {
 
 export const Route = createFileRoute("/_authenticated/admin/content/journal/")({
   head: () => ({ meta: [{ title: "Journal — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
-  component: JournalListPage,
+  component: JournalListFounderPage
 });
 
 const statusTone: Record<string, StatusTone> = {
@@ -30,6 +31,10 @@ const statusTone: Record<string, StatusTone> = {
 
 function slugify(s: string) {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function JournalListFounderPage() {
+  return <FounderAdminGate description="Journal articles are shared platform content; only founder administrators can manage them."><JournalListPage /></FounderAdminGate>;
 }
 
 function JournalListPage() {

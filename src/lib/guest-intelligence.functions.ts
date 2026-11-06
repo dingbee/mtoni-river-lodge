@@ -1,12 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { requireStayNasModuleAccess, requireStayNasStaffAccess, requireStayNasFounderAdmin } from "@/lib/staynas-authorization.server";
 
 async function assertStaff(sb: any, userId: string) {
-  const { data, error } = await sb.rpc("is_any_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasStaffAccess(sb, userId);
 }
 
 const idSchema = z.object({ id: z.string().uuid() });
@@ -313,8 +311,7 @@ const SMART_TAGS = [
 export const ensureSmartTags = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
-    await assertStaff(context.supabase, context.userId);
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const sb: any = context.supabase;
     const rows = SMART_TAGS.map((label) => ({
       label,

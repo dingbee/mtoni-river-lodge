@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { logActivity } from "./activity-log.server";
+import { requireStayNasFounderAdmin } from "@/lib/staynas-authorization.server";
 import type { ReviewStatistics } from "./reviews";
 
 function publicClient() {
@@ -14,9 +15,7 @@ function publicClient() {
 const STATS_COLS = "source, overall_rating, total_reviews, profile_url, updated_at";
 
 async function assertStaff(supabase: any, userId: string) {
-  const { data, error } = await supabase.rpc("is_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasFounderAdmin(supabase, userId);
 }
 
 export const listReviewStatistics = createServerFn({ method: "GET" }).handler(

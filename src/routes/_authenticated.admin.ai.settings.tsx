@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { Badge } from "@/components/ui/badge";
 import { getMyAiScope } from "@/domains/ai/ai.functions";
+import { isFounderAiAdmin } from "@/domains/ai/governance.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/settings")({
   head: () => ({ meta: [{ title: "AI Settings — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -12,8 +13,18 @@ export const Route = createFileRoute("/_authenticated/admin/ai/settings")({
 });
 
 function AiSettings() {
+  const founderAccessFn = useServerFn(isFounderAiAdmin);
+  const founderAccess = useQuery({ queryKey: ["ai-founder-access"], queryFn: () => founderAccessFn() });
   const scopeFn = useServerFn(getMyAiScope);
-  const scope = useQuery({ queryKey: ["ai.scope"], queryFn: () => scopeFn() });
+  const scope = useQuery({ queryKey: ["ai.scope"], queryFn: () => scopeFn(), enabled: founderAccess.data === true });
+
+  if (founderAccess.isLoading) return <div className="p-6 text-sm text-muted-foreground">Verifying founder access…</div>;
+  if (founderAccess.isError || founderAccess.data !== true) return (
+    <div className="rounded-xl border p-6">
+      <h1 className="text-lg font-semibold">Founder administration only</h1>
+      <p className="mt-2 text-sm text-muted-foreground">Platform AI configuration is managed by the StayNas founder administrator.</p>
+    </div>
+  );
 
   return (
     <div className="space-y-4">

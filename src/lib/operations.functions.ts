@@ -1,12 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { requireStayNasModuleAccess, requireStayNasStaffAccess } from "@/lib/staynas-authorization.server";
 
 async function assertStaff(supabase: any, userId: string) {
-  const { data, error } = await supabase.rpc("is_any_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasStaffAccess(supabase, userId);
 }
 
 async function logOpsEvent(
@@ -24,7 +22,13 @@ async function logOpsEvent(
   },
 ) {
   try {
+    const { data: propertyContext } = await supabase
+      .from("staynas_user_property_context")
+      .select("property_id")
+      .eq("user_id", userId)
+      .maybeSingle();
     await supabase.from("activity_logs").insert({
+      property_id: propertyContext?.property_id ?? null,
       actor_id: userId,
       actor_email: claims?.email ?? null,
       action: event.type,

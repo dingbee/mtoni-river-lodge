@@ -1,0 +1,857 @@
+{
+  "snapshot_type": "read_only_production_migration_ledger_export",
+  "captured_at": "2026-11-06T16:35:00Z",
+  "repository": "dingbee/mtoni-river-lodge",
+  "branch": "feat/cc01-p0-commercial-foundation",
+  "commit": "5d8f7ac0d516c459376afdd850b138abc0ce48df",
+  "supabase_project_ref": "hpsryyywolitgeaacpoy",
+  "source_table": "supabase_migrations.schema_migrations",
+  "record_count": 139,
+  "records": [
+    {
+      "version": "20261021114927",
+      "name": "staynas_restore_prerequisite_extensions",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261021114927_staynas_restore_prerequisite_extensions.sql"
+    },
+    {
+      "version": "20261021123829",
+      "name": "staynas_restore_pg_net_prerequisite",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261021123829_staynas_restore_pg_net_prerequisite.sql"
+    },
+    {
+      "version": "20261021123838",
+      "name": "staynas_restore_runtime_extensions",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261021123838_staynas_restore_runtime_extensions.sql"
+    },
+    {
+      "version": "20261021140345",
+      "name": "staynas_property_room_hardening",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261021140345_staynas_property_room_hardening.sql"
+    },
+    {
+      "version": "20261021140353",
+      "name": "staynas_final_hardening",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261021140353_staynas_final_hardening.sql"
+    },
+    {
+      "version": "20261021140632",
+      "name": "production_rls_baseline_and_tenant_policies",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261021140632_production_rls_baseline_and_tenant_policies.sql"
+    },
+    {
+      "version": "20261021140657",
+      "name": "secure_email_queue_function_search_paths",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261021140657_secure_email_queue_function_search_paths.sql"
+    },
+    {
+      "version": "20261021140725",
+      "name": "restrict_internal_security_definer_rpcs",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261021140725_restrict_internal_security_definer_rpcs.sql"
+    },
+    {
+      "version": "20261021160540",
+      "name": "restrict_anon_role_helper_execution",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261021160540_restrict_anon_role_helper_execution.sql"
+    },
+    {
+      "version": "20261021160555",
+      "name": "restrict_public_role_helper_execution",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261021160555_restrict_public_role_helper_execution.sql"
+    },
+    {
+      "version": "20261021160613",
+      "name": "restrict_internal_and_room_admin_rpcs",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261021160613_restrict_internal_and_room_admin_rpcs.sql"
+    },
+    {
+      "version": "20261023120453",
+      "name": "restore_room_catalogue_select_grants",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261023120453_restore_room_catalogue_select_grants.sql"
+    },
+    {
+      "version": "20261023130729",
+      "name": "add_active_property_role_rpc",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261023130729_add_active_property_role_rpc.sql"
+    },
+    {
+      "version": "20261023145209",
+      "name": "make_property_currency_optional",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261023145209_make_property_currency_optional.sql"
+    },
+    {
+      "version": "20261024090325",
+      "name": "secure_booking_holds_and_calendar_events_access",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261024090325_secure_booking_holds_and_calendar_events_access.sql"
+    },
+    {
+      "version": "20261024091022",
+      "name": "scope_public_mtoni_booking_rpcs_to_property",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261024091022_scope_public_mtoni_booking_rpcs_to_property.sql"
+    },
+    {
+      "version": "20261024091542",
+      "name": "staynas_property_scoped_booking_rpc_contract",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261024091542_staynas_property_scoped_booking_rpc_contract.sql"
+    },
+    {
+      "version": "20261024092429",
+      "name": "fix_room_property_trigger_and_onboard_mtoni_rooms",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261024092429_fix_room_property_trigger_and_onboard_mtoni_rooms.sql"
+    },
+    {
+      "version": "20261024092833",
+      "name": "complete_mtoni_room_configuration",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261024092833_complete_mtoni_room_configuration.sql"
+    },
+    {
+      "version": "20261024094051",
+      "name": "staynas_tenant_domains_and_integration_registry",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261024094051_staynas_tenant_domains_and_integration_registry.sql"
+    },
+    {
+      "version": "20261024094107",
+      "name": "staynas_domain_property_resolution_and_booking_child_rls",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261024094107_staynas_domain_property_resolution_and_booking_child_rls.sql"
+    },
+    {
+      "version": "20261024094436",
+      "name": "scope_booking_holds_to_property",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261024094436_scope_booking_holds_to_property.sql"
+    },
+    {
+      "version": "20261024095713",
+      "name": "retire_legacy_unscoped_public_booking_rpcs",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261024095713_retire_legacy_unscoped_public_booking_rpcs.sql"
+    },
+    {
+      "version": "20261024123831",
+      "name": "enable_rls_on_ungranted_public_tables",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261024123831_enable_rls_on_ungranted_public_tables.sql"
+    },
+    {
+      "version": "20261026140226",
+      "name": "founder_domain_verification_workflow",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261026140226_founder_domain_verification_workflow.sql"
+    },
+    {
+      "version": "20261027135055",
+      "name": "staynas_calendar_operational_feed",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261027135055_staynas_calendar_operational_feed.sql"
+    },
+    {
+      "version": "20261027151151",
+      "name": "staynas_calendar_read_grants",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261027151151_staynas_calendar_read_grants.sql"
+    },
+    {
+      "version": "20261027210117",
+      "name": "hk_s1_domain_integrity_reconciliation",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261027210117_hk_s1_domain_integrity_reconciliation.sql"
+    },
+    {
+      "version": "20261027210124",
+      "name": "hk_s2_staff_execution_reconciliation",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261027210124_hk_s2_staff_execution_reconciliation.sql"
+    },
+    {
+      "version": "20261027210129",
+      "name": "hk_s2_staff_directory_reconciliation",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261027210129_hk_s2_staff_directory_reconciliation.sql"
+    },
+    {
+      "version": "20261027210133",
+      "name": "hk_s2_task_room_backfill_reconciliation",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261027210133_hk_s2_task_room_backfill_reconciliation.sql"
+    },
+    {
+      "version": "20261027210141",
+      "name": "hk_s3_inspection_readiness_reconciliation",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261027210141_hk_s3_inspection_readiness_reconciliation.sql"
+    },
+    {
+      "version": "20261027210146",
+      "name": "hk_s4_exceptions_reconciliation",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261027210146_hk_s4_exceptions_reconciliation.sql"
+    },
+    {
+      "version": "20261027210151",
+      "name": "hk_s5_realtime_intelligence_reconciliation",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261027210151_hk_s5_realtime_intelligence_reconciliation.sql"
+    },
+    {
+      "version": "20261027210156",
+      "name": "hk_s5_hardening_reconciliation",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261027210156_hk_s5_hardening_reconciliation.sql"
+    },
+    {
+      "version": "20261027210201",
+      "name": "hk_s5_final_certification_reconciliation",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261027210201_hk_s5_final_certification_reconciliation.sql"
+    },
+    {
+      "version": "20261027210224",
+      "name": "hk_s6_certification_reconciliation_idempotent_policies",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261027210224_hk_s6_certification_reconciliation_idempotent_policies.sql"
+    },
+    {
+      "version": "20261031062115",
+      "name": "fix_booking_hold_inventory_conflict_target",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261031062115_fix_booking_hold_inventory_conflict_target.sql"
+    },
+    {
+      "version": "20261031135804",
+      "name": "sn_iq_04_session_property_and_authorization_prerequisites",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261031135804_sn_iq_04_session_property_and_authorization_prerequisites.sql"
+    },
+    {
+      "version": "20261031135852",
+      "name": "sn_iq_04_backfill_legacy_concierge_session_property",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261031135852_sn_iq_04_backfill_legacy_concierge_session_property.sql"
+    },
+    {
+      "version": "20261031135900",
+      "name": "sn_iq_04_active_property_authorization_helpers",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261031135900_sn_iq_04_active_property_authorization_helpers.sql"
+    },
+    {
+      "version": "20261031135909",
+      "name": "sn_iq_04_2_omnichannel_ledger",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261031135909_sn_iq_04_2_omnichannel_ledger.sql"
+    },
+    {
+      "version": "20261031135917",
+      "name": "sn_iq_04_4_provider_routing_and_property_settings",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261031135917_sn_iq_04_4_provider_routing_and_property_settings.sql"
+    },
+    {
+      "version": "20261031135922",
+      "name": "sn_iq_04_4_webhook_inbox",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261031135922_sn_iq_04_4_webhook_inbox.sql"
+    },
+    {
+      "version": "20261031135928",
+      "name": "sn_iq_04_5_inbox_processing",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261031135928_sn_iq_04_5_inbox_processing.sql"
+    },
+    {
+      "version": "20261031135934",
+      "name": "sn_iq_04_6_atomic_inbound_processing",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261031135934_sn_iq_04_6_atomic_inbound_processing.sql"
+    },
+    {
+      "version": "20261031140440",
+      "name": "sn_iq_04_scope_concierge_session_reads_to_active_property",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261031140440_sn_iq_04_scope_concierge_session_reads_to_active_property.sql"
+    },
+    {
+      "version": "20261102170637",
+      "name": "sn_book_05_pay_at_property",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261102170637_sn_book_05_pay_at_property.sql"
+    },
+    {
+      "version": "20261102170642",
+      "name": "sn_book_06_property_booking_tax_totals",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261102170642_sn_book_06_property_booking_tax_totals.sql"
+    },
+    {
+      "version": "20261103072106",
+      "name": "restore_authenticated_self_role_read",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261103072106_restore_authenticated_self_role_read.sql"
+    },
+    {
+      "version": "20261103072123",
+      "name": "allow_server_staff_role_assignment",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261103072123_allow_server_staff_role_assignment.sql"
+    },
+    {
+      "version": "20261103121216",
+      "name": "nolmark_uat_housekeeping_tenant_scope",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261103121216_nolmark_uat_housekeeping_tenant_scope.sql"
+    },
+    {
+      "version": "20261103124035",
+      "name": "restore_booking_property_resolver",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261103124035_restore_booking_property_resolver.sql"
+    },
+    {
+      "version": "20261103125201",
+      "name": "grant_scoped_ops_task_reads",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261103125201_grant_scoped_ops_task_reads.sql"
+    },
+    {
+      "version": "20261103134144",
+      "name": "add_property_scoped_room_availability_rpc",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261103134144_add_property_scoped_room_availability_rpc.sql"
+    },
+    {
+      "version": "20261103140512",
+      "name": "add_property_scoped_create_booking_rpc",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261103140512_add_property_scoped_create_booking_rpc.sql"
+    },
+    {
+      "version": "20261103140545",
+      "name": "correct_create_booking_email_validation",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261103140545_correct_create_booking_email_validation.sql"
+    },
+    {
+      "version": "20261103141250",
+      "name": "grant_staff_reservation_patch_columns",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261103141250_grant_staff_reservation_patch_columns.sql"
+    },
+    {
+      "version": "20261103142504",
+      "name": "correct_unpaid_booking_balance_semantics",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261103142504_correct_unpaid_booking_balance_semantics.sql"
+    },
+    {
+      "version": "20261103151030",
+      "name": "restore_property_scoped_guest_crm_access",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261103151030_restore_property_scoped_guest_crm_access.sql"
+    },
+    {
+      "version": "20261103155748",
+      "name": "restore_calendar_holds_read_access",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261103155748_restore_calendar_holds_read_access.sql"
+    },
+    {
+      "version": "20261103181500",
+      "name": "finance_payment_integrity_phase1",
+      "source_kind": "manual_source_reference",
+      "source_file": "supabase/migrations/20261103181500_finance_payment_integrity_phase1.sql"
+    },
+    {
+      "version": "20261103213000",
+      "name": "pesapal_atomic_finance_finalization",
+      "source_kind": "manual_source_reference",
+      "source_file": "supabase/migrations/20261103213000_pesapal_atomic_finance_finalization.sql"
+    },
+    {
+      "version": "20261104092324",
+      "name": "platform_room_configuration_v3",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104092324_platform_room_configuration_v3.sql"
+    },
+    {
+      "version": "20261104093748",
+      "name": "platform_room_media_amenities",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104093748_platform_room_media_amenities.sql"
+    },
+    {
+      "version": "20261104121644",
+      "name": "fix_user_roles_read_rls",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104121644_fix_user_roles_read_rls.sql"
+    },
+    {
+      "version": "20261104121721",
+      "name": "allow_staff_role_roster_read",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104121721_allow_staff_role_roster_read.sql"
+    },
+    {
+      "version": "20261104132112",
+      "name": "sn_iq_01_founder_only_concierge_channels",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104132112_sn_iq_01_founder_only_concierge_channels.sql"
+    },
+    {
+      "version": "20261104132116",
+      "name": "sn_iq_01_property_scoped_concierge_rls",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104132116_sn_iq_01_property_scoped_concierge_rls.sql"
+    },
+    {
+      "version": "20261104132121",
+      "name": "sn_iq_02_property_knowledge_catalogue",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104132121_sn_iq_02_property_knowledge_catalogue.sql"
+    },
+    {
+      "version": "20261104132952",
+      "name": "sn_iq_01_founder_only_ai_activity",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104132952_sn_iq_01_founder_only_ai_activity.sql"
+    },
+    {
+      "version": "20261104141946",
+      "name": "finance_refund_integrity_p2_04",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104141946_finance_refund_integrity_p2_04.sql"
+    },
+    {
+      "version": "20261104141958",
+      "name": "finance_refund_reversal_integrity_p2_04",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104141958_finance_refund_reversal_integrity_p2_04.sql"
+    },
+    {
+      "version": "20261104142002",
+      "name": "pesapal_provider_reversal_atomic_p2_04",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104142002_pesapal_provider_reversal_atomic_p2_04.sql"
+    },
+    {
+      "version": "20261104153450",
+      "name": "staynas_booking_lifecycle_controls",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104153450_staynas_booking_lifecycle_controls.sql"
+    },
+    {
+      "version": "20261104164414",
+      "name": "phase4_guest_document_storage_property_scope",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104164414_phase4_guest_document_storage_property_scope.sql"
+    },
+    {
+      "version": "20261104191703",
+      "name": "staynas_ai_activity_insert_policy",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104191703_staynas_ai_activity_insert_policy.sql"
+    },
+    {
+      "version": "20261104194709",
+      "name": "phase5_revenue_ledger_property_rls",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104194709_phase5_revenue_ledger_property_rls.sql"
+    },
+    {
+      "version": "20261104225700",
+      "name": "staynas_property_branding",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104225700_staynas_property_branding.sql"
+    },
+    {
+      "version": "20261104230152",
+      "name": "property_branding_storage_bucket",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104230152_property_branding_storage_bucket.sql"
+    },
+    {
+      "version": "20261104230157",
+      "name": "property_branding_storage_policies",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104230157_property_branding_storage_policies.sql"
+    },
+    {
+      "version": "20261104232013",
+      "name": "grant_room_configuration_write_privileges",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261104232013_grant_room_configuration_write_privileges.sql"
+    },
+    {
+      "version": "20261105081905",
+      "name": "20261105160000_spe02_property_scoped_pricing_snapshots",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105081905_20261105160000_spe02_property_scoped_pricing_snapshots.sql"
+    },
+    {
+      "version": "20261105081909",
+      "name": "20261105170000_spe02_ai_pricing_and_tax_scope",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105081909_20261105170000_spe02_ai_pricing_and_tax_scope.sql"
+    },
+    {
+      "version": "20261105081913",
+      "name": "20261105180000_spe02_shared_booking_pricing_path",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105081913_20261105180000_spe02_shared_booking_pricing_path.sql"
+    },
+    {
+      "version": "20261105082053",
+      "name": "20261105190000_spe02_fix_priced_availability_room_scope",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105082053_20261105190000_spe02_fix_priced_availability_room_scope.sql"
+    },
+    {
+      "version": "20261105082310",
+      "name": "20261105200000_spe02_fix_booking_email_validation",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105082310_20261105200000_spe02_fix_booking_email_validation.sql"
+    },
+    {
+      "version": "20261105082505",
+      "name": "20261105210000_spe02_remove_duplicate_read_policies",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105082505_20261105210000_spe02_remove_duplicate_read_policies.sql"
+    },
+    {
+      "version": "20261105082544",
+      "name": "20261105220000_spe02_policy_performance_and_fk_indexes",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105082544_20261105220000_spe02_policy_performance_and_fk_indexes.sql"
+    },
+    {
+      "version": "20261105082849",
+      "name": "20261105230000_spe02_authenticated_pricing_table_grants",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105082849_20261105230000_spe02_authenticated_pricing_table_grants.sql"
+    },
+    {
+      "version": "20261105094407",
+      "name": "spe03_rate_plan_foundation",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105094407_spe03_rate_plan_foundation.sql"
+    },
+    {
+      "version": "20261105094416",
+      "name": "spe03_rate_plan_room_type_assignments",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105094416_spe03_rate_plan_room_type_assignments.sql"
+    },
+    {
+      "version": "20261105095249",
+      "name": "spe03_rate_plan_inheritance",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105095249_spe03_rate_plan_inheritance.sql"
+    },
+    {
+      "version": "20261105095358",
+      "name": "spe03_rate_plan_inheritance_snapshots",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105095358_spe03_rate_plan_inheritance_snapshots.sql"
+    },
+    {
+      "version": "20261105103513",
+      "name": "spe03_seasonal_pricing",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105103513_spe03_seasonal_pricing.sql"
+    },
+    {
+      "version": "20261105104750",
+      "name": "spe03_daily_rate_calendar",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105104750_spe03_daily_rate_calendar.sql"
+    },
+    {
+      "version": "20261105115048",
+      "name": "spe03_rate_overrides",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105115048_spe03_rate_overrides.sql"
+    },
+    {
+      "version": "20261105115410",
+      "name": "spe03_rate_override_overlap_serialization",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105115410_spe03_rate_override_overlap_serialization.sql"
+    },
+    {
+      "version": "20261105120559",
+      "name": "spe03_rate_plan_restrictions",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105120559_spe03_rate_plan_restrictions.sql"
+    },
+    {
+      "version": "20261105121333",
+      "name": "spe03_rate_plan_publication_versioning",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105121333_spe03_rate_plan_publication_versioning.sql"
+    },
+    {
+      "version": "20261105161815",
+      "name": "spe04_base_occupancy_validation",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105161815_spe04_base_occupancy_validation.sql"
+    },
+    {
+      "version": "20261105161821",
+      "name": "spe04_published_pricing_resolver",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105161821_spe04_published_pricing_resolver.sql"
+    },
+    {
+      "version": "20261105161831",
+      "name": "spe04_shared_pricing_path_integration",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105161831_spe04_shared_pricing_path_integration.sql"
+    },
+    {
+      "version": "20261105162129",
+      "name": "spe04_latest_publication_selection_fix",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105162129_spe04_latest_publication_selection_fix.sql"
+    },
+    {
+      "version": "20261105171131",
+      "name": "spe04_public_rate_plan_discovery",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105171131_spe04_public_rate_plan_discovery.sql"
+    },
+    {
+      "version": "20261105171141",
+      "name": "spe04_public_rate_plan_propagation",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261105171141_spe04_public_rate_plan_propagation.sql"
+    },
+    {
+      "version": "20261106062244",
+      "name": "spe04_resolver_jwt_role_claim_compatibility",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106062244_spe04_resolver_jwt_role_claim_compatibility.sql"
+    },
+    {
+      "version": "20261106063337",
+      "name": "spe_04_07_accept_publication_id_for_selected_rate_plan",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106063337_spe_04_07_accept_publication_id_for_selected_rate_plan.sql"
+    },
+    {
+      "version": "20261106092825",
+      "name": "spe04_08_publication_quote_consistency",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106092825_spe04_08_publication_quote_consistency.sql"
+    },
+    {
+      "version": "20261106095558",
+      "name": "spe04_08_publication_quote_consistency",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106095558_spe04_08_publication_quote_consistency.sql"
+    },
+    {
+      "version": "20261106100141",
+      "name": "spe04_09_explainable_pricing",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106100141_spe04_09_explainable_pricing.sql"
+    },
+    {
+      "version": "20261106100413",
+      "name": "spe04_10_canonical_service_integration",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106100413_spe04_10_canonical_service_integration.sql"
+    },
+    {
+      "version": "20261106142355",
+      "name": "spe05_tax_fees_promotions_engine",
+      "source_kind": "git_recovered_pre_apply",
+      "source_commit": "797c598e476bfcf9a52a1e752ace2d7cb0bd06e6",
+      "source_file": "supabase/migrations/20261106142355_spe05_tax_fees_promotions_engine.sql"
+    },
+    {
+      "version": "20261106142400",
+      "name": "spe05_promotion_redemption_atomicity",
+      "source_kind": "git_recovered_pre_apply",
+      "source_commit": "797c598e476bfcf9a52a1e752ace2d7cb0bd06e6",
+      "source_file": "supabase/migrations/20261106142400_spe05_promotion_redemption_atomicity.sql"
+    },
+    {
+      "version": "20261106142406",
+      "name": "spe05_configuration_audit",
+      "source_kind": "git_recovered_pre_apply",
+      "source_commit": "797c598e476bfcf9a52a1e752ace2d7cb0bd06e6",
+      "source_file": "supabase/migrations/20261106142406_spe05_configuration_audit.sql"
+    },
+    {
+      "version": "20261106142428",
+      "name": "spe05_pricing_code_uniqueness",
+      "source_kind": "git_recovered_pre_apply",
+      "source_commit": "797c598e476bfcf9a52a1e752ace2d7cb0bd06e6",
+      "source_file": "supabase/migrations/20261106142428_spe05_pricing_code_uniqueness.sql"
+    },
+    {
+      "version": "20261106150041",
+      "name": "dc04_distribution_connection_persistence",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106150041_dc04_distribution_connection_persistence.sql"
+    },
+    {
+      "version": "20261106150050",
+      "name": "dc04_distribution_credential_broker",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106150050_dc04_distribution_credential_broker.sql"
+    },
+    {
+      "version": "20261106150109",
+      "name": "dc04_distribution_operation_ledger",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106150109_dc04_distribution_operation_ledger.sql"
+    },
+    {
+      "version": "20261106150115",
+      "name": "dc04_distribution_outbox_dispatch",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106150115_dc04_distribution_outbox_dispatch.sql"
+    },
+    {
+      "version": "20261106150121",
+      "name": "dc04_distribution_health_evidence",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106150121_dc04_distribution_health_evidence.sql"
+    },
+    {
+      "version": "20261106150127",
+      "name": "dc05_webhook_processing_replay",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106150127_dc05_webhook_processing_replay.sql"
+    },
+    {
+      "version": "20261106150136",
+      "name": "dc03r_atomic_booking_inventory",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106150136_dc03r_atomic_booking_inventory.sql"
+    },
+    {
+      "version": "20261106150144",
+      "name": "dc05_mapping_identity_resolution",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106150144_dc05_mapping_identity_resolution.sql"
+    },
+    {
+      "version": "20261106150151",
+      "name": "dc05_canonical_booking_materialization",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106150151_dc05_canonical_booking_materialization.sql"
+    },
+    {
+      "version": "20261106150729",
+      "name": "dc05_spe04_quote_success_contract",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106150729_dc05_spe04_quote_success_contract.sql"
+    },
+    {
+      "version": "20261106151253",
+      "name": "20261107101000_spe05_kernel_refinements",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106151253_20261107101000_spe05_kernel_refinements.sql"
+    },
+    {
+      "version": "20261106151259",
+      "name": "20261107100000_spe05_canonical_quote_booking_integration",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106151259_20261107100000_spe05_canonical_quote_booking_integration.sql"
+    },
+    {
+      "version": "20261106151300",
+      "name": "dc05_trigger_function_execute_privileges",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106151300_dc05_trigger_function_execute_privileges.sql"
+    },
+    {
+      "version": "20261106151439",
+      "name": "20261107102000_spe05_promo_code_variable_fix",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106151439_20261107102000_spe05_promo_code_variable_fix.sql"
+    },
+    {
+      "version": "20261106151615",
+      "name": "20261107103000_spe05_promo_code_variable_declaration_fix",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106151615_20261107103000_spe05_promo_code_variable_declaration_fix.sql"
+    },
+    {
+      "version": "20261106151841",
+      "name": "20261107104000_spe05_quote_promotions_snapshot_fix",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106151841_20261107104000_spe05_quote_promotions_snapshot_fix.sql"
+    },
+    {
+      "version": "20261106152219",
+      "name": "dc05_unpaid_channel_booking_semantics",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106152219_dc05_unpaid_channel_booking_semantics.sql"
+    },
+    {
+      "version": "20261106152227",
+      "name": "spe04_resolver_jwt_role_claim_compatibility",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106152227_spe04_resolver_jwt_role_claim_compatibility.sql"
+    },
+    {
+      "version": "20261106152411",
+      "name": "20261107105000_spe05_taxable_amount_disclosure_fix",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106152411_20261107105000_spe05_taxable_amount_disclosure_fix.sql"
+    },
+    {
+      "version": "20261106152700",
+      "name": "spe05_uat_enable_pgtap",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106152700_spe05_uat_enable_pgtap.sql"
+    },
+    {
+      "version": "20261106154651",
+      "name": "dc05_reservation_lifecycle_reconciliation",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106154651_dc05_reservation_lifecycle_reconciliation.sql",
+      "provenance_status": "recovered_verbatim_from_live_migration_ledger",
+      "provenance_note": "Recovered byte-for-byte from supabase_migrations.schema_migrations.statements; restored for local ledger parity only. Already applied in production; do not replay."
+    },
+    {
+      "version": "20261106155345",
+      "name": "dc05_lifecycle_payload_retention_fix",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106155345_dc05_lifecycle_payload_retention_fix.sql",
+      "provenance_status": "recovered_verbatim_from_live_migration_ledger",
+      "provenance_note": "Recovered byte-for-byte from supabase_migrations.schema_migrations.statements; restored for local ledger parity only. Already applied in production; do not replay."
+    },
+    {
+      "version": "20261106155350",
+      "name": "dc05_modified_cancellation_capability_fix",
+      "source_kind": "live_ledger_sql",
+      "source_file": "supabase/migrations/20261106155350_dc05_modified_cancellation_capability_fix.sql",
+      "provenance_status": "recovered_verbatim_from_live_migration_ledger",
+      "provenance_note": "Recovered byte-for-byte from supabase_migrations.schema_migrations.statements; restored for local ledger parity only. Already applied in production; do not replay."
+    }
+  ],
+  "sql_source_of_truth": "supabase/migrations/<version>_<name>.sql"
+}

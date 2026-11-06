@@ -29,13 +29,23 @@ function inviteRedirectUrl(): string {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getActivePropertyId(supabase: any, userId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("staynas_user_property_context")
+    .select("property_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error || !data?.property_id) throw new Error("No active property context.");
+  return data.property_id as string;
+}
+
 async function assertRoles(supabase: any, userId: string, roles: readonly string[]) {
-  const { data, error } = await supabase.rpc("has_any_role", {
-    _user_id: userId,
-    _roles: [...roles],
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  if (!userId) throw new Error("Forbidden");
+  const { data, error } = await supabase.rpc("staynas_current_property_roles");
+  if (error) throw new Error("Unable to verify active-property staff permissions.");
+  if (!Array.isArray(data) || !data.some((role: string) => roles.includes(role))) {
+    throw new Error("Forbidden");
+  }
 }
 
 export type StaffUser = {
@@ -70,24 +80,27 @@ export const listStaffUsers = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<StaffUser[]> => {
     await assertRoles(context.supabase, context.userId, STAFF_VIEW_ROLES);
 
-    const { data: assignments, error } = await context.supabase
-      .from("user_roles")
-      .select("user_id, role, created_at")
+    const propertyId = await getActivePropertyId(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: assignments, error } = await supabaseAdmin
+      .from("staynas_property_members")
+      .select("user_id, role, status, created_at")
+      .eq("property_id", propertyId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
 
     // Group by user_id
-    const byUser = new Map<string, { roles: AppRole[]; created_at: string | null }>();
+    const byUser = new Map<string, { roles: AppRole[]; created_at: string | null; suspended: boolean }>();
     for (const row of assignments ?? []) {
-      const existing = byUser.get(row.user_id) ?? { roles: [], created_at: row.created_at };
+      const existing = byUser.get(row.user_id) ?? { roles: [], created_at: row.created_at, suspended: false };
       if (!existing.roles.includes(row.role as AppRole)) existing.roles.push(row.role as AppRole);
+      existing.suspended ||= row.status === "suspended";
       byUser.set(row.user_id, existing);
     }
 
     if (byUser.size === 0) return [];
 
-    // Enrich with auth metadata via admin client (staff-only surface).
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Enrich with auth metadata via the already-authorized admin client.
     const results: StaffUser[] = [];
     for (const [uid, info] of byUser.entries()) {
       try {
@@ -103,7 +116,7 @@ export const listStaffUsers = createServerFn({ method: "GET" })
             null,
           department: (meta.department as string) ?? null,
           notes: (meta.notes as string) ?? null,
-          status: u ? deriveStatus(u) : "active",
+          status: info.suspended ? "disabled" : u ? deriveStatus(u) : "active",
           last_sign_in_at: u?.last_sign_in_at ?? null,
           created_at: u?.created_at ?? info.created_at,
           roles: info.roles,
@@ -115,7 +128,7 @@ export const listStaffUsers = createServerFn({ method: "GET" })
           full_name: null,
           department: null,
           notes: null,
-          status: "active",
+          status: info.suspended ? "disabled" : "active",
           last_sign_in_at: null,
           created_at: info.created_at,
           roles: info.roles,
@@ -131,12 +144,20 @@ export const listRoleAssignments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertRoles(context.supabase, context.userId, STAFF_VIEW_ROLES);
-    const { data, error } = await context.supabase
-      .from("user_roles")
-      .select("id, user_id, role, created_at")
+    const propertyId = await getActivePropertyId(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("staynas_property_members")
+      .select("property_id, user_id, role, created_at")
+      .eq("property_id", propertyId)
       .order("role");
     if (error) throw new Error(error.message);
-    return (data ?? []) as Array<{ id: string; user_id: string; role: AppRole; created_at: string }>;
+    return (data ?? []).map((row) => ({
+      id: `${row.property_id}:${row.user_id}:${row.role}`,
+      user_id: row.user_id,
+      role: row.role as AppRole,
+      created_at: row.created_at,
+    }));
   });
 
 const roleMutSchema = z.object({
@@ -150,15 +171,20 @@ export const assignRole = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => roleMutSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertRoles(context.supabase, context.userId, ROLE_ADMIN_ROLES);
-    const { error } = await context.supabase
-      .from("user_roles")
-      .insert({ user_id: data.userId, role: data.role });
-    if (error && !/duplicate/i.test(error.message)) throw new Error(error.message);
+    const propertyId = await getActivePropertyId(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("staynas_property_members")
+      .upsert(
+        { property_id: propertyId, user_id: data.userId, role: data.role, status: "active" },
+        { onConflict: "property_id,user_id,role" },
+      );
+    if (error) throw new Error(error.message);
     await logActivity(context.supabase, {
       actorId: context.userId,
       actorEmail: (context.claims as any)?.email ?? null,
       action: "role.assigned",
-      entityType: "user_role",
+      entityType: "property_member",
       entityId: data.userId,
       entityLabel: data.role,
       newValue: { role: data.role },
@@ -174,15 +200,22 @@ export const revokeRole = createServerFn({ method: "POST" })
     await assertRoles(context.supabase, context.userId, ROLE_ADMIN_ROLES);
     // Guard: prevent removing the last owner.
     if (data.role === "owner") {
-      const { count } = await context.supabase
-        .from("user_roles")
-        .select("id", { count: "exact", head: true })
-        .eq("role", "owner");
-      if ((count ?? 0) <= 1) throw new Error("Cannot remove the last owner");
+      const propertyId = await getActivePropertyId(context.supabase, context.userId);
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { count } = await supabaseAdmin
+        .from("staynas_property_members")
+        .select("user_id", { count: "exact", head: true })
+        .eq("property_id", propertyId)
+        .eq("role", "owner")
+        .eq("status", "active");
+      if ((count ?? 0) <= 1) throw new Error("Cannot remove the last property owner");
     }
-    const { error } = await context.supabase
-      .from("user_roles")
+    const propertyId = await getActivePropertyId(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("staynas_property_members")
       .delete()
+      .eq("property_id", propertyId)
       .eq("user_id", data.userId)
       .eq("role", data.role);
     if (error) throw new Error(error.message);
@@ -190,7 +223,7 @@ export const revokeRole = createServerFn({ method: "POST" })
       actorId: context.userId,
       actorEmail: (context.claims as any)?.email ?? null,
       action: "role.revoked",
-      entityType: "user_role",
+      entityType: "property_member",
       entityId: data.userId,
       entityLabel: data.role,
       previousValue: { role: data.role },
@@ -257,10 +290,14 @@ export const inviteStaffUser = createServerFn({ method: "POST" })
     if (!userId) throw new Error("Failed to resolve invited user");
 
     // Assign the role (idempotent).
+    const propertyId = await getActivePropertyId(context.supabase, context.userId);
     const { error: roleErr } = await supabaseAdmin
-      .from("user_roles")
-      .insert({ user_id: userId, role: data.role });
-    if (roleErr && !/duplicate/i.test(roleErr.message)) throw new Error(roleErr.message);
+      .from("staynas_property_members")
+      .upsert(
+        { property_id: propertyId, user_id: userId, role: data.role, status: "active" },
+        { onConflict: "property_id,user_id,role" },
+      );
+    if (roleErr) throw new Error(roleErr.message);
 
     await logActivity(context.supabase, {
       actorId: context.userId,
@@ -283,7 +320,10 @@ export const resendStaffInvite = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => userIdSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertRoles(context.supabase, context.userId, ROLE_ADMIN_ROLES);
+    const propertyId = await getActivePropertyId(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: membership } = await supabaseAdmin.from("staynas_property_members").select("user_id").eq("property_id", propertyId).eq("user_id", data.userId).limit(1).maybeSingle();
+    if (!membership) throw new Error("User is not a member of the active property.");
     const { data: uRes, error: uErr } = await supabaseAdmin.auth.admin.getUserById(data.userId);
     if (uErr || !uRes?.user?.email) throw new Error(uErr?.message ?? "User has no email");
     const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(uRes.user.email, {
@@ -307,7 +347,10 @@ export const sendStaffPasswordReset = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => userIdSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertRoles(context.supabase, context.userId, ROLE_ADMIN_ROLES);
+    const propertyId = await getActivePropertyId(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: membership } = await supabaseAdmin.from("staynas_property_members").select("user_id").eq("property_id", propertyId).eq("user_id", data.userId).limit(1).maybeSingle();
+    if (!membership) throw new Error("User is not a member of the active property.");
     const { data: uRes, error: uErr } = await supabaseAdmin.auth.admin.getUserById(data.userId);
     if (uErr || !uRes?.user?.email) throw new Error(uErr?.message ?? "User has no email");
     // generateLink('recovery') triggers the recovery email via the Auth API.
@@ -333,37 +376,41 @@ const disableSchema = z.object({
   disabled: z.boolean(),
 });
 
-/** Enable or disable a staff user (ban_duration on auth.users). */
+/** Suspend or restore this user's membership in the active property only. */
 export const setStaffUserDisabled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => disableSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertRoles(context.supabase, context.userId, ROLE_ADMIN_ROLES);
     if (data.userId === context.userId) throw new Error("You cannot disable your own account");
+    const propertyId = await getActivePropertyId(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     if (data.disabled) {
-      // If disabling the last owner, refuse.
-      const { data: ownerRow } = await context.supabase
-        .from("user_roles")
+      const { data: ownerRows } = await supabaseAdmin
+        .from("staynas_property_members")
         .select("user_id")
+        .eq("property_id", propertyId)
         .eq("user_id", data.userId)
         .eq("role", "owner")
-        .maybeSingle();
-      if (ownerRow) {
-        const { count } = await context.supabase
-          .from("user_roles")
-          .select("id", { count: "exact", head: true })
-          .eq("role", "owner");
-        if ((count ?? 0) <= 1) throw new Error("Cannot disable the last owner");
+        .eq("status", "active");
+      if (ownerRows?.length) {
+        const { count } = await supabaseAdmin
+          .from("staynas_property_members")
+          .select("user_id", { count: "exact", head: true })
+          .eq("property_id", propertyId)
+          .eq("role", "owner")
+          .eq("status", "active");
+        if ((count ?? 0) <= 1) throw new Error("Cannot suspend the last property owner");
       }
     }
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // 100 years ≈ permanent; 'none' clears the ban.
-    const ban_duration = data.disabled ? "876000h" : "none";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabaseAdmin.auth.admin as any).updateUserById(data.userId, {
-      ban_duration,
-    });
+    const { data: updatedRows, error } = await supabaseAdmin
+      .from("staynas_property_members")
+      .update({ status: data.disabled ? "suspended" : "active", updated_at: new Date().toISOString() })
+      .eq("property_id", propertyId)
+      .eq("user_id", data.userId)
+      .select("user_id");
     if (error) throw new Error(error.message);
+    if (!updatedRows?.length) throw new Error("User is not a member of the active property.");
     await logActivity(context.supabase, {
       actorId: context.userId,
       actorEmail: (context.claims as any)?.email ?? null,
@@ -381,21 +428,29 @@ export const removeAllRoles = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertRoles(context.supabase, context.userId, ROLE_ADMIN_ROLES);
     if (data.userId === context.userId) throw new Error("You cannot remove your own roles");
-    // Prevent removing the last owner.
-    const { data: ownerRow } = await context.supabase
-      .from("user_roles")
+    const propertyId = await getActivePropertyId(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: ownerRows } = await supabaseAdmin
+      .from("staynas_property_members")
       .select("user_id")
+      .eq("property_id", propertyId)
       .eq("user_id", data.userId)
       .eq("role", "owner")
-      .maybeSingle();
-    if (ownerRow) {
-      const { count } = await context.supabase
-        .from("user_roles")
-        .select("id", { count: "exact", head: true })
-        .eq("role", "owner");
-      if ((count ?? 0) <= 1) throw new Error("Cannot remove the last owner");
+      .eq("status", "active");
+    if (ownerRows?.length) {
+      const { count } = await supabaseAdmin
+        .from("staynas_property_members")
+        .select("user_id", { count: "exact", head: true })
+        .eq("property_id", propertyId)
+        .eq("role", "owner")
+        .eq("status", "active");
+      if ((count ?? 0) <= 1) throw new Error("Cannot remove the last property owner");
     }
-    const { error } = await context.supabase.from("user_roles").delete().eq("user_id", data.userId);
+    const { error } = await supabaseAdmin
+      .from("staynas_property_members")
+      .delete()
+      .eq("property_id", propertyId)
+      .eq("user_id", data.userId);
     if (error) throw new Error(error.message);
     await logActivity(context.supabase, {
       actorId: context.userId,

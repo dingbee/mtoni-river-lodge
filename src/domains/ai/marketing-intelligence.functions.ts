@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireStayNasFounderAdmin } from "@/lib/staynas-authorization.server";
 
 /**
  * Marketing Intelligence AI (Sprint 8E)
@@ -46,6 +47,7 @@ async function logActivity(supabase: any, userId: string, tool: string, question
 export const getMarketingIntelligenceOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const [
       { data: seo },
       { data: pages },
@@ -131,6 +133,7 @@ export const generateSeoRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { persist?: boolean } | undefined) => ({ persist: input?.persist ?? true }))
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const [{ data: seo }, { data: pages }] = await Promise.all([
       context.supabase.from("seo_overrides").select("*"),
       context.supabase.from("cms_pages").select("id, route_path, slug, title, description, status"),
@@ -277,6 +280,7 @@ export const generateContentRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { persist?: boolean } | undefined) => ({ persist: input?.persist ?? true }))
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const [{ data: articles }, { data: forward }] = await Promise.all([
       context.supabase.from("journal_articles").select("id, title, slug, status, published_at, seo_title, seo_description, cover_image_url"),
       context.supabase.from("bookings").select("check_in, total, status").gte("check_in", today()).lte("check_in", daysAgo(-90)).in("status", ["confirmed","pending","checked_in"]),
@@ -379,6 +383,7 @@ export const generateCampaignRecommendations = createServerFn({ method: "POST" }
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { persist?: boolean } | undefined) => ({ persist: input?.persist ?? true }))
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const from = today();
     const to90 = daysAgo(-90);
     const [{ data: rooms }, { data: forward }, { data: campaigns }, { data: cancelled }, { data: reviews }] = await Promise.all([
@@ -527,6 +532,7 @@ export const generateReputationInsight = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { persist?: boolean } | undefined) => ({ persist: input?.persist ?? true }))
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const from = daysAgo(180);
     const { data: reviews } = await context.supabase
       .from("reviews")
@@ -644,6 +650,7 @@ export const reviewBrandCompliance = createServerFn({ method: "POST" })
     return { ...input, persist: input.persist ?? true };
   })
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data: brand } = await context.supabase.from("brand_tokens").select("key, category, label, value");
     const voiceTokens = (brand ?? []).filter((b: any) => b.category === "voice");
     const glossary = (brand ?? []).filter((b: any) => b.category === "glossary");
@@ -726,6 +733,7 @@ export const generateWeeklyPriorities = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { persist?: boolean } | undefined) => ({ persist: input?.persist ?? true }))
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const [{ data: pending }, { data: reputation }] = await Promise.all([
       context.supabase.from("ai_marketing_recommendations")
         .select("id, kind, action, title, reasoning, expected_impact, impact_score, confidence, evidence")
@@ -800,6 +808,7 @@ export const listMarketingRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { kind?: "seo" | "content" | "campaign"; status?: string } | undefined) => input ?? {})
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     let q = context.supabase.from("ai_marketing_recommendations").select("*").order("created_at", { ascending: false }).limit(200);
     if (data.kind) q = q.eq("kind", data.kind);
     if (data.status) q = q.eq("status", data.status);
@@ -815,6 +824,7 @@ export const actionMarketingRecommendation = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const status = data.action === "accept" ? "accepted" : data.action === "dismiss" ? "dismissed" : "converted";
     let taskId: string | null = null;
     if (data.action === "convert") {
@@ -843,6 +853,7 @@ export const actionMarketingRecommendation = createServerFn({ method: "POST" })
 export const listReputationInsights = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data } = await context.supabase.from("ai_reputation_insights").select("*").order("created_at", { ascending: false }).limit(20);
     return data ?? [];
   });
@@ -850,6 +861,7 @@ export const listReputationInsights = createServerFn({ method: "GET" })
 export const listBrandReviews = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data } = await context.supabase.from("ai_brand_reviews").select("*").order("created_at", { ascending: false }).limit(50);
     return data ?? [];
   });
@@ -857,6 +869,7 @@ export const listBrandReviews = createServerFn({ method: "GET" })
 export const listMarketingPriorities = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data } = await context.supabase.from("ai_marketing_priorities").select("*").order("created_at", { ascending: false }).limit(12);
     return data ?? [];
   });

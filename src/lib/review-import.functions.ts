@@ -2,11 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { callAiGateway, parseAiJson } from "@/lib/ai-gateway.server";
+import { requireStayNasFounderAdmin } from "@/lib/staynas-authorization.server";
 
 async function assertStaff(supabase: any, userId: string) {
-  const { data, error } = await supabase.rpc("is_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasFounderAdmin(supabase, userId);
 }
 
 async function callAI(system: string, user: string, expectJson = false): Promise<string> {

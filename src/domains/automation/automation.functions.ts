@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { requireStayNasFounderAdmin } from "@/lib/staynas-authorization.server";
 
 /**
  * Automation & Workflow Engine — server functions.
@@ -25,7 +25,7 @@ const workflowInput = z.object({
 export const listWorkflows = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "automation");
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("workflows")
       .select("*")
@@ -39,7 +39,7 @@ export const getWorkflow = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "automation");
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data: row, error } = await context.supabase
       .from("workflows").select("*").eq("id", data.id).maybeSingle();
     if (error) throw new Error(error.message);
@@ -50,7 +50,7 @@ export const saveWorkflow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => workflowInput.parse(i))
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "automation");
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const row: any = {
       name: data.name,
       description: data.description ?? null,
@@ -77,7 +77,7 @@ export const deleteWorkflow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "automation");
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { error } = await context.supabase.from("workflows").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -87,7 +87,7 @@ export const cloneWorkflow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "automation");
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data: src, error } = await context.supabase.from("workflows").select("*").eq("id", data.id).single();
     if (error) throw new Error(error.message);
     const copy: any = { ...src, name: `${src.name} (copy)`, is_template: false, created_by: context.userId };
@@ -103,7 +103,7 @@ export const listWorkflowRuns = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => z.object({ status: z.string().optional(), limit: z.number().max(200).default(80) }).parse(i ?? {}))
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "automation");
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     let q = context.supabase.from("workflow_runs")
       .select("*, workflow:workflows(id,name)")
       .order("started_at", { ascending: false })
@@ -118,7 +118,7 @@ export const getRunSteps = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => z.object({ runId: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "automation");
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data: rows, error } = await context.supabase
       .from("workflow_run_steps").select("*").eq("run_id", data.runId).order("step_index");
     if (error) throw new Error(error.message);
@@ -129,7 +129,7 @@ export const retryWorkflowRun = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => z.object({ runId: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "automation");
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data: run } = await context.supabase.from("workflow_runs").select("*").eq("id", data.runId).single();
     if (!run) throw new Error("Run not found");
     await dispatchWorkflow(context.supabase, run.workflow_id, run.trigger_event, run.event_payload, {
@@ -293,7 +293,7 @@ export const dispatchEvent = createServerFn({ method: "POST" })
     correlationId: z.string().uuid().optional().nullable(),
   }).parse(i))
   .handler(async ({ data, context }) => {
-    await requireStayNasModuleAccess(context.supabase, context.userId, "automation");
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data: matches } = await context.supabase
       .from("workflows")
       .select("id")
@@ -313,6 +313,7 @@ export const dispatchEvent = createServerFn({ method: "POST" })
 export const listMyNotifications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("notifications").select("*")
       .or(`user_id.eq.${context.userId},user_id.is.null`)
@@ -325,6 +326,7 @@ export const markNotificationRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     await context.supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", data.id);
     return { ok: true };
   });
@@ -334,6 +336,7 @@ export const markNotificationRead = createServerFn({ method: "POST" })
 export const listScheduledJobs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data } = await context.supabase.from("scheduled_jobs").select("*").order("name");
     return data ?? [];
   });
@@ -349,6 +352,7 @@ export const saveScheduledJob = createServerFn({ method: "POST" })
     enabled: z.boolean().default(true),
   }).parse(i))
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     if (data.id) {
       await context.supabase.from("scheduled_jobs").update(data).eq("id", data.id);
       return { id: data.id };
@@ -362,6 +366,7 @@ export const toggleScheduledJob = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => z.object({ id: z.string().uuid(), enabled: z.boolean() }).parse(i))
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     await context.supabase.from("scheduled_jobs").update({ enabled: data.enabled }).eq("id", data.id);
     return { ok: true };
   });
@@ -372,6 +377,7 @@ export const listApprovals = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => z.object({ status: z.string().optional() }).parse(i ?? {}))
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     let q = context.supabase.from("approval_requests").select("*").order("created_at", { ascending: false }).limit(100);
     if (data.status && data.status !== "all") q = q.eq("status", data.status);
     const { data: rows, error } = await q;
@@ -387,6 +393,7 @@ export const decideApproval = createServerFn({ method: "POST" })
     reason: z.string().max(500).optional(),
   }).parse(i))
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data: appr } = await context.supabase.from("approval_requests").select("*").eq("id", data.id).single();
     if (!appr) throw new Error("Approval not found");
     await context.supabase.from("approval_requests").update({
@@ -429,6 +436,7 @@ export const requestApproval = createServerFn({ method: "POST" })
     approver_roles: z.array(z.string()).default(["owner","manager"]),
   }).parse(i))
   .handler(async ({ data, context }) => {
+    await requireStayNasFounderAdmin(context.supabase, context.userId);
     const { data: row, error } = await context.supabase.from("approval_requests").insert({
       approval_kind: data.approval_kind,
       subject: data.subject,

@@ -29,7 +29,13 @@ function safeHeaders() {
 export async function logActivity(supabase: any, input: LogInput) {
   try {
     const { ip, ua } = safeHeaders();
+    const { data: propertyContext } = await supabase
+      .from("staynas_user_property_context")
+      .select("property_id")
+      .eq("user_id", input.actorId)
+      .maybeSingle();
     const row = {
+      property_id: propertyContext?.property_id ?? null,
       actor_id: input.actorId,
       actor_email: input.actorEmail ?? null,
       action: input.action,

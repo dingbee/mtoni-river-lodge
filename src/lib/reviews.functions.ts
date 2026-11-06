@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { logActivity } from "./activity-log.server";
 import type { Review, ReviewAggregate } from "./reviews";
+import { requireStayNasFounderAdmin } from "@/lib/staynas-authorization.server";
 
 function publicClient() {
   return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
@@ -12,9 +13,7 @@ function publicClient() {
 }
 
 async function assertStaff(supabase: any, userId: string) {
-  const { data, error } = await supabase.rpc("is_staff", { _user_id: userId });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
+  await requireStayNasFounderAdmin(supabase, userId);
 }
 
 const REVIEW_COLS =

@@ -13,28 +13,24 @@ export async function rolesFor(supabase: Sb, userId: string): Promise<string[]> 
   // is intentionally blocked by RLS.
   void userId;
 
-  const { data, error } = await supabase.rpc("current_user_roles");
+  const { data, error } = await supabase.rpc("staynas_current_property_roles");
   if (error) throw new Error(error.message);
 
   return (data ?? []).map((role: any) => String(role));
 }
 
 export async function assertIntelRead(supabase: Sb, userId: string) {
-  const { data, error } = await supabase.rpc("has_any_role", {
-    _user_id: userId,
-    _roles: INTEL_READ_ROLES as unknown as string[],
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden — Intelligence Core requires a staff role.");
+  const roles = await rolesFor(supabase, userId);
+  if (!roles.some((role) => (INTEL_READ_ROLES as readonly string[]).includes(role))) {
+    throw new Error("Forbidden — Intelligence Core requires an active property staff role.");
+  }
 }
 
 export async function assertIntelDecide(supabase: Sb, userId: string) {
-  const { data, error } = await supabase.rpc("has_any_role", {
-    _user_id: userId,
-    _roles: INTEL_DECIDE_ROLES as unknown as string[],
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden — this decision requires a manager or owner role.");
+  const roles = await rolesFor(supabase, userId);
+  if (!roles.some((role) => (INTEL_DECIDE_ROLES as readonly string[]).includes(role))) {
+    throw new Error("Forbidden — this decision requires a property manager or owner role.");
+  }
 }
 
 /** Narrow a query to modules the caller's roles may see. */

@@ -1,4 +1,7 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { isFounderAiAdmin } from "@/domains/ai/governance.functions";
 import { Sparkles, BarChart3, FileText, History, Settings, Users, TrendingUp, Megaphone, LayoutDashboard, ShieldCheck, Activity, Search, MessageCircle, Inbox, Brain, Plane, MessagesSquare, PenSquare, AlertTriangle, Radio, LineChart, ClipboardList, RefreshCw, Bot } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/ai")({
@@ -24,21 +27,24 @@ const TABS = [
   { to: "/admin/ai/concierge/pre-arrival", label: "Pre-Arrival", icon: Plane },
   { to: "/admin/ai/concierge/recommendations", label: "Recommendations", icon: Sparkles },
   { to: "/admin/ai/leads",     label: "Concierge Leads",    icon: Inbox },
-  { to: "/admin/ai/governance",label: "Governance",     icon: ShieldCheck },
-  { to: "/admin/ai/performance",label:"Performance",    icon: Activity },
-  { to: "/admin/ai/audit",     label: "Audit",          icon: Search },
+  { to: "/admin/ai/governance",label: "Governance",     icon: ShieldCheck, founderOnly: true },
+  { to: "/admin/ai/performance",label:"Performance",    icon: Activity, founderOnly: true },
+  { to: "/admin/ai/audit",     label: "Audit",          icon: Search, founderOnly: true },
   { to: "/admin/ai/insights",  label: "Insights",       icon: BarChart3 },
   { to: "/admin/ai/knowledge", label: "Knowledge Base", icon: FileText },
   { to: "/admin/ai/knowledge/sync", label: "Knowledge Sync", icon: RefreshCw },
-  { to: "/admin/ai/activity",  label: "AI Activity",    icon: History },
-  { to: "/admin/ai/settings",  label: "Settings",       icon: Settings },
+  { to: "/admin/ai/activity",  label: "AI Activity",    icon: History, founderOnly: true },
+  { to: "/admin/ai/settings",  label: "Settings",       icon: Settings, founderOnly: true },
 ] as const;
 
 function AiLayout() {
+  const founderAccessFn = useServerFn(isFounderAiAdmin);
+  const founderAccess = useQuery({ queryKey: ["ai-founder-access"], queryFn: () => founderAccessFn() });
+  const visibleTabs = TABS.filter((tab) => !(("founderOnly" in tab) && tab.founderOnly) || founderAccess.data === true);
   return (
     <div className="space-y-4">
       <nav className="flex flex-wrap gap-1 overflow-x-auto rounded-lg border bg-card p-1 text-sm">
-        {TABS.map((t) => (
+        {visibleTabs.map((t) => (
           <Link
             key={t.to}
             to={t.to as any}

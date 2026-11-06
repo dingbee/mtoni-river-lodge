@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { FounderAdminGate } from "@/components/os/FounderAdminGate";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo } from "react";
@@ -14,8 +15,12 @@ import { listAllReviews, updateReview, getReviewAggregates } from "@/lib/reviews
 
 export const Route = createFileRoute("/_authenticated/admin/marketing/reviews")({
   head: () => ({ meta: [{ title: "Reputation Centre — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
-  component: Reputation,
+  component: ReputationPage
 });
+
+function ReputationPage() {
+  return <FounderAdminGate description="Review records are not yet property-scoped and remain restricted to the platform administrator."><Reputation /></FounderAdminGate>;
+}
 
 function Reputation() {
   const listFn = useServerFn(listAllReviews);
