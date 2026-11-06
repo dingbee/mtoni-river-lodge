@@ -53,14 +53,18 @@ export async function ingestExternalReservationEvent(
       event.externalAccountReference !== context.externalAccountReference) {
     throw new Error("Provider event does not match the authorized distribution connection.");
   }
-  if (context.capability !== "reservation.import" &&
-      context.capability !== "reservation.update" &&
-      context.capability !== "reservation.cancel") {
-    throw new Error("Distribution connection does not grant reservation ingestion capability.");
+  const requiredCapability = event.eventType === "reservation.created" || event.eventType === "reservation.confirmed"
+    ? "reservation.import"
+    : event.eventType === "reservation.modified" || event.eventType === "reservation.payment_updated" ||
+        event.eventType === "reservation.refund_notified"
+      ? "reservation.update"
+      : "reservation.cancel";
+  if (context.capability !== requiredCapability) {
+    throw new Error("Distribution connection does not grant the capability required by this reservation event.");
   }
 
-  const key = readReservationPayloadKey();
   const keyVersion = readReservationPayloadKeyVersion();
+  const key = readReservationPayloadKey(keyVersion);
   const encryptedPayload = encryptReservationPayload(
     event,
     key,
