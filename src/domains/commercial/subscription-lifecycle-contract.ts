@@ -74,6 +74,7 @@ export const commercialSubscriptionSchema = z.object({
   addonCodes: z.array(reference),
   status: z.enum(COMMERCIAL_SUBSCRIPTION_STATUSES),
   activatedAt: timestamp.nullable(),
+  commercialAcceptanceRef: reference.nullable(),
   trialPolicyVersion: z.number().int().positive().nullable(),
   trialStartedAt: timestamp.nullable(),
   trialEndsAt: timestamp.nullable(),
@@ -88,9 +89,6 @@ export const commercialSubscriptionSchema = z.object({
   createdAt: timestamp,
   updatedAt: timestamp,
 }).superRefine((value, ctx) => {
-  if (value.priceSnapshot.currency === "USD" || value.priceSnapshot.currency === "TZS") {
-    // Currency is intentionally repeated in the accepted snapshot; no conversion is performed.
-  }
   if (value.priceSnapshot.quoteRequired && value.planCode !== "enterprise") {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -98,14 +96,14 @@ export const commercialSubscriptionSchema = z.object({
       message: "Quote-required subscriptions are reserved for Enterprise",
     });
   }
-  if (value.priceSnapshot.billingTerm !== value.priceSnapshot.billingTerm) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["priceSnapshot", "billingTerm"], message: "Invalid billing term" });
-  }
   if (value.status === "pending_activation" && value.activatedAt !== null) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["activatedAt"], message: "Pending subscriptions cannot have an activation timestamp" });
   }
-  if (value.status !== "pending_activation" && value.activatedAt === null) {
+  if (["trialing", "active", "suspended"].includes(value.status) && value.activatedAt === null) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["activatedAt"], message: "Activated subscriptions require an activation timestamp" });
+  }
+  if (value.status === "pending_activation" && value.commercialAcceptanceRef !== null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["commercialAcceptanceRef"], message: "Pending subscriptions cannot have an accepted commercial agreement" });
   }
   if (value.status === "trialing" && (!value.trialStartedAt || !value.trialEndsAt || !value.trialPolicyVersion)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["trialEndsAt"], message: "Trialing subscriptions require a complete trial window and policy version" });
@@ -131,8 +129,11 @@ export const commercialSubscriptionSchema = z.object({
   if (!["cancelled", "expired"].includes(value.status) && value.endedAt !== null) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["endedAt"], message: "Non-terminal subscriptions cannot have an end timestamp" });
   }
-  if (value.cancelAtPeriodEnd && (!value.cancellationRequestedAt || !value.currentPeriodEndsAt)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["cancelAtPeriodEnd"], message: "Scheduled cancellation requires a request timestamp and current period end" });
+  const cancellationBoundary = value.status === "trialing" || (value.status === "suspended" && value.suspendedFromStatus === "trialing")
+    ? value.trialEndsAt
+    : value.currentPeriodEndsAt;
+  if (value.cancelAtPeriodEnd && (!value.cancellationRequestedAt || !cancellationBoundary)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["cancelAtPeriodEnd"], message: "Scheduled cancellation requires a request timestamp and current period boundary" });
   }
 });
 export type CommercialSubscription = z.infer<typeof commercialSubscriptionSchema>;
@@ -243,6 +244,7 @@ export function transitionCommercialSubscription(
           ...current,
           status: "active",
           activatedAt: subscription.activatedAt ?? event.occurredAt,
+          commercialAcceptanceRef: event.commercialAcceptanceRef,
           currentPeriodStartsAt: event.occurredAt,
           currentPeriodEndsAt: event.periodEndsAt,
           cancelAtPeriodEnd: false,
@@ -276,7 +278,7 @@ export function transitionCommercialSubscription(
         return {
           subscription: commercialSubscriptionSchema.parse({
             ...current,
-            status: "expired",
+            status: subscription.cancelAtPeriodEnd ? "cancelled" : "expired",
             suspendedAt: null,
             suspensionReasonCode: null,
             suspendedFromStatus: null,
@@ -299,7 +301,10 @@ export function transitionCommercialSubscription(
     case "request_cancellation": {
       if (!["trialing", "active", "suspended"].includes(subscription.status)) throw new Error("Subscription cannot be cancelled from its current state");
       if (event.atPeriodEnd) {
-        if (!subscription.currentPeriodEndsAt) throw new Error("Scheduled cancellation requires an active paid period");
+        const cancellationBoundary = subscription.status === "trialing"
+          ? subscription.trialEndsAt
+          : subscription.currentPeriodEndsAt;
+        if (!cancellationBoundary) throw new Error("Scheduled cancellation requires a trial or paid period boundary");
         return {
           subscription: commercialSubscriptionSchema.parse({
             ...current,
