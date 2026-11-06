@@ -232,3 +232,8 @@ Direct read-only inspection of the production StayNas migration ledger returned 
 **Security release gate remains open.** The live Security Advisor still reports 24 anonymous-executable and 85 authenticated-executable SECURITY DEFINER functions, four mutable search-path findings, one extension-in-public finding, and disabled leaked-password protection. The staged CC-01 migration addresses the reproduced cross-user membership probe and several internal RPC grants, but it has not been applied. The remaining findings require function-by-function disposition and the Auth configuration warning requires a separate project setting change.
 
 Production remains unchanged: no migration was applied, no production data or roles were modified, no merge to main occurred, and no deployment was performed.
+
+
+## Exact-head CI re-trigger — 6 November 2026, 16:29 UTC
+
+The migration-ledger correction triggered the quarantine workflow, which updated the generated classification manifest to **139 verified live records** and retained all **165** historical candidate files; no additional file was moved. Its bot-authored commit `65f1d235fe408d325807894e0924db05fc25b07d` caused the five PR workflows to finish with GitHub conclusion `action_required` before any jobs were created. The code and staged migration SQL are unchanged from `c7f90cb2e828e0b79ecdd4281ff6560b474e3e12`, on which all five workflows passed. This documentation-only update triggers a new exact-head PR verification run; no production action is involved.
