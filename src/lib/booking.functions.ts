@@ -22,9 +22,15 @@ const availabilitySchema = z.object({
   adults: z.number().int().min(1).max(10).default(1),
   childrenBelow6: z.number().int().min(0).max(10).default(0),
   children7Plus: z.number().int().min(0).max(10).default(0),
+  ratePlanId: z.string().uuid().optional(),
 });
 
+export type PublicRatePlanOption = { rate_plan_id: string; name: string; description: string | null; meal_plan: string | null; refundable: boolean; currency: string; total: number; average_nightly_rate: number; minimum_stay: number; nightly_breakdown: Array<{ date: string; nightly_rate: number; currency: string; source_label: string; pricing_basis: string; source_rate: number }>; publication_id: string; publication_number: number; rate_plan_version: number; snapshot_hash: string };
+
 export type AvailabilityRoom = {
+  rate_plan_options?: PublicRatePlanOption[];
+  selected_rate_plan_id?: string;
+  selected_rate_plan?: PublicRatePlanOption;
   room_id: string;
   slug: string;
   name: string;
@@ -44,6 +50,10 @@ export type AvailabilityRoom = {
 };
 
 export type BookingPricingQuote = {
+  ok?: boolean;
+  error_code?: string;
+  message?: string;
+  pricing_evidence?: Record<string, string | number | null>;
   property_id: string;
   room_id: string;
   currency: string;
@@ -59,6 +69,9 @@ export type BookingPricingQuote = {
     currency: string;
     applied_rule_id: string | null;
     applied_rule_type: string | null;
+    source?: string;
+    source_rate?: number;
+    pricing_basis?: string;
   }>;
   accommodation_subtotal: number;
   extras: Array<{ slug: string; name: string; quantity: number; unit_price: number; unit: string; line_total: number; currency: string }>;
@@ -83,22 +96,35 @@ export const checkAvailability = createServerFn({ method: "POST" })
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
-    const { data: rows, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced", {
+    const { data: rows, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced_with_rate_plan", {
       _check_in: data.checkIn,
       _check_out: data.checkOut,
       _property_id: propertyId,
       _adults: data.adults,
       _children_below_6: data.childrenBelow6,
       _children_7_plus: data.children7Plus,
+      _rate_plan_id: data.ratePlanId ?? null,
     });
     if (error) throw new Error(error.message);
-    return ((rows ?? []) as any[]).map((r) => ({
+    const mapped = await Promise.all(((rows ?? []) as any[]).map(async (r) => {
+      let ratePlanOptions: PublicRatePlanOption[] = [];
+      if (r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" || r.pricing_quote?.pricing_evidence?.rate_plan_id) {
+        const { data: discovery, error: discoveryError } = await (supabaseAdmin as any).rpc("discover_staynas_public_rate_plans", {
+          _property_id: propertyId, _room_id: r.room_id, _check_in: data.checkIn, _check_out: data.checkOut,
+          _adults: data.adults, _children_below_6: data.childrenBelow6, _children_7_plus: data.children7Plus,
+        });
+        if (!discoveryError && discovery?.ok) ratePlanOptions = (discovery.plans ?? []) as PublicRatePlanOption[];
+      }
+      return {
       ...r,
+      rate_plan_options: ratePlanOptions,
       nightly_total: Number(r.nightly_total),
       base_price: Number(r.base_price),
       extra_guest_fee: Number(r.extra_guest_fee),
       pricing_quote: r.pricing_quote as BookingPricingQuote | null,
+    };
     }));
+    return mapped;
   });
 
 export const listExtras = createServerFn({ method: "GET" }).handler(async () => {
@@ -128,6 +154,7 @@ const extraSchema = z.object({
 
 const createBookingSchema = z.object({
   roomSlug: z.string().min(1),
+  ratePlanId: z.string().uuid().optional(),
   checkIn: dateStr,
   checkOut: dateStr,
   adults: z.number().int().min(1).max(10),
@@ -150,6 +177,7 @@ export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 export const getBookingQuote = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({
     roomSlug: z.string().min(1),
+    ratePlanId: z.string().uuid().optional(),
     checkIn: dateStr,
     checkOut: dateStr,
     adults: z.number().int().min(1).max(10),
@@ -160,7 +188,7 @@ export const getBookingQuote = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
-    const { data: quote, error } = await (supabaseAdmin as any).rpc("get_staynas_booking_quote", {
+    const { data: quote, error } = await (supabaseAdmin as any).rpc("get_staynas_booking_quote_with_rate_plan", {
       _property_id: propertyId,
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
@@ -169,9 +197,13 @@ export const getBookingQuote = createServerFn({ method: "POST" })
       _children_below_6: data.childrenBelow6,
       _children_7_plus: data.children7Plus,
       _extras: data.extras,
+      _rate_plan_id: data.ratePlanId ?? null,
     });
     if (error) throw new Error(error.message);
     if (!quote) throw new Error("Pricing quote could not be calculated");
+    if (quote.ok === false) {
+      throw new Error(`Pricing rejected [${quote.error_code ?? "INVALID_RATE_CONFIGURATION"}]: ${quote.message ?? "Pricing configuration is invalid"}`);
+    }
     return quote as BookingPricingQuote;
   });
 
@@ -184,7 +216,7 @@ export const createBooking = createServerFn({ method: "POST" })
     const below6 = data.childrenBelow6 ?? 0;
     const plus7 = data.children7Plus ?? Math.max(0, (data.children ?? 0) - below6);
     const totalChildren = below6 + plus7;
-    const { data: result, error } = await sb.rpc("create_booking_for_property", {
+    const { data: result, error } = await sb.rpc("create_booking_for_property_with_rate_plan", {
       _property_id: propertyId,
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
@@ -202,6 +234,7 @@ export const createBooking = createServerFn({ method: "POST" })
       _hold_id: data.holdId ?? null,
       _session_id: data.sessionId ?? null,
       _payment_method: "online",
+      _rate_plan_id: data.ratePlanId ?? null,
     });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;

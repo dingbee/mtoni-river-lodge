@@ -8,6 +8,7 @@ on:
       - main
       - feat/finance-*
       - feat/spe-03-*
+      - feat/spe-04-*
   pull_request:
     branches:
       - main

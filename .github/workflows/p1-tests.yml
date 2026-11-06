@@ -9,6 +9,7 @@ on:
       - main
       - feat/finance-*
       - feat/spe-03-*
+      - feat/spe-04-*
       - spe-02/**
   pull_request:
     branches:
@@ -47,6 +48,7 @@ jobs:
           src/domains/finance/daily-rate-calendar.test.ts
           src/domains/finance/rate-overrides.test.ts
           src/domains/finance/rate-plan-restrictions.test.ts
+          src/domains/finance/rate-plan-publication.test.ts
           src/lib/pesapal-currency.test.ts
       # TanStack Start generates routeTree.gen.ts during the Vite build.
       - name: Generate routes and verify production build
@@ -71,8 +73,10 @@ jobs:
           src/domains/finance/rate-overrides.test.ts
           src/domains/finance/rate-plan-restrictions.ts
           src/domains/finance/rate-plan-restrictions.test.ts
+          src/domains/finance/rate-plan-publication.ts
+          src/domains/finance/rate-plan-publication.test.ts
+          src/routes/_authenticated.admin.finance.rate-plans.tsx
           src/routes/_authenticated.admin.finance.rate-overrides.tsx
-          src/domains/finance/daily-rate-calendar.test.ts
           src/domains/finance/seasonal-pricing.test.ts
           src/lib/finance-rpc.ts
           src/lib/pricing.ts

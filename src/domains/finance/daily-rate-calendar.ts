@@ -64,3 +64,67 @@ export function resolveDailyRate(
   const rate = rates[propertyLocalDate]?.[roomTypeId];
   return rate?.active ? rate : null;
 }
+
+export type DailyRateBulkTarget = { date: string; roomTypeId: string };
+export type DailyRateBulkMode = "set" | "amount" | "percent";
+
+export function applyDailyRateBulkChange(
+  rates: Record<string, Record<string, Record<string, unknown> | null>>,
+  targets: DailyRateBulkTarget[],
+  mode: DailyRateBulkMode,
+  value: number,
+): Record<string, Record<string, Record<string, unknown> | null>> {
+  if (!targets.length) throw new Error("Select at least one existing daily override.");
+  if (!Number.isFinite(value)) throw new Error("Bulk rate value must be a finite number.");
+  if (mode !== "set" && mode === "percent" && value <= -100) {
+    throw new Error("Percentage reduction must be greater than -100%.");
+  }
+  const next = { ...rates };
+  for (const target of targets) {
+    const dateRates = next[target.date];
+    const current = dateRates?.[target.roomTypeId];
+    if (!current || typeof current !== "object") {
+      throw new Error("Selected daily override no longer exists for " + target.date + ".");
+    }
+    const oldRate = Number(current.nightly_rate);
+    const newRate = mode === "set"
+      ? value
+      : mode === "amount"
+        ? oldRate + value
+        : oldRate * (1 + value / 100);
+    if (!Number.isFinite(newRate) || newRate <= 0) {
+      throw new Error("Bulk change would create a non-positive nightly rate for " + target.date + ".");
+    }
+    next[target.date] = {
+      ...dateRates,
+      [target.roomTypeId]: { ...current, nightly_rate: Math.round(newRate * 100) / 100 },
+    };
+  }
+  return next;
+}
+
+export function setDailyRateBulkActive(
+  rates: Record<string, Record<string, Record<string, unknown> | null>>,
+  targets: DailyRateBulkTarget[],
+  active: boolean,
+): Record<string, Record<string, Record<string, unknown> | null>> {
+  const next = { ...rates };
+  for (const target of targets) {
+    const dateRates = next[target.date];
+    const current = dateRates?.[target.roomTypeId];
+    if (!current || typeof current !== "object") continue;
+    next[target.date] = { ...dateRates, [target.roomTypeId]: { ...current, active } };
+  }
+  return next;
+}
+
+export function clearDailyRateBulkOverrides(
+  rates: Record<string, Record<string, Record<string, unknown> | null>>,
+  targets: DailyRateBulkTarget[],
+): Record<string, Record<string, Record<string, unknown> | null>> {
+  const next = { ...rates };
+  for (const target of targets) {
+    next[target.date] = { ...(next[target.date] ?? {}), [target.roomTypeId]: null };
+  }
+  return next;
+}
