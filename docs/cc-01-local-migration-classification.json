@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "audit_date": "2026-11-06",
   "production_project_ref": "hpsryyywolitgeaacpoy",
-  "verified_live_ledger_entries": 132,
+  "verified_live_ledger_entries": 134,
   "staged_release_migrations": [
     "20261106220000_cc01_property_access_and_founder_authority.sql"
   ],
