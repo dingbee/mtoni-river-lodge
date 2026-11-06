@@ -282,28 +282,9 @@ $function$;
 REVOKE ALL ON FUNCTION public.staynas_enforce_booking_property() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.staynas_enforce_hold_property() FROM PUBLIC, anon, authenticated;
 
--- Resolve public booking tenants only through verified domains of active tenants.
--- One explicitly configured public-booking property. The resolver is
--- intentionally hostname-independent; property selection is controlled by
--- the service-managed singleton, not caller-supplied tenant identifiers.
-CREATE TABLE IF NOT EXISTS public.staynas_booking_config (
-  id boolean PRIMARY KEY DEFAULT true CHECK (id),
-  property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE public.staynas_booking_config ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.staynas_booking_config FROM PUBLIC, anon, authenticated;
-GRANT ALL ON public.staynas_booking_config TO service_role;
-
--- Seed only when the established Nolmark CDMA booking property exists.
--- Existing configuration is never overwritten by this migration.
-INSERT INTO public.staynas_booking_config (id, property_id)
-SELECT true, p.id
-FROM public.staynas_properties p
-WHERE p.slug = 'nolmark-cdma-staynas'
-  AND p.status = 'active'
-ON CONFLICT (id) DO NOTHING;
-
+-- Public guest booking is resolved against the verified hostname registered
+-- for the property. Authenticated staff continue to resolve their own selected
+-- active property; service-role requests must supply the inbound site hostname.
 CREATE OR REPLACE FUNCTION public.staynas_booking_property_id()
 RETURNS uuid
 LANGUAGE plpgsql
@@ -315,40 +296,66 @@ DECLARE
   _uid uuid := auth.uid();
   _property uuid;
 BEGIN
-  -- Authenticated users resolve only their own selected active property.
-  IF _uid IS NOT NULL THEN
-    _property := public.staynas_active_property_id(_uid);
-    IF _property IS NULL THEN
-      RAISE EXCEPTION 'No active property is assigned to this user';
-    END IF;
-    IF NOT public.staynas_user_has_property_access(_uid, _property) THEN
-      RAISE EXCEPTION 'Active property access denied';
-    END IF;
-    RETURN _property;
+  IF _uid IS NULL THEN
+    RAISE EXCEPTION 'A verified property hostname is required for public booking';
   END IF;
-
-  -- Anonymous guest traffic is restricted to the service-managed public
-  -- booking property. No hostname or caller-supplied tenant ID is trusted.
-  SELECT c.property_id INTO _property
-  FROM public.staynas_booking_config c
-  WHERE c.id = true;
-
+  _property := public.staynas_active_property_id(_uid);
   IF _property IS NULL THEN
-    RAISE EXCEPTION 'Booking property is not configured';
+    RAISE EXCEPTION 'No active property is assigned to this user';
   END IF;
-  IF NOT public.staynas_property_is_operational(_property) THEN
-    RAISE EXCEPTION 'Configured booking property is not active';
+  IF NOT public.staynas_user_has_property_access(_uid, _property) THEN
+    RAISE EXCEPTION 'Active property access denied';
+  END IF;
+  RETURN _property;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.staynas_booking_property_id(_hostname text)
+RETURNS uuid
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $function$
+DECLARE
+  _uid uuid := auth.uid();
+  _host text;
+  _property uuid;
+  _matches integer;
+BEGIN
+  -- Authenticated staff are never allowed to select another property by
+  -- changing a hostname; their own selected active property is authoritative.
+  IF _uid IS NOT NULL THEN
+    RETURN public.staynas_booking_property_id();
+  END IF;
+
+  _host := lower(trim(split_part(coalesce(_hostname, ''), ':', 1)));
+  _host := rtrim(_host, '.');
+  IF _host = '' OR _host !~ '^[a-z0-9.-]+$' OR _host LIKE '.%' OR _host LIKE '%..%' THEN
+    RAISE EXCEPTION 'Valid property hostname is required';
+  END IF;
+
+  SELECT count(*), min(d.property_id::text)::uuid
+    INTO _matches, _property
+  FROM public.staynas_property_domains d
+  JOIN public.staynas_properties p ON p.id = d.property_id
+  WHERE lower(d.hostname) = _host
+    AND d.verified_at IS NOT NULL
+    AND d.verification_status = 'verified'
+    AND public.staynas_property_is_operational(d.property_id)
+    AND p.status = 'active';
+
+  IF _matches <> 1 OR _property IS NULL THEN
+    RAISE EXCEPTION 'No unique active property is verified for this hostname';
   END IF;
   RETURN _property;
 END;
 $function$;
 
 REVOKE ALL ON FUNCTION public.staynas_booking_property_id() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.staynas_booking_property_id() TO anon, authenticated, service_role;
--- Retire the hostname-argument overload; this deployment uses the explicit
--- service-managed booking configuration and does not accept caller hostnames.
+GRANT EXECUTE ON FUNCTION public.staynas_booking_property_id() TO authenticated, service_role;
 REVOKE ALL ON FUNCTION public.staynas_booking_property_id(text) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.staynas_booking_property_id(text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_booking_property_id(text) TO anon, authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.get_booking_hold_for_property(
   _property_id uuid,
