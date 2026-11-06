@@ -192,6 +192,7 @@ DECLARE
   v_tax_fee_total numeric := 0;
   v_tax_component_base numeric := 0;
   v_tax_discount numeric := 0;
+  v_tax_base numeric := 0;
 BEGIN
   IF _property_id IS NULL OR _check_in IS NULL OR _check_out <= _check_in
      OR jsonb_typeof(COALESCE(_components,'[]'::jsonb)) <> 'array' THEN
@@ -335,7 +336,14 @@ BEGIN
   LOOP
     SELECT COALESCE(sum((x->>'amount')::numeric),0) INTO v_tax_component_base
     FROM jsonb_array_elements(_components) x
-    WHERE COALESCE(x->>'component_type','accommodation')=ANY(v_tax.taxable_components);
+    WHERE (
+      (COALESCE(x->>'component_type','accommodation')='fee' AND 'fee'=ANY(v_tax.taxable_components))
+      OR (
+        COALESCE(x->>'component_type','accommodation')<>'fee'
+        AND COALESCE(x->>'component_type','accommodation')=ANY(v_tax.taxable_components)
+        AND (v_tax.applies_to='all' OR COALESCE(x->>'component_type','accommodation')=v_tax.applies_to)
+      )
+    );
     v_tax_discount := CASE WHEN v_component_total>0
       THEN round(v_discount*v_tax_component_base/v_component_total,2) ELSE 0 END;
     v_taxable := v_tax_component_base;
@@ -349,8 +357,14 @@ BEGIN
     END IF;
     IF v_tax.is_compound THEN v_taxable:=v_taxable+v_tax_total; END IF;
     IF v_taxable=0 THEN CONTINUE; END IF;
+    v_tax_base := GREATEST(0,v_taxable-v_tax_discount);
     IF v_tax.calculation_type IN ('percentage','percent','exclusive_percent','inclusive_percent') THEN
-      v_tax_amount:=round(GREATEST(0,v_taxable-v_tax_discount)*v_tax.rate/100,2);
+      IF v_tax.calculation_type='inclusive_percent' OR v_tax.tax_mode='inclusive' THEN
+        v_tax_amount:=CASE WHEN v_tax.rate>=0
+          THEN round(v_tax_base*v_tax.rate/(100+v_tax.rate),2) ELSE 0 END;
+      ELSE
+        v_tax_amount:=round(v_tax_base*v_tax.rate/100,2);
+      END IF;
     ELSIF v_tax.calculation_type IN ('fixed','fixed_per_booking') THEN
       v_tax_amount:=round(v_tax.rate,2);
     ELSIF v_tax.calculation_type='fixed_per_night' THEN
