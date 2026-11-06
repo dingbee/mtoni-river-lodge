@@ -15,7 +15,6 @@ records = ledger.get("records", [])
 canonical = {f"{r['version']}_{r['name']}.sql" for r in records}
 staged_release_migrations = {
     "20261106220000_cc01_property_access_and_founder_authority.sql",
-    "20261106210000_spe04_public_rate_plan_discovery.sql",
 }
 active = root / "supabase/migrations"
 candidates = root / "supabase/migration-history-candidates"

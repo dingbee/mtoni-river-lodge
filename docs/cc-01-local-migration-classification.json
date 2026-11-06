@@ -4,11 +4,10 @@
   "production_project_ref": "hpsryyywolitgeaacpoy",
   "verified_live_ledger_entries": 132,
   "staged_release_migrations": [
-    "20261106210000_spe04_public_rate_plan_discovery.sql",
     "20261106220000_cc01_property_access_and_founder_authority.sql"
   ],
   "moved_from_active_this_run": [],
-  "candidate_file_count": 164,
+  "candidate_file_count": 165,
   "files": [
     {
       "path": "supabase/migration-history-candidates/20260617134425_b38419f9-d4d3-4c4d-a904-c121c59355a9.sql",
@@ -1120,6 +1119,13 @@
       "path": "supabase/migration-history-candidates/20261106200000_spe04_latest_publication_selection_fix.sql",
       "git_blob_sha": "dce6906cb7ce0671638790cc60fade7ab8f5f413",
       "size_bytes": 20638,
+      "classification": "historical_candidate_not_in_verified_live_migration_path",
+      "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
+    },
+    {
+      "path": "supabase/migration-history-candidates/20261106210000_spe04_public_rate_plan_discovery.sql",
+      "git_blob_sha": "cfc81e933aa0cff98d20fc06e495159a4b130a54",
+      "size_bytes": 4144,
       "classification": "historical_candidate_not_in_verified_live_migration_path",
       "execution_policy": "preserve_only_do_not_replay_or_mark_applied_without_independent_verification"
     },
