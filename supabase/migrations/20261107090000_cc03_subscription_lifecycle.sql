@@ -287,6 +287,38 @@ CREATE TRIGGER commercial_subscriptions_snapshot_immutable
   BEFORE UPDATE ON public.commercial_subscriptions
   FOR EACH ROW EXECUTE FUNCTION public.guard_commercial_immutable_fields();
 
+-- Tenant scope helper follows the verified organisation -> active property
+-- -> active property-membership relation. It can only answer for auth.uid().
+CREATE OR REPLACE FUNCTION public.commercial_user_has_organisation_access(
+  _organisation_id uuid
+)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog
+AS $function$
+  SELECT CASE
+    WHEN _organisation_id IS NULL OR auth.uid() IS NULL THEN false
+    ELSE EXISTS (
+      SELECT 1
+      FROM public.staynas_properties p
+      JOIN public.staynas_property_members pm
+        ON pm.property_id = p.id
+      WHERE p.organisation_id = _organisation_id
+        AND p.status = 'active'
+        AND pm.user_id = auth.uid()
+        AND pm.status = 'active'
+    )
+  END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.commercial_user_has_organisation_access(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.commercial_user_has_organisation_access(uuid) TO authenticated, service_role;
+
+COMMENT ON FUNCTION public.commercial_user_has_organisation_access(uuid) IS
+  'Tenant scope predicate based on the caller active membership in an active property belonging to the organisation.';
+
 -- Founder authority is verified against three independent facts:
 -- (1) the configured founder organisation, (2) an explicit commercial
 -- founder_admin principal mapping provisioned by service_role, and
