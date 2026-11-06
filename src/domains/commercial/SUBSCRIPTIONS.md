@@ -37,6 +37,13 @@ CC-03 owns the customer commercial subscription lifecycle and the association be
 5. **CC03.05 — API and audit integration:** authenticated server handlers, trusted tenant resolution, founder-only global controls and append-only event evidence.
 6. **CC03.06 — Verification and release gate:** migration reconciliation, cross-tenant negative tests, transition/idempotency tests, security review, CI, UAT evidence and release report.
 
+## Implemented milestone details
+
+- **CC03.01 — Implemented:** typed commercial account/subscription lifecycle contracts and deterministic transition regression tests.
+- **CC03.02 — Implemented on the engineering branch:** durable commercial account, subscription, permanent trial-claim, lifecycle-event, audit and founder-authority persistence; RLS/grants; immutable accepted snapshots; database lifecycle transition guard; exact 336-hour trial claim requirement; tenant/founder caller-bound predicates. No production migration or bootstrap.
+- **CC03.03 — In verification:** service-role-only `commercial_activate_trial` transaction. The application handler must authenticate the caller, verify tenant/founder authority and resolve an enabled CC-02 policy before invoking it. The transaction locks the commercial account, prevents a second trial, activates the pending subscription, creates the permanent claim, appends the lifecycle event and audit record, and returns the original activation window on an idempotent replay. Trial duration is exactly 336 hours with an exclusive end boundary.
+- **CC03.03 security boundary:** the database function is not executable by anon/authenticated clients. It is a server-side primitive, not a tenant-facing API. Tenant and founder API handlers remain CC03.05 work.
+
 ## Explicit exclusions
 
 No invoice generation, payment collection, provider integration, refunds, tax calculation, payment-status mutation, entitlement grant/revocation, plan/module inclusion assumptions, commercial price invention, tenant role changes, production data writes or production deployment are part of CC03.01. No migration is applied to the live Supabase project as part of this initial contract milestone.
