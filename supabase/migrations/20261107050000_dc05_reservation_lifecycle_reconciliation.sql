@@ -9,7 +9,12 @@ BEGIN
      OR to_regclass('public.staynas_distribution_reservation_payloads') IS NULL
      OR to_regclass('public.staynas_distribution_account_grants') IS NULL
      OR to_regprocedure('public.staynas_transition_booking(uuid,text,text)') IS NULL
-     OR to_regprocedure('public.staynas_user_has_property_access(uuid,uuid)') IS NULL THEN
+     OR to_regprocedure('public.staynas_user_has_property_access(uuid,uuid)') IS NULL
+     OR to_regprocedure('public.staynas_lock_room_inventory_dates(uuid,uuid,date,date)') IS NULL
+     OR NOT EXISTS (SELECT 1 FROM information_schema.columns
+       WHERE table_schema='public' AND table_name='bookings' AND column_name='status')
+     OR NOT EXISTS (SELECT 1 FROM information_schema.columns
+       WHERE table_schema='public' AND table_name='bookings' AND column_name='notes') THEN
     RAISE EXCEPTION 'DC-05.04 requires DC-05.03 provider links, encrypted payloads and canonical booking lifecycle controls';
   END IF;
 END
@@ -170,6 +175,9 @@ BEGIN
   RETURN public.staynas_transition_booking_core(_booking_id,_target_status,_notes,v_actor,'staff',NULL);
 END;
 $function$;
+
+REVOKE ALL ON FUNCTION public.staynas_transition_booking(uuid,text,text) FROM PUBLIC,anon,service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_transition_booking(uuid,text,text) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.staynas_claim_distribution_reservation_lifecycle(
   _worker_id text,
@@ -370,16 +378,6 @@ BEGIN
     RETURN jsonb_build_object('outcome','manual_reconciliation','reconciliation_code','unknown_provider_state');
   END IF;
 
-  IF nullif(btrim(_guest_name),'') IS NOT NULL OR nullif(btrim(_guest_email),'') IS NOT NULL
-     OR nullif(btrim(_guest_phone),'') IS NOT NULL OR nullif(btrim(_country),'') IS NOT NULL THEN
-    UPDATE public.bookings
-    SET guest_name=coalesce(nullif(btrim(_guest_name),''),guest_name),
-        guest_email=coalesce(nullif(btrim(_guest_email),''),guest_email),
-        guest_phone=coalesce(nullif(btrim(_guest_phone),''),guest_phone),
-        country=coalesce(nullif(btrim(_country),''),country)
-    WHERE id=v_booking.id AND property_id=v_booking.property_id;
-  END IF;
-
   IF v_booking.status::text<>v_target THEN
     BEGIN
       v_decision:=public.staynas_transition_booking_core(
@@ -390,6 +388,16 @@ BEGIN
     END;
   ELSE
     v_decision:=jsonb_build_object('ok',true,'duplicate',true,'status',v_target);
+  END IF;
+
+  IF nullif(btrim(_guest_name),'') IS NOT NULL OR nullif(btrim(_guest_email),'') IS NOT NULL
+     OR nullif(btrim(_guest_phone),'') IS NOT NULL OR nullif(btrim(_country),'') IS NOT NULL THEN
+    UPDATE public.bookings
+    SET guest_name=coalesce(nullif(btrim(_guest_name),''),guest_name),
+        guest_email=coalesce(nullif(btrim(_guest_email),''),guest_email),
+        guest_phone=coalesce(nullif(btrim(_guest_phone),''),guest_phone),
+        country=coalesce(nullif(btrim(_country),''),country)
+    WHERE id=v_booking.id AND property_id=v_booking.property_id;
   END IF;
 
   UPDATE public.staynas_distribution_reservation_links
