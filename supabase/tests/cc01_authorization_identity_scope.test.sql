@@ -1,6 +1,6 @@
 -- CC-01 authorization identity-scope regression contracts.
 BEGIN;
-SELECT plan(22);
+SELECT plan(21);
 
 SELECT ok(
   position('auth.uid() IS DISTINCT FROM _user_id' in pg_get_functiondef('public.has_role(uuid,public.app_role)'::regprocedure)) > 0,
