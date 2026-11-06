@@ -1,6 +1,6 @@
 -- SPE-05 contract tests. Transaction is rolled back; no property data is written.
 BEGIN;
-SELECT plan(21);
+SELECT plan(23);
 
 SELECT has_table('public','staynas_property_fee_rules','Property fee configuration exists');
 SELECT has_table('public','staynas_property_promotions','Property promotion configuration exists');
@@ -60,10 +60,10 @@ SELECT ok(
   'Promotion usage is serialized and incremented in the redemption transaction');
 SELECT ok(
   pg_get_functiondef('public.calculate_staynas_spe05_adjustments(uuid,date,date,text,jsonb,uuid,uuid,text,text,date)'::regprocedure)
-    LIKE '%PROMOTION_STACKING_UNSUPPORTED%'
+    LIKE '%PROMOTION_STACKING_CONFLICT%'
   AND pg_get_functiondef('public.calculate_staynas_spe05_adjustments(uuid,date,date,text,jsonb,uuid,uuid,text,text,date)'::regprocedure)
-    LIKE '%PROMOTION_INELIGIBLE%',
-  'Unsupported stacking is rejected explicitly rather than silently mispriced');
+    LIKE '%v_promotions%',
+  'Stacked promotions require explicit compatibility and produce per-promotion breakdowns');
 
 
 SELECT has_column('public','bookings','fee_total','Booking records fee totals');
@@ -96,6 +96,21 @@ SELECT has_function(
   'public','create_booking_for_property_with_rate_plan_and_promo',
   ARRAY['uuid','text','date','date','integer','integer','text','text','text','text','text','jsonb','integer','integer','uuid','text','text','uuid','text'],
   'Transactional booking accepts a promotion code without bypassing the existing booking transaction');
+
+
+SELECT ok(
+  pg_get_functiondef('public.calculate_staynas_spe05_adjustments(uuid,date,date,text,jsonb,uuid,uuid,text,text,date)'::regprocedure)
+    LIKE '%v_tax_base*v_tax.rate/(100+v_tax.rate)%'
+  AND pg_get_functiondef('public.calculate_staynas_spe05_adjustments(uuid,date,date,text,jsonb,uuid,uuid,text,text,date)'::regprocedure)
+    LIKE '%v_tax.applies_to=''all''%',
+  'Inclusive tax is extracted from gross and legacy tax applicability remains respected');
+
+SELECT ok(
+  pg_get_functiondef('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)'::regprocedure)
+    LIKE '%jsonb_array_elements(v_promotions)%'
+  AND pg_get_functiondef('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)'::regprocedure)
+    LIKE '%redeem_staynas_promotion%',
+  'Every accepted stacked promotion is redeemed inside the booking transaction');
 
 SELECT * FROM finish();
 ROLLBACK;
