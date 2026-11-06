@@ -21,6 +21,11 @@ const lease: DistributionWebhookLease = {
   payload_fingerprint: "a".repeat(64),
   normalized_event: {
     externalReservationId: "reservation-1",
+    externalListingId: "listing-1",
+    externalRoomId: null,
+    externalRatePlanId: null,
+    providerStatus: "confirmed",
+    eventType: "reservation.created",
     arrivalDate: "2026-12-01",
     departureDate: "2026-12-04",
     adults: 2,
