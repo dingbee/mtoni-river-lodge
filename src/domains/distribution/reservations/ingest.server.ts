@@ -30,6 +30,20 @@ export type IngestExternalReservationResult = Readonly<{
   correlationId: string;
 }>;
 
+export function requiredReservationCapability(
+  event: Pick<ExternalReservationEvent, "eventType" | "providerStatus">,
+): "reservation.import" | "reservation.update" | "reservation.cancel" {
+  if (event.eventType === "reservation.created" || event.eventType === "reservation.confirmed") {
+    return "reservation.import";
+  }
+  if (event.eventType === "reservation.cancelled" ||
+      (event.eventType === "reservation.modified" &&
+        ["cancelled", "canceled"].includes(event.providerStatus.toLowerCase()))) {
+    return "reservation.cancel";
+  }
+  return "reservation.update";
+}
+
 /**
  * Durable provider-neutral ingress. The caller must complete provider-specific
  * signature verification and resolve the execution context from trusted
@@ -53,14 +67,7 @@ export async function ingestExternalReservationEvent(
       event.externalAccountReference !== context.externalAccountReference) {
     throw new Error("Provider event does not match the authorized distribution connection.");
   }
-  const providerReportsCancellation = event.eventType === "reservation.cancelled" ||
-    (event.eventType === "reservation.modified" &&
-      ["cancelled", "canceled"].includes(event.providerStatus.toLowerCase()));
-  const requiredCapability = event.eventType === "reservation.created" || event.eventType === "reservation.confirmed"
-    ? "reservation.import"
-    : providerReportsCancellation
-      ? "reservation.cancel"
-      : "reservation.update";
+  const requiredCapability = requiredReservationCapability(event);
   if (context.capability !== requiredCapability) {
     throw new Error("Distribution connection does not grant the capability required by this reservation event.");
   }
