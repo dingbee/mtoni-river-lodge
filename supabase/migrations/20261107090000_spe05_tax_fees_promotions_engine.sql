@@ -243,10 +243,10 @@ BEGIN
   IF _promo_code IS NOT NULL AND btrim(_promo_code) <> '' THEN
     SELECT array_agg(upper(btrim(code_part)))
       INTO v_promo_codes
-    FROM unnest(string_to_array(_promo_code,',')) AS code_part
+    FROM unnest(string_to_array(_promo_code,',')) AS codes(code_part)
     WHERE btrim(code_part)<>'';
     IF COALESCE(cardinality(v_promo_codes),0)=0
-       OR cardinality(v_promo_codes)<>(SELECT count(DISTINCT x) FROM unnest(v_promo_codes) x) THEN
+       OR cardinality(v_promo_codes)<>(SELECT count(DISTINCT code) FROM unnest(v_promo_codes) AS codes(code)) THEN
       RETURN jsonb_build_object('ok',false,'error_code','PROMOTION_INVALID','message','Promotion codes must be non-empty and unique');
     END IF;
     SELECT count(*) INTO v_promo_count
