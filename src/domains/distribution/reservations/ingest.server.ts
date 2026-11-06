@@ -37,9 +37,8 @@ export type IngestExternalReservationResult = Readonly<{
  * organisation/property identifiers or raw provider body are accepted.
  *
  * Guest contact and monetary values are intentionally excluded from the
- * DC-04 inbox payload. The full verified event remains in the caller's
- * transient processing scope until the canonical reservation transaction
- * persists it to the StayNas booking/finance domains.
+ * ordinary inbox envelope. The full verified event is AES-256-GCM encrypted
+ * and stored separately so a leased worker can safely retry materialization.
  */
 export async function ingestExternalReservationEvent(
   input: IngestExternalReservationInput,
