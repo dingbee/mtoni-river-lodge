@@ -189,6 +189,8 @@ DECLARE
   v_fee_total numeric := 0;
   v_discount_total numeric := 0;
   v_promotion jsonb;
+  v_promotions jsonb := '[]'::jsonb;
+  v_promo_line jsonb;
   v_redemption jsonb;
   v_guest_key text;
 BEGIN
@@ -275,6 +277,7 @@ BEGIN
   v_fee_total := COALESCE((v_quote->>'fee_total')::numeric,0);
   v_discount_total := COALESCE((v_quote->>'discount_total')::numeric,0);
   v_promotion := v_quote->'promotion';
+  v_promotions := COALESCE(v_quote->'promotions','[]'::jsonb);
   v_total := (v_quote->>'total')::numeric;
   v_deposit := CASE WHEN v_payment_method='pay_at_property' THEN 0 ELSE round(v_total/2,2) END;
   v_balance := v_total-v_deposit;
@@ -321,7 +324,7 @@ BEGIN
     VALUES(v_booking_id,v_room.id,v_day,(v_night->>'nightly_rate')::numeric,
       v_night || jsonb_build_object('pricing_adjustments',jsonb_build_object(
         'discount_total',v_discount_total,'fee_total',v_fee_total,'tax_total',v_taxes,
-        'tax_addition',v_tax_addition,'promotion',v_promotion,'currency',v_room.currency
+        'tax_addition',v_tax_addition,'promotion',v_promotion,'promotions',v_promotions,'currency',v_room.currency
       )));
   END LOOP;
 
@@ -335,15 +338,16 @@ BEGIN
       (v_extra_line->>'unit_price')::numeric,(v_extra_line->>'line_total')::numeric);
   END LOOP;
 
-  IF v_promotion IS NOT NULL AND v_promotion->>'id' IS NOT NULL THEN
+  FOR v_promo_line IN SELECT value FROM jsonb_array_elements(v_promotions)
+  LOOP
     v_redemption := public.redeem_staynas_promotion(
-      _property_id,(v_promotion->>'id')::uuid,v_booking_id,v_guest_key,
-      v_discount_total,v_room.currency
+      _property_id,(v_promo_line->>'id')::uuid,v_booking_id,v_guest_key,
+      (v_promo_line->>'discount_amount')::numeric,v_room.currency
     );
     IF COALESCE((v_redemption->>'ok')::boolean,false) IS NOT TRUE THEN
       RAISE EXCEPTION 'Promotion redemption rejected [%]',COALESCE(v_redemption->>'error_code','REDEMPTION_FAILED');
     END IF;
-  END IF;
+  END LOOP;
 
   IF _hold_id IS NOT NULL THEN
     UPDATE public.booking_holds SET status='converted',converted_booking_id=v_booking_id,updated_at=now()
