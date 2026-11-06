@@ -141,3 +141,42 @@ export const savePricingPromotion = createServerFn({ method:"POST" })
     const propertyId=await activeFinanceProperty(context.supabase,context.userId);
     return savePropertyRecord(context.supabase,context.userId,propertyId,"staynas_property_promotions",data as Record<string,unknown>);
   });
+
+
+const previewSchema = z.object({
+  room_id:z.string().uuid(),
+  check_in:z.string().date(),
+  check_out:z.string().date(),
+  adults:z.number().int().min(1).max(20),
+  children_below_6:z.number().int().min(0).max(20).default(0),
+  children_7_plus:z.number().int().min(0).max(20).default(0),
+  extras:z.array(z.object({slug:z.string().min(1).max(100),quantity:z.number().int().min(1).max(20)})).max(20).default([]),
+  rate_plan_id:z.string().uuid().nullable().optional(),
+  promo_code:z.string().trim().max(64).nullable().optional(),
+  guest_email:z.string().trim().email().max(255).nullable().optional(),
+}).refine(v=>v.check_out>v.check_in,{message:"Check-out must be after check-in.",path:["check_out"]});
+
+export const previewPricingAdjustments = createServerFn({ method:"POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown)=>previewSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId=await activeFinanceProperty(context.supabase,context.userId);
+    const { data: quote, error } = await context.supabase.rpc("preview_staynas_pricing_adjustments",{
+      _property_id:propertyId,
+      _room_id:data.room_id,
+      _check_in:data.check_in,
+      _check_out:data.check_out,
+      _adults:data.adults,
+      _children_below_6:data.children_below_6,
+      _children_7_plus:data.children_7_plus,
+      _extras:data.extras,
+      _rate_plan_id:data.rate_plan_id??null,
+      _promo_code:data.promo_code?.trim()||null,
+      _guest_email:data.guest_email?.trim()||null,
+    });
+    if(error) throw new Error(error.message);
+    if(!quote) throw new Error("Pricing preview returned no result.");
+    if((quote as any).ok===false) throw new Error(`Pricing preview rejected [${(quote as any).error_code??"INVALID_PRICING_CONTEXT"}]: ${(quote as any).message??"Configuration is not eligible"}`);
+    return quote;
+  });
