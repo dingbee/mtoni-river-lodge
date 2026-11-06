@@ -7,6 +7,8 @@ on:
     paths:
       - "scripts/cc01-quarantine-nonledger-migrations.py"
       - ".github/workflows/cc01-migration-quarantine.yml"
+      - "supabase/migrations/**"
+      - "docs/cc-01-live-migration-ledger.json"
 
 permissions:
   contents: write
