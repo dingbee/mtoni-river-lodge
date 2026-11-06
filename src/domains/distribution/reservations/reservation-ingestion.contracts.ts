@@ -95,13 +95,8 @@ export const externalReservationSchema = z.object({
   if ((event.settlementAmount !== undefined) !== (event.settlementCurrency !== undefined)) {
     ctx.addIssue({ code: "custom", path: ["settlementCurrency"], message: "Settlement amount and currency must be supplied together." });
   }
-  if (event.settlementAmount !== undefined && event.settlementCurrency !== event.originalCurrency &&
-      event.exchangeRate === undefined) {
-    ctx.addIssue({ code: "custom", path: ["exchangeRate"], message: "Cross-currency settlement evidence requires the provider's exchange rate." });
-  }
-  if (event.settlementCurrency === event.originalCurrency && event.exchangeRate !== undefined &&
-      Math.abs(event.exchangeRate - 1) > 0.000001) {
-    ctx.addIssue({ code: "custom", path: ["exchangeRate"], message: "Same-currency settlement must use an exchange rate of one." });
+  if (event.exchangeRate !== undefined && event.settlementAmount === undefined) {
+    ctx.addIssue({ code: "custom", path: ["exchangeRate"], message: "Exchange rate requires settlement amount and currency evidence." });
   }
   if (event.refundAmount !== undefined && !event.refundCurrency) {
     ctx.addIssue({ code: "custom", path: ["refundCurrency"], message: "Refund amount requires its provider currency." });
