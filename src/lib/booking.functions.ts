@@ -1,18 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import type { Database } from "@/integrations/supabase/types";
 import { bookingRpc } from "@/lib/booking-rpc";
-import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 import { assertSameProperty } from "@/lib/booking-property";
-
-function getPublicClient() {
-  return createClient<Database>(
-    process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-  );
-}
+import { resolvePublicBookingContext } from "@/lib/public-booking-context.server";
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date");
 
@@ -45,8 +35,8 @@ export const checkAvailability = createServerFn({ method: "POST" })
     if (data.checkOut <= data.checkIn) {
       throw new Error("Check-out must be after check-in");
     }
-    const sb = getPublicClient();
-    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { property, supabaseAdmin: sb } = await resolvePublicBookingContext();
+    const propertyId = property.id;
     const { data: rows, error } = await bookingRpc(sb).rpc("get_room_availability", {
       _check_in: data.checkIn,
       _check_out: data.checkOut,
@@ -66,8 +56,8 @@ export const checkAvailability = createServerFn({ method: "POST" })
   });
 
 export const listExtras = createServerFn({ method: "GET" }).handler(async () => {
-  const sb = getPublicClient();
-  const propertyId = await getConfiguredBookingPropertyId(sb);
+  const { property, supabaseAdmin: sb } = await resolvePublicBookingContext();
+  const propertyId = property.id;
   // Generated types predate the property hardening; query through an
   // untyped alias so the property filter compiles against stale types.
   const { data, error } = await (sb as any)
@@ -106,7 +96,7 @@ const createBookingSchema = z.object({
   visitPurpose: z.string().trim().max(80).optional().or(z.literal("")),
   extras: z.array(extraSchema).max(20).default([]),
   holdId: z.string().uuid().optional(),
-  sessionId: z.string().min(6).max(120).optional(),
+  sessionId: z.string().min(24).max(120).optional(),
 });
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
@@ -114,8 +104,8 @@ export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 export const createBooking = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createBookingSchema.parse(d))
   .handler(async ({ data }) => {
-    const sb = getPublicClient();
-    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { property, supabaseAdmin: sb } = await resolvePublicBookingContext();
+    const propertyId = property.id;
     const below6 = data.childrenBelow6 ?? 0;
     const plus7 = data.children7Plus ?? Math.max(0, (data.children ?? 0) - below6);
     const totalChildren = below6 + plus7;
@@ -203,8 +193,8 @@ export const getBookingByReference = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     // Service-role read since bookings are staff-only via RLS; verify email match.
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const { property, supabaseAdmin } = await resolvePublicBookingContext();
+    const propertyId = property.id;
     const { data: row, error } = await (supabaseAdmin as any)
       .from("bookings")
       .select(

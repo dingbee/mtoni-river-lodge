@@ -1,0 +1,92 @@
+name: StayNas booking and inventory contracts
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/lib/payments.functions.ts"
+      - "src/domains/ai/concierge/concierge.server.ts"
+      - "src/domains/ai/concierge/concierge.tools.ts"
+      - "src/routes/api/public/rooms.catalog.ts"
+      - "src/routes/api/public/availability.search.ts"
+      - "src/routes/api/public/rooms.status.ts"
+      - "src/lib/booking-property.ts"
+      - "src/lib/booking-property.test.ts"
+      - "src/lib/booking-property.server.ts"
+      - "src/lib/booking-rpc.ts"
+      - "src/lib/booking.functions.ts"
+      - "src/lib/availability.functions.ts"
+      - "src/lib/public-booking.functions.ts"
+      - "src/lib/public-booking-context.server.ts"
+      - "src/lib/public-booking-context.server.test.ts"
+      - "src/lib/booking-session.tsx"
+      - "supabase/migrations/*booking*"
+      - "scripts/ci/dc03r-*"
+      - ".github/workflows/booking-inventory-contracts.yml"
+  push:
+    branches:
+      - fix/dc-03r-*
+      - fix/booking-*
+      - main
+
+jobs:
+  booking-inventory-contracts:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Prepare isolated PostgreSQL fixture
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/ci/dc03r-postgres-fixture.sql
+      - name: Apply DC-03R migration to isolated PostgreSQL
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261105180000_dc03r_atomic_booking_inventory.sql
+      - name: Verify atomic booking and hold allocation, including concurrency
+        run: bash scripts/ci/dc03r-postgres-smoke.sh
+      - name: Booking property-isolation regression tests
+        run: bunx vitest run src/lib/booking-property.test.ts
+      - name: Booking hold policy tests
+        run: bunx vitest run src/lib/booking-hold-policy.test.ts
+      - name: Public booking property allowlist tests
+        run: bunx vitest run src/lib/public-booking-context.server.test.ts
+      - name: Generate routes and verify production build
+        run: bun run build
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Lint booking and public property-context changes
+        run: >-
+          bunx eslint
+          src/lib/booking-property.ts
+          src/lib/booking-property.test.ts
+          src/lib/booking-session.tsx
+          src/lib/booking.functions.ts
+          src/lib/availability.functions.ts
+          src/lib/public-booking.functions.ts
+          src/lib/public-booking-context.server.ts
+          --rule 'prettier/prettier: off'
+          --rule '@typescript-eslint/no-explicit-any: off'
