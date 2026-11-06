@@ -39,7 +39,6 @@ function PricingAdjustments() {
   const [previewInput,setPreviewInput]=useState({room_id:"",check_in:"",check_out:"",adults:"2",rate_plan_id:"",promo_code:"",guest_email:"",extras:[] as string[]});
 
   const refresh=()=>qc.invalidateQueries({queryKey:["staynas.pricing-adjustments"]});
-  const previewResult = preview.data as any;
   const taxSave=useMutation({mutationFn:()=>saveTaxFn({data:{
     ...(tax.id?{id:tax.id}:{}),name:tax.name,tax_code:tax.tax_code||null,
     calculation_type:tax.calculation_type,rate:Number(tax.rate),currency:tax.currency||data?.property.currency,
@@ -60,6 +59,7 @@ function PricingAdjustments() {
     rate_plan_id:previewInput.rate_plan_id||null,promo_code:previewInput.promo_code.trim()||null,
     guest_email:previewInput.guest_email.trim()||null,
   }}),onError:(e:unknown)=>toast.error((e as Error).message)});
+  const previewResult = preview.data as any;
   const promoSave=useMutation({mutationFn:()=>savePromoFn({data:{
     ...(promo.id?{id:promo.id}:{}),code:promo.code||null,name:promo.name,description:promo.description||null,
     discount_type:promo.discount_type,discount_value:Number(promo.discount_value),currency:promo.currency||data?.property.currency,
