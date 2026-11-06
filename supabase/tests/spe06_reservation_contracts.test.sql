@@ -1,6 +1,6 @@
 -- SPE-06 structural contract tests. No live property records are written.
 BEGIN;
-SELECT plan(20);
+SELECT plan(21);
 
 SELECT has_table('public','staynas_reservation_quotes','Durable accepted reservation quotes exist');
 SELECT has_table('public','staynas_reservation_idempotency','Reservation idempotency ledger exists');
@@ -89,6 +89,13 @@ SELECT ok(
   AND pg_get_functiondef('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)'::regprocedure)
     LIKE '%available_units-1%',
   'Nightly inventory allocation is serialized and decremented inside the booking transaction');
+
+SELECT ok(
+  pg_get_functiondef('public.staynas_create_reservation_from_quote(uuid,uuid,text,text,text,text,text,text,text,text,uuid,text,text,uuid,text,text)'::regprocedure)
+    LIKE '%actor_type%'
+  AND pg_get_functiondef('public.staynas_create_reservation_from_quote(uuid,uuid,text,text,text,text,text,text,text,text,uuid,text,text,uuid,text,text)'::regprocedure)
+    LIKE '%correlation_id%',
+  'Guest and staff reservation creation are audited with quote correlation');
 
 SELECT ok(
   EXISTS (
