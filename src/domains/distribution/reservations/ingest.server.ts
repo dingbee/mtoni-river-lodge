@@ -55,10 +55,9 @@ export async function ingestExternalReservationEvent(
   }
   const requiredCapability = event.eventType === "reservation.created" || event.eventType === "reservation.confirmed"
     ? "reservation.import"
-    : event.eventType === "reservation.modified" || event.eventType === "reservation.payment_updated" ||
-        event.eventType === "reservation.refund_notified" || event.eventType === "reservation.reinstated"
-      ? "reservation.update"
-      : "reservation.cancel";
+    : event.eventType === "reservation.cancelled"
+      ? "reservation.cancel"
+      : "reservation.update";
   if (context.capability !== requiredCapability) {
     throw new Error("Distribution connection does not grant the capability required by this reservation event.");
   }
