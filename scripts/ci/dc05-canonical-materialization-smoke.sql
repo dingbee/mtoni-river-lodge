@@ -59,6 +59,12 @@ BEGIN
         > position('IF NOT COALESCE(v_candidate.is_available,false)' IN v_def) THEN
     RAISE EXCEPTION 'Materializer must reject unresolved/invalid rate-plan pricing before inventory retry';
   END IF;
+  IF position('_children_below_6 IS NULL' IN v_def)=0
+     OR position('_children_7_plus IS NULL' IN v_def)=0
+     OR position('normalized_event->>''childrenBelow6''' IN v_def)=0
+     OR position('normalized_event->>''children7Plus''' IN v_def)=0 THEN
+    RAISE EXCEPTION 'Materializer must bind explicit child age counts to the durable inbox envelope';
+  END IF;
 
   v_create:=pg_get_functiondef(
     'public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid,text)'::regprocedure
