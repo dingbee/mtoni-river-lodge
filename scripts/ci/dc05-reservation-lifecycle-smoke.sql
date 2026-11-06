@@ -49,6 +49,7 @@ BEGIN
      OR position('staynas_distribution_account_grants' IN v_provider)=0
      OR position('reservation.cancel' IN v_provider)=0
      OR position('reservation.update' IN v_provider)=0
+     OR position('lower(btrim(_provider_status)) IN (''cancelled'',''canceled'')' IN v_provider)=0
      OR position('provider_modified_at' IN v_provider)=0
      OR position('stay_change_requires_reallocation' IN v_provider)=0 THEN
     RAISE EXCEPTION 'Provider lifecycle path is missing link, capability, ordering or fail-closed modification checks';
