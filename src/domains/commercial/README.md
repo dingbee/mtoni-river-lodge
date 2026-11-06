@@ -28,5 +28,8 @@ Catalogue mutations are founder-only and must be authorized server-side.
 Tenant ownership and tenant roles do not confer global commercial authority.
 
 CC02.01 establishes typed contracts and canonical capability identities only.
-Database persistence remains gated on the certified CC-01 authority/schema
-foundation. No migration is placed in the executable migrations directory.
+CC-01 authority/schema certification is complete. This CC-02 integration closes
+the commercial contract layer only; it does not introduce durable commercial
+records, database migrations, live handlers or a founder UI. Any future runtime
+persistence must enforce the founder-only authority contract at the database
+and server boundaries. No migration is placed in the executable migrations directory.
