@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: v2.stable
       - run: bun install --frozen-lockfile
       - name: Reservation, lifecycle and pricing regression tests
         run: >-
