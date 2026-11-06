@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- existing public room catalog payload is dynamically shaped */
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
@@ -25,6 +26,19 @@ export const Route = createFileRoute("/$propertySlug")({
 });
 
 type PropertyPageData = Awaited<ReturnType<typeof getPublicDemoProperty>>;
+type PublicBookingQuote = {
+  quote_id: string;
+  quote_expires_at: string;
+  accommodation_subtotal?: number;
+  extras_total?: number;
+  fee_total?: number;
+  discount_total?: number;
+  taxes?: number;
+  tax_addition?: number;
+  total: number;
+  currency: string;
+};
+
 type RatePlanOption = { rate_plan_id: string; name: string; description: string | null; meal_plan: string | null; refundable: boolean; currency: string; total: number; average_nightly_rate: number; minimum_stay: number; nightly_breakdown: Array<{ date: string; nightly_rate: number; currency: string; source_label: string; pricing_basis: string; source_rate: number }>; publication_id: string; publication_number: number; rate_plan_version: number; snapshot_hash: string };
 type AvailableRoom = {
   room_id: string; slug: string; name: string; base_price: number; currency: string;
@@ -80,7 +94,7 @@ function PublicPropertyBookingPage() {
   const [country, setCountry] = useState("");
   const [specialRequests, setSpecialRequests] = useState("");
   const [confirmation, setConfirmation] = useState<Awaited<ReturnType<typeof createPublicDemoBooking>> | null>(null);
-  const [bookingQuote, setBookingQuote] = useState<any>(null);
+  const [bookingQuote, setBookingQuote] = useState<PublicBookingQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState("");
 
@@ -155,7 +169,7 @@ function PublicPropertyBookingPage() {
       guestEmail: validGuestEmail,
     } }).then((quote) => {
       if (!cancelled) {
-        setBookingQuote(quote);
+        setBookingQuote(quote as PublicBookingQuote);
         setQuoteLoading(false);
       }
     }).catch((error) => {
