@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { bookingRpc } from "@/lib/booking-rpc";
 
 // First controlled Public Booking Network demo. Keep the UAT property allowlist
 // explicit until StayNas has a property-level publication/visibility setting.
@@ -99,6 +98,7 @@ const availabilitySchema = z.object({
   checkIn: dateSchema,
   checkOut: dateSchema,
   guests: z.number().int().min(1).max(8),
+  ratePlanId: z.string().uuid().optional(),
 });
 
 export const searchPublicDemoAvailability = createServerFn({ method: "POST" })
@@ -106,22 +106,57 @@ export const searchPublicDemoAvailability = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in.");
     const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
-    const { data: rows, error } = await bookingRpc(supabaseAdmin).rpc("get_room_availability", {
+    const { data: rows, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced_with_rate_plan", {
       _check_in: data.checkIn,
       _check_out: data.checkOut,
       _property_id: property.id,
+      _adults: data.guests,
+      _children_below_6: 0,
+      _children_7_plus: 0,
+      _rate_plan_id: data.ratePlanId ?? null,
     });
     if (error) throw new Error(error.message);
+    const ratePlanChoices = await Promise.all((rows ?? []).filter((room: any) => room.pricing_quote?.error_code === "RATE_PLAN_REQUIRED").map(async (room: any) => {
+      const { data: discovery, error: discoveryError } = await (supabaseAdmin as any).rpc("discover_staynas_public_rate_plans", {
+        _property_id: property.id, _room_id: room.room_id, _check_in: data.checkIn, _check_out: data.checkOut,
+        _adults: data.guests, _children_below_6: 0, _children_7_plus: 0,
+      });
+      return { room_id: room.room_id, plans: !discoveryError && discovery?.ok ? discovery.plans : [] };
+    }));
+    const planOptionsByRoom = new Map(ratePlanChoices.map((item: any) => [item.room_id, item.plans]));
+
+    // A published plan is not required to cover every room type. A room with
+    // NO_ELIGIBLE_RATE_PLAN is simply not sellable for this stay under the
+    // currently published SPE-03 configuration; it must not poison the
+    // availability response for other room types that do have eligible plans.
+    // All other resolver failures remain fail-closed and visible.
+    const pricingFailure = (rows ?? []).find((room: any) =>
+      room.pricing_quote?.ok === false
+      && !["RATE_PLAN_REQUIRED", "NO_ELIGIBLE_RATE_PLAN"].includes(room.pricing_quote?.error_code)
+    );
+    if (pricingFailure) {
+      throw new Error(`Pricing rejected [${pricingFailure.pricing_quote.error_code ?? "INVALID_RATE_CONFIGURATION"}]: ${pricingFailure.pricing_quote.message ?? "Pricing configuration is invalid"}`);
+    }
 
     return (rows ?? [])
+      .filter((room: any) => {
+        const errorCode = room.pricing_quote?.error_code;
+        if (errorCode === "NO_ELIGIBLE_RATE_PLAN") return false;
+        if (errorCode === "RATE_PLAN_REQUIRED") {
+          return (planOptionsByRoom.get(room.room_id) ?? []).length > 0;
+        }
+        return true;
+      })
       .map((room: any) => ({
+        rate_plan_options: planOptionsByRoom.get(room.room_id) ?? [],
         ...room,
         base_price: Number(room.base_price),
-        nightly_total: Number(room.nightly_total),
-        fits_guests: data.guests <= room.max_occupancy,
+        nightly_total: room.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" ? null : Number(room.pricing_quote?.total ?? room.nightly_total),
+        pricing_quote: room.pricing_quote,
+        fits_guests: Boolean(room.fits_occupancy),
       }))
       .filter((room: any) => room.is_available && room.fits_guests)
-      .sort((a: any, b: any) => a.base_price - b.base_price);
+      .sort((a: any, b: any) => (a.nightly_total ?? Number.POSITIVE_INFINITY) - (b.nightly_total ?? Number.POSITIVE_INFINITY));
   });
 
 const createBookingSchema = z.object({
@@ -136,6 +171,7 @@ const createBookingSchema = z.object({
   guestPhone: z.string().trim().max(40).optional().or(z.literal("")),
   country: z.string().trim().max(100).optional().or(z.literal("")),
   specialRequests: z.string().trim().max(1000).optional().or(z.literal("")),
+  ratePlanId: z.string().uuid().optional(),
 });
 
 export const createPublicDemoBooking = createServerFn({ method: "POST" })
@@ -148,25 +184,25 @@ export const createPublicDemoBooking = createServerFn({ method: "POST" })
     // role is confined to this server function; the property ID is resolved
     // server-side from the explicit UAT demo allowlist and never trusted from
     // the browser.
-    const { data: rows, error } = await bookingRpc(supabaseAdmin).rpc("create_booking", {
+    const { data: rows, error } = await (supabaseAdmin as any).rpc("create_booking_for_property_with_rate_plan", {
+      _property_id: property.id,
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
       _check_out: data.checkOut,
       _adults: data.adults,
       _children: data.children,
-      _children_below_6: 0,
-      _children_7_plus: data.children,
-      // The deployed property-scoped RPC requires explicit hold arguments.
-      // Direct guest checkout does not create a hold, so pass nulls.
-      _hold_id: null,
-      _session_id: null,
       _guest_name: data.guestName,
       _guest_email: data.guestEmail,
       _guest_phone: data.guestPhone || null,
       _country: data.country || null,
       _special_requests: data.specialRequests || null,
-      _property_id: property.id,
       _extras: [],
+      _children_below_6: 0,
+      _children_7_plus: data.children,
+      _hold_id: null,
+      _session_id: null,
+      _payment_method: "pay_at_property",
+      _rate_plan_id: data.ratePlanId ?? null,
     });
 
     if (error) throw new Error(error.message);

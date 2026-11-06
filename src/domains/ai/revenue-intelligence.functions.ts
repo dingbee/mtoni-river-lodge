@@ -20,6 +20,12 @@ function daysAgo(n: number) { const d = new Date(); d.setUTCDate(d.getUTCDate() 
 function diffDays(a: string, b: string) { return Math.round((+new Date(b) - +new Date(a)) / 86400000); }
 function clamp(v: number, min = 0, max = 1) { return Math.max(min, Math.min(max, v)); }
 
+async function getActiveRevenuePropertyId(supabase: any, userId: string): Promise<string> {
+  const { data, error } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
+  if (error || !data) throw new Error(error?.message ?? "No active property selected");
+  return data as string;
+}
+
 // ---------------------------------------------------------------------------
 // Overview — dashboard KPIs
 // ---------------------------------------------------------------------------
@@ -216,15 +222,16 @@ export const generatePricingRecommendations = createServerFn({ method: "POST" })
   .inputValidator((input: { persist?: boolean } | undefined) => ({ persist: input?.persist ?? true }))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
+    const propertyId = await getActiveRevenuePropertyId(context.supabase, context.userId);
     const from = today();
     const to = daysFromNow(30);
     const [{ data: rooms }, { data: forward }, { data: cancelled }] = await Promise.all([
-      context.supabase.from("rooms").select("id, property_id, name, base_price, total_units, currency").eq("status","active"),
-      context.supabase.from("bookings").select("room_id, nights, status, total, check_in").gte("check_in", from).lte("check_in", to).in("status", ["confirmed","pending","checked_in"]),
-      context.supabase.from("bookings").select("id, room_id, created_at").eq("status","cancelled").gte("created_at", daysAgo(14)),
+      context.supabase.from("rooms").select("id, name, base_price, total_units, currency").eq("property_id", propertyId).eq("status","active"),
+      context.supabase.from("bookings").select("room_id, nights, status, total, check_in").eq("property_id", propertyId).gte("check_in", from).lte("check_in", to).in("status", ["confirmed","pending","checked_in"]),
+      context.supabase.from("bookings").select("id, room_id, created_at").eq("property_id", propertyId).eq("status","cancelled").gte("created_at", daysAgo(14)),
     ]);
 
-    const recs: Array<{ property_id: string; room_id: string | null; room_name: string; action: string; current_rate: number; suggested_rate: number; delta_pct: number; reasoning: string; expected_impact: number; confidence: number; evidence: any[] }> = [];
+    const recs: Array<{ room_id: string | null; room_name: string; action: string; current_rate: number; suggested_rate: number; delta_pct: number; reasoning: string; expected_impact: number; confidence: number; evidence: any[] }> = [];
 
     for (const r of (rooms ?? []) as any[]) {
       const roomForward = (forward ?? []).filter((b: any) => b.room_id === r.id && b.status !== "pending");
@@ -258,7 +265,6 @@ export const generatePricingRecommendations = createServerFn({ method: "POST" })
       }
 
       recs.push({
-        property_id: r.property_id,
         room_id: r.id,
         room_name: r.name,
         action,
@@ -279,7 +285,7 @@ export const generatePricingRecommendations = createServerFn({ method: "POST" })
     if (data.persist && recs.length) {
       await context.supabase.from("ai_pricing_recommendations").insert(
         recs.map((r: any) => ({
-          property_id: r.property_id,
+          property_id: propertyId,
           room_id: r.room_id,
           window_from: from, window_to: to,
           action: r.action,
@@ -309,8 +315,9 @@ export const listPricingRecommendations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
+    const propertyId = await getActiveRevenuePropertyId(context.supabase, context.userId);
     const { data } = await context.supabase.from("ai_pricing_recommendations")
-      .select("*, rooms(name)").order("created_at", { ascending: false }).limit(100);
+      .select("*, rooms(name)").eq("property_id", propertyId).order("created_at", { ascending: false }).limit(100);
     return data ?? [];
   });
 
@@ -323,12 +330,15 @@ export const actionPricingRecommendation = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
+    const propertyId = await getActiveRevenuePropertyId(context.supabase, context.userId);
     const status = data.action === "accept" ? "accepted" : data.action === "dismiss" ? "dismissed" : "converted";
     let taskId: string | null = null;
     if (data.action === "convert") {
-      const { data: rec } = await context.supabase.from("ai_pricing_recommendations").select("*").eq("id", data.id).maybeSingle();
+      const { data: rec } = await context.supabase.from("ai_pricing_recommendations").select("*")
+        .eq("id", data.id).eq("property_id", propertyId).maybeSingle();
       if (rec) {
         const { data: task } = await context.supabase.from("ops_tasks").insert({
+          property_id: propertyId,
           task_type: "pricing_review",
           title: `Pricing review: ${rec.action} (${rec.window_from} → ${rec.window_to})`,
           description: rec.reasoning,
@@ -340,7 +350,7 @@ export const actionPricingRecommendation = createServerFn({ method: "POST" })
     await context.supabase.from("ai_pricing_recommendations").update({
       status, actioned_by: context.userId, actioned_at: new Date().toISOString(),
       action_task_id: taskId ?? undefined,
-    }).eq("id", data.id);
+    }).eq("id", data.id).eq("property_id", propertyId);
     await context.supabase.from("ai_activity_logs").insert({
       user_id: context.userId,
       question: `Pricing recommendation ${data.id} ${data.action}`,

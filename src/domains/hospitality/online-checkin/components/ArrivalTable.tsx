@@ -39,7 +39,64 @@ export function ArrivalTable({ items }: { items: ArrivalListItem[] }) {
   }
 
   return (
-    <div className="overflow-x-auto">
+    <>
+      <div className="grid min-w-0 gap-3 md:hidden">
+        {items.map((a) => (
+          <article key={a.bookingId} className="min-w-0 rounded-lg border border-border bg-card p-3">
+            <div className="flex min-w-0 items-start justify-between gap-3">
+              <div className="min-w-0">
+                <Link to="/admin/operations/arrivals/$id" params={{ id: a.bookingId }} className="block break-words font-semibold hover:underline">
+                  {a.guestName}
+                </Link>
+                <p className="mt-0.5 text-xs text-muted-foreground">{a.reference}</p>
+              </div>
+              <StatusChip tone={arrivalReadinessTone(a.readiness)}>{ARRIVAL_READINESS_LABEL[a.readiness]}</StatusChip>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border pt-3 text-sm">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Stay</p>
+                <p className="mt-0.5">{a.checkIn} → {a.checkOut}</p>
+                <p className="text-xs text-muted-foreground">{a.nights} nights{a.estimatedArrivalTime ? ` · ETA ${a.estimatedArrivalTime}` : ""}</p>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Room / unit</p>
+                <p className="mt-0.5 break-words">{a.roomName}</p>
+                <p className="text-xs text-muted-foreground">{a.unitLabel ?? "Unassigned"}</p>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Check-in</p>
+                <div className="mt-1"><StatusChip tone={checkinStatusTone(a.checkinStatus)}>{CHECKIN_STATUS_FILTER_LABEL[a.checkinStatus]}</StatusChip></div>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Documents</p>
+                <div className="mt-1"><StatusChip tone={documentStatusTone(a.documentStatus)}>{DOCUMENT_STATUS_LABEL[a.documentStatus]}</StatusChip></div>
+                <p className="mt-0.5 text-xs text-muted-foreground">{a.documentCounts.total} uploaded · {a.documentCounts.verified} verified</p>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Reservation</p>
+                <p className="mt-0.5 capitalize">{a.reservationStatus.replace("_", " ")}</p>
+                <p className="text-xs capitalize text-muted-foreground">{a.paymentStatus.replace("_", " ")}</p>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Room ready</p>
+                <div className="mt-1"><StatusChip tone={roomReadinessTone(a.roomReadiness)}>{roomReadinessLabel(a.roomReadiness)}</StatusChip></div>
+              </div>
+            </div>
+            {(a.alerts.length > 0 || a.specialRequests || a.guestType === "vip") && (
+              <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
+                {a.guestType === "vip" && <StatusChip tone="warning">VIP</StatusChip>}
+                {a.alerts.map((al) => <span key={al.kind} className="inline-flex max-w-full items-center gap-1 rounded bg-muted px-2 py-1 text-xs text-muted-foreground"><AlertTriangle className="h-3 w-3 shrink-0" />{ARRIVAL_ALERT_LABEL[al.kind]}</span>)}
+                {a.specialRequests && <span className="w-full break-words text-xs text-muted-foreground">{a.specialRequests}</span>}
+              </div>
+            )}
+            <div className="mt-3 flex items-center justify-between border-t border-border pt-2">
+              <span className="text-xs text-muted-foreground">Updated {relative(a.lastActivityAt)}</span>
+              <Button asChild size="sm" variant="outline"><Link to="/admin/operations/arrivals/$id" params={{ id: a.bookingId }}>Open arrival</Link></Button>
+            </div>
+          </article>
+        ))}
+      </div>
+      <div className="hidden min-w-0 max-w-full overflow-x-auto md:block">
       <table className="w-full min-w-[1040px] text-sm">
         <thead>
           <tr className="border-b text-left text-xs uppercase tracking-wider text-muted-foreground">
@@ -157,6 +214,7 @@ export function ArrivalTable({ items }: { items: ArrivalListItem[] }) {
           ))}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }

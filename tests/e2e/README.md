@@ -46,3 +46,26 @@ UPDATE_BASELINES=1 python3 tests/e2e/stay_visual_regression.py
 Override `STAY_TEST_BASE` (default `http://localhost:8080`) and
 `STAY_TEST_DIFFS` (default `/tmp/stay-visual/`) as needed. Diff images
 for failing stops are written under `STAY_TEST_DIFFS` for inspection.
+
+## rate_plan_admin_readonly.py
+
+Read-only authenticated acceptance for the Finance rate-plan workspace. It checks
+explicit property identity and currency, the authorized published-rate catalogue, plan details,
+inheritance provenance, publication history, and the mobile layout. It requires at least one
+existing rate-plan fixture (an empty catalogue is a failure, not a skipped check). It compares
+the plan register before and after read-only navigation and rejects mutating Supabase REST requests.
+It does not create, edit, publish, or delete any data.
+
+### Run
+
+```bash
+export STAYNAS_UI_BASE_URL=http://localhost:8080
+export STAYNAS_UI_EMAIL=your-finance-test-account
+export STAYNAS_UI_PASSWORD=your-test-password
+export STAYNAS_EXPECTED_PROPERTY_NAME='Mtoni River Lodge'
+export STAYNAS_EXPECTED_CURRENCY=USD
+python3 tests/e2e/rate_plan_admin_readonly.py
+```
+
+Requires Python 3.11+ and Playwright Chromium. Use a dedicated UAT account;
+credentials are supplied through environment variables and are not committed.

@@ -1,4 +1,4 @@
-import { CreditCard, FileText, PieChart, LayoutDashboard, BarChart3, ClipboardCheck, Activity, AlertTriangle } from "lucide-react";
+import { CreditCard, FileText, PieChart, LayoutDashboard, BarChart3, ClipboardCheck, Activity, AlertTriangle, Tags } from "lucide-react";
 import { defineModule } from "../registry";
 
 const roles = ["owner","manager","finance"] as const;
@@ -46,5 +46,11 @@ export const financeAlertsModule = defineModule({
 export const financeReportsModule = defineModule({
   id: "finance.reports", name: "Reports", description: "Financial reporting",
   icon: PieChart, route: "/admin/finance/reports", parentId: "finance", order: 80,
+  requiredRoles: [...roles], status: "active",
+});
+
+export const financeRatePlansModule = defineModule({
+  id: "finance.rate-plans", name: "Rate Plans", description: "Manage commercial accommodation rate plans",
+  icon: Tags, route: "/admin/finance/rate-plans", parentId: "finance", order: 51,
   requiredRoles: [...roles], status: "active",
 });
