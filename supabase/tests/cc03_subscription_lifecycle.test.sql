@@ -231,6 +231,21 @@ BEGIN
   EXCEPTION WHEN check_violation THEN
     NULL;
   END;
+  BEGIN
+    INSERT INTO public.commercial_subscriptions(
+      id, account_id, plan_code, plan_version, currency, billing_term,
+      property_count, price_resolution_ref, accepted_price_snapshot, quote_required
+    ) VALUES (
+      v_subscription3, v_account3, 'enterprise', 1, 'USD', 'annual',
+      5, 'fabricated-enterprise-price',
+      '{"currency":"USD","quoteRequired":true,"total":1,"lineItems":[{"amount":1}]}',
+      true
+    );
+    RAISE EXCEPTION 'Fabricated Enterprise quote total unexpectedly succeeded';
+  EXCEPTION WHEN check_violation THEN
+    NULL;
+  END;
+
   INSERT INTO public.commercial_subscription_events(
     account_id, subscription_id, event_type, occurred_at,
     idempotency_key, actor_role, event_metadata
@@ -273,6 +288,13 @@ BEGIN
     SET reason_code = 'tamper'
     WHERE id = v_event;
     RAISE EXCEPTION 'Lifecycle event mutation unexpectedly succeeded';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    NULL;
+  END;
+
+  BEGIN
+    DELETE FROM public.commercial_subscriptions WHERE id = v_subscription;
+    RAISE EXCEPTION 'Commercial subscription deletion unexpectedly succeeded';
   EXCEPTION WHEN SQLSTATE '55000' THEN
     NULL;
   END;
