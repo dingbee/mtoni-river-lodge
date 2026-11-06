@@ -80,6 +80,16 @@ BEGIN
     RAISE EXCEPTION 'Materializer must bind explicit child age counts to the durable inbox envelope';
   END IF;
 
+  IF position('NULL,NULL,''pay_at_property'',v_rate_plan_id' IN v_def)=0
+     OR position('SET source=''channel''' IN v_def)=0
+     OR position('payment_method=NULL' IN v_def)=0
+     OR position('payment_provider=''channel''' IN v_def)=0
+     OR position('payment_status=''unpaid''' IN v_def)=0
+     OR position('deposit_amount=0' IN v_def)=0
+     OR position('balance_due=v_created.total' IN v_def)=0 THEN
+    RAISE EXCEPTION 'Channel materialization must remain unpaid and defer settlement to DC-05.06';
+  END IF;
+
   v_create:=pg_get_functiondef(
     'public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid,text)'::regprocedure
   );
