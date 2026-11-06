@@ -102,7 +102,7 @@ export const listPricingAdjustments = createServerFn({ method:"GET" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await activeFinanceProperty(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const [property, taxes, fees, promotions, audit, rooms, ratePlans] = await Promise.all([
+    const [property, taxes, fees, promotions, audit, rooms, ratePlans, extras] = await Promise.all([
       sb.from("staynas_properties").select("id,name,currency,timezone").eq("id",propertyId).single(),
       sb.from("staynas_property_tax_rules").select("*").eq("property_id",propertyId).order("priority").order("name"),
       sb.from("staynas_property_fee_rules").select("*").eq("property_id",propertyId).order("priority").order("name"),
@@ -110,9 +110,10 @@ export const listPricingAdjustments = createServerFn({ method:"GET" })
       sb.from("staynas_pricing_configuration_audit").select("*").eq("property_id",propertyId).order("created_at",{ascending:false}).limit(100),
       sb.from("rooms").select("id,name").eq("property_id",propertyId).order("name"),
       sb.from("staynas_rate_plans").select("id,name").eq("property_id",propertyId).order("name"),
+      sb.from("extras").select("slug,name").eq("property_id",propertyId).eq("active",true).order("name"),
     ]);
-    for (const result of [property,taxes,fees,promotions,audit,rooms,ratePlans]) if (result.error) throw new Error(result.error.message);
-    return { property:property.data, taxes:taxes.data??[], fees:fees.data??[], promotions:promotions.data??[], audit:audit.data??[], rooms:rooms.data??[], ratePlans:ratePlans.data??[] };
+    for (const result of [property,taxes,fees,promotions,audit,rooms,ratePlans,extras]) if (result.error) throw new Error(result.error.message);
+    return { property:property.data, taxes:taxes.data??[], fees:fees.data??[], promotions:promotions.data??[], audit:audit.data??[], rooms:rooms.data??[], ratePlans:ratePlans.data??[], extras:extras.data??[] };
   });
 
 export const savePricingTaxRule = createServerFn({ method:"POST" })
