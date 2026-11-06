@@ -88,8 +88,10 @@ BEGIN
   END IF;
 
   IF has_function_privilege('anon', 'public.commercial_is_founder_admin(uuid)', 'EXECUTE')
-    OR NOT has_function_privilege('authenticated', 'public.commercial_is_founder_admin(uuid)', 'EXECUTE') THEN
-    RAISE EXCEPTION 'Founder helper grants are not least-privilege';
+    OR NOT has_function_privilege('authenticated', 'public.commercial_is_founder_admin(uuid)', 'EXECUTE')
+    OR has_function_privilege('anon', 'public.commercial_user_has_organisation_access(uuid)', 'EXECUTE')
+    OR NOT has_function_privilege('authenticated', 'public.commercial_user_has_organisation_access(uuid)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Commercial authorization helper grants are not least-privilege';
   END IF;
 
   IF (SELECT count(*) FROM public.commercial_founder_tenant_config) <> 0
@@ -112,6 +114,10 @@ BEGIN
   PERFORM set_config('request.jwt.claim.sub', v_user::text, true);
   IF NOT public.commercial_is_founder_admin(v_user) THEN
     RAISE EXCEPTION 'Verified founder principal was not authorized';
+  END IF;
+  IF NOT public.commercial_user_has_organisation_access(v_org)
+    OR public.commercial_user_has_organisation_access(v_org2) THEN
+    RAISE EXCEPTION 'Tenant organisation scope predicate returned an incorrect result';
   END IF;
   IF public.commercial_is_founder_admin(v_other_user) THEN
     RAISE EXCEPTION 'Founder helper allowed a cross-user principal probe';
