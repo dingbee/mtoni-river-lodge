@@ -33,7 +33,12 @@ export function buildReservationMaterializationRpcArgs(
   if (!["reservation.created", "reservation.confirmed"].includes(event.eventType) ||
       event.providerKey !== lease.provider_key ||
       event.providerEventId !== lease.provider_event_id ||
+      event.eventType !== lease.event_type ||
       event.externalReservationId !== lease.normalized_event.externalReservationId ||
+      event.externalListingId !== lease.normalized_event.externalListingId ||
+      (event.externalRoomId ?? null) !== (lease.normalized_event.externalRoomId ?? null) ||
+      (event.externalRatePlanId ?? null) !== (lease.normalized_event.externalRatePlanId ?? null) ||
+      event.providerStatus !== lease.normalized_event.providerStatus ||
       event.arrivalDate !== lease.normalized_event.arrivalDate ||
       event.departureDate !== lease.normalized_event.departureDate ||
       event.adults !== lease.normalized_event.adults ||
@@ -135,7 +140,11 @@ async function loadDecryptedReservationEvent(
     readReservationPayloadKey(String(data.key_version)),
     reservationPayloadAad(lease.provider_key, lease.external_account_id, lease.provider_event_id),
   );
-  return externalReservationSchema.parse(decrypted);
+  const event = externalReservationSchema.parse(decrypted);
+  if (fingerprintReservationPayload(event) !== lease.payload_fingerprint) {
+    throw new Error("Decrypted reservation payload fingerprint does not match the inbox.");
+  }
+  return event;
 }
 
 export async function materializeClaimedDistributionReservation(
