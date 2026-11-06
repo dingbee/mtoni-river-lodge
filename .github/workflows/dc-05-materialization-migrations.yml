@@ -1,0 +1,90 @@
+name: StayNas DC-05.03 canonical materialization migrations
+# Executes the real DC-03R allocator after disposable schema setup.
+
+on:
+  push:
+    branches:
+      - feat/dc05-*
+  pull_request:
+    branches: [integration/dc05-foundation]
+    paths:
+      - "supabase/migrations/20261107010000_dc05_canonical_booking_materialization.sql"
+      - "supabase/migrations/20261107020000_dc05_spe04_quote_success_contract.sql"
+      - "supabase/migrations/20261107030000_dc05_trigger_function_execute_privileges.sql"
+      - "supabase/migrations/20261107040000_dc05_unpaid_channel_booking_semantics.sql"
+      - "supabase/migrations/20261106140000_dc05_mapping_identity_resolution.sql"
+      - "supabase/migrations/20261106180000_dc05_webhook_processing_replay.sql"
+      - "scripts/ci/dc05-canonical-materialization-fixture.sql"
+      - "scripts/ci/dc05-canonical-materialization-smoke.sql"
+      - ".github/workflows/dc-05-materialization-migrations.yml"
+
+jobs:
+  canonical-materialization-migration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: staynas_dc05_03_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d staynas_dc05_03_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Prepare disposable Supabase-compatible fixture
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc04-postgres-fixture.sql
+      - name: Apply DC-04 durable distribution foundation
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261105140000_dc04_distribution_connection_persistence.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261105150000_dc04_distribution_credential_broker.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261105160000_dc04_distribution_operation_ledger.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261105170000_dc04_distribution_outbox_dispatch.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261106010000_dc04_distribution_health_evidence.sql
+      - name: Apply DC-05.05 webhook retry and replay foundation
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261106180000_dc05_webhook_processing_replay.sql
+      - name: Prepare isolated SPE-03 and canonical booking schema contracts
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc05-canonical-materialization-fixture.sql
+      - name: Apply canonical DC-03R atomic booking and inventory allocator
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261105180000_dc03r_atomic_booking_inventory.sql
+      - name: Apply DC-05.02 property-scoped resource mappings
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261106140000_dc05_mapping_identity_resolution.sql
+      - name: Apply DC-05.03 canonical booking materialization
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107010000_dc05_canonical_booking_materialization.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107020000_dc05_spe04_quote_success_contract.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107030000_dc05_trigger_function_execute_privileges.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107040000_dc05_unpaid_channel_booking_semantics.sql
+      - name: Verify migration security and canonical integration contracts
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc05-canonical-materialization-smoke.sql

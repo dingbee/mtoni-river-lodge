@@ -1,12 +1,9 @@
 import { z } from "zod";
 
 /**
- * Canonical distribution mapping contracts.
- *
- * The internal IDs deliberately reference StayNas canonical entities:
- * rooms.id and staynas_rate_plans.id. Persistence is gated on SPE-03 creating
- * and verifying the canonical RatePlan/RatePlanAssignment schema. Do not map
- * provider identifiers to rooms.base_price or room_inventory.price_override.
+ * Provider identifiers map to canonical property resources, never prices or
+ * physical room inventory rows. A mapped room type is later resolved by the
+ * canonical allocator to a physical room with available inventory.
  */
 const externalResourceId = z.string().trim().min(1).max(256)
   .regex(/^[A-Za-z0-9._:-]+$/, "External identifiers must be opaque safe identifiers.");
@@ -18,9 +15,14 @@ const mappingScopeSchema = z.object({
   mappingStatus: z.enum(["pending", "active", "disabled"]),
 });
 
+export const distributionListingMappingSchema = mappingScopeSchema.extend({
+  externalListingId: externalResourceId,
+  internalRoomTypeId: z.string().uuid(),
+});
+
 export const distributionRoomMappingSchema = mappingScopeSchema.extend({
   externalRoomId: externalResourceId,
-  internalRoomId: z.string().uuid(),
+  internalRoomTypeId: z.string().uuid(),
 });
 
 export const distributionRatePlanMappingSchema = mappingScopeSchema.extend({
@@ -29,13 +31,16 @@ export const distributionRatePlanMappingSchema = mappingScopeSchema.extend({
   internalRatePlanId: z.string().uuid(),
 });
 
+export type DistributionListingMapping = z.infer<typeof distributionListingMappingSchema>;
 export type DistributionRoomMapping = z.infer<typeof distributionRoomMappingSchema>;
 export type DistributionRatePlanMapping = z.infer<typeof distributionRatePlanMappingSchema>;
 
+export function validateDistributionListingMapping(input: unknown): DistributionListingMapping {
+  return distributionListingMappingSchema.parse(input);
+}
 export function validateDistributionRoomMapping(input: unknown): DistributionRoomMapping {
   return distributionRoomMappingSchema.parse(input);
 }
-
 export function validateDistributionRatePlanMapping(input: unknown): DistributionRatePlanMapping {
   return distributionRatePlanMappingSchema.parse(input);
 }
