@@ -3,7 +3,8 @@ import { z } from "zod";
 export const reservationLifecycleEventSchema = z.enum([
   "reservation.created", "reservation.confirmed", "reservation.modified",
   "reservation.cancelled", "reservation.reinstated", "reservation.payment_updated",
-  "reservation.refund_notified", "reservation.no_show",
+  "reservation.refund_notified", "reservation.refund_reversed",
+  "reservation.settlement_reported", "reservation.settlement_adjusted", "reservation.no_show",
 ]);
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => {
@@ -44,8 +45,23 @@ export const externalReservationSchema = z.object({
   fees: money.optional(),
   channelCommission: money.optional(),
   expectedSettlement: money.optional(),
+  paymentAmount: money.optional(),
+  paymentCurrency: z.string().regex(/^[A-Z]{3}$/).optional(),
+  paymentStatus: z.enum(["pending","authorized","captured","paid","failed","partially_refunded","refunded","reversed"]).optional(),
   paymentReference: z.string().trim().max(256).optional(),
   settlementReference: z.string().trim().max(256).optional(),
+  settlementAmount: money.optional(),
+  settlementCurrency: z.string().regex(/^[A-Z]{3}$/).optional(),
+  settlementAt: z.string().datetime({ offset: true }).optional(),
+  settlementDueAt: z.string().datetime({ offset: true }).optional(),
+  exchangeRate: z.number().finite().positive().max(1_000_000).optional(),
+  settlementAdjustmentType: z.enum(["credit","debit"]).optional(),
+  refundAmount: money.optional(),
+  refundCurrency: z.string().regex(/^[A-Z]{3}$/).optional(),
+  refundReference: z.string().trim().max(256).optional(),
+  refundAt: z.string().datetime({ offset: true }).optional(),
+  refundReversalAmount: money.optional(),
+  refundReversalReference: z.string().trim().max(256).optional(),
   cancellationReason: z.string().trim().max(500).optional(),
   cancellationAt: z.string().datetime({ offset: true }).optional(),
   providerPayloadFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
@@ -60,13 +76,56 @@ export const externalReservationSchema = z.object({
   if (event.departureDate <= event.arrivalDate) {
     ctx.addIssue({ code: "custom", path: ["departureDate"], message: "Departure must be after arrival." });
   }
-  if ((event.grossAmount !== undefined || event.taxes !== undefined || event.fees !== undefined ||
-       event.channelCommission !== undefined || event.expectedSettlement !== undefined) && !event.originalCurrency) {
+  const hasFinancialValues = event.grossAmount !== undefined || event.taxes !== undefined ||
+    event.fees !== undefined || event.channelCommission !== undefined ||
+    event.expectedSettlement !== undefined || event.paymentAmount !== undefined ||
+    event.settlementAmount !== undefined || event.refundAmount !== undefined ||
+    event.refundReversalAmount !== undefined || event.exchangeRate !== undefined;
+  if (hasFinancialValues && !event.originalCurrency) {
     ctx.addIssue({ code: "custom", path: ["originalCurrency"], message: "Financial values require the provider's original currency." });
   }
   if (event.expectedSettlement !== undefined && event.grossAmount !== undefined &&
       event.expectedSettlement > event.grossAmount + (event.fees ?? 0)) {
     ctx.addIssue({ code: "custom", path: ["expectedSettlement"], message: "Expected settlement exceeds gross plus fees." });
+  }
+  if (event.paymentAmount !== undefined && event.paymentCurrency !== undefined &&
+      event.paymentCurrency !== event.originalCurrency) {
+    ctx.addIssue({ code: "custom", path: ["paymentCurrency"], message: "Provider payment notification currency must match the reservation's original currency." });
+  }
+  if ((event.settlementAmount !== undefined) !== (event.settlementCurrency !== undefined)) {
+    ctx.addIssue({ code: "custom", path: ["settlementCurrency"], message: "Settlement amount and currency must be supplied together." });
+  }
+  if (event.settlementAmount !== undefined && event.settlementCurrency !== event.originalCurrency &&
+      event.exchangeRate === undefined) {
+    ctx.addIssue({ code: "custom", path: ["exchangeRate"], message: "Cross-currency settlement evidence requires the provider's exchange rate." });
+  }
+  if (event.settlementCurrency === event.originalCurrency && event.exchangeRate !== undefined &&
+      Math.abs(event.exchangeRate - 1) > 0.000001) {
+    ctx.addIssue({ code: "custom", path: ["exchangeRate"], message: "Same-currency settlement must use an exchange rate of one." });
+  }
+  if (event.refundAmount !== undefined && !event.refundCurrency) {
+    ctx.addIssue({ code: "custom", path: ["refundCurrency"], message: "Refund amount requires its provider currency." });
+  }
+  if (event.refundReversalAmount !== undefined && (!event.refundReversalReference || !event.refundCurrency)) {
+    ctx.addIssue({ code: "custom", path: ["refundReversalReference"], message: "Refund reversal requires its provider reference and currency." });
+  }
+  if (event.eventType === "reservation.payment_updated" && !event.paymentStatus) {
+    ctx.addIssue({ code: "custom", path: ["paymentStatus"], message: "Payment notifications require a provider payment status." });
+  }
+  if (event.eventType === "reservation.settlement_reported" || event.eventType === "reservation.settlement_adjusted") {
+    if (event.settlementAmount === undefined || !event.settlementReference) {
+      ctx.addIssue({ code: "custom", path: ["settlementAmount"], message: "Settlement events require an amount and provider settlement reference." });
+    }
+    if (event.eventType === "reservation.settlement_adjusted" && !event.settlementAdjustmentType) {
+      ctx.addIssue({ code: "custom", path: ["settlementAdjustmentType"], message: "Settlement adjustments require credit or debit direction." });
+    }
+  }
+  if (event.eventType === "reservation.refund_notified" && (event.refundAmount === undefined || !event.refundReference)) {
+    ctx.addIssue({ code: "custom", path: ["refundAmount"], message: "Refund notifications require amount and provider refund reference." });
+  }
+  if (event.eventType === "reservation.refund_reversed" &&
+      (event.refundReversalAmount === undefined || !event.refundReversalReference)) {
+    ctx.addIssue({ code: "custom", path: ["refundReversalAmount"], message: "Refund reversals require amount and provider reversal reference." });
   }
 });
 
@@ -110,7 +169,9 @@ export function toSafeReservationEventEnvelope(event: ExternalReservationEvent):
     privateFieldsPresent: Object.values(event.guest).some((value) => Boolean(value)),
     hasFinancialData: event.grossAmount !== undefined || event.taxes !== undefined ||
       event.fees !== undefined || event.channelCommission !== undefined ||
-      event.expectedSettlement !== undefined || event.paymentReference !== undefined ||
-      event.settlementReference !== undefined,
+      event.expectedSettlement !== undefined || event.paymentAmount !== undefined ||
+      event.paymentReference !== undefined || event.settlementReference !== undefined ||
+      event.settlementAmount !== undefined || event.exchangeRate !== undefined ||
+      event.refundAmount !== undefined || event.refundReversalAmount !== undefined,
   };
 }
