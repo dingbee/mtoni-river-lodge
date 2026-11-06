@@ -222,6 +222,8 @@ RETURNS text LANGUAGE sql STABLE AS $function$
 $function$;
 CREATE OR REPLACE FUNCTION public.staynas_active_property_id(_user_id uuid)
 RETURNS uuid LANGUAGE sql STABLE AS $function$ SELECT NULL::uuid $function$;
+CREATE OR REPLACE FUNCTION public.staynas_booking_property_id()
+RETURNS uuid LANGUAGE sql STABLE AS $function$ SELECT NULL::uuid $function$;
 CREATE OR REPLACE FUNCTION public.get_room_availability(
   _check_in date,_check_out date,_property_id uuid
 ) RETURNS TABLE(
