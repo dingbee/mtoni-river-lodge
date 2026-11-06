@@ -45,7 +45,24 @@ jobs:
           CREATE ROLE service_role NOLOGIN BYPASSRLS;
           CREATE SCHEMA auth;
           CREATE TABLE auth.users (id uuid PRIMARY KEY);
+          CREATE FUNCTION auth.uid() RETURNS uuid
+          LANGUAGE sql STABLE
+          AS $function$
+            SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
+          $function$;
           CREATE TABLE public.staynas_organisations (id uuid PRIMARY KEY);
+          CREATE TABLE public.staynas_properties (
+            id uuid PRIMARY KEY,
+            organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id),
+            status text NOT NULL
+          );
+          CREATE TABLE public.staynas_property_members (
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            user_id uuid NOT NULL REFERENCES auth.users(id),
+            status text NOT NULL,
+            role text NOT NULL,
+            PRIMARY KEY (property_id, user_id)
+          );
           SQL
       - name: Apply CC-03.02 migration to ephemeral PostgreSQL
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261107090000_cc03_subscription_lifecycle.sql
