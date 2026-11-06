@@ -132,7 +132,7 @@ async function loadDecryptedReservationEvent(
       keyVersion: String(data.key_version),
       payloadFingerprint: String(data.payload_fingerprint),
     },
-    readReservationPayloadKey(),
+    readReservationPayloadKey(String(data.key_version)),
     reservationPayloadAad(lease.provider_key, lease.external_account_id, lease.provider_event_id),
   );
   return externalReservationSchema.parse(decrypted);
