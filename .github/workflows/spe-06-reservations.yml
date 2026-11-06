@@ -14,8 +14,8 @@ on:
       - "src/routes/book.tsx"
       - "src/routes/$propertySlug.tsx"
       - "src/components/os/reservations/NewReservationDialog.tsx"
-      - "supabase/migrations/*spe06*"
-      - "supabase/tests/spe06_*"
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
       - ".github/workflows/spe-06-reservations.yml"
 
 jobs:
