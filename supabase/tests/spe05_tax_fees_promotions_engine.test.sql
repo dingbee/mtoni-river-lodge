@@ -1,6 +1,6 @@
 -- SPE-05 contract tests. Transaction is rolled back; no property data is written.
 BEGIN;
-SELECT plan(23);
+SELECT plan(24);
 
 SELECT has_table('public','staynas_property_fee_rules','Property fee configuration exists');
 SELECT has_table('public','staynas_property_promotions','Property promotion configuration exists');
@@ -111,6 +111,16 @@ SELECT ok(
   AND pg_get_functiondef('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)'::regprocedure)
     LIKE '%redeem_staynas_promotion%',
   'Every accepted stacked promotion is redeemed inside the booking transaction');
+
+
+SELECT ok(
+  pg_get_functiondef('public.preview_staynas_pricing_adjustments(uuid,uuid,date,date,integer,integer,integer,jsonb,uuid,text,text)'::regprocedure)
+    LIKE '%staynas_active_property_id%'
+  AND pg_get_functiondef('public.preview_staynas_pricing_adjustments(uuid,uuid,date,date,integer,integer,integer,jsonb,uuid,text,text)'::regprocedure)
+    LIKE '%has_any_role%'
+  AND pg_get_functiondef('public.preview_staynas_pricing_adjustments(uuid,uuid,date,date,integer,integer,integer,jsonb,uuid,text,text)'::regprocedure)
+    LIKE '%calculate_staynas_booking_quote%',
+  'Pricing preview is property-authorized and reuses the canonical quote pipeline');
 
 SELECT * FROM finish();
 ROLLBACK;
