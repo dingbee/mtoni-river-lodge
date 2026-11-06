@@ -117,7 +117,7 @@ export function NewReservationDialog({
   });
 
   const rooms = useMemo(
-    () => (availability.data ?? []) as (AvailabilityRoom & { fits_guests: boolean })[],
+    () => (availability.data ?? []).map((room) => ({ ...room, fits_guests: room.fits_occupancy })),
     [availability.data],
   );
   const selectedRoom = useMemo(
