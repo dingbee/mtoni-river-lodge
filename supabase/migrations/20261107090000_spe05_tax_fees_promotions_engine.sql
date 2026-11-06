@@ -290,6 +290,7 @@ BEGIN
       AND (f.valid_from IS NULL OR f.valid_from<=_check_in)
       AND (f.valid_to IS NULL OR f.valid_to>=_check_out-1)
     ORDER BY f.priority,f.id
+    FOR SHARE
   LOOP
     IF v_fee.currency IS NOT NULL AND upper(v_fee.currency)<>v_currency THEN
       RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH','message','Fee currency differs from property currency','fee_id',v_fee.id);
@@ -330,6 +331,7 @@ BEGIN
       AND (t.valid_to IS NULL OR t.valid_to>=_check_out-1)
       AND (t.currency IS NULL OR upper(t.currency)=v_currency)
     ORDER BY t.priority,t.id
+    FOR SHARE
   LOOP
     SELECT COALESCE(sum((x->>'amount')::numeric),0) INTO v_tax_component_base
     FROM jsonb_array_elements(_components) x
