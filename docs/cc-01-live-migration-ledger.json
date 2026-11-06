@@ -1,12 +1,12 @@
 {
   "snapshot_type": "read_only_production_migration_ledger_export",
-  "captured_at": "2026-11-06T15:28:04.359043Z",
+  "captured_at": "2026-11-06T16:21:00Z",
   "repository": "dingbee/mtoni-river-lodge",
   "branch": "feat/cc01-p0-commercial-foundation",
-  "commit": "41ee9e6def695e3db2d49b61108113df47425e9c",
+  "commit": "c7f90cb2e828e0b79ecdd4281ff6560b474e3e12",
   "supabase_project_ref": "hpsryyywolitgeaacpoy",
   "source_table": "supabase_migrations.schema_migrations",
-  "record_count": 136,
+  "record_count": 139,
   "records": [
     {
       "version": "20261021114927",
@@ -827,6 +827,30 @@
       "name": "spe05_uat_enable_pgtap",
       "source_kind": "live_ledger_sql",
       "source_file": "supabase/migrations/20261106152700_spe05_uat_enable_pgtap.sql"
+    },
+    {
+      "version": "20261106154651",
+      "name": "dc05_reservation_lifecycle_reconciliation",
+      "source_kind": "live_ledger_record_only_no_repository_sql",
+      "source_file": null,
+      "provenance_status": "unresolved_source_provenance",
+      "provenance_note": "Confirmed in the live production migration ledger; corresponding SQL source was not found in the active or preserved candidate migration directories on the CC-01 branch."
+    },
+    {
+      "version": "20261106155345",
+      "name": "dc05_lifecycle_payload_retention_fix",
+      "source_kind": "live_ledger_record_only_no_repository_sql",
+      "source_file": null,
+      "provenance_status": "unresolved_source_provenance",
+      "provenance_note": "Confirmed in the live production migration ledger; corresponding SQL source was not found in the active or preserved candidate migration directories on the CC-01 branch."
+    },
+    {
+      "version": "20261106155350",
+      "name": "dc05_modified_cancellation_capability_fix",
+      "source_kind": "live_ledger_record_only_no_repository_sql",
+      "source_file": null,
+      "provenance_status": "unresolved_source_provenance",
+      "provenance_note": "Confirmed in the live production migration ledger; corresponding SQL source was not found in the active or preserved candidate migration directories on the CC-01 branch."
     }
   ],
   "sql_source_of_truth": "supabase/migrations/<version>_<name>.sql"
