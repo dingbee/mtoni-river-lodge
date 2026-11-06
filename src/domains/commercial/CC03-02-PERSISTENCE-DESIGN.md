@@ -30,6 +30,12 @@ Read-only inspection of the StayNas Supabase project hpsryyywolitgeaacpoy confir
 - Existing public.activity_logs is operational activity logging with staff policies; it is not a substitute for a dedicated append-only commercial audit ledger.
 - No CC-03 commercial-account, subscription, trial-claim or subscription-event tables were found in the inspected schema. The production migration ledger contains CC-01 authorization identity scope, but no CC-02 or CC-03 database migration.
 
+
+- RLS is enabled on staynas_organisations, staynas_properties, staynas_property_members, staynas_platform_admins and activity_logs; FORCE ROW LEVEL SECURITY is not enabled on these inspected tables.
+- The inspected tenant-facing grants on organisation/property/member tables are read-only SELECT for authenticated. The existing platform-admin table is also SELECT-only for authenticated; service_role has narrowly varying server-side privileges.
+- Existing founder/property helper functions are SECURITY DEFINER. Their current EXECUTE ACLs differ: the founder-AI helper is executable by authenticated and postgres, while the property-access and staff helpers are executable by authenticated, service_role and postgres. This is a reason not to compose new commercial policies around them without a separate security review.
+- The existing organisation SELECT policy derives visibility from an active property membership, which gives a useful starting point for tenant reads but does not by itself define subscription mutation authority.
+
 Consequences: the commercial account must reference public.staynas_organisations(id). Tenant read authorization must be designed from the verified organisation → properties → active property-membership relationship and tested against cross-property/cross-organisation cases. Founder authorization requires a separately verified configurable authority source before SQL/RLS implementation. Do not infer it from staynas_platform_admins, is_staynas_founder_ai_admin(), user_roles, or a property owner role.
 
 ## Proposed persistence objects
