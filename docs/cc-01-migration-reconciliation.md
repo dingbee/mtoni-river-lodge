@@ -200,3 +200,19 @@ This section supersedes earlier ledger counts and migration sequencing notes abo
 - The earlier dry-run on merge commit `a7804c9` is not accepted as release evidence because it ran before the quarantine commit and listed non-ledger SPE-02/SPE-03 migration variants. The post-quarantine dry-run on the exact current head is the acceptance check.
 
 No production migration, migration-history repair, database schema/data/role mutation, merge to main, or deployment has been performed.
+
+
+## Verification on the integrated mainline — 6 November 2026, 14:57 UTC
+
+The CC-01 branch now includes current mainline commit `6e2e71af78102668c7f308a96d6a48098749f830` as a merge parent; PR #133 is mergeable against main. The final migration source/sequence corrections are on code commit `b3d70244d89a4cf8cb9a46094597ab2f6b1a79a0`.
+
+Verified on that code commit:
+
+- Official Supabase remote dry-run passed. The only pending migrations reported were `20261106143000_cc01_property_access_and_founder_authority.sql` and `20261106210000_spe04_public_rate_plan_discovery.sql`.
+- P1 regression/test workflow passed, including regression suites, production build, TypeScript and lint.
+- P1 build workflow passed, including the PostgreSQL 17 CC-01 migration/assertion fixture, production build, TypeScript and lint.
+- StayNas Finance payment-integrity workflow passed.
+- SN-IQ-04 omnichannel contract workflow passed.
+- Migration quarantine workflow passed with zero files moved and 164 historical candidates retained.
+
+The subsequent branch head `6117d97cc1d26d5ba996141cff87d560a08d3b20` contains only the generated migration-classification manifest update from the successful quarantine run. This document update triggers a final exact-head CI rerun. All remote migration checks remain dry-run only; no production migration, schema/data/role mutation, merge to main, or deployment has occurred.
