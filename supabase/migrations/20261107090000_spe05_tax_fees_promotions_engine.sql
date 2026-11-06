@@ -330,18 +330,27 @@ BEGIN
     IF 'fee'=ANY(v_tax.taxable_components) THEN v_taxable:=v_taxable+v_tax_fee_total; END IF;
     IF v_tax.is_compound THEN v_taxable:=v_taxable+v_tax_total; END IF;
     IF v_taxable=0 THEN CONTINUE; END IF;
-    IF v_tax.calculation_type IN ('percentage','percent') THEN
+    IF v_tax.calculation_type IN ('percentage','percent','exclusive_percent','inclusive_percent') THEN
       v_tax_amount:=round(GREATEST(0,v_taxable-v_discount)*v_tax.rate/100,2);
     ELSIF v_tax.calculation_type IN ('fixed','fixed_per_booking') THEN
       v_tax_amount:=round(v_tax.rate,2);
+    ELSIF v_tax.calculation_type='fixed_per_night' THEN
+      v_tax_amount:=round(v_tax.rate*v_nights,2);
     ELSE
       RETURN jsonb_build_object('ok',false,'error_code','INVALID_TAX_CONFIGURATION','message','Unsupported tax calculation type','tax_rule_id',v_tax.id);
     END IF;
     v_tax_total:=round(v_tax_total+v_tax_amount,2);
-    IF v_tax.tax_mode='exclusive' THEN v_tax_addition:=round(v_tax_addition+v_tax_amount,2); END IF;
+    IF CASE
+      WHEN v_tax.calculation_type='inclusive_percent' THEN false
+      WHEN v_tax.calculation_type='exclusive_percent' THEN true
+      ELSE v_tax.tax_mode='exclusive'
+    END THEN v_tax_addition:=round(v_tax_addition+v_tax_amount,2); END IF;
     v_tax_lines:=v_tax_lines||jsonb_build_array(jsonb_build_object('id',v_tax.id,'name',v_tax.name,
       'label',COALESCE(v_tax.display_label,v_tax.name),'tax_code',v_tax.tax_code,'version',v_tax.version,
-      'rate',v_tax.rate,'calculation_type',v_tax.calculation_type,'tax_mode',v_tax.tax_mode,
+      'rate',v_tax.rate,'calculation_type',v_tax.calculation_type,
+      'tax_mode',CASE WHEN v_tax.calculation_type='inclusive_percent' THEN 'inclusive'
+                      WHEN v_tax.calculation_type='exclusive_percent' THEN 'exclusive'
+                      ELSE v_tax.tax_mode END,
       'taxable_amount',v_taxable,'amount',v_tax_amount,'currency',v_currency));
   END LOOP;
 
