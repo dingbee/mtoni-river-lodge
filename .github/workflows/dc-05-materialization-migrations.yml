@@ -1,4 +1,5 @@
 name: StayNas DC-05.03 canonical materialization migrations
+# Executes the real DC-03R allocator after disposable schema setup.
 
 on:
   push:
