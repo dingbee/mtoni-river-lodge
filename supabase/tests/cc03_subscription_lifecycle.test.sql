@@ -22,6 +22,7 @@ DECLARE
   v_other_user uuid := '40000000-0000-4000-8000-000000000002';
   v_property uuid := '50000000-0000-4000-8000-000000000001';
   v_org2 uuid := '10000000-0000-4000-8000-000000000002';
+  v_org3 uuid := '10000000-0000-4000-8000-000000000003';
   v_account2 uuid := '20000000-0000-4000-8000-000000000002';
   v_account3 uuid := '20000000-0000-4000-8000-000000000003';
   v_subscription2 uuid := '30000000-0000-4000-8000-000000000002';
@@ -210,8 +211,26 @@ BEGIN
     5, 'enterprise-quote-v1', '{"currency":"USD","quoteRequired":true}', true
   );
 
+  INSERT INTO public.staynas_organisations(id) VALUES (v_org3);
   INSERT INTO public.commercial_accounts(id, organisation_id)
-  VALUES (v_account3, '10000000-0000-4000-8000-000000000003');
+  VALUES (v_account3, v_org3);
+
+  -- Paid activation cannot be represented without an explicit acceptance reference.
+  BEGIN
+    INSERT INTO public.commercial_subscriptions(
+      id, account_id, plan_code, plan_version, currency, billing_term,
+      property_count, price_resolution_ref, accepted_price_snapshot,
+      status, current_period_starts_at, current_period_ends_at
+    ) VALUES (
+      v_subscription3, v_account3, 'essential', 1, 'TZS', 'monthly',
+      1, 'paid-without-acceptance',
+      '{"currency":"TZS","total":50000}', 'active',
+      '2026-11-07T09:00:00Z', '2026-12-07T09:00:00Z'
+    );
+    RAISE EXCEPTION 'Paid activation without acceptance unexpectedly succeeded';
+  EXCEPTION WHEN check_violation THEN
+    NULL;
+  END;
   INSERT INTO public.commercial_subscription_events(
     account_id, subscription_id, event_type, occurred_at,
     idempotency_key, actor_role, event_metadata
