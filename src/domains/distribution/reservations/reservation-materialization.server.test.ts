@@ -85,13 +85,10 @@ describe("DC-05.03 materialization contracts", () => {
   });
 
   it("rejects missing child age allocation rather than guessing a price basis", () => {
+    const withoutAgeBands = { ...event, childrenBelow6: undefined, children7Plus: undefined };
     expect(() => buildReservationMaterializationRpcArgs({
-      ...lease, payload_fingerprint: fingerprintReservationPayload(event),
-    }, {
-      ...event,
-      childrenBelow6: undefined,
-      children7Plus: undefined,
-    })).toThrow(/Child age bands/);
+      ...lease, payload_fingerprint: fingerprintReservationPayload(withoutAgeBands),
+    }, withoutAgeBands)).toThrow(/Child age bands/);
   });
 
   it("keeps the outcome contract limited to explicit materialization states", () => {
