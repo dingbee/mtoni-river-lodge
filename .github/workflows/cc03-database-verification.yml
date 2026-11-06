@@ -1,0 +1,53 @@
+name: CC-03 database verification
+
+on:
+  push:
+    branches:
+      - feat/cc-03-*
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  cc03-database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cc03_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cc03_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: cc03_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Bootstrap isolated Supabase-compatible schema
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+          CREATE ROLE service_role NOLOGIN BYPASSRLS;
+          CREATE SCHEMA auth;
+          CREATE TABLE auth.users (id uuid PRIMARY KEY);
+          CREATE TABLE public.staynas_organisations (id uuid PRIMARY KEY);
+          SQL
+      - name: Apply CC-03.02 migration to ephemeral PostgreSQL
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261107090000_cc03_subscription_lifecycle.sql
+      - name: Verify RLS, grants, immutable snapshots, trial claims and append-only history
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/cc03_subscription_lifecycle.test.sql
