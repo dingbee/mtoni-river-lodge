@@ -44,7 +44,7 @@ export const commercialPlanPriceSchema = z.object({
   billingTerm: z.enum(COMMERCIAL_BILLING_TERMS),
   priceMode: z.enum(COMMERCIAL_PRICE_MODES),
   baseAmountMinor: amountMinor.nullable(),
-  includedProperties: z.number().int().positive(),
+  includedProperties: z.number().int().positive().nullable(),
   additionalPropertyAmountMinor: amountMinor.nullable(),
   status: z.enum(COMMERCIAL_PRICE_STATUSES),
   ...effectiveWindow,
@@ -57,18 +57,18 @@ export const commercialPlanPriceSchema = z.object({
       message: "Quote-required pricing is reserved for Enterprise agreements",
     });
   }
-  if (value.priceMode === "fixed" && (value.baseAmountMinor === null || value.additionalPropertyAmountMinor === null)) {
+  if (value.priceMode === "fixed" && (value.baseAmountMinor === null || value.additionalPropertyAmountMinor === null || value.includedProperties === null)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["baseAmountMinor"],
-      message: "Fixed pricing requires base and additional-property amounts",
+      message: "Fixed pricing requires base amount, included-property allowance and additional-property amount",
     });
   }
-  if (value.priceMode === "quote_required" && (value.baseAmountMinor !== null || value.additionalPropertyAmountMinor !== null)) {
+  if (value.priceMode === "quote_required" && (value.baseAmountMinor !== null || value.additionalPropertyAmountMinor !== null || value.includedProperties !== null)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["baseAmountMinor"],
-      message: "Quote-required pricing must not carry public fixed amounts",
+      message: "Quote-required pricing must not carry public fixed amounts or a presumed property allowance",
     });
   }
 });
