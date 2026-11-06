@@ -1933,8 +1933,8 @@ html[data-os-theme] :is(
   -webkit-overflow-scrolling: touch;
 }
 .mtoni-os table {
-  width: max-content;
-  min-width: 100%;
+  width: 100%;
+  min-width: max-content;
   max-width: none;
   table-layout: auto;
 }
