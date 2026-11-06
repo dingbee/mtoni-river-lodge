@@ -50,6 +50,9 @@ export type AvailabilityRoom = {
 };
 
 export type BookingPricingQuote = {
+  quote_id?: string;
+  quote_hash?: string;
+  quote_expires_at?: string;
   ok?: boolean;
   error_code?: string;
   message?: string;
@@ -157,6 +160,7 @@ const extraSchema = z.object({
 });
 
 const createBookingSchema = z.object({
+  quoteId: z.string().uuid(),
   roomSlug: z.string().min(1),
   ratePlanId: z.string().uuid().optional(),
   promoCode: z.string().trim().max(64).optional().or(z.literal("")),
@@ -195,7 +199,7 @@ export const getBookingQuote = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
-    const { data: quote, error } = await (supabaseAdmin as any).rpc("get_staynas_booking_quote_with_rate_plan_and_promo", {
+    const { data: quote, error } = await (supabaseAdmin as any).rpc("staynas_create_reservation_quote", {
       _property_id: propertyId,
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
@@ -207,6 +211,7 @@ export const getBookingQuote = createServerFn({ method: "POST" })
       _rate_plan_id: data.ratePlanId ?? null,
       _promo_code: data.promoCode?.trim() || null,
       _guest_email: data.guestEmail?.trim() || null,
+      _ttl_seconds: 600,
     });
     if (error) throw new Error(error.message);
     if (!quote) throw new Error("Pricing quote could not be calculated");
@@ -225,43 +230,34 @@ export const createBooking = createServerFn({ method: "POST" })
     const below6 = data.childrenBelow6 ?? 0;
     const plus7 = data.children7Plus ?? Math.max(0, (data.children ?? 0) - below6);
     const totalChildren = below6 + plus7;
-    const { data: result, error } = await sb.rpc("create_booking_for_property_with_rate_plan_and_promo", {
+    const { data: result, error } = await sb.rpc("staynas_create_reservation_from_quote", {
+      _quote_id: data.quoteId,
       _property_id: propertyId,
-      _room_slug: data.roomSlug,
-      _check_in: data.checkIn,
-      _check_out: data.checkOut,
-      _adults: data.adults,
-      _children: totalChildren,
+      _idempotency_key: data.quoteId,
       _guest_name: data.guestName,
       _guest_email: data.guestEmail,
       _guest_phone: data.guestPhone || null,
       _country: data.country || null,
       _special_requests: data.specialRequests || null,
-      _extras: data.extras,
-      _children_below_6: below6,
-      _children_7_plus: plus7,
+      _payment_method: "online",
+      _source: "website",
       _hold_id: data.holdId ?? null,
       _session_id: data.sessionId ?? null,
-      _payment_method: "online",
-      _rate_plan_id: data.ratePlanId ?? null,
-      _promo_code: data.promoCode?.trim() || null,
+      _target_status: "pending",
+      _actor_id: null,
+      _visit_purpose: data.visitPurpose || null,
+      _notes: null,
     });
     if (error) throw new Error(error.message);
-    const row = Array.isArray(result) ? result[0] : result;
-    if (!row) throw new Error("Booking could not be created");
-    // Persist optional purpose-of-visit on the booking row (RPC doesn't accept it).
-    const purpose = (data.visitPurpose || "").trim();
-    if (purpose) {
-      try {
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        await supabaseAdmin
-          .from("bookings")
-          .update({ visit_purpose: purpose } as never)
-          .eq("id", row.booking_id as string);
-      } catch (e) {
-        console.error("booking visit_purpose update failed:", e);
-      }
+    if (result?.ok === false) {
+      const code = String(result.error_code ?? "RESERVATION_REJECTED");
+      const message = String(result.message ?? "The reservation could not be created");
+      const staleError = new Error(`[${code}] ${message}`);
+      Object.assign(staleError, { code, currentQuote: result.current_quote ?? null });
+      throw staleError;
     }
+    const row = result as { booking_id?: string; reference?: string; total?: number; currency?: string };
+    if (!row?.booking_id) throw new Error("Booking could not be created");
     // Send "reservation received" email via Lovable Emails. Never let email failure block booking.
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
