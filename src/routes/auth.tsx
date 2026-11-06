@@ -256,7 +256,7 @@ function AuthPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground">Confirm new password</label>
-                <input type="password" required minLength={8} autoComplete="new-password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring" />
+                <input type="password" required minLength={8} autoComplete="new-password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} className="mt-2 h-12 w-full rounded-xl border border-[#D8E0D9] bg-[#FAFBF9] px-4 text-base text-[#172A23] outline-none transition placeholder:text-[#9AA79F] focus:border-[#315E4D] focus:bg-white focus:ring-4 focus:ring-[#315E4D]/10" />
               </div>
             </div>
             <button type="submit" disabled={savingNewPassword || !newPassword || !confirmNewPassword} className="mt-7 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#173B30] px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_-10px_rgba(16,43,36,0.8)] transition hover:bg-[#245343] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315E4D] focus-visible:ring-offset-2 disabled:opacity-60">
@@ -266,8 +266,8 @@ function AuthPage() {
           </>
         ) : recoverySent ? (
           <>
-            <h1 className="mt-3 text-2xl font-semibold tracking-tight">Enter reset code</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-[#172A23]">Enter reset code</h1>
+            <p className="mt-2 text-sm leading-6 text-[#718078]">
               Enter the one-time code sent to <span className="font-medium text-foreground">{email}</span>.
               Keep this page open while you retrieve the email.
             </p>
@@ -283,7 +283,7 @@ function AuthPage() {
                 maxLength={12}
                 value={recoveryCode}
                 onChange={(e) => { setRecoveryCode(e.target.value); setRecoveryError(""); }}
-                className="mt-2 w-full rounded-md border border-input bg-background px-3 py-3 text-center text-xl tracking-[0.35em] text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+                className="mt-2 h-14 w-full rounded-xl border border-[#D8E0D9] bg-[#FAFBF9] px-4 text-center text-xl tracking-[0.35em] text-[#172A23] outline-none transition focus:border-[#315E4D] focus:ring-4 focus:ring-[#315E4D]/10"
                 placeholder="••••••"
                 autoFocus
               />
@@ -329,7 +329,7 @@ function AuthPage() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                  className="mt-2 h-12 w-full rounded-xl border border-[#D8E0D9] bg-[#FAFBF9] px-4 text-base text-[#172A23] outline-none transition placeholder:text-[#9AA79F] focus:border-[#315E4D] focus:bg-white focus:ring-4 focus:ring-[#315E4D]/10"
                 />
               </div>
 
@@ -343,7 +343,7 @@ function AuthPage() {
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                  className="mt-2 h-12 w-full rounded-xl border border-[#D8E0D9] bg-[#FAFBF9] px-4 text-base text-[#172A23] outline-none transition placeholder:text-[#9AA79F] focus:border-[#315E4D] focus:bg-white focus:ring-4 focus:ring-[#315E4D]/10"
                 />
               </div>
             </div>
