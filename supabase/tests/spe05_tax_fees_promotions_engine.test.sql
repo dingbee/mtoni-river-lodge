@@ -1,6 +1,6 @@
 -- SPE-05 contract tests. Transaction is rolled back; no property data is written.
 BEGIN;
-SELECT plan(24);
+SELECT plan(25);
 
 SELECT has_table('public','staynas_property_fee_rules','Property fee configuration exists');
 SELECT has_table('public','staynas_property_promotions','Property promotion configuration exists');
@@ -121,6 +121,12 @@ SELECT ok(
   AND pg_get_functiondef('public.preview_staynas_pricing_adjustments(uuid,uuid,date,date,integer,integer,integer,jsonb,uuid,text,text)'::regprocedure)
     LIKE '%calculate_staynas_booking_quote%',
   'Pricing preview is property-authorized and reuses the canonical quote pipeline');
+
+
+SELECT ok(
+  NOT has_function_privilege('anon','public.preview_staynas_pricing_adjustments(uuid,uuid,date,date,integer,integer,integer,jsonb,uuid,text,text)','EXECUTE')
+  AND has_function_privilege('authenticated','public.preview_staynas_pricing_adjustments(uuid,uuid,date,date,integer,integer,integer,jsonb,uuid,text,text)','EXECUTE'),
+  'Pricing preview is available to authenticated property staff but not anonymous callers');
 
 SELECT * FROM finish();
 ROLLBACK;
