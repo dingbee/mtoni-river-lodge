@@ -215,13 +215,13 @@ $$;
 -- Minimal Supabase auth/property stubs required to execute the real DC-03R
 -- migration in this disposable PostgreSQL fixture. They are not production logic.
 CREATE OR REPLACE FUNCTION auth.uid()
-RETURNS uuid LANGUAGE sql STABLE AS $ SELECT NULL::uuid $;
+RETURNS uuid LANGUAGE sql STABLE AS $function$ SELECT NULL::uuid $function$;
 CREATE OR REPLACE FUNCTION auth.role()
 RETURNS text LANGUAGE sql STABLE AS $
   SELECT COALESCE(current_setting('request.jwt.claim.role',true),'')
 $;
 CREATE OR REPLACE FUNCTION public.staynas_active_property_id(_user_id uuid)
-RETURNS uuid LANGUAGE sql STABLE AS $ SELECT NULL::uuid $;
+RETURNS uuid LANGUAGE sql STABLE AS $function$ SELECT NULL::uuid $function$;
 CREATE OR REPLACE FUNCTION public.get_room_availability(
   _check_in date,_check_out date,_property_id uuid
 ) RETURNS TABLE(
