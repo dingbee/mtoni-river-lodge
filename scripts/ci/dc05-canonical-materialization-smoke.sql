@@ -44,6 +44,15 @@ BEGIN
     RAISE EXCEPTION 'Provider reservation identity uniqueness constraint is missing';
   END IF;
 
+  IF has_function_privilege('anon','public.validate_staynas_distribution_room_type_mapping()','EXECUTE')
+     OR has_function_privilege('authenticated','public.validate_staynas_distribution_room_type_mapping()','EXECUTE')
+     OR has_function_privilege('anon','public.validate_staynas_distribution_rate_plan_mapping()','EXECUTE')
+     OR has_function_privilege('authenticated','public.validate_staynas_distribution_rate_plan_mapping()','EXECUTE')
+     OR has_function_privilege('anon','public.validate_staynas_distribution_reservation_link()','EXECUTE')
+     OR has_function_privilege('authenticated','public.validate_staynas_distribution_reservation_link()','EXECUTE') THEN
+    RAISE EXCEPTION 'Distribution trigger functions are exposed as public RPCs';
+  END IF;
+
   v_def:=pg_get_functiondef(
     'public.staynas_materialize_distribution_reservation(uuid,uuid,text,text,text,date,date,integer,integer,integer,integer,text,text,text,text,text)'::regprocedure
   );
