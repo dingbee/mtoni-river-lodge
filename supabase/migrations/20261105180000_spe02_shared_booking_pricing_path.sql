@@ -582,7 +582,7 @@ REVOKE ALL ON FUNCTION public.calculate_staynas_booking_quote(uuid,uuid,date,dat
 REVOKE ALL ON FUNCTION public.try_calculate_staynas_booking_quote(uuid,uuid,date,date,integer,integer,integer) FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public.get_staynas_room_availability_priced(date,date,uuid,integer,integer,integer) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.get_staynas_booking_quote(uuid,text,date,date,integer,integer,integer,jsonb) FROM PUBLIC,anon,authenticated;
-DO $
+DO $spe02$
 DECLARE
   v_legacy_signature regprocedure := to_regprocedure(
     'public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)'
@@ -593,7 +593,7 @@ BEGIN
     EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role',v_legacy_signature);
   END IF;
 END;
-$;
+$spe02$;
 
 REVOKE ALL ON FUNCTION public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.get_staynas_room_availability_priced(date,date,uuid,integer,integer,integer) TO service_role;
