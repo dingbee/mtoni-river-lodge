@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter } from "
 import { useRef, useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import appCss from "../styles.css?url";
+import adminTypographyCss from "../admin-typography.css?url";
 import { PWALifecycle } from "@/components/site/PWALifecycle";
 import { ConciergeWidget } from "@/components/site/ConciergeWidget";
 import { Toaster } from "@/components/ui/sonner";
@@ -18,9 +19,9 @@ export const Route = createRootRoute({
     { property:"og:description", content:"Connected hospitality operations and intelligent guest experiences." }, { property:"og:type", content:"website" },
     { property:"og:site_name", content:"StayNas" }, { name:"theme-color", content:"#0F3D3A" }
   ], links:[
-    { rel:"stylesheet", href:appCss }, { rel:"icon", href:"/favicon.ico", sizes:"any" }, { rel:"manifest", href:"/site.webmanifest" },
+    { rel:"stylesheet", href:appCss }, { rel:"stylesheet", href:adminTypographyCss }, { rel:"icon", href:"/favicon.ico", sizes:"any" }, { rel:"manifest", href:"/site.webmanifest" },
     { rel:"preconnect", href:"https://fonts.googleapis.com" }, { rel:"preconnect", href:"https://fonts.gstatic.com", crossOrigin:"anonymous" },
-    { rel:"stylesheet", href:"https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" }
+    { rel:"stylesheet", href:"https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500;600&family=Manrope:wght@400;500;600;700&display=swap" }
   ], scripts:[{type:"text/javascript",children:"(function(){try{if(location.pathname.indexOf('/admin')!==0)return;var p=localStorage.getItem('staynas-os.theme')||'system';var d=p==='dark'||(p==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-os-theme',d?'dark':'light');}catch(e){}})();"}] }),
   shellComponent: RootShell, component: RootComponent, notFoundComponent: NotFoundComponent,
 });
