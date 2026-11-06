@@ -92,5 +92,13 @@ Final table names and foreign keys remain subject to inspection of the exact liv
 - TZS and USD snapshots remain isolated; no currency fallback or conversion.
 - CC-04 invoice/payment records and CC-05 entitlement state remain outside CC-03 persistence.
 
+## CC03.02 implementation artifacts
+
+- Migration: `20261107090000_cc03_subscription_lifecycle.sql`.
+- Database contract tests: `supabase/tests/cc03_subscription_lifecycle.test.sql`.
+- Ephemeral PostgreSQL verification workflow: `.github/workflows/cc03-database-verification.yml`.
+- Tables are RLS-enabled and FORCE RLS; anon/authenticated receive no direct table privileges. The service role receives only the privileges required by the server-side persistence layer. Trial claims and event/audit history are append-only; accepted price/composition snapshots and organisation association are immutable.
+- `commercial_user_has_organisation_access` and `commercial_is_founder_admin` are caller-bound predicates. Founder tenant/principal configuration remains intentionally unseeded and must be provisioned only after independent identity and membership verification.
+
 ## Release gate
-CC03.02 is not implementation-complete until the actual schema and authorization helpers have been inspected, the migration is authored and tested in an isolated environment, RLS/grants and cross-tenant negative tests pass, and migration history is reconciled. Production remains untouched.
+CC03.02 is not implementation-complete until the exact latest commit passes the ephemeral PostgreSQL migration/security tests and the required application CI, the migration history is reconciled, and tenant/founder API authorization is integrated in the later CC03.05 milestone. Production remains untouched.
