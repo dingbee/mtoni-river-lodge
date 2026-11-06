@@ -92,10 +92,10 @@ async function assertPropertyCurrency(supabase:any,propertyId:string,currency?:s
 async function savePropertyRecord(
   supabase: any, userId: string, propertyId: string, table: string, data: Record<string, unknown>,
 ) {
-  const payload = { ...data, property_id: propertyId, updated_by: userId };
-  if (data.id) {
-    const { id, ...changes } = payload;
-    const { data: row, error } = await supabase.from(table).update(changes)
+  const { id, ...record } = data;
+  const payload = { ...record, property_id: propertyId, updated_by: userId };
+  if (id) {
+    const { data: row, error } = await supabase.from(table).update(payload)
       .eq("id", id).eq("property_id", propertyId).select("*").single();
     if (error) throw new Error(error.message);
     return row;
@@ -195,7 +195,8 @@ export const previewPricingAdjustments = createServerFn({ method:"POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId=await activeFinanceProperty(context.supabase,context.userId);
-    const { data: quote, error } = await context.supabase.rpc("preview_staynas_pricing_adjustments",{
+    const sb: any = context.supabase;
+    const { data: quote, error } = await sb.rpc("preview_staynas_pricing_adjustments",{
       _property_id:propertyId,
       _room_id:data.room_id,
       _check_in:data.check_in,
