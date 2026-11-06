@@ -1923,7 +1923,6 @@ html[data-os-theme] :is(
    one-character columns on narrow screens. Mobile views with dense records
    should provide a purpose-built card presentation. */
 .mtoni-os :is(.overflow-x-auto,[data-scroll-container]) {
-  display: block;
   width: 100%;
   max-width: 100%;
   min-width: 0;
