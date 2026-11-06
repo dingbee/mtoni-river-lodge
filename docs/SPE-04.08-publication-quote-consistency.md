@@ -42,7 +42,7 @@ The two pre-existing browser UAT fixtures remain active/published and were not m
 
 ## 4. Test limitation
 
-The dedicated pgTAP file `supabase/tests/spe04_08_publication_quote_consistency.test.sql` adds two source-contract assertions (21 assertions total in the copied suite). The UAT project does not have the pgTAP runner installed, so that suite was not executed. GitHub Actions runs for this exact head were not yet returned at report time; CI is therefore pending, not passed.
+The existing pgTAP file `supabase/tests/spe04_published_pricing_resolver.test.sql` was extended with two source-contract assertions (21 assertions total). The UAT project does not have the pgTAP runner installed, so that suite was not executed. No GitHub Actions run was returned for the latest contents-API commits; CI is therefore pending, not passed. Focused direct SQL runtime regression was executed with read-only resolver calls inside a rollback-only transaction.
 
 ## 5. Release boundary
 
