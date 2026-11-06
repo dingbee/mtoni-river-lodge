@@ -80,6 +80,15 @@ const promotionSchema = z.object({
 }).refine(v => !v.valid_from || !v.valid_to || v.valid_to >= v.valid_from, { message:"Promotion expiry must follow its start.", path:["valid_to"] })
   .refine(v => v.discount_type!=="percentage" || v.discount_value<=100, { message:"Percentage discounts cannot exceed 100%.", path:["discount_value"] });
 
+async function assertPropertyCurrency(supabase:any,propertyId:string,currency?:string|null) {
+  if(!currency) return;
+  const {data,error}=await supabase.from("staynas_properties").select("currency").eq("id",propertyId).single();
+  if(error) throw new Error(error.message);
+  if(String(currency).toUpperCase()!==String(data.currency).toUpperCase()) {
+    throw new Error("Pricing adjustment currency must match the active property's configured currency.");
+  }
+}
+
 async function savePropertyRecord(
   supabase: any, userId: string, propertyId: string, table: string, data: Record<string, unknown>,
 ) {
@@ -123,6 +132,9 @@ export const savePricingTaxRule = createServerFn({ method:"POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId=await activeFinanceProperty(context.supabase,context.userId);
+    await assertPropertyCurrency(context.supabase,propertyId,data.currency);
+    if(data.calculation_type==="inclusive_percent"&&data.tax_mode!=="inclusive") throw new Error("Inclusive percentage rules must use inclusive tax mode.");
+    if(data.calculation_type==="exclusive_percent"&&data.tax_mode!=="exclusive") throw new Error("Exclusive percentage rules must use exclusive tax mode.");
     return savePropertyRecord(context.supabase,context.userId,propertyId,"staynas_property_tax_rules",data as Record<string,unknown>);
   });
 
@@ -132,6 +144,7 @@ export const savePricingFeeRule = createServerFn({ method:"POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId=await activeFinanceProperty(context.supabase,context.userId);
+    await assertPropertyCurrency(context.supabase,propertyId,data.currency);
     if(data.tax_rule_ids.length){
       const {data:rows,error}=await (context.supabase as any).from("staynas_property_tax_rules")
         .select("id").eq("property_id",propertyId).in("id",data.tax_rule_ids);
@@ -147,6 +160,7 @@ export const savePricingPromotion = createServerFn({ method:"POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId=await activeFinanceProperty(context.supabase,context.userId);
+    await assertPropertyCurrency(context.supabase,propertyId,data.currency);
     const sb:any=context.supabase;
     if(data.eligible_room_ids.length){
       const {data:rooms,error}=await sb.from("rooms").select("id").eq("property_id",propertyId).in("id",data.eligible_room_ids);
