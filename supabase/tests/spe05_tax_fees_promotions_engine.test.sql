@@ -1,6 +1,6 @@
 -- SPE-05 contract tests. Transaction is rolled back; no property data is written.
 BEGIN;
-SELECT plan(12);
+SELECT plan(15);
 
 SELECT has_table('public','staynas_property_fee_rules','Property fee configuration exists');
 SELECT has_table('public','staynas_property_promotions','Property promotion configuration exists');
@@ -50,6 +50,20 @@ SELECT ok(
   AND NOT has_function_privilege('authenticated','public.calculate_staynas_spe05_adjustments(uuid,date,date,text,jsonb,uuid,uuid,text,text,date)','EXECUTE')
   AND has_function_privilege('service_role','public.calculate_staynas_spe05_adjustments(uuid,date,date,text,jsonb,uuid,uuid,text,text,date)','EXECUTE'),
   'Calculation kernel is server-only');
+
+SELECT has_table('public','staynas_pricing_configuration_audit','Pricing configuration audit is durable');
+SELECT ok(
+  pg_get_functiondef('public.redeem_staynas_promotion(uuid,uuid,uuid,text,numeric,text)'::regprocedure)
+    LIKE '%FOR UPDATE%'
+  AND pg_get_functiondef('public.redeem_staynas_promotion(uuid,uuid,uuid,text,numeric,text)'::regprocedure)
+    LIKE '%usage_count=usage_count+1%',
+  'Promotion usage is serialized and incremented in the redemption transaction');
+SELECT ok(
+  pg_get_functiondef('public.calculate_staynas_spe05_adjustments(uuid,date,date,text,jsonb,uuid,uuid,text,text,date)'::regprocedure)
+    LIKE '%PROMOTION_STACKING_UNSUPPORTED%'
+  AND pg_get_functiondef('public.calculate_staynas_spe05_adjustments(uuid,date,date,text,jsonb,uuid,uuid,text,text,date)'::regprocedure)
+    LIKE '%PROMOTION_INELIGIBLE%',
+  'Unsupported stacking is rejected explicitly rather than silently mispriced');
 
 SELECT * FROM finish();
 ROLLBACK;
