@@ -202,7 +202,7 @@ export async function processNextDistributionReservationMaterialization(
       await finishDistributionWebhook({
         inboxId: lease.id,
         leaseToken: lease.lease_token,
-        workerId,
+        workerId: normalizedWorkerId,
         status: "manual_reconciliation",
         reconciliationCode: result.reconciliation_code ?? "reservation_requires_review",
         safeSummary: "Provider reservation requires operator reconciliation.",
@@ -211,7 +211,7 @@ export async function processNextDistributionReservationMaterialization(
       await finishDistributionWebhook({
         inboxId: lease.id,
         leaseToken: lease.lease_token,
-        workerId,
+        workerId: normalizedWorkerId,
         status: "retryable_failure",
         safeSummary: "Canonical room inventory was unavailable during reservation materialization.",
         retryAfterSeconds: 60,
