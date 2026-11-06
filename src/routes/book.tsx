@@ -387,8 +387,11 @@ function BookPage() {
   const submit = useMutation({
     mutationFn: async () => {
       if (!selectedRoom) throw new Error("Select a room first");
+      if (!bookingQuote?.quote_id) throw new Error("A current accepted-price quote is required before booking.");
+      if (bookingQuote.quote_expires_at && Date.parse(bookingQuote.quote_expires_at) <= Date.now()) throw new Error("Your quote expired. Review the refreshed price before booking.");
       const created = await createBookingFn({
         data: {
+          quoteId: bookingQuote.quote_id,
           roomSlug: selectedRoom.slug,
           ratePlanId: selectedRoom.selected_rate_plan_id,
           promoCode: appliedPromoCode || undefined,
@@ -429,15 +432,36 @@ function BookPage() {
       }
       goToStep("confirmation", "booking_submit_success");
     },
-    onError: (err: Error) => {
+    onError: async (err: Error) => {
       console.error("[book] booking submit / payment init failed", err);
+      if (err.message.includes("[QUOTE_STALE]") || err.message.includes("[QUOTE_EXPIRED]")) {
+        try {
+          const refreshed = await getBookingQuoteFn({
+            data: {
+              roomSlug: selectedRoom?.slug ?? "",
+              ratePlanId: selectedRoom?.selected_rate_plan_id,
+              promoCode: appliedPromoCode || undefined,
+              guestEmail: validGuestEmailForQuote || undefined,
+              checkIn, checkOut, adults, childrenBelow6, children7Plus,
+              extras: selectedExtras,
+            },
+          });
+          setBookingQuote(refreshed as BookingPricingQuote);
+          setQuoteError("The previous quote was no longer valid. Review this updated total and submit again to accept it.");
+          toast.error("Price refreshed. Review the updated quote before continuing.");
+          return;
+        } catch (refreshError) {
+          setBookingQuote(null);
+          setQuoteError(refreshError instanceof Error ? refreshError.message : "A fresh quote could not be calculated.");
+        }
+      }
       toast.error(err.message);
     },
   });
 
-  // Re-price the exact guest selection (including extras and property taxes)
-  // through the database quote function. Booking creation calls the same
-  // calculation again inside its transaction before taking inventory.
+  // Persist an authoritative quote for the exact guest selection. The server
+  // binds booking creation to this quote and rejects expired or stale prices.
+  const validGuestEmailForQuote = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(guest.email.trim()) ? guest.email.trim() : "";
   useEffect(() => {
     if (!selectedRoom || nights < 1) {
       setBookingQuote(null);
@@ -475,7 +499,7 @@ function BookPage() {
       }
     });
     return () => { cancelled = true; };
-  }, [getBookingQuoteFn, selectedRoom, checkIn, checkOut, adults, childrenBelow6, children7Plus, selectedExtras, appliedPromoCode, guest.email, nights]);
+  }, [getBookingQuoteFn, selectedRoom, checkIn, checkOut, adults, childrenBelow6, children7Plus, selectedExtras, appliedPromoCode, validGuestEmailForQuote, nights]);
 
   const effectiveQuote = bookingQuote ?? selectedRoom?.pricing_quote ?? null;
   const roomTotal = Number(effectiveQuote?.accommodation_subtotal ?? 0);
