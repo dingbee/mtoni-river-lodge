@@ -84,7 +84,9 @@ SELECT ok(
   AND pg_get_functiondef('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)'::regprocedure)
     LIKE '%fee_total%'
   AND pg_get_functiondef('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)'::regprocedure)
-    LIKE '%pricing_adjustments%',
+    LIKE '%pricing_snapshot%' AND
+  pg_get_functiondef('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)'::regprocedure)
+    LIKE '%v_quote%',
   'Booking transaction redeems promotions and snapshots adjustment totals');
 
 SELECT has_function(
