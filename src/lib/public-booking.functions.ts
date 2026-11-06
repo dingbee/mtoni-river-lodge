@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- existing server RPC surfaces use runtime contracts not yet represented in generated database types */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
