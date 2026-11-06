@@ -9,6 +9,9 @@ on:
     branches: [integration/dc05-foundation]
     paths:
       - "supabase/migrations/20261107010000_dc05_canonical_booking_materialization.sql"
+      - "supabase/migrations/20261107020000_dc05_spe04_quote_success_contract.sql"
+      - "supabase/migrations/20261107030000_dc05_trigger_function_execute_privileges.sql"
+      - "supabase/migrations/20261107040000_dc05_unpaid_channel_booking_semantics.sql"
       - "supabase/migrations/20261106140000_dc05_mapping_identity_resolution.sql"
       - "supabase/migrations/20261106180000_dc05_webhook_processing_replay.sql"
       - "scripts/ci/dc05-canonical-materialization-fixture.sql"
@@ -77,6 +80,9 @@ jobs:
           PGPASSWORD: postgres
         run: |
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107010000_dc05_canonical_booking_materialization.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107020000_dc05_spe04_quote_success_contract.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107030000_dc05_trigger_function_execute_privileges.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107040000_dc05_unpaid_channel_booking_semantics.sql
       - name: Verify migration security and canonical integration contracts
         env:
           PGPASSWORD: postgres
