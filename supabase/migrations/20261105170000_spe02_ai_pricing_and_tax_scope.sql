@@ -110,8 +110,11 @@ CREATE TABLE IF NOT EXISTS public.staynas_property_tax_rules (
   version integer NOT NULL DEFAULT 1,
   created_by uuid,
   updated_by uuid,
-  CONSTRAINT staynas_property_tax_rules_validity_check
-    CHECK (valid_to IS NULL OR valid_from IS NULL OR valid_to >= valid_from)
+  CONSTRAINT staynas_property_tax_rules_check
+    CHECK (valid_to IS NULL OR valid_from IS NULL OR valid_to >= valid_from),
+  CONSTRAINT staynas_tax_validity_check
+    CHECK (valid_to IS NULL OR valid_from IS NULL OR valid_to >= valid_from),
+  CONSTRAINT staynas_tax_rate_check CHECK (rate >= 0)
 );
 
 CREATE INDEX IF NOT EXISTS idx_staynas_property_tax_rules_active
