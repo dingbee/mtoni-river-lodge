@@ -45,7 +45,7 @@ const feeSchema = z.object({
   currency: z.string().trim().length(3).toUpperCase().nullable().optional(),
   applies_to: z.array(z.enum(["accommodation","extras"])).min(1).default(["accommodation"]),
   taxable: z.boolean().default(false),
-  tax_rule_ids: z.array(z.string().uuid()).default([]),
+  tax_rule_ids: z.array(z.string().uuid()).default([]).refine(ids=>new Set(ids).size===ids.length,"Tax rules must be unique."),
   minimum_amount: z.number().min(0).nullable().optional(),
   maximum_amount: z.number().min(0).nullable().optional(),
   valid_from: dateValue,
@@ -61,8 +61,8 @@ const promotionSchema = z.object({
   discount_type: z.enum(["percentage","fixed"]),
   discount_value: z.number().positive().max(100000000),
   currency: z.string().trim().length(3).toUpperCase().nullable().optional(),
-  eligible_room_ids: z.array(z.string().uuid()).default([]),
-  eligible_rate_plan_ids: z.array(z.string().uuid()).default([]),
+  eligible_room_ids: z.array(z.string().uuid()).default([]).refine(ids=>new Set(ids).size===ids.length,"Eligible rooms must be unique."),
+  eligible_rate_plan_ids: z.array(z.string().uuid()).default([]).refine(ids=>new Set(ids).size===ids.length,"Eligible rate plans must be unique."),
   minimum_nights: z.number().int().min(1).max(365).default(1),
   minimum_booking_value: z.number().min(0).default(0),
   booking_window_from: dateValue,
@@ -130,6 +130,12 @@ export const savePricingFeeRule = createServerFn({ method:"POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId=await activeFinanceProperty(context.supabase,context.userId);
+    if(data.tax_rule_ids.length){
+      const {data:rows,error}=await (context.supabase as any).from("staynas_property_tax_rules")
+        .select("id").eq("property_id",propertyId).in("id",data.tax_rule_ids);
+      if(error) throw new Error(error.message);
+      if((rows??[]).length!==data.tax_rule_ids.length) throw new Error("A selected tax rule does not belong to the active property.");
+    }
     return savePropertyRecord(context.supabase,context.userId,propertyId,"staynas_property_fee_rules",data as Record<string,unknown>);
   });
 
@@ -139,6 +145,13 @@ export const savePricingPromotion = createServerFn({ method:"POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId=await activeFinanceProperty(context.supabase,context.userId);
+    const checks: Promise<any>[]=[];
+    if(data.eligible_room_ids.length) checks.push((context.supabase as any).from("rooms").select("id").eq("property_id",propertyId).in("id",data.eligible_room_ids));
+    if(data.eligible_rate_plan_ids.length) checks.push((context.supabase as any).from("staynas_rate_plans").select("id").eq("property_id",propertyId).in("id",data.eligible_rate_plan_ids));
+    const scoped=await Promise.all(checks);
+    if(scoped.some((result,i)=>result.error || (result.data??[]).length!==(i===0&&data.eligible_room_ids.length?data.eligible_room_ids.length:data.eligible_rate_plan_ids.length))){
+      throw new Error("A selected room or rate plan does not belong to the active property.");
+    }
     return savePropertyRecord(context.supabase,context.userId,propertyId,"staynas_property_promotions",data as Record<string,unknown>);
   });
 
