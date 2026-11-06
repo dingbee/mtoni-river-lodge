@@ -824,7 +824,7 @@ BEGIN
   END IF;
 
   FOR v_candidate IN
-    SELECT a.room_id,a.slug,a.pricing_quote
+    SELECT a.room_id,a.slug,a.pricing_quote,a.is_available
     FROM public.get_staynas_room_availability_priced_with_rate_plan(
       _arrival_date,_departure_date,v_inbox.property_id,_adults,
       _children_below_6,_children_7_plus,v_rate_plan_id
@@ -832,10 +832,15 @@ BEGIN
     JOIN public.rooms r ON r.id=a.room_id
     WHERE r.property_id=v_inbox.property_id
       AND r.catalogue_type_id=v_room_type_id
-      AND a.is_available=true AND a.fits_occupancy=true
+      AND a.fits_occupancy=true
     ORDER BY r.slug,r.id
   LOOP
-    IF v_candidate.pricing_quote->>'ok'='false' THEN
+    -- Pricing eligibility is evaluated before inventory availability. In
+    -- particular, RATE_PLAN_REQUIRED must not be misreported as an inventory
+    -- retry merely because the priced-availability projection marks the room
+    -- unavailable while plan selection is unresolved.
+    IF v_candidate.pricing_quote IS NULL
+       OR v_candidate.pricing_quote->>'ok' IS DISTINCT FROM 'true' THEN
       RETURN QUERY SELECT 'manual_reconciliation',NULL::uuid,false,
         CASE v_candidate.pricing_quote->>'error_code'
           WHEN 'RATE_PLAN_REQUIRED' THEN 'rate_plan_required'
@@ -843,6 +848,10 @@ BEGIN
           ELSE 'pricing_rejected'
         END;
       RETURN;
+    END IF;
+
+    IF NOT COALESCE(v_candidate.is_available,false) THEN
+      CONTINUE;
     END IF;
 
     BEGIN
