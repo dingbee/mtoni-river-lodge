@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { trackGAEvent } from "@/lib/analytics";
+import { trackGAEvent, trackBookingStarted } from "@/lib/analytics";
 import {
   trackAvailabilityChecked,
   trackRoomSelected,
@@ -353,6 +353,7 @@ function BookPage() {
   const search = useMutation({
     mutationFn: async () => {
       if (nights < 1) throw new Error("Pick a check-in and check-out date");
+      trackBookingStarted({ location: "booking_wizard", check_in: checkIn, check_out: checkOut, guests: totalOccupants });
       const [rooms, extrasList] = await Promise.all([
         checkAvailabilityFn({ data: { checkIn, checkOut, guests: totalOccupants, adults, childrenBelow6, children7Plus } }),
         listExtrasFn(),

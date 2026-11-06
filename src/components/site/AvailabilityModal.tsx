@@ -20,6 +20,7 @@ import {
   trackAvailabilityCompleted,
   trackAvailabilityStarted,
   trackAvailabilityWhatsApp,
+  trackBookingStarted,
 } from "@/lib/analytics";
 
 const WHATSAPP_NUMBER = "255752441443";
@@ -208,6 +209,7 @@ export function AvailabilityModal({
 
     const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
+    trackBookingStarted({ location: `nav_cta:${location}`, check_in: data.checkIn, check_out: data.checkOut, guests: data.guests });
     const gaParams = {
       room_type: data.roomPreference || "unspecified",
       guest_count: data.guests,
