@@ -9,6 +9,7 @@ export type DistributionWebhookProcessingStatus =
 
 export type DistributionWebhookLease = Readonly<{
   id: string;
+  connection_id?: string | null;
   organisation_id: string;
   property_id: string;
   account_grant_id: string;
