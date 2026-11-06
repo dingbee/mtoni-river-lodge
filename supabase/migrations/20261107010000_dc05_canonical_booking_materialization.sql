@@ -716,8 +716,17 @@ BEGIN
      OR _adults IS DISTINCT FROM (v_inbox.normalized_event->>'adults')::integer
      OR _children IS DISTINCT FROM COALESCE((v_inbox.normalized_event->>'children')::integer,0)
      OR _departure_date<=_arrival_date OR _adults<1 OR _children<0
+     OR _children_below_6 IS NULL OR _children_7_plus IS NULL
      OR _children_below_6<0 OR _children_7_plus<0
-     OR _children_below_6+_children_7_plus<>_children THEN
+     OR _children_below_6+_children_7_plus<>_children
+     OR _children_below_6 IS DISTINCT FROM COALESCE(
+       (v_inbox.normalized_event->>'childrenBelow6')::integer,
+       CASE WHEN _children=0 THEN 0 ELSE NULL END
+     )
+     OR _children_7_plus IS DISTINCT FROM COALESCE(
+       (v_inbox.normalized_event->>'children7Plus')::integer,
+       CASE WHEN _children=0 THEN 0 ELSE NULL END
+     ) THEN
     RETURN QUERY SELECT 'manual_reconciliation',NULL::uuid,false,'reservation_payload_mismatch';
     RETURN;
   END IF;
