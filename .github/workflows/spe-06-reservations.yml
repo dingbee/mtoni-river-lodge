@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: v2.stable
+          bun-version: latest
       - run: bun install --frozen-lockfile
       - name: Reservation, lifecycle and pricing regression tests
         run: >-
@@ -63,7 +63,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: v2.stable
       - name: Normalize optional legacy function revoke in ephemeral checkout
         run: python3 scripts/ci/normalize-optional-legacy-revokes.py
       - name: Start local Supabase database
