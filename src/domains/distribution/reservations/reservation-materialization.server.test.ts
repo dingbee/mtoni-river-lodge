@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { externalReservationSchema } from "./reservation-ingestion.contracts";
+import { fingerprintReservationPayload } from "./reservation-payload-crypto.server";
 import {
   buildReservationMaterializationRpcArgs,
   type ReservationMaterializationRpcResult,
@@ -55,7 +56,9 @@ const event = externalReservationSchema.parse({
 
 describe("DC-05.03 materialization contracts", () => {
   it("binds decrypted guest and stay details to the leased inbox event", () => {
-    const args = buildReservationMaterializationRpcArgs(lease, event);
+    const args = buildReservationMaterializationRpcArgs({
+      ...lease, payload_fingerprint: fingerprintReservationPayload(event),
+    }, event);
     expect(args).toMatchObject({
       _inbox_id: "inbox-1",
       _lease_token: "lease-1",
@@ -73,14 +76,18 @@ describe("DC-05.03 materialization contracts", () => {
   });
 
   it("rejects an event that does not match the safe inbox envelope", () => {
-    expect(() => buildReservationMaterializationRpcArgs(lease, {
+    expect(() => buildReservationMaterializationRpcArgs({
+      ...lease, payload_fingerprint: fingerprintReservationPayload(event),
+    }, {
       ...event,
       externalReservationId: "another-reservation",
     })).toThrow(/does not match/);
   });
 
   it("rejects missing child age allocation rather than guessing a price basis", () => {
-    expect(() => buildReservationMaterializationRpcArgs(lease, {
+    expect(() => buildReservationMaterializationRpcArgs({
+      ...lease, payload_fingerprint: fingerprintReservationPayload(event),
+    }, {
       ...event,
       childrenBelow6: undefined,
       children7Plus: undefined,
