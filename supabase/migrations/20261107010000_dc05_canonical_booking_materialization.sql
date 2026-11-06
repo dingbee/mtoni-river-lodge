@@ -848,8 +848,20 @@ BEGIN
     -- particular, RATE_PLAN_REQUIRED must not be misreported as an inventory
     -- retry merely because the priced-availability projection marks the room
     -- unavailable while plan selection is unresolved.
+    -- SPE-04 success quotes intentionally omit an explicit ok=true flag.
+    -- Reject explicit error envelopes and require complete immutable publication
+    -- evidence plus a full nightly array before inventory can be allocated.
     IF v_candidate.pricing_quote IS NULL
-       OR v_candidate.pricing_quote->>'ok' IS DISTINCT FROM 'true' THEN
+       OR v_candidate.pricing_quote->>'ok'='false'
+       OR v_candidate.pricing_quote ? 'error_code'
+       OR jsonb_typeof(v_candidate.pricing_quote->'total') IS DISTINCT FROM 'number'
+       OR jsonb_typeof(v_candidate.pricing_quote->'currency') IS DISTINCT FROM 'string'
+       OR CASE WHEN jsonb_typeof(v_candidate.pricing_quote->'nightly')='array'
+            THEN jsonb_array_length(v_candidate.pricing_quote->'nightly')
+            ELSE -1 END <> (_departure_date-_arrival_date)
+       OR v_candidate.pricing_quote->'pricing_evidence'->>'rate_plan_id' IS NULL
+       OR v_candidate.pricing_quote->'pricing_evidence'->>'publication_id' IS NULL
+       OR v_candidate.pricing_quote->'pricing_evidence'->>'snapshot_hash' IS NULL THEN
       RETURN QUERY SELECT 'manual_reconciliation',NULL::uuid,false,
         CASE v_candidate.pricing_quote->>'error_code'
           WHEN 'RATE_PLAN_REQUIRED' THEN 'rate_plan_required'
