@@ -187,11 +187,120 @@ REVOKE ALL ON FUNCTION public.restaurant_can_write(uuid, public.restaurant_role[
 GRANT EXECUTE ON FUNCTION public.restaurant_can_read(uuid) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.restaurant_can_write(uuid, public.restaurant_role[]) TO authenticated, service_role;
 
--- checkin_eligibility accepts a booking UUID, not a bearer token. It is an internal
--- primitive used by token-validated guest check-in functions and must not be an RPC.
-REVOKE ALL ON FUNCTION public.checkin_eligibility(uuid) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.checkin_eligibility(uuid) TO service_role;
+CREATE OR REPLACE FUNCTION public.checkin_eligibility_internal(_booking_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  _b public.bookings%ROWTYPE;
+  _r public.rooms%ROWTYPE;
+  _fp text;
+  _snap jsonb;
+  _open_from date;
+BEGIN
+  SELECT * INTO _b FROM public.bookings WHERE id = _booking_id;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('ok', false, 'code', 'not_found', 'message', 'We could not find this reservation.');
+  END IF;
 
+  SELECT * INTO _r FROM public.rooms WHERE id = _b.room_id;
+
+  _fp := md5(coalesce(_b.status::text,'') || '|' || coalesce(_b.room_id::text,'') || '|' ||
+             coalesce(_b.check_in::text,'') || '|' || coalesce(_b.check_out::text,''));
+  _snap := jsonb_build_object(
+    'fingerprint', _fp, 'status', _b.status, 'room_id', _b.room_id,
+    'room_name', COALESCE(_r.name, 'Room'), 'check_in', _b.check_in, 'check_out', _b.check_out);
+
+  IF _b.status = 'cancelled' THEN
+    RETURN jsonb_build_object('ok', false, 'code','cancelled','message','This reservation has been cancelled. Please contact the lodge.','snapshot',_snap);
+  END IF;
+  IF _b.status = 'checked_in' THEN
+    RETURN jsonb_build_object('ok', false, 'code','already_checked_in','message','This reservation is already checked in.','snapshot',_snap);
+  END IF;
+  IF _b.status IN ('completed','no_show') THEN
+    RETURN jsonb_build_object('ok', false, 'code','ineligible','message','This reservation is no longer eligible for online check-in.','snapshot',_snap);
+  END IF;
+  IF _b.status <> 'confirmed' THEN
+    RETURN jsonb_build_object('ok', false, 'code','not_confirmed','message','Your reservation is not confirmed yet. Online check-in opens once it is confirmed.','snapshot',_snap);
+  END IF;
+  IF _r.id IS NULL OR _r.status <> 'active' THEN
+    RETURN jsonb_build_object('ok', false, 'code','room_invalid','message','Your room assignment is being updated. Please contact the lodge.','snapshot',_snap);
+  END IF;
+
+  _open_from := _b.check_in - 3;
+  IF current_date < _open_from THEN
+    RETURN jsonb_build_object('ok', false, 'code','too_early',
+      'message','Online check-in opens 3 days before arrival (' || to_char(_open_from,'DD Mon YYYY') || ').',
+      'snapshot',_snap, 'opens_on', _open_from);
+  END IF;
+  IF current_date > _b.check_out THEN
+    RETURN jsonb_build_object('ok', false, 'code','window_closed','message','The online check-in window for this stay has closed.','snapshot',_snap);
+  END IF;
+
+  RETURN jsonb_build_object('ok', true, 'code','eligible','message','Eligible for online check-in','snapshot',_snap);
+END $function$;
+
+REVOKE ALL ON FUNCTION public.checkin_eligibility_internal(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.checkin_eligibility_internal(uuid) TO service_role;
+
+-- Existing SECURITY DEFINER guest workflows have already validated the guest's
+-- opaque check-in token. Route their internal eligibility check to the private
+-- primitive so the public staff RPC can enforce property membership.
+DO $block$
+DECLARE
+  v_function record;
+  v_definition text;
+BEGIN
+  FOR v_function IN
+    SELECT p.oid
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.prosecdef
+      AND p.prosrc ILIKE '%public.checkin_eligibility(%'
+  LOOP
+    v_definition := pg_get_functiondef(v_function.oid);
+    v_definition := replace(v_definition, 'public.checkin_eligibility(', 'public.checkin_eligibility_internal(');
+    EXECUTE v_definition;
+  END LOOP;
+END
+$block$;
+
+CREATE OR REPLACE FUNCTION public.checkin_eligibility(_booking_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  _property_id uuid;
+BEGIN
+  IF auth.role() = 'service_role' THEN
+    RETURN public.checkin_eligibility_internal(_booking_id);
+  END IF;
+
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT b.property_id INTO _property_id
+  FROM public.bookings b
+  WHERE b.id = _booking_id;
+
+  IF _property_id IS NULL
+     OR NOT public.staynas_user_has_property_access(auth.uid(), _property_id)
+     OR NOT public.has_any_role(auth.uid(), ARRAY['owner','manager','reception','reservations']::public.app_role[]) THEN
+    RAISE EXCEPTION 'Reservation eligibility access denied' USING ERRCODE = '42501';
+  END IF;
+
+  RETURN public.checkin_eligibility_internal(_booking_id);
+END
+$function$;
+
+REVOKE ALL ON FUNCTION public.checkin_eligibility(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.checkin_eligibility(uuid) TO authenticated, service_role;
 -- Trigger functions are invoked by PostgreSQL triggers; direct RPC execution is never needed.
 REVOKE ALL ON FUNCTION public.bookings_link_guest() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.capture_staynas_rate_plan_version() FROM PUBLIC, anon, authenticated;
