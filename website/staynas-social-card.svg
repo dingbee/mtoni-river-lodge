@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+<title id="title">StayNas — Every property. One intelligent operating platform.</title>
+<desc id="desc">StayNas property operating platform for hospitality, rental living, commercial properties and multi-property portfolios.</desc>
+<defs><radialGradient id="glow" cx="78%" cy="48%" r="58%"><stop offset="0" stop-color="#294765"/><stop offset="1" stop-color="#101b2b"/></radialGradient></defs>
+<rect width="1200" height="630" fill="url(#glow)"/>
+<path d="M835 0V630M890 0V630M945 0V630" stroke="#ffffff" stroke-opacity=".045"/>
+<circle cx="930" cy="315" r="220" fill="none" stroke="#c8ad7f" stroke-opacity=".55"/>
+<circle cx="930" cy="315" r="165" fill="none" stroke="#ffffff" stroke-opacity=".16"/>
+<circle cx="930" cy="315" r="110" fill="none" stroke="#ffffff" stroke-opacity=".12"/>
+<g transform="translate(115 190)"><rect x="0" y="0" width="62" height="62" fill="none" stroke="#c8ad7f" stroke-width="2" transform="rotate(45 31 31)"/><text x="31" y="41" fill="#c8ad7f" font-family="Georgia,serif" font-size="37" text-anchor="middle">S</text></g>
+<text x="205" y="235" fill="#ffffff" font-family="Arial,sans-serif" font-size="46" font-weight="700" letter-spacing="-2">staynas</text>
+<text x="115" y="350" fill="#ffffff" font-family="Arial,sans-serif" font-size="58" font-weight="700" letter-spacing="-2">Every property.</text>
+<text x="115" y="420" fill="#c8ad7f" font-family="Georgia,serif" font-size="58" font-style="italic">One intelligent</text>
+<text x="115" y="490" fill="#c8ad7f" font-family="Georgia,serif" font-size="58" font-style="italic">operating platform.</text>
+<text x="118" y="555" fill="#c1cbd5" font-family="Arial,sans-serif" font-size="19" letter-spacing="2">HOSPITALITY  ·  RENTAL LIVING  ·  COMMERCIAL  ·  PORTFOLIOS</text>
+</svg>
