@@ -1,4 +1,4 @@
-name: StayNas DC-05.03 canonical materialization migrations
+name: StayNas DC-05.03/04 canonical reservation migrations
 # Executes the real DC-03R allocator after disposable schema setup.
 
 on:
@@ -12,6 +12,9 @@ on:
       - "supabase/migrations/20261107020000_dc05_spe04_quote_success_contract.sql"
       - "supabase/migrations/20261107030000_dc05_trigger_function_execute_privileges.sql"
       - "supabase/migrations/20261107040000_dc05_unpaid_channel_booking_semantics.sql"
+      - "supabase/migrations/20261107050000_dc05_reservation_lifecycle_reconciliation.sql"
+      - "scripts/ci/dc05-reservation-lifecycle-fixture.sql"
+      - "scripts/ci/dc05-reservation-lifecycle-smoke.sql"
       - "supabase/migrations/20261106140000_dc05_mapping_identity_resolution.sql"
       - "supabase/migrations/20261106180000_dc05_webhook_processing_replay.sql"
       - "scripts/ci/dc05-canonical-materialization-fixture.sql"
@@ -83,8 +86,15 @@ jobs:
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107020000_dc05_spe04_quote_success_contract.sql
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107030000_dc05_trigger_function_execute_privileges.sql
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107040000_dc05_unpaid_channel_booking_semantics.sql
-      - name: Verify migration security and canonical integration contracts
+      - name: Apply DC-05.04 lifecycle fixture and migration
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc05-reservation-lifecycle-fixture.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107050000_dc05_reservation_lifecycle_reconciliation.sql
+      - name: Verify DC-05.03 materialization and DC-05.04 lifecycle contracts
         env:
           PGPASSWORD: postgres
         run: |
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc05-canonical-materialization-smoke.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc05-reservation-lifecycle-smoke.sql
