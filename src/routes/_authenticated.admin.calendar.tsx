@@ -311,13 +311,13 @@ function UnifiedCalendarPage() {
         title="Room-by-room reservation schedule"
         description="Reservations span their actual check-in and check-out dates. Overlapping stays occupy separate lanes. Select a booking for details, or drag it to another room."
       >
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-md border p-0.5 text-xs">
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/20 p-2 sm:border-0 sm:bg-transparent sm:p-0">
+          <div className="inline-flex rounded-xl border border-border bg-muted/40 p-1 text-xs">
             {(["week", "month"] as View[]).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
-                className={`rounded px-2 py-1 capitalize ${
+                className={`min-h-9 rounded-lg px-3 py-1.5 capitalize transition-colors ${
                   view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                 }`}
               >
@@ -328,7 +328,7 @@ function UnifiedCalendarPage() {
           <Button size="sm" variant="outline" onClick={() => setAnchor(shift(anchor, view, -1))}>◀</Button>
           <Button size="sm" variant="outline" onClick={() => setAnchor(new Date())}>Today</Button>
           <Button size="sm" variant="outline" onClick={() => setAnchor(shift(anchor, view, 1))}>▶</Button>
-          <span className="text-sm text-muted-foreground">
+          <span className="w-full text-xs font-medium tabular-nums text-muted-foreground sm:ml-2 sm:w-auto sm:text-sm">
             {range.from} → {range.to}
           </span>
         </div>
@@ -345,13 +345,14 @@ function UnifiedCalendarPage() {
           </div>
         ) : (
           <>
-          <div className="overflow-x-auto rounded-lg border">
+          <div className="overflow-x-auto overscroll-x-contain rounded-xl border border-border bg-card shadow-sm" style={{ WebkitOverflowScrolling: "touch" }}>
             <div className="min-w-max">
+              <p className="border-b bg-muted/20 px-3 py-2 text-[11px] font-medium text-muted-foreground sm:hidden">Swipe horizontally to view more dates <span aria-hidden="true">→</span></p>
               <div
                 className="grid border-b bg-muted/40 text-xs font-medium"
-                style={{ gridTemplateColumns: `180px repeat(${days.length}, minmax(64px, 1fr))` }}
+                style={{ gridTemplateColumns: `180px repeat(${days.length}, minmax(76px, 1fr))` }}
               >
-                <div className="sticky left-0 z-20 border-r bg-muted/40 px-3 py-2">Room</div>
+                <div className="sticky left-0 z-40 w-[180px] min-w-[180px] border-r bg-muted/95 px-3 py-2 shadow-[4px_0_8px_-7px_rgba(15,23,42,0.45)]">Room</div>
                 {days.map((day) => (
                   <div key={day} className={`border-r px-2 py-2 text-center ${day === today ? "bg-primary/10 text-primary" : ""}`}>
                     <div>{new Date(`${day}T00:00:00`).toLocaleDateString(undefined, { weekday: "short" })}</div>
@@ -379,7 +380,7 @@ function UnifiedCalendarPage() {
                   <div
                     key={room.id}
                     className="grid border-b last:border-b-0"
-                    style={{ gridTemplateColumns: `180px minmax(${days.length * 64}px, 1fr)` }}
+                    style={{ gridTemplateColumns: `180px minmax(${days.length * 76}px, 1fr)` }}
                     onDragOver={(event) => { if (dragBookingId) event.preventDefault(); }}
                     onDrop={(event) => {
                       event.preventDefault();
@@ -396,7 +397,7 @@ function UnifiedCalendarPage() {
                       setDragBookingId(null);
                     }}
                   >
-                    <div className="sticky left-0 z-10 flex items-start border-r bg-card px-3 py-3 text-xs font-semibold">
+                    <div className="sticky left-0 z-30 flex w-[180px] min-w-[180px] items-start border-r bg-card px-3 py-3 text-xs font-semibold shadow-[4px_0_8px_-7px_rgba(15,23,42,0.45)]">
                       <button
                         className="text-left hover:text-primary hover:underline"
                         onClick={() => {
@@ -414,7 +415,7 @@ function UnifiedCalendarPage() {
                         <div
                           key={`${room.id}-lane-${laneIndex}`}
                           className="grid min-h-[42px] border-b last:border-b-0"
-                          style={{ gridTemplateColumns: `repeat(${days.length}, minmax(64px, 1fr))` }}
+                          style={{ gridTemplateColumns: `repeat(${days.length}, minmax(76px, 1fr))` }}
                         >
                           {days.map((day, dayIndex) => {
                             const inventory = (d.inventory as any[]).find((item) => item.room_id === room.id && item.date === day);
