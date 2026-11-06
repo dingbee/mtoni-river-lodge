@@ -125,13 +125,13 @@ BEGIN
   END IF;
 
   IF _authority='staff' AND _target_status='checked_in' AND v_room_state.id IS NOT NULL THEN
-    UPDATE public.room_states SET state='occupied',booking_id=v_booking.id,updated_by=_actor
+    UPDATE public.room_states SET state='occupied',booking_id=v_booking.id,updated_by=coalesce(_actor,updated_by)
     WHERE id=v_room_state.id;
   ELSIF _authority='staff' AND _target_status='completed' THEN
     SELECT rs.* INTO v_room_state FROM public.room_states rs
     WHERE rs.booking_id=v_booking.id ORDER BY rs.unit_label LIMIT 1 FOR UPDATE;
     IF v_room_state.id IS NOT NULL THEN
-      UPDATE public.room_states SET state='vacant_dirty',booking_id=NULL,updated_by=_actor WHERE id=v_room_state.id;
+      UPDATE public.room_states SET state='vacant_dirty',booking_id=NULL,updated_by=coalesce(_actor,updated_by) WHERE id=v_room_state.id;
       INSERT INTO public.ops_tasks(property_id,booking_id,room_state_id,task_type,category,title,priority,status,due_at)
       VALUES(v_booking.property_id,v_booking.id,v_room_state.id,'housekeeping','housekeeping',
         'Clean '||v_room_state.unit_label||' after '||v_booking.guest_name,2,'pending',now()+interval '3 hours');
@@ -139,7 +139,7 @@ BEGIN
   ELSIF _target_status IN ('cancelled','no_show') THEN
     UPDATE public.room_states
     SET state=CASE WHEN state='reserved' THEN 'vacant_clean' ELSE state END,
-        booking_id=NULL,updated_by=_actor
+        booking_id=NULL,updated_by=coalesce(_actor,updated_by)
     WHERE booking_id=v_booking.id AND state='reserved';
   END IF;
 
