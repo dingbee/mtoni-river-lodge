@@ -293,6 +293,109 @@ CREATE TRIGGER commercial_subscriptions_snapshot_immutable
   BEFORE UPDATE ON public.commercial_subscriptions
   FOR EACH ROW EXECUTE FUNCTION public.guard_commercial_immutable_fields();
 
+-- Database-level lifecycle transition guard. Terminal states cannot reopen,
+-- and transitions must follow the CC-03 state machine.
+CREATE OR REPLACE FUNCTION public.guard_commercial_subscription_status()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog
+AS $function$
+BEGIN
+  IF NEW.status IS NOT DISTINCT FROM OLD.status THEN
+    RETURN NEW;
+  END IF;
+
+  IF OLD.status IN ('cancelled', 'expired') THEN
+    RAISE EXCEPTION 'Terminal commercial subscriptions cannot be reopened'
+      USING ERRCODE = '55000';
+  END IF;
+
+  IF NOT (
+    (OLD.status = 'pending_activation' AND NEW.status IN ('trialing', 'active', 'cancelled'))
+    OR (OLD.status = 'trialing' AND NEW.status IN ('active', 'suspended', 'cancelled', 'expired'))
+    OR (OLD.status = 'active' AND NEW.status IN ('suspended', 'cancelled', 'expired'))
+    OR (OLD.status = 'suspended' AND NEW.status IN ('trialing', 'active', 'cancelled', 'expired'))
+  ) THEN
+    RAISE EXCEPTION 'Invalid commercial subscription lifecycle transition: % -> %',
+      OLD.status, NEW.status
+      USING ERRCODE = '55000';
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.guard_commercial_subscription_status() FROM PUBLIC, anon, authenticated, service_role;
+
+DROP TRIGGER IF EXISTS commercial_subscriptions_status_transition_guard
+  ON public.commercial_subscriptions;
+CREATE TRIGGER commercial_subscriptions_status_transition_guard
+  BEFORE UPDATE OF status ON public.commercial_subscriptions
+  FOR EACH ROW EXECUTE FUNCTION public.guard_commercial_subscription_status();
+
+-- A trialing subscription and its one-time trial claim must commit together.
+CREATE OR REPLACE FUNCTION public.ensure_commercial_trial_claim()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog
+AS $function$
+BEGIN
+  IF NEW.status = 'trialing' AND NOT EXISTS (
+    SELECT 1
+    FROM public.commercial_trial_claims tc
+    WHERE tc.account_id = NEW.account_id
+      AND tc.subscription_id = NEW.id
+      AND tc.policy_version = NEW.trial_policy_version
+      AND tc.trial_started_at = NEW.trial_started_at
+      AND tc.trial_ends_at = NEW.trial_ends_at
+  ) THEN
+    RAISE EXCEPTION 'Trialing subscription requires its matching permanent trial claim'
+      USING ERRCODE = '23514';
+  END IF;
+  RETURN NULL;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.ensure_commercial_trial_claim() FROM PUBLIC, anon, authenticated, service_role;
+
+CREATE CONSTRAINT TRIGGER commercial_subscription_trial_claim_required
+  AFTER INSERT OR UPDATE ON public.commercial_subscriptions
+  DEFERRABLE INITIALLY DEFERRED
+  FOR EACH ROW EXECUTE FUNCTION public.ensure_commercial_trial_claim();
+
+CREATE OR REPLACE FUNCTION public.ensure_trial_claim_targets_trialing_subscription()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog
+AS $function$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.commercial_subscriptions s
+    WHERE s.id = NEW.subscription_id
+      AND s.account_id = NEW.account_id
+      AND s.status = 'trialing'
+      AND s.trial_policy_version = NEW.policy_version
+      AND s.trial_started_at = NEW.trial_started_at
+      AND s.trial_ends_at = NEW.trial_ends_at
+  ) THEN
+    RAISE EXCEPTION 'Trial claim must match an activated trialing subscription'
+      USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.ensure_trial_claim_targets_trialing_subscription() FROM PUBLIC, anon, authenticated, service_role;
+
+DROP TRIGGER IF EXISTS commercial_trial_claim_requires_trialing_subscription
+  ON public.commercial_trial_claims;
+CREATE TRIGGER commercial_trial_claim_requires_trialing_subscription
+  BEFORE INSERT ON public.commercial_trial_claims
+  FOR EACH ROW EXECUTE FUNCTION public.ensure_trial_claim_targets_trialing_subscription();
+
 -- Tenant scope helper follows the verified organisation -> active property
 -- -> active property-membership relation. It can only answer for auth.uid().
 CREATE OR REPLACE FUNCTION public.commercial_user_has_organisation_access(
