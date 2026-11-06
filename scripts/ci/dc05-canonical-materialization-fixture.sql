@@ -212,8 +212,31 @@ BEGIN
 END;
 $$;
 
+-- Minimal Supabase auth/property stubs required to execute the real DC-03R
+-- migration in this disposable PostgreSQL fixture. They are not production logic.
+CREATE OR REPLACE FUNCTION auth.uid()
+RETURNS uuid LANGUAGE sql STABLE AS $ SELECT NULL::uuid $;
+CREATE OR REPLACE FUNCTION auth.role()
+RETURNS text LANGUAGE sql STABLE AS $
+  SELECT COALESCE(current_setting('request.jwt.claim.role',true),'')
+$;
+CREATE OR REPLACE FUNCTION public.staynas_active_property_id(_user_id uuid)
+RETURNS uuid LANGUAGE sql STABLE AS $ SELECT NULL::uuid $;
+CREATE OR REPLACE FUNCTION public.get_room_availability(
+  _check_in date,_check_out date,_property_id uuid
+) RETURNS TABLE(
+  room_id uuid,slug text,name text,base_price numeric,currency text,
+  capacity_adults integer,capacity_children integer,max_occupancy integer,
+  nights integer,nightly_total numeric,min_available integer,is_available boolean
+) LANGUAGE sql STABLE AS $
+  SELECT r.id,r.slug,r.name,r.base_price,r.currency,r.capacity_adults,
+    r.capacity_children,r.max_occupancy,(_check_out-_check_in),
+    (_check_out-_check_in)*r.base_price,0,false
+  FROM public.rooms r WHERE false
+$;
+
 CREATE OR REPLACE FUNCTION public.staynas_user_has_property_access(_user_id uuid,_property_id uuid)
-RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
+RETURNS boolean LANGUAGE sql AS $ SELECT false $;
 
 CREATE OR REPLACE FUNCTION public.log_calendar_event(
   text,uuid,uuid,uuid,date,date,jsonb
