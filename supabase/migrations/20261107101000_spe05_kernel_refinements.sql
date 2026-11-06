@@ -1,6 +1,29 @@
 -- SPE-05 kernel refinement: stackable promotions, proportional discount allocation,
 -- legacy tax applicability, inclusive-tax extraction and fee-specific tax mappings.
 BEGIN;
+DO $constraints$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='staynas_promotion_percentage_max_check'
+    AND conrelid='public.staynas_property_promotions'::regclass) THEN
+    ALTER TABLE public.staynas_property_promotions
+      ADD CONSTRAINT staynas_promotion_percentage_max_check
+      CHECK(discount_type<>'percentage' OR discount_value<=100);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='staynas_promotion_booking_window_check'
+    AND conrelid='public.staynas_property_promotions'::regclass) THEN
+    ALTER TABLE public.staynas_property_promotions
+      ADD CONSTRAINT staynas_promotion_booking_window_check
+      CHECK(booking_window_to IS NULL OR booking_window_from IS NULL OR booking_window_to>=booking_window_from);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='staynas_promotion_stay_window_check'
+    AND conrelid='public.staynas_property_promotions'::regclass) THEN
+    ALTER TABLE public.staynas_property_promotions
+      ADD CONSTRAINT staynas_promotion_stay_window_check
+      CHECK(stay_to IS NULL OR stay_from IS NULL OR stay_to>=stay_from);
+  END IF;
+END;
+$constraints$;
+
 CREATE OR REPLACE FUNCTION public.calculate_staynas_spe05_adjustments(
   _property_id uuid,
   _check_in date,
