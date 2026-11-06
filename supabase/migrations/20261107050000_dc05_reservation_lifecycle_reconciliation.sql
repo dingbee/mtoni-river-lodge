@@ -177,8 +177,7 @@ BEGIN
     'Reservation lifecycle worker lease expired before completion.',i.correlation_id,
     coalesce(i.lease_started_at,i.received_at),pg_catalog.now()
   FROM public.staynas_distribution_webhook_inbox i
-  WHERE i.event_type IN ('reservation.modified','reservation.cancelled','reservation.no_show','reservation.reinstated',
-                         'reservation.payment_updated','reservation.refund_notified')
+  WHERE i.event_type IN ('reservation.modified','reservation.cancelled','reservation.no_show','reservation.reinstated')
     AND i.processing_status='processing' AND i.lease_expires_at<pg_catalog.now() AND i.attempt_count>0
   ON CONFLICT(inbox_id,attempt_number) DO NOTHING;
 
@@ -186,15 +185,13 @@ BEGIN
   SET processing_status='permanent_failure',processed_at=pg_catalog.now(),
       lease_started_at=NULL,lease_token=NULL,lease_owner=NULL,lease_expires_at=NULL,
       safe_error_summary='Reservation lifecycle lease expired after retry budget was exhausted.'
-  WHERE i.event_type IN ('reservation.modified','reservation.cancelled','reservation.no_show','reservation.reinstated',
-                         'reservation.payment_updated','reservation.refund_notified')
+  WHERE i.event_type IN ('reservation.modified','reservation.cancelled','reservation.no_show','reservation.reinstated')
     AND i.processing_status='processing' AND i.lease_expires_at<pg_catalog.now()
     AND i.attempt_count>=i.max_attempts;
 
   SELECT i.* INTO v_row
   FROM public.staynas_distribution_webhook_inbox i
-  WHERE i.event_type IN ('reservation.modified','reservation.cancelled','reservation.no_show','reservation.reinstated',
-                         'reservation.payment_updated','reservation.refund_notified')
+  WHERE i.event_type IN ('reservation.modified','reservation.cancelled','reservation.no_show','reservation.reinstated')
     AND EXISTS(SELECT 1 FROM public.staynas_distribution_reservation_payloads p WHERE p.inbox_id=i.id)
     AND i.attempt_count<i.max_attempts
     AND ((i.processing_status IN ('received','retryable_failure') AND i.next_attempt_at<=pg_catalog.now())
