@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { staynasRpc } from "@/lib/staynas-rpc";
-import { Loader2, Leaf, ArrowLeft } from "lucide-react";
+import { Loader2, Leaf, ArrowLeft, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
