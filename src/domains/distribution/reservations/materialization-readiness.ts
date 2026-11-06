@@ -17,6 +17,10 @@ export type ReservationMaterializationDecision =
         | "rate_plan_mapping_missing"
         | "guest_name_missing"
         | "guest_email_missing"
+    | "child_age_breakdown_missing"
+    | "child_age_breakdown_mismatch"
+        | "child_age_breakdown_missing"
+        | "child_age_breakdown_mismatch"
       )[];
     }>;
 
@@ -49,6 +53,12 @@ export function assessReservationMaterializationReadiness(
     .trim();
   if (guestName.length < 2) reasons.push("guest_name_missing");
   if (!event.guest.email?.trim()) reasons.push("guest_email_missing");
+  if (event.children > 0 && event.childrenBelow6 === undefined) {
+    reasons.push("child_age_breakdown_missing");
+  } else if (event.childrenBelow6 !== undefined && event.children7Plus !== undefined &&
+      event.childrenBelow6 + event.children7Plus !== event.children) {
+    reasons.push("child_age_breakdown_mismatch");
+  }
 
   return reasons.length
     ? { kind: "manual_reconciliation", reasons }
