@@ -366,7 +366,8 @@ $$;
 CREATE OR REPLACE FUNCTION public.get_staynas_booking_quote_with_rate_plan_and_promo(
   _property_id uuid,_room_slug text,_check_in date,_check_out date,_adults integer,
   _children_below_6 integer DEFAULT 0,_children_7_plus integer DEFAULT 0,
-  _extras jsonb DEFAULT '[]'::jsonb,_rate_plan_id uuid DEFAULT NULL,_promo_code text DEFAULT NULL
+  _extras jsonb DEFAULT '[]'::jsonb,_rate_plan_id uuid DEFAULT NULL,_promo_code text DEFAULT NULL,
+  _guest_email text DEFAULT NULL
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -382,15 +383,17 @@ BEGIN
   END IF;
   PERFORM set_config('staynas.rate_plan_id',COALESCE(_rate_plan_id::text,''),true);
   PERFORM set_config('staynas.promo_code',COALESCE(_promo_code,''),true);
+  PERFORM set_config('staynas.guest_key',CASE WHEN NULLIF(btrim(_guest_email),'') IS NULL
+    THEN '' ELSE md5(lower(trim(_guest_email))) END,true);
   RETURN public.calculate_staynas_booking_quote(
     _property_id,v_room_id,_check_in,_check_out,_adults,_children_below_6,_children_7_plus,_extras
   );
 END;
 $wrapper$;
 
-REVOKE ALL ON FUNCTION public.get_staynas_booking_quote_with_rate_plan_and_promo(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text)
+REVOKE ALL ON FUNCTION public.get_staynas_booking_quote_with_rate_plan_and_promo(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text)
   FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.get_staynas_booking_quote_with_rate_plan_and_promo(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text)
+GRANT EXECUTE ON FUNCTION public.get_staynas_booking_quote_with_rate_plan_and_promo(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text)
   TO service_role;
 
 -- Promotion-aware booking wrapper preserves the existing transactional booking RPC.
