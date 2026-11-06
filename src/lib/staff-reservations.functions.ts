@@ -6,7 +6,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { logActivity } from "@/lib/activity-log.server";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 
@@ -130,17 +129,6 @@ export const createStaffReservation = createServerFn({ method: "POST" })
     } catch (e) {
       console.warn("[reservation] MOCI ensure skipped:", (e as Error).message);
     }
-
-    await logActivity(sb, {
-      actorId: context.userId,
-      actorEmail: (context.claims as any)?.email ?? null,
-      action: "reservation.created",
-      entityType: "booking",
-      entityId: bookingId,
-      entityLabel: reference,
-      metadata: { channel: "staff_console", source: data.source, room_slug: data.roomSlug, check_in: data.checkIn, check_out: data.checkOut, status: data.status, payment_status: "unpaid", guest_id: data.guestId ?? null, moci_created: Boolean(checkin.token) },
-      newValue: { reference, total, currency },
-    });
 
     return { bookingId, reference, total, currency, checkin };
   });
