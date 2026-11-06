@@ -1,6 +1,6 @@
 -- SPE-05 contract tests. Transaction is rolled back; no property data is written.
 BEGIN;
-SELECT plan(19);
+SELECT plan(21);
 
 SELECT has_table('public','staynas_property_fee_rules','Property fee configuration exists');
 SELECT has_table('public','staynas_property_promotions','Property promotion configuration exists');
