@@ -17,8 +17,6 @@ export type ReservationMaterializationDecision =
         | "rate_plan_mapping_missing"
         | "guest_name_missing"
         | "guest_email_missing"
-    | "child_age_breakdown_missing"
-    | "child_age_breakdown_mismatch"
         | "child_age_breakdown_missing"
         | "child_age_breakdown_mismatch"
       )[];
@@ -39,6 +37,8 @@ export function assessReservationMaterializationReadiness(
     | "rate_plan_mapping_missing"
     | "guest_name_missing"
     | "guest_email_missing"
+    | "child_age_breakdown_missing"
+    | "child_age_breakdown_mismatch"
   > = [];
 
   if (!mappings.propertyResolved) reasons.push("property_mapping_missing");
