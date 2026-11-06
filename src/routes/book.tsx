@@ -148,7 +148,7 @@ function BookPage() {
     if (!canResume) {
       try {
         if (typeof window !== "undefined") window.sessionStorage.removeItem(STORAGE_KEY);
-      } catch {}
+      } catch { /* sessionStorage can be unavailable in private browsing contexts */ }
       bootstrapRef.current = {
         sessionId: incomingSession ?? newBookingSessionId(),
         state: {},
@@ -227,7 +227,7 @@ function BookPage() {
     if (!incomingSession || incomingSession === sessionId) return;
     try {
       if (typeof window !== "undefined") window.sessionStorage.removeItem(STORAGE_KEY);
-    } catch {}
+    } catch { /* sessionStorage can be unavailable in private browsing contexts */ }
     setSessionId(incomingSession);
     setCheckIn("");
     setCheckOut("");
@@ -426,7 +426,7 @@ function BookPage() {
       setConfirmation({ reference: res.reference, total: res.total, currency: res.currency });
       // Redirect to Pesapal for deposit payment.
       if (res.redirectUrl) {
-        try { window.sessionStorage.removeItem(STORAGE_KEY); } catch {}
+        try { window.sessionStorage.removeItem(STORAGE_KEY); } catch { /* sessionStorage can be unavailable in private browsing contexts */ }
         window.location.href = res.redirectUrl;
         return;
       }
@@ -602,7 +602,7 @@ function BookPage() {
                 try {
                   if (typeof window !== "undefined")
                     window.sessionStorage.removeItem(STORAGE_KEY);
-                } catch {}
+                } catch { /* sessionStorage can be unavailable in private browsing contexts */ }
                 if (hold) {
                   void releaseHoldFn({ data: { holdId: hold.id, sessionId } }).catch(() => undefined);
                   setHold(null);
