@@ -69,7 +69,7 @@ export function ArrivalFilters({
         <>
           <Input
             type="date"
-            className="h-11 w-full"
+            className="h-11 w-full min-w-0"
             value={filters.from ?? ""}
             onChange={(e) => set({ from: e.target.value || undefined })}
           />
@@ -88,7 +88,7 @@ export function ArrivalFilters({
           set({ checkinStatus: v === ALL ? undefined : (v as ArrivalsFilter["checkinStatus"]) })
         }
       >
-        <SelectTrigger className="h-9 w-[150px]">
+        <SelectTrigger className="h-11 w-full min-w-0">
           <SelectValue placeholder="Check-in" />
         </SelectTrigger>
         <SelectContent>
