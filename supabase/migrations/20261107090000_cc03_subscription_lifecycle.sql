@@ -287,6 +287,51 @@ CREATE TRIGGER commercial_subscriptions_snapshot_immutable
   BEFORE UPDATE ON public.commercial_subscriptions
   FOR EACH ROW EXECUTE FUNCTION public.guard_commercial_immutable_fields();
 
+-- Founder authority is verified against three independent facts:
+-- (1) the configured founder organisation, (2) an explicit commercial
+-- founder_admin principal mapping provisioned by service_role, and
+-- (3) an active StayNas property membership in that same organisation.
+-- A caller cannot probe another principal because auth.uid() must match input.
+CREATE OR REPLACE FUNCTION public.commercial_is_founder_admin(
+  _principal_id uuid DEFAULT auth.uid()
+)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog
+AS $function$
+  SELECT CASE
+    WHEN _principal_id IS NULL OR auth.uid() IS DISTINCT FROM _principal_id
+      THEN false
+    ELSE EXISTS (
+      SELECT 1
+      FROM public.commercial_founder_tenant_config cfg
+      JOIN public.commercial_founder_admin_memberships fam
+        ON fam.organisation_id = cfg.founder_organisation_id
+       AND fam.principal_id = _principal_id
+       AND fam.status = 'active'
+      WHERE cfg.singleton = true
+        AND EXISTS (
+          SELECT 1
+          FROM public.staynas_properties p
+          JOIN public.staynas_property_members pm
+            ON pm.property_id = p.id
+          WHERE p.organisation_id = cfg.founder_organisation_id
+            AND p.status = 'active'
+            AND pm.user_id = _principal_id
+            AND pm.status = 'active'
+        )
+    )
+  END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.commercial_is_founder_admin(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.commercial_is_founder_admin(uuid) TO authenticated, service_role;
+
+COMMENT ON FUNCTION public.commercial_is_founder_admin(uuid) IS
+  'True only for the caller whose explicit commercial founder_admin mapping matches the configured founder organisation and an active property membership in that organisation.';
+
 -- Enforce that every active founder principal belongs to the configured
 -- founder organisation at authorization time in the server-side policy.
 -- Config and membership rows are intentionally unseeded here.
