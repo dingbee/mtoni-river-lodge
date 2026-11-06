@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { checkAvailability, type AvailabilityRoom } from "@/lib/booking.functions";
+import { checkAvailability, type AvailabilityRoom, type PublicRatePlanOption } from "@/lib/booking.functions";
 import { listGuests } from "@/lib/guests.functions";
 import { createStaffReservation, RESERVATION_SOURCES } from "@/lib/staff-reservations.functions";
 import { cn } from "@/lib/utils";
@@ -508,7 +508,7 @@ export function NewReservationDialog({
                         onChange={(e) => setRatePlanId(e.target.value)}
                       >
                         <option value="">Select a published rate plan</option>
-                        {selectedRoom.rate_plan_options.map((plan) => (
+                        {selectedRoom.rate_plan_options.map((plan: PublicRatePlanOption) => (
                           <option key={plan.rate_plan_id} value={plan.rate_plan_id}>
                             {plan.name} · {money(plan.total, plan.currency)} · {plan.refundable ? "Refundable" : "Non-refundable"}
                           </option>
