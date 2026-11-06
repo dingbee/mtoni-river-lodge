@@ -2,7 +2,7 @@ name: StayNas Finance payment integrity
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, 'spe-02/**']
     paths:
       - "src/domains/finance/**"
       - "src/lib/finance-rpc.ts"
@@ -19,6 +19,8 @@ on:
       - fix/ci-*
       - main
       - feat/finance-*
+      - feat/spe-03-*
+      - feat/spe-04-*
       - feat/cc01-p0-commercial-foundation
 
 jobs:
