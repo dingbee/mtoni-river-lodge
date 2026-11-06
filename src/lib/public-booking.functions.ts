@@ -124,12 +124,29 @@ export const searchPublicDemoAvailability = createServerFn({ method: "POST" })
       return { room_id: room.room_id, plans: !discoveryError && discovery?.ok ? discovery.plans : [] };
     }));
     const planOptionsByRoom = new Map(ratePlanChoices.map((item: any) => [item.room_id, item.plans]));
-    const pricingFailure = (rows ?? []).find((room: any) => room.pricing_quote?.ok === false && room.pricing_quote?.error_code !== "RATE_PLAN_REQUIRED");
+
+    // A published plan is not required to cover every room type. A room with
+    // NO_ELIGIBLE_RATE_PLAN is simply not sellable for this stay under the
+    // currently published SPE-03 configuration; it must not poison the
+    // availability response for other room types that do have eligible plans.
+    // All other resolver failures remain fail-closed and visible.
+    const pricingFailure = (rows ?? []).find((room: any) =>
+      room.pricing_quote?.ok === false
+      && !["RATE_PLAN_REQUIRED", "NO_ELIGIBLE_RATE_PLAN"].includes(room.pricing_quote?.error_code)
+    );
     if (pricingFailure) {
       throw new Error(`Pricing rejected [${pricingFailure.pricing_quote.error_code ?? "INVALID_RATE_CONFIGURATION"}]: ${pricingFailure.pricing_quote.message ?? "Pricing configuration is invalid"}`);
     }
 
     return (rows ?? [])
+      .filter((room: any) => {
+        const errorCode = room.pricing_quote?.error_code;
+        if (errorCode === "NO_ELIGIBLE_RATE_PLAN") return false;
+        if (errorCode === "RATE_PLAN_REQUIRED") {
+          return (planOptionsByRoom.get(room.room_id) ?? []).length > 0;
+        }
+        return true;
+      })
       .map((room: any) => ({
         rate_plan_options: planOptionsByRoom.get(room.room_id) ?? [],
         ...room,
