@@ -182,7 +182,7 @@ CREATE INDEX IF NOT EXISTS commercial_subscription_events_subscription_time_idx
 CREATE TABLE IF NOT EXISTS public.commercial_audit_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   request_id text NOT NULL CHECK (length(btrim(request_id)) BETWEEN 1 AND 200),
-  actor_user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  actor_user_id uuid REFERENCES auth.users(id) ON DELETE RESTRICT,
   actor_organisation_id uuid REFERENCES public.staynas_organisations(id) ON DELETE RESTRICT,
   actor_role text NOT NULL CHECK (actor_role IN (
     'founder_admin', 'tenant_admin', 'tenant_staff', 'service_principal'
@@ -265,6 +265,9 @@ BEGIN
     OLD.price_resolution_ref,
     OLD.accepted_price_snapshot,
     OLD.quote_required
+  ) OR (
+    OLD.commercial_acceptance_ref IS NOT NULL
+    AND NEW.commercial_acceptance_ref IS DISTINCT FROM OLD.commercial_acceptance_ref
   ) THEN
     RAISE EXCEPTION 'Accepted commercial subscription snapshot is immutable'
       USING ERRCODE = '55000';
