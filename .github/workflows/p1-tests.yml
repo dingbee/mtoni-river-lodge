@@ -10,6 +10,7 @@ on:
       - feat/finance-*
       - feat/spe-03-*
       - feat/spe-04-*
+      - feat/cc-03-*
       - spe-02/**
   pull_request:
     branches:
@@ -56,6 +57,7 @@ jobs:
           src/domains/commercial/trial-configuration.test.ts
           src/domains/commercial/founder-administration.test.ts
           src/domains/commercial/commercial-api-contract.test.ts
+          src/domains/commercial/subscription-lifecycle-contract.test.ts
       # TanStack Start generates routeTree.gen.ts during the Vite build.
       - name: Generate routes and verify production build
         run: bun run build
@@ -107,4 +109,6 @@ jobs:
           src/domains/commercial/founder-administration.test.ts
           src/domains/commercial/commercial-api-contract.ts
           src/domains/commercial/commercial-api-contract.test.ts
+          src/domains/commercial/subscription-lifecycle-contract.ts
+          src/domains/commercial/subscription-lifecycle-contract.test.ts
           --rule 'prettier/prettier: off'
