@@ -1,6 +1,6 @@
 -- SPE-05 contract tests. Transaction is rolled back; no property data is written.
 BEGIN;
-SELECT plan(25);
+SELECT plan(26);
 
 SELECT has_table('public','staynas_property_fee_rules','Property fee configuration exists');
 SELECT has_table('public','staynas_property_promotions','Property promotion configuration exists');
@@ -129,6 +129,13 @@ SELECT ok(
   NOT has_function_privilege('anon','public.preview_staynas_pricing_adjustments(uuid,uuid,date,date,integer,integer,integer,jsonb,uuid,text,text)','EXECUTE')
   AND has_function_privilege('authenticated','public.preview_staynas_pricing_adjustments(uuid,uuid,date,date,integer,integer,integer,jsonb,uuid,text,text)','EXECUTE'),
   'Pricing preview is available to authenticated property staff but not anonymous callers');
+
+
+SELECT ok(
+  EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid='public.staynas_property_promotions'::regclass AND conname='staynas_promotion_percentage_max_check')
+  AND EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid='public.staynas_property_promotions'::regclass AND conname='staynas_promotion_booking_window_check')
+  AND EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid='public.staynas_property_promotions'::regclass AND conname='staynas_promotion_stay_window_check'),
+  'Promotion discount and date-window invariants are enforced by database constraints');
 
 SELECT * FROM finish();
 ROLLBACK;
