@@ -18,6 +18,11 @@ BEGIN
     WHERE table_schema='public' AND table_name='activity_logs' AND column_name='property_id'
   ) THEN RAISE EXCEPTION 'activity_logs.property_id was not added'; END IF;
 
+  IF to_regprocedure('public.discover_staynas_public_rate_plans(uuid,uuid,date,date,integer,integer,integer)') IS NULL
+     OR position('effective_to>=(_check_out-1)' in pg_get_functiondef('public.discover_staynas_public_rate_plans(uuid,uuid,date,date,integer,integer,integer)'::regprocedure)) = 0
+     OR position('effective_to>=_check_out' in pg_get_functiondef('public.discover_staynas_public_rate_plans(uuid,uuid,date,date,integer,integer,integer)'::regprocedure)) > 0
+  THEN RAISE EXCEPTION 'SPE-04 discovery must include the final charged night and exclude checkout date'; END IF;
+
   IF EXISTS (
     SELECT 1 FROM pg_policies
     WHERE (coalesce(qual,'') || ' ' || coalesce(with_check,'')) ~* '(has_any_role|has_role|is_any_staff|is_staff|current_user_roles)[[:space:]]*[(]'
