@@ -177,7 +177,7 @@ BEGIN
       trial_started_at, trial_ends_at
     ) VALUES (
       v_account, v_subscription, 1, '2026-11-07T09:01:00Z',
-      '2026-11-07T09:01:00Z', '2026-11-21T09:01:00Z'
+      '2026-11-07T09:00:00Z', '2026-11-21T09:00:00Z'
     );
     RAISE EXCEPTION 'Second trial claim unexpectedly succeeded';
   EXCEPTION WHEN unique_violation THEN
