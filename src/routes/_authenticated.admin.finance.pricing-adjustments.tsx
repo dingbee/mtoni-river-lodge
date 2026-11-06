@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_authenticated/admin/finance/pricing-adju
 });
 
 const emptyTax = () => ({ id:"", name:"", tax_code:"", calculation_type:"exclusive_percent", rate:"", currency:"", applies_to:"accommodation", is_compound:false, tax_mode:"exclusive", taxable_components:["accommodation","extras"], jurisdiction_code:"", display_label:"", priority:"100", valid_from:"", valid_to:"", active:true });
-const emptyFee = () => ({ id:"", code:"", name:"", description:"", calculation_type:"fixed", amount:"", currency:"", applies_to:["accommodation"], taxable:false, minimum_amount:"", maximum_amount:"", valid_from:"", valid_to:"", priority:"100", active:true });
+const emptyFee = () => ({ id:"", code:"", name:"", description:"", calculation_type:"fixed", amount:"", currency:"", applies_to:["accommodation"], taxable:false, tax_rule_ids:[], minimum_amount:"", maximum_amount:"", valid_from:"", valid_to:"", priority:"100", active:true });
 const emptyPromo = () => ({ id:"", code:"", name:"", description:"", discount_type:"percentage", discount_value:"", currency:"", minimum_nights:"1", minimum_booking_value:"0", booking_window_from:"", booking_window_to:"", stay_from:"", stay_to:"", valid_from:"", valid_to:"", usage_limit:"", per_guest_limit:"", auto_apply:false, stackable:false, priority:"100", status:"draft" });
 const dateOrNull = (v:string) => v || null;
 const numOrNull = (v:string) => v.trim()==="" ? null : Number(v);
@@ -47,14 +47,14 @@ function PricingAdjustments() {
   const feeSave=useMutation({mutationFn:()=>saveFeeFn({data:{
     ...(fee.id?{id:fee.id}:{}),code:fee.code,name:fee.name,description:fee.description||null,
     calculation_type:fee.calculation_type,amount:Number(fee.amount),currency:fee.currency||data?.property.currency,
-    applies_to:fee.applies_to,taxable:fee.taxable,tax_rule_ids:[],minimum_amount:numOrNull(fee.minimum_amount),
+    applies_to:fee.applies_to,taxable:fee.taxable,tax_rule_ids:fee.tax_rule_ids??[],minimum_amount:numOrNull(fee.minimum_amount),
     maximum_amount:numOrNull(fee.maximum_amount),valid_from:dateOrNull(fee.valid_from),valid_to:dateOrNull(fee.valid_to),
     priority:Number(fee.priority),active:fee.active,
   }}),onSuccess:()=>{toast.success("Fee rule saved");setFee(emptyFee());refresh();},onError:(e:unknown)=>toast.error((e as Error).message)});
   const promoSave=useMutation({mutationFn:()=>savePromoFn({data:{
     ...(promo.id?{id:promo.id}:{}),code:promo.code||null,name:promo.name,description:promo.description||null,
     discount_type:promo.discount_type,discount_value:Number(promo.discount_value),currency:promo.currency||data?.property.currency,
-    eligible_room_ids:[],eligible_rate_plan_ids:[],minimum_nights:Number(promo.minimum_nights),
+    eligible_room_ids:promo.eligible_room_ids??[],eligible_rate_plan_ids:promo.eligible_rate_plan_ids??[],minimum_nights:Number(promo.minimum_nights),
     minimum_booking_value:Number(promo.minimum_booking_value),booking_window_from:dateOrNull(promo.booking_window_from),
     booking_window_to:dateOrNull(promo.booking_window_to),stay_from:dateOrNull(promo.stay_from),stay_to:dateOrNull(promo.stay_to),
     valid_from:isoOrNull(promo.valid_from),valid_to:isoOrNull(promo.valid_to),
@@ -105,6 +105,7 @@ function PricingAdjustments() {
           <label className={field}>Amount<Input required type="number" min="0" step="0.0001" value={fee.amount} onChange={e=>setFee({...fee,amount:e.target.value})}/></label>
           <label className={field}>Currency<Input maxLength={3} value={fee.currency} onChange={e=>setFee({...fee,currency:e.target.value.toUpperCase()})} placeholder={data?.property.currency}/></label>
           <label className={field}>Applies to<select multiple className="min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground" value={fee.applies_to} onChange={e=>setFee({...fee,applies_to:Array.from(e.target.selectedOptions).map(o=>o.value)})}><option value="accommodation">Accommodation</option><option value="extras">Extras</option></select></label>
+          <label className={field}>Tax rules (empty = all applicable rules)<select multiple className="min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground" value={fee.tax_rule_ids??[]} onChange={e=>setFee({...fee,tax_rule_ids:Array.from(e.target.selectedOptions).map(o=>o.value)})}>{(data?.taxes??[]).map((t:any)=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
           <label className={field}>Minimum amount<Input type="number" min="0" step="0.01" value={fee.minimum_amount} onChange={e=>setFee({...fee,minimum_amount:e.target.value})}/></label>
           <label className={field}>Maximum amount<Input type="number" min="0" step="0.01" value={fee.maximum_amount} onChange={e=>setFee({...fee,maximum_amount:e.target.value})}/></label>
           <label className={field}>Priority<Input type="number" min="0" value={fee.priority} onChange={e=>setFee({...fee,priority:e.target.value})}/></label>
@@ -127,6 +128,8 @@ function PricingAdjustments() {
           <label className={field}>Currency<Input maxLength={3} value={promo.currency} onChange={e=>setPromo({...promo,currency:e.target.value.toUpperCase()})} placeholder={data?.property.currency}/></label>
           <label className={field}>Minimum nights<Input type="number" min="1" value={promo.minimum_nights} onChange={e=>setPromo({...promo,minimum_nights:e.target.value})}/></label>
           <label className={field}>Minimum booking value<Input type="number" min="0" step="0.01" value={promo.minimum_booking_value} onChange={e=>setPromo({...promo,minimum_booking_value:e.target.value})}/></label>
+          <label className={field}>Eligible rooms (empty = all rooms)<select multiple className="min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground" value={promo.eligible_room_ids??[]} onChange={e=>setPromo({...promo,eligible_room_ids:Array.from(e.target.selectedOptions).map(o=>o.value)})}>{(data?.rooms??[]).map((r:any)=><option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
+          <label className={field}>Eligible rate plans (empty = all plans)<select multiple className="min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground" value={promo.eligible_rate_plan_ids??[]} onChange={e=>setPromo({...promo,eligible_rate_plan_ids:Array.from(e.target.selectedOptions).map(o=>o.value)})}>{(data?.ratePlans??[]).map((r:any)=><option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
           <label className={field}>Usage limit<Input type="number" min="1" value={promo.usage_limit} onChange={e=>setPromo({...promo,usage_limit:e.target.value})}/></label>
           <label className={field}>Per-guest limit<Input type="number" min="1" value={promo.per_guest_limit} onChange={e=>setPromo({...promo,per_guest_limit:e.target.value})}/></label>
           <label className={field}>Booking valid from<Input type="datetime-local" value={promo.valid_from} onChange={e=>setPromo({...promo,valid_from:e.target.value})}/></label>
