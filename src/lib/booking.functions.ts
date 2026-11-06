@@ -227,9 +227,6 @@ export const createBooking = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const sb: any = supabaseAdmin;
     const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
-    const below6 = data.childrenBelow6 ?? 0;
-    const plus7 = data.children7Plus ?? Math.max(0, (data.children ?? 0) - below6);
-    const totalChildren = below6 + plus7;
     const { data: result, error } = await sb.rpc("staynas_create_reservation_from_quote", {
       _quote_id: data.quoteId,
       _property_id: propertyId,
