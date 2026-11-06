@@ -10,6 +10,16 @@
         }
       ],
       "destination": "/nolmark-cdma-staynas"
+    },
+    {
+      "source": "/site.webmanifest",
+      "has": [
+        {
+          "type": "host",
+          "value": "nolmarkcdma\\.staynas\\.com"
+        }
+      ],
+      "destination": "/nolmarkcdma.webmanifest"
     }
   ]
 }
