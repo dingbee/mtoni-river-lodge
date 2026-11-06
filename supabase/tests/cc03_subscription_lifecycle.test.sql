@@ -21,6 +21,12 @@ DECLARE
   v_user uuid := '40000000-0000-4000-8000-000000000001';
   v_other_user uuid := '40000000-0000-4000-8000-000000000002';
   v_property uuid := '50000000-0000-4000-8000-000000000001';
+  v_org2 uuid := '10000000-0000-4000-8000-000000000002';
+  v_account2 uuid := '20000000-0000-4000-8000-000000000002';
+  v_account3 uuid := '20000000-0000-4000-8000-000000000003';
+  v_subscription2 uuid := '30000000-0000-4000-8000-000000000002';
+  v_subscription3 uuid := '30000000-0000-4000-8000-000000000003';
+  v_audit uuid;
 BEGIN
   FOREACH v_table IN ARRAY v_tables LOOP
     IF NOT EXISTS (
@@ -177,6 +183,35 @@ BEGIN
     NULL;
   END;
 
+  -- A second non-terminal subscription cannot be created for the same account.
+  BEGIN
+    INSERT INTO public.commercial_subscriptions(
+      account_id, plan_code, plan_version, currency, billing_term,
+      property_count, price_resolution_ref, accepted_price_snapshot
+    ) VALUES (
+      v_account, 'essential', 1, 'TZS', 'monthly', 1,
+      'second-current-subscription',
+      '{"currency":"TZS","total":50000}'
+    );
+    RAISE EXCEPTION 'Second current subscription unexpectedly succeeded';
+  EXCEPTION WHEN unique_violation THEN
+    NULL;
+  END;
+
+  -- Quote-required Enterprise snapshots cannot invent a total or line items.
+  INSERT INTO public.staynas_organisations(id) VALUES (v_org2);
+  INSERT INTO public.commercial_accounts(id, organisation_id)
+  VALUES (v_account2, v_org2);
+  INSERT INTO public.commercial_subscriptions(
+    id, account_id, plan_code, plan_version, currency, billing_term,
+    property_count, price_resolution_ref, accepted_price_snapshot, quote_required
+  ) VALUES (
+    v_subscription2, v_account2, 'enterprise', 1, 'USD', 'annual',
+    5, 'enterprise-quote-v1', '{"currency":"USD","quoteRequired":true}', true
+  );
+
+  INSERT INTO public.commercial_accounts(id, organisation_id)
+  VALUES (v_account3, '10000000-0000-4000-8000-000000000003');
   INSERT INTO public.commercial_subscription_events(
     account_id, subscription_id, event_type, occurred_at,
     idempotency_key, actor_role, event_metadata
@@ -184,6 +219,35 @@ BEGIN
     v_account, v_subscription, 'activate_trial', '2026-11-07T09:00:00Z',
     'test-event-key-0001', 'service_principal', '{}'
   ) RETURNING id INTO v_event;
+
+  BEGIN
+    INSERT INTO public.commercial_subscription_events(
+      account_id, subscription_id, event_type, occurred_at,
+      idempotency_key, actor_role, event_metadata
+    ) VALUES (
+      v_account, v_subscription, 'activate_trial', '2026-11-07T09:00:01Z',
+      'test-event-key-0001', 'service_principal', '{}'
+    );
+    RAISE EXCEPTION 'Duplicate lifecycle idempotency key unexpectedly succeeded';
+  EXCEPTION WHEN unique_violation THEN
+    NULL;
+  END;
+
+  INSERT INTO public.commercial_audit_events(
+    request_id, actor_role, action, resource_type, resource_ref, outcome, occurred_at
+  ) VALUES (
+    'cc03-test-audit-request', 'service_principal', 'subscription.trial_activated',
+    'subscription', v_subscription::text, 'succeeded', '2026-11-07T09:00:00Z'
+  ) RETURNING id INTO v_audit;
+
+  BEGIN
+    UPDATE public.commercial_audit_events
+    SET reason_code = 'tamper'
+    WHERE id = v_audit;
+    RAISE EXCEPTION 'Audit event mutation unexpectedly succeeded';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    NULL;
+  END;
 
   BEGIN
     UPDATE public.commercial_subscription_events
