@@ -848,8 +848,9 @@ BEGIN
     -- Pricing eligibility is evaluated before inventory availability. In
     -- particular, RATE_PLAN_REQUIRED must not be misreported as an inventory
     -- retry merely because the priced-availability projection marks the room
-    -- unavailable while plan     -- SPE-04 success quotes intentionally omit an explicit ok=true flag.
-    -- Require complete immutable publication evidence before inventory allocation.
+    -- unavailable while plan selection is unresolved.
+    -- SPE-04 success quotes omit an explicit ok=true flag.
+    -- Require a complete quote and immutable publication evidence.
     v_quote_valid :=
       v_candidate.pricing_quote IS NOT NULL
       AND v_candidate.pricing_quote->>'ok' IS DISTINCT FROM 'false'
@@ -872,9 +873,6 @@ BEGIN
           ELSE 'pricing_rejected'
         END;
       RETURN;
-    END IF;
-
-    RETURN;
     END IF;
 
     IF NOT COALESCE(v_candidate.is_available,false) THEN
