@@ -45,7 +45,7 @@ BEGIN
      OR nullif(btrim(_guest_name),'') IS NULL
      OR length(btrim(_guest_name))<2
      OR nullif(btrim(_guest_email),'') IS NULL
-     OR _guest_email !~* '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+
+     OR _guest_email !~* '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'
      OR _payment_method NOT IN ('online','pay_at_property')
      OR _source NOT IN ('website','direct','walk_in','phone','email','whatsapp','agent','ota','corporate')
      OR _target_status NOT IN ('pending','confirmed') THEN
