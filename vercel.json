@@ -2,13 +2,23 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/site.webmanifest",
+      "has": [{ "type": "host", "value": "nolmarkcdma\\.staynas\\.com" }],
+      "destination": "/nolmarkcdma.webmanifest"
+    },
+    {
       "source": "/",
-      "has": [
-        {
-          "type": "host",
-          "value": "nolmarkcdma\\.staynas\\.com"
-        }
-      ],
+      "has": [{ "type": "host", "value": "nolmarkcdma\\.staynas\\.com" }],
+      "destination": "/nolmark-cdma-staynas"
+    },
+    {
+      "source": "/book",
+      "has": [{ "type": "host", "value": "nolmarkcdma\\.staynas\\.com" }],
+      "destination": "/nolmark-cdma-staynas"
+    },
+    {
+      "source": "/rooms",
+      "has": [{ "type": "host", "value": "nolmarkcdma\\.staynas\\.com" }],
       "destination": "/nolmark-cdma-staynas"
     }
   ]
