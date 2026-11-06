@@ -5054,7 +5054,7 @@ EXCEPTION
     RETURN jsonb_build_object('ok',false,'error_code','RATE_PLAN_DISCOVERY_FAILED',
       'message','Eligible rate plans could not be resolved','plans','[]'::jsonb);
 END;
-$function$
+$function$;
 
 REVOKE ALL ON FUNCTION public.discover_staynas_public_rate_plans(uuid,uuid,date,date,integer,integer,integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.discover_staynas_public_rate_plans(uuid,uuid,date,date,integer,integer,integer) TO service_role;
