@@ -161,7 +161,6 @@ export const searchPublicDemoAvailability = createServerFn({ method: "POST" })
 
 const publicQuoteSchema = z.object({
   propertySlug: propertySlugSchema,
-  quoteId: z.string().uuid(),
   roomSlug: z.string().min(1).max(80),
   checkIn: dateSchema,
   checkOut: dateSchema,
@@ -196,6 +195,7 @@ export const getPublicDemoQuote = createServerFn({ method: "POST" })
 
 const createBookingSchema = z.object({
   propertySlug: propertySlugSchema,
+  quoteId: z.string().uuid(),
   roomSlug: z.string().min(1).max(80),
   checkIn: dateSchema,
   checkOut: dateSchema,
