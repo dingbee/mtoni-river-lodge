@@ -1,6 +1,6 @@
 -- SPE-05 contract tests. Transaction is rolled back; no property data is written.
 BEGIN;
-SELECT plan(26);
+SELECT plan(27);
 
 SELECT has_table('public','staynas_property_fee_rules','Property fee configuration exists');
 SELECT has_table('public','staynas_property_promotions','Property promotion configuration exists');
@@ -136,6 +136,14 @@ SELECT ok(
   AND EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid='public.staynas_property_promotions'::regclass AND conname='staynas_promotion_booking_window_check')
   AND EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid='public.staynas_property_promotions'::regclass AND conname='staynas_promotion_stay_window_check'),
   'Promotion discount and date-window invariants are enforced by database constraints');
+
+
+SELECT ok(
+  pg_get_functiondef('public.calculate_staynas_spe05_adjustments(uuid,date,date,text,jsonb,uuid,uuid,text,text,date)'::regprocedure)
+    LIKE '%An active tax rule uses a currency different from the property currency%'
+  AND pg_get_functiondef('public.calculate_staynas_spe05_adjustments(uuid,date,date,text,jsonb,uuid,uuid,text,text,date)'::regprocedure)
+    LIKE '%v_tax.calculation_type<>''exclusive_percent''%',
+  'Tax currency and inclusive/exclusive mode mismatches fail closed');
 
 SELECT * FROM finish();
 ROLLBACK;
