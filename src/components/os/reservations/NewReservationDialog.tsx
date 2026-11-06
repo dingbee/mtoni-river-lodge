@@ -111,8 +111,8 @@ export function NewReservationDialog({
   });
 
   const availability = useQuery({
-    queryKey: ["reservation-availability", checkIn, checkOut, totalGuests],
-    queryFn: () => availabilityFn({ data: { checkIn, checkOut, guests: totalGuests } }),
+    queryKey: ["reservation-availability", checkIn, checkOut, adults, childrenBelow6, children7Plus],
+    queryFn: () => availabilityFn({ data: { checkIn, checkOut, adults, childrenBelow6, children7Plus } }),
     enabled: open && step >= 3 && checkOut > checkIn,
   });
 
