@@ -358,6 +358,9 @@ BEGIN
 END;
 $function$;
 
+REVOKE ALL ON FUNCTION public.validate_staynas_distribution_reservation_link()
+  FROM PUBLIC,anon,authenticated;
+
 DROP TRIGGER IF EXISTS staynas_distribution_reservation_link_scope
   ON public.staynas_distribution_reservation_links;
 CREATE TRIGGER staynas_distribution_reservation_link_scope
