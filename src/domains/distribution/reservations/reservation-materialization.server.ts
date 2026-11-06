@@ -134,7 +134,6 @@ async function loadDecryptedReservationEvent(
       ciphertext: String(data.ciphertext),
       nonce: String(data.nonce),
       authTag: String(data.auth_tag),
-      keyVersion: String(data.key_version),
       payloadFingerprint: String(data.payload_fingerprint),
     },
     readReservationPayloadKey(String(data.key_version)),
