@@ -56,7 +56,7 @@ export async function ingestExternalReservationEvent(
   const requiredCapability = event.eventType === "reservation.created" || event.eventType === "reservation.confirmed"
     ? "reservation.import"
     : event.eventType === "reservation.modified" || event.eventType === "reservation.payment_updated" ||
-        event.eventType === "reservation.refund_notified"
+        event.eventType === "reservation.refund_notified" || event.eventType === "reservation.reinstated"
       ? "reservation.update"
       : "reservation.cancel";
   if (context.capability !== requiredCapability) {
