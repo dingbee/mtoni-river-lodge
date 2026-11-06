@@ -111,6 +111,9 @@ export const createStaffReservation = createServerFn({ method: "POST" })
     }
     if (!result?.booking_id) throw new Error("Reservation could not be created");
     const bookingId = result.booking_id as string;
+    const reference = result.reference as string;
+    const total = Number(result.total);
+    const currency = result.currency as string;
 
     let checkin: { token: string | null; status: string | null; eligible: boolean } = {
       token: null, status: null, eligible: false,
@@ -134,12 +137,12 @@ export const createStaffReservation = createServerFn({ method: "POST" })
       action: "reservation.created",
       entityType: "booking",
       entityId: bookingId,
-      entityLabel: row.reference as string,
+      entityLabel: reference,
       metadata: { channel: "staff_console", source: data.source, room_slug: data.roomSlug, check_in: data.checkIn, check_out: data.checkOut, status: data.status, payment_status: "unpaid", guest_id: data.guestId ?? null, moci_created: Boolean(checkin.token) },
-      newValue: { reference: row.reference, total: Number(row.total), currency: row.currency },
+      newValue: { reference, total, currency },
     });
 
-    return { bookingId, reference: row.reference as string, total: Number(row.total), currency: row.currency as string, checkin };
+    return { bookingId, reference, total, currency, checkin };
   });
 
 export const getReservationCheckinAccess = createServerFn({ method: "POST" })
