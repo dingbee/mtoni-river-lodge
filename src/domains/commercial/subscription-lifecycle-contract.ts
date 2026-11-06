@@ -47,6 +47,9 @@ export const commercialSubscriptionPriceSnapshotSchema = z.object({
     amountMinor,
   })),
 }).superRefine((value, ctx) => {
+  if (value.quoteRequired && value.lineItems.length > 0) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["lineItems"], message: "Quote-required subscriptions cannot carry fabricated fixed-price line items" });
+  }
   if (value.quoteRequired && value.totalAmountMinor !== null) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -111,6 +114,9 @@ export const commercialSubscriptionSchema = z.object({
   if (value.trialStartedAt && value.trialEndsAt && Date.parse(value.trialEndsAt) <= Date.parse(value.trialStartedAt)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["trialEndsAt"], message: "Trial end must be after trial start" });
   }
+  if ((value.status === "active" || (value.status === "suspended" && value.suspendedFromStatus === "active")) && value.commercialAcceptanceRef === null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["commercialAcceptanceRef"], message: "Paid subscriptions require an accepted commercial agreement reference" });
+  }
   if (value.status === "active" && (!value.currentPeriodStartsAt || !value.currentPeriodEndsAt)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["currentPeriodEndsAt"], message: "Active subscriptions require a current billing period" });
   }
@@ -132,7 +138,7 @@ export const commercialSubscriptionSchema = z.object({
   const cancellationBoundary = value.status === "trialing" || (value.status === "suspended" && value.suspendedFromStatus === "trialing")
     ? value.trialEndsAt
     : value.currentPeriodEndsAt;
-  if (value.cancelAtPeriodEnd && (!value.cancellationRequestedAt || !cancellationBoundary)) {
+  if (value.cancelAtPeriodEnd && (!value.cancellationRequestedAt || !cancellationBoundary || ["cancelled", "expired", "pending_activation"].includes(value.status))) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["cancelAtPeriodEnd"], message: "Scheduled cancellation requires a request timestamp and current period boundary" });
   }
 });
@@ -301,7 +307,7 @@ export function transitionCommercialSubscription(
     case "request_cancellation": {
       if (!["trialing", "active", "suspended"].includes(subscription.status)) throw new Error("Subscription cannot be cancelled from its current state");
       if (event.atPeriodEnd) {
-        const cancellationBoundary = subscription.status === "trialing"
+        const cancellationBoundary = subscription.status === "trialing" || subscription.suspendedFromStatus === "trialing"
           ? subscription.trialEndsAt
           : subscription.currentPeriodEndsAt;
         if (!cancellationBoundary) throw new Error("Scheduled cancellation requires a trial or paid period boundary");
