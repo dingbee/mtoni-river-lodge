@@ -190,6 +190,8 @@ DECLARE
   v_applied_promo_id uuid;
   v_component_map jsonb := '{}'::jsonb;
   v_tax_fee_total numeric := 0;
+  v_tax_component_base numeric := 0;
+  v_tax_discount numeric := 0;
 BEGIN
   IF _property_id IS NULL OR _check_in IS NULL OR _check_out <= _check_in
      OR jsonb_typeof(COALESCE(_components,'[]'::jsonb)) <> 'array' THEN
@@ -295,9 +297,11 @@ BEGIN
     SELECT COALESCE(sum((x->>'amount')::numeric),0) INTO v_taxable
     FROM jsonb_array_elements(_components) x
     WHERE COALESCE(x->>'component_type','accommodation')=ANY(v_fee.applies_to);
+    v_discount_base := CASE WHEN v_component_total>0
+      THEN round(v_discount*v_taxable/v_component_total,2) ELSE 0 END;
     v_fee_amount := CASE v_fee.calculation_type
       WHEN 'fixed' THEN v_fee.amount
-      WHEN 'percentage' THEN round(GREATEST(0,v_taxable-v_discount)*v_fee.amount/100,2)
+      WHEN 'percentage' THEN round(GREATEST(0,v_taxable-v_discount_base)*v_fee.amount/100,2)
       WHEN 'per_night' THEN v_fee.amount*v_nights
       WHEN 'per_guest' THEN v_fee.amount*v_guests
       WHEN 'per_booking' THEN v_fee.amount
@@ -307,9 +311,12 @@ BEGIN
     IF v_fee.maximum_amount IS NOT NULL THEN v_fee_amount:=LEAST(v_fee_amount,v_fee.maximum_amount); END IF;
     v_fee_total:=round(v_fee_total+v_fee_amount,2);
     v_fee_lines:=v_fee_lines||jsonb_build_array(jsonb_build_object('id',v_fee.id,'code',v_fee.code,'name',v_fee.name,
-      'version',v_fee.version,'amount',v_fee_amount,'currency',v_currency,'taxable',v_fee.taxable,'included',false));
+      'version',v_fee.version,'amount',v_fee_amount,'currency',v_currency,'taxable',v_fee.taxable,
+      'tax_rule_ids',to_jsonb(v_fee.tax_rule_ids),'included',false));
   END LOOP;
 
+  -- Fee-to-tax mappings are explicit: an empty tax_rule_ids array means the
+  -- fee is taxable under every property rule that declares the fee component.
   SELECT COALESCE(sum((x->>'amount')::numeric),0) INTO v_tax_fee_total
   FROM jsonb_array_elements(v_fee_lines) x
   WHERE x->>'taxable'='true';
@@ -324,14 +331,24 @@ BEGIN
       AND (t.currency IS NULL OR upper(t.currency)=v_currency)
     ORDER BY t.priority,t.id
   LOOP
-    SELECT COALESCE(sum((x->>'amount')::numeric),0) INTO v_taxable
+    SELECT COALESCE(sum((x->>'amount')::numeric),0) INTO v_tax_component_base
     FROM jsonb_array_elements(_components) x
     WHERE COALESCE(x->>'component_type','accommodation')=ANY(v_tax.taxable_components);
-    IF 'fee'=ANY(v_tax.taxable_components) THEN v_taxable:=v_taxable+v_tax_fee_total; END IF;
+    v_tax_discount := CASE WHEN v_component_total>0
+      THEN round(v_discount*v_tax_component_base/v_component_total,2) ELSE 0 END;
+    v_taxable := v_tax_component_base;
+    IF 'fee'=ANY(v_tax.taxable_components) THEN
+      SELECT COALESCE(sum((x->>'amount')::numeric),0) INTO v_tax_fee_total
+      FROM jsonb_array_elements(v_fee_lines) x
+      WHERE x->>'taxable'='true'
+        AND (COALESCE(jsonb_array_length(x->'tax_rule_ids'),0)=0
+          OR (x->'tax_rule_ids') @> jsonb_build_array(v_tax.id::text));
+      v_taxable:=v_taxable+v_tax_fee_total;
+    END IF;
     IF v_tax.is_compound THEN v_taxable:=v_taxable+v_tax_total; END IF;
     IF v_taxable=0 THEN CONTINUE; END IF;
     IF v_tax.calculation_type IN ('percentage','percent','exclusive_percent','inclusive_percent') THEN
-      v_tax_amount:=round(GREATEST(0,v_taxable-v_discount)*v_tax.rate/100,2);
+      v_tax_amount:=round(GREATEST(0,v_taxable-v_tax_discount)*v_tax.rate/100,2);
     ELSIF v_tax.calculation_type IN ('fixed','fixed_per_booking') THEN
       v_tax_amount:=round(v_tax.rate,2);
     ELSIF v_tax.calculation_type='fixed_per_night' THEN
