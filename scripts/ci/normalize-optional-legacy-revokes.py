@@ -128,7 +128,7 @@ if declaration not in jwt_compat_source:
     raise SystemExit("Expected legacy JWT compatibility declaration was not found.")
 jwt_compat_source = jwt_compat_source.replace(
     declaration,
-    declaration + "\\n  v_signature_text text;",
+    declaration + "\n  v_signature_text text;",
     1,
 )
 old_loop = """  FOREACH v_signature IN ARRAY ARRAY[
