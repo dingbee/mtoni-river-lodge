@@ -13,6 +13,7 @@ on:
       - "src/lib/public-booking.functions.ts"
       - "src/routes/book.tsx"
       - "src/routes/$propertySlug.tsx"
+      - "src/components/os/reservations/NewReservationDialog.tsx"
       - "supabase/migrations/*spe06*"
       - "supabase/tests/spe06_*"
       - ".github/workflows/spe-06-reservations.yml"
@@ -53,6 +54,7 @@ jobs:
           src/lib/public-booking.functions.ts
           src/routes/book.tsx
           'src/routes/$propertySlug.tsx'
+          src/components/os/reservations/NewReservationDialog.tsx
           --rule 'prettier/prettier: off'
 
   reservation-database:
