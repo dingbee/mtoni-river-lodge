@@ -216,3 +216,19 @@ Verified on that code commit:
 - Migration quarantine workflow passed with zero files moved and 164 historical candidates retained.
 
 The subsequent branch head `6117d97cc1d26d5ba996141cff87d560a08d3b20` contains only the generated migration-classification manifest update from the successful quarantine run. This document update triggers a final exact-head CI rerun. All remote migration checks remain dry-run only; no production migration, schema/data/role mutation, merge to main, or deployment has occurred.
+
+
+## Definitive live-ledger reconciliation — 6 November 2026, 16:21 UTC
+
+Direct read-only inspection of the production StayNas migration ledger returned **139 applied records**, latest version **20261106155350**. The prior committed snapshot contained 136 records and ended at 20261106152700. The snapshot has now been corrected to 139 records.
+
+- **136/139 records** have repository source references in the snapshot (130 live-ledger SQL sources, two manual-application references, and four Git-recovered SPE-05 sources).
+- **Three records remain source-provenance exceptions:** `20261106154651_dc05_reservation_lifecycle_reconciliation`, `20261106155345_dc05_lifecycle_payload_retention_fix`, and `20261106155350_dc05_modified_cancellation_capability_fix`. They exist in the live ledger but their SQL files were not found in the active migration directory or preserved candidate directory on the CC-01 branch. They are explicitly represented as ledger-only records with unresolved source provenance; their SQL has not been fabricated.
+- No missing record was inserted into the live database, no migration was replayed, and no production migration history was changed.
+- The official Supabase remote migration dry-run passed on current PR verification run [42244042995](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42244042995). This is a dry-run only, not execution of CC-01 against production.
+- Current PR #133 head is `c7f90cb2e828e0b79ecdd4281ff6560b474e3e12`. All five current PR verification workflows passed: migration dry-run, P1 tests, P1 build/PostgreSQL assertions, Finance payment integrity, and SN-IQ-04 omnichannel contracts.
+- Live Nolmark CDMA transaction-scoped authorization verification used the existing owner and housekeeping identities. The staged self-membership correction passed 7/7 assertions; the test transaction was rolled back. This is database-level UAT evidence, not browser-session E2E evidence.
+
+**Security release gate remains open.** The live Security Advisor still reports 24 anonymous-executable and 85 authenticated-executable SECURITY DEFINER functions, four mutable search-path findings, one extension-in-public finding, and disabled leaked-password protection. The staged CC-01 migration addresses the reproduced cross-user membership probe and several internal RPC grants, but it has not been applied. The remaining findings require function-by-function disposition and the Auth configuration warning requires a separate project setting change.
+
+Production remains unchanged: no migration was applied, no production data or roles were modified, no merge to main occurred, and no deployment was performed.
