@@ -34,11 +34,16 @@ BEGIN
 
   IF _account_id IS NULL
     OR _subscription_id IS NULL
+    OR _plan_code IS NULL
     OR _plan_code NOT IN ('essential', 'professional', 'enterprise')
     OR _plan_version IS NULL OR _plan_version < 1
     OR _policy_version IS NULL OR _policy_version < 1
     OR _idempotency_key IS NULL OR length(btrim(_idempotency_key)) NOT BETWEEN 8 AND 200
-    OR _actor_role NOT IN ('founder_admin', 'tenant_admin', 'tenant_staff', 'service_principal') THEN
+    OR _actor_role IS NULL
+    OR _actor_role NOT IN ('founder_admin', 'tenant_admin', 'tenant_staff', 'service_principal')
+    OR (_actor_role <> 'service_principal' AND (
+      _actor_user_id IS NULL OR _actor_organisation_id IS NULL
+    )) THEN
     RAISE EXCEPTION 'Invalid commercial trial activation request'
       USING ERRCODE = '22023';
   END IF;
