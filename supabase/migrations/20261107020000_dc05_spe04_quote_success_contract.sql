@@ -1,5 +1,5 @@
 -- DC-05.03 corrective contract: SPE-04 successful quotes omit ok=true.
--- Require a complete canonical quote and immutable publication evidence instead.
+-- Require complete canonical quote and immutable publication evidence.
 BEGIN;
 CREATE OR REPLACE FUNCTION public.staynas_materialize_distribution_reservation(
   _inbox_id uuid,
@@ -38,6 +38,7 @@ DECLARE
   v_created record;
   v_message text;
   v_link_id uuid;
+  v_quote_valid boolean;
 BEGIN
   IF COALESCE(NULLIF(current_setting('request.jwt.claim.role',true),''),auth.role())<>'service_role' THEN
     RAISE EXCEPTION 'Reservation materialization is service-only.' USING ERRCODE='42501';
@@ -204,21 +205,23 @@ BEGIN
     -- Pricing eligibility is evaluated before inventory availability. In
     -- particular, RATE_PLAN_REQUIRED must not be misreported as an inventory
     -- retry merely because the priced-availability projection marks the room
-    -- unavailable while plan selection is unresolved.
-    -- SPE-04 success quotes intentionally omit an explicit ok=true flag.
-    -- Reject explicit error envelopes and require complete immutable publication
-    -- evidence plus a full nightly array before inventory can be allocated.
-    IF v_candidate.pricing_quote IS NULL
-       OR v_candidate.pricing_quote->>'ok'='false'
-       OR v_candidate.pricing_quote ? 'error_code'
-       OR jsonb_typeof(v_candidate.pricing_quote->'total') IS DISTINCT FROM 'number'
-       OR jsonb_typeof(v_candidate.pricing_quote->'currency') IS DISTINCT FROM 'string'
-       OR CASE WHEN jsonb_typeof(v_candidate.pricing_quote->'nightly')='array'
-            THEN jsonb_array_length(v_candidate.pricing_quote->'nightly')
-            ELSE -1 END <> (_departure_date-_arrival_date)
-       OR v_candidate.pricing_quote->'pricing_evidence'->>'rate_plan_id' IS NULL
-       OR v_candidate.pricing_quote->'pricing_evidence'->>'publication_id' IS NULL
-       OR v_candidate.pricing_quote->'pricing_evidence'->>'snapshot_hash' IS NULL THEN
+    -- unavailable while plan     -- SPE-04 success quotes intentionally omit an explicit ok=true flag.
+    -- Require complete immutable publication evidence before inventory allocation.
+    v_quote_valid :=
+      v_candidate.pricing_quote IS NOT NULL
+      AND v_candidate.pricing_quote->>'ok' IS DISTINCT FROM 'false'
+      AND NOT (v_candidate.pricing_quote ? 'error_code')
+      AND jsonb_typeof(v_candidate.pricing_quote->'total')='number'
+      AND jsonb_typeof(v_candidate.pricing_quote->'currency')='string'
+      AND jsonb_typeof(v_candidate.pricing_quote->'nightly')='array'
+      AND v_candidate.pricing_quote->'pricing_evidence'->>'rate_plan_id' IS NOT NULL
+      AND v_candidate.pricing_quote->'pricing_evidence'->>'publication_id' IS NOT NULL
+      AND v_candidate.pricing_quote->'pricing_evidence'->>'snapshot_hash' IS NOT NULL;
+    IF v_quote_valid THEN
+      v_quote_valid := jsonb_array_length(v_candidate.pricing_quote->'nightly')
+        = (_departure_date-_arrival_date);
+    END IF;
+    IF NOT COALESCE(v_quote_valid,false) THEN
       RETURN QUERY SELECT 'manual_reconciliation',NULL::uuid,false,
         CASE v_candidate.pricing_quote->>'error_code'
           WHEN 'RATE_PLAN_REQUIRED' THEN 'rate_plan_required'
@@ -226,6 +229,9 @@ BEGIN
           ELSE 'pricing_rejected'
         END;
       RETURN;
+    END IF;
+
+    RETURN;
     END IF;
 
     IF NOT COALESCE(v_candidate.is_available,false) THEN
