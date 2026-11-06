@@ -1,6 +1,6 @@
 -- CC-01 authorization identity-scope regression contracts.
 BEGIN;
-SELECT plan(20);
+SELECT plan(22);
 
 SELECT ok(
   position('auth.uid() IS DISTINCT FROM _user_id' in pg_get_functiondef('public.has_role(uuid,public.app_role)'::regprocedure)) > 0,
@@ -48,7 +48,23 @@ SELECT ok(NOT has_function_privilege('anon','public.restaurant_can_read(uuid)','
 SELECT ok(NOT has_function_privilege('anon','public.restaurant_can_write(uuid,public.restaurant_role[])','EXECUTE'),'anon cannot execute restaurant_can_write');
 
 SELECT ok(NOT has_function_privilege('anon','public.checkin_eligibility(uuid)','EXECUTE'),'anon cannot query check-in eligibility by booking UUID');
-SELECT ok(NOT has_function_privilege('authenticated','public.checkin_eligibility(uuid)','EXECUTE'),'authenticated clients cannot query check-in eligibility by booking UUID');
+SELECT ok(
+  has_function_privilege('authenticated','public.checkin_eligibility(uuid)','EXECUTE')
+  AND position('staynas_user_has_property_access' in pg_get_functiondef('public.checkin_eligibility(uuid)'::regprocedure)) > 0
+  AND position('has_any_role' in pg_get_functiondef('public.checkin_eligibility(uuid)'::regprocedure)) > 0,
+  'authenticated check-in eligibility is restricted to staff in the booking property'
+);
+SELECT ok(
+  NOT has_function_privilege('anon','public.checkin_eligibility_internal(uuid)','EXECUTE')
+  AND NOT has_function_privilege('authenticated','public.checkin_eligibility_internal(uuid)','EXECUTE'),
+  'private check-in eligibility primitive is not client-executable'
+);
+SELECT ok(
+  position('checkin_eligibility_internal' in pg_get_functiondef('public.checkin_fetch_summary(text)'::regprocedure)) > 0
+  AND position('checkin_eligibility_internal' in pg_get_functiondef('public.checkin_submit(text,text,jsonb,jsonb,boolean,text,jsonb)'::regprocedure)) > 0
+  AND position('checkin_eligibility_internal' in pg_get_functiondef('public.checkin_verify(text,text,text)'::regprocedure)) > 0,
+  'guest token workflows call the private eligibility primitive after token validation'
+);
 
 SELECT ok(
   NOT has_function_privilege('anon','public.bookings_link_guest()','EXECUTE')
