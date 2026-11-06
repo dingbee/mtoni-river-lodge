@@ -8,10 +8,14 @@ on:
       - fix/ci-*
       - main
       - feat/finance-*
+      - feat/spe-03-*
+      - feat/spe-04-*
       - feat/cc01-p0-commercial-foundation
+      - spe-02/**
   pull_request:
     branches:
       - main
+      - spe-02/**
 
 jobs:
   tests:
@@ -39,7 +43,13 @@ jobs:
           src/domains/ai/concierge/request-categorization.test.ts
           src/domains/finance/payment-contract.test.ts
           src/domains/finance/finance-currency.test.ts
+          src/domains/finance/pricing-engine.test.ts
           src/domains/finance/finance-reconciliation.test.ts
+          src/domains/finance/seasonal-pricing.test.ts
+          src/domains/finance/daily-rate-calendar.test.ts
+          src/domains/finance/rate-overrides.test.ts
+          src/domains/finance/rate-plan-restrictions.test.ts
+          src/domains/finance/rate-plan-publication.test.ts
           src/lib/pesapal-currency.test.ts
       # TanStack Start generates routeTree.gen.ts during the Vite build.
       - name: Generate routes and verify production build
@@ -53,11 +63,26 @@ jobs:
           src/domains/finance/payment-contract.ts
           src/domains/finance/payment-contract.test.ts
           src/domains/finance/finance-currency.ts
+          src/domains/finance/pricing-engine.ts
+          src/domains/finance/pricing-engine.test.ts
           src/domains/finance/finance-currency.test.ts
           src/domains/finance/finance-reconciliation.ts
           src/domains/finance/finance-reconciliation.test.ts
+          src/domains/finance/seasonal-pricing.ts
+          src/domains/finance/daily-rate-calendar.ts
+          src/domains/finance/rate-overrides.ts
+          src/domains/finance/rate-overrides.test.ts
+          src/domains/finance/rate-plan-restrictions.ts
+          src/domains/finance/rate-plan-restrictions.test.ts
+          src/domains/finance/rate-plan-publication.ts
+          src/domains/finance/rate-plan-publication.test.ts
+          src/routes/_authenticated.admin.finance.rate-plans.tsx
+          src/routes/_authenticated.admin.finance.rate-overrides.tsx
+          src/domains/finance/seasonal-pricing.test.ts
           src/lib/finance-rpc.ts
+          src/lib/pricing.ts
           src/routes/_authenticated.admin.finance.payments.tsx
+          src/routes/_authenticated.admin.finance.rate-plans.tsx
           src/lib/staff-reservations.functions.ts
           src/components/os/reservations/NewReservationDialog.tsx
           src/lib/payment-finalize.server.ts
