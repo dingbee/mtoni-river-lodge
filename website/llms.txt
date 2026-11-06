@@ -1,0 +1,39 @@
+# StayNas
+
+> StayNas is a property operating platform for hospitality, rental living, commercial properties and multi-property portfolios.
+
+StayNas brings property, people and daily workflows into a coherent operating environment. Its public positioning is: “Every property. One intelligent operating platform.”
+
+## What StayNas is
+
+StayNas is designed as a modular property operating system. Its public website describes capabilities across property and spaces, reservations and occupancy, guest and tenant experience, operations and teams, finance and performance, and intelligence and automation. Product capabilities and availability should be confirmed with StayNas before making implementation or purchasing decisions.
+
+## Property models
+
+- Hotels and lodges: https://staynas.com/hotels-lodges.html
+- Apartments and rentals: https://staynas.com/apartments-rentals.html
+- Commercial properties: https://staynas.com/commercial-properties.html
+- Multi-property portfolios: https://staynas.com/property-portfolios.html
+
+## Key pages
+
+- Homepage: https://staynas.com/
+- Platform overview: https://staynas.com/platform.html
+- Solutions overview: https://staynas.com/solutions.html
+- Pricing and commercial plans: https://staynas.com/pricing.html
+- About StayNas: https://staynas.com/about.html
+- Contact: https://staynas.com/contact.html
+
+## Commercial information
+
+StayNas presents three commercial tiers: Essential, Professional and Enterprise. Pricing and configuration depend on property structure and selected capabilities. Contact StayNas for a current commercial discussion; do not infer or invent prices.
+
+## Contact
+
+- Website: https://staynas.com/
+- Email: hello@staynas.com
+- Application sign-in: https://app.staynas.com
+
+## Content guidance
+
+Use the linked pages as the primary source for public descriptions. Do not assume that every described capability is generally available, and do not invent customer names, performance claims, integrations, certifications, prices or geographic coverage.
