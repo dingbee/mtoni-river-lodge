@@ -81,6 +81,44 @@ CREATE POLICY "Property staff action AI pricing recommendations"
     AND public.has_any_role((select auth.uid()), ARRAY['owner','manager','finance','admin']::public.app_role[])
   );
 
+-- The tax-rule foundation was historically provisioned outside the tracked
+-- migration chain. Keep clean resets self-contained and match the live UAT
+-- contract before attaching the property-scoped policy below.
+CREATE TABLE IF NOT EXISTS public.staynas_property_tax_rules (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  tax_code text,
+  calculation_type text NOT NULL
+    CHECK (calculation_type IN ('inclusive_percent','exclusive_percent','fixed_per_night','fixed_per_booking')),
+  rate numeric NOT NULL CHECK (rate >= 0),
+  currency text,
+  applies_to text NOT NULL DEFAULT 'accommodation'
+    CHECK (applies_to IN ('accommodation','extras','all')),
+  is_compound boolean NOT NULL DEFAULT false,
+  active boolean NOT NULL DEFAULT true,
+  valid_from date,
+  valid_to date,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  tax_mode text NOT NULL DEFAULT 'exclusive'
+    CHECK (tax_mode IN ('inclusive','exclusive')),
+  taxable_components text[] NOT NULL DEFAULT ARRAY['accommodation','extras']::text[],
+  jurisdiction_code text,
+  display_label text,
+  priority integer NOT NULL DEFAULT 100,
+  version integer NOT NULL DEFAULT 1,
+  created_by uuid,
+  updated_by uuid,
+  CONSTRAINT staynas_property_tax_rules_validity_check
+    CHECK (valid_to IS NULL OR valid_from IS NULL OR valid_to >= valid_from)
+);
+
+CREATE INDEX IF NOT EXISTS idx_staynas_property_tax_rules_active
+  ON public.staynas_property_tax_rules(property_id,active,valid_from,valid_to);
+
+ALTER TABLE public.staynas_property_tax_rules ENABLE ROW LEVEL SECURITY;
+
 CREATE POLICY "Property finance manage tax rules"
   ON public.staynas_property_tax_rules FOR ALL TO authenticated
   USING (
