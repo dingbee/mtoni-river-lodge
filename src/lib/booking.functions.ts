@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
-import { bookingRpc } from "@/lib/booking-rpc";
 import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 import { assertSameProperty } from "@/lib/booking-property";
 
@@ -20,9 +19,18 @@ const availabilitySchema = z.object({
   checkIn: dateStr,
   checkOut: dateStr,
   guests: z.number().int().min(1).max(20).optional(),
+  adults: z.number().int().min(1).max(10).default(1),
+  childrenBelow6: z.number().int().min(0).max(10).default(0),
+  children7Plus: z.number().int().min(0).max(10).default(0),
+  ratePlanId: z.string().uuid().optional(),
 });
 
+export type PublicRatePlanOption = { rate_plan_id: string; name: string; description: string | null; meal_plan: string | null; refundable: boolean; currency: string; total: number; average_nightly_rate: number; minimum_stay: number; nightly_breakdown: Array<{ date: string; nightly_rate: number; currency: string; source_label: string; pricing_basis: string; source_rate: number }>; publication_id: string; publication_number: number; rate_plan_version: number; snapshot_hash: string };
+
 export type AvailabilityRoom = {
+  rate_plan_options?: PublicRatePlanOption[];
+  selected_rate_plan_id?: string;
+  selected_rate_plan?: PublicRatePlanOption;
   room_id: string;
   slug: string;
   name: string;
@@ -37,6 +45,47 @@ export type AvailabilityRoom = {
   nightly_total: number;
   min_available: number;
   is_available: boolean;
+  fits_occupancy: boolean;
+  pricing_quote: BookingPricingQuote | null;
+};
+
+export type BookingPricingQuote = {
+  ok?: boolean;
+  error_code?: string;
+  message?: string;
+  pricing_evidence?: Record<string, string | number | null>;
+  property_id: string;
+  room_id: string;
+  currency: string;
+  check_in: string;
+  check_out: string;
+  nights: number;
+  nightly: Array<{
+    date: string;
+    base_rate: number;
+    occupancy_surcharge: number;
+    adjustment: number;
+    nightly_rate: number;
+    currency: string;
+    applied_rule_id: string | null;
+    applied_rule_type: string | null;
+    source?: string;
+    source_rate?: number;
+    pricing_basis?: string;
+  }>;
+  accommodation_subtotal: number;
+  extras: Array<{ slug: string; name: string; quantity: number; unit_price: number; unit: string; line_total: number; currency: string }>;
+  extras_total: number;
+  taxes: number;
+  tax_addition: number;
+  tax_breakdown: Array<Record<string, string | number | boolean | null>>;
+  total: number;
+  deposit_amount: number;
+  balance_due: number;
+  minimum_stay: number;
+  occupants: number;
+  paid_occupants: number;
+  extra_occupants: number;
 };
 
 export const checkAvailability = createServerFn({ method: "POST" })
@@ -45,24 +94,37 @@ export const checkAvailability = createServerFn({ method: "POST" })
     if (data.checkOut <= data.checkIn) {
       throw new Error("Check-out must be after check-in");
     }
-    const sb = getPublicClient();
-    const propertyId = await getConfiguredBookingPropertyId(sb);
-    const { data: rows, error } = await bookingRpc(sb).rpc("get_room_availability", {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const { data: rows, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced_with_rate_plan", {
       _check_in: data.checkIn,
       _check_out: data.checkOut,
       _property_id: propertyId,
+      _adults: data.adults,
+      _children_below_6: data.childrenBelow6,
+      _children_7_plus: data.children7Plus,
+      _rate_plan_id: data.ratePlanId ?? null,
     });
     if (error) throw new Error(error.message);
-    const guests = data.guests ?? 1;
-    const rooms = (rows ?? []) as AvailabilityRoom[];
-    return rooms
-      .map((r) => ({
-        ...r,
-        nightly_total: Number(r.nightly_total),
-        base_price: Number(r.base_price),
-        fits_guests: guests <= r.max_occupancy,
-      }))
-      .sort((a, b) => a.base_price - b.base_price);
+    const mapped = await Promise.all(((rows ?? []) as any[]).map(async (r) => {
+      let ratePlanOptions: PublicRatePlanOption[] = [];
+      if (r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" || r.pricing_quote?.pricing_evidence?.rate_plan_id) {
+        const { data: discovery, error: discoveryError } = await (supabaseAdmin as any).rpc("discover_staynas_public_rate_plans", {
+          _property_id: propertyId, _room_id: r.room_id, _check_in: data.checkIn, _check_out: data.checkOut,
+          _adults: data.adults, _children_below_6: data.childrenBelow6, _children_7_plus: data.children7Plus,
+        });
+        if (!discoveryError && discovery?.ok) ratePlanOptions = (discovery.plans ?? []) as PublicRatePlanOption[];
+      }
+      return {
+      ...r,
+      rate_plan_options: ratePlanOptions,
+      nightly_total: Number(r.nightly_total),
+      base_price: Number(r.base_price),
+      extra_guest_fee: Number(r.extra_guest_fee),
+      pricing_quote: r.pricing_quote as BookingPricingQuote | null,
+    };
+    }));
+    return mapped;
   });
 
 export const listExtras = createServerFn({ method: "GET" }).handler(async () => {
@@ -92,6 +154,7 @@ const extraSchema = z.object({
 
 const createBookingSchema = z.object({
   roomSlug: z.string().min(1),
+  ratePlanId: z.string().uuid().optional(),
   checkIn: dateStr,
   checkOut: dateStr,
   adults: z.number().int().min(1).max(10),
@@ -111,31 +174,67 @@ const createBookingSchema = z.object({
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 
+export const getBookingQuote = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({
+    roomSlug: z.string().min(1),
+    ratePlanId: z.string().uuid().optional(),
+    checkIn: dateStr,
+    checkOut: dateStr,
+    adults: z.number().int().min(1).max(10),
+    childrenBelow6: z.number().int().min(0).max(10).default(0),
+    children7Plus: z.number().int().min(0).max(10).default(0),
+    extras: z.array(extraSchema).max(20).default([]),
+  }).parse(d))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const { data: quote, error } = await (supabaseAdmin as any).rpc("get_staynas_booking_quote_with_rate_plan", {
+      _property_id: propertyId,
+      _room_slug: data.roomSlug,
+      _check_in: data.checkIn,
+      _check_out: data.checkOut,
+      _adults: data.adults,
+      _children_below_6: data.childrenBelow6,
+      _children_7_plus: data.children7Plus,
+      _extras: data.extras,
+      _rate_plan_id: data.ratePlanId ?? null,
+    });
+    if (error) throw new Error(error.message);
+    if (!quote) throw new Error("Pricing quote could not be calculated");
+    if (quote.ok === false) {
+      throw new Error(`Pricing rejected [${quote.error_code ?? "INVALID_RATE_CONFIGURATION"}]: ${quote.message ?? "Pricing configuration is invalid"}`);
+    }
+    return quote as BookingPricingQuote;
+  });
+
 export const createBooking = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createBookingSchema.parse(d))
   .handler(async ({ data }) => {
-    const sb = getPublicClient();
-    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const sb: any = supabaseAdmin;
+    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
     const below6 = data.childrenBelow6 ?? 0;
     const plus7 = data.children7Plus ?? Math.max(0, (data.children ?? 0) - below6);
     const totalChildren = below6 + plus7;
-    const { data: result, error } = await bookingRpc(sb).rpc("create_booking", {
+    const { data: result, error } = await sb.rpc("create_booking_for_property_with_rate_plan", {
+      _property_id: propertyId,
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
       _check_out: data.checkOut,
       _adults: data.adults,
       _children: totalChildren,
-      _children_below_6: below6,
-      _children_7_plus: plus7,
       _guest_name: data.guestName,
       _guest_email: data.guestEmail,
       _guest_phone: data.guestPhone || null,
       _country: data.country || null,
       _special_requests: data.specialRequests || null,
-      _property_id: propertyId,
       _extras: data.extras,
-      ...(data.holdId ? { _hold_id: data.holdId } : {}),
-      ...(data.sessionId ? { _session_id: data.sessionId } : {}),
+      _children_below_6: below6,
+      _children_7_plus: plus7,
+      _hold_id: data.holdId ?? null,
+      _session_id: data.sessionId ?? null,
+      _payment_method: "online",
+      _rate_plan_id: data.ratePlanId ?? null,
     });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;

@@ -1,3 +1,5 @@
+import { calculatePricingQuote } from "@/domains/finance/pricing-engine";
+
 export type RoomPricingConfig = {
   basePrice: number;
   includedGuests: number;
@@ -26,20 +28,43 @@ export interface PriceBreakdown {
 }
 
 export function buildPriceBreakdownFromConfig(cfg: RoomPricingConfig, o: Occupancy, nights = 1): PriceBreakdown {
-  const adults = Math.floor(o.adults);
-  if (!Number.isFinite(adults) || adults < 1) throw new Error("At least one adult is required");
-  const below6 = Math.max(0, Math.floor(o.childrenBelow6 ?? 0));
-  const plus7 = Math.max(0, Math.floor(o.children7Plus ?? 0));
-  const total = adults + below6 + plus7;
-  if (total > cfg.maxGuests) throw new Error("Room allows up to " + cfg.maxGuests + " occupants");
-  const paid = adults + plus7;
-  const extra = Math.max(0, paid - cfg.includedGuests);
-  const extraCharges = extra * cfg.extraGuestFee;
   const n = Math.max(1, Math.floor(nights));
-  const nightly = cfg.basePrice + extraCharges;
-  return { basePrice: cfg.basePrice, paidOccupants: paid, totalOccupants: total, extraOccupants: extra, extraOccupantFee: cfg.extraGuestFee, extraCharges, nightlyRate: nightly, nights: n, grandTotal: nightly * n, currency: cfg.currency };
+  const checkIn = "2000-01-01";
+  const checkOut = new Date(Date.UTC(2000, 0, 1 + n)).toISOString().slice(0, 10);
+  const quote = calculatePricingQuote({
+    room: {
+      id: "legacy-room",
+      propertyId: "legacy-property",
+      basePrice: cfg.basePrice,
+      currency: cfg.currency,
+      includedGuests: cfg.includedGuests,
+      extraGuestFee: cfg.extraGuestFee,
+      capacityAdults: cfg.maxGuests,
+      capacityChildren: cfg.maxGuests,
+      maxOccupancy: cfg.maxGuests,
+    },
+    checkIn,
+    checkOut,
+    occupancy: o,
+    inventory: [],
+    rules: [],
+  });
+  const totalOccupants = quote.occupants;
+  const paidOccupants = quote.paidOccupants;
+  const extraOccupants = Math.max(0, paidOccupants - cfg.includedGuests);
+  return {
+    basePrice: cfg.basePrice,
+    paidOccupants,
+    totalOccupants,
+    extraOccupants,
+    extraOccupantFee: cfg.extraGuestFee,
+    extraCharges: extraOccupants * cfg.extraGuestFee,
+    nightlyRate: quote.nightly[0].nightlyRate,
+    nights: quote.nights,
+    grandTotal: quote.subtotal,
+    currency: quote.currency,
+  };
 }
-
 export function formatCurrency(amount: number, currency: string) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
 }

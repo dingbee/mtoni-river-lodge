@@ -7,9 +7,12 @@ on:
       - fix/ci-*
       - main
       - feat/finance-*
+      - feat/spe-03-*
+      - feat/spe-04-*
   pull_request:
     branches:
       - main
+      - spe-02/**
 
 jobs:
   build:
