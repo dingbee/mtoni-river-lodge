@@ -37,6 +37,32 @@ export const commercialTrialPolicyResolutionInputSchema = z.object({
 });
 export type CommercialTrialPolicyResolutionInput = z.infer<typeof commercialTrialPolicyResolutionInputSchema>;
 
+/** Resolve exactly one enabled policy for a plan version and effective date. */
+export function resolveCommercialTrialPolicy(
+  rawInput: CommercialTrialPolicyResolutionInput,
+  policies: readonly CommercialTrialPolicy[],
+): CommercialTrialPolicy {
+  const input = commercialTrialPolicyResolutionInputSchema.parse(rawInput);
+  const matching = policies
+    .map((policy) => commercialTrialPolicySchema.parse(policy))
+    .filter((policy) =>
+      policy.planCode === input.planCode
+      && policy.planVersion === input.planVersion
+      && policy.enabled
+      && (!policy.effectiveFrom || policy.effectiveFrom <= input.asOf)
+      && (!policy.effectiveTo || policy.effectiveTo >= input.asOf),
+    );
+
+  if (matching.length !== 1) {
+    throw new Error(matching.length === 0
+      ? "No enabled trial policy exists for the requested plan version and date"
+      : "Ambiguous trial policy: multiple enabled policies match the requested plan version and date");
+  }
+  const policy = matching[0];
+  if (!policy) throw new Error("Trial policy resolution failed");
+  return policy;
+}
+
 export interface CommercialTrialWindow {
   policyVersion: number;
   planCode: CommercialTrialPolicy["planCode"];
