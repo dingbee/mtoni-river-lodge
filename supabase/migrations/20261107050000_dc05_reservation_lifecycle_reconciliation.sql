@@ -310,7 +310,12 @@ BEGIN
     RETURN jsonb_build_object('outcome','manual_reconciliation','reconciliation_code','provider_event_order_unavailable');
   END IF;
 
-  v_capability:=CASE WHEN _event_type='reservation.cancelled' THEN 'reservation.cancel' ELSE 'reservation.update' END;
+  v_capability:=CASE
+    WHEN _event_type='reservation.cancelled'
+      OR (_event_type='reservation.modified' AND lower(btrim(_provider_status)) IN ('cancelled','canceled'))
+    THEN 'reservation.cancel'
+    ELSE 'reservation.update'
+  END;
   SELECT c.* INTO v_connection
   FROM public.staynas_distribution_connections c
   JOIN public.staynas_distribution_account_grants g
