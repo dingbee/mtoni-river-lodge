@@ -1,0 +1,53 @@
+import { z } from "zod";
+
+/**
+ * Canonical distribution mapping contracts.
+ *
+ * The internal IDs deliberately reference StayNas canonical entities:
+ * rooms.id and staynas_rate_plans.id. Persistence is gated on SPE-03 creating
+ * and verifying the canonical RatePlan/RatePlanAssignment schema. Do not map
+ * provider identifiers to rooms.base_price or room_inventory.price_override.
+ */
+const externalResourceId = z.string().trim().min(1).max(256)
+  .regex(/^[A-Za-z0-9._:-]+$/, "External identifiers must be opaque safe identifiers.");
+
+const mappingScopeSchema = z.object({
+  organisationId: z.string().uuid(),
+  propertyId: z.string().uuid(),
+  connectionId: z.string().uuid(),
+  mappingStatus: z.enum(["pending", "active", "disabled"]),
+});
+
+export const distributionRoomMappingSchema = mappingScopeSchema.extend({
+  externalRoomId: externalResourceId,
+  internalRoomId: z.string().uuid(),
+});
+
+export const distributionRatePlanMappingSchema = mappingScopeSchema.extend({
+  externalRatePlanId: externalResourceId,
+  /** Canonical StayNas RatePlan.id; never a legacy price field or provider-owned ID. */
+  internalRatePlanId: z.string().uuid(),
+});
+
+export type DistributionRoomMapping = z.infer<typeof distributionRoomMappingSchema>;
+export type DistributionRatePlanMapping = z.infer<typeof distributionRatePlanMappingSchema>;
+
+export function validateDistributionRoomMapping(input: unknown): DistributionRoomMapping {
+  return distributionRoomMappingSchema.parse(input);
+}
+
+export function validateDistributionRatePlanMapping(input: unknown): DistributionRatePlanMapping {
+  return distributionRatePlanMappingSchema.parse(input);
+}
+
+/** Prevent a mapping loaded for one execution context from being reused by another. */
+export function assertDistributionMappingScope(
+  mapping: Pick<DistributionRoomMapping, "organisationId" | "propertyId" | "connectionId">,
+  expected: Readonly<{ organisationId: string; propertyId: string; connectionId: string }>,
+): void {
+  if (mapping.organisationId !== expected.organisationId ||
+      mapping.propertyId !== expected.propertyId ||
+      mapping.connectionId !== expected.connectionId) {
+    throw new Error("Distribution mapping does not belong to the active connection and property scope.");
+  }
+}
