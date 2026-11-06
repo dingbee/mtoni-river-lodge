@@ -23,4 +23,4 @@ The event schema captures event/request identifiers, verified actor and tenant r
 
 This is a pure policy evaluator and event contract, not a deployed security boundary. Server handlers must authenticate, resolve trusted membership, call the policy, enforce authorization again at the data boundary, and persist append-only audit evidence. RLS/grants and server-side authorization remain mandatory.
 
-No founder UI, API handler, persistence migration, audit table, role mutation, production write or deployment is included. Durable authorization and audit persistence remain gated on CC-01 certification.
+No founder UI, API handler, persistence migration, audit table, role mutation, production write or deployment is included. CC-01 is certified; this milestone deliberately closes the authority policy and audit evidence contracts without claiming deployed enforcement or durable audit persistence.
