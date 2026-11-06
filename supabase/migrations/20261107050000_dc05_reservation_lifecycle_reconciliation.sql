@@ -44,7 +44,7 @@ BEGIN
   IF _authority NOT IN ('staff','distribution') THEN
     RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='Unsupported booking lifecycle authority';
   END IF;
-  IF _booking_id IS NULL OR _target_status NOT IN ('confirmed','checked_in','completed','cancelled','no_show') THEN
+  IF _booking_id IS NULL OR _target_status IS NULL OR _target_status NOT IN ('confirmed','checked_in','completed','cancelled','no_show') THEN
     RAISE EXCEPTION USING ERRCODE='22023', MESSAGE='Invalid booking lifecycle request';
   END IF;
   IF _notes IS NOT NULL AND length(_notes)>1000 THEN
@@ -101,6 +101,23 @@ BEGIN
         ELSE concat_ws(E'\\n',notes,'['||_target_status||' '||now()::text||'] '||btrim(_notes)) END
   WHERE id=_booking_id
   RETURNING * INTO v_booking;
+
+  IF _target_status='cancelled' THEN
+    -- The canonical allocator decremented one unit per booked night. Restore it
+    -- exactly once on the first successful cancellation transition.
+    PERFORM public.staynas_lock_room_inventory_dates(
+      v_booking.room_id,v_booking.property_id,v_booking.check_in,v_booking.check_out
+    );
+    UPDATE public.room_inventory ri
+    SET available_units=LEAST(r.total_units,ri.available_units+1),
+        updated_at=pg_catalog.now()
+    FROM public.rooms r
+    WHERE r.id=v_booking.room_id
+      AND r.property_id=v_booking.property_id
+      AND ri.room_id=r.id
+      AND ri.date>=v_booking.check_in
+      AND ri.date<v_booking.check_out;
+  END IF;
 
   IF _authority='staff' AND _target_status='checked_in' AND v_room_state.id IS NOT NULL THEN
     UPDATE public.room_states SET state='occupied',booking_id=v_booking.id,updated_by=_actor
@@ -368,7 +385,7 @@ BEGIN
       v_decision:=public.staynas_transition_booking_core(
         v_booking.id,v_target,'Provider lifecycle event '||_provider_event_id,NULL,'distribution',v_booking.property_id
       );
-    EXCEPTION WHEN SQLSTATE '22023' THEN
+    EXCEPTION WHEN SQLSTATE '22023' OR SQLSTATE '42501' THEN
       RETURN jsonb_build_object('outcome','manual_reconciliation','reconciliation_code','invalid_transition');
     END;
   ELSE
