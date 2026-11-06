@@ -35,6 +35,7 @@ const base: CommercialSubscription = {
   addonCodes: [],
   status: "pending_activation",
   activatedAt: null,
+  commercialAcceptanceRef: null,
   trialPolicyVersion: null,
   trialStartedAt: null,
   trialEndsAt: null,
@@ -100,6 +101,7 @@ describe("CC03.01 subscription lifecycle contracts", () => {
       commercialAcceptanceRef: "accepted-offer-001",
     }).subscription;
     expect(active.status).toBe("active");
+    expect(active.commercialAcceptanceRef).toBe("accepted-offer-001");
     expect(active.trialStartedAt).toBe(trialing.trialStartedAt);
     expect(active.currentPeriodEndsAt).toBe("2026-12-10T10:00:00Z");
   });
