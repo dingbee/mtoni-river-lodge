@@ -3,6 +3,7 @@ import {
   COMMERCIAL_TRIAL_DURATION_DAYS,
   commercialTrialPolicySchema,
   createCommercialTrialWindow,
+  resolveCommercialTrialPolicy,
   type CommercialTrialPolicy,
 } from "./trial-configuration-contract";
 
@@ -36,6 +37,24 @@ describe("CC02.04 commercial trial configuration", () => {
       ...policy,
       planCode: "starter",
     }).success).toBe(false);
+  });
+
+  it("resolves one enabled policy by exact plan version and effective date", () => {
+    expect(resolveCommercialTrialPolicy({
+      planCode: "professional",
+      planVersion: 1,
+      asOf: "2026-11-05",
+    }, [policy])).toEqual(policy);
+    expect(() => resolveCommercialTrialPolicy({
+      planCode: "professional",
+      planVersion: 1,
+      asOf: "2025-12-31",
+    }, [policy])).toThrow(/No enabled trial policy/);
+    expect(() => resolveCommercialTrialPolicy({
+      planCode: "professional",
+      planVersion: 1,
+      asOf: "2026-11-05",
+    }, [policy, policy])).toThrow(/Ambiguous trial policy/);
   });
 
   it("starts the trial on subscription activation and calculates an exclusive 14-day end", () => {
