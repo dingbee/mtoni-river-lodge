@@ -79,13 +79,18 @@ export function decryptReservationPayload<T>(
 }
 
 export function readReservationPayloadKey(
-  value = process.env.STAYNAS_DISTRIBUTION_PII_ENCRYPTION_KEY,
+  keyVersion = "v1",
 ): Buffer {
-  if (!value?.trim()) {
-    throw new Error("STAYNAS_DISTRIBUTION_PII_ENCRYPTION_KEY is not configured.");
+  if (!/^[A-Za-z0-9_-]{1,32}$/.test(keyVersion)) {
+    throw new Error("Reservation payload key version is invalid.");
   }
-  const key = Buffer.from(value.trim(), "base64");
-  return assertKey(key);
+  const versionedName = `STAYNAS_DISTRIBUTION_PII_ENCRYPTION_KEY_${keyVersion.toUpperCase()}`;
+  const value = process.env[versionedName] ??
+    (keyVersion === "v1" ? process.env.STAYNAS_DISTRIBUTION_PII_ENCRYPTION_KEY : undefined);
+  if (!value?.trim()) {
+    throw new Error(`${versionedName} is not configured.`);
+  }
+  return assertKey(Buffer.from(value.trim(), "base64"));
 }
 
 export function readReservationPayloadKeyVersion(
