@@ -269,6 +269,19 @@ BEGIN
   FROM jsonb_array_elements(v_fee_lines) x
   WHERE x->>'taxable'='true';
 
+  -- A configured tax rule in another currency is a configuration error, not
+  -- a rule to silently skip. Property currency remains the sole quote currency.
+  IF EXISTS(
+    SELECT 1 FROM public.staynas_property_tax_rules t
+    WHERE t.property_id=_property_id AND t.active=true
+      AND (t.valid_from IS NULL OR t.valid_from<=_check_in)
+      AND (t.valid_to IS NULL OR t.valid_to>=_check_out-1)
+      AND t.currency IS NOT NULL AND upper(t.currency)<>v_currency
+  ) THEN
+    RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH',
+      'message','An active tax rule uses a currency different from the property currency');
+  END IF;
+
   -- Tax rules run in deterministic priority order. Inclusive rules are
   -- disclosed in the total but do not increase payable; exclusive rules do.
   FOR v_tax IN
@@ -305,7 +318,8 @@ BEGIN
     IF v_taxable=0 THEN CONTINUE; END IF;
     v_tax_base := GREATEST(0,v_taxable-v_tax_discount);
     IF v_tax.calculation_type IN ('percentage','percent','exclusive_percent','inclusive_percent') THEN
-      IF v_tax.calculation_type='inclusive_percent' OR v_tax.tax_mode='inclusive' THEN
+      IF v_tax.calculation_type='inclusive_percent'
+         OR (v_tax.calculation_type<>'exclusive_percent' AND v_tax.tax_mode='inclusive') THEN
         v_tax_amount:=CASE WHEN v_tax.rate>=0
           THEN round(v_tax_base*v_tax.rate/(100+v_tax.rate),2) ELSE 0 END;
       ELSE
