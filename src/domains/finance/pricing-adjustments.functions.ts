@@ -77,7 +77,8 @@ const promotionSchema = z.object({
   stackable: z.boolean().default(false),
   priority: z.number().int().min(0).max(10000).default(100),
   status: z.enum(["draft","scheduled","active","suspended","revoked","expired"]).default("draft"),
-}).refine(v => !v.valid_from || !v.valid_to || v.valid_to >= v.valid_from, { message:"Promotion expiry must follow its start.", path:["valid_to"] });
+}).refine(v => !v.valid_from || !v.valid_to || v.valid_to >= v.valid_from, { message:"Promotion expiry must follow its start.", path:["valid_to"] })
+  .refine(v => v.discount_type!=="percentage" || v.discount_value<=100, { message:"Percentage discounts cannot exceed 100%.", path:["discount_value"] });
 
 async function savePropertyRecord(
   supabase: any, userId: string, propertyId: string, table: string, data: Record<string, unknown>,
