@@ -222,10 +222,13 @@ The subsequent branch head `6117d97cc1d26d5ba996141cff87d560a08d3b20` contains o
 
 Direct read-only inspection of the production StayNas migration ledger returned **139 applied records**, latest version **20261106155350**. The prior committed snapshot contained 136 records and ended at 20261106152700. The snapshot has now been corrected to 139 records.
 
-- **136/139 records** have repository source references in the snapshot (130 live-ledger SQL sources, two manual-application references, and four Git-recovered SPE-05 sources).
-- **Three records remain source-provenance exceptions:** `20261106154651_dc05_reservation_lifecycle_reconciliation`, `20261106155345_dc05_lifecycle_payload_retention_fix`, and `20261106155350_dc05_modified_cancellation_capability_fix`. They exist in the live ledger but their SQL files were not found in the active migration directory or preserved candidate directory on the CC-01 branch. They are explicitly represented as ledger-only records with unresolved source provenance; their SQL has not been fabricated.
+**139/139 applied records now have local migration source files.** The three missing DC-05.04 sources were recovered verbatim from the live ledger's `statements` payload and restored under `supabase/migrations/`:
+  - `20261106154651_dc05_reservation_lifecycle_reconciliation.sql`
+  - `20261106155345_dc05_lifecycle_payload_retention_fix.sql`
+  - `20261106155350_dc05_modified_cancellation_capability_fix.sql`
+  Their snapshot entries are now marked `live_ledger_sql` with explicit recovery provenance. The first file's header calls it a controlled UAT artifact even though the live production ledger records it as applied; restoring the exact source is for ledger parity only, not permission to replay it.
 - No missing record was inserted into the live database, no migration was replayed, and no production migration history was changed.
-- The official Supabase remote migration dry-run passed on current PR verification run [42244042995](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42244042995). This is a dry-run only, not execution of CC-01 against production.
+- The earlier official Supabase dry-run passed on run [42244042995](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42244042995), but the latest exact-head run [42253712851](https://github.com/dingbee/mtoni-river-lodge/actions/runs/42253712851) failed because the three applied versions above lacked local source files. Their exact SQL is now restored; a fresh dry-run is required to confirm the correction. No migration was applied.
 - Current PR #133 head is `c7f90cb2e828e0b79ecdd4281ff6560b474e3e12`. All five current PR verification workflows passed: migration dry-run, P1 tests, P1 build/PostgreSQL assertions, Finance payment integrity, and SN-IQ-04 omnichannel contracts.
 - Live Nolmark CDMA transaction-scoped authorization verification used the existing owner and housekeeping identities. The staged self-membership correction passed 7/7 assertions; the test transaction was rolled back. This is database-level UAT evidence, not browser-session E2E evidence.
 
@@ -246,3 +249,10 @@ The live catalogue confirms the `pg_net` extension is non-relocatable (`extreloc
 A transaction-scoped attempt to revoke those grants through the connected Supabase SQL session did not change the ACL. The session role is `postgres`, the extension functions are owned by `supabase_admin`, and `postgres` is not a member of that owner role. The proposed revocation block was therefore removed from the staged migration and its fixture; no ACL change was committed. Do not assume the extension warning is harmless: the project’s effective PostgREST schema exposure still needs authoritative verification, and any ACL remediation requires a supported Supabase-admin path. The extension remains a security-review blocker.
 
 The Auth leaked-password protection warning is a Supabase Auth project setting, not a SQL migration concern. The current connected Supabase actions do not expose a supported setting mutation, so it remains an external release gate. The complete authenticated SECURITY DEFINER inventory still requires final disposition and independent security review; CC-01 is not certified.
+
+
+## Production-ledger SQL recovery — 6 November 2026, 16:35 UTC
+
+The three missing DC-05.04 SQL payloads were recovered directly from the production `supabase_migrations.schema_migrations.statements` column, not reconstructed from memory or inferred from names. Exact payload lengths: 21,523 bytes, 2,864 bytes, and 9,809 bytes. Each source is restored under its original version/name in `supabase/migrations/`, and the 139-entry manifest now records the exact local path and recovery provenance.
+
+This corrects the cause reported by Supabase CLI: remote migration versions missing from the local directory. The files are already applied according to the production ledger; restoration must cause the dry-run to recognize them as applied, not replay them. The first recovered SQL includes a UAT-only header despite its production-ledger entry; this contradiction is retained verbatim and remains a governance item, not silently rewritten.
