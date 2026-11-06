@@ -107,7 +107,7 @@ export function ArrivalFilters({
           set({ documentStatus: v === ALL ? undefined : (v as ArrivalsFilter["documentStatus"]) })
         }
       >
-        <SelectTrigger className="h-9 w-[150px]">
+        <SelectTrigger className="h-11 w-full min-w-0">
           <SelectValue placeholder="Documents" />
         </SelectTrigger>
         <SelectContent>
@@ -128,7 +128,7 @@ export function ArrivalFilters({
           })
         }
       >
-        <SelectTrigger className="h-9 w-[150px]">
+        <SelectTrigger className="h-11 w-full min-w-0">
           <SelectValue placeholder="Reservation" />
         </SelectTrigger>
         <SelectContent>
@@ -145,7 +145,7 @@ export function ArrivalFilters({
         value={filters.roomId ?? ALL}
         onValueChange={(v) => set({ roomId: v === ALL ? undefined : v })}
       >
-        <SelectTrigger className="h-11 w-full">
+        <SelectTrigger className="col-span-2 h-11 w-full min-w-0">
           <SelectValue placeholder="Room" />
         </SelectTrigger>
         <SelectContent>
