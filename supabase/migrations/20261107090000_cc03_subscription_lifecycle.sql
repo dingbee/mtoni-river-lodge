@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS public.commercial_subscriptions (
       activated_at IS NOT NULL
       AND trial_policy_version IS NOT NULL
       AND trial_started_at IS NOT NULL
-      AND trial_ends_at = trial_started_at + interval '14 days'
+      AND trial_ends_at = trial_started_at + interval '336 hours'
     )
   ),
   CONSTRAINT commercial_subscriptions_suspension_evidence CHECK (
@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS public.commercial_trial_claims (
   trial_started_at timestamptz NOT NULL,
   trial_ends_at timestamptz NOT NULL,
   CONSTRAINT commercial_trial_claims_exact_window CHECK (
-    trial_ends_at = trial_started_at + interval '14 days'
+    trial_ends_at = trial_started_at + interval '336 hours'
   ),
   CONSTRAINT commercial_trial_claims_subscription_unique UNIQUE (subscription_id),
   CONSTRAINT commercial_trial_claims_subscription_account_fk
