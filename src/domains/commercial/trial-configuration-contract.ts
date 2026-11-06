@@ -66,6 +66,14 @@ export function createCommercialTrialWindow(
     throw new Error("Trial activation timestamp must be a valid ISO-8601 date-time");
   }
 
+  const activationDate = new Date(startMilliseconds).toISOString().slice(0, 10);
+  if (parsedPolicy.effectiveFrom && activationDate < parsedPolicy.effectiveFrom) {
+    throw new Error("Commercial trial policy is not yet effective");
+  }
+  if (parsedPolicy.effectiveTo && activationDate > parsedPolicy.effectiveTo) {
+    throw new Error("Commercial trial policy has expired");
+  }
+
   const endMilliseconds = startMilliseconds + COMMERCIAL_TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000;
   return {
     policyVersion: parsedPolicy.policyVersion,
