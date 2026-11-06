@@ -7,10 +7,13 @@ on:
       - fix/ci-*
       - main
       - feat/finance-*
+      - feat/spe-03-*
+      - feat/spe-04-*
       - feat/cc01-p0-commercial-foundation
   pull_request:
     branches:
       - main
+      - spe-02/**
 
 jobs:
   build:
@@ -36,7 +39,6 @@ jobs:
       - name: Finance and reservation lint
         run: >-
           bunx eslint src/domains/finance/finance.functions.ts src/domains/finance/payment-contract.ts src/domains/finance/payment-contract.test.ts src/lib/finance-rpc.ts src/routes/_authenticated.admin.finance.payments.tsx src/lib/staff-reservations.functions.ts src/components/os/reservations/NewReservationDialog.tsx src/lib/payment-finalize.server.ts --rule 'prettier/prettier: off'
-
   cc01-postgres:
     runs-on: ubuntu-latest
     services:
@@ -61,10 +63,12 @@ jobs:
         run: |
           psql -h 127.0.0.1 -U postgres -d staynas_cc01_test -v ON_ERROR_STOP=1 \
             -f supabase/tests/cc01-schema-fixture.sql \
-            -f supabase/migrations/20261105100000_cc01_property_access_and_founder_authority.sql
+            -f supabase/migrations/20261105100000_cc01_property_access_and_founder_authority.sql \
+            -f supabase/migrations/20261106210000_spe04_public_rate_plan_discovery.sql
       - name: Verify grants, policies, property isolation and founder authority
         env:
           PGPASSWORD: postgres
         run: |
           psql -h 127.0.0.1 -U postgres -d staynas_cc01_test -v ON_ERROR_STOP=1 \
             -f supabase/tests/cc01-migration-assertions.sql
+
