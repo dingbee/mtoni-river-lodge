@@ -1,7 +1,12 @@
-import { createHash } from "node:crypto";
 import type { AdapterExecutionContext } from "../adapters/contracts";
 import { assertVerifiedReservationWebhook, type VerifiedReservationWebhook } from "./provider-signature-verification.server";
-import { receiveDistributionWebhook } from "../adapters/operation-ledger.server";
+import { receiveDistributionWebhook, storeEncryptedReservationPayload } from "../adapters/operation-ledger.server";
+import {
+  encryptReservationPayload,
+  readReservationPayloadKey,
+  readReservationPayloadKeyVersion,
+  reservationPayloadAad,
+} from "./reservation-payload-crypto.server";
 import { toSafeReservationEventEnvelope, type ExternalReservationEvent } from "./reservation-ingestion.contracts";
 
 /**
@@ -55,10 +60,16 @@ export async function ingestExternalReservationEvent(
     throw new Error("Distribution connection does not grant reservation ingestion capability.");
   }
 
+  const key = readReservationPayloadKey();
+  const keyVersion = readReservationPayloadKeyVersion();
+  const encryptedPayload = encryptReservationPayload(
+    event,
+    key,
+    reservationPayloadAad(context.providerKey, context.externalAccountId, event.providerEventId),
+    keyVersion,
+  );
   const safeEnvelope = toSafeReservationEventEnvelope(event);
-  const payloadFingerprint = createHash("sha256")
-    .update(JSON.stringify(safeEnvelope))
-    .digest("hex");
+  const payloadFingerprint = encryptedPayload.payloadFingerprint;
 
   const stored = await receiveDistributionWebhook({
     context,
@@ -68,6 +79,15 @@ export async function ingestExternalReservationEvent(
     eventType: event.eventType,
     normalizedEvent: safeEnvelope,
     payloadFingerprint,
+  });
+
+  await storeEncryptedReservationPayload({
+    inboxId: stored.inboxId,
+    payloadFingerprint,
+    ciphertext: encryptedPayload.ciphertext,
+    nonce: encryptedPayload.nonce,
+    authTag: encryptedPayload.authTag,
+    keyVersion: encryptedPayload.keyVersion,
   });
 
   return Object.freeze({
