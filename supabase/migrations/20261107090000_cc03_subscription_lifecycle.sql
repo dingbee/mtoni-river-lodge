@@ -316,6 +316,41 @@ CREATE TRIGGER commercial_audit_events_append_only
   BEFORE UPDATE OR DELETE ON public.commercial_audit_events
   FOR EACH ROW EXECUTE FUNCTION public.reject_commercial_history_mutation();
 
+-- Prevent deletion of lifecycle roots and founder authority history.
+CREATE OR REPLACE FUNCTION public.reject_commercial_record_deletion()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog
+AS $function$
+BEGIN
+  RAISE EXCEPTION 'Commercial lifecycle records cannot be deleted'
+    USING ERRCODE = '55000';
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.reject_commercial_record_deletion() FROM PUBLIC, anon, authenticated, service_role;
+
+DROP TRIGGER IF EXISTS commercial_accounts_no_delete ON public.commercial_accounts;
+CREATE TRIGGER commercial_accounts_no_delete
+  BEFORE DELETE ON public.commercial_accounts
+  FOR EACH ROW EXECUTE FUNCTION public.reject_commercial_record_deletion();
+
+DROP TRIGGER IF EXISTS commercial_subscriptions_no_delete ON public.commercial_subscriptions;
+CREATE TRIGGER commercial_subscriptions_no_delete
+  BEFORE DELETE ON public.commercial_subscriptions
+  FOR EACH ROW EXECUTE FUNCTION public.reject_commercial_record_deletion();
+
+DROP TRIGGER IF EXISTS commercial_trial_claims_append_only ON public.commercial_trial_claims;
+CREATE TRIGGER commercial_trial_claims_append_only
+  BEFORE UPDATE OR DELETE ON public.commercial_trial_claims
+  FOR EACH ROW EXECUTE FUNCTION public.reject_commercial_history_mutation();
+
+DROP TRIGGER IF EXISTS commercial_founder_admin_memberships_no_delete
+  ON public.commercial_founder_admin_memberships;
+CREATE TRIGGER commercial_founder_admin_memberships_no_delete
+  BEFORE DELETE ON public.commercial_founder_admin_memberships
+  FOR EACH ROW EXECUTE FUNCTION public.reject_commercial_record_deletion();
+
 -- RLS is enabled and forced. No anon/authenticated policies or table grants
 -- are created. Runtime access is through authenticated server handlers that
 -- perform tenant/founder authorization before using the service-role client.
@@ -352,10 +387,11 @@ FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   public.commercial_accounts,
   public.commercial_subscriptions,
-  public.commercial_trial_claims,
   public.commercial_founder_tenant_config,
   public.commercial_founder_admin_memberships
 TO service_role;
+
+GRANT SELECT, INSERT ON TABLE public.commercial_trial_claims TO service_role;
 
 GRANT SELECT, INSERT ON TABLE
   public.commercial_subscription_events,
