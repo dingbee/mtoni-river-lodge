@@ -889,11 +889,28 @@ BEGIN
         v_inbox.property_id,v_candidate.slug,_arrival_date,_departure_date,
         _adults,_children,_guest_name,_guest_email,_guest_phone,_country,
         _special_requests,'[]'::jsonb,_children_below_6,_children_7_plus,
-        NULL,NULL,'channel',v_rate_plan_id
+        NULL,NULL,'pay_at_property',v_rate_plan_id
       );
 
       IF v_created.booking_id IS NULL THEN
         RAISE EXCEPTION 'Canonical allocator returned no booking identifier.';
+      END IF;
+
+      -- A channel reservation is not a settled payment method. Preserve it as
+      -- an unpaid distribution booking until DC-05.06 settlement reconciles
+      -- provider remittance; do not create payment rows or imply a deposit.
+      UPDATE public.bookings
+      SET source='channel',
+          payment_method=NULL,
+          payment_provider='channel',
+          payment_status='unpaid',
+          deposit_amount=0,
+          balance_amount=v_created.total,
+          balance_due=v_created.total
+      WHERE id=v_created.booking_id
+        AND property_id=v_inbox.property_id;
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'Canonical channel booking payment semantics could not be persisted.';
       END IF;
 
       INSERT INTO public.staynas_distribution_reservation_links(
