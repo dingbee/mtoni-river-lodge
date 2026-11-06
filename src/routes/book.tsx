@@ -176,6 +176,9 @@ function BookPage() {
   const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string } | null>(null);
   const [bookingQuote, setBookingQuote] = useState<BookingPricingQuote | null>(p.selectedRoom?.pricing_quote ?? null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [appliedPromoCode, setAppliedPromoCode] = useState("");
+  const [quoteError, setQuoteError] = useState("");
   const [hold, setHold] = useState<{ id: string; expiresAt: string; roomSlug: string } | null>(null);
   const [roomInventory, setRoomInventory] = useState<{ available_units: number; total_units: number } | null>(null);
 
@@ -388,6 +391,7 @@ function BookPage() {
         data: {
           roomSlug: selectedRoom.slug,
           ratePlanId: selectedRoom.selected_rate_plan_id,
+          promoCode: appliedPromoCode || undefined,
           checkIn,
           checkOut,
           adults,
@@ -447,6 +451,7 @@ function BookPage() {
       data: {
         roomSlug: selectedRoom.slug,
         ratePlanId: selectedRoom.selected_rate_plan_id,
+        promoCode: appliedPromoCode || undefined,
         checkIn,
         checkOut,
         adults,
@@ -457,17 +462,19 @@ function BookPage() {
     }).then((quote) => {
       if (!cancelled) {
         setBookingQuote(quote as BookingPricingQuote);
+        setQuoteError("");
         setQuoteLoading(false);
       }
     }).catch((error) => {
       if (!cancelled) {
         setBookingQuote(null);
+        setQuoteError(error instanceof Error ? error.message : "Promotion or pricing could not be validated");
         setQuoteLoading(false);
         console.error("[book] authoritative pricing quote failed", error);
       }
     });
     return () => { cancelled = true; };
-  }, [getBookingQuoteFn, selectedRoom, checkIn, checkOut, adults, childrenBelow6, children7Plus, selectedExtras, nights]);
+  }, [getBookingQuoteFn, selectedRoom, checkIn, checkOut, adults, childrenBelow6, children7Plus, selectedExtras, appliedPromoCode, nights]);
 
   const effectiveQuote = bookingQuote ?? selectedRoom?.pricing_quote ?? null;
   const roomTotal = Number(effectiveQuote?.accommodation_subtotal ?? 0);
@@ -600,6 +607,10 @@ function BookPage() {
               pricingLoading={quoteLoading || !bookingQuote}
               extras={extras} selectedExtras={selectedExtras} setSelectedExtras={setSelectedExtras}
               roomTotal={roomTotal} extrasTotal={extrasTotal} grandTotal={grandTotal}
+              promoCodeInput={promoCodeInput} setPromoCodeInput={setPromoCodeInput}
+              appliedPromoCode={appliedPromoCode} quoteError={quoteError}
+              onApplyPromo={() => setAppliedPromoCode(promoCodeInput.trim().toUpperCase())}
+              onRemovePromo={() => { setAppliedPromoCode(""); setPromoCodeInput(""); }}
               guest={guest} setGuest={setGuest}
               submitting={submit.isPending}
               onBack={() => goToStep("select", "user_back_from_guest")}
@@ -884,6 +895,9 @@ function GuestStep(props: {
   extras: Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>;
   selectedExtras: SelectedExtra[]; setSelectedExtras: (v: SelectedExtra[]) => void;
   roomTotal: number; extrasTotal: number; grandTotal: number;
+  promoCodeInput: string; setPromoCodeInput: (value: string) => void;
+  appliedPromoCode: string; quoteError: string;
+  onApplyPromo: () => void; onRemovePromo: () => void;
   guest: { name: string; email: string; phone: string; country: string; requests: string; purpose: string };
   setGuest: (g: { name: string; email: string; phone: string; country: string; requests: string; purpose: string }) => void;
   submitting: boolean;
@@ -955,6 +969,17 @@ function GuestStep(props: {
         </div>
 
         <div className="rounded-2xl border border-charcoal/10 bg-ivory p-6 sm:p-8">
+          <h3 className="font-display text-xl">Promotion code</h3>
+          <p className="mt-1 text-xs text-charcoal/60">Enter a property-issued offer code, if you have one.</p>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <input aria-label="Promotion code" value={props.promoCodeInput} onChange={(e) => props.setPromoCodeInput(e.target.value)} maxLength={64} className="w-full flex-1 rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm uppercase text-charcoal outline-none focus:border-charcoal" placeholder="Enter code" disabled={!!props.appliedPromoCode}/>
+            {props.appliedPromoCode ? <button type="button" onClick={props.onRemovePromo} className="rounded-lg border border-charcoal/20 px-4 py-3 text-xs font-semibold uppercase tracking-wider">Remove</button> : <button type="button" onClick={props.onApplyPromo} disabled={!props.promoCodeInput.trim()} className="rounded-lg bg-charcoal px-4 py-3 text-xs font-semibold uppercase tracking-wider text-ivory disabled:opacity-40">Apply</button>}
+          </div>
+          {props.appliedPromoCode && <p className="mt-2 text-xs text-forest">Validating {props.appliedPromoCode} against this stay…</p>}
+          {props.quoteError && <p role="alert" className="mt-2 text-xs text-red-700">{props.quoteError}</p>}
+        </div>
+
+        <div className="rounded-2xl border border-charcoal/10 bg-ivory p-6 sm:p-8">
           <h3 className="font-display text-xl">Guest Details</h3>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2"><label className={labelCls}>Full name</label><input className={`mt-2 ${field}`} value={props.guest.name} onChange={(e) => props.setGuest({ ...props.guest, name: e.target.value })} required /></div>
@@ -1021,6 +1046,8 @@ function GuestStep(props: {
           )}
           <div className="flex justify-between"><span>Accommodation</span><span>{fmt(props.roomTotal)}</span></div>
           {props.extrasTotal > 0 && <div className="flex justify-between"><span>Extras</span><span>{fmt(props.extrasTotal)}</span></div>}
+          {Number(props.breakdown?.discount_total ?? 0) > 0 && <div className="flex justify-between text-forest"><span>Promotion discount</span><span>−{fmt(Number(props.breakdown?.discount_total ?? 0))}</span></div>}
+          {Number(props.breakdown?.fee_total ?? 0) > 0 && <div className="flex justify-between"><span>Fees</span><span>{fmt(Number(props.breakdown?.fee_total ?? 0))}</span></div>}
           {Number(props.breakdown?.taxes ?? 0) > 0 && (
             <>
               {Number(props.breakdown?.taxes ?? 0) > Number(props.breakdown?.tax_addition ?? 0) && (
