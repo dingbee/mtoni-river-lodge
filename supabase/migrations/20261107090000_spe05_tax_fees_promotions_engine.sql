@@ -170,7 +170,7 @@ DECLARE
   v_timezone text;
   v_nights integer;
   v_guests integer;
-  v_booking_date date := COALESCE(_booking_date, current_date);
+  v_booking_date date;
   v_component record;
   v_component_total numeric := 0;
   v_discount numeric := 0;
@@ -189,6 +189,7 @@ DECLARE
   v_discount_base numeric;
   v_applied_promo_id uuid;
   v_component_map jsonb := '{}'::jsonb;
+  v_tax_fee_total numeric := 0;
 BEGIN
   IF _property_id IS NULL OR _check_in IS NULL OR _check_out <= _check_in
      OR jsonb_typeof(COALESCE(_components,'[]'::jsonb)) <> 'array' THEN
@@ -204,6 +205,7 @@ BEGIN
     RETURN jsonb_build_object('ok',false,'error_code','PROPERTY_CONTEXT_INVALID','message','Property timezone is invalid');
   END IF;
 
+  v_booking_date := COALESCE(_booking_date,(now() AT TIME ZONE v_timezone)::date);
   v_nights := _check_out-_check_in;
   SELECT COALESCE(max((x->>'quantity')::integer),0) INTO v_guests
   FROM jsonb_array_elements(_components) x
@@ -211,7 +213,7 @@ BEGIN
   FOR v_component IN SELECT value FROM jsonb_array_elements(_components)
   LOOP
     IF COALESCE(v_component.value->>'component_type','')='guest_count' THEN CONTINUE; END IF;
-    IF jsonb_typeof(v_component.value->'amount') <> 'number'
+    IF jsonb_typeof(v_component.value->'amount') IS DISTINCT FROM 'number'
        OR (v_component.value->>'amount')::numeric < 0 THEN
       RETURN jsonb_build_object('ok',false,'error_code','INVALID_COMPONENT','message','Each pricing component requires a non-negative numeric amount');
     END IF;
@@ -262,6 +264,9 @@ BEGIN
       RETURN jsonb_build_object('ok',false,'error_code','PROMOTION_INELIGIBLE','message','Promotion does not satisfy its configured eligibility rules',
         'promotion_id',v_promo_row.id,'promotion_version',v_promo_row.version);
     END IF;
+    IF v_promo_row.stackable THEN
+      RETURN jsonb_build_object('ok',false,'error_code','PROMOTION_STACKING_UNSUPPORTED','message','This release applies one promotion per quote; stacking is not enabled');
+    END IF;
     v_discount_base := v_component_total;
     IF v_promo_row.discount_type='percentage' THEN
       v_discount := round(v_discount_base*v_promo_row.discount_value/100,2);
@@ -305,6 +310,10 @@ BEGIN
       'version',v_fee.version,'amount',v_fee_amount,'currency',v_currency,'taxable',v_fee.taxable,'included',false));
   END LOOP;
 
+  SELECT COALESCE(sum((x->>'amount')::numeric),0) INTO v_tax_fee_total
+  FROM jsonb_array_elements(v_fee_lines) x
+  WHERE x->>'taxable'='true';
+
   -- Tax rules run in deterministic priority order. Inclusive rules are
   -- disclosed in the total but do not increase payable; exclusive rules do.
   FOR v_tax IN
@@ -318,6 +327,8 @@ BEGIN
     SELECT COALESCE(sum((x->>'amount')::numeric),0) INTO v_taxable
     FROM jsonb_array_elements(_components) x
     WHERE COALESCE(x->>'component_type','accommodation')=ANY(v_tax.taxable_components);
+    IF 'fee'=ANY(v_tax.taxable_components) THEN v_taxable:=v_taxable+v_tax_fee_total; END IF;
+    IF v_tax.is_compound THEN v_taxable:=v_taxable+v_tax_total; END IF;
     IF v_taxable=0 THEN CONTINUE; END IF;
     IF v_tax.calculation_type IN ('percentage','percent') THEN
       v_tax_amount:=round(GREATEST(0,v_taxable-v_discount)*v_tax.rate/100,2);
