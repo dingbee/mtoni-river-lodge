@@ -34,4 +34,4 @@ The contract standardizes validation, authentication, authorization, not-found, 
 
 ## Explicit exclusions
 
-No HTTP route, API handler, persistence migration, database write, UI, subscription lifecycle, invoice, payment, entitlement grant, production deployment or live traffic change is included. Durable persistence and server-side authorization remain gated by CC-01 certification.
+No HTTP route, API handler, persistence migration, database write, UI, subscription lifecycle, invoice, payment, entitlement grant, production deployment or live traffic change is included. CC-01 is certified; this milestone closes transport contracts only and does not claim live API or durable persistence.
