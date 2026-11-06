@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS public.commercial_subscription_events (
   )),
   occurred_at timestamptz NOT NULL,
   idempotency_key text NOT NULL CHECK (length(btrim(idempotency_key)) BETWEEN 8 AND 200),
-  actor_user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  actor_user_id uuid REFERENCES auth.users(id) ON DELETE RESTRICT,
   actor_organisation_id uuid REFERENCES public.staynas_organisations(id) ON DELETE RESTRICT,
   actor_role text NOT NULL CHECK (actor_role IN (
     'founder_admin', 'tenant_admin', 'tenant_staff', 'service_principal'
@@ -220,12 +220,72 @@ CREATE TABLE IF NOT EXISTS public.commercial_founder_admin_memberships (
   verified_at timestamptz NOT NULL,
   created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT commercial_founder_admin_membership_matches_config
-    CHECK (organisation_id IS NOT NULL)
+  CONSTRAINT commercial_founder_admin_membership_organisation_unique UNIQUE (principal_id, organisation_id)
 );
 
 COMMENT ON TABLE public.commercial_founder_admin_memberships IS
   'Separate founder_admin authority mapping. Managed only through controlled service-role provisioning; never derived from app_role or property owner status.';
+
+-- Accepted commercial terms and organisation ownership are immutable.
+-- A plan/price change creates a new subscription record; it does not rewrite
+-- the historical accepted snapshot.
+CREATE OR REPLACE FUNCTION public.guard_commercial_immutable_fields()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog
+AS $function$
+BEGIN
+  IF TG_TABLE_NAME = 'commercial_accounts' THEN
+    IF NEW.organisation_id IS DISTINCT FROM OLD.organisation_id THEN
+      RAISE EXCEPTION 'Commercial account organisation is immutable'
+        USING ERRCODE = '55000';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  IF ROW(
+    NEW.account_id,
+    NEW.plan_code,
+    NEW.plan_version,
+    NEW.currency,
+    NEW.billing_term,
+    NEW.property_count,
+    NEW.addon_codes,
+    NEW.price_resolution_ref,
+    NEW.accepted_price_snapshot,
+    NEW.quote_required
+  ) IS DISTINCT FROM ROW(
+    OLD.account_id,
+    OLD.plan_code,
+    OLD.plan_version,
+    OLD.currency,
+    OLD.billing_term,
+    OLD.property_count,
+    OLD.addon_codes,
+    OLD.price_resolution_ref,
+    OLD.accepted_price_snapshot,
+    OLD.quote_required
+  ) THEN
+    RAISE EXCEPTION 'Accepted commercial subscription snapshot is immutable'
+      USING ERRCODE = '55000';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.guard_commercial_immutable_fields() FROM PUBLIC, anon, authenticated, service_role;
+
+DROP TRIGGER IF EXISTS commercial_accounts_organisation_immutable
+  ON public.commercial_accounts;
+CREATE TRIGGER commercial_accounts_organisation_immutable
+  BEFORE UPDATE ON public.commercial_accounts
+  FOR EACH ROW EXECUTE FUNCTION public.guard_commercial_immutable_fields();
+
+DROP TRIGGER IF EXISTS commercial_subscriptions_snapshot_immutable
+  ON public.commercial_subscriptions;
+CREATE TRIGGER commercial_subscriptions_snapshot_immutable
+  BEFORE UPDATE ON public.commercial_subscriptions
+  FOR EACH ROW EXECUTE FUNCTION public.guard_commercial_immutable_fields();
 
 -- Enforce that every active founder principal belongs to the configured
 -- founder organisation at authorization time in the server-side policy.
