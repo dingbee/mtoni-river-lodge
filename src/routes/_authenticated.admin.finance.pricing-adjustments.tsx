@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  listPricingAdjustments, savePricingTaxRule, savePricingFeeRule, savePricingPromotion,
+  listPricingAdjustments, savePricingTaxRule, savePricingFeeRule, savePricingPromotion, previewPricingAdjustments,
 } from "@/domains/finance/pricing-adjustments.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/finance/pricing-adjustments")({
@@ -29,12 +29,14 @@ function PricingAdjustments() {
   const saveTaxFn=useServerFn(savePricingTaxRule);
   const saveFeeFn=useServerFn(savePricingFeeRule);
   const savePromoFn=useServerFn(savePricingPromotion);
+  const previewFn=useServerFn(previewPricingAdjustments);
   const qc=useQueryClient();
   const {data,isLoading,error}=useQuery({queryKey:["staynas.pricing-adjustments"],queryFn:()=>listFn()});
   const [tax,setTax]=useState<any>(emptyTax());
   const [fee,setFee]=useState<any>(emptyFee());
   const [promo,setPromo]=useState<any>(emptyPromo());
-  const [tab,setTab]=useState<"tax"|"fee"|"promo"|"audit">("tax");
+  const [tab,setTab]=useState<"tax"|"fee"|"promo"|"preview"|"audit">("tax");
+  const [previewInput,setPreviewInput]=useState({room_id:"",check_in:"",check_out:"",adults:"2",rate_plan_id:"",promo_code:"",guest_email:""});
 
   const refresh=()=>qc.invalidateQueries({queryKey:["staynas.pricing-adjustments"]});
   const taxSave=useMutation({mutationFn:()=>saveTaxFn({data:{
@@ -51,6 +53,12 @@ function PricingAdjustments() {
     maximum_amount:numOrNull(fee.maximum_amount),valid_from:dateOrNull(fee.valid_from),valid_to:dateOrNull(fee.valid_to),
     priority:Number(fee.priority),active:fee.active,
   }}),onSuccess:()=>{toast.success("Fee rule saved");setFee(emptyFee());refresh();},onError:(e:unknown)=>toast.error((e as Error).message)});
+  const preview=useMutation({mutationFn:()=>previewFn({data:{
+    room_id:previewInput.room_id,check_in:previewInput.check_in,check_out:previewInput.check_out,
+    adults:Number(previewInput.adults),children_below_6:0,children_7_plus:0,extras:[],
+    rate_plan_id:previewInput.rate_plan_id||null,promo_code:previewInput.promo_code.trim()||null,
+    guest_email:previewInput.guest_email.trim()||null,
+  }}),onError:(e:unknown)=>toast.error((e as Error).message)});
   const promoSave=useMutation({mutationFn:()=>savePromoFn({data:{
     ...(promo.id?{id:promo.id}:{}),code:promo.code||null,name:promo.name,description:promo.description||null,
     discount_type:promo.discount_type,discount_value:Number(promo.discount_value),currency:promo.currency||data?.property.currency,
@@ -65,7 +73,7 @@ function PricingAdjustments() {
   const field="grid gap-1.5 text-xs text-muted-foreground";
   const textInput="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground";
   const selectCls="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground";
-  const tabs=[["tax","Taxes"],["fee","Fees"],["promo","Promotions"],["audit","Audit history"]] as const;
+  const tabs=[["tax","Taxes"],["fee","Fees"],["promo","Promotions"],["preview","Quote preview"],["audit","Audit history"]] as const;
 
   return <div className="space-y-6">
     <PageHeader title="Taxes, Fees & Promotions" description={data?.property ? data.property.name+" · "+data.property.currency+" · "+data.property.timezone : "Property-scoped pricing adjustments"} />
@@ -146,6 +154,26 @@ function PricingAdjustments() {
         </form>
       </SectionCard>
       <SectionCard title="Property promotions"><div className="divide-y divide-border">{(data?.promotions??[]).map((r:any)=><div key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><div className="font-medium text-sm">{r.name} <Badge variant={r.status==="active"?"default":"secondary"}>{r.status}</Badge></div><p className="text-xs text-muted-foreground">{r.code||"Automatic"} · {r.discount_type} {r.discount_value} · used {r.usage_count}{r.usage_limit?"/"+r.usage_limit:""} · priority {r.priority}</p></div><Button size="sm" variant="outline" onClick={()=>setPromo({...r,discount_value:String(r.discount_value),minimum_nights:String(r.minimum_nights),minimum_booking_value:String(r.minimum_booking_value),priority:String(r.priority),usage_limit:r.usage_limit==null?"":String(r.usage_limit),per_guest_limit:r.per_guest_limit==null?"":String(r.per_guest_limit),valid_from:r.valid_from?new Date(r.valid_from).toISOString().slice(0,16):"",valid_to:r.valid_to?new Date(r.valid_to).toISOString().slice(0,16):"",booking_window_from:r.booking_window_from||"",booking_window_to:r.booking_window_to||"",stay_from:r.stay_from||"",stay_to:r.stay_to||"",currency:r.currency||""})}>Edit</Button></div>)}{!data?.promotions?.length&&<p className="py-4 text-sm text-muted-foreground">No promotions configured.</p>}</div></SectionCard>
+    </>}
+    {tab==="preview" && <>
+      <SectionCard title="Pricing preview" description="Run a read-only quote through the canonical SPE-04 resolver and SPE-05 adjustment pipeline for the currently selected property. This does not create a booking or reserve inventory.">
+        <form className="grid gap-4 md:grid-cols-3" onSubmit={e=>{e.preventDefault();preview.mutate();}}>
+          <label className={field}>Room<select required className={selectCls} value={previewInput.room_id} onChange={e=>setPreviewInput({...previewInput,room_id:e.target.value})}><option value="">Select room</option>{(data?.rooms??[]).map((r:any)=><option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
+          <label className={field}>Rate plan (optional)<select className={selectCls} value={previewInput.rate_plan_id} onChange={e=>setPreviewInput({...previewInput,rate_plan_id:e.target.value})}><option value="">Use canonical selection</option>{(data?.ratePlans??[]).map((r:any)=><option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
+          <label className={field}>Adults<Input type="number" min="1" max="20" value={previewInput.adults} onChange={e=>setPreviewInput({...previewInput,adults:e.target.value})}/></label>
+          <label className={field}>Check-in<Input required type="date" value={previewInput.check_in} onChange={e=>setPreviewInput({...previewInput,check_in:e.target.value})}/></label>
+          <label className={field}>Check-out<Input required type="date" value={previewInput.check_out} onChange={e=>setPreviewInput({...previewInput,check_out:e.target.value})}/></label>
+          <label className={field}>Promotion code(s)<Input maxLength={64} value={previewInput.promo_code} onChange={e=>setPreviewInput({...previewInput,promo_code:e.target.value.toUpperCase()})} placeholder="CODE or CODE1,CODE2"/></label>
+          <label className={field}>Guest email (for per-guest limits)<Input type="email" value={previewInput.guest_email} onChange={e=>setPreviewInput({...previewInput,guest_email:e.target.value})}/></label>
+          <div className="flex items-end"><Button type="submit" disabled={preview.isPending||!previewInput.room_id||!previewInput.check_in||!previewInput.check_out}>{preview.isPending?"Calculating…":"Preview quote"}</Button></div>
+        </form>
+      </SectionCard>
+      {preview.data && <SectionCard title="Canonical quote result"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-md border border-border p-3"><p className="text-xs text-muted-foreground">Accommodation + components</p><p className="mt-1 text-lg font-semibold">{preview.data.currency} {Number(preview.data.component_subtotal??0).toLocaleString()}</p></div>
+        <div className="rounded-md border border-border p-3"><p className="text-xs text-muted-foreground">Discounts</p><p className="mt-1 text-lg font-semibold">{preview.data.currency} {Number(preview.data.discount_total??0).toLocaleString()}</p></div>
+        <div className="rounded-md border border-border p-3"><p className="text-xs text-muted-foreground">Fees + taxes added</p><p className="mt-1 text-lg font-semibold">{preview.data.currency} {(Number(preview.data.fee_total??0)+Number(preview.data.tax_addition??0)).toLocaleString()}</p></div>
+        <div className="rounded-md border border-border p-3"><p className="text-xs text-muted-foreground">Final payable</p><p className="mt-1 text-lg font-semibold">{preview.data.currency} {Number(preview.data.total??0).toLocaleString()}</p></div>
+      </div><pre className="mt-4 max-h-80 overflow-auto rounded-md bg-muted/40 p-3 text-xs">{JSON.stringify(preview.data,null,2)}</pre></SectionCard>}
     </>}
     {tab==="audit" && <SectionCard title="Pricing configuration audit" description="Append-only before/after evidence for tax, fee and promotion configuration changes."><div className="space-y-3">{(data?.audit??[]).map((r:any)=><div key={r.id} className="rounded-md border border-border p-3"><div className="flex flex-wrap justify-between gap-2 text-sm"><strong>{r.entity_type} · {r.operation}</strong><span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString()}</span></div><p className="mt-1 text-xs text-muted-foreground">Version {r.previous_version??"—"} → {r.new_version??"—"} · {r.entity_id}</p></div>)}{!data?.audit?.length&&<p className="text-sm text-muted-foreground">No pricing configuration changes recorded.</p>}</div></SectionCard>}
   </div>;
