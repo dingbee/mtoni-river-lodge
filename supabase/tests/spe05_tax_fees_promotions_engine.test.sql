@@ -1,6 +1,6 @@
 -- SPE-05 contract tests. Transaction is rolled back; no property data is written.
 BEGIN;
-SELECT plan(15);
+SELECT plan(19);
 
 SELECT has_table('public','staynas_property_fee_rules','Property fee configuration exists');
 SELECT has_table('public','staynas_property_promotions','Property promotion configuration exists');
@@ -64,6 +64,38 @@ SELECT ok(
   AND pg_get_functiondef('public.calculate_staynas_spe05_adjustments(uuid,date,date,text,jsonb,uuid,uuid,text,text,date)'::regprocedure)
     LIKE '%PROMOTION_INELIGIBLE%',
   'Unsupported stacking is rejected explicitly rather than silently mispriced');
+
+
+SELECT has_column('public','bookings','fee_total','Booking records fee totals');
+SELECT has_column('public','bookings','discount_total','Booking records discount totals');
+
+SELECT ok(
+  pg_get_functiondef('public.calculate_staynas_booking_quote(uuid,uuid,date,date,integer,integer,integer,jsonb)'::regprocedure)
+    LIKE '%calculate_staynas_spe05_adjustments%'
+  AND pg_get_functiondef('public.calculate_staynas_booking_quote(uuid,uuid,date,date,integer,integer,integer,jsonb)'::regprocedure)
+    LIKE '%fee_total%'
+  AND pg_get_functiondef('public.calculate_staynas_booking_quote(uuid,uuid,date,date,integer,integer,integer,jsonb)'::regprocedure)
+    LIKE '%discount_total%',
+  'Canonical quote path consumes SPE-05 and exposes fee/discount breakdowns');
+
+SELECT ok(
+  pg_get_functiondef('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)'::regprocedure)
+    LIKE '%redeem_staynas_promotion%'
+  AND pg_get_functiondef('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)'::regprocedure)
+    LIKE '%fee_total%'
+  AND pg_get_functiondef('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)'::regprocedure)
+    LIKE '%pricing_adjustments%',
+  'Booking transaction redeems promotions and snapshots adjustment totals');
+
+SELECT has_function(
+  'public','get_staynas_booking_quote_with_rate_plan_and_promo',
+  ARRAY['uuid','text','date','date','integer','integer','integer','jsonb','uuid','text'],
+  'Guest quote accepts a promotion code through the canonical rate-plan path');
+
+SELECT has_function(
+  'public','create_booking_for_property_with_rate_plan_and_promo',
+  ARRAY['uuid','text','date','date','integer','integer','text','text','text','text','text','jsonb','integer','integer','uuid','text','text','uuid','text'],
+  'Transactional booking accepts a promotion code without bypassing the existing booking transaction');
 
 SELECT * FROM finish();
 ROLLBACK;
