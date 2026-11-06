@@ -1,6 +1,6 @@
 -- SPE-04.03 database contract tests. Run with Supabase pgTAP test runner.
 BEGIN;
-SELECT plan(19);
+SELECT plan(21);
 
 SELECT has_function(
   'public',
@@ -137,6 +137,24 @@ SELECT ok(
   pg_get_functiondef('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text)'::regprocedure)
     LIKE '%''online''%',
   'Legacy 16-argument booking RPC delegates to the shared pricing-aware booking path'
+);
+
+
+
+SELECT ok(
+  pg_get_functiondef('public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure)
+    LIKE '%More than one eligible published rate plan applies%'
+    AND pg_get_functiondef('public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure)
+    NOT LIKE '%ORDER BY p2.id%',
+  'Implicit selection fails closed for multiple plans and never orders candidates by UUID'
+);
+
+SELECT ok(
+  pg_get_functiondef('public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure)
+    LIKE '%pub.publication_number=(%'
+    AND pg_get_functiondef('public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure)
+    LIKE '%Eligible rate plan and latest publication could not be resolved consistently%',
+  'Plan selection and quote evidence are pinned to the same latest eligible publication candidate'
 );
 
 SELECT * FROM finish();
