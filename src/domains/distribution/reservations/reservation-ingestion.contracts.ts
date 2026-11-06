@@ -165,8 +165,14 @@ export function toSafeReservationEventEnvelope(event: ExternalReservationEvent):
     hasFinancialData: event.grossAmount !== undefined || event.taxes !== undefined ||
       event.fees !== undefined || event.channelCommission !== undefined ||
       event.expectedSettlement !== undefined || event.paymentAmount !== undefined ||
-      event.paymentReference !== undefined || event.settlementReference !== undefined ||
-      event.settlementAmount !== undefined || event.exchangeRate !== undefined ||
-      event.refundAmount !== undefined || event.refundReversalAmount !== undefined,
+      event.paymentAmount !== undefined || event.paymentCurrency !== undefined ||
+      event.paymentStatus !== undefined || event.paymentReference !== undefined ||
+      event.settlementReference !== undefined || event.settlementAmount !== undefined ||
+      event.settlementCurrency !== undefined || event.settlementAt !== undefined ||
+      event.settlementDueAt !== undefined || event.exchangeRate !== undefined ||
+      event.settlementAdjustmentType !== undefined || event.refundAmount !== undefined ||
+      event.refundCurrency !== undefined || event.refundReference !== undefined ||
+      event.refundAt !== undefined || event.refundReversalAmount !== undefined ||
+      event.refundReversalReference !== undefined,
   };
 }
