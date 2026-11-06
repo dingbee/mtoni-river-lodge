@@ -66,4 +66,27 @@ describe("DC-05 provider-neutral reservation contract", () => {
     const event = externalReservationSchema.parse({ ...base, grossAmount: undefined, taxes: 12 });
     expect(toSafeReservationEventEnvelope(event).hasFinancialData).toBe(true);
   });
+
+  it("requires both child age bands and exact reconciliation to the provider total", () => {
+    expect(() => externalReservationSchema.parse({
+      ...base, children: 2, childrenBelow6: 1,
+    })).toThrow();
+    expect(() => externalReservationSchema.parse({
+      ...base, children: 2, childrenBelow6: 1, children7Plus: 0,
+    })).toThrow();
+    expect(externalReservationSchema.parse({
+      ...base, children: 2, childrenBelow6: 1, children7Plus: 1,
+    }).children).toBe(2);
+  });
+  it("keeps child age pricing inputs in the encrypted-event contract and safe numeric envelope", () => {
+    const event = externalReservationSchema.parse({
+      ...base, children: 2, childrenBelow6: 1, children7Plus: 1,
+    });
+    const safe = toSafeReservationEventEnvelope(event);
+    expect(safe.childrenBelow6).toBe(1);
+    expect(safe.children7Plus).toBe(1);
+    expect(safe).not.toHaveProperty("guest");
+    expect(safe).not.toHaveProperty("grossAmount");
+  });
+
 });
