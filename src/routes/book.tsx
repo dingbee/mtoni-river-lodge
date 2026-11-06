@@ -452,7 +452,7 @@ function BookPage() {
         roomSlug: selectedRoom.slug,
         ratePlanId: selectedRoom.selected_rate_plan_id,
         promoCode: appliedPromoCode || undefined,
-        guestEmail: guest.email.trim() || undefined,
+        guestEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guest.email.trim()) ? guest.email.trim() : undefined,
         checkIn,
         checkOut,
         adults,
