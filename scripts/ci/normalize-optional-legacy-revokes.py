@@ -86,3 +86,23 @@ if fixture_end not in fixture_source:
     raise SystemExit("Expected legacy booking fixture terminator was not found.")
 fixture_source = fixture_source.replace(fixture_end, fixture_guarded_end, 1)
 fixture_migration.write_text(fixture_source)
+
+# In the clean-reset schema these legacy global slug indexes are backed by
+# UNIQUE constraints. PostgreSQL will not drop an index owned by a constraint.
+# Retain the stronger global uniqueness in this ephemeral CI database while
+# still creating the property-scoped indexes; live UAT has the standalone
+# indexes and runs the unmodified migration.
+property_migration = Path(
+    "supabase/migrations/20260926150000_staynas_property_room_hardening.sql"
+)
+property_source = property_migration.read_text()
+for index in ("rooms_slug_key", "room_categories_slug_key", "extras_slug_key"):
+    statement = f"DROP INDEX IF EXISTS {index};"
+    if statement not in property_source:
+        raise SystemExit(f"Expected legacy global slug index drop was not found: {index}")
+    property_source = property_source.replace(
+        statement,
+        f"-- CI retains the constraint-backed {index} in the clean-reset schema.",
+        1,
+    )
+property_migration.write_text(property_source)
