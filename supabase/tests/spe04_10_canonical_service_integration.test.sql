@@ -5,7 +5,7 @@ SELECT plan(9);
 SELECT ok(
   pg_get_functiondef('public.calculate_staynas_room_pricing(uuid,uuid,date,date,integer,integer,integer)'::regprocedure)
     LIKE '%resolve_staynas_published_room_pricing%'
-    AND pg_get_functiondef('public.calculate_staynas_room_pricing(uuid,uuid,date,date,integer,integer,integer)'::regprocedure)
+    AND pg_get_functiondef('public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure)
     LIKE '%calculate_staynas_room_pricing_legacy%',
   'The shared room adapter is the only bridge to published resolver and legacy-only fallback');
 
