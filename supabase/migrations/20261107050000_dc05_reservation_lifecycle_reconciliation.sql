@@ -264,6 +264,7 @@ DECLARE
   v_link public.staynas_distribution_reservation_links%ROWTYPE;
   v_booking public.bookings%ROWTYPE;
   v_connection public.staynas_distribution_connections%ROWTYPE;
+  v_source_event jsonb;
   v_capability text;
   v_target text;
   v_decision jsonb;
@@ -334,6 +335,16 @@ BEGIN
   FOR UPDATE;
   IF v_link.id IS NULL THEN
     RETURN jsonb_build_object('outcome','manual_reconciliation','reconciliation_code','canonical_reservation_link_missing');
+  END IF;
+
+  SELECT i.normalized_event INTO v_source_event
+  FROM public.staynas_distribution_webhook_inbox i
+  WHERE i.id=v_link.source_inbox_id;
+  IF v_source_event IS NULL
+     OR v_inbox.normalized_event->>'externalListingId' IS DISTINCT FROM v_source_event->>'externalListingId'
+     OR v_inbox.normalized_event->>'externalRoomId' IS DISTINCT FROM v_source_event->>'externalRoomId'
+     OR v_inbox.normalized_event->>'externalRatePlanId' IS DISTINCT FROM v_source_event->>'externalRatePlanId' THEN
+    RETURN jsonb_build_object('outcome','manual_reconciliation','reconciliation_code','room_or_rate_plan_change_requires_reallocation');
   END IF;
 
   IF v_link.provider_modified_at IS NOT NULL AND _provider_modified_at<=v_link.provider_modified_at THEN
