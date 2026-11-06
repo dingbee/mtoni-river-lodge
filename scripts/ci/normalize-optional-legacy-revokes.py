@@ -55,37 +55,9 @@ if old not in room_source:
     raise SystemExit("Expected optional room-state insert was not found.")
 room_migration.write_text(room_source.replace(old, new, 1))
 
-# The following historical migration contains demonstration bookings for a
-# property-specific room UUID. A later StayNas migration intentionally
-# truncates the legacy property catalog, so clean CI has no such room. Keep
-# the fixture migration intact for databases that still have the legacy room,
-# but skip only this optional demo-data block in a clean property-neutral DB.
-fixture_migration = Path(
-    "supabase/migrations/20260806142337_0c977466-741b-4cd6-bc22-892f03edb5bd.sql"
-)
-fixture_source = fixture_migration.read_text()
-fixture_start = """  c1 uuid; c2 uuid; c4 uuid;
-BEGIN
-  INSERT INTO public.bookings"""
-fixture_guarded_start = """  c1 uuid; c2 uuid; c4 uuid;
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM public.rooms
-     WHERE id = '3b476463-ea58-4d5b-abb4-ad460e844a8b'
-  ) THEN
-  INSERT INTO public.bookings"""
-if fixture_start not in fixture_source:
-    raise SystemExit("Expected legacy booking fixture block was not found.")
-fixture_source = fixture_source.replace(fixture_start, fixture_guarded_start, 1)
-fixture_end = """   WHERE id = unit1;
-END $$;"""
-fixture_guarded_end = """   WHERE id = unit1;
-  END IF;
-END $$;"""
-if fixture_end not in fixture_source:
-    raise SystemExit("Expected legacy booking fixture terminator was not found.")
-fixture_source = fixture_source.replace(fixture_end, fixture_guarded_end, 1)
-fixture_migration.write_text(fixture_source)
+# The historical booking fixture now resolves the seeded room and unit by stable
+# slugs/labels, so it is intentionally applied in clean CI rather than skipped.
+
 
 # In the clean-reset schema these legacy global slug indexes are backed by
 # UNIQUE constraints. PostgreSQL will not drop an index owned by a constraint.
