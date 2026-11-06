@@ -969,10 +969,10 @@ function GuestStep(props: {
         </div>
 
         <div className="rounded-2xl border border-charcoal/10 bg-ivory p-6 sm:p-8">
-          <h3 className="font-display text-xl">Promotion code</h3>
-          <p className="mt-1 text-xs text-charcoal/60">Enter a property-issued offer code, if you have one.</p>
+          <h3 className="font-display text-xl">Promotion code(s)</h3>
+          <p className="mt-1 text-xs text-charcoal/60">Enter a property-issued code. Multiple codes can be comma-separated when each offer permits stacking.</p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <input aria-label="Promotion code" value={props.promoCodeInput} onChange={(e) => props.setPromoCodeInput(e.target.value)} maxLength={64} className="w-full flex-1 rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm uppercase text-charcoal outline-none focus:border-charcoal" placeholder="Enter code" disabled={!!props.appliedPromoCode}/>
+            <input aria-label="Promotion code" value={props.promoCodeInput} onChange={(e) => props.setPromoCodeInput(e.target.value)} maxLength={64} className="w-full flex-1 rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm uppercase text-charcoal outline-none focus:border-charcoal" placeholder="CODE or CODE1,CODE2" disabled={!!props.appliedPromoCode}/>
             {props.appliedPromoCode ? <button type="button" onClick={props.onRemovePromo} className="rounded-lg border border-charcoal/20 px-4 py-3 text-xs font-semibold uppercase tracking-wider">Remove</button> : <button type="button" onClick={props.onApplyPromo} disabled={!props.promoCodeInput.trim()} className="rounded-lg bg-charcoal px-4 py-3 text-xs font-semibold uppercase tracking-wider text-ivory disabled:opacity-40">Apply</button>}
           </div>
           {props.appliedPromoCode && <p className="mt-2 text-xs text-forest">Validating {props.appliedPromoCode} against this stay…</p>}
