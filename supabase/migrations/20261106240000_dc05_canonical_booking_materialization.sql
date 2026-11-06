@@ -713,7 +713,7 @@ BEGIN
     RETURN;
   END IF;
 
-  SELECT * INTO v_connection
+  SELECT c.* INTO v_connection
   FROM public.staynas_distribution_connections c
   JOIN public.staynas_distribution_account_grants g
     ON g.id=c.account_grant_id
