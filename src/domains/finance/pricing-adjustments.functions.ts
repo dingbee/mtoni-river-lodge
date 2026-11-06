@@ -145,12 +145,16 @@ export const savePricingPromotion = createServerFn({ method:"POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId=await activeFinanceProperty(context.supabase,context.userId);
-    const checks: Promise<any>[]=[];
-    if(data.eligible_room_ids.length) checks.push((context.supabase as any).from("rooms").select("id").eq("property_id",propertyId).in("id",data.eligible_room_ids));
-    if(data.eligible_rate_plan_ids.length) checks.push((context.supabase as any).from("staynas_rate_plans").select("id").eq("property_id",propertyId).in("id",data.eligible_rate_plan_ids));
-    const scoped=await Promise.all(checks);
-    if(scoped.some((result,i)=>result.error || (result.data??[]).length!==(i===0&&data.eligible_room_ids.length?data.eligible_room_ids.length:data.eligible_rate_plan_ids.length))){
-      throw new Error("A selected room or rate plan does not belong to the active property.");
+    const sb:any=context.supabase;
+    if(data.eligible_room_ids.length){
+      const {data:rooms,error}=await sb.from("rooms").select("id").eq("property_id",propertyId).in("id",data.eligible_room_ids);
+      if(error) throw new Error(error.message);
+      if((rooms??[]).length!==data.eligible_room_ids.length) throw new Error("An eligible room does not belong to the active property.");
+    }
+    if(data.eligible_rate_plan_ids.length){
+      const {data:plans,error}=await sb.from("staynas_rate_plans").select("id").eq("property_id",propertyId).in("id",data.eligible_rate_plan_ids);
+      if(error) throw new Error(error.message);
+      if((plans??[]).length!==data.eligible_rate_plan_ids.length) throw new Error("An eligible rate plan does not belong to the active property.");
     }
     return savePropertyRecord(context.supabase,context.userId,propertyId,"staynas_property_promotions",data as Record<string,unknown>);
   });
