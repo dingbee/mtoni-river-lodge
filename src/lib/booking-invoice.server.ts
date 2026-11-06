@@ -20,6 +20,10 @@ export type InvoiceData = {
   lineItems: { description: string; qty: number; unit: number; total: number }[];
   subtotal: number;
   extrasTotal: number;
+  feeTotal: number;
+  discountTotal: number;
+  taxAddition: number;
+  taxIncluded: number;
   total: number;
   depositPaid: number;
   balanceDue: number;
@@ -133,6 +137,9 @@ export async function buildInvoicePdf(data: InvoiceData): Promise<Uint8Array> {
   const totals: [string, number, boolean][] = [
     ["Subtotal (room)", data.subtotal, false],
     ["Extras", data.extrasTotal, false],
+    ["Fees", data.feeTotal, false],
+    ["Promotion discount", -data.discountTotal, false],
+    ["Taxes added", data.taxAddition, false],
     ["Total", data.total, true],
     ["Deposit paid", -data.depositPaid, false],
     ["Balance on arrival", data.balanceDue, true],
@@ -163,9 +170,9 @@ export async function buildInvoicePdf(data: InvoiceData): Promise<Uint8Array> {
 
 export async function buildInvoiceForBooking(bookingId: string): Promise<{ filename: string; bytes: Uint8Array } | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: b } = await supabaseAdmin
+  const { data: b } = await (supabaseAdmin as any)
     .from("bookings")
-    .select("reference, guest_name, guest_email, guest_phone, country, check_in, check_out, nights, adults, children, currency, subtotal, extras_total, total, deposit_amount, balance_amount, room_id, created_at")
+    .select("reference, guest_name, guest_email, guest_phone, country, check_in, check_out, nights, adults, children, currency, subtotal, extras_total, fee_total, discount_total, taxes, tax_addition, total, deposit_amount, balance_amount, room_id, created_at")
     .eq("id", bookingId)
     .maybeSingle();
   if (!b) return null;
@@ -219,6 +226,10 @@ export async function buildInvoiceForBooking(bookingId: string): Promise<{ filen
     lineItems,
     subtotal: Number(b.subtotal) || 0,
     extrasTotal: Number(b.extras_total) || 0,
+    feeTotal: Number(b.fee_total) || 0,
+    discountTotal: Number(b.discount_total) || 0,
+    taxAddition: Number(b.tax_addition) || 0,
+    taxIncluded: Math.max(0, (Number(b.taxes) || 0) - (Number(b.tax_addition) || 0)),
     total: Number(b.total) || 0,
     depositPaid: Number(b.deposit_amount) || 0,
     balanceDue: Number(b.balance_amount) || 0,
