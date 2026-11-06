@@ -1,6 +1,9 @@
 name: StayNas DC-05.03 canonical materialization migrations
 
 on:
+  push:
+    branches:
+      - feat/dc05-*
   pull_request:
     branches: [integration/dc05-foundation]
     paths:
