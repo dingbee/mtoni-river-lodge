@@ -39,6 +39,7 @@ function PricingAdjustments() {
   const [previewInput,setPreviewInput]=useState({room_id:"",check_in:"",check_out:"",adults:"2",rate_plan_id:"",promo_code:"",guest_email:"",extras:[] as string[]});
 
   const refresh=()=>qc.invalidateQueries({queryKey:["staynas.pricing-adjustments"]});
+  const previewResult = previewResult as any;
   const taxSave=useMutation({mutationFn:()=>saveTaxFn({data:{
     ...(tax.id?{id:tax.id}:{}),name:tax.name,tax_code:tax.tax_code||null,
     calculation_type:tax.calculation_type,rate:Number(tax.rate),currency:tax.currency||data?.property.currency,
@@ -169,12 +170,12 @@ function PricingAdjustments() {
           <div className="flex items-end"><Button type="submit" disabled={preview.isPending||!previewInput.room_id||!previewInput.check_in||!previewInput.check_out}>{preview.isPending?"Calculating…":"Preview quote"}</Button></div>
         </form>
       </SectionCard>
-      {preview.data && <SectionCard title="Canonical quote result"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-md border border-border p-3"><p className="text-xs text-muted-foreground">Accommodation + components</p><p className="mt-1 text-lg font-semibold">{preview.data.currency} {Number(preview.data.component_subtotal??0).toLocaleString()}</p></div>
-        <div className="rounded-md border border-border p-3"><p className="text-xs text-muted-foreground">Discounts</p><p className="mt-1 text-lg font-semibold">{preview.data.currency} {Number(preview.data.discount_total??0).toLocaleString()}</p></div>
-        <div className="rounded-md border border-border p-3"><p className="text-xs text-muted-foreground">Fees + taxes added</p><p className="mt-1 text-lg font-semibold">{preview.data.currency} {(Number(preview.data.fee_total??0)+Number(preview.data.tax_addition??0)).toLocaleString()}</p></div>
-        <div className="rounded-md border border-border p-3"><p className="text-xs text-muted-foreground">Final payable</p><p className="mt-1 text-lg font-semibold">{preview.data.currency} {Number(preview.data.total??0).toLocaleString()}</p></div>
-      </div><pre className="mt-4 max-h-80 overflow-auto rounded-md bg-muted/40 p-3 text-xs">{JSON.stringify(preview.data,null,2)}</pre></SectionCard>}
+      {previewResult && <SectionCard title="Canonical quote result"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-md border border-border p-3"><p className="text-xs text-muted-foreground">Accommodation + components</p><p className="mt-1 text-lg font-semibold">{previewResult.currency} {Number(previewResult.component_subtotal??0).toLocaleString()}</p></div>
+        <div className="rounded-md border border-border p-3"><p className="text-xs text-muted-foreground">Discounts</p><p className="mt-1 text-lg font-semibold">{previewResult.currency} {Number(previewResult.discount_total??0).toLocaleString()}</p></div>
+        <div className="rounded-md border border-border p-3"><p className="text-xs text-muted-foreground">Fees + taxes added</p><p className="mt-1 text-lg font-semibold">{previewResult.currency} {(Number(previewResult.fee_total??0)+Number(previewResult.tax_addition??0)).toLocaleString()}</p></div>
+        <div className="rounded-md border border-border p-3"><p className="text-xs text-muted-foreground">Final payable</p><p className="mt-1 text-lg font-semibold">{previewResult.currency} {Number(previewResult.total??0).toLocaleString()}</p></div>
+      </div><pre className="mt-4 max-h-80 overflow-auto rounded-md bg-muted/40 p-3 text-xs">{JSON.stringify(previewResult,null,2)}</pre></SectionCard>}
     </>}
     {tab==="audit" && <SectionCard title="Pricing configuration audit" description="Append-only before/after evidence for tax, fee and promotion configuration changes."><div className="space-y-3">{(data?.audit??[]).map((r:any)=><div key={r.id} className="rounded-md border border-border p-3"><div className="flex flex-wrap justify-between gap-2 text-sm"><strong>{r.entity_type} · {r.operation}</strong><span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString()}</span></div><p className="mt-1 text-xs text-muted-foreground">Version {r.previous_version??"—"} → {r.new_version??"—"} · {r.entity_id} · actor {r.changed_by??"system"}</p><details className="mt-2 text-xs"><summary className="cursor-pointer text-muted-foreground">Before / after evidence</summary><div className="mt-2 grid gap-2 md:grid-cols-2"><pre className="max-h-56 overflow-auto rounded bg-muted/40 p-2">{JSON.stringify(r.before_state,null,2)}</pre><pre className="max-h-56 overflow-auto rounded bg-muted/40 p-2">{JSON.stringify(r.after_state,null,2)}</pre></div></details></div>)}{!data?.audit?.length&&<p className="text-sm text-muted-foreground">No pricing configuration changes recorded.</p>}</div></SectionCard>}
   </div>;
