@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { staynasRpc } from "@/lib/staynas-rpc";
-import { Loader2, Leaf, ArrowLeft } from "lucide-react";
+import { Loader2, Leaf, ArrowLeft, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
@@ -41,18 +41,20 @@ function AuthPage() {
         return;
       }
 
-      // Staff sign-in requires at least one property-scoped membership.
-      // Legacy global roles are not a tenant access credential.
+      // Operational access is property-scoped. Founder administration is a separate platform authority.
       const { data: properties, error: propertyError } =
         await staynasRpc(supabase).rpc("staynas_list_properties");
       const accessibleProperties = !propertyError && Array.isArray(properties) ? properties : [];
+      const { data: founderAdmin, error: founderAdminError } =
+        await staynasRpc(supabase).rpc("is_staynas_founder_ai_admin");
+      const hasFounderAdmin = !founderAdminError && founderAdmin === true;
 
-      if (propertyError || accessibleProperties.length === 0) {
+      if ((propertyError || accessibleProperties.length === 0) && !hasFounderAdmin) {
         await supabase.auth.signOut();
         toast.error(
           propertyError
             ? "Could not load your property access. Please try again."
-            : "Your account does not have StayNas property access.",
+            : "Your account does not have StayNas property or founder access.",
         );
         return;
       }
@@ -76,10 +78,11 @@ function AuthPage() {
         return;
       }
 
-      // Resolve all active roles from the selected property's membership.
+      // Route from the selected property's active membership, never legacy global roles.
       const { data: propertyRoles, error: propertyRolesError } =
         await staynasRpc(supabase).rpc("staynas_current_property_roles");
-      if (propertyRolesError || !propertyRoles?.length) {
+      const normalizedRoles = Array.isArray(propertyRoles) ? propertyRoles.map((role) => String(role).toLowerCase()) : [];
+      if ((propertyRolesError || normalizedRoles.length === 0) && !hasFounderAdmin) {
         await supabase.auth.signOut();
         toast.error(
           propertyRolesError
@@ -88,14 +91,15 @@ function AuthPage() {
         );
         return;
       }
-      const normalizedRoles = propertyRoles.map((role) => String(role).toLowerCase());
       const housekeepingOnly =
         normalizedRoles.includes("housekeeping") &&
         !normalizedRoles.some((role: string) =>
           ["owner", "manager", "admin", "reception", "front_desk"].includes(role),
         );
       await navigate({
-        to: housekeepingOnly ? "/admin/operations/housekeeping" : "/admin/bookings",
+        to: hasFounderAdmin && normalizedRoles.length === 0
+          ? "/admin/ai/settings"
+          : housekeepingOnly ? "/admin/operations/housekeeping" : "/admin/bookings",
       });
     } catch (error) {
       console.error("[StayNas auth] Sign-in flow failed", error);
@@ -205,38 +209,67 @@ function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4 py-8">
+    <main className="min-h-[100svh] bg-[#F3F5F2] px-4 py-5 text-slate-900 sm:px-6 sm:py-10">
+      <div className="mx-auto grid min-h-[calc(100svh-2.5rem)] w-full max-w-6xl overflow-hidden rounded-[28px] border border-[#DDE3DC] bg-white shadow-[0_24px_80px_-36px_rgba(15,45,35,0.28)] lg:min-h-[720px] lg:grid-cols-[0.92fr_1.08fr]">
+        <aside className="relative isolate flex min-h-[230px] flex-col justify-between overflow-hidden bg-[#102B24] px-6 py-7 text-white sm:px-10 sm:py-10 lg:min-h-full lg:px-12 lg:py-12">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 -z-10 h-80 w-80 rounded-full border border-white/10" />
+          <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-16 -z-10 h-56 w-56 rounded-full border border-white/10" />
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10">
+              <Leaf className="h-5 w-5 text-[#C9B78A]" />
+            </span>
+            <div>
+              <p className="text-lg font-semibold tracking-[0.12em]">STAYNAS</p>
+              <p className="text-[10px] font-medium uppercase tracking-[0.24em] text-white/55">Hospitality operating system</p>
+            </div>
+          </div>
+          <div className="relative mt-8 max-w-md lg:mt-16">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#C9B78A]">The staff workspace</p>
+            <h2 className="mt-4 max-w-sm text-3xl font-semibold leading-[1.12] tracking-tight sm:text-4xl lg:text-[2.75rem]">
+              Every stay, thoughtfully managed.
+            </h2>
+            <p className="mt-4 max-w-sm text-sm leading-6 text-white/70 sm:text-base">
+              Reservations, guest experiences and property operations—connected in one calm, clear workspace.
+            </p>
+          </div>
+          <div className="mt-8 flex items-center gap-2 text-xs text-white/50 lg:mt-16">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#C9B78A]" />
+            Secure access for authorised property teams
+          </div>
+        </aside>
+        <section className="flex min-w-0 items-center justify-center px-5 py-8 sm:px-10 sm:py-12 lg:px-14">
       <form
         onSubmit={recoveryVerified ? saveRecoveredPassword : recoverySent ? verifyRecoveryCode : submit}
-        className="w-full max-w-sm rounded-lg border border-border bg-card p-6 shadow-sm sm:p-8"
+        className="w-full max-w-md rounded-2xl border border-[#E5E9E4] bg-white p-1 shadow-none"
       >
-        <p className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          <Leaf className="h-4 w-4 text-primary" /> Staff Portal
-        </p>
+        <div className="px-1 py-2 sm:px-3">
+          <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#61736B]">
+            <ShieldCheck className="h-4 w-4 text-[#315E4D]" /> Staff portal
+          </p>
 
         {recoveryVerified ? (
           <>
-            <h1 className="mt-3 text-2xl font-semibold tracking-tight">Reset your password</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Your email is verified. Choose a new password to continue.</p>
-            <div className="mt-6 space-y-4">
+            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-[#172A23]">Reset your password</h1>
+            <p className="mt-2 text-sm leading-6 text-[#718078]">Your email is verified. Choose a new password to continue.</p>
+            <div className="mt-8 space-y-5">
               <div>
                 <label className="text-sm font-medium text-foreground">New password</label>
-                <input type="password" required minLength={8} autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring" />
+                <input type="password" required minLength={8} autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mt-2 h-12 w-full rounded-xl border border-[#D8E0D9] bg-[#FAFBF9] px-4 text-base text-[#172A23] outline-none transition placeholder:text-[#9AA79F] focus:border-[#315E4D] focus:bg-white focus:ring-4 focus:ring-[#315E4D]/10" />
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground">Confirm new password</label>
-                <input type="password" required minLength={8} autoComplete="new-password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring" />
+                <input type="password" required minLength={8} autoComplete="new-password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} className="mt-2 h-12 w-full rounded-xl border border-[#D8E0D9] bg-[#FAFBF9] px-4 text-base text-[#172A23] outline-none transition placeholder:text-[#9AA79F] focus:border-[#315E4D] focus:bg-white focus:ring-4 focus:ring-[#315E4D]/10" />
               </div>
             </div>
-            <button type="submit" disabled={savingNewPassword || !newPassword || !confirmNewPassword} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60">
+            <button type="submit" disabled={savingNewPassword || !newPassword || !confirmNewPassword} className="mt-7 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#173B30] px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_-10px_rgba(16,43,36,0.8)] transition hover:bg-[#245343] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315E4D] focus-visible:ring-offset-2 disabled:opacity-60">
               {savingNewPassword && <Loader2 className="h-4 w-4 animate-spin" />}
               Save new password
             </button>
           </>
         ) : recoverySent ? (
           <>
-            <h1 className="mt-3 text-2xl font-semibold tracking-tight">Enter reset code</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-[#172A23]">Enter reset code</h1>
+            <p className="mt-2 text-sm leading-6 text-[#718078]">
               Enter the one-time code sent to <span className="font-medium text-foreground">{email}</span>.
               Keep this page open while you retrieve the email.
             </p>
@@ -252,7 +285,7 @@ function AuthPage() {
                 maxLength={12}
                 value={recoveryCode}
                 onChange={(e) => { setRecoveryCode(e.target.value); setRecoveryError(""); }}
-                className="mt-2 w-full rounded-md border border-input bg-background px-3 py-3 text-center text-xl tracking-[0.35em] text-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+                className="mt-2 h-14 w-full rounded-xl border border-[#D8E0D9] bg-[#FAFBF9] px-4 text-center text-xl tracking-[0.35em] text-[#172A23] outline-none transition focus:border-[#315E4D] focus:ring-4 focus:ring-[#315E4D]/10"
                 placeholder="••••••"
                 autoFocus
               />
@@ -270,7 +303,7 @@ function AuthPage() {
               type="button"
               onClick={resetPassword}
               disabled={resetting || verifyingRecovery}
-              className="mt-3 block w-full text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-60"
+              className="mt-4 block w-full text-center text-sm font-medium text-[#61736B] underline-offset-4 hover:text-[#173B30] hover:underline disabled:opacity-60"
             >
               {resetting ? "Sending…" : "Send a new code"}
             </button>
@@ -285,7 +318,7 @@ function AuthPage() {
         ) : (
           <>
             <h1 className="mt-3 text-2xl font-semibold tracking-tight">Sign in</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Reservations & admin access only.</p>
+            <p className="mt-2 text-sm leading-6 text-[#718078]">Sign in to your property workspace.</p>
 
             <div className="mt-6 space-y-4">
               <div>
@@ -298,7 +331,7 @@ function AuthPage() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                  className="mt-2 h-12 w-full rounded-xl border border-[#D8E0D9] bg-[#FAFBF9] px-4 text-base text-[#172A23] outline-none transition placeholder:text-[#9AA79F] focus:border-[#315E4D] focus:bg-white focus:ring-4 focus:ring-[#315E4D]/10"
                 />
               </div>
 
@@ -312,7 +345,7 @@ function AuthPage() {
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                  className="mt-2 h-12 w-full rounded-xl border border-[#D8E0D9] bg-[#FAFBF9] px-4 text-base text-[#172A23] outline-none transition placeholder:text-[#9AA79F] focus:border-[#315E4D] focus:bg-white focus:ring-4 focus:ring-[#315E4D]/10"
                 />
               </div>
             </div>
@@ -339,11 +372,14 @@ function AuthPage() {
 
         <Link
           to="/"
-          className="mt-4 block text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          className="mt-8 block border-t border-[#EDF0EC] pt-5 text-center text-sm font-medium text-[#718078] underline-offset-4 hover:text-[#173B30] hover:underline"
         >
           ← Back to website
         </Link>
+      </div>
       </form>
-    </div>
+        </section>
+      </div>
+    </main>
   );
 }
