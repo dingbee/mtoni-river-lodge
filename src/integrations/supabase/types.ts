@@ -2785,6 +2785,7 @@ export type Database = {
           expected_impact: number | null
           id: string
           model: string | null
+          property_id: string
           reasoning: string
           room_id: string | null
           status: string
@@ -2806,6 +2807,7 @@ export type Database = {
           expected_impact?: number | null
           id?: string
           model?: string | null
+          property_id: string
           reasoning: string
           room_id?: string | null
           status?: string
@@ -2827,6 +2829,7 @@ export type Database = {
           expected_impact?: number | null
           id?: string
           model?: string | null
+          property_id?: string
           reasoning?: string
           room_id?: string | null
           status?: string
@@ -2842,6 +2845,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rooms"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_pricing_recommendations_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_pricing_recommendations_room_property_fkey"
+            columns: ["room_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id", "property_id"]
           },
         ]
       }
@@ -8367,6 +8384,7 @@ export type Database = {
           name: string
           notes: string | null
           priority: number
+          property_id: string
           room_id: string | null
           rule_type: string
           scope: string
@@ -8386,6 +8404,7 @@ export type Database = {
           name: string
           notes?: string | null
           priority?: number
+          property_id: string
           room_id?: string | null
           rule_type: string
           scope?: string
@@ -8405,6 +8424,7 @@ export type Database = {
           name?: string
           notes?: string | null
           priority?: number
+          property_id?: string
           room_id?: string | null
           rule_type?: string
           scope?: string
@@ -8419,6 +8439,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rooms"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_rules_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "staynas_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_rules_room_property_fkey"
+            columns: ["room_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id", "property_id"]
           },
         ]
       }
