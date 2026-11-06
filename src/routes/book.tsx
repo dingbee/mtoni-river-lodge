@@ -1006,9 +1006,9 @@ function GuestStep(props: {
           {props.breakdown && (
             <>
               {props.breakdown.nightly.map((night) => (
-                <div key={night.date} className="flex justify-between text-charcoal/70">
-                  <span>{night.date}</span>
-                  <span>{fmt(night.nightly_rate)}</span>
+                <div key={night.date} className="flex items-center justify-between gap-3 text-charcoal/70">
+                  <span><span className="block">{night.date}</span><span className="mt-0.5 block text-[10px] capitalize text-charcoal/45">{(night.applied_rule_type ?? night.source ?? "published rate").replaceAll("_", " ")}{night.pricing_basis ? ` · ${night.pricing_basis.replaceAll("_", " ")}` : ""}</span></span>
+                  <span className="shrink-0">{fmt(night.nightly_rate)}</span>
                 </div>
               ))}
               {props.childrenBelow6 > 0 && (
