@@ -24,6 +24,8 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
+      - name: Reconcile local migration queue before remote dry-run
+        run: python3 scripts/cc01-quarantine-nonledger-migrations.py
       - name: Require scoped Supabase credentials
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

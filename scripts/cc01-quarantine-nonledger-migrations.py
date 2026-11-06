@@ -14,7 +14,7 @@ ledger = json.loads((root / "docs/cc-01-live-migration-ledger.json").read_text()
 records = ledger.get("records", [])
 canonical = {f"{r['version']}_{r['name']}.sql" for r in records}
 staged_release_migrations = {
-    "20261105100000_cc01_property_access_and_founder_authority.sql",
+    "20261106143000_cc01_property_access_and_founder_authority.sql",
     "20261106210000_spe04_public_rate_plan_discovery.sql",
 }
 active = root / "supabase/migrations"

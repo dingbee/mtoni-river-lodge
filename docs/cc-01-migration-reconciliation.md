@@ -185,3 +185,18 @@ The live-ledger snapshot was then used to restore the active migration paths on 
 ## Forward migration exception — SPE-04 public rate-plan discovery
 
 The production ledger snapshot is retained unchanged. The mainline SPE-04 discovery correction at `20261106210000_spe04_public_rate_plan_discovery.sql` is not a duplicate of the already-applied discovery migration: it corrects effective-period eligibility to compare against the final charged night (`check_out - 1`), not the checkout date. It is therefore an approved forward migration and must remain in `supabase/migrations` alongside the staged CC-01 migration. The quarantine allowlist preserves both files; all other non-ledger candidates remain outside the executable migration directory. The isolated PostgreSQL verification applies both and asserts the corrected function body.
+
+
+## Final release-preflight reconciliation — 6 November 2026, 14:51 UTC
+
+This section supersedes earlier ledger counts and migration sequencing notes above.
+
+- Read-only production migration ledger: **116 applied records**; latest applied version **20261106142428** (spe05_pricing_code_uniqueness).
+- The active migration directory now contains **118 files**: 116 canonical applied-version sources plus two deliberately staged forward migrations (CC-01 and the previously approved SPE-04 public rate-plan discovery correction).
+- Four SPE-05 source files were recovered from the pre-application Git snapshot `797c598e476bfcf9a52a1e752ace2d7cb0bd06e6` and restored under their exact live version/name paths. They are historical source restoration only; they are not replayed.
+- The latest quarantine pass moved **27 non-ledger migration files** byte-for-byte into `supabase/migration-history-candidates/`; **164 candidate files** are retained outside the executable migration directory. The historical source-provenance exceptions remain documented and are not replayed or marked applied.
+- CC-01's staged migration is resequenced from `20261105100000` to **`20261106143000`**, after the latest live record and before the staged SPE-04 forward migration. The PostgreSQL fixture workflow and quarantine allowlist use the same canonical filename.
+- The official Supabase dry-run workflow now runs the quarantine script inside its own isolated checkout before invoking `supabase db push --dry-run`. This removes the race between the quarantine and dry-run workflows; it does not execute SQL or modify the live database.
+- The earlier dry-run on merge commit `a7804c9` is not accepted as release evidence because it ran before the quarantine commit and listed non-ledger SPE-02/SPE-03 migration variants. The post-quarantine dry-run on the exact current head is the acceptance check.
+
+No production migration, migration-history repair, database schema/data/role mutation, merge to main, or deployment has been performed.
