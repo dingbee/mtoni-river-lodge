@@ -52,6 +52,13 @@ BEGIN
      OR position('staynas_distribution_reservation_links' IN v_def)=0 THEN
     RAISE EXCEPTION 'Materializer is not bound to SPE-04 pricing and provider reservation identity';
   END IF;
+  IF position('v_candidate.pricing_quote IS NULL' IN v_def)=0
+     OR position('v_candidate.pricing_quote->>''ok'' IS DISTINCT FROM ''true''' IN v_def)=0
+     OR position('IF NOT COALESCE(v_candidate.is_available,false)' IN v_def)=0
+     OR position('v_candidate.pricing_quote IS NULL' IN v_def)
+        > position('IF NOT COALESCE(v_candidate.is_available,false)' IN v_def) THEN
+    RAISE EXCEPTION 'Materializer must reject unresolved/invalid rate-plan pricing before inventory retry';
+  END IF;
 
   v_create:=pg_get_functiondef(
     'public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid,text)'::regprocedure
