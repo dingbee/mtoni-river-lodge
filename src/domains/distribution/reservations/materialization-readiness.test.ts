@@ -16,6 +16,49 @@ const event = (guest: Record<string, string> = {}) => externalReservationSchema.
   children: 0,
   providerPayloadFingerprint: "a".repeat(64),
   guest,
+  it("requires explicit child age bands when children affect published-plan pricing", () => {
+    const withChildren = externalReservationSchema.parse({
+      providerKey: "airbnb",
+      externalAccountReference: "account-1",
+      externalReservationId: "reservation-children",
+      externalListingId: "listing-1",
+      providerEventId: "event-children",
+      eventType: "reservation.created",
+      providerStatus: "confirmed",
+      arrivalDate: "2026-12-01",
+      departureDate: "2026-12-04",
+      adults: 2,
+      children: 2,
+      providerPayloadFingerprint: "b".repeat(64),
+      guest: { firstName: "Amina", lastName: "Mushi", email: "amina@example.com" },
+    });
+    expect(assessReservationMaterializationReadiness(withChildren, resolved)).toEqual({
+      kind: "manual_reconciliation",
+      reasons: ["child_age_breakdown_missing"],
+    });
+  });
+
+  it("accepts complete child age bands only when they reconcile to the total", () => {
+    const withChildren = externalReservationSchema.parse({
+      providerKey: "airbnb",
+      externalAccountReference: "account-1",
+      externalReservationId: "reservation-children",
+      externalListingId: "listing-1",
+      providerEventId: "event-children",
+      eventType: "reservation.created",
+      providerStatus: "confirmed",
+      arrivalDate: "2026-12-01",
+      departureDate: "2026-12-04",
+      adults: 2,
+      children: 2,
+      childrenBelow6: 1,
+      children7Plus: 1,
+      providerPayloadFingerprint: "c".repeat(64),
+      guest: { firstName: "Amina", lastName: "Mushi", email: "amina@example.com" },
+    });
+    expect(assessReservationMaterializationReadiness(withChildren, resolved)).toEqual({ kind: "ready" });
+  });
+
 });
 
 const resolved = {
