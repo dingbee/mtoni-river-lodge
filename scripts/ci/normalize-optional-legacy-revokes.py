@@ -106,3 +106,29 @@ for index in ("rooms_slug_key", "room_categories_slug_key", "extras_slug_key"):
         1,
     )
 property_migration.write_text(property_source)
+
+# A legacy concierge migration expects a hostname registry that is provisioned
+# in live environments but is not part of the clean migration chain. Execute
+# its backfill only when the registry exists; the migration's following
+# NOT-NULL/unmapped-row check still fails closed if orphan sessions exist.
+concierge_migration = Path(
+    "supabase/migrations/20261031190000_sn_iq_04_active_property_authorization_helpers.sql"
+)
+concierge_source = concierge_migration.read_text()
+old_backfill = """ UPDATE public.ai_concierge_sessions s
+ SET property_id=d.property_id
+ FROM public.staynas_property_domains d
+ WHERE s.property_id IS NULL
+   AND lower(regexp_replace(split_part(split_part(s.referer,'/',3),':',1),'^www\\\\.',''))=lower(d.hostname);"""
+new_backfill = """ IF to_regclass('public.staynas_property_domains') IS NOT NULL THEN
+  EXECUTE $ci$
+   UPDATE public.ai_concierge_sessions s
+   SET property_id=d.property_id
+   FROM public.staynas_property_domains d
+   WHERE s.property_id IS NULL
+     AND lower(regexp_replace(split_part(split_part(s.referer,'/',3),':',1),'^www\\\\.',''))=lower(d.hostname)
+  $ci$;
+ END IF;"""
+if old_backfill not in concierge_source:
+    raise SystemExit("Expected optional concierge hostname backfill was not found.")
+concierge_migration.write_text(concierge_source.replace(old_backfill, new_backfill, 1))
