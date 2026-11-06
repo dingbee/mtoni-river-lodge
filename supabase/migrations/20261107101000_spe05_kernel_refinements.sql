@@ -58,7 +58,7 @@ DECLARE
   v_promo jsonb := NULL;
   v_promotions jsonb := '[]'::jsonb;
   v_promo_row public.staynas_property_promotions%ROWTYPE;
-  vv_promo_codes text[];
+  v_promo_codes text[];
   v_promo_count integer := 0;
   v_selected_count integer := 0;
   v_auto_primary_stackable boolean := false;
@@ -118,23 +118,23 @@ BEGIN
   -- accepted only when every selected promotion is explicitly stackable.
   IF _promo_code IS NOT NULL AND btrim(_promo_code) <> '' THEN
     SELECT array_agg(upper(btrim(code_part)))
-      INTO vv_promo_codes
+      INTO v_promo_codes
     FROM unnest(string_to_array(_promo_code,',')) AS codes(code_part)
     WHERE btrim(code_part)<>'';
-    IF COALESCE(cardinality(vv_promo_codes),0)=0
-       OR cardinality(vv_promo_codes)<>cardinality(string_to_array(_promo_code,','))
-       OR cardinality(vv_promo_codes)<>(SELECT count(DISTINCT code) FROM unnest(vv_promo_codes) AS codes(code)) THEN
+    IF COALESCE(cardinality(v_promo_codes),0)=0
+       OR cardinality(v_promo_codes)<>cardinality(string_to_array(_promo_code,','))
+       OR cardinality(v_promo_codes)<>(SELECT count(DISTINCT code) FROM unnest(v_promo_codes) AS codes(code)) THEN
       RETURN jsonb_build_object('ok',false,'error_code','PROMOTION_INVALID','message','Promotion codes must be non-empty and unique');
     END IF;
     SELECT count(*) INTO v_promo_count
     FROM public.staynas_property_promotions p
-    WHERE p.property_id=_property_id AND upper(p.code)=ANY(vv_promo_codes);
-    IF v_promo_count<>cardinality(vv_promo_codes) THEN
+    WHERE p.property_id=_property_id AND upper(p.code)=ANY(v_promo_codes);
+    IF v_promo_count<>cardinality(v_promo_codes) THEN
       RETURN jsonb_build_object('ok',false,'error_code','PROMOTION_INVALID','message','One or more promotion codes are not recognised');
     END IF;
     IF v_promo_count>1 AND EXISTS(
       SELECT 1 FROM public.staynas_property_promotions p
-      WHERE p.property_id=_property_id AND upper(p.code)=ANY(vv_promo_codes) AND p.stackable=false
+      WHERE p.property_id=_property_id AND upper(p.code)=ANY(v_promo_codes) AND p.stackable=false
     ) THEN
       RETURN jsonb_build_object('ok',false,'error_code','PROMOTION_STACKING_CONFLICT',
         'message','Every promotion in a stacked code set must be configured as stackable');
@@ -165,7 +165,7 @@ BEGIN
     SELECT p.* FROM public.staynas_property_promotions p
     WHERE p.property_id=_property_id
       AND (
-        (v_promo_codes IS NOT NULL AND upper(p.code)=ANY(vv_promo_codes))
+        (v_promo_codes IS NOT NULL AND upper(p.code)=ANY(v_promo_codes))
         OR
         (v_promo_codes IS NULL AND p.auto_apply=true AND p.status='active'
           AND (p.valid_from IS NULL OR p.valid_from<=now())
