@@ -429,4 +429,50 @@ GRANT EXECUTE ON FUNCTION public.create_booking_for_property_with_rate_plan_and_
   uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text,uuid,text
 ) TO service_role;
 
+-- Finance preview RPC: property managers can preview a quote only for their active property.
+CREATE OR REPLACE FUNCTION public.preview_staynas_pricing_adjustments(
+  _property_id uuid,_room_id uuid,_check_in date,_check_out date,_adults integer,
+  _children_below_6 integer DEFAULT 0,_children_7_plus integer DEFAULT 0,
+  _extras jsonb DEFAULT '[]'::jsonb,_rate_plan_id uuid DEFAULT NULL,
+  _promo_code text DEFAULT NULL,_guest_email text DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path=public
+AS $preview$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_role text := COALESCE(NULLIF(current_setting('request.jwt.claim.role',true),''),'');
+  v_quote jsonb;
+BEGIN
+  IF v_role<>'service_role' THEN
+    IF v_uid IS NULL
+       OR public.staynas_active_property_id(v_uid) IS DISTINCT FROM _property_id
+       OR NOT public.staynas_user_has_property_access(v_uid,_property_id)
+       OR NOT public.has_any_role(v_uid,ARRAY['owner','manager','admin','finance']::public.app_role[]) THEN
+      RETURN jsonb_build_object('ok',false,'error_code','AUTHORIZATION_DENIED','message','Pricing preview is restricted to authorised property finance users');
+    END IF;
+  END IF;
+  IF _room_id IS NULL OR _check_in IS NULL OR _check_out<=_check_in
+     OR jsonb_typeof(COALESCE(_extras,'[]'::jsonb))<>'array' THEN
+    RETURN jsonb_build_object('ok',false,'error_code','INVALID_PRICING_CONTEXT','message','Room, stay and extras are required');
+  END IF;
+  PERFORM set_config('staynas.rate_plan_id',COALESCE(_rate_plan_id::text,''),true);
+  PERFORM set_config('staynas.promo_code',COALESCE(_promo_code,''),true);
+  PERFORM set_config('staynas.guest_key',CASE WHEN NULLIF(btrim(_guest_email),'') IS NULL
+    THEN '' ELSE md5(lower(trim(_guest_email))) END,true);
+  v_quote:=public.calculate_staynas_booking_quote(
+    _property_id,_room_id,_check_in,_check_out,_adults,
+    COALESCE(_children_below_6,0),COALESCE(_children_7_plus,0),COALESCE(_extras,'[]'::jsonb)
+  );
+  RETURN v_quote;
+END;
+$preview$;
+
+REVOKE ALL ON FUNCTION public.preview_staynas_pricing_adjustments(uuid,uuid,date,date,integer,integer,integer,jsonb,uuid,text,text)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.preview_staynas_pricing_adjustments(uuid,uuid,date,date,integer,integer,integer,jsonb,uuid,text,text)
+  TO authenticated,service_role;
+
 COMMIT;
