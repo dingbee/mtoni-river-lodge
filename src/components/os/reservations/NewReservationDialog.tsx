@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -124,6 +124,11 @@ export function NewReservationDialog({
     () => rooms.find((r) => r.slug === roomSlug) ?? null,
     [rooms, roomSlug],
   );
+
+  useEffect(() => {
+    setRoomSlug(null);
+    setRatePlanId("");
+  }, [checkIn, checkOut, adults, childrenBelow6, children7Plus]);
 
   const create = useMutation({
     mutationFn: () =>
