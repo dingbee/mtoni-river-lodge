@@ -61,8 +61,9 @@ export function createCommercialTrialWindow(
     throw new Error("Commercial trial policy is disabled");
   }
 
-  const startMilliseconds = Date.parse(activatedAt);
-  if (!Number.isFinite(startMilliseconds) || !/^\d{4}-\d{2}-\d{2}T/.test(activatedAt)) {
+  const timestampResult = z.string().datetime({ offset: true }).safeParse(activatedAt);
+  const startMilliseconds = timestampResult.success ? Date.parse(timestampResult.data) : Number.NaN;
+  if (!Number.isFinite(startMilliseconds)) {
     throw new Error("Trial activation timestamp must be a valid ISO-8601 date-time");
   }
 
