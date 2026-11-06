@@ -180,3 +180,8 @@ The live-ledger snapshot was then used to restore the active migration paths on 
 - The authoritative 94-row ledger export remains at `docs/cc-01-live-migration-ledger.json`.
 
 **Important remaining distinction:** the active migration directory contains **130 local-only migration files** whose versions are not in the live ledger. They are preserved because their role (legacy bootstrap, superseded history, or genuinely pending work) has not yet been proven. They must not be pushed or marked applied blindly. The production migration ledger was not edited. The applied history is now represented at canonical paths; the local-only set still requires classification before the official CLI dry-run can be treated as safe.
+
+
+## Forward migration exception — SPE-04 public rate-plan discovery
+
+The production ledger snapshot is retained unchanged. The mainline SPE-04 discovery correction at `20261106210000_spe04_public_rate_plan_discovery.sql` is not a duplicate of the already-applied discovery migration: it corrects effective-period eligibility to compare against the final charged night (`check_out - 1`), not the checkout date. It is therefore an approved forward migration and must remain in `supabase/migrations` alongside the staged CC-01 migration. The quarantine allowlist preserves both files; all other non-ledger candidates remain outside the executable migration directory. The isolated PostgreSQL verification applies both and asserts the corrected function body.
