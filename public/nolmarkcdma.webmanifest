@@ -1,0 +1,11 @@
+{
+  "name": "Nolmark CDMA — Direct Booking",
+  "short_name": "Nolmark",
+  "description": "Direct reservations powered by Nolmark CDMA and StayNas.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f4ef",
+  "theme_color": "#26382d",
+  "icons": []
+}
