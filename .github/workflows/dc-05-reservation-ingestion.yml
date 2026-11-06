@@ -3,7 +3,7 @@ name: StayNas DC-05 reservation ingestion
 on:
   push:
     branches:
-      - feat/dc-05-*
+      - feat/dc05-*
   pull_request:
     branches:
       - integration/dc05-foundation
