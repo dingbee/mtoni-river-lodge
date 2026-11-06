@@ -53,11 +53,15 @@ BEGIN
     RAISE EXCEPTION 'Materializer is not bound to SPE-04 pricing and provider reservation identity';
   END IF;
   IF position('v_candidate.pricing_quote IS NULL' IN v_def)=0
-     OR position('v_candidate.pricing_quote->>''ok'' IS DISTINCT FROM ''true''' IN v_def)=0
+     OR position('v_candidate.pricing_quote->>''ok''=''false''' IN v_def)=0
+     OR position('v_candidate.pricing_quote ? ''error_code''' IN v_def)=0
+     OR position('pricing_evidence''->>''rate_plan_id'' IS NULL' IN v_def)=0
+     OR position('pricing_evidence''->>''publication_id'' IS NULL' IN v_def)=0
+     OR position('pricing_evidence''->>''snapshot_hash'' IS NULL' IN v_def)=0
      OR position('IF NOT COALESCE(v_candidate.is_available,false)' IN v_def)=0
      OR position('v_candidate.pricing_quote IS NULL' IN v_def)
         > position('IF NOT COALESCE(v_candidate.is_available,false)' IN v_def) THEN
-    RAISE EXCEPTION 'Materializer must reject unresolved/invalid rate-plan pricing before inventory retry';
+    RAISE EXCEPTION 'Materializer must validate SPE-04 success evidence before inventory retry';
   END IF;
   IF position('_children_below_6 IS NULL' IN v_def)=0
      OR position('_children_7_plus IS NULL' IN v_def)=0
