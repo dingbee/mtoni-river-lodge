@@ -38,4 +38,4 @@ jobs:
       - name: Official remote migration dry-run over IPv4 session pooler
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: supabase db push --dry-run --db-url "$SUPABASE_DB_URL"
+        run: supabase db push --dry-run --include-all --db-url "$SUPABASE_DB_URL"
