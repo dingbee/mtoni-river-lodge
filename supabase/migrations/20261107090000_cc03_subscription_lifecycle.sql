@@ -58,7 +58,9 @@ CREATE TABLE IF NOT EXISTS public.commercial_subscriptions (
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT commercial_subscriptions_id_account_unique UNIQUE (id, account_id),
   CONSTRAINT commercial_subscriptions_quote_consistency CHECK (
-    NOT quote_required OR (
+    quote_required = (accepted_price_snapshot->>'quoteRequired' = 'true')
+    AND (
+      NOT quote_required OR (
       plan_code = 'enterprise'
       AND accepted_price_snapshot->>'quoteRequired' = 'true'
       AND NOT (accepted_price_snapshot ? 'total')
@@ -69,6 +71,7 @@ CREATE TABLE IF NOT EXISTS public.commercial_subscriptions (
           ELSE '[]'::jsonb
         END
       ), 0) = 0
+      )
     )
   ),
   CONSTRAINT commercial_subscriptions_paid_acceptance CHECK (
