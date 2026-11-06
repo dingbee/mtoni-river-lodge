@@ -36,6 +36,8 @@ export const externalReservationSchema = z.object({
   departureDate: isoDate,
   adults: z.number().int().min(1).max(20),
   children: z.number().int().min(0).max(20).default(0),
+  childrenBelow6: z.number().int().min(0).max(20).optional(),
+  children7Plus: z.number().int().min(0).max(20).optional(),
   grossAmount: money.optional(),
   originalCurrency: z.string().regex(/^[A-Z]{3}$/).optional(),
   taxes: money.optional(),
@@ -48,6 +50,13 @@ export const externalReservationSchema = z.object({
   cancellationAt: z.string().datetime({ offset: true }).optional(),
   providerPayloadFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
 }).superRefine((event, ctx) => {
+  if ((event.childrenBelow6 === undefined) !== (event.children7Plus === undefined)) {
+    ctx.addIssue({ code: "custom", path: ["childrenBelow6"], message: "Both child age counts must be supplied together." });
+  }
+  if (event.childrenBelow6 !== undefined && event.children7Plus !== undefined &&
+      event.childrenBelow6 + event.children7Plus !== event.children) {
+    ctx.addIssue({ code: "custom", path: ["children"], message: "Child age counts must equal the total child count." });
+  }
   if (event.departureDate <= event.arrivalDate) {
     ctx.addIssue({ code: "custom", path: ["departureDate"], message: "Departure must be after arrival." });
   }
@@ -95,6 +104,8 @@ export function toSafeReservationEventEnvelope(event: ExternalReservationEvent):
     departureDate: event.departureDate,
     adults: event.adults,
     children: event.children,
+    childrenBelow6: event.childrenBelow6 ?? null,
+    children7Plus: event.children7Plus ?? null,
     providerPayloadFingerprint: event.providerPayloadFingerprint,
     privateFieldsPresent: Object.values(event.guest).some((value) => Boolean(value)),
     hasFinancialData: event.grossAmount !== undefined || event.taxes !== undefined ||
