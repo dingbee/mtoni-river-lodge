@@ -78,6 +78,14 @@ describe("CC02.02 commercial pricing architecture", () => {
       planCode: "enterprise",
       priceMode: "quote_required",
     }).success).toBe(false);
+    expect(commercialPlanPriceSchema.safeParse({
+      ...planPrice,
+      planCode: "enterprise",
+      priceMode: "quote_required",
+      baseAmountMinor: null,
+      additionalPropertyAmountMinor: null,
+      includedProperties: 2,
+    }).success).toBe(false);
   });
 
   it("validates add-on charge models and effective date ranges", () => {
@@ -161,6 +169,7 @@ describe("CC02.02 commercial pricing architecture", () => {
       priceMode: "quote_required",
       baseAmountMinor: null,
       additionalPropertyAmountMinor: null,
+      includedProperties: null,
     };
     const result = resolveCommercialPrice({
       ...input,
