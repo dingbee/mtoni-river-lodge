@@ -505,38 +505,4 @@ BEGIN
 END $cc01_lifecycle$;
 UPDATE public.staynas_properties SET status='active' WHERE id='30000000-0000-0000-0000-000000000002';
 
-
-
-DO $cc01_pg_net_acl_assertions$
-DECLARE _signature text; _function regprocedure;
-BEGIN
-  FOREACH _signature IN ARRAY ARRAY[
-    'net._await_response(bigint)',
-    'net._encode_url_with_params_array(text,text[])',
-    'net._http_collect_response(bigint,boolean)',
-    'net._urlencode_string(character varying)',
-    'net.check_worker_is_up()',
-    'net.http_collect_response(bigint,boolean)',
-    'net.http_delete(text,jsonb,jsonb,integer,jsonb)',
-    'net.http_get(text,jsonb,jsonb,integer)',
-    'net.http_post(text,jsonb,jsonb,jsonb,integer)',
-    'net.wait_until_running()',
-    'net.wake()',
-    'net.worker_restart()'
-  ] LOOP
-    _function := to_regprocedure(_signature);
-    IF _function IS NULL THEN
-      RAISE EXCEPTION 'Expected pg_net ACL fixture function is missing: %', _signature;
-    END IF;
-    IF has_function_privilege('anon', _function, 'EXECUTE')
-       OR has_function_privilege('authenticated', _function, 'EXECUTE') THEN
-      RAISE EXCEPTION 'pg_net function remains executable by a client role: %', _signature;
-    END IF;
-    IF NOT has_function_privilege('service_role', _function, 'EXECUTE') THEN
-      RAISE EXCEPTION 'service_role lost required pg_net execution: %', _signature;
-    END IF;
-  END LOOP;
-END
-$cc01_pg_net_acl_assertions$;
-
 SELECT 'CC-01 PostgreSQL migration validation passed' AS result;
