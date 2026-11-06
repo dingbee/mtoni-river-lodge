@@ -84,7 +84,8 @@ export function NewReservationDialog({
 
   // Room + reservation
   const [roomSlug, setRoomSlug] = useState<string | null>(null);
-  const [status, setStatus] = useState<"pending" | "confirmed">("confirmed");
+  const [ratePlanId, setRatePlanId] = useState("");
+  const [status, setStatus] = useState<"pending" | "confirmed">("pending");
   const [source, setSource] = useState<string>("direct");
   const [specialRequests, setSpecialRequests] = useState("");
   const [notes, setNotes] = useState("");
@@ -134,6 +135,9 @@ export function NewReservationDialog({
           guestPhone,
           country,
           roomSlug: roomSlug!,
+          ratePlanId: ratePlanId || selectedRoom?.selected_rate_plan_id || selectedRoom?.rate_plan_options?.[0]?.rate_plan_id,
+          extras: [],
+          paymentMethod: "online",
           checkIn,
           checkOut,
           adults,
@@ -167,7 +171,8 @@ export function NewReservationDialog({
     setChildrenBelow6(0);
     setChildren7Plus(0);
     setRoomSlug(null);
-    setStatus("confirmed");
+    setRatePlanId("");
+    setStatus("pending");
     setSource("direct");
     setSpecialRequests("");
     setNotes("");
@@ -452,7 +457,10 @@ export function NewReservationDialog({
                           <button
                             type="button"
                             disabled={!bookable}
-                            onClick={() => setRoomSlug(r.slug)}
+                            onClick={() => {
+                              setRoomSlug(r.slug);
+                              setRatePlanId(r.selected_rate_plan_id ?? r.rate_plan_options?.[0]?.rate_plan_id ?? "");
+                            }}
                             className={cn(
                               "flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left text-sm",
                               bookable
@@ -484,6 +492,31 @@ export function NewReservationDialog({
                   </ul>
                 )}
 
+                {selectedRoom && (
+                  <div className="rounded-md border border-border bg-muted/20 p-3">
+                    <Label htmlFor="r-rate-plan">Published rate plan</Label>
+                    {selectedRoom.rate_plan_options?.length ? (
+                      <select
+                        id="r-rate-plan"
+                        className={selectClass}
+                        value={ratePlanId || selectedRoom.selected_rate_plan_id || ""}
+                        onChange={(e) => setRatePlanId(e.target.value)}
+                      >
+                        <option value="">Select a published rate plan</option>
+                        {selectedRoom.rate_plan_options.map((plan) => (
+                          <option key={plan.rate_plan_id} value={plan.rate_plan_id}>
+                            {plan.name} · {money(plan.total, plan.currency)} · {plan.refundable ? "Refundable" : "Non-refundable"}
+                          </option>
+                        ))}
+                      </select>
+                    ) : selectedRoom.selected_rate_plan ? (
+                      <p className="mt-1 text-sm">{selectedRoom.selected_rate_plan.name}</p>
+                    ) : (
+                      <p className="mt-1 text-xs text-destructive">No eligible published rate plan was returned. This room cannot be booked until a valid rate plan is available.</p>
+                    )}
+                  </div>
+                )}
+
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="r-source">Booking source</Label>
@@ -508,14 +541,14 @@ export function NewReservationDialog({
                       value={status}
                       onChange={(e) => setStatus(e.target.value as "pending" | "confirmed")}
                     >
-                      <option value="confirmed">Confirmed</option>
                       <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed (payment policy enforced)</option>
                     </select>
                   </div>
                   <div className="sm:col-span-2 rounded-md border border-border bg-muted/30 p-3 text-sm">
                     <p className="font-medium">Payment status: Unpaid</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Record deposits and payments after creating the reservation in Finance. Payment status cannot be manually assigned here.
+                      New reservations start unpaid. Online reservations must remain pending until payment is verified; confirmation is enforced by the database lifecycle.
                     </p>
                   </div>
                   <div className="sm:col-span-2">
