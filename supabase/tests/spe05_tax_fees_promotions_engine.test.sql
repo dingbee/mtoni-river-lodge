@@ -89,7 +89,7 @@ SELECT ok(
 
 SELECT has_function(
   'public','get_staynas_booking_quote_with_rate_plan_and_promo',
-  ARRAY['uuid','text','date','date','integer','integer','integer','jsonb','uuid','text'],
+  ARRAY['uuid','text','date','date','integer','integer','integer','jsonb','uuid','text','text'],
   'Guest quote accepts a promotion code through the canonical rate-plan path');
 
 SELECT has_function(
