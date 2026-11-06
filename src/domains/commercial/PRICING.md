@@ -32,4 +32,4 @@ The resolver returns a line-item breakdown and a price-code/version reference su
 - No persistence migration, API handler, founder UI or production write.
 - No change to hospitality room/rate pricing in `src/lib/pricing.ts`.
 
-CC02.02 remains dependent on CC02.01 catalogue contracts and the unresolved CC-01 persistence/authorization gate.
+CC02.02 is a deterministic, in-memory pricing resolver. CC-01 is now certified; durable price records and server-side mutation handlers are not part of this contract integration. No actual commercial price schedule is configured.
