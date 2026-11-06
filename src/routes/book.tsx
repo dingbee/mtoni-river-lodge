@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -29,7 +29,7 @@ import {
 import { initiatePayment } from "@/lib/payments.functions";
 import { newBookingSessionId } from "@/lib/booking-session";
 import { createBookingHold, releaseBookingHold } from "@/lib/availability.functions";
-import { buildPriceBreakdownFromConfig, type PriceBreakdown } from "@/lib/pricing";
+import { getBookingQuote, type BookingPricingQuote } from "@/lib/booking.functions";
 import { DatePickerField } from "@/components/os/DatePickerField";
 
 export const Route = createFileRoute("/book")({
@@ -80,7 +80,7 @@ const NUM_TO_STEP: Record<1 | 2 | 3 | 4, Step> = {
   4: "confirmation",
 };
 
-type AvailabilityResult = (AvailabilityRoom & { fits_guests: boolean })[];
+type AvailabilityResult = AvailabilityRoom[];
 
 type SelectedExtra = { slug: string; quantity: number };
 
@@ -174,6 +174,8 @@ function BookPage() {
   const [selectedExtras, setSelectedExtras] = useState<SelectedExtra[]>(p.selectedExtras ?? []);
   const [guest, setGuest] = useState(p.guest ?? { name: "", email: "", phone: "", country: "", requests: "", purpose: "" });
   const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string } | null>(null);
+  const [bookingQuote, setBookingQuote] = useState<BookingPricingQuote | null>(p.selectedRoom?.pricing_quote ?? null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
   const [hold, setHold] = useState<{ id: string; expiresAt: string; roomSlug: string } | null>(null);
   const [roomInventory, setRoomInventory] = useState<{ available_units: number; total_units: number } | null>(null);
 
@@ -231,6 +233,7 @@ function BookPage() {
     setChildren7Plus(0);
     setResults([]);
     setSelectedRoom(null);
+    setBookingQuote(null);
     setExtras([]);
     setSelectedExtras([]);
     setGuest({ name: "", email: "", phone: "", country: "", requests: "", purpose: "" });
@@ -340,6 +343,7 @@ function BookPage() {
   const paidOccupants = adults + children7Plus;
 
   const checkAvailabilityFn = useServerFn(checkAvailability);
+  const getBookingQuoteFn = useServerFn(getBookingQuote);
   const listExtrasFn = useServerFn(listExtras);
   const createBookingFn = useServerFn(createBooking);
   const initiatePaymentFn = useServerFn(initiatePayment);
@@ -350,13 +354,16 @@ function BookPage() {
     mutationFn: async () => {
       if (nights < 1) throw new Error("Pick a check-in and check-out date");
       const [rooms, extrasList] = await Promise.all([
-        checkAvailabilityFn({ data: { checkIn, checkOut, guests: totalOccupants } }),
+        checkAvailabilityFn({ data: { checkIn, checkOut, guests: totalOccupants, adults, childrenBelow6, children7Plus } }),
         listExtrasFn(),
       ]);
       return { rooms, extrasList };
     },
     onSuccess: ({ rooms, extrasList }) => {
       setResults(rooms);
+      setSelectedRoom(null);
+      setBookingQuote(null);
+      setSelectedExtras([]);
       setExtras(extrasList);
       trackAvailabilityChecked({
         check_in: checkIn,
@@ -380,6 +387,7 @@ function BookPage() {
       const created = await createBookingFn({
         data: {
           roomSlug: selectedRoom.slug,
+          ratePlanId: selectedRoom.selected_rate_plan_id,
           checkIn,
           checkOut,
           adults,
@@ -423,40 +431,48 @@ function BookPage() {
     },
   });
 
-  const extrasTotal = useMemo(() => {
-    return selectedExtras.reduce((sum, sel) => {
-      const e = extras.find((x) => x.slug === sel.slug);
-      if (!e) return sum;
-      const mult =
-        e.unit === "per_stay" ? 1 :
-        e.unit === "per_night" ? nights :
-        e.unit === "per_person" ? totalOccupants :
-        e.unit === "per_person_per_night" ? totalOccupants * nights : 1;
-      return sum + e.price * sel.quantity * mult;
-    }, 0);
-  }, [selectedExtras, extras, nights, totalOccupants]);
+  // Re-price the exact guest selection (including extras and property taxes)
+  // through the database quote function. Booking creation calls the same
+  // calculation again inside its transaction before taking inventory.
+  useEffect(() => {
+    if (!selectedRoom || nights < 1) {
+      setBookingQuote(null);
+      setQuoteLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setQuoteLoading(true);
+    setBookingQuote(null);
+    getBookingQuoteFn({
+      data: {
+        roomSlug: selectedRoom.slug,
+        ratePlanId: selectedRoom.selected_rate_plan_id,
+        checkIn,
+        checkOut,
+        adults,
+        childrenBelow6,
+        children7Plus,
+        extras: selectedExtras,
+      },
+    }).then((quote) => {
+      if (!cancelled) {
+        setBookingQuote(quote as BookingPricingQuote);
+        setQuoteLoading(false);
+      }
+    }).catch((error) => {
+      if (!cancelled) {
+        setBookingQuote(null);
+        setQuoteLoading(false);
+        console.error("[book] authoritative pricing quote failed", error);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [getBookingQuoteFn, selectedRoom, checkIn, checkOut, adults, childrenBelow6, children7Plus, selectedExtras, nights]);
 
-  // ROOM TOTAL comes from the centralized pricing service — never trust
-  // server-returned `nightly_total` (which is computed without guest count)
-  // for the displayed total. Backend re-computes authoritatively on
-  // `create_booking` and Pesapal charges the resulting deposit.
-  const priceBreakdown = useMemo(() => {
-    if (!selectedRoom || nights < 1) return null;
-    try {
-      return buildPriceBreakdownFromConfig({
-        basePrice: Number(selectedRoom.base_price),
-        includedGuests: Number(selectedRoom.included_guests),
-        maxGuests: Number(selectedRoom.max_occupancy),
-        extraGuestFee: Number(selectedRoom.extra_guest_fee),
-        currency: selectedRoom.currency,
-      }, { adults, childrenBelow6, children7Plus }, nights);
-    } catch { return null; }
-  }, [selectedRoom, adults, childrenBelow6, children7Plus, nights]);
-
-  const roomTotal = priceBreakdown?.grandTotal
-    ?? (selectedRoom ? Number(selectedRoom.nightly_total) || 0 : 0);
-
-  const grandTotal = roomTotal + extrasTotal;
+  const effectiveQuote = bookingQuote ?? selectedRoom?.pricing_quote ?? null;
+  const roomTotal = Number(effectiveQuote?.accommodation_subtotal ?? 0);
+  const extrasTotal = Number(effectiveQuote?.extras_total ?? 0);
+  const grandTotal = Number(effectiveQuote?.total ?? (roomTotal + extrasTotal));
 
   return (
     <div className="min-h-screen bg-ivory text-charcoal">
@@ -500,7 +516,7 @@ function BookPage() {
               children7Plus={children7Plus}
               nights={nights}
               onBack={() => goToStep("search", "user_back_from_select")}
-              onSelect={(r) => {
+              onSelect={(r, ratePlanId) => {
                 // The "room context" for this session is whichever room the
                 // session is currently bound to: either the previously
                 // selected room, or the URL ?room= slug the user arrived with.
@@ -509,7 +525,9 @@ function BookPage() {
                 // First-time pick, or re-picking the same room the session is
                 // already bound to — just proceed to guest details.
                 if (!currentRoomContext || currentRoomContext === r.slug) {
-                  setSelectedRoom(r);
+                  const roomWithPlan = { ...r, selected_rate_plan_id: ratePlanId, selected_rate_plan: r.rate_plan_options?.find((plan) => plan.rate_plan_id === ratePlanId) ?? (r.rate_plan_options?.length === 1 ? r.rate_plan_options[0] : undefined) };
+                  setSelectedRoom(roomWithPlan);
+                  setBookingQuote(r.pricing_quote);
                   // Fire-and-forget hold acquisition — 15-minute inventory lock.
                   // Failures are non-blocking; createBooking still runs the same
                   // atomic availability check server-side.
@@ -529,7 +547,7 @@ function BookPage() {
                   trackRoomSelected({
                     room_slug: r.slug,
                     room_name: r.name,
-                    nightly_total: Number(r.nightly_total),
+                    nightly_total: Number(r.pricing_quote?.nightly?.[0]?.nightly_rate ?? r.base_price),
                     currency: r.currency,
                   });
                   // Keep the URL ?room= in sync so refreshes stay consistent.
@@ -578,7 +596,8 @@ function BookPage() {
               totalOccupants={totalOccupants}
               paidOccupants={paidOccupants}
               childrenBelow6={childrenBelow6}
-              breakdown={priceBreakdown}
+              breakdown={effectiveQuote}
+              pricingLoading={quoteLoading || !bookingQuote}
               extras={extras} selectedExtras={selectedExtras} setSelectedExtras={setSelectedExtras}
               roomTotal={roomTotal} extrasTotal={extrasTotal} grandTotal={grandTotal}
               guest={guest} setGuest={setGuest}
@@ -791,8 +810,9 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
   results: AvailabilityResult;
   adults: number; childrenBelow6: number; children7Plus: number;
   nights: number;
-  onBack: () => void; onSelect: (r: AvailabilityRoom) => void;
+  onBack: () => void; onSelect: (r: AvailabilityRoom, ratePlanId?: string) => void;
 }) {
+  const [selectedPlans, setSelectedPlans] = useState<Record<string, string>>({});
   const fmt = (n: number, c: string) => new Intl.NumberFormat("en-US", { style: "currency", currency: c, maximumFractionDigits: 0 }).format(n);
   const totalOccupants = adults + childrenBelow6 + children7Plus;
   const paidOccupants = adults + children7Plus;
@@ -800,18 +820,15 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
     <div className="space-y-4">
       <button onClick={onBack} className="text-xs uppercase tracking-[0.22em] text-charcoal/60 hover:text-charcoal">← Change dates</button>
       {results.map((r) => {
-        const fits = totalOccupants <= Number(r.max_occupancy);
+        const fits = Boolean(r.fits_occupancy);
         const disabled = !r.is_available || !fits;
         // Centralized pricing: per-guest, per-night.
-        let displayTotal = Number(r.nightly_total) || 0;
-        let nightlyRate = Number(r.base_price) || 0;
-        try {
-          const bd = buildPriceBreakdownFromConfig({ basePrice: Number(r.base_price), includedGuests: Number(r.included_guests), maxGuests: Number(r.max_occupancy), extraGuestFee: Number(r.extra_guest_fee), currency: r.currency }, { adults, childrenBelow6, children7Plus }, Math.max(1, nights));
-          nightlyRate = bd.nightlyRate;
-          displayTotal = bd.grandTotal;
-        } catch {
-          /* room not in pricing config — fall back to server values */
-        }
+        const options = r.rate_plan_options ?? [];
+        const selectedPlanId = selectedPlans[r.room_id] ?? "";
+        const selectedPlan = options.find((p) => p.rate_plan_id === selectedPlanId) ?? (options.length === 1 ? options[0] : undefined);
+        const requiresPlanChoice = r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED";
+        const displayTotal = Number(selectedPlan?.total ?? r.pricing_quote?.total ?? r.nightly_total ?? 0);
+        const nightlyRate = selectedPlan ? Number(selectedPlan.total) / Math.max(1, nights) : Number(r.pricing_quote?.nightly?.[0]?.nightly_rate ?? 0);
         return (
           <div key={r.room_id} className="flex flex-col gap-4 rounded-2xl border border-charcoal/10 bg-ivory p-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -820,15 +837,36 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
               {!fits && <p className="mt-1 text-xs text-red-600">Does not fit {totalOccupants} occupant{totalOccupants === 1 ? "" : "s"}</p>}
             </div>
             <div className="text-right">
-              <p className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">{nights} night{nights === 1 ? "" : "s"} total</p>
-              <p className="font-display text-2xl">{fmt(displayTotal, r.currency)}</p>
-              <p className="text-xs text-charcoal/55">{fmt(nightlyRate, r.currency)} / night · {paidOccupants} paid · {totalOccupants} total</p>
+              <p className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">{nights} night{nights === 1 ? "" : "s"} · accommodation subtotal</p>
+              {requiresPlanChoice && options.length === 0 ? (
+                <p className="font-display text-base text-red-700">Rate plans unavailable — please try again</p>
+              ) : requiresPlanChoice && options.length > 1 && !selectedPlan ? (
+                <p className="font-display text-base text-charcoal/65">Choose a rate plan to view the total</p>
+              ) : (
+                <p className="font-display text-2xl">{fmt(displayTotal, selectedPlan?.currency ?? r.currency)}</p>
+              )}
+              {options.length > 1 && (
+                <div className="mt-3 text-left">
+                  <label className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-charcoal/60">Choose rate plan</label>
+                  <select value={selectedPlanId} onChange={(e) => setSelectedPlans((current) => ({ ...current, [r.room_id]: e.target.value }))} className="mt-2 w-full rounded-lg border border-charcoal/20 bg-ivory px-3 py-2 text-sm">
+                    <option value="">Select a rate plan</option>
+                    {options.map((plan) => <option key={plan.rate_plan_id} value={plan.rate_plan_id}>{plan.name} — {fmt(Number(plan.total), plan.currency)}</option>)}
+                  </select>
+                  {selectedPlan?.description && <p className="mt-2 text-xs text-charcoal/60">{selectedPlan.description}</p>}
+                  {selectedPlan && <p className="mt-1 text-xs text-charcoal/55">{selectedPlan.meal_plan ?? "No meal plan"} · {selectedPlan.refundable ? "Refundable" : "Non-refundable"}</p>}
+                  {selectedPlan && <p className="mt-1 text-[0.65rem] text-charcoal/50">Taxes and selected extras are calculated in the next step.</p>}
+                </div>
+              )}
+              {options.length === 1 && selectedPlan && (
+                <p className="mt-2 text-xs text-charcoal/55">{selectedPlan.name} · {selectedPlan.meal_plan ?? "No meal plan"} · {selectedPlan.refundable ? "Refundable" : "Non-refundable"}</p>
+              )}
+              <p className="text-xs text-charcoal/55">{requiresPlanChoice && !selectedPlan ? "Select a rate plan to see nightly pricing" : `${fmt(nightlyRate, selectedPlan?.currency ?? r.currency)} average / night`} · {paidOccupants} paid · {totalOccupants} total</p>
               <button
-                onClick={() => onSelect(r)} disabled={disabled}
+                onClick={() => onSelect(r, selectedPlanId || undefined)} disabled={disabled || (requiresPlanChoice && options.length === 0) || (options.length > 1 && !selectedPlanId)}
                 className="mt-3 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
                 style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
               >
-                {r.is_available ? "Select" : "Unavailable"} →
+                {!r.is_available ? "Unavailable" : options.length > 1 && !selectedPlanId ? "Choose a rate plan" : "Select"} →
               </button>
             </div>
           </div>
@@ -841,7 +879,8 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
 function GuestStep(props: {
   room: AvailabilityRoom; nights: number;
   totalOccupants: number; paidOccupants: number; childrenBelow6: number;
-  breakdown: PriceBreakdown | null;
+  breakdown: BookingPricingQuote | null;
+  pricingLoading: boolean;
   extras: Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>;
   selectedExtras: SelectedExtra[]; setSelectedExtras: (v: SelectedExtra[]) => void;
   roomTotal: number; extrasTotal: number; grandTotal: number;
@@ -851,8 +890,8 @@ function GuestStep(props: {
   onBack: () => void; onSubmit: () => void;
 }) {
   const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: props.room.currency, maximumFractionDigits: 0 }).format(n);
-  const deposit = Math.round(props.grandTotal * 0.5);
-  const balance = props.grandTotal - deposit;
+  const deposit = Number(props.breakdown?.deposit_amount ?? Math.round(props.grandTotal * 0.5));
+  const balance = Number(props.breakdown?.balance_due ?? (props.grandTotal - deposit));
   const toggleExtra = (slug: string) => {
     const existing = props.selectedExtras.find((s) => s.slug === slug);
     const extra = props.extras.find((e) => e.slug === slug);
@@ -957,6 +996,7 @@ function GuestStep(props: {
         <h4 className="font-display text-lg">Your Stay</h4>
         <div className="space-y-1 text-sm">
           <p className="font-medium">{props.room.name}</p>
+          {props.room.selected_rate_plan && <p className="text-xs text-charcoal/65">{props.room.selected_rate_plan.name} · {props.room.selected_rate_plan.meal_plan ?? "No meal plan"} · {props.room.selected_rate_plan.refundable ? "Refundable" : "Non-refundable"}</p>}
           <p className="text-xs text-charcoal/60">
             {props.nights} night{props.nights === 1 ? "" : "s"} · {props.totalOccupants} occupant{props.totalOccupants === 1 ? "" : "s"}
             {props.childrenBelow6 > 0 && ` (incl. ${props.childrenBelow6} under 6)`}
@@ -965,37 +1005,49 @@ function GuestStep(props: {
         <div className="space-y-2 border-t border-charcoal/10 pt-3 text-sm">
           {props.breakdown && (
             <>
-              <div className="flex justify-between text-charcoal/70">
-                <span>Base room ({props.nights} × {fmt(props.breakdown.basePrice)})</span>
-                <span>{fmt(props.breakdown.basePrice * props.nights)}</span>
-              </div>
-              {props.breakdown.extraOccupants > 0 && (
-                <div className="flex justify-between text-charcoal/70">
-                  <span>Extra occupant{props.breakdown.extraOccupants === 1 ? "" : "s"} ({props.breakdown.extraOccupants} × {fmt(props.breakdown.extraOccupantFee)} × {props.nights})</span>
-                  <span>{fmt(props.breakdown.extraCharges * props.nights)}</span>
+              {props.breakdown.nightly.map((night) => (
+                <div key={night.date} className="flex items-center justify-between gap-3 text-charcoal/70">
+                  <span><span className="block">{night.date}</span><span className="mt-0.5 block text-[10px] capitalize text-charcoal/45">{(night.applied_rule_type ?? night.source ?? "published rate").replaceAll("_", " ")}{night.pricing_basis ? ` · ${night.pricing_basis.replaceAll("_", " ")}` : ""}</span></span>
+                  <span className="shrink-0">{fmt(night.nightly_rate)}</span>
                 </div>
-              )}
+              ))}
               {props.childrenBelow6 > 0 && (
                 <div className="flex justify-between text-charcoal/55">
                   <span>{props.childrenBelow6} child under 6</span>
-                  <span>Free</span>
+                  <span>Included</span>
                 </div>
               )}
             </>
           )}
-          <div className="flex justify-between"><span>Room subtotal</span><span>{fmt(props.roomTotal)}</span></div>
+          <div className="flex justify-between"><span>Accommodation</span><span>{fmt(props.roomTotal)}</span></div>
           {props.extrasTotal > 0 && <div className="flex justify-between"><span>Extras</span><span>{fmt(props.extrasTotal)}</span></div>}
+          {Number(props.breakdown?.taxes ?? 0) > 0 && (
+            <>
+              {Number(props.breakdown?.taxes ?? 0) > Number(props.breakdown?.tax_addition ?? 0) && (
+                <div className="flex justify-between text-charcoal/60">
+                  <span>Tax included in rates</span>
+                  <span>{fmt(Number(props.breakdown?.taxes ?? 0) - Number(props.breakdown?.tax_addition ?? 0))}</span>
+                </div>
+              )}
+              {Number(props.breakdown?.tax_addition ?? 0) > 0 && (
+                <div className="flex justify-between text-charcoal/70">
+                  <span>Taxes added</span>
+                  <span>{fmt(Number(props.breakdown?.tax_addition ?? 0))}</span>
+                </div>
+              )}
+            </>
+          )}
           <div className="flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(props.grandTotal)}</span></div>
           <div className="flex justify-between text-charcoal/70"><span>Deposit now (50%)</span><span>{fmt(deposit)}</span></div>
           <div className="flex justify-between text-charcoal/70"><span>Balance at check-in (50%)</span><span>{fmt(balance)}</span></div>
         </div>
         <button
-          onClick={props.onSubmit} disabled={props.submitting}
+          onClick={props.onSubmit} disabled={props.submitting || props.pricingLoading || !props.breakdown}
           className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60"
           style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
         >
           {props.submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          {props.submitting ? "Redirecting to payment…" : "Pay 50% Deposit & Confirm"}
+          {props.submitting ? "Redirecting to payment…" : props.pricingLoading ? "Updating quote…" : "Pay 50% Deposit & Confirm"}
         </button>
         <p className="text-[0.65rem] text-charcoal/55">You will be securely redirected to Pesapal to pay the 50% deposit. The remaining balance is payable on arrival.</p>
       </aside>

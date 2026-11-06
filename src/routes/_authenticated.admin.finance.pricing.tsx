@@ -116,7 +116,7 @@ function Pricing() {
                 </tr>
               </thead>
               <tbody>
-                {(rules ?? []).map((r) => (
+                {(rules ?? []).map((r: { id: string; name: string; rule_type: string; starts_on: string | null; ends_on: string | null; adjust_kind: string | null; adjust_value: number | null; priority: number }) => (
                   <tr key={r.id} className="border-t border-border">
                     <td className="py-2">{r.name}</td>
                     <td><Badge variant="secondary">{r.rule_type}</Badge></td>
@@ -131,7 +131,7 @@ function Pricing() {
             </table>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Rules are stored and available to the booking engine. Existing booking calculations remain unchanged until a rule is explicitly wired into a rate resolver.
+            Rules are property-scoped and resolved by the shared guest quote, availability and booking pricing path.
           </p>
         </SectionCard>
       )}
