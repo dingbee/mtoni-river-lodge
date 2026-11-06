@@ -192,6 +192,19 @@ describe("CC03.01 subscription lifecycle contracts", () => {
     expect(cancelled.endedAt).toBe("2026-12-06T10:00:00Z");
   });
 
+  it("allows trial cancellation at the exclusive trial boundary", () => {
+    const trialing = transitionCommercialSubscription(base, {
+      type: "activate_trial", occurredAt: "2026-11-06T10:00:00Z", policy,
+    }).subscription;
+    const scheduled = transitionCommercialSubscription(trialing, {
+      type: "request_cancellation", occurredAt: "2026-11-07T10:00:00Z", atPeriodEnd: true,
+    }).subscription;
+    const cancelled = transitionCommercialSubscription(scheduled, {
+      type: "expire", occurredAt: "2026-11-20T10:00:00Z",
+    }).subscription;
+    expect(cancelled.status).toBe("cancelled");
+  });
+
   it("rejects expiration before the trial boundary", () => {
     const trialing = transitionCommercialSubscription(base, {
       type: "activate_trial",
