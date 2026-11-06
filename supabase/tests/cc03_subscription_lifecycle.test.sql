@@ -28,6 +28,9 @@ DECLARE
   v_subscription2 uuid := '30000000-0000-4000-8000-000000000002';
   v_subscription3 uuid := '30000000-0000-4000-8000-000000000003';
   v_audit uuid;
+  v_org4 uuid := '10000000-0000-4000-8000-000000000004';
+  v_account4 uuid := '20000000-0000-4000-8000-000000000004';
+  v_subscription4 uuid := '30000000-0000-4000-8000-000000000004';
 BEGIN
   FOREACH v_table IN ARRAY v_tables LOOP
     IF NOT EXISTS (
@@ -298,6 +301,63 @@ BEGIN
     NULL;
   END;
 
+  -- Terminal subscriptions cannot be reopened.
+  UPDATE public.commercial_subscriptions
+  SET status = 'cancelled',
+      cancel_at_period_end = false,
+      ended_at = '2026-11-07T10:00:00Z'
+  WHERE id = v_subscription;
+  BEGIN
+    UPDATE public.commercial_subscriptions
+    SET status = 'active',
+        ended_at = NULL,
+        commercial_acceptance_ref = 'attempted-reopen',
+        current_period_starts_at = '2026-11-07T10:00:00Z',
+        current_period_ends_at = '2026-12-07T10:00:00Z'
+    WHERE id = v_subscription;
+    RAISE EXCEPTION 'Terminal subscription reopen unexpectedly succeeded';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    NULL;
+  END;
+
+  -- Pending subscriptions cannot skip directly to suspended.
+  INSERT INTO public.staynas_organisations(id) VALUES (v_org4);
+  INSERT INTO public.commercial_accounts(id, organisation_id)
+  VALUES (v_account4, v_org4);
+  INSERT INTO public.commercial_subscriptions(
+    id, account_id, plan_code, plan_version, currency, billing_term,
+    property_count, price_resolution_ref, accepted_price_snapshot
+  ) VALUES (
+    v_subscription4, v_account4, 'essential', 1, 'TZS', 'monthly',
+    1, 'transition-test', '{"currency":"TZS","total":50000}'
+  );
+  BEGIN
+    UPDATE public.commercial_subscriptions
+    SET status = 'suspended',
+        suspended_at = '2026-11-07T10:00:00Z',
+        suspended_from_status = 'active',
+        suspension_reason_code = 'test'
+    WHERE id = v_subscription4;
+    RAISE EXCEPTION 'Invalid pending-to-suspended transition unexpectedly succeeded';
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    NULL;
+  END;
+
+  -- A trial cannot become durable without its matching trial claim.
+  BEGIN
+    UPDATE public.commercial_subscriptions
+    SET status = 'trialing',
+        activated_at = '2026-11-07T10:00:00Z',
+        trial_policy_version = 1,
+        trial_started_at = '2026-11-07T10:00:00Z',
+        trial_ends_at = '2026-11-21T10:00:00Z'
+    WHERE id = v_subscription4;
+    SET CONSTRAINTS commercial_subscription_trial_claim_required IMMEDIATE;
+    RAISE EXCEPTION 'Trial activation without a durable claim unexpectedly succeeded';
+  EXCEPTION WHEN SQLSTATE '23514' THEN
+    NULL;
+  END;
+
   BEGIN
     DELETE FROM public.commercial_subscriptions WHERE id = v_subscription;
     RAISE EXCEPTION 'Commercial subscription deletion unexpectedly succeeded';
@@ -314,4 +374,5 @@ BEGIN
 END;
 $test$;
 
+SET CONSTRAINTS commercial_subscription_trial_claim_required IMMEDIATE;
 ROLLBACK;
