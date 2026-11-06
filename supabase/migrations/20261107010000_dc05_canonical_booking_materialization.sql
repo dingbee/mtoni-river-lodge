@@ -765,7 +765,6 @@ BEGIN
       RAISE EXCEPTION 'Provider reservation is already linked in a different tenant/property scope.'
         USING ERRCODE='42501';
     END IF;
-    DELETE FROM public.staynas_distribution_reservation_payloads WHERE inbox_id=v_inbox.id;
     RETURN QUERY SELECT 'already_materialized',v_existing.booking_id,false,NULL::text;
     RETURN;
   END IF;
@@ -872,7 +871,6 @@ BEGIN
         NULLIF(v_inbox.normalized_event->>'providerModifiedAt','')::timestamptz
       );
 
-      DELETE FROM public.staynas_distribution_reservation_payloads WHERE inbox_id=v_inbox.id;
       RETURN QUERY SELECT 'materialized',v_created.booking_id,true,NULL::text;
       RETURN;
     EXCEPTION
@@ -886,7 +884,6 @@ BEGIN
            AND v_existing.organisation_id=v_inbox.organisation_id
            AND v_existing.property_id=v_inbox.property_id
            AND v_existing.connection_id=v_inbox.connection_id THEN
-          DELETE FROM public.staynas_distribution_reservation_payloads WHERE inbox_id=v_inbox.id;
           RETURN QUERY SELECT 'already_materialized',v_existing.booking_id,false,NULL::text;
           RETURN;
         END IF;
@@ -910,6 +907,84 @@ $function$;
 REVOKE ALL ON FUNCTION public.staynas_materialize_distribution_reservation(uuid,uuid,text,text,text,date,date,integer,integer,integer,integer,text,text,text,text,text)
   FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.staynas_materialize_distribution_reservation(uuid,uuid,text,text,text,date,date,integer,integer,integer,integer,text,text,text,text,text)
+  TO service_role;
+
+
+-- Complete webhook state transition and sensitive-payload cleanup atomically.
+CREATE OR REPLACE FUNCTION public.staynas_finish_distribution_webhook(
+  _inbox_id uuid,
+  _lease_token uuid,
+  _worker_id text,
+  _status text,
+  _safe_summary text DEFAULT NULL,
+  _reconciliation_code text DEFAULT NULL,
+  _retry_after_seconds integer DEFAULT NULL
+)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
+AS $function$
+DECLARE
+  _row public.staynas_distribution_webhook_inbox%ROWTYPE;
+BEGIN
+  SELECT i.* INTO _row
+  FROM public.staynas_distribution_webhook_inbox i
+  WHERE i.id=_inbox_id AND i.processing_status='processing'
+    AND i.lease_token=_lease_token AND i.lease_owner=_worker_id
+    AND i.lease_expires_at > pg_catalog.now()
+  FOR UPDATE;
+
+  IF _row.id IS NULL THEN
+    RAISE EXCEPTION 'Webhook processing lease is not current.' USING ERRCODE = '42501';
+  END IF;
+
+  IF _status NOT IN ('processed','retryable_failure','permanent_failure','ignored','manual_reconciliation')
+    OR (_status='retryable_failure' AND (_retry_after_seconds IS NULL OR _retry_after_seconds NOT BETWEEN 1 AND 86400))
+    OR (_status<>'retryable_failure' AND _retry_after_seconds IS NOT NULL)
+    OR (_status IN ('permanent_failure','manual_reconciliation') AND
+        (_reconciliation_code IS NULL OR length(pg_catalog.btrim(_reconciliation_code)) NOT BETWEEN 1 AND 96))
+    OR (_status NOT IN ('permanent_failure','manual_reconciliation') AND _reconciliation_code IS NOT NULL)
+    OR (_status<>'processed' AND (_safe_summary IS NULL OR length(_safe_summary)>500))
+    OR (_status='processed' AND _safe_summary IS NOT NULL)
+  THEN
+    RAISE EXCEPTION 'Invalid webhook processing result.' USING ERRCODE = '22023';
+  END IF;
+
+  INSERT INTO public.staynas_distribution_webhook_attempts(
+    inbox_id,attempt_number,worker_id,status,reconciliation_code,
+    safe_summary,correlation_id,started_at,finished_at
+  ) VALUES (
+    _row.id,_row.attempt_count,_worker_id,_status,_reconciliation_code,
+    _safe_summary,_row.correlation_id,_row.lease_started_at,pg_catalog.now()
+  );
+
+  UPDATE public.staynas_distribution_webhook_inbox i
+  SET processing_status=CASE
+        WHEN _status='retryable_failure' AND i.attempt_count>=i.max_attempts
+          THEN 'permanent_failure'
+        ELSE _status END,
+      next_attempt_at=CASE WHEN _status='retryable_failure' AND i.attempt_count<i.max_attempts
+        THEN pg_catalog.now()+pg_catalog.make_interval(secs=>_retry_after_seconds)
+        ELSE i.next_attempt_at END,
+      processed_at=CASE WHEN _status IN ('processed','ignored','permanent_failure','manual_reconciliation')
+        OR (_status='retryable_failure' AND i.attempt_count>=i.max_attempts)
+        THEN pg_catalog.now() ELSE NULL END,
+      reconciliation_code=coalesce(_reconciliation_code,
+        CASE WHEN _status='retryable_failure' AND i.attempt_count>=i.max_attempts
+          THEN 'retry_budget_exhausted' ELSE NULL END),
+      safe_error_summary=_safe_summary,
+      lease_started_at=NULL,lease_token=NULL,lease_owner=NULL,lease_expires_at=NULL
+  WHERE i.id=_row.id;
+
+  IF _status='processed' THEN
+    DELETE FROM public.staynas_distribution_reservation_payloads
+    WHERE inbox_id=_row.id;
+  END IF;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_finish_distribution_webhook(uuid,uuid,text,text,text,text,integer)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_finish_distribution_webhook(uuid,uuid,text,text,text,text,integer)
   TO service_role;
 
 COMMENT ON TABLE public.staynas_distribution_reservation_payloads IS
