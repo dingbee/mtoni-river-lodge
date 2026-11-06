@@ -217,7 +217,7 @@ RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
 
 CREATE OR REPLACE FUNCTION public.log_calendar_event(
   text,uuid,uuid,uuid,date,date,jsonb
-) RETURNS void LANGUAGE sql AS $$ SELECT $$;
+) RETURNS void LANGUAGE plpgsql AS $ BEGIN RETURN; END; $;
 
 ALTER TABLE public.staynas_properties ADD CONSTRAINT staynas_properties_status_fixture_check
   CHECK (status IN ('active','inactive'));
