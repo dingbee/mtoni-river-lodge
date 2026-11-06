@@ -184,6 +184,7 @@ export const getBookingQuote = createServerFn({ method: "POST" })
     roomSlug: z.string().min(1),
     ratePlanId: z.string().uuid().optional(),
     promoCode: z.string().trim().max(64).optional().or(z.literal("")),
+    guestEmail: z.string().trim().email().max(255).optional(),
     checkIn: dateStr,
     checkOut: dateStr,
     adults: z.number().int().min(1).max(10),
@@ -205,6 +206,7 @@ export const getBookingQuote = createServerFn({ method: "POST" })
       _extras: data.extras,
       _rate_plan_id: data.ratePlanId ?? null,
       _promo_code: data.promoCode?.trim() || null,
+      _guest_email: data.guestEmail?.trim() || null,
     });
     if (error) throw new Error(error.message);
     if (!quote) throw new Error("Pricing quote could not be calculated");
