@@ -13,14 +13,17 @@ root = pathlib.Path(".")
 ledger = json.loads((root / "docs/cc-01-live-migration-ledger.json").read_text())
 records = ledger.get("records", [])
 canonical = {f"{r['version']}_{r['name']}.sql" for r in records}
-staged = "20261105100000_cc01_property_access_and_founder_authority.sql"
+staged_release_migrations = {
+    "20261105100000_cc01_property_access_and_founder_authority.sql",
+    "20261106210000_spe04_public_rate_plan_discovery.sql",
+}
 active = root / "supabase/migrations"
 candidates = root / "supabase/migration-history-candidates"
 candidates.mkdir(parents=True, exist_ok=True)
 
 moved = []
 for source in sorted(active.glob("*.sql")):
-    if source.name in canonical or source.name == staged:
+    if source.name in canonical or source.name in staged_release_migrations:
         continue
     target = candidates / source.name
     if target.exists():
@@ -44,10 +47,10 @@ for path in sorted(candidates.glob("*.sql")):
 
 manifest = {
     "schema_version": "1.0",
-    "audit_date": "2026-11-05",
+    "audit_date": "2026-11-06",
     "production_project_ref": "hpsryyywolitgeaacpoy",
     "verified_live_ledger_entries": len(records),
-    "staged_release_migration": staged,
+    "staged_release_migrations": sorted(staged_release_migrations),
     "moved_from_active_this_run": moved,
     "candidate_file_count": len(entries),
     "files": entries
