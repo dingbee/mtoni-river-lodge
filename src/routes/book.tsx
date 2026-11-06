@@ -452,6 +452,7 @@ function BookPage() {
         roomSlug: selectedRoom.slug,
         ratePlanId: selectedRoom.selected_rate_plan_id,
         promoCode: appliedPromoCode || undefined,
+        guestEmail: guest.email.trim() || undefined,
         checkIn,
         checkOut,
         adults,
@@ -474,7 +475,7 @@ function BookPage() {
       }
     });
     return () => { cancelled = true; };
-  }, [getBookingQuoteFn, selectedRoom, checkIn, checkOut, adults, childrenBelow6, children7Plus, selectedExtras, appliedPromoCode, nights]);
+  }, [getBookingQuoteFn, selectedRoom, checkIn, checkOut, adults, childrenBelow6, children7Plus, selectedExtras, appliedPromoCode, guest.email, nights]);
 
   const effectiveQuote = bookingQuote ?? selectedRoom?.pricing_quote ?? null;
   const roomTotal = Number(effectiveQuote?.accommodation_subtotal ?? 0);
