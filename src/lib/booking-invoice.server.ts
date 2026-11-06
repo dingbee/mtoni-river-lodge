@@ -139,7 +139,6 @@ export async function buildInvoicePdf(data: InvoiceData): Promise<Uint8Array> {
     ["Extras", data.extrasTotal, false],
     ["Fees", data.feeTotal, false],
     ["Promotion discount", -data.discountTotal, false],
-    ["Tax included in accommodation (disclosure)", data.taxIncluded, false],
     ["Taxes added", data.taxAddition, false],
     ["Total", data.total, true],
     ["Deposit paid", -data.depositPaid, false],
@@ -154,6 +153,11 @@ export async function buildInvoicePdf(data: InvoiceData): Promise<Uint8Array> {
       y, size: emph ? 11 : 10, font, color: emph ? BRAND : TEXT,
     });
     y -= emph ? 18 : 15;
+  }
+  if (data.taxIncluded > 0) {
+    const disclosure = `Tax included in accommodation (disclosure): ${fmtMoney(data.taxIncluded, data.currency)}`;
+    page.drawText(disclosure, { x: colUnit - 20, y, size: 8, font: helv, color: MUTED });
+    y -= 12;
   }
 
   // Footer
