@@ -5993,4 +5993,36 @@ BEGIN
 END
 $cc01_trigger_rpc_grants$;
 
+
+-- pg_net is non-relocatable in this project. Its HTTP/worker functions must
+-- not be callable by anonymous or authenticated clients; trusted server-side
+-- workflows retain access through service_role.
+DO $cc01_pg_net_client_grants$
+DECLARE
+  _signature text;
+  _function regprocedure;
+BEGIN
+  FOREACH _signature IN ARRAY ARRAY[
+    'net._await_response(bigint)',
+    'net._encode_url_with_params_array(text,text[])',
+    'net._http_collect_response(bigint,boolean)',
+    'net._urlencode_string(character varying)',
+    'net.check_worker_is_up()',
+    'net.http_collect_response(bigint,boolean)',
+    'net.http_delete(text,jsonb,jsonb,integer,jsonb)',
+    'net.http_get(text,jsonb,jsonb,integer)',
+    'net.http_post(text,jsonb,jsonb,jsonb,integer)',
+    'net.wait_until_running()',
+    'net.wake()',
+    'net.worker_restart()'
+  ] LOOP
+    _function := to_regprocedure(_signature);
+    IF _function IS NOT NULL THEN
+      EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated', _function);
+      EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', _function);
+    END IF;
+  END LOOP;
+END
+$cc01_pg_net_client_grants$;
+
 commit;

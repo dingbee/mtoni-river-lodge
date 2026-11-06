@@ -237,3 +237,12 @@ Production remains unchanged: no migration was applied, no production data or ro
 ## Exact-head CI re-trigger — 6 November 2026, 16:29 UTC
 
 The migration-ledger correction triggered the quarantine workflow, which updated the generated classification manifest to **139 verified live records** and retained all **165** historical candidate files; no additional file was moved. Its bot-authored commit `65f1d235fe408d325807894e0924db05fc25b07d` caused the five PR workflows to finish with GitHub conclusion `action_required` before any jobs were created. The code and staged migration SQL are unchanged from `c7f90cb2e828e0b79ecdd4281ff6560b474e3e12`, on which all five workflows passed. This documentation-only update triggers a new exact-head PR verification run; no production action is involved.
+
+
+## Additional security finding — pg_net client execution — 6 November 2026
+
+The live catalogue confirms the `pg_net` extension is non-relocatable (`extrelocatable = false`) and its 12 runtime/worker functions in schema `net` are currently executable by both `anon` and `authenticated`. This is a concrete client-side outbound-HTTP capability exposure, not merely a cosmetic extension-placement warning.
+
+The staged CC-01 migration now revokes `PUBLIC`, `anon`, and `authenticated` execution from all 12 discovered `pg_net` functions and preserves execution for `service_role`. The ephemeral PostgreSQL fixture now creates the same function-signature surface and the migration assertions require client denial plus service-role access. The extension itself remains installed in the public extension namespace because it is non-relocatable; no drop/recreate or extension move is attempted. The Security Advisor's extension-placement warning therefore remains a documented platform exception, while the client-execution exposure is addressed in the staged migration.
+
+The Auth leaked-password protection warning is a Supabase Auth project setting, not a SQL migration concern. The current connected Supabase actions do not expose a supported setting mutation, so it remains an external release gate. The complete authenticated SECURITY DEFINER inventory still requires final disposition and independent security review; CC-01 is not certified by this code change alone.

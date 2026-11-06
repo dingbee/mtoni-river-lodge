@@ -5058,3 +5058,42 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.discover_staynas_public_rate_plans(uuid,uuid,date,date,integer,integer,integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.discover_staynas_public_rate_plans(uuid,uuid,date,date,integer,integer,integer) TO service_role;
+
+
+-- Minimal pg_net surface for CC-01 ACL regression tests. Production pg_net is
+-- non-relocatable and supplies these functions in the net schema.
+CREATE SCHEMA IF NOT EXISTS net;
+CREATE OR REPLACE FUNCTION net._await_response(request_id bigint) RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
+CREATE OR REPLACE FUNCTION net._encode_url_with_params_array(url text, params_array text[]) RETURNS text LANGUAGE sql AS $$ SELECT ''::text $$;
+CREATE OR REPLACE FUNCTION net._http_collect_response(request_id bigint, async boolean) RETURNS text LANGUAGE sql AS $$ SELECT ''::text $$;
+CREATE OR REPLACE FUNCTION net._urlencode_string(string character varying) RETURNS text LANGUAGE sql AS $$ SELECT ''::text $$;
+CREATE OR REPLACE FUNCTION net.check_worker_is_up() RETURNS void LANGUAGE plpgsql AS $$ BEGIN RETURN; END $$;
+CREATE OR REPLACE FUNCTION net.http_collect_response(request_id bigint, async boolean) RETURNS text LANGUAGE sql AS $$ SELECT ''::text $$;
+CREATE OR REPLACE FUNCTION net.http_delete(url text, params jsonb, headers jsonb, timeout_milliseconds integer, body jsonb) RETURNS bigint LANGUAGE sql AS $$ SELECT 1::bigint $$;
+CREATE OR REPLACE FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) RETURNS bigint LANGUAGE sql AS $$ SELECT 1::bigint $$;
+CREATE OR REPLACE FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) RETURNS bigint LANGUAGE sql AS $$ SELECT 1::bigint $$;
+CREATE OR REPLACE FUNCTION net.wait_until_running() RETURNS void LANGUAGE plpgsql AS $$ BEGIN RETURN; END $$;
+CREATE OR REPLACE FUNCTION net.wake() RETURNS void LANGUAGE plpgsql AS $$ BEGIN RETURN; END $$;
+CREATE OR REPLACE FUNCTION net.worker_restart() RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
+DO $cc01_pg_net_fixture_grants$
+DECLARE _signature text; _function regprocedure;
+BEGIN
+  FOREACH _signature IN ARRAY ARRAY[
+    'net._await_response(bigint)',
+    'net._encode_url_with_params_array(text,text[])',
+    'net._http_collect_response(bigint,boolean)',
+    'net._urlencode_string(character varying)',
+    'net.check_worker_is_up()',
+    'net.http_collect_response(bigint,boolean)',
+    'net.http_delete(text,jsonb,jsonb,integer,jsonb)',
+    'net.http_get(text,jsonb,jsonb,integer)',
+    'net.http_post(text,jsonb,jsonb,jsonb,integer)',
+    'net.wait_until_running()',
+    'net.wake()',
+    'net.worker_restart()'
+  ] LOOP
+    _function := to_regprocedure(_signature);
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO PUBLIC, anon, authenticated, service_role', _function);
+  END LOOP;
+END
+$cc01_pg_net_fixture_grants$;
