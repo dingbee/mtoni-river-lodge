@@ -13,6 +13,7 @@ on:
       - "supabase/migrations/20261107030000_dc05_trigger_function_execute_privileges.sql"
       - "supabase/migrations/20261107040000_dc05_unpaid_channel_booking_semantics.sql"
       - "supabase/migrations/20261107050000_dc05_reservation_lifecycle_reconciliation.sql"
+      - "supabase/migrations/20261107060000_dc05_lifecycle_payload_retention_fix.sql"
       - "scripts/ci/dc05-reservation-lifecycle-fixture.sql"
       - "scripts/ci/dc05-reservation-lifecycle-smoke.sql"
       - "supabase/migrations/20261106140000_dc05_mapping_identity_resolution.sql"
@@ -92,6 +93,7 @@ jobs:
         run: |
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc05-reservation-lifecycle-fixture.sql
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107050000_dc05_reservation_lifecycle_reconciliation.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107060000_dc05_lifecycle_payload_retention_fix.sql
       - name: Verify DC-05.03 materialization and DC-05.04 lifecycle contracts
         env:
           PGPASSWORD: postgres
