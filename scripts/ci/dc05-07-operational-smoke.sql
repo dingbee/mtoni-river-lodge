@@ -111,9 +111,22 @@ BEGIN
   WHERE booking_id=v_booking AND task_type='channel_reservation_arrival';
   IF v_task_count<>1 THEN RAISE EXCEPTION 'Expected exactly one channel arrival task'; END IF;
 
+  -- Simulate a legitimate property-side payment before replay. Integration
+  -- replay must not overwrite finance state or post another payment.
+  UPDATE public.bookings
+  SET payment_status='paid',payment_method='cash',paid_amount=200,
+      balance_amount=0,balance_due=0
+  WHERE id=v_booking;
+
   -- Replay the same integration operation. It must update the projection, not
   -- create a second task, allocation or operational reservation.
   PERFORM public.staynas_integrate_distribution_reservation(v_link);
+  IF (SELECT payment_status FROM public.bookings WHERE id=v_booking)<>'paid'
+     OR (SELECT payment_method FROM public.bookings WHERE id=v_booking)<>'cash'
+     OR (SELECT paid_amount FROM public.bookings WHERE id=v_booking)<>200
+     OR (SELECT balance_amount FROM public.bookings WHERE id=v_booking)<>0 THEN
+    RAISE EXCEPTION 'Operational replay overwrote legitimate finance state';
+  END IF;
   SELECT count(*) INTO v_task_count FROM public.ops_tasks
   WHERE booking_id=v_booking AND task_type='channel_reservation_arrival';
   IF v_task_count<>1
@@ -174,7 +187,7 @@ BEGIN
   SELECT allocation_status INTO v_allocation_status
   FROM public.staynas_distribution_room_allocations WHERE booking_id=v_booking;
   IF v_booking_status<>'confirmed' OR v_allocation_status<>'reserved'
-     OR (SELECT payment_status FROM public.bookings WHERE id=v_booking)<>'unpaid'
+     OR (SELECT payment_status FROM public.bookings WHERE id=v_booking)<>'paid'
      OR (SELECT status FROM public.ops_tasks WHERE booking_id=v_booking
          AND task_type='channel_reservation_arrival')<>'pending' THEN
     RAISE EXCEPTION 'Reinstatement did not restore reservation, inventory, task and unpaid semantics';
