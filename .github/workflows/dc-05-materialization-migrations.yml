@@ -29,6 +29,7 @@ on:
       - "scripts/ci/dc05-canonical-materialization-smoke.sql"
       - "scripts/ci/dc05-08-housekeeping-fixture.sql"
       - "scripts/ci/dc05-08-operational-uat.sql"
+      - "docs/dc05-08-e2e-uat.md"
       - "supabase/migrations/20260924130000_hk_s1_domain_integrity.sql"
       - "supabase/migrations/20260924150000_hk_s2_staff_execution.sql"
       - "supabase/migrations/20260924151000_hk_s2_staff_directory.sql"
