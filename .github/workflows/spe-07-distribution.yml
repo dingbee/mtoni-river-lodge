@@ -55,6 +55,8 @@ jobs:
         run: supabase start
       - name: Apply all migrations to clean local database
         run: supabase db reset --local
+      - name: Run database contract and RLS tests
+        run: supabase test db
       - name: Stop local Supabase stack
         if: always()
         run: supabase stop --no-backup
