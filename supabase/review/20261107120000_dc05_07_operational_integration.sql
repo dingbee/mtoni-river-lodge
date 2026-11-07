@@ -127,8 +127,7 @@ BEGIN
   FOR v_unit IN
     SELECT rs.* FROM public.room_states rs
     WHERE rs.room_id=v_booking.room_id
-      AND rs.state IN ('vacant_clean','inspection')
-      AND rs.booking_id IS NULL
+      AND rs.state NOT IN ('maintenance','out_of_service')
       AND NOT EXISTS (
         SELECT 1 FROM public.staynas_distribution_room_allocations a
         WHERE a.room_state_id=rs.id
