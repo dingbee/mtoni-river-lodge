@@ -462,7 +462,10 @@ BEGIN
       OR v_existing_invoice.billing_period_start <> _period_start
       OR v_existing_invoice.billing_period_end <> _period_end
       OR v_existing_invoice.currency <> v_currency
-      OR v_existing_invoice.total_minor <> v_total THEN
+      OR v_existing_invoice.total_minor <> v_total
+      OR v_existing_invoice.pricing_snapshot IS DISTINCT FROM v_sub.accepted_price_snapshot
+      OR v_existing_invoice.tax_snapshot IS DISTINCT FROM _tax_snapshot
+      OR v_existing_invoice.discount_snapshot IS DISTINCT FROM _discount_snapshot THEN
       RAISE EXCEPTION 'Invoice idempotency key was reused with conflicting billing input' USING ERRCODE = '23505';
     END IF;
     RETURN jsonb_build_object('invoiceId',v_existing_invoice.id,'invoiceNumber',v_existing_invoice.invoice_number,'replayed',true);
