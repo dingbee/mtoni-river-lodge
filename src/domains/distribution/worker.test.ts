@@ -61,7 +61,7 @@ describe("distribution outbox worker", () => {
           supportsFeeBreakdown: false, supportsCurrencyConversion: false,
           reservationDelivery: "none", supportsEventVersioning: false,
           supportsExternalIdempotency: false,
-        },
+        } satisfies ProviderCapabilities,
       })),
       finish, registry: registry(),
     });
