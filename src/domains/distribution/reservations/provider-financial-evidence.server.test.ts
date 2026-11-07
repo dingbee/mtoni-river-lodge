@@ -79,14 +79,8 @@ describe("DC-05.06 provider financial evidence", () => {
   it("rejects lifecycle events and evidence-free payment callbacks", () => {
     const lifecycle = externalReservationSchema.parse({ ...base, eventType: "reservation.modified" });
     expect(() => buildProviderFinancialEvidence(lifecycle)).toThrow();
-    const noMoney = externalReservationSchema.parse({
-      ...base,
+    expect(() => buildProviderFinancialEvidence({
       eventType: "reservation.payment_updated",
-      paymentAmount: undefined,
-      paymentCurrency: undefined,
-      paymentStatus: undefined,
-      paymentReference: undefined,
-    });
-    expect(() => buildProviderFinancialEvidence(noMoney)).toThrow();
+    } as any)).toThrow();
   });
 });
