@@ -48,17 +48,6 @@ const saveInput = z.object({
   }
 });
 
-type PolicyRow = {
-  id: string;
-  policy_type: typeof policyTypes[number];
-  version: number;
-  status: "draft" | "published" | "retired";
-  payload: unknown;
-  effective_from: string | null;
-  effective_to: string | null;
-  created_at: string;
-  is_current?: boolean;
-};
 type QueryResult = { data: unknown; error: unknown | null };
 type Query = PromiseLike<QueryResult> & {
   select(columns?: string): Query;
@@ -125,10 +114,10 @@ export const listFounderCommercialPolicies = createServerFn({ method: "GET" })
     ]);
     if (error || currentError) throw new Error("Unable to load founder commercial policy configuration.");
     const currentByType = new Map(
-      ((currentData ?? []) as Array<{ policy_type: PolicyType; version_id: string }>)
+      ((currentData ?? []) as Array<{ policy_type: typeof policyTypes[number]; version_id: string }>)
         .map((row) => [row.policy_type, row.version_id]),
     );
-    return ((data ?? []) as PolicyRow[]).map((row) => ({
+    return ((data ?? []) as Array<{ id: string; policy_type: typeof policyTypes[number]; version: number; status: "draft" | "published" | "retired"; payload: unknown; effective_from: string | null; effective_to: string | null; created_at: string }>).map((row) => ({
       ...row,
       is_current: currentByType.get(row.policy_type) === row.id,
     }));
