@@ -313,6 +313,8 @@ BEGIN
     OR has_table_privilege('authenticated','public.commercial_payment_transactions','SELECT')
     OR has_table_privilege('authenticated','public.commercial_payment_allocations','INSERT')
     OR has_table_privilege('authenticated','public.commercial_payment_allocation_reversals','SELECT')
+    OR has_table_privilege('authenticated','public.commercial_provider_accounts','SELECT')
+    OR has_table_privilege('authenticated','public.commercial_financial_audit_events','SELECT')
     OR has_table_privilege('service_role','public.commercial_financial_audit_events','DELETE') THEN
     RAISE EXCEPTION 'Financial table grants violate least-privilege policy';
   END IF;
