@@ -129,6 +129,7 @@ export async function sendCommercialPaymentConfirmationEmail(input: { admin: any
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function sendCommercialPaymentFailureEmail(input: { admin: any; paymentId: string }) {
   const { admin, paymentId } = input;
   const { data: payment, error } = await admin.from("commercial_payment_transactions").select("*").eq("id",paymentId).maybeSingle();
@@ -178,6 +179,7 @@ export async function sendCommercialPaymentFailureEmail(input: { admin: any; pay
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function sendCommercialInvoiceReminderEmail(input: {
   admin: any; invoiceId: string; notificationType: "upcoming_due" | "overdue_notice";
 }) {
@@ -227,6 +229,7 @@ export async function sendCommercialInvoiceReminderEmail(input: {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function sendCommercialUnallocatedPaymentEmail(input:{admin:any;paymentId:string}) {
   const {admin,paymentId}=input;
   const {data:payment,error}=await admin.from("commercial_payment_transactions").select("*").eq("id",paymentId).maybeSingle();
