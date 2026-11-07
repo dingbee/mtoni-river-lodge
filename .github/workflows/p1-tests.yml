@@ -124,6 +124,7 @@ jobs:
           src/domains/commercial/commercial-billing-engine.test.ts
           src/domains/commercial/commercial-payment-adapters.ts
           src/domains/commercial/commercial-payment-adapters.test.ts
+          src/domains/commercial/commercial-reconciliation-engine.test.ts
           src/domains/commercial/commercial-payment.functions.ts
           src/domains/commercial/commercial-pesapal.server.ts
           src/routes/api/public/commercial-pesapal.ipn.ts
