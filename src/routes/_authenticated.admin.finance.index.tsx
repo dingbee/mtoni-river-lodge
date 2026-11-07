@@ -61,18 +61,14 @@ function RevenueDashboard() {
         title="Revenue Dashboard"
         description="Live financial performance for Mtoni River Lodge."
         actions={
-          <div className="flex gap-2">
-            <Link to="/admin/finance/payments" className="text-sm text-primary hover:underline">
-              Payments
-            </Link>
-            <Link to="/admin/finance/reports" className="text-sm text-primary hover:underline">
-              Reports
-            </Link>
+          <div className="flex gap-3">
+            <Link to="/admin/finance/payments" className="text-sm text-primary hover:underline">Payments</Link>
+            <Link to="/admin/finance/reconciliation" className="text-sm text-primary hover:underline">Reconciliation</Link>
+            <Link to="/admin/finance/reports" className="text-sm text-primary hover:underline">Reports</Link>
           </div>
         }
       />
 
-      {/* Health — score and monetary signals remain separated by currency. */}
       {health && (
         <SectionCard title="Revenue Health by Currency">
           <div className="space-y-3">
@@ -96,7 +92,6 @@ function RevenueDashboard() {
         </SectionCard>
       )}
 
-      {/* Filters */}
       <SectionCard>
         <div className="flex flex-wrap items-end gap-3">
           <label className="text-sm">
@@ -114,7 +109,7 @@ function RevenueDashboard() {
         <LoadingState />
       ) : (
         <>
-          <SectionCard title="Financial Position by Currency" >
+          <SectionCard title="Financial Position by Currency">
             <div className="space-y-4">
               {data.currencyBreakdown.map((item) => {
                 const refunds = data.refundsByCurrency.find((r) => r.currency === item.currency)?.amount ?? 0;
@@ -149,46 +144,37 @@ function RevenueDashboard() {
           <div className="grid gap-4 lg:grid-cols-2">
             <SectionCard title="Revenue by Room">
               <div className="space-y-2">
-                {data.revenueByRoom.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No revenue in this range.</p>
-                )}
+                {data.revenueByRoom.length === 0 && <p className="text-sm text-muted-foreground">No revenue in this range.</p>}
                 {data.revenueByRoom.map((r) => (
                   <div key={`${r.currency}-${r.room_id}`} className="flex items-center justify-between text-sm">
-                    <span>{r.name}</span>
-                    <span className="font-medium">{money(r.total, r.currency)}</span>
+                    <span>{r.name}</span><span className="font-medium">{money(r.total, r.currency)}</span>
                   </div>
                 ))}
               </div>
             </SectionCard>
-
             <SectionCard title="Revenue by Source">
               <div className="space-y-2">
                 {data.revenueBySource.map((r) => (
                   <div key={`${r.currency}-${r.source}`} className="flex items-center justify-between text-sm">
-                    <span className="capitalize">{r.source}</span>
-                    <span className="font-medium">{money(r.total, r.currency)}</span>
+                    <span className="capitalize">{r.source}</span><span className="font-medium">{money(r.total, r.currency)}</span>
                   </div>
                 ))}
               </div>
             </SectionCard>
-
             <SectionCard title="Top Guest Nationalities">
               <div className="space-y-2">
                 {data.revenueByCountry.map((r) => (
                   <div key={`${r.currency}-${r.country}`} className="flex items-center justify-between text-sm">
-                    <span>{r.country}</span>
-                    <span className="font-medium">{money(r.total, r.currency)}</span>
+                    <span>{r.country}</span><span className="font-medium">{money(r.total, r.currency)}</span>
                   </div>
                 ))}
               </div>
             </SectionCard>
-
             <SectionCard title="Revenue Trend by Month">
               <div className="space-y-2">
                 {data.revenueTrend.map((r) => (
                   <div key={`${r.currency}-${r.month}`} className="flex items-center justify-between text-sm">
-                    <span>{r.month}</span>
-                    <Badge variant="secondary">{money(r.total, r.currency)}</Badge>
+                    <span>{r.month}</span><Badge variant="secondary">{money(r.total, r.currency)}</Badge>
                   </div>
                 ))}
               </div>
