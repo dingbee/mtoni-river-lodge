@@ -55,8 +55,6 @@ ALTER TABLE public.ops_tasks
 ALTER TABLE public.ops_tasks
   DROP COLUMN IF EXISTS property_id,
   DROP COLUMN IF EXISTS room_state_id;
-ALTER TABLE public.ops_alerts
-  DROP COLUMN IF EXISTS property_id;
 
 DO $type$
 BEGIN
@@ -80,3 +78,4 @@ CREATE TABLE IF NOT EXISTS public.ops_alerts (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE public.ops_alerts DROP COLUMN IF EXISTS property_id;
