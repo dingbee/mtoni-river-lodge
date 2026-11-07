@@ -4,6 +4,53 @@
 -- invoke it from their SECURITY DEFINER transaction after resolving actor scope.
 BEGIN;
 
+CREATE OR REPLACE FUNCTION public.staynas_lock_room_inventory_dates(
+  _room_id uuid,
+  _property_id uuid,
+  _check_in date,
+  _check_out date
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $function$
+DECLARE
+  v_day date;
+  v_room public.rooms%ROWTYPE;
+BEGIN
+  IF _room_id IS NULL OR _property_id IS NULL OR _check_in IS NULL
+     OR _check_out IS NULL OR _check_out<=_check_in THEN
+    RAISE EXCEPTION 'Invalid inventory lock request' USING ERRCODE='22023';
+  END IF;
+
+  SELECT r.* INTO v_room
+  FROM public.rooms r
+  WHERE r.id=_room_id AND r.property_id=_property_id
+  FOR SHARE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Room/property mismatch' USING ERRCODE='42501';
+  END IF;
+
+  v_day:=_check_in;
+  WHILE v_day<_check_out LOOP
+    INSERT INTO public.room_inventory(room_id,date,available_units)
+    VALUES(v_room.id,v_day,v_room.total_units)
+    ON CONFLICT(room_id,date) DO NOTHING;
+
+    PERFORM 1 FROM public.room_inventory i
+    WHERE i.room_id=v_room.id AND i.date=v_day
+    FOR UPDATE;
+    v_day:=v_day+1;
+  END LOOP;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_lock_room_inventory_dates(uuid,uuid,date,date)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_lock_room_inventory_dates(uuid,uuid,date,date)
+  TO service_role;
+
 CREATE OR REPLACE FUNCTION public.staynas_transition_booking_core(
   _booking_id uuid,
   _target_status text,
