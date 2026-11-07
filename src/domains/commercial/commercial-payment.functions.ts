@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveVerifiedFounderActor, resolveVerifiedTenantActor } from "./subscription.functions";
+import { calculateCommercialProration } from "./commercial-billing-engine";
 
 const invoiceInput = z.object({
   subscriptionId: z.string().uuid(),
@@ -1020,4 +1021,25 @@ export const getMyCommercialFinancialPosition=createServerFn({method:"GET"})
       const target=summary[row.currency];if(target)target.unallocatedMinor=(BigInt(target.unallocatedMinor)+BigInt(row.unallocated_minor)).toString();
     }
     return summary;
+  });
+
+export const previewCommercialProration=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>z.object({
+    fullAmountMinor:z.number().int().nonnegative().safe(),
+    billableUnits:z.number().int().nonnegative().safe(),
+    totalUnits:z.number().int().positive().safe(),
+    rounding:z.enum(["half_up","floor"]),
+    contractReference:z.string().trim().min(4).max(200),
+  }).refine(value=>value.billableUnits<=value.totalUnits,{message:"Billable units cannot exceed total units."}).parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const amountMinor=calculateCommercialProration(data);
+    const admin=await getAdmin();
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:actor.organisationId,actorRole:"founder_admin",action:"billing.proration_previewed",
+      resourceType:"billing_calculation",resourceRef:data.contractReference,
+      metadata:{fullAmountMinor:data.fullAmountMinor,billableUnits:data.billableUnits,
+        totalUnits:data.totalUnits,rounding:data.rounding,amountMinor}});
+    return {amountMinor,contractReference:data.contractReference,rounding:data.rounding};
   });
