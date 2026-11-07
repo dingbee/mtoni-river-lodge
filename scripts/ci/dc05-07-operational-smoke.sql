@@ -24,6 +24,9 @@ DECLARE
   v_reinstate_inbox uuid:='07070000-0000-4000-8000-000000000013';
   v_reinstate_lease uuid:='07070000-0000-4000-8000-000000000014';
   v_reinstate_result jsonb;
+  v_modify_inbox uuid:='07070000-0000-4000-8000-000000000015';
+  v_modify_lease uuid:='07070000-0000-4000-8000-000000000016';
+  v_modify_result jsonb;
 BEGIN
   INSERT INTO public.staynas_organisations(id,slug)
   VALUES(v_org,'dc0507-fixture');
@@ -193,6 +196,49 @@ BEGIN
   IF v_room_state_booking IS DISTINCT FROM v_booking OR v_booking_status<>'occupied'
      OR v_allocation_status<>'checked_in' THEN
     RAISE EXCEPTION 'Check-in did not bind and occupy the exact allocated physical room';
+  END IF;
+
+  -- A provider date-change that cannot be reallocated safely must not mutate
+  -- the canonical stay. It is converted into a durable Operations exception.
+  INSERT INTO public.staynas_distribution_webhook_inbox(
+    id,organisation_id,property_id,connection_id,account_grant_id,external_account_id,
+    provider_key,environment,provider_event_id,event_type,payload_fingerprint,
+    normalized_event,correlation_id
+  ) VALUES(
+    v_modify_inbox,v_org,v_property,v_connection,v_grant,v_account,'airbnb','sandbox',
+    'dc0507-event-3','reservation.modified',repeat('c',64),
+    jsonb_build_object('externalReservationId','dc0507-reservation-1','externalListingId','dc0507-listing',
+      'externalRoomId',NULL,'externalRatePlanId',NULL,'providerStatus','confirmed',
+      'eventType','reservation.modified','arrivalDate','2026-12-11','departureDate','2026-12-13',
+      'adults',2,'children',0,'providerModifiedAt','2026-11-07T08:30:00Z'),
+    'dc0507-correlation-modify'
+  );
+  INSERT INTO public.staynas_distribution_reservation_payloads(
+    inbox_id,payload_fingerprint,ciphertext,nonce,auth_tag,key_version
+  ) VALUES(v_modify_inbox,repeat('c',64),'fixture-ciphertext','fixture-nonce','fixture-tag','v1');
+  UPDATE public.staynas_distribution_webhook_inbox
+  SET processing_status='processing',attempt_count=1,lease_token=v_modify_lease,
+      lease_owner='dc05-07-worker',lease_started_at=now(),lease_expires_at=now()+interval '5 minutes'
+  WHERE id=v_modify_inbox;
+  v_modify_result:=public.staynas_apply_distribution_reservation_lifecycle(
+    v_modify_inbox,v_modify_lease,'dc05-07-worker',repeat('c',64),
+    'dc0507-reservation-1','reservation.modified','dc0507-event-3','confirmed',
+    '2026-11-07T08:30:00Z'::timestamptz,'2026-12-11'::date,'2026-12-13'::date,
+    2,0,'Test Guest','dc0507@example.test',NULL,NULL
+  );
+  IF v_modify_result->>'outcome'<>'manual_reconciliation'
+     OR v_modify_result->>'reconciliation_code'<>'stay_change_requires_reallocation' THEN
+    RAISE EXCEPTION 'Unsafe provider stay modification was not failed closed: %',v_modify_result;
+  END IF;
+  PERFORM public.staynas_mark_distribution_operational_reconciliation(
+    v_modify_inbox,'stay_change_requires_reallocation'
+  );
+  IF (SELECT integration_status FROM public.staynas_distribution_operational_reservations
+      WHERE booking_id=v_booking)<>'reconciliation_required'
+     OR (SELECT check_in FROM public.bookings WHERE id=v_booking)<>'2026-12-10'
+     OR (SELECT count(*) FROM public.ops_tasks
+         WHERE booking_id=v_booking AND task_type='channel_reservation_reconciliation')<>1 THEN
+    RAISE EXCEPTION 'Provider modification exception was not surfaced without mutating canonical stay';
   END IF;
 
   IF NOT EXISTS (
