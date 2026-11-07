@@ -895,15 +895,22 @@ export const reconcileCommercialProviderStatementRun=createServerFn({method:"POS
       ? await admin.from("commercial_payment_allocations").select("payment_id,amount_minor").in("payment_id",paymentIds)
       : {data:[],error:null};
     if(allocations.error) throw new Error("Payment allocations for reconciliation could not be loaded.");
-    const allocatedByPayment=new Map<string,number>();
+    const allocatedByPayment=new Map<string,bigint>();
     for(const allocation of allocations.data??[]){
-      allocatedByPayment.set(allocation.payment_id,(allocatedByPayment.get(allocation.payment_id)??0)+Number(allocation.amount_minor));
+      allocatedByPayment.set(allocation.payment_id,(allocatedByPayment.get(allocation.payment_id)??0n)+BigInt(allocation.amount_minor));
     }
-    const internal=(payments??[]).map((payment:{id:string;provider_transaction_ref:string|null;provider_order_ref:string|null;amount_minor:number|string;currency:"TZS"|"USD";status:"pending"|"successful"|"failed"|"cancelled"|"partially_reversed"|"reversed"})=>({
-      id:payment.id,providerTransactionRef:payment.provider_transaction_ref,providerOrderRef:payment.provider_order_ref,
-      amountMinor:Number(payment.amount_minor),currency:payment.currency,status:payment.status,
-      allocatedMinor:allocatedByPayment.get(payment.id)??0,
-    }));
+    const internal=(payments??[]).map((payment:{id:string;provider_transaction_ref:string|null;provider_order_ref:string|null;amount_minor:number|string;currency:"TZS"|"USD";status:"pending"|"successful"|"failed"|"cancelled"|"partially_reversed"|"reversed"})=>{
+      const amountMinor=BigInt(payment.amount_minor);
+      const allocatedMinor=allocatedByPayment.get(payment.id)??0n;
+      if(amountMinor>BigInt(Number.MAX_SAFE_INTEGER)||allocatedMinor>BigInt(Number.MAX_SAFE_INTEGER)) {
+        throw new Error("Payment exceeds safe provider statement comparison precision; manual reconciliation is required.");
+      }
+      return {
+        id:payment.id,providerTransactionRef:payment.provider_transaction_ref,providerOrderRef:payment.provider_order_ref,
+        amountMinor:Number(amountMinor),currency:payment.currency,status:payment.status,
+        allocatedMinor:Number(allocatedMinor),
+      };
+    });
     const {reconcileCommercialProviderStatement}=await import("./commercial-reconciliation-engine");
     const results=reconcileCommercialProviderStatement(internal,data.providerRows);
     if(results.length){
