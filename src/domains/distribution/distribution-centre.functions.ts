@@ -34,7 +34,8 @@ export const getDistributionCentre = createServerFn({ method: "GET" })
     if (!propertyId) throw new Error("No accessible active property is configured");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: property, error: propertyError } = await supabaseAdmin
+    const admin = supabaseAdmin as unknown as { from: (table: string) => any };
+    const { data: property, error: propertyError } = await admin
       .from("staynas_properties")
       .select("id, organisation_id, name, currency, timezone, status")
       .eq("id", propertyId)
@@ -42,7 +43,7 @@ export const getDistributionCentre = createServerFn({ method: "GET" })
     if (propertyError) throw new Error(propertyError.message);
     if (!property || property.status !== "active") throw new Error("Active property not found or unavailable");
 
-    const { data: connections, error: connectionError } = await supabaseAdmin
+    const { data: connections, error: connectionError } = await admin
       .from("staynas_distribution_connections")
       .select("id, provider, external_account_id, external_property_id, status, mapping_version, last_validated_at, last_error_code, created_at, updated_at")
       .eq("organisation_id", property.organisation_id)
@@ -53,7 +54,7 @@ export const getDistributionCentre = createServerFn({ method: "GET" })
     const connectionIds = (connections ?? []).map((item) => item.id);
     const [mappingResult, operationResult, inboxResult] = await Promise.all([
       connectionIds.length
-        ? supabaseAdmin.from("staynas_distribution_mappings")
+        ? admin.from("staynas_distribution_mappings")
             .select("id, connection_id, mapping_type, internal_id, external_id, active, version, updated_at")
             .eq("organisation_id", property.organisation_id)
             .eq("property_id", property.id)
@@ -61,7 +62,7 @@ export const getDistributionCentre = createServerFn({ method: "GET" })
             .order("mapping_type")
         : Promise.resolve({ data: [], error: null }),
       connectionIds.length
-        ? supabaseAdmin.from("staynas_distribution_operations")
+        ? admin.from("staynas_distribution_operations")
             .select("id, connection_id, operation_type, status, error_code, safe_error_message, attempt_count, created_at, updated_at")
             .eq("organisation_id", property.organisation_id)
             .eq("property_id", property.id)
@@ -69,7 +70,7 @@ export const getDistributionCentre = createServerFn({ method: "GET" })
             .order("created_at", { ascending: false }).limit(50)
         : Promise.resolve({ data: [], error: null }),
       connectionIds.length
-        ? supabaseAdmin.from("staynas_distribution_reservation_inbox")
+        ? admin.from("staynas_distribution_reservation_inbox")
             .select("id, connection_id, external_reservation_id, event_type, processing_status, safe_error_code, safe_error_message, received_at, processed_at")
             .eq("organisation_id", property.organisation_id)
             .eq("property_id", property.id)
@@ -84,9 +85,9 @@ export const getDistributionCentre = createServerFn({ method: "GET" })
     return {
       property: { id: property.id, organisationId: property.organisation_id, name: property.name, currency: property.currency, timezone: property.timezone },
       connections: (connections ?? []) as SafeConnection[],
-      mappings: mappingResult.data ?? [],
-      operations: operationResult.data ?? [],
-      inbox: inboxResult.data ?? [],
+      mappings: (mappingResult.data ?? []) as Record<string, unknown>[],
+      operations: (operationResult.data ?? []) as Record<string, unknown>[],
+      inbox: (inboxResult.data ?? []) as Record<string, unknown>[],
       runtime: {
         providerAdaptersRegistered: 0,
         outboundDispatchEnabled: false,
