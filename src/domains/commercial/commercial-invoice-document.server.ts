@@ -20,11 +20,12 @@ function money(minor: number | string, currency: "TZS" | "USD") {
 /** Builds a PDF strictly from persisted invoice, line and adjustment records. */
 export async function buildCommercialInvoicePdf(input: InvoiceDocumentInput) {
   const pdf = await PDFDocument.create();
-  const page = pdf.addPage([595.28, 841.89]);
+  let page = pdf.addPage([595.28, 841.89]);
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   let y = 790;
   const draw = (text: string, size = 10, isBold = false) => {
+    if (y < 65) { page = pdf.addPage([595.28, 841.89]); y = 790; }
     page.drawText(text.slice(0, 110), { x: 48, y, size, font: isBold ? bold : regular, color: rgb(0.12, 0.16, 0.22) });
     y -= size + 9;
   };
@@ -38,13 +39,7 @@ export async function buildCommercialInvoicePdf(input: InvoiceDocumentInput) {
   draw("CHARGES", 12, true);
   for (const line of input.lines) {
     draw(`${line.description} | Qty ${line.quantity} | ${money(line.unit_amount_minor,input.invoice.currency)} | ${money(line.amount_minor,input.invoice.currency)}`);
-    if (y < 110) {
-      const next = pdf.addPage([595.28,841.89]);
-      y = 790;
-      // Keep subsequent content on a fresh page without altering prior page evidence.
-      page.drawText("", { x: 48, y: 790, size: 1, font: regular });
-      void next;
-    }
+
   }
   y -= 8;
   draw(`Subtotal: ${money(input.invoice.subtotal_minor,input.invoice.currency)}`, 10, true);
