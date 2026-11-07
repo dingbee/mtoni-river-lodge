@@ -87,33 +87,44 @@ function assertPayload(
   if (status !== "published") return parsed;
 
   if (policyType === "catalogue") {
-    const codes = new Set((parsed as z.infer<typeof policyPayloadSchemas.catalogue>).plans.map((plan) => plan.code));
-    if (codes.size !== 3 || !["essential", "professional", "enterprise"].every((code) => codes.has(code as "essential" | "professional" | "enterprise"))) {
-      throw new Error("A published catalogue must define Essential, Professional and Enterprise.");
+    const catalogue = parsed as z.infer<typeof policyPayloadSchemas.catalogue>;
+    const codes = new Set(catalogue.plans.map((plan) => plan.code));
+    if (catalogue.plans.length !== 3 || codes.size !== 3
+      || !["essential", "professional", "enterprise"].every((code) => codes.has(code as "essential" | "professional" | "enterprise"))
+      || !["essential", "professional", "enterprise"].every((code) => catalogue.planVersions.some((version) => version.planCode === code))) {
+      throw new Error("A published catalogue must define Essential, Professional and Enterprise with at least one version each.");
     }
   }
   if (policyType === "pricing") {
     const prices = (parsed as z.infer<typeof policyPayloadSchemas.pricing>).planPrices;
     const combinations = new Set(prices.map((price) => `${price.planCode}:${price.currency}:${price.billingTerm}`));
+    const priceCodes = new Set(prices.map((price) => price.priceCode));
     const required = ["essential", "professional", "enterprise"].flatMap((plan) =>
       ["TZS", "USD"].flatMap((currency) => ["monthly", "annual"].map((term) => `${plan}:${currency}:${term}`)),
     );
-    if (!required.every((key) => combinations.has(key))) {
-      throw new Error("Published pricing must explicitly cover all three plans, both supported currencies and both billing terms.");
+    if (combinations.size !== prices.length || priceCodes.size !== prices.length
+      || !required.every((key) => combinations.has(key))
+      || prices.some((price) => price.planCode === "enterprise" && price.priceMode !== "quote_required")
+      || prices.some((price) => price.planCode !== "enterprise" && price.priceMode !== "fixed")) {
+      throw new Error("Published pricing must have unique entries covering all plans, both currencies and billing terms; Enterprise must be quote-required and Essential/Professional fixed.");
     }
   }
   if (policyType === "composition") {
     const compositions = (parsed as z.infer<typeof policyPayloadSchemas.composition>).compositions;
     const plans = new Set(compositions.map((item) => item.planCode));
-    if (!["essential", "professional", "enterprise"].every((code) => plans.has(code as "essential" | "professional" | "enterprise"))) {
-      throw new Error("Published package composition must define all three commercial plans.");
+    const compositionKeys = new Set(compositions.map((item) => `${item.planCode}:${item.planVersion}`));
+    if (!["essential", "professional", "enterprise"].every((code) => plans.has(code as "essential" | "professional" | "enterprise"))
+      || compositionKeys.size !== compositions.length) {
+      throw new Error("Published package composition must define all three plans without duplicate plan versions.");
     }
   }
   if (policyType === "trial_policy") {
     const policies = parsed as z.infer<typeof policyPayloadSchemas.trial_policy>;
     const plans = new Set(policies.map((item) => item.planCode));
-    if (policies.length === 0 || !["essential", "professional", "enterprise"].every((code) => plans.has(code as "essential" | "professional" | "enterprise"))) {
-      throw new Error("Published trial policy must define the approved 14-day trial for all three plans.");
+    const policyKeys = new Set(policies.map((item) => `${item.planCode}:${item.planVersion}:${item.policyVersion}`));
+    if (policies.length === 0 || policyKeys.size !== policies.length
+      || !["essential", "professional", "enterprise"].every((code) => plans.has(code as "essential" | "professional" | "enterprise"))) {
+      throw new Error("Published trial policy must define unique, approved 14-day policies for all three plans.");
     }
   }
   return parsed;
