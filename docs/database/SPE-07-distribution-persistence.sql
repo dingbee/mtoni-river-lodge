@@ -798,8 +798,6 @@ CREATE TRIGGER staynas_distribution_external_event_immutable
 ALTER TABLE public.staynas_distribution_external_reservations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.staynas_distribution_external_reservation_allocations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.staynas_distribution_external_reservation_events ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.staynas_distribution_external_reservation_events FROM PUBLIC,anon,authenticated;
-GRANT ALL ON public.staynas_distribution_external_reservation_events TO service_role;
 REVOKE ALL ON public.staynas_distribution_external_reservations FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON public.staynas_distribution_external_reservation_allocations FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON public.staynas_distribution_external_reservation_events FROM PUBLIC,anon,authenticated;
@@ -827,7 +825,6 @@ BEGIN
   NEW.updated_at:=now();
   RETURN NEW;
 END $$;
-
 
 
 CREATE OR REPLACE FUNCTION public.staynas_distribution_validate_external_reservation()
@@ -1024,6 +1021,18 @@ BEGIN
   SELECT * INTO v_commitment FROM public.staynas_distribution_price_commitments
   WHERE inbox_id=p_inbox_id;
   IF NOT FOUND THEN RETURN jsonb_build_object('status','manual_review','reason','Provider financial commitment evidence is missing.'); END IF;
+  IF coalesce(v_inbox.normalized_payload->>'externalReservationId','')<>v_inbox.external_reservation_id
+    OR coalesce(v_inbox.normalized_payload->>'eventType','')<>v_inbox.event_type
+    OR (v_inbox.normalized_payload ? 'eventId'
+      AND v_inbox.normalized_payload->>'eventId'<>v_inbox.provider_event_id)
+    OR (v_inbox.normalized_payload ? 'provider'
+      AND v_inbox.normalized_payload->>'provider'<>v_connection.provider)
+    OR (v_inbox.normalized_payload ? 'externalAccountId'
+      AND v_inbox.normalized_payload->>'externalAccountId'<>v_connection.external_account_id)
+    OR (v_inbox.normalized_payload ? 'externalPropertyId'
+      AND v_inbox.normalized_payload->>'externalPropertyId'<>v_connection.external_property_id) THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Normalized provider identity does not match the authenticated connection and inbox envelope.');
+  END IF;
   IF NOT public.staynas_distribution_price_commitment_is_verified(p_inbox_id) THEN
     RETURN jsonb_build_object('status','manual_review','reason','Provider price has not been independently verified.'); 
   END IF;
@@ -1409,10 +1418,7 @@ COMMIT;
       SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
       WHERE id=v_old_alloc.id;
       UPDATE public.booking_nights
-      SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
-          THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
-            *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
-          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
+      SET nightly_rate=round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2),
         pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
       WHERE booking_id=v_old_alloc.booking_id;
     END LOOP;
@@ -1425,11 +1431,6 @@ COMMIT;
     ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
       v_inbox.payload_fingerprint,v_inbox.normalized_payload);
     RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
-  END IF;
-
-  IF nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),'') IS NULL
-    OR nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'') IS NULL THEN
-    RETURN jsonb_build_object('status','manual_review','reason','Guest name and email are required by the canonical guest-linking contract.');
   END IF;
 
   -- Preflight every exact room mapping, property, capacity and currency before
@@ -1458,14 +1459,6 @@ COMMIT;
     END IF;
     IF upper(v_room.currency)<>v_currency THEN
       RETURN jsonb_build_object('status','manual_review','reason','Provider currency differs from the mapped room-type currency; FX conversion is not inferred.');
-    END IF;
-    IF nullif(v_alloc->>'ratePlanExternalId','') IS NOT NULL AND NOT EXISTS (
-      SELECT 1 FROM public.staynas_distribution_mappings rm
-      WHERE rm.connection_id=v_inbox.connection_id AND rm.property_id=v_inbox.property_id
-        AND rm.mapping_type='rate_plan' AND rm.active=true
-        AND rm.external_id=v_alloc->>'ratePlanExternalId'
-    ) THEN
-      RETURN jsonb_build_object('status','manual_review','reason','Provider rate-plan mapping is missing or inactive.');
     END IF;
     IF EXISTS (
       SELECT 1 FROM public.staynas_distribution_external_reservation_allocations a
@@ -1568,12 +1561,9 @@ COMMIT;
   ) VALUES(v_reservation_id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
     v_inbox.payload_fingerprint,v_inbox.normalized_payload);
   RETURN jsonb_build_object('status','applied','booking_id',v_primary_booking_id,'reservation_id',v_reservation_id);
-EXCEPTION
-  WHEN SQLSTATE 'P0001' THEN
-    RETURN jsonb_build_object('status','manual_review','reason','Mapped room inventory is unavailable for one or more requested nights.');
-  WHEN OTHERS THEN
-    RAISE;
-END $;
+EXCEPTION WHEN OTHERS THEN
+  RAISE;
+END $$;
 
 REVOKE ALL ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
   FROM PUBLIC,anon,authenticated;
@@ -1713,10 +1703,7 @@ COMMIT;
       SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
       WHERE id=v_old_alloc.id;
       UPDATE public.booking_nights
-      SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
-          THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
-            *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
-          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
+      SET nightly_rate=round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2),
         pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
       WHERE booking_id=v_old_alloc.booking_id;
     END LOOP;
@@ -1729,11 +1716,6 @@ COMMIT;
     ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
       v_inbox.payload_fingerprint,v_inbox.normalized_payload);
     RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
-  END IF;
-
-  IF nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),'') IS NULL
-    OR nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'') IS NULL THEN
-    RETURN jsonb_build_object('status','manual_review','reason','Guest name and email are required by the canonical guest-linking contract.');
   END IF;
 
   -- Preflight every exact room mapping, property, capacity and currency before
@@ -1762,14 +1744,6 @@ COMMIT;
     END IF;
     IF upper(v_room.currency)<>v_currency THEN
       RETURN jsonb_build_object('status','manual_review','reason','Provider currency differs from the mapped room-type currency; FX conversion is not inferred.');
-    END IF;
-    IF nullif(v_alloc->>'ratePlanExternalId','') IS NOT NULL AND NOT EXISTS (
-      SELECT 1 FROM public.staynas_distribution_mappings rm
-      WHERE rm.connection_id=v_inbox.connection_id AND rm.property_id=v_inbox.property_id
-        AND rm.mapping_type='rate_plan' AND rm.active=true
-        AND rm.external_id=v_alloc->>'ratePlanExternalId'
-    ) THEN
-      RETURN jsonb_build_object('status','manual_review','reason','Provider rate-plan mapping is missing or inactive.');
     END IF;
     IF EXISTS (
       SELECT 1 FROM public.staynas_distribution_external_reservation_allocations a
@@ -1872,12 +1846,9 @@ COMMIT;
   ) VALUES(v_reservation_id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
     v_inbox.payload_fingerprint,v_inbox.normalized_payload);
   RETURN jsonb_build_object('status','applied','booking_id',v_primary_booking_id,'reservation_id',v_reservation_id);
-EXCEPTION
-  WHEN SQLSTATE 'P0001' THEN
-    RETURN jsonb_build_object('status','manual_review','reason','Mapped room inventory is unavailable for one or more requested nights.');
-  WHEN OTHERS THEN
-    RAISE;
-END $;
+EXCEPTION WHEN OTHERS THEN
+  RAISE;
+END $$;
 
 REVOKE ALL ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
   FROM PUBLIC,anon,authenticated;
@@ -1939,10 +1910,7 @@ COMMIT;
       SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
       WHERE id=v_old_alloc.id;
       UPDATE public.booking_nights
-      SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
-          THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
-            *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
-          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
+      SET nightly_rate=round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2),
         pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
       WHERE booking_id=v_old_alloc.booking_id;
     END LOOP;
@@ -1955,11 +1923,6 @@ COMMIT;
     ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
       v_inbox.payload_fingerprint,v_inbox.normalized_payload);
     RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
-  END IF;
-
-  IF nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),'') IS NULL
-    OR nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'') IS NULL THEN
-    RETURN jsonb_build_object('status','manual_review','reason','Guest name and email are required by the canonical guest-linking contract.');
   END IF;
 
   -- Preflight every exact room mapping, property, capacity and currency before
@@ -1988,14 +1951,6 @@ COMMIT;
     END IF;
     IF upper(v_room.currency)<>v_currency THEN
       RETURN jsonb_build_object('status','manual_review','reason','Provider currency differs from the mapped room-type currency; FX conversion is not inferred.');
-    END IF;
-    IF nullif(v_alloc->>'ratePlanExternalId','') IS NOT NULL AND NOT EXISTS (
-      SELECT 1 FROM public.staynas_distribution_mappings rm
-      WHERE rm.connection_id=v_inbox.connection_id AND rm.property_id=v_inbox.property_id
-        AND rm.mapping_type='rate_plan' AND rm.active=true
-        AND rm.external_id=v_alloc->>'ratePlanExternalId'
-    ) THEN
-      RETURN jsonb_build_object('status','manual_review','reason','Provider rate-plan mapping is missing or inactive.');
     END IF;
     IF EXISTS (
       SELECT 1 FROM public.staynas_distribution_external_reservation_allocations a
@@ -2098,12 +2053,9 @@ COMMIT;
   ) VALUES(v_reservation_id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
     v_inbox.payload_fingerprint,v_inbox.normalized_payload);
   RETURN jsonb_build_object('status','applied','booking_id',v_primary_booking_id,'reservation_id',v_reservation_id);
-EXCEPTION
-  WHEN SQLSTATE 'P0001' THEN
-    RETURN jsonb_build_object('status','manual_review','reason','Mapped room inventory is unavailable for one or more requested nights.');
-  WHEN OTHERS THEN
-    RAISE;
-END $;
+EXCEPTION WHEN OTHERS THEN
+  RAISE;
+END $$;
 
 REVOKE ALL ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
   FROM PUBLIC,anon,authenticated;
@@ -2238,10 +2190,7 @@ COMMIT;
       SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
       WHERE id=v_old_alloc.id;
       UPDATE public.booking_nights
-      SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
-          THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
-            *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
-          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
+      SET nightly_rate=round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2),
         pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
       WHERE booking_id=v_old_alloc.booking_id;
     END LOOP;
@@ -2254,11 +2203,6 @@ COMMIT;
     ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
       v_inbox.payload_fingerprint,v_inbox.normalized_payload);
     RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
-  END IF;
-
-  IF nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),'') IS NULL
-    OR nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'') IS NULL THEN
-    RETURN jsonb_build_object('status','manual_review','reason','Guest name and email are required by the canonical guest-linking contract.');
   END IF;
 
   -- Preflight every exact room mapping, property, capacity and currency before
@@ -2287,14 +2231,6 @@ COMMIT;
     END IF;
     IF upper(v_room.currency)<>v_currency THEN
       RETURN jsonb_build_object('status','manual_review','reason','Provider currency differs from the mapped room-type currency; FX conversion is not inferred.');
-    END IF;
-    IF nullif(v_alloc->>'ratePlanExternalId','') IS NOT NULL AND NOT EXISTS (
-      SELECT 1 FROM public.staynas_distribution_mappings rm
-      WHERE rm.connection_id=v_inbox.connection_id AND rm.property_id=v_inbox.property_id
-        AND rm.mapping_type='rate_plan' AND rm.active=true
-        AND rm.external_id=v_alloc->>'ratePlanExternalId'
-    ) THEN
-      RETURN jsonb_build_object('status','manual_review','reason','Provider rate-plan mapping is missing or inactive.');
     END IF;
     IF EXISTS (
       SELECT 1 FROM public.staynas_distribution_external_reservation_allocations a
@@ -2397,12 +2333,9 @@ COMMIT;
   ) VALUES(v_reservation_id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
     v_inbox.payload_fingerprint,v_inbox.normalized_payload);
   RETURN jsonb_build_object('status','applied','booking_id',v_primary_booking_id,'reservation_id',v_reservation_id);
-EXCEPTION
-  WHEN SQLSTATE 'P0001' THEN
-    RETURN jsonb_build_object('status','manual_review','reason','Mapped room inventory is unavailable for one or more requested nights.');
-  WHEN OTHERS THEN
-    RAISE;
-END $;
+EXCEPTION WHEN OTHERS THEN
+  RAISE;
+END $$;
 
 REVOKE ALL ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
   FROM PUBLIC,anon,authenticated;
@@ -2542,10 +2475,7 @@ COMMIT;
       SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
       WHERE id=v_old_alloc.id;
       UPDATE public.booking_nights
-      SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
-          THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
-            *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
-          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
+      SET nightly_rate=round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2),
         pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
       WHERE booking_id=v_old_alloc.booking_id;
     END LOOP;
@@ -2558,11 +2488,6 @@ COMMIT;
     ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
       v_inbox.payload_fingerprint,v_inbox.normalized_payload);
     RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
-  END IF;
-
-  IF nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),'') IS NULL
-    OR nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'') IS NULL THEN
-    RETURN jsonb_build_object('status','manual_review','reason','Guest name and email are required by the canonical guest-linking contract.');
   END IF;
 
   -- Preflight every exact room mapping, property, capacity and currency before
@@ -2591,14 +2516,6 @@ COMMIT;
     END IF;
     IF upper(v_room.currency)<>v_currency THEN
       RETURN jsonb_build_object('status','manual_review','reason','Provider currency differs from the mapped room-type currency; FX conversion is not inferred.');
-    END IF;
-    IF nullif(v_alloc->>'ratePlanExternalId','') IS NOT NULL AND NOT EXISTS (
-      SELECT 1 FROM public.staynas_distribution_mappings rm
-      WHERE rm.connection_id=v_inbox.connection_id AND rm.property_id=v_inbox.property_id
-        AND rm.mapping_type='rate_plan' AND rm.active=true
-        AND rm.external_id=v_alloc->>'ratePlanExternalId'
-    ) THEN
-      RETURN jsonb_build_object('status','manual_review','reason','Provider rate-plan mapping is missing or inactive.');
     END IF;
     IF EXISTS (
       SELECT 1 FROM public.staynas_distribution_external_reservation_allocations a
@@ -2701,12 +2618,9 @@ COMMIT;
   ) VALUES(v_reservation_id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
     v_inbox.payload_fingerprint,v_inbox.normalized_payload);
   RETURN jsonb_build_object('status','applied','booking_id',v_primary_booking_id,'reservation_id',v_reservation_id);
-EXCEPTION
-  WHEN SQLSTATE 'P0001' THEN
-    RETURN jsonb_build_object('status','manual_review','reason','Mapped room inventory is unavailable for one or more requested nights.');
-  WHEN OTHERS THEN
-    RAISE;
-END $;
+EXCEPTION WHEN OTHERS THEN
+  RAISE;
+END $$;
 
 REVOKE ALL ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
   FROM PUBLIC,anon,authenticated;
@@ -2773,10 +2687,7 @@ COMMIT;
       SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
       WHERE id=v_old_alloc.id;
       UPDATE public.booking_nights
-      SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
-          THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
-            *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
-          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
+      SET nightly_rate=round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2),
         pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
       WHERE booking_id=v_old_alloc.booking_id;
     END LOOP;
@@ -2789,11 +2700,6 @@ COMMIT;
     ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
       v_inbox.payload_fingerprint,v_inbox.normalized_payload);
     RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
-  END IF;
-
-  IF nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),'') IS NULL
-    OR nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'') IS NULL THEN
-    RETURN jsonb_build_object('status','manual_review','reason','Guest name and email are required by the canonical guest-linking contract.');
   END IF;
 
   -- Preflight every exact room mapping, property, capacity and currency before
@@ -2822,14 +2728,6 @@ COMMIT;
     END IF;
     IF upper(v_room.currency)<>v_currency THEN
       RETURN jsonb_build_object('status','manual_review','reason','Provider currency differs from the mapped room-type currency; FX conversion is not inferred.');
-    END IF;
-    IF nullif(v_alloc->>'ratePlanExternalId','') IS NOT NULL AND NOT EXISTS (
-      SELECT 1 FROM public.staynas_distribution_mappings rm
-      WHERE rm.connection_id=v_inbox.connection_id AND rm.property_id=v_inbox.property_id
-        AND rm.mapping_type='rate_plan' AND rm.active=true
-        AND rm.external_id=v_alloc->>'ratePlanExternalId'
-    ) THEN
-      RETURN jsonb_build_object('status','manual_review','reason','Provider rate-plan mapping is missing or inactive.');
     END IF;
     IF EXISTS (
       SELECT 1 FROM public.staynas_distribution_external_reservation_allocations a
@@ -2932,12 +2830,9 @@ COMMIT;
   ) VALUES(v_reservation_id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
     v_inbox.payload_fingerprint,v_inbox.normalized_payload);
   RETURN jsonb_build_object('status','applied','booking_id',v_primary_booking_id,'reservation_id',v_reservation_id);
-EXCEPTION
-  WHEN SQLSTATE 'P0001' THEN
-    RETURN jsonb_build_object('status','manual_review','reason','Mapped room inventory is unavailable for one or more requested nights.');
-  WHEN OTHERS THEN
-    RAISE;
-END $;
+EXCEPTION WHEN OTHERS THEN
+  RAISE;
+END $$;
 
 REVOKE ALL ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
   FROM PUBLIC,anon,authenticated;
@@ -3072,10 +2967,7 @@ COMMIT;
       SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
       WHERE id=v_old_alloc.id;
       UPDATE public.booking_nights
-      SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
-          THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
-            *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
-          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
+      SET nightly_rate=round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2),
         pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
       WHERE booking_id=v_old_alloc.booking_id;
     END LOOP;
@@ -3088,11 +2980,6 @@ COMMIT;
     ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
       v_inbox.payload_fingerprint,v_inbox.normalized_payload);
     RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
-  END IF;
-
-  IF nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),'') IS NULL
-    OR nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'') IS NULL THEN
-    RETURN jsonb_build_object('status','manual_review','reason','Guest name and email are required by the canonical guest-linking contract.');
   END IF;
 
   -- Preflight every exact room mapping, property, capacity and currency before
@@ -3121,14 +3008,6 @@ COMMIT;
     END IF;
     IF upper(v_room.currency)<>v_currency THEN
       RETURN jsonb_build_object('status','manual_review','reason','Provider currency differs from the mapped room-type currency; FX conversion is not inferred.');
-    END IF;
-    IF nullif(v_alloc->>'ratePlanExternalId','') IS NOT NULL AND NOT EXISTS (
-      SELECT 1 FROM public.staynas_distribution_mappings rm
-      WHERE rm.connection_id=v_inbox.connection_id AND rm.property_id=v_inbox.property_id
-        AND rm.mapping_type='rate_plan' AND rm.active=true
-        AND rm.external_id=v_alloc->>'ratePlanExternalId'
-    ) THEN
-      RETURN jsonb_build_object('status','manual_review','reason','Provider rate-plan mapping is missing or inactive.');
     END IF;
     IF EXISTS (
       SELECT 1 FROM public.staynas_distribution_external_reservation_allocations a
@@ -3231,12 +3110,9 @@ COMMIT;
   ) VALUES(v_reservation_id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
     v_inbox.payload_fingerprint,v_inbox.normalized_payload);
   RETURN jsonb_build_object('status','applied','booking_id',v_primary_booking_id,'reservation_id',v_reservation_id);
-EXCEPTION
-  WHEN SQLSTATE 'P0001' THEN
-    RETURN jsonb_build_object('status','manual_review','reason','Mapped room inventory is unavailable for one or more requested nights.');
-  WHEN OTHERS THEN
-    RAISE;
-END $;
+EXCEPTION WHEN OTHERS THEN
+  RAISE;
+END $$;
 
 REVOKE ALL ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
   FROM PUBLIC,anon,authenticated;
@@ -3376,10 +3252,7 @@ COMMIT;
       SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
       WHERE id=v_old_alloc.id;
       UPDATE public.booking_nights
-      SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
-          THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
-            *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
-          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
+      SET nightly_rate=round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2),
         pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
       WHERE booking_id=v_old_alloc.booking_id;
     END LOOP;
@@ -3392,11 +3265,6 @@ COMMIT;
     ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
       v_inbox.payload_fingerprint,v_inbox.normalized_payload);
     RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
-  END IF;
-
-  IF nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),'') IS NULL
-    OR nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'') IS NULL THEN
-    RETURN jsonb_build_object('status','manual_review','reason','Guest name and email are required by the canonical guest-linking contract.');
   END IF;
 
   -- Preflight every exact room mapping, property, capacity and currency before
@@ -3425,14 +3293,6 @@ COMMIT;
     END IF;
     IF upper(v_room.currency)<>v_currency THEN
       RETURN jsonb_build_object('status','manual_review','reason','Provider currency differs from the mapped room-type currency; FX conversion is not inferred.');
-    END IF;
-    IF nullif(v_alloc->>'ratePlanExternalId','') IS NOT NULL AND NOT EXISTS (
-      SELECT 1 FROM public.staynas_distribution_mappings rm
-      WHERE rm.connection_id=v_inbox.connection_id AND rm.property_id=v_inbox.property_id
-        AND rm.mapping_type='rate_plan' AND rm.active=true
-        AND rm.external_id=v_alloc->>'ratePlanExternalId'
-    ) THEN
-      RETURN jsonb_build_object('status','manual_review','reason','Provider rate-plan mapping is missing or inactive.');
     END IF;
     IF EXISTS (
       SELECT 1 FROM public.staynas_distribution_external_reservation_allocations a
@@ -3535,12 +3395,9 @@ COMMIT;
   ) VALUES(v_reservation_id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
     v_inbox.payload_fingerprint,v_inbox.normalized_payload);
   RETURN jsonb_build_object('status','applied','booking_id',v_primary_booking_id,'reservation_id',v_reservation_id);
-EXCEPTION
-  WHEN SQLSTATE 'P0001' THEN
-    RETURN jsonb_build_object('status','manual_review','reason','Mapped room inventory is unavailable for one or more requested nights.');
-  WHEN OTHERS THEN
-    RAISE;
-END $;
+EXCEPTION WHEN OTHERS THEN
+  RAISE;
+END $$;
 
 REVOKE ALL ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
   FROM PUBLIC,anon,authenticated;
