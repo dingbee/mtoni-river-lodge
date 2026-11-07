@@ -368,7 +368,7 @@ BEGIN
   ) OR NOT EXISTS (
     SELECT 1 FROM pg_policies
     WHERE schemaname='public' AND tablename='staynas_distribution_financial_evidence'
-      AND policyname='staynas_distribution_financial_evidence_property_read'
+      AND policyname='staynas_distribution_financial_evidence_finance_active_property_read'
   ) OR NOT EXISTS (
     SELECT 1 FROM pg_policies
     WHERE schemaname='public' AND tablename='ops_tasks'
