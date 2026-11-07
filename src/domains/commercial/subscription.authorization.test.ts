@@ -19,11 +19,18 @@ const userId = "11111111-1111-4111-8111-111111111111";
 const organisationId = "22222222-2222-4222-8222-222222222222";
 const propertyId = "33333333-3333-4333-8333-333333333333";
 
-function query(response: any) {
-  const builder: any = {
-    select: vi.fn(() => builder),
-    eq: vi.fn(() => builder),
-    maybeSingle: vi.fn(async () => response),
+type MockResult = { data: unknown; error: unknown | null };
+type MockQuery = {
+  select: (columns?: string) => MockQuery;
+  eq: (column: string, value: unknown) => MockQuery;
+  maybeSingle: () => Promise<MockResult>;
+};
+
+function query(response: MockResult): MockQuery {
+  const builder: MockQuery = {
+    select: () => builder,
+    eq: () => builder,
+    maybeSingle: async () => response,
   };
   return builder;
 }
@@ -35,7 +42,7 @@ function makeContext(options: {
   tenantAccess?: boolean;
   founderAccess?: boolean;
 } = {}) {
-  const rows: Record<string, any> = {
+  const rows: Record<string, MockResult> = {
     staynas_user_property_context: { data: { property_id: propertyId }, error: null },
     staynas_properties: { data: { id: propertyId, organisation_id: organisationId, status: "active" }, error: null },
     staynas_property_members: { data: { role: options.role ?? "owner", status: "active" }, error: null },
