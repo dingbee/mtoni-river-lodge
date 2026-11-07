@@ -15,6 +15,9 @@ on:
       - "supabase/migrations/20261107050000_dc05_reservation_lifecycle_reconciliation.sql"
       - "supabase/migrations/20261107060000_dc05_lifecycle_payload_retention_fix.sql"
       - "supabase/migrations/20261107070000_dc05_modified_cancellation_capability_fix.sql"
+      - "supabase/migrations/20261107100000_dc05_06_provider_financial_evidence.sql"
+      - "supabase/migrations/20261107110000_dc05_06_provider_reference_idempotency_fix.sql"
+      - "scripts/ci/dc05-06-provider-finance-smoke.sql"
       - "scripts/ci/dc05-reservation-lifecycle-fixture.sql"
       - "scripts/ci/dc05-reservation-lifecycle-smoke.sql"
       - "supabase/migrations/20261106140000_dc05_mapping_identity_resolution.sql"
@@ -96,6 +99,13 @@ jobs:
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107050000_dc05_reservation_lifecycle_reconciliation.sql
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107060000_dc05_lifecycle_payload_retention_fix.sql
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107070000_dc05_modified_cancellation_capability_fix.sql
+      - name: Apply DC-05.06 provider financial evidence reconciliation
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107100000_dc05_06_provider_financial_evidence.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20261107110000_dc05_06_provider_reference_idempotency_fix.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc05-06-provider-finance-smoke.sql
       - name: Verify DC-05.03 materialization and DC-05.04 lifecycle contracts
         env:
           PGPASSWORD: postgres

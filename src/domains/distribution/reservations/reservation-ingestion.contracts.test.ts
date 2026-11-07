@@ -89,4 +89,69 @@ describe("DC-05 provider-neutral reservation contract", () => {
     expect(safe).not.toHaveProperty("grossAmount");
   });
 
+  it("accepts partial settlement evidence and retains missing FX as a reconcilable discrepancy", () => {
+    const event = externalReservationSchema.parse({
+      ...base,
+      eventType: "reservation.settlement_reported",
+      providerEventId: "settlement-event-1",
+      settlementReference: "settlement-1",
+      settlementAmount: 400,
+      settlementCurrency: "EUR",
+      settlementDueAt: "2026-11-10T00:00:00Z",
+    });
+    expect(event.settlementAmount).toBe(400);
+    expect(toSafeReservationEventEnvelope(event).hasFinancialData).toBe(true);
+    expect(toSafeReservationEventEnvelope(event)).not.toHaveProperty("settlementAmount");
+  });
+
+  it("requires settlement adjustment direction and a provider settlement reference", () => {
+    expect(() => externalReservationSchema.parse({
+      ...base,
+      eventType: "reservation.settlement_adjusted",
+      settlementAmount: 25,
+      settlementCurrency: "USD",
+      settlementReference: "settlement-1",
+    })).toThrow();
+    expect(externalReservationSchema.parse({
+      ...base,
+      eventType: "reservation.settlement_adjusted",
+      settlementAmount: 25,
+      settlementCurrency: "USD",
+      settlementReference: "settlement-1",
+      settlementAdjustmentType: "debit",
+    }).settlementAdjustmentType).toBe("debit");
+  });
+
+  it("requires provider references and currencies for refunds and reversals", () => {
+    expect(() => externalReservationSchema.parse({
+      ...base, eventType: "reservation.refund_notified", refundAmount: 50,
+    })).toThrow();
+    expect(externalReservationSchema.parse({
+      ...base, eventType: "reservation.refund_notified",
+      refundAmount: 50, refundCurrency: "USD", refundReference: "refund-1",
+    }).refundAmount).toBe(50);
+    expect(() => externalReservationSchema.parse({
+      ...base, eventType: "reservation.refund_reversed",
+      refundReversalAmount: 50, refundCurrency: "USD",
+    })).toThrow();
+    expect(externalReservationSchema.parse({
+      ...base, eventType: "reservation.refund_reversed",
+      refundReversalAmount: 50, refundCurrency: "USD",
+      refundReversalReference: "refund-reversal-1",
+    }).refundReversalReference).toBe("refund-reversal-1");
+  });
+
+  it("requires a provider payment status without promoting it to a payment record", () => {
+    expect(() => externalReservationSchema.parse({
+      ...base, eventType: "reservation.payment_updated",
+    })).toThrow();
+    const event = externalReservationSchema.parse({
+      ...base, eventType: "reservation.payment_updated",
+      paymentStatus: "captured", paymentAmount: 900, paymentCurrency: "USD",
+    });
+    const safe = toSafeReservationEventEnvelope(event);
+    expect(safe.hasFinancialData).toBe(true);
+    expect(safe).not.toHaveProperty("paymentAmount");
+    expect(safe).not.toHaveProperty("paymentStatus");
+  });
 });
