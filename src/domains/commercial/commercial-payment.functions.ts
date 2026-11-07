@@ -384,6 +384,9 @@ export const generateMyCommercialInvoicePdf = createServerFn({ method: "GET" })
     const bytes = await buildCommercialInvoicePdf({
       invoice, lines: lines.data ?? [], adjustments: adjustments.data ?? [],
     });
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:actor.organisationId,actorRole:actor.actorRole,action:"invoice.document_downloaded",
+      resourceType:"invoice",resourceRef:invoice.id,metadata:{documentType:"pdf"}});
     return { fileName: `${invoice.invoice_number}.pdf`, bytes: Array.from(bytes) };
   });
 
@@ -412,6 +415,9 @@ export const generateMyCommercialPaymentReceiptPdf = createServerFn({ method: "G
         payment,allocation:allocation?{...allocation,invoice_number:invoice?.invoice_number??null}:null,
         unallocatedMinor:unallocated?.unallocated_minor??(allocation||payment.status==="reversed"?0:payment.amount_minor),
       });
+      await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+        organisationId:actor.organisationId,actorRole:actor.actorRole,action:"payment.receipt_downloaded",
+        resourceType:"payment",resourceRef:payment.id,metadata:{documentType:"pdf",unallocated:true}});
       return {fileName:`receipt-${allocation?.settlement_ref??payment.id}.pdf`,bytes:Array.from(bytes)};
     }
     const {data:invoice,error:invoiceError}=await admin.from("commercial_invoices").select("invoice_number,currency")
@@ -738,6 +744,9 @@ export const generateMyCommercialUnallocatedReceiptPdf=createServerFn({method:"G
       payment,allocation:allocation.data?{...allocation.data,invoice_number:invoice?.invoice_number??null}:null,
       unallocatedMinor:unallocated.data?.unallocated_minor??(allocation.data||payment.status==="reversed"?0:payment.amount_minor),
     });
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:actor.organisationId,actorRole:actor.actorRole,action:"payment.receipt_downloaded",
+      resourceType:"payment",resourceRef:payment.id,metadata:{documentType:"pdf",unallocated:true}});
     return {fileName:`receipt-unallocated-${payment.id}.pdf`,bytes:Array.from(bytes)};
   });
 
