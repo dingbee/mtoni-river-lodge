@@ -137,7 +137,7 @@ BEGIN
   END IF;
 
   v_result := public.commercial_apply_subscription_command(
-    v_account, v_pending, 'activate_paid', 'cc034-paid-activate-01',
+    v_account2, v_pending, 'activate_paid', 'cc034-paid-activate-01',
     '64000000-0000-4000-8000-000000000001', v_org, 'founder_admin',
     NULL, 'accepted-essential-terms-01', now() + interval '1 month'
   );
