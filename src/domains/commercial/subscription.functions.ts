@@ -1,11 +1,28 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   commercialTrialPolicySchema,
   resolveCommercialTrialPolicy,
   type CommercialTrialPolicy,
 } from "./trial-configuration-contract";
+
+type CommercialQueryResult = { data: unknown; error: unknown | null };
+type CommercialQuery = PromiseLike<CommercialQueryResult> & {
+  select(columns?: string): CommercialQuery;
+  eq(column: string, value: unknown): CommercialQuery;
+  order(column: string, options?: { ascending?: boolean }): CommercialQuery;
+  maybeSingle(): Promise<CommercialQueryResult>;
+  insert(values: Record<string, unknown>): Promise<{ error: unknown | null }>;
+};
+type CommercialAdminClient = {
+  from(table: string): CommercialQuery;
+  rpc(name: string, args: Record<string, unknown>): Promise<CommercialQueryResult>;
+};
+type CommercialAccountRow = { id: string; organisation_id: string; status: string; created_at?: string; updated_at?: string };
+type CommercialSubscriptionRow = { id: string; account_id: string; plan_code: "essential" | "professional" | "enterprise"; plan_version: number; status: string };
 
 const activateTrialInput = z.object({
   subscriptionId: z.string().uuid(),
@@ -25,17 +42,22 @@ export function actorRoleForMembership(role: string): VerifiedTenantActor["actor
 }
 
 export async function resolveVerifiedTenantActor(context: {
-  supabase: any;
+  supabase: unknown;
   userId: string;
 }): Promise<VerifiedTenantActor> {
+  const supabase = context.supabase as SupabaseClient<Database>;
+  const commercialRpc = supabase.rpc as unknown as (
+    name: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: unknown | null }>;
   // Re-verify the JWT subject with Supabase Auth. The middleware's decoded
   // claims are not accepted as a substitute for the authoritative user lookup.
-  const { data: authData, error: authError } = await context.supabase.auth.getUser();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
   if (authError || !authData.user || authData.user.id !== context.userId) {
     throw new Error("Unauthenticated");
   }
 
-  const { data: selectedContext, error: contextError } = await context.supabase
+  const { data: selectedContext, error: contextError } = await supabase
     .from("staynas_user_property_context")
     .select("property_id")
     .eq("user_id", authData.user.id)
@@ -46,12 +68,12 @@ export async function resolveVerifiedTenantActor(context: {
 
   const [{ data: property, error: propertyError }, { data: membership, error: membershipError }] =
     await Promise.all([
-      context.supabase
+      supabase
         .from("staynas_properties")
         .select("id, organisation_id, status")
         .eq("id", selectedContext.property_id)
         .maybeSingle(),
-      context.supabase
+      supabase
         .from("staynas_property_members")
         .select("role, status")
         .eq("property_id", selectedContext.property_id)
@@ -64,7 +86,7 @@ export async function resolveVerifiedTenantActor(context: {
     throw new Error("Active property membership could not be verified.");
   }
 
-  const { data: organisation, error: organisationError } = await context.supabase
+  const { data: organisation, error: organisationError } = await supabase
     .from("staynas_organisations")
     .select("id, status")
     .eq("id", property.organisation_id)
@@ -73,7 +95,7 @@ export async function resolveVerifiedTenantActor(context: {
     throw new Error("Active organisation could not be verified.");
   }
 
-  const { data: hasAccess, error: accessError } = await (context.supabase as any).rpc(
+  const { data: hasAccess, error: accessError } = await commercialRpc(
     "commercial_user_has_organisation_access",
     { _organisation_id: organisation.id },
   );
@@ -92,7 +114,7 @@ export async function resolveVerifiedTenantActor(context: {
 }
 
 async function writeCommercialAudit(
-  admin: any,
+  admin: CommercialAdminClient,
   actor: VerifiedTenantActor,
   input: {
     requestId: string;
@@ -142,22 +164,24 @@ export const listMyCommercialSubscriptions = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const actor = await resolveVerifiedTenantActor(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const admin = supabaseAdmin as any;
-    const { data: account, error: accountError } = await admin
+    const admin = supabaseAdmin as unknown as CommercialAdminClient;
+    const { data: accountData, error: accountError } = await admin
       .from("commercial_accounts")
       .select("id, organisation_id, status, created_at, updated_at")
       .eq("organisation_id", actor.organisationId)
       .maybeSingle();
     if (accountError) throw new Error("Unable to load the tenant commercial account.");
+    const account = accountData as CommercialAccountRow | null;
 
     if (!account) return { account: null, subscriptions: [] };
 
-    const { data: subscriptions, error: subscriptionsError } = await admin
+    const { data: subscriptionsData, error: subscriptionsError } = await admin
       .from("commercial_subscriptions")
       .select("*")
       .eq("account_id", account.id)
       .order("created_at", { ascending: false });
     if (subscriptionsError) throw new Error("Unable to load tenant subscriptions.");
+    const subscriptions = (subscriptionsData ?? []) as CommercialSubscriptionRow[];
 
     await writeCommercialAudit(admin, actor, {
       requestId: globalThis.crypto.randomUUID(),
@@ -182,7 +206,7 @@ export const activateMyCommercialTrial = createServerFn({ method: "POST" })
     const actor = await resolveVerifiedTenantActor(context);
     const requestId = globalThis.crypto.randomUUID();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const admin = supabaseAdmin as any;
+    const admin = supabaseAdmin as unknown as CommercialAdminClient;
 
     if (actor.actorRole !== "tenant_admin") {
       await writeCommercialAudit(admin, actor, {
@@ -196,21 +220,23 @@ export const activateMyCommercialTrial = createServerFn({ method: "POST" })
       throw new Error("Forbidden: tenant owner or manager authority is required.");
     }
 
-    const { data: account, error: accountError } = await admin
+    const { data: accountData, error: accountError } = await admin
       .from("commercial_accounts")
       .select("id, organisation_id, status")
       .eq("organisation_id", actor.organisationId)
       .maybeSingle();
+    const account = accountData as CommercialAccountRow | null;
     if (accountError || !account || account.status !== "active") {
       throw new Error("Active tenant commercial account was not found.");
     }
 
-    const { data: subscription, error: subscriptionError } = await admin
+    const { data: subscriptionData, error: subscriptionError } = await admin
       .from("commercial_subscriptions")
       .select("id, account_id, plan_code, plan_version, status")
       .eq("id", data.subscriptionId)
       .eq("account_id", account.id)
       .maybeSingle();
+    const subscription = subscriptionData as CommercialSubscriptionRow | null;
     if (subscriptionError || !subscription) {
       await writeCommercialAudit(admin, actor, {
         requestId,
@@ -278,15 +304,20 @@ export const activateMyCommercialTrial = createServerFn({ method: "POST" })
 
 /** Resolve founder authority from the dedicated caller-bound database predicate. */
 export async function resolveVerifiedFounderActor(context: {
-  supabase: any;
+  supabase: unknown;
   userId: string;
 }): Promise<VerifiedTenantActor> {
-  const { data: authData, error: authError } = await context.supabase.auth.getUser();
+  const supabase = context.supabase as SupabaseClient<Database>;
+  const commercialRpc = supabase.rpc as unknown as (
+    name: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: unknown | null }>;
+  const { data: authData, error: authError } = await supabase.auth.getUser();
   if (authError || !authData.user || authData.user.id !== context.userId) {
     throw new Error("Unauthenticated");
   }
 
-  const { data: authorised, error: authorityError } = await (context.supabase as any).rpc(
+  const { data: authorised, error: authorityError } = await commercialRpc(
     "commercial_is_founder_admin",
     { _principal_id: authData.user.id },
   );
@@ -294,7 +325,7 @@ export async function resolveVerifiedFounderActor(context: {
     throw new Error("Forbidden: verified commercial founder administrator authority is required.");
   }
 
-  const { data: selectedContext, error: contextError } = await context.supabase
+  const { data: selectedContext, error: contextError } = await supabase
     .from("staynas_user_property_context")
     .select("property_id")
     .eq("user_id", authData.user.id)
@@ -305,10 +336,10 @@ export async function resolveVerifiedFounderActor(context: {
 
   const [{ data: property, error: propertyError }, { data: membership, error: membershipError }] =
     await Promise.all([
-      context.supabase.from("staynas_properties")
+      supabase.from("staynas_properties")
         .select("id, organisation_id, status")
         .eq("id", selectedContext.property_id).maybeSingle(),
-      context.supabase.from("staynas_property_members")
+      supabase.from("staynas_property_members")
         .select("role, status")
         .eq("property_id", selectedContext.property_id)
         .eq("user_id", authData.user.id).maybeSingle(),
@@ -319,12 +350,13 @@ export async function resolveVerifiedFounderActor(context: {
   }
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const admin = supabaseAdmin as any;
-  const { data: config, error: configError } = await admin
+  const admin = supabaseAdmin as unknown as CommercialAdminClient;
+  const { data: configData, error: configError } = await admin
     .from("commercial_founder_tenant_config")
     .select("founder_organisation_id")
     .eq("singleton", true)
     .maybeSingle();
+  const config = configData as { founder_organisation_id: string } | null;
   if (configError || !config || config.founder_organisation_id !== property.organisation_id) {
     throw new Error("The selected property is not in the configured commercial founder tenant.");
   }
@@ -344,12 +376,13 @@ export const listCommercialAccountsForFounder = createServerFn({ method: "GET" }
   .handler(async ({ context }) => {
     const actor = await resolveVerifiedFounderActor(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const admin = supabaseAdmin as any;
-    const { data: accounts, error } = await admin
+    const admin = supabaseAdmin as unknown as CommercialAdminClient;
+    const { data: accountsData, error } = await admin
       .from("commercial_accounts")
       .select("id, organisation_id, status, created_at, updated_at")
       .order("created_at", { ascending: false });
     if (error) throw new Error("Unable to load commercial accounts.");
+    const accounts = (accountsData ?? []) as CommercialAccountRow[];
 
     await writeCommercialAudit(admin, actor, {
       requestId: globalThis.crypto.randomUUID(),
