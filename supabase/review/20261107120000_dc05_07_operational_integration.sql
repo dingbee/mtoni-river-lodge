@@ -675,6 +675,10 @@ BEGIN
     SET allocation_status='checked_in',updated_at=pg_catalog.now()
     WHERE booking_id=NEW.id AND property_id=NEW.property_id
       AND allocation_status='reserved';
+    UPDATE public.ops_tasks
+    SET status='completed',completed_at=pg_catalog.now()
+    WHERE booking_id=NEW.id AND task_type='channel_reservation_arrival'
+      AND status IN ('pending','in_progress');
     UPDATE public.ops_alerts SET resolved_at=pg_catalog.now()
     WHERE booking_id=NEW.id AND kind='room_conflict' AND resolved_at IS NULL;
   END IF;
