@@ -3,6 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProductHomePage } from "@/components/site/StayNasProductSite";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "StayNas | Hospitality Operating System" },
+      { name: "description", content: "StayNas connects reservations, guest experience, property operations, finance and hospitality intelligence in one operating system." },
+      { property: "og:title", content: "StayNas | Hospitality Operating System" },
+      { property: "og:description", content: "Every stay. Every operation. One intelligent system." },
+      { property: "og:type", content: "website" },
+    ],
+    links: [{ rel: "canonical", href: "https://staynas.com/" }],
+  }),
   // staynas.com is the product website. The application and property hosts
   // retain their existing root routing behaviour.
   ssr: false,
