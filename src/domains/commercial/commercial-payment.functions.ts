@@ -669,3 +669,18 @@ export const listUnallocatedCommercialCollections=createServerFn({method:"GET"})
     if(error) throw new Error("Unallocated collections could not be loaded.");
     return data??[];
   });
+
+export const generateMyCommercialUnallocatedReceiptPdf=createServerFn({method:"GET"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>z.object({paymentId:z.string().uuid()}).parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedTenantActor(context);
+    if(actor.actorRole!=="tenant_admin") throw new Error("Forbidden: tenant administrator authority is required.");
+    const admin=await getAdmin();
+    const {data:payment,error}=await admin.from("commercial_payment_transactions").select("*")
+      .eq("id",data.paymentId).eq("organisation_id",actor.organisationId).is("invoice_id",null).eq("status","successful").maybeSingle();
+    if(error||!payment) throw new Error("Verified unallocated tenant collection was not found.");
+    const {buildCommercialUnallocatedReceiptPdf}=await import("./commercial-invoice-document.server");
+    const bytes=await buildCommercialUnallocatedReceiptPdf({payment});
+    return {fileName:`receipt-unallocated-${payment.id}.pdf`,bytes:Array.from(bytes)};
+  });
