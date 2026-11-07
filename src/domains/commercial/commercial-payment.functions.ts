@@ -232,3 +232,94 @@ export const initiateMyCommercialPesapalPayment = createServerFn({ method: "POST
     if (updateError) throw new Error("Pesapal order reference could not be persisted.");
     return { paymentId: payment.id, redirectUrl: order.redirectUrl, provider: "pesapal" as const };
   });
+
+const providerAccountInput = z.object({
+  organisationId: z.string().uuid(),
+  provider: z.enum(["pesapal","airtel_money","mixx_by_yas","mpesa","halopesa","bank_transfer","manual"]),
+  providerAccountRef: z.string().trim().min(2).max(200),
+  credentialSecretRef: z.string().regex(/^STAYNAS_PROVIDER_SECRET_[A-Z0-9_]+$/),
+  supportedCurrencies: z.array(z.enum(["TZS","USD"])).min(1).max(2),
+});
+
+export const configureCommercialProviderAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => providerAccountInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const actor = await resolveVerifiedFounderActor(context);
+    const admin = await getAdmin();
+    const { data: account, error } = await admin.from("commercial_accounts")
+      .select("id,organisation_id").eq("organisation_id", data.organisationId).maybeSingle();
+    if (error || !account) throw new Error("Target commercial account was not found.");
+    const { data: provider, error: providerError } = await admin.from("commercial_provider_accounts")
+      .insert({
+        organisation_id: data.organisationId, provider: data.provider,
+        provider_account_ref: data.providerAccountRef,
+        credential_secret_ref: data.credentialSecretRef,
+        supported_currencies: [...new Set(data.supportedCurrencies)], status: "inactive",
+      }).select("id,organisation_id,provider,provider_account_ref,supported_currencies,status").single();
+    if (providerError || !provider) throw new Error("Provider account configuration could not be persisted.");
+    await writeFinancialAudit(admin, {
+      requestId: globalThis.crypto.randomUUID(), actorUserId: actor.userId,
+      organisationId: data.organisationId, actorRole: "founder_admin",
+      action: "provider_account.configured", resourceType: "provider_account",
+      resourceRef: provider.id, metadata: { provider: data.provider, status: "inactive" },
+    });
+    return provider;
+  });
+
+export const recordCommercialInvoiceAdjustment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({
+    invoiceId: z.string().uuid(), adjustmentRef: z.string().trim().min(4).max(200),
+    adjustmentType: z.enum(["credit_note","debit_note","write_off"]),
+    amountMinor: z.number().int().positive().safe(), currency: z.enum(["TZS","USD"]),
+    reasonCode: z.string().trim().min(2).max(120), approvalRef: z.string().trim().min(4).max(200),
+  }).parse(input))
+  .handler(async ({ data, context }) => {
+    const actor = await resolveVerifiedFounderActor(context);
+    const admin = await getAdmin();
+    const { data: invoice, error: invoiceError } = await admin.from("commercial_invoices")
+      .select("id,organisation_id,currency").eq("id", data.invoiceId).maybeSingle();
+    if (invoiceError || !invoice || invoice.currency !== data.currency) throw new Error("Invoice/currency scope mismatch.");
+    const { data: result, error } = await admin.rpc("commercial_post_invoice_adjustment", {
+      _invoice_id: data.invoiceId, _adjustment_ref: data.adjustmentRef,
+      _adjustment_type: data.adjustmentType, _amount_minor: data.amountMinor,
+      _currency: data.currency, _reason_code: data.reasonCode,
+      _approval_ref: data.approvalRef, _actor_user_id: actor.userId,
+    });
+    if (error) throw new Error("Invoice adjustment could not be posted.");
+    return { adjustmentId: result };
+  });
+
+export const getMyCommercialInvoiceDocumentData = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ invoiceId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const actor = await resolveVerifiedTenantActor(context);
+    if (actor.actorRole !== "tenant_admin") throw new Error("Forbidden: tenant administrator authority is required.");
+    const admin = await getAdmin();
+    const { data: invoice, error } = await admin.from("commercial_invoices").select("*")
+      .eq("id", data.invoiceId).eq("organisation_id", actor.organisationId).maybeSingle();
+    if (error || !invoice) throw new Error("Invoice not found in the active tenant.");
+    const [lines, payments, adjustments] = await Promise.all([
+      admin.from("commercial_invoice_lines").select("*").eq("invoice_id", invoice.id).order("created_at"),
+      admin.from("commercial_payment_transactions").select("id,provider,provider_transaction_ref,amount_minor,currency,status,initiated_at,confirmed_at")
+        .eq("invoice_id", invoice.id).order("created_at"),
+      admin.from("commercial_invoice_adjustments").select("*").eq("invoice_id", invoice.id).order("created_at"),
+    ]);
+    if (lines.error || payments.error || adjustments.error) throw new Error("Financial document records could not be loaded.");
+    return { invoice, lines: lines.data ?? [], payments: payments.data ?? [], adjustments: adjustments.data ?? [] };
+  });
+
+export const listMyCommercialPaymentHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const actor = await resolveVerifiedTenantActor(context);
+    if (actor.actorRole !== "tenant_admin") throw new Error("Forbidden: tenant administrator authority is required.");
+    const admin = await getAdmin();
+    const { data, error } = await admin.from("commercial_payment_transactions")
+      .select("id,invoice_id,provider,provider_transaction_ref,amount_minor,currency,payment_method,status,initiated_at,confirmed_at")
+      .eq("organisation_id", actor.organisationId).order("created_at", { ascending: false });
+    if (error) throw new Error("Unable to load tenant payment history.");
+    return data ?? [];
+  });
