@@ -13,7 +13,7 @@ SELECT ok(
   pg_get_functiondef('public.calculate_staynas_booking_quote(uuid,uuid,date,date,integer,integer,integer,jsonb)'::regprocedure)
     LIKE '%calculate_staynas_room_pricing%'
     AND pg_get_functiondef('public.calculate_staynas_booking_quote(uuid,uuid,date,date,integer,integer,integer,jsonb)'::regprocedure)
-    LIKE '%calculate_staynas_booking_taxes%',
+    LIKE '%calculate_staynas_spe05_adjustments%',
   'Canonical quote composition uses shared accommodation pricing and one tax calculation');
 
 SELECT ok(
