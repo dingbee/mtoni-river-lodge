@@ -42,7 +42,8 @@ CREATE POLICY "Founder can read StayNas website demo requests"
   USING (public.is_staynas_founder_ai_admin());
 
 -- Submission, email deduplication and IP rate limiting are serialised in one
--- transaction. The endpoint invokes this only through the server-side client.
+-- transaction. SECURITY INVOKER is deliberate: only service_role can execute
+-- this function, and the caller retains its own database privileges.
 CREATE OR REPLACE FUNCTION public.submit_staynas_website_demo_request(
   p_request jsonb,
   p_ip_hash text DEFAULT NULL
@@ -54,7 +55,7 @@ RETURNS TABLE (
   rate_limited boolean
 )
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = public, pg_temp
 AS $$
 DECLARE
