@@ -754,6 +754,12 @@ ALTER TABLE public.commercial_payment_transactions
 ALTER TABLE public.commercial_payment_transactions
   ADD CONSTRAINT commercial_payment_transactions_provider_check
   CHECK (provider IN ('pesapal','airtel_money','mixx_by_yas','mpesa','halopesa','bank_transfer','manual'));
+ALTER TABLE public.commercial_provider_accounts
+  ALTER COLUMN credential_secret_ref DROP NOT NULL;
+ALTER TABLE public.commercial_provider_accounts
+  ADD CONSTRAINT commercial_provider_secret_reference_required
+  CHECK (provider IN ('bank_transfer','manual') OR credential_secret_ref IS NOT NULL);
+
 ALTER TABLE public.commercial_provider_notifications
   DROP CONSTRAINT IF EXISTS commercial_provider_notifications_provider_check;
 ALTER TABLE public.commercial_provider_notifications
