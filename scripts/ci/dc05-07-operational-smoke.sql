@@ -324,8 +324,20 @@ BEGIN
     SELECT 1 FROM pg_policies
     WHERE schemaname='public' AND tablename='staynas_distribution_financial_evidence'
       AND policyname='staynas_distribution_financial_evidence_property_read'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='ops_tasks'
+      AND policyname='staynas_ops_tasks_property_scope'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='ops_alerts'
+      AND policyname='staynas_ops_alerts_property_scope'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='room_states'
+      AND policyname='staynas_room_states_property_scope'
   ) THEN
-    RAISE EXCEPTION 'Operational or finance evidence property-read policy is missing';
+    RAISE EXCEPTION 'Operational, finance, task, alert or room property-read policy is missing';
   END IF;
 END
 $test$;
