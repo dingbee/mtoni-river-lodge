@@ -56,3 +56,29 @@ export async function buildCommercialInvoicePdf(input: InvoiceDocumentInput) {
   draw("This document is generated from the persisted StayNas commercial financial ledger.", 8);
   return await pdf.save();
 }
+
+export async function buildCommercialPaymentReceiptPdf(input: {
+  payment: { id: string; provider: string; provider_transaction_ref: string | null; amount_minor: number | string; currency: "TZS" | "USD"; confirmed_at: string | null; payment_method: string | null };
+  invoice: { invoice_number: string; currency: "TZS" | "USD" };
+  allocation: { settlement_ref: string; amount_minor: number | string; allocated_at: string };
+}) {
+  const pdf = await PDFDocument.create();
+  const page = pdf.addPage([595.28,841.89]);
+  const regular = await pdf.embedFont(StandardFonts.Helvetica);
+  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  let y = 790;
+  const draw = (text: string,size=11,isBold=false) => {
+    page.drawText(text.slice(0,110),{x:48,y,size,font:isBold?bold:regular,color:rgb(0.12,0.16,0.22)});
+    y -= size + 12;
+  };
+  draw("STAYNAS — PAYMENT RECEIPT",18,true);
+  draw(`Receipt: ${input.allocation.settlement_ref}`,12,true);
+  draw(`Invoice: ${input.invoice.invoice_number}`);
+  draw(`Payment ID: ${input.payment.id}`);
+  draw(`Provider: ${input.payment.provider} / ${input.payment.payment_method ?? "unspecified"}`);
+  draw(`Provider transaction: ${input.payment.provider_transaction_ref ?? "verified manual record"}`);
+  draw(`Confirmed: ${input.payment.confirmed_at ?? input.allocation.allocated_at}`);
+  draw(`Amount received: ${money(input.allocation.amount_minor,input.invoice.currency)}`,14,true);
+  draw("This receipt is generated from the persisted StayNas payment and allocation ledger.",9);
+  return await pdf.save();
+}
