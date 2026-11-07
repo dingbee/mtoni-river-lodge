@@ -19,6 +19,28 @@ export const Route = createFileRoute("/api/public/staynas-demo-request")({
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const email = input.email.toLowerCase();
           const recentSince = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+          const recentHour = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+          const ipAddress = request.headers.get("x-real-ip")
+            ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+            ?? null;
+          const { createHmac } = await import("node:crypto");
+          const rateLimitKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+          if (!rateLimitKey) throw new Error("Demo request service is temporarily unavailable.");
+          const ipHash = ipAddress
+            ? createHmac("sha256", rateLimitKey).update(ipAddress).digest("hex")
+            : null;
+
+          if (ipHash) {
+            const { count, error: rateError } = await (supabaseAdmin as any)
+              .from("staynas_website_demo_requests")
+              .select("id", { count: "exact", head: true })
+              .eq("ip_hash", ipHash)
+              .gte("created_at", recentHour);
+            if (rateError) throw new Error("Demo request service is temporarily unavailable.");
+            if ((count ?? 0) >= 5) {
+              return Response.json({ ok: false, error: "Too many requests. Please try again later." }, { status: 429 });
+            }
+          }
           const { data: recent, error: recentError } = await (supabaseAdmin as any)
             .from("staynas_website_demo_requests")
             .select("id")
@@ -33,6 +55,7 @@ export const Route = createFileRoute("/api/public/staynas-demo-request")({
             .insert({
               name: input.name,
               email,
+              ip_hash: ipHash,
               phone: input.phone || null,
               company: input.company || null,
               country: input.country || null,
