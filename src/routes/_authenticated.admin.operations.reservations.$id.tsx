@@ -157,7 +157,7 @@ function ReservationWorkspace() {
         <SectionCard title="Room assignments" description="Physical units for this room type">
           {d.roomAllocation && (
             <div className="mb-3 rounded-md border border-primary/20 bg-muted/30 p-3 text-sm">
-              <p className="text-xs font-medium uppercase text-muted-foreground">Reserved physical unit</p>
+              <p className="text-xs font-medium uppercase text-muted-foreground">Physical room allocation</p>
               <p className="mt-1 font-medium">
                 {d.roomStates.find((r: any) => r.id === d.roomAllocation.room_state_id)?.unit_label ?? "Room assignment recorded"}
               </p>
