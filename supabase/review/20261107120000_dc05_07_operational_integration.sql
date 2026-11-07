@@ -42,7 +42,8 @@ DROP POLICY IF EXISTS staynas_ops_tasks_property_scope ON public.ops_tasks;
 CREATE POLICY staynas_ops_tasks_property_scope ON public.ops_tasks
   FOR ALL TO authenticated
   USING (
-    (property_id IS NOT NULL AND public.staynas_user_has_property_access(auth.uid(),property_id))
+    (property_id IS NOT NULL AND public.staynas_user_has_property_access(auth.uid(),property_id)
+      AND public.is_any_staff(auth.uid()))
     OR (property_id IS NULL AND public.is_any_staff(auth.uid()))
   )
   WITH CHECK (
@@ -174,20 +175,11 @@ CREATE TRIGGER staynas_ops_alert_property_scope
 ALTER TABLE public.room_states ENABLE ROW LEVEL SECURITY;
 GRANT SELECT ON public.rooms TO authenticated,service_role;
 GRANT SELECT,INSERT,UPDATE ON public.room_states TO authenticated,service_role;
+-- The existing DC-05.03 room-state policies already enforce property access
+-- and role-specific write authority. Remove only the legacy global policy and
+-- any prior review-only broad policy; preserve the supervisor/housekeeping split.
 DROP POLICY IF EXISTS "Staff manage room_states" ON public.room_states;
 DROP POLICY IF EXISTS staynas_room_states_property_scope ON public.room_states;
-CREATE POLICY staynas_room_states_property_scope ON public.room_states
-  FOR ALL TO authenticated
-  USING (EXISTS (
-    SELECT 1 FROM public.rooms r
-    WHERE r.id=room_states.room_id
-      AND public.staynas_user_has_property_access(auth.uid(),r.property_id)
-  ))
-  WITH CHECK (EXISTS (
-    SELECT 1 FROM public.rooms r
-    WHERE r.id=room_states.room_id
-      AND public.staynas_user_has_property_access(auth.uid(),r.property_id)
-  ));
 
 -- A physical room is allocated for the reservation's date range. This is
 -- separate from room_states, which describes the unit's present housekeeping/
