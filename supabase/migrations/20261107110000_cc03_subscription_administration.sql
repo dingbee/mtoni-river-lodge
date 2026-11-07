@@ -230,7 +230,6 @@ BEGIN
 
     WHEN 'renewal_authorized' THEN
       IF v_subscription.status <> 'active'
-        OR v_subscription.cancel_at_period_end
         OR v_subscription.current_period_ends_at IS NULL
         OR _commercial_acceptance_ref IS NULL
         OR length(btrim(_commercial_acceptance_ref)) NOT BETWEEN 1 AND 300 THEN
