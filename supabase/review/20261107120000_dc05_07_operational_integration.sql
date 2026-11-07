@@ -844,7 +844,7 @@ BEGIN
         AND a.allocation_status='checked_in'
       FOR UPDATE;
       IF v_room_state_id IS NOT NULL THEN
-        SELECT rs.state INTO v_previous_room_state
+        SELECT rs.state::text::public.room_state INTO v_previous_room_state
         FROM public.room_states rs
         WHERE rs.id=v_room_state_id AND rs.booking_id=NEW.id
         FOR UPDATE;
