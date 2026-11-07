@@ -71,6 +71,9 @@ export const listMyCommercialInvoices = createServerFn({ method: "GET" })
     const { data, error } = await admin.from("commercial_invoice_receivables").select("*")
       .eq("organisation_id", actor.organisationId).order("issued_at", { ascending: false });
     if (error) throw new Error("Unable to load tenant invoices.");
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:actor.organisationId,actorRole:actor.actorRole,action:"invoice.tenant_list_viewed",
+      resourceType:"invoice_index",resourceRef:actor.organisationId,metadata:{rowCount:data?.length??0}});
     return data ?? [];
   });
 
@@ -338,6 +341,9 @@ export const getMyCommercialInvoiceDocumentData = createServerFn({ method: "GET"
       admin.from("commercial_invoice_adjustments").select("*").eq("invoice_id", invoice.id).order("created_at"),
     ]);
     if (lines.error || payments.error || allocations.error || adjustments.error) throw new Error("Financial document records could not be loaded.");
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:actor.organisationId,actorRole:actor.actorRole,action:"invoice.document_viewed",
+      resourceType:"invoice",resourceRef:invoice.id,metadata:{documentType:"record"}});
     return { invoice, lines: lines.data ?? [], payments: payments.data ?? [], allocations: allocations.data ?? [], adjustments: adjustments.data ?? [] };
   });
 
@@ -351,6 +357,9 @@ export const listMyCommercialPaymentHistory = createServerFn({ method: "GET" })
       .select("id,invoice_id,provider,provider_transaction_ref,amount_minor,currency,payment_method,status,initiated_at,confirmed_at")
       .eq("organisation_id", actor.organisationId).order("created_at", { ascending: false });
     if (error) throw new Error("Unable to load tenant payment history.");
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:actor.organisationId,actorRole:actor.actorRole,action:"payment.tenant_history_viewed",
+      resourceType:"payment_index",resourceRef:actor.organisationId,metadata:{rowCount:data?.length??0}});
     return data ?? [];
   });
 
@@ -410,6 +419,9 @@ export const generateMyCommercialPaymentReceiptPdf = createServerFn({ method: "G
     if(invoiceError||!invoice||!allocation) throw new Error("Persisted receipt evidence is incomplete.");
     const {buildCommercialPaymentReceiptPdf}=await import("./commercial-invoice-document.server");
     const bytes=await buildCommercialPaymentReceiptPdf({payment,invoice,allocation});
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:actor.organisationId,actorRole:actor.actorRole,action:"payment.receipt_downloaded",
+      resourceType:"payment",resourceRef:payment.id,metadata:{documentType:"pdf",unallocated:false}});
     return {fileName:`receipt-${allocation.settlement_ref}.pdf`,bytes:Array.from(bytes)};
   });
 
@@ -1020,6 +1032,9 @@ export const getMyCommercialFinancialPosition=createServerFn({method:"GET"})
     for(const row of unallocated.data??[]){
       const target=summary[row.currency];if(target)target.unallocatedMinor=(BigInt(target.unallocatedMinor)+BigInt(row.unallocated_minor)).toString();
     }
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:actor.organisationId,actorRole:actor.actorRole,action:"receivables.tenant_position_viewed",
+      resourceType:"tenant_receivables",resourceRef:actor.organisationId,metadata:{currencies:["TZS","USD"]}});
     return summary;
   });
 
