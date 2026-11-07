@@ -26,6 +26,11 @@ ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'marketing';
 
 ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS email text;
 
+-- The canonical HK execution schema uses assignee_id; the legacy operations
+-- table fixture still exposes assigned_to for older non-HK tasks.
+ALTER TABLE public.ops_tasks
+  ADD COLUMN IF NOT EXISTS assignee_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
 CREATE TABLE IF NOT EXISTS public.user_roles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
