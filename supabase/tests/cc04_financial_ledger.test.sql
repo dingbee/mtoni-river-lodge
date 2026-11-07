@@ -70,13 +70,13 @@ BEGIN
   END IF;
 
   BEGIN
-    PERFORM public.commercial_confirm_and_allocate_payment(
+    v_allocation := public.commercial_confirm_and_allocate_payment(
       v_payment,'manual-receipt-duplicate',50000,'TZS','authorized_manual_verification',
       'manual-settlement-duplicate','cc04-allocation-duplicate',now()
     );
-    RAISE EXCEPTION 'Successful payment was allocated twice';
-  EXCEPTION WHEN OTHERS THEN
-    IF SQLERRM = 'Successful payment was allocated twice' THEN RAISE; END IF;
+    IF v_allocation->>'replayed' <> 'true' THEN
+      RAISE EXCEPTION 'Duplicate successful payment was not returned as an idempotent replay';
+    END IF;
   END;
 
   BEGIN
