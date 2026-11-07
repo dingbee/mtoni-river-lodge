@@ -10,7 +10,7 @@ const base = {
   adults: 2, children: 0, providerPayloadFingerprint: "a".repeat(64),
 };
 const event = (eventType: string, providerStatus = "confirmed") =>
-  externalReservationSchema.parse({ ...base, eventType, providerStatus });
+  externalReservationSchema.parse({ ...base, eventType, providerStatus, ...(eventType === "reservation.payment_updated" ? { paymentStatus: "captured" } : {}) });
 
 describe("DC-05 lifecycle reconciliation policy", () => {
   it("creates a confirmed canonical reservation from a confirmed provider event", () => {
