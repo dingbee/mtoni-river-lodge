@@ -849,7 +849,7 @@ BEGIN
         WHERE rs.id=v_room_state_id AND rs.booking_id=NEW.id
         FOR UPDATE;
         IF FOUND THEN
-          v_actor_id:=auth.uid();
+          v_actor_id:=COALESCE(auth.uid(),NULLIF(pg_catalog.current_setting('request.jwt.claim.sub',true),'')::uuid);
           UPDATE public.room_states
           SET booking_id=NULL,state='vacant_dirty',
               state_note='Guest departure completed; housekeeping turnover required.',
