@@ -170,6 +170,7 @@ CREATE TABLE IF NOT EXISTS public.staynas_distribution_outbox (
   status text NOT NULL DEFAULT 'pending'
     CHECK (status IN ('pending','processing','delivered','retry_wait','dead_letter','cancelled')),
   attempt_count integer NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+  max_attempts integer NOT NULL DEFAULT 8 CHECK (max_attempts BETWEEN 1 AND 20),
   next_attempt_at timestamptz NOT NULL DEFAULT now(),
   locked_at timestamptz,
   lock_token uuid,
@@ -357,12 +358,27 @@ BEGIN
     RAISE EXCEPTION 'Invalid outbox claim bounds' USING ERRCODE = '22023';
   END IF;
 
+  UPDATE public.staynas_distribution_outbox
+  SET status='dead_letter',locked_at=NULL,lock_token=NULL,
+      last_error_code='MAX_ATTEMPTS_EXCEEDED'
+  WHERE attempt_count>=max_attempts AND (
+    status IN ('pending','retry_wait')
+    OR (status='processing' AND locked_at<now()-make_interval(secs=>p_lease_seconds))
+  );
+
+  UPDATE public.staynas_distribution_operations op
+  SET status='dead_letter',error_code='MAX_ATTEMPTS_EXCEEDED',
+      completed_at=now(),updated_at=now()
+  FROM public.staynas_distribution_outbox ob
+  WHERE ob.operation_id=op.id AND ob.status='dead_letter'
+    AND op.status NOT IN ('succeeded','dead_letter','cancelled');
+
   RETURN QUERY
   WITH candidates AS (
     SELECT o.id
     FROM public.staynas_distribution_outbox o
     WHERE (
-      o.status IN ('pending','retry_wait') AND o.next_attempt_at <= now()
+      o.status IN ('pending','retry_wait') AND o.next_attempt_at <= now() AND o.attempt_count < o.max_attempts
     ) OR (
       o.status = 'processing' AND o.locked_at < now() - make_interval(secs => p_lease_seconds)
     )
@@ -509,10 +525,20 @@ BEGIN
   IF p_limit NOT BETWEEN 1 AND 100 OR p_lease_seconds NOT BETWEEN 15 AND 900 THEN
     RAISE EXCEPTION 'Invalid inbox claim bounds' USING ERRCODE = '22023';
   END IF;
+
+  UPDATE public.staynas_distribution_reservation_inbox
+  SET processing_status='dead_letter',locked_at=NULL,lock_token=NULL,
+      safe_error_code='MAX_ATTEMPTS_EXCEEDED',
+      safe_error_message='Reservation event exceeded the configured processing attempts',
+      processed_at=now()
+  WHERE attempt_count>=max_attempts AND (
+    processing_status IN ('received','failed')
+    OR (processing_status='processing' AND locked_at<now()-make_interval(secs=>p_lease_seconds))
+  );
   RETURN QUERY
   WITH candidates AS (
     SELECT i.id FROM public.staynas_distribution_reservation_inbox i
-    WHERE (i.processing_status IN ('received','failed') AND i.next_attempt_at<=now())
+    WHERE (i.processing_status IN ('received','failed') AND i.next_attempt_at<=now() AND i.attempt_count < i.max_attempts)
        OR (i.processing_status='processing' AND i.locked_at<now()-make_interval(secs=>p_lease_seconds))
     ORDER BY i.received_at FOR UPDATE SKIP LOCKED LIMIT p_limit
   ), claimed AS (
