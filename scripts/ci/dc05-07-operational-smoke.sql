@@ -27,6 +27,9 @@ DECLARE
   v_modify_inbox uuid:='07070000-0000-4000-8000-000000000015';
   v_modify_lease uuid:='07070000-0000-4000-8000-000000000016';
   v_modify_result jsonb;
+  v_pending_booking uuid:='07070000-0000-4000-8000-000000000017';
+  v_pending_inbox uuid:='07070000-0000-4000-8000-000000000018';
+  v_pending_link uuid:='07070000-0000-4000-8000-000000000019';
 BEGIN
   INSERT INTO public.staynas_organisations(id,slug)
   VALUES(v_org,'dc0507-fixture');
@@ -265,6 +268,52 @@ BEGIN
      OR (SELECT count(*) FROM public.ops_tasks
          WHERE booking_id=v_booking AND task_type='channel_reservation_reconciliation')<>1 THEN
     RAISE EXCEPTION 'Provider modification exception was not surfaced without mutating canonical stay';
+  END IF;
+
+  -- Pending provider reservations are canonical and guest-linked, but do
+  -- not reserve a physical room or enter the arrivals count before confirmation.
+  INSERT INTO public.bookings(
+    id,reference,room_id,property_id,check_in,check_out,nights,adults,children,
+    guest_name,guest_email,currency,source,payment_method,payment_provider,
+    subtotal,extras_total,taxes,tax_addition,tax_breakdown,total,deposit_amount,
+    balance_amount,balance_due,status,payment_status,paid_amount
+  ) VALUES(
+    v_pending_booking,'DC0507-PENDING',v_room,v_property,'2026-12-12','2026-12-14',2,2,0,
+    'Pending Guest','dc0507-pending@example.test','USD','channel',NULL,'channel',
+    200,0,0,0,'[]'::jsonb,200,0,200,200,'pending','unpaid',0
+  );
+  INSERT INTO public.staynas_distribution_webhook_inbox(
+    id,organisation_id,property_id,connection_id,account_grant_id,external_account_id,
+    provider_key,environment,provider_event_id,event_type,payload_fingerprint,
+    normalized_event,correlation_id
+  ) VALUES(
+    v_pending_inbox,v_org,v_property,v_connection,v_grant,v_account,'airbnb','sandbox',
+    'dc0507-event-pending','reservation.created',repeat('d',64),
+    jsonb_build_object('externalReservationId','dc0507-pending-reservation',
+      'externalListingId','dc0507-listing','externalRoomId',NULL,'externalRatePlanId',NULL,
+      'providerStatus','pending','arrivalDate','2026-12-12','departureDate','2026-12-14',
+      'adults',2,'children',0,'providerModifiedAt',NULL),
+    'dc0507-correlation-pending'
+  );
+  INSERT INTO public.staynas_distribution_reservation_links(
+    id,organisation_id,property_id,connection_id,account_grant_id,external_account_id,
+    provider_key,environment,external_reservation_id,booking_id,source_inbox_id,
+    source_provider_event_id,provider_status
+  ) VALUES(
+    v_pending_link,v_org,v_property,v_connection,v_grant,v_account,'airbnb','sandbox',
+    'dc0507-pending-reservation',v_pending_booking,v_pending_inbox,
+    'dc0507-event-pending','pending'
+  );
+  IF (SELECT status::text FROM public.bookings WHERE id=v_pending_booking)<>'pending'
+     OR (SELECT integration_status FROM public.staynas_distribution_operational_reservations
+         WHERE booking_id=v_pending_booking)<>'integrated'
+     OR EXISTS (SELECT 1 FROM public.staynas_distribution_room_allocations
+         WHERE booking_id=v_pending_booking)
+     OR NOT EXISTS (SELECT 1 FROM public.ops_tasks
+         WHERE booking_id=v_pending_booking AND task_type='channel_reservation_review' AND status='pending')
+     OR EXISTS (SELECT 1 FROM public.ops_tasks
+         WHERE booking_id=v_pending_booking AND task_type='channel_reservation_arrival') THEN
+    RAISE EXCEPTION 'Pending provider reservation was prematurely assigned or treated as an arrival';
   END IF;
 
   IF NOT EXISTS (
