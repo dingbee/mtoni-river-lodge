@@ -62,7 +62,7 @@ jobs:
         run: bun run build
       - name: TypeScript verification
         run: bunx tsc --noEmit
-      - name: Finance and shared changed-file lint
+      - name: Finance, shared and StayNas website changed-file lint
         run: >-
           bunx eslint
           src/domains/finance/finance.functions.ts
@@ -108,4 +108,16 @@ jobs:
           src/domains/commercial/founder-administration.test.ts
           src/domains/commercial/commercial-api-contract.ts
           src/domains/commercial/commercial-api-contract.test.ts
+          src/components/site/StayNasProductSite.tsx
+          src/components/site/StayNasWebsiteEnhancements.tsx
+          src/domains/marketing/demo-requests.ts
+          src/domains/marketing/demo-requests.functions.ts
+          src/domains/marketing/demo-requests.test.ts
+          src/routes/api/public/staynas-demo-request.ts
+          src/routes/_authenticated.admin.website-demo-requests.tsx
+          src/routes/modules.tsx
+          src/routes/product-tour.tsx
+          src/routes/architecture.tsx
+          src/routes/security.tsx
+          src/routes/pricing.tsx
           --rule 'prettier/prettier: off'
