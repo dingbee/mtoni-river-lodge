@@ -32,17 +32,19 @@ export const listFrontDeskBookings = createServerFn({ method: 'GET' })
     ])
     if (roomsError) throw new Error(roomsError.message)
     if (operationalResult.error) throw new Error(operationalResult.error.message)
-    const roomMap = new Map((rooms ?? []).map((r) => [r.id, r]))
-    const operationalRows = operationalResult.data ?? []
-    const roomStateIds = Array.from(new Set(operationalRows.map((r) => r.room_state_id).filter(Boolean)))
+    const roomMap = new Map<string, any>((rooms ?? []).map((r: any) => [r.id, r]))
+    const operationalRows: any[] = (operationalResult.data ?? []) as any[]
+    const roomStateIds: string[] = Array.from(new Set<string>(operationalRows
+      .map((r: any) => r.room_state_id)
+      .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)))
     const { data: roomStates, error: roomStatesError } = roomStateIds.length
       ? await sb.from('room_states').select('id, unit_label, state').in('id', roomStateIds)
       : { data: [], error: null }
     if (roomStatesError) throw new Error(roomStatesError.message)
-    const roomStateMap = new Map((roomStates ?? []).map((r) => [r.id, r]))
-    const operationalMap = new Map(operationalRows.map((r) => [r.booking_id, r]))
+    const roomStateMap = new Map<string, any>((roomStates ?? []).map((r: any) => [r.id, r]))
+    const operationalMap = new Map<string, any>(operationalRows.map((r: any) => [r.booking_id, r]))
     return (data ?? []).map((b) => {
-      const operational = operationalMap.get(b.id) ?? null
+      const operational: any = operationalMap.get(b.id) ?? null
       return {
         ...b,
         total: Number(b.total),
