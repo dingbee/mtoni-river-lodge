@@ -174,7 +174,13 @@ export const recordVerifiedManualCommercialPayment = createServerFn({ method: "P
       action: "payment.manual_verified", resourceType: "payment",
       resourceRef: data.paymentId, metadata: { evidenceReference: data.evidenceReference },
     });
-    return result;
+    let notificationStatus = "not_requested";
+    try {
+      const { sendCommercialPaymentConfirmationEmail } = await import("./commercial-financial-notifications.server");
+      const notification = await sendCommercialPaymentConfirmationEmail({ admin, paymentId: data.paymentId });
+      notificationStatus = notification.status;
+    } catch { notificationStatus = "failed"; }
+    return { ...result, notificationStatus };
   });
 
 export const reverseCommercialPayment = createServerFn({ method: "POST" })
