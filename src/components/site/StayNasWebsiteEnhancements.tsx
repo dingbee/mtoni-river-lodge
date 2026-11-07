@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, BadgeCheck, BedDouble, Building2, CalendarCheck, ChartNoAxesCombined, Check, ChevronRight, CircleDollarSign, ClipboardCheck, CreditCard, Globe2, House, Layers3, LockKeyhole, Network, ShieldCheck, Sparkles, Users, Workflow, Wrench } from "lucide-react";
 
@@ -118,7 +118,7 @@ export function StayNasDemoRequestForm() {
   const interestOptions = ["Reservations & booking", "Front desk & check-in", "Housekeeping & operations", "Finance & revenue", "AI concierge & automation", "Multi-property management", "Payments & integrations"];
   const update = (key: keyof DemoFormState, value: string) => setForm((current) => ({ ...current, [key]: value }));
   const toggleInterest = (value: string) => setForm((current) => ({ ...current, interests: current.interests.includes(value) ? current.interests.filter((x) => x !== value) : [...current.interests, value] }));
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setResult(null);
