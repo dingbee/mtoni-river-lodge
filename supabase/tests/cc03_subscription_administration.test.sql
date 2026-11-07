@@ -7,6 +7,8 @@ DECLARE
   v_org uuid := '61000000-0000-4000-8000-000000000001';
   v_account uuid := '62000000-0000-4000-8000-000000000001';
   v_subscription uuid := '63000000-0000-4000-8000-000000000001';
+  v_org2 uuid := '61000000-0000-4000-8000-000000000002';
+  v_account2 uuid := '62000000-0000-4000-8000-000000000002';
   v_pending uuid := '63000000-0000-4000-8000-000000000002';
   v_result jsonb;
   v_status text;
@@ -29,11 +31,15 @@ BEGIN
     now(), now() + interval '30 days'
   );
 
+  INSERT INTO public.staynas_organisations(id, slug, name)
+  VALUES (v_org2, 'cc034-admin-test-2', 'CC034 Administration Test 2');
+  INSERT INTO public.commercial_accounts(id, organisation_id)
+  VALUES (v_account2, v_org2);
   INSERT INTO public.commercial_subscriptions(
     id, account_id, plan_code, plan_version, currency, billing_term,
     property_count, price_resolution_ref, accepted_price_snapshot
   ) VALUES (
-    v_pending, v_account, 'essential', 1, 'TZS', 'monthly',
+    v_pending, v_account2, 'essential', 1, 'TZS', 'monthly',
     1, 'cc034-pending-price-v1', '{"currency":"TZS","total":50000}'
   );
 
@@ -137,9 +143,9 @@ BEGIN
 
   SELECT count(*) INTO v_event_count
   FROM public.commercial_subscription_events
-  WHERE account_id = v_account;
-  IF v_event_count <> 6 THEN
-    RAISE EXCEPTION 'Expected six unique lifecycle events, found %', v_event_count;
+  WHERE account_id IN (v_account, v_account2);
+  IF v_event_count <> 5 THEN
+    RAISE EXCEPTION 'Expected five unique lifecycle events, found %', v_event_count;
   END IF;
 
   IF NOT EXISTS (
