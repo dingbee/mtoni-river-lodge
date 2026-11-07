@@ -20,11 +20,11 @@ type VerifiedTenantActor = {
   actorRole: "founder_admin" | "tenant_admin" | "tenant_staff";
 };
 
-function actorRoleForMembership(role: string): VerifiedTenantActor["actorRole"] {
+export function actorRoleForMembership(role: string): VerifiedTenantActor["actorRole"] {
   return ["owner", "admin", "manager"].includes(role) ? "tenant_admin" : "tenant_staff";
 }
 
-async function resolveVerifiedTenantActor(context: {
+export async function resolveVerifiedTenantActor(context: {
   supabase: any;
   userId: string;
 }): Promise<VerifiedTenantActor> {
@@ -123,7 +123,7 @@ async function writeCommercialAudit(
   if (error) throw new Error("Commercial audit persistence failed.");
 }
 
-function loadTrialPolicies(): CommercialTrialPolicy[] {
+export function loadTrialPolicies(): CommercialTrialPolicy[] {
   const raw = process.env.STAYNAS_COMMERCIAL_TRIAL_POLICIES_JSON;
   if (!raw) throw new Error("Commercial trial policy configuration is not provisioned.");
   let parsed: unknown;
@@ -277,7 +277,7 @@ export const activateMyCommercialTrial = createServerFn({ method: "POST" })
 
 
 /** Resolve founder authority from the dedicated caller-bound database predicate. */
-async function resolveVerifiedFounderActor(context: {
+export async function resolveVerifiedFounderActor(context: {
   supabase: any;
   userId: string;
 }): Promise<VerifiedTenantActor> {
