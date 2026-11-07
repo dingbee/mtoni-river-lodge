@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { queryTenantPesapalStatus } from "@/domains/commercial/commercial-pesapal.server";
 
+function providerMajorAmountToMinor(value: unknown): bigint | null {
+  const text = String(value ?? "").trim();
+  const match = /^(\\d+)(?:\\.(\\d{1,2}))?$/.exec(text);
+  if (!match) return null;
+  return BigInt(match[1]) * 100n + BigInt((match[2] ?? "").padEnd(2, "0") || "0");
+}
+
 async function handleCommercialPesapalNotification(orderTrackingId: string, merchantReference: string, notificationType: string) {
   if (!orderTrackingId || !merchantReference.startsWith("SN-COM-")) return false;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
