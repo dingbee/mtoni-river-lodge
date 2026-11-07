@@ -586,13 +586,13 @@ BEGIN
   IF p_limit NOT BETWEEN 1 AND 100 OR p_lease_seconds NOT BETWEEN 15 AND 900 THEN
     RAISE EXCEPTION 'Invalid inbox claim bounds' USING ERRCODE='22023';
   END IF;
-  UPDATE public.staynas_distribution_reservation_inbox
+  UPDATE public.staynas_distribution_reservation_inbox AS inbox
   SET processing_status='dead_letter',locked_at=NULL,lock_token=NULL,
       safe_error_code='MAX_ATTEMPTS_EXCEEDED',
       safe_error_message='Reservation event exceeded configured processing attempts',processed_at=now()
-  WHERE attempt_count>=max_attempts AND (
-    processing_status IN ('received','failed')
-    OR (processing_status='processing' AND locked_at<now()-make_interval(secs=>p_lease_seconds))
+  WHERE inbox.attempt_count>=inbox.max_attempts AND (
+    inbox.processing_status IN ('received','failed')
+    OR (inbox.processing_status='processing' AND inbox.locked_at<now()-make_interval(secs=>p_lease_seconds))
   );
   RETURN QUERY
   WITH candidates AS (
