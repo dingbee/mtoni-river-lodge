@@ -43,8 +43,9 @@ export function reconcileCommercialProviderStatement(
   }
   const internalByRef = new Map<string, ReconciliationInternalPayment>();
   for (const payment of internal) {
-    const ref = payment.providerTransactionRef ?? payment.providerOrderRef;
-    if (ref) internalByRef.set(ref, payment);
+    for (const ref of [payment.providerTransactionRef, payment.providerOrderRef]) {
+      if (ref) internalByRef.set(ref, payment);
+    }
   }
 
   for (const [providerRef, rows] of providerByRef) {
@@ -129,8 +130,9 @@ export function reconcileCommercialProviderStatement(
   }
 
   for (const payment of internal) {
+    const refs = [payment.providerTransactionRef, payment.providerOrderRef].filter((ref): ref is string => Boolean(ref));
+    if (refs.some((ref) => providerByRef.has(ref))) continue;
     const ref = payment.providerTransactionRef ?? payment.providerOrderRef;
-    if (ref && providerByRef.has(ref)) continue;
     if (payment.status === "pending" || payment.status === "failed" || payment.status === "cancelled") continue;
     results.push({
       itemType: "missing_provider", internalPaymentId: payment.id, providerRef: ref,
