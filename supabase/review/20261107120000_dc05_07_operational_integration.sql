@@ -35,6 +35,7 @@ WHERE t.booking_id=rs.booking_id AND t.room_state_id IS NULL;
 CREATE INDEX IF NOT EXISTS ops_tasks_property_status_due_idx
   ON public.ops_tasks(property_id,status,due_at);
 ALTER TABLE public.ops_tasks ENABLE ROW LEVEL SECURITY;
+GRANT SELECT,INSERT,UPDATE ON public.ops_tasks TO authenticated,service_role;
 
 DROP POLICY IF EXISTS "Staff manage ops_tasks" ON public.ops_tasks;
 DROP POLICY IF EXISTS staynas_ops_tasks_property_scope ON public.ops_tasks;
@@ -62,6 +63,7 @@ WHERE a.room_id=r.id AND a.property_id IS NULL;
 CREATE INDEX IF NOT EXISTS ops_alerts_property_open_idx
   ON public.ops_alerts(property_id,resolved_at) WHERE resolved_at IS NULL;
 ALTER TABLE public.ops_alerts ENABLE ROW LEVEL SECURITY;
+GRANT SELECT,INSERT,UPDATE,DELETE ON public.ops_alerts TO authenticated,service_role;
 
 DROP POLICY IF EXISTS "Staff manage ops_alerts" ON public.ops_alerts;
 DROP POLICY IF EXISTS staynas_ops_alerts_property_scope ON public.ops_alerts;
