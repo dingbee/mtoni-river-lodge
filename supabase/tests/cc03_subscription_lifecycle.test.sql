@@ -246,6 +246,20 @@ BEGIN
       property_count, price_resolution_ref, accepted_price_snapshot, quote_required
     ) VALUES (
       v_subscription3, v_account3, 'enterprise', 1, 'USD', 'annual',
+      5, 'missing-quote-flag',
+      '{"currency":"USD"}',
+      true
+    );
+    RAISE EXCEPTION 'Quote-required subscription without explicit quoteRequired flag unexpectedly succeeded';
+  EXCEPTION WHEN check_violation THEN
+    NULL;
+  END;
+  BEGIN
+    INSERT INTO public.commercial_subscriptions(
+      id, account_id, plan_code, plan_version, currency, billing_term,
+      property_count, price_resolution_ref, accepted_price_snapshot, quote_required
+    ) VALUES (
+      v_subscription3, v_account3, 'enterprise', 1, 'USD', 'annual',
       5, 'fabricated-enterprise-price',
       '{"currency":"USD","quoteRequired":true,"total":1,"lineItems":[{"amount":1}]}',
       true
