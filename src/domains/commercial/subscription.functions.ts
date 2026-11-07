@@ -18,7 +18,7 @@ type VerifiedTenantActor = {
   organisationId: string;
   propertyId: string;
   membershipRole: string;
-  actorRole: "tenant_admin" | "tenant_staff";
+  actorRole: "founder_admin" | "tenant_admin" | "tenant_staff";
 };
 
 function actorRoleForMembership(role: string): VerifiedTenantActor["actorRole"] {
@@ -261,4 +261,91 @@ export const activateMyCommercialTrial = createServerFn({ method: "POST" })
     // The activation RPC writes the success audit in the same transaction as
     // the state transition, permanent claim and lifecycle event.
     return result;
+  });
+
+
+/** Resolve founder authority from the dedicated caller-bound database predicate. */
+async function resolveVerifiedFounderActor(context: {
+  supabase: any;
+  userId: string;
+}): Promise<VerifiedTenantActor> {
+  const { data: authData, error: authError } = await context.supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== context.userId) {
+    throw new Error("Unauthenticated");
+  }
+
+  const { data: authorised, error: authorityError } = await context.supabase.rpc(
+    "commercial_is_founder_admin",
+    { _principal_id: authData.user.id },
+  );
+  if (authorityError || authorised !== true) {
+    throw new Error("Forbidden: verified commercial founder administrator authority is required.");
+  }
+
+  const { data: selectedContext, error: contextError } = await context.supabase
+    .from("staynas_user_property_context")
+    .select("property_id")
+    .eq("user_id", authData.user.id)
+    .maybeSingle();
+  if (contextError || !selectedContext?.property_id) {
+    throw new Error("Select an active founder-tenant property before commercial administration.");
+  }
+
+  const [{ data: property, error: propertyError }, { data: membership, error: membershipError }] =
+    await Promise.all([
+      context.supabase.from("staynas_properties")
+        .select("id, organisation_id, status")
+        .eq("id", selectedContext.property_id).maybeSingle(),
+      context.supabase.from("staynas_property_members")
+        .select("role, status")
+        .eq("property_id", selectedContext.property_id)
+        .eq("user_id", authData.user.id).maybeSingle(),
+    ]);
+  if (propertyError || membershipError || !property || property.status !== "active"
+    || !membership || membership.status !== "active") {
+    throw new Error("Active founder-tenant property membership could not be verified.");
+  }
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const admin = supabaseAdmin as any;
+  const { data: config, error: configError } = await admin
+    .from("commercial_founder_tenant_config")
+    .select("founder_organisation_id")
+    .eq("singleton", true)
+    .maybeSingle();
+  if (configError || !config || config.founder_organisation_id !== property.organisation_id) {
+    throw new Error("The selected property is not in the configured commercial founder tenant.");
+  }
+
+  return {
+    userId: authData.user.id,
+    organisationId: String(config.founder_organisation_id),
+    propertyId: String(property.id),
+    membershipRole: String(membership.role),
+    actorRole: "founder_admin",
+  };
+}
+
+/** Founder-only global commercial account view; tenant roles cannot call it. */
+export const listCommercialAccountsForFounder = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const actor = await resolveVerifiedFounderActor(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const admin = supabaseAdmin as any;
+    const { data: accounts, error } = await admin
+      .from("commercial_accounts")
+      .select("id, organisation_id, status, created_at, updated_at")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error("Unable to load commercial accounts.");
+
+    await writeCommercialAudit(admin, actor, {
+      requestId: randomUUID(),
+      action: "commercial_accounts.listed",
+      resourceType: "commercial_account",
+      resourceRef: "founder-account-index",
+      outcome: "succeeded",
+      metadata: { resultCount: (accounts ?? []).length },
+    });
+    return accounts ?? [];
   });
