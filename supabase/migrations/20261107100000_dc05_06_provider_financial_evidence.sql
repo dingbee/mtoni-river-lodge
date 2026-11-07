@@ -110,7 +110,7 @@ AS $function$
 DECLARE
   v_inbox public.staynas_distribution_webhook_inbox%ROWTYPE;
   v_link public.staynas_distribution_reservation_links%ROWTYPE;
-  v_id uuid; v_status text; v_code text; v_reference text;
+  v_id uuid; v_status text; v_code text; v_reference text; v_duplicate_code text;
 BEGIN
   IF coalesce(nullif(current_setting('request.jwt.claim.role',true),''),auth.role())<>'service_role' THEN
     RAISE EXCEPTION 'Provider finance evidence is service-only.' USING ERRCODE='42501';
@@ -156,6 +156,7 @@ BEGIN
     ELSE 'provider_financial_evidence_requires_finance_review' END;
   v_reference:=coalesce(_evidence->>'settlementReference',_evidence->>'refundReference',
     _evidence->>'refundReversalReference',_evidence->>'paymentReference');
+  v_duplicate_code:='provider_event_already_recorded';
   INSERT INTO public.staynas_distribution_financial_evidence(
     organisation_id,property_id,connection_id,account_grant_id,external_account_id,
     provider_key,environment,external_reservation_id,booking_id,source_inbox_id,
