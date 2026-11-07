@@ -38,9 +38,12 @@ const reversalInput = z.object({
 
 async function getAdmin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  // CC-04 tables are not yet represented in the generated Supabase Database type.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return supabaseAdmin as any;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function writeFinancialAudit(admin: any, input: {
   requestId: string; actorUserId: string | null; organisationId: string | null;
   actorRole: "founder_admin" | "tenant_admin" | "service_principal";
