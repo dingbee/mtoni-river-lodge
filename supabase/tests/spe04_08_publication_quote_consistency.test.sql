@@ -45,7 +45,7 @@ SELECT ok(
 SELECT has_function(
   'public',
   'validate_staynas_rate_plan_base_and_occupancy_data',
-  ARRAY[],
+  ARRAY[]::text[],
   'Canonical base-rate and occupancy validator exists'
 );
 
@@ -101,7 +101,7 @@ SELECT ok(
 
 SELECT ok(
   pg_get_functiondef('public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure)
-    LIKE '%x.publication_number=%',
+    LIKE '%pub.publication_number=(%',
   'Implicit plan lookup is constrained to the latest immutable publication'
 );
 
