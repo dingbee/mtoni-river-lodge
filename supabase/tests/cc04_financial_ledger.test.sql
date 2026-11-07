@@ -14,8 +14,10 @@ DECLARE
   v_unallocated_view numeric;
   v_invoice jsonb;
   v_invoice2 jsonb;
+  v_invoice3 jsonb;
   v_invoice_id uuid;
   v_invoice_id2 uuid;
+  v_invoice_id3 uuid;
   v_payment uuid;
   v_allocation jsonb;
   v_reversal uuid;
@@ -214,6 +216,30 @@ BEGIN
   IF (SELECT outstanding_minor FROM public.commercial_invoice_receivables WHERE id=v_invoice_id2) <> 0
     OR (SELECT status FROM public.commercial_invoices WHERE id=v_invoice_id2) <> 'void' THEN
     RAISE EXCEPTION 'Voided invoice remains in receivables';
+  END IF;
+
+  v_invoice3 := public.commercial_create_invoice_draft_from_subscription(
+    v_sub,now()+interval '2 months',now()+interval '3 months',
+    'cc04-invoice-draft-idempotency',
+    '{"treatment":"not_applicable","policyRef":"tax-policy-test-v1","amountMinor":0,"currency":"TZS"}',
+    '{"amountMinor":0,"policyRef":"discount-none-v1"}',v_user
+  );
+  v_invoice_id3 := (v_invoice3->>'invoiceId')::uuid;
+  IF (SELECT status FROM public.commercial_invoices WHERE id=v_invoice_id3) <> 'draft' THEN
+    RAISE EXCEPTION 'Invoice draft was not persisted as draft';
+  END IF;
+  IF public.commercial_issue_draft_invoice(
+    v_invoice_id3,now()+interval '2 months 14 days','approval-cc04-draft-issue',v_user
+  ) THEN
+    RAISE EXCEPTION 'First draft issue was unexpectedly a replay';
+  END IF;
+  IF NOT public.commercial_issue_draft_invoice(
+    v_invoice_id3,now()+interval '2 months 14 days','approval-cc04-draft-issue',v_user
+  ) THEN
+    RAISE EXCEPTION 'Draft issue retry was not idempotent';
+  END IF;
+  IF (SELECT status FROM public.commercial_invoices WHERE id=v_invoice_id3) <> 'issued' THEN
+    RAISE EXCEPTION 'Invoice draft did not transition to issued';
   END IF;
 
   IF has_table_privilege('authenticated','public.commercial_invoices','SELECT')
