@@ -2,6 +2,16 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { staynasRpc } from "@/lib/staynas-rpc";
 
+type AdminQueryResult = { data: unknown; error: { message: string } | null };
+type AdminQuery = PromiseLike<AdminQueryResult> & {
+  select: (columns: string) => AdminQuery;
+  eq: (column: string, value: unknown) => AdminQuery;
+  in: (column: string, values: string[]) => AdminQuery;
+  order: (column: string, options?: { ascending?: boolean }) => AdminQuery;
+  limit: (count: number) => AdminQuery;
+  maybeSingle: () => Promise<AdminQueryResult>;
+};
+
 type SafeConnection = {
   id: string; provider: string; external_account_id: string;
   external_property_id: string; status: string; mapping_version: number;
@@ -34,13 +44,14 @@ export const getDistributionCentre = createServerFn({ method: "GET" })
     if (!propertyId) throw new Error("No accessible active property is configured");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const admin = supabaseAdmin as unknown as { from: (table: string) => any };
-    const { data: property, error: propertyError } = await admin
+    const admin = supabaseAdmin as unknown as { from: (table: string) => AdminQuery };
+    const propertyResult = await admin
       .from("staynas_properties")
       .select("id, organisation_id, name, currency, timezone, status")
       .eq("id", propertyId)
       .maybeSingle();
-    if (propertyError) throw new Error(propertyError.message);
+    if (propertyResult.error) throw new Error(propertyResult.error.message);
+    const property = propertyResult.data as Record<string, unknown> | null;
     if (!property || property.status !== "active") throw new Error("Active property not found or unavailable");
 
     const { data: connections, error: connectionError } = await admin
@@ -94,5 +105,5 @@ export const getDistributionCentre = createServerFn({ method: "GET" })
         inboundCanonicalWriterEnabled: false,
         credentialsConfigured: false,
       },
-    } as any);
+    });
   });
