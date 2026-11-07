@@ -470,9 +470,9 @@ RETURNS uuid LANGUAGE sql STABLE AS $function$
   SELECT CASE WHEN _user_id='07070000-0000-4000-8000-000000000003'::uuid
     THEN '07070000-0000-4000-8000-000000000002'::uuid ELSE NULL END
 $function$;
-CREATE OR REPLACE FUNCTION public.has_any_role(_uid uuid,_roles public.app_role[])
+CREATE OR REPLACE FUNCTION public.has_any_role(_user_id uuid,_roles public.app_role[])
 RETURNS boolean LANGUAGE sql STABLE AS $function$
-  SELECT _uid='07070000-0000-4000-8000-000000000003'::uuid
+  SELECT _user_id='07070000-0000-4000-8000-000000000003'::uuid
      AND 'housekeeping'::public.app_role=ANY(_roles)
 $function$;
 
