@@ -389,14 +389,27 @@ export const generateMyCommercialPaymentReceiptPdf = createServerFn({ method: "G
     if (error || !payment || !["successful","partially_reversed","reversed"].includes(payment.status)) {
       throw new Error("A verified tenant payment receipt was not found.");
     }
-    const [invoice, allocation] = await Promise.all([
-      admin.from("commercial_invoices").select("invoice_number,currency").eq("id",payment.invoice_id).eq("organisation_id",actor.organisationId).maybeSingle(),
-      admin.from("commercial_payment_allocations").select("settlement_ref,amount_minor,allocated_at").eq("payment_id",payment.id).maybeSingle(),
-    ]);
-    if (invoice.error || allocation.error || !invoice.data || !allocation.data) throw new Error("Persisted receipt evidence is incomplete.");
-    const { buildCommercialPaymentReceiptPdf } = await import("./commercial-invoice-document.server");
-    const bytes = await buildCommercialPaymentReceiptPdf({ payment, invoice: invoice.data, allocation: allocation.data });
-    return { fileName: `receipt-${allocation.data.settlement_ref}.pdf`, bytes: Array.from(bytes) };
+    const {data:allocation,error:allocationError}=await admin.from("commercial_payment_allocations")
+      .select("settlement_ref,amount_minor,allocated_at,invoice_id").eq("payment_id",payment.id).maybeSingle();
+    if(allocationError) throw new Error("Persisted payment allocation could not be loaded.");
+    if(payment.invoice_id===null){
+      const {data:invoice}=allocation?.invoice_id
+        ? await admin.from("commercial_invoices").select("invoice_number,currency").eq("id",allocation.invoice_id).eq("organisation_id",actor.organisationId).maybeSingle()
+        : {data:null};
+      const {data:unallocated}=await admin.from("commercial_unallocated_collections").select("unallocated_minor").eq("payment_id",payment.id).maybeSingle();
+      const {buildCommercialUnallocatedReceiptPdf}=await import("./commercial-invoice-document.server");
+      const bytes=await buildCommercialUnallocatedReceiptPdf({
+        payment,allocation:allocation?{...allocation,invoice_number:invoice?.invoice_number??null}:null,
+        unallocatedMinor:unallocated?.unallocated_minor??(allocation?0:payment.amount_minor),
+      });
+      return {fileName:`receipt-${allocation?.settlement_ref??payment.id}.pdf`,bytes:Array.from(bytes)};
+    }
+    const {data:invoice,error:invoiceError}=await admin.from("commercial_invoices").select("invoice_number,currency")
+      .eq("id",payment.invoice_id).eq("organisation_id",actor.organisationId).maybeSingle();
+    if(invoiceError||!invoice||!allocation) throw new Error("Persisted receipt evidence is incomplete.");
+    const {buildCommercialPaymentReceiptPdf}=await import("./commercial-invoice-document.server");
+    const bytes=await buildCommercialPaymentReceiptPdf({payment,invoice,allocation});
+    return {fileName:`receipt-${allocation.settlement_ref}.pdf`,bytes:Array.from(bytes)};
   });
 
 const reconciliationRunInput = z.object({
@@ -694,10 +707,24 @@ export const generateMyCommercialUnallocatedReceiptPdf=createServerFn({method:"G
     if(actor.actorRole!=="tenant_admin") throw new Error("Forbidden: tenant administrator authority is required.");
     const admin=await getAdmin();
     const {data:payment,error}=await admin.from("commercial_payment_transactions").select("*")
-      .eq("id",data.paymentId).eq("organisation_id",actor.organisationId).is("invoice_id",null).eq("status","successful").maybeSingle();
+      .eq("id",data.paymentId).eq("organisation_id",actor.organisationId).is("invoice_id",null)
+      .in("status",["successful","partially_reversed","reversed"]).maybeSingle();
     if(error||!payment) throw new Error("Verified unallocated tenant collection was not found.");
+    const [allocation,unallocated]=await Promise.all([
+      admin.from("commercial_payment_allocations").select("settlement_ref,amount_minor,allocated_at,invoice_id")
+        .eq("payment_id",payment.id).maybeSingle(),
+      admin.from("commercial_unallocated_collections").select("unallocated_minor").eq("payment_id",payment.id).maybeSingle(),
+    ]);
+    if(allocation.error||unallocated.error) throw new Error("Unallocated collection allocation evidence could not be loaded.");
+    const {data:invoice}=allocation.data?.invoice_id
+      ? await admin.from("commercial_invoices").select("invoice_number").eq("id",allocation.data.invoice_id)
+        .eq("organisation_id",actor.organisationId).maybeSingle()
+      : {data:null};
     const {buildCommercialUnallocatedReceiptPdf}=await import("./commercial-invoice-document.server");
-    const bytes=await buildCommercialUnallocatedReceiptPdf({payment});
+    const bytes=await buildCommercialUnallocatedReceiptPdf({
+      payment,allocation:allocation.data?{...allocation.data,invoice_number:invoice?.invoice_number??null}:null,
+      unallocatedMinor:unallocated.data?.unallocated_minor??(allocation.data?0:payment.amount_minor),
+    });
     return {fileName:`receipt-unallocated-${payment.id}.pdf`,bytes:Array.from(bytes)};
   });
 
