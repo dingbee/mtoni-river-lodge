@@ -30,14 +30,16 @@ describe("reservation inbox worker", () => {
       normalizedPayload: { ...baseEvent, eventType },
     }));
     const finish = vi.fn(async () => true);
+    const recordPriceCommitment = vi.fn(async (inboxId: string) => `commitment-${inboxId}`);
     const report = await runReservationInboxBatch({
-      claim: vi.fn(async () => items), finish, writer,
+      claim: vi.fn(async () => items), finish, writer, recordPriceCommitment,
     });
     expect(report.applied).toBe(1);
     expect(report.manualReview).toBe(2);
     expect(writer.create).not.toHaveBeenCalled();
     expect(writer.modify).not.toHaveBeenCalled();
     expect(writer.cancel).toHaveBeenCalledTimes(1);
+    expect(recordPriceCommitment).toHaveBeenCalledTimes(2);
     expect(finish).toHaveBeenCalledTimes(3);
   });
 
@@ -56,6 +58,7 @@ describe("reservation inbox worker", () => {
         providerEventId: "event", attempt: 1, normalizedPayload: baseEvent,
       }]),
       finish: vi.fn(async () => false), writer,
+      recordPriceCommitment: vi.fn(async () => "commitment-id"),
     });
     expect(report.leaseLost).toBe(1);
     expect(report.applied).toBe(0);
