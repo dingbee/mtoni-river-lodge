@@ -19,7 +19,7 @@ describe("canonical reservation boundary", () => {
       create: vi.fn(async () => ({ status: "applied" as const, bookingId: "booking-id" })),
       modify: vi.fn(), cancel: vi.fn(),
     };
-    const result = await applyInboundReservationEvent(event, writer);
+    const result = await applyInboundReservationEvent(event, writer, "00000000-0000-4000-8000-000000000001");
     expect(result).toEqual({ status: "manual_review", reason: "Provider price has not passed verification; automatic booking creation or modification is prohibited." });
     expect(writer.create).not.toHaveBeenCalled();
   });
@@ -30,7 +30,7 @@ describe("canonical reservation boundary", () => {
     };
     const result = await applyInboundReservationEvent({
       ...event, confirmedAmountMinor: null, currency: null,
-    }, writer);
+    }, writer, "00000000-0000-4000-8000-000000000001");
     expect(result.status).toBe("manual_review");
     expect(writer.create).not.toHaveBeenCalled();
   });
@@ -40,10 +40,10 @@ describe("canonical reservation boundary", () => {
       create: vi.fn(), modify: vi.fn(async () => ({ status: "applied" as const, bookingId: "booking-id" })),
       cancel: vi.fn(async () => ({ status: "applied" as const, bookingId: "booking-id" })),
     };
-    const modified = await applyInboundReservationEvent({ ...event, eventType: "modified" }, writer);
-    await applyInboundReservationEvent({ ...event, eventType: "cancelled" }, writer);
-    expect(modified.status).toBe("manual_review");
-    expect(writer.modify).not.toHaveBeenCalled();
+    const modified = await applyInboundReservationEvent({ ...event, eventType: "modified" }, writer, "00000000-0000-4000-8000-000000000001", true);
+    await applyInboundReservationEvent({ ...event, eventType: "cancelled" }, writer, "00000000-0000-4000-8000-000000000001");
+    expect(modified.status).toBe("applied");
+    expect(writer.modify).toHaveBeenCalledWith(expect.objectContaining({ inboxId: "00000000-0000-4000-8000-000000000001" }));
     expect(writer.cancel).toHaveBeenCalledTimes(1);
     expect(writer.create).not.toHaveBeenCalled();
   });
