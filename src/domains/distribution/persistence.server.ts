@@ -204,3 +204,13 @@ export async function finishDistributionReservationInbox(input: {
   });
   return unwrap(Boolean(data), error);
 }
+
+
+export async function recordDistributionPriceCommitment(inboxId: string) {
+  const value = uuid.parse(inboxId);
+  const sb = await adminClient();
+  const { data, error } = await sb.rpc("staynas_distribution_record_price_commitment", {
+    p_inbox_id: value,
+  });
+  return unwrap(data as string, error);
+}
