@@ -13,20 +13,55 @@ export const listFrontDeskBookings = createServerFn({ method: 'GET' })
     const { data, error } = await sb
       .from('bookings')
       .select(
-        'id, reference, guest_name, guest_email, guest_phone, check_in, check_out, nights, adults, children, total, currency, balance_amount, status, payment_status, guest_type, room_id, created_at',
+        'id, reference, guest_name, guest_email, guest_phone, check_in, check_out, nights, adults, children, total, currency, balance_amount, status, payment_status, guest_type, room_id, guest_id, source, created_at',
       )
       .order('check_in', { ascending: true })
       .limit(200)
     if (error) throw new Error(error.message)
     const roomIds = Array.from(new Set((data ?? []).map((b) => b.room_id)))
-    const { data: rooms } = await sb.from('rooms').select('id, name, slug').in('id', roomIds)
-    const roomMap = new Map((rooms ?? []).map((r) => [r.id, r]))
-    return (data ?? []).map((b) => ({
-      ...b,
-      total: Number(b.total),
-      balance_amount: Number(b.balance_amount),
-      room: roomMap.get(b.room_id) ?? null,
-    }))
+    const bookingIds = (data ?? []).map((b) => b.id)
+    const [{ data: rooms, error: roomsError }, operationalResult] = await Promise.all([
+      roomIds.length
+        ? sb.from('rooms').select('id, name, slug').in('id', roomIds)
+        : Promise.resolve({ data: [], error: null }),
+      bookingIds.length
+        ? (sb as any).from('staynas_distribution_operational_reservations')
+            .select('booking_id, provider_key, external_reservation_id, provider_status, integration_status, room_state_id, last_provider_event_id, last_integrated_at, last_error_code')
+            .in('booking_id', bookingIds)
+        : Promise.resolve({ data: [], error: null }),
+    ])
+    if (roomsError) throw new Error(roomsError.message)
+    if (operationalResult.error) throw new Error(operationalResult.error.message)
+    const roomMap = new Map<string, any>((rooms ?? []).map((r: any) => [r.id, r]))
+    const operationalRows: any[] = (operationalResult.data ?? []) as any[]
+    const roomStateIds: string[] = Array.from(new Set<string>(operationalRows
+      .map((r: any) => r.room_state_id)
+      .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)))
+    const { data: roomStates, error: roomStatesError } = roomStateIds.length
+      ? await sb.from('room_states').select('id, unit_label, state').in('id', roomStateIds)
+      : { data: [], error: null }
+    if (roomStatesError) throw new Error(roomStatesError.message)
+    const roomStateMap = new Map<string, any>((roomStates ?? []).map((r: any) => [r.id, r]))
+    const operationalMap = new Map<string, any>(operationalRows.map((r: any) => [r.booking_id, r]))
+    return (data ?? []).map((b) => {
+      const operational: any = operationalMap.get(b.id) ?? null
+      return {
+        ...b,
+        total: Number(b.total),
+        balance_amount: Number(b.balance_amount),
+        room: roomMap.get(b.room_id) ?? null,
+        channel: operational ? {
+          providerKey: operational.provider_key,
+          externalReservationId: operational.external_reservation_id,
+          providerStatus: operational.provider_status,
+          integrationStatus: operational.integration_status,
+          lastProviderEventId: operational.last_provider_event_id,
+          lastIntegratedAt: operational.last_integrated_at,
+          lastErrorCode: operational.last_error_code,
+          assignedUnit: operational.room_state_id ? roomStateMap.get(operational.room_state_id) ?? null : null,
+        } : null,
+      }
+    })
   })
 
 export const getGuestThread = createServerFn({ method: 'POST' })

@@ -236,7 +236,7 @@ export const getPaymentTimeline = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
-    const [bookingResult, eventsResult] = await Promise.all([
+    const [bookingResult, eventsResult, providerEvidenceResult] = await Promise.all([
       context.supabase
         .from("bookings")
         .select(
@@ -249,11 +249,21 @@ export const getPaymentTimeline = createServerFn({ method: "POST" })
         .select("*")
         .eq("booking_id", data.bookingId)
         .order("created_at", { ascending: false }),
+      (context.supabase as any)
+        .from("staynas_distribution_financial_evidence")
+        .select("id, provider_key, external_reservation_id, event_type, provider_reference, evidence, reconciliation_status, reconciliation_code, received_at")
+        .eq("booking_id", data.bookingId)
+        .order("received_at", { ascending: false }),
     ]);
     if (bookingResult.error) throw new Error(`Unable to load booking payment summary: ${bookingResult.error.message}`);
     if (eventsResult.error) throw new Error(`Unable to load payment timeline: ${eventsResult.error.message}`);
+    if (providerEvidenceResult.error) throw new Error(`Unable to load provider financial evidence: ${providerEvidenceResult.error.message}`);
     if (!bookingResult.data) throw new Error("Booking not found or property access denied");
-    return { booking: bookingResult.data, events: eventsResult.data ?? [] };
+    return {
+      booking: bookingResult.data,
+      events: eventsResult.data ?? [],
+      providerEvidence: providerEvidenceResult.data ?? [],
+    };
   });
 
 export const recordManualPayment = createServerFn({ method: "POST" })

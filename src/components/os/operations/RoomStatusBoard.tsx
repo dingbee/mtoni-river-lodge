@@ -13,6 +13,16 @@ type State = {
   state_note: string | null;
   booking_id: string | null;
   room: { id: string; slug: string; name: string } | undefined;
+  upcomingAllocations?: Array<{
+    id: string;
+    bookingId: string;
+    reference: string;
+    guestName: string;
+    checkIn: string;
+    checkOut: string;
+    status: "reserved" | "checked_in";
+    channel: { providerKey: string; externalReservationId: string; integrationStatus: string } | null;
+  }>;
 };
 
 export function RoomStatusBoard({ states }: { states: State[] }) {
@@ -66,6 +76,27 @@ function RoomStateCard({ unit }: { unit: State }) {
         </SelectContent>
       </Select>
       {unit.state_note && <p className="mt-2 text-xs text-muted-foreground">{unit.state_note}</p>}
+      {(unit.upcomingAllocations?.length ?? 0) > 0 && (
+        <div className="mt-3 space-y-2 border-t pt-3">
+          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Upcoming stays</p>
+          {unit.upcomingAllocations!.map((allocation) => (
+            <div key={allocation.id} className="rounded-md bg-muted/50 px-2 py-1.5">
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="font-medium">{allocation.reference}</span>
+                <span className="text-muted-foreground">{allocation.status.replace("_", " ")}</span>
+              </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {allocation.guestName} · {allocation.checkIn} – {allocation.checkOut}
+              </p>
+              {allocation.channel && (
+                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                  {allocation.channel.providerKey} · {allocation.channel.integrationStatus.replace(/_/g, " ")}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

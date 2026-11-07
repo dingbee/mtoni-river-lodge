@@ -41,7 +41,7 @@ function FrontDeskPage() {
 
   const bookings = bookingsQ.data ?? [];
   const today = new Date().toISOString().slice(0, 10);
-  const arrivals = bookings.filter((b: any) => b.check_in === today && !["cancelled", "completed"].includes(b.status));
+  const arrivals = bookings.filter((b: any) => b.check_in === today && ["confirmed", "checked_in"].includes(b.status));
   const departures = bookings.filter((b: any) => b.check_out === today && b.status === "checked_in");
   const inHouse = bookings.filter((b: any) => b.status === "checked_in");
   const balances = bookings.filter((b: any) => Number(b.balance_amount) > 0 && !["cancelled", "completed"].includes(b.status));
