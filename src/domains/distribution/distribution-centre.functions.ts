@@ -51,7 +51,7 @@ export const getDistributionCentre = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
     if (connectionError) throw new Error(connectionError.message);
 
-    const connectionIds = (connections ?? []).map((item) => item.id);
+    const connectionIds = ((connections ?? []) as SafeConnection[]).map((item: SafeConnection) => item.id);
     const [mappingResult, operationResult, inboxResult] = await Promise.all([
       connectionIds.length
         ? admin.from("staynas_distribution_mappings")
@@ -82,7 +82,7 @@ export const getDistributionCentre = createServerFn({ method: "GET" })
     if (operationResult.error) throw new Error(operationResult.error.message);
     if (inboxResult.error) throw new Error(inboxResult.error.message);
 
-    return {
+    return ({
       property: { id: property.id, organisationId: property.organisation_id, name: property.name, currency: property.currency, timezone: property.timezone },
       connections: (connections ?? []) as SafeConnection[],
       mappings: (mappingResult.data ?? []) as Record<string, unknown>[],
@@ -94,5 +94,5 @@ export const getDistributionCentre = createServerFn({ method: "GET" })
         inboundCanonicalWriterEnabled: false,
         credentialsConfigured: false,
       },
-    };
+    } as any);
   });
