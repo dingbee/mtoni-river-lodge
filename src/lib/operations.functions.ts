@@ -94,9 +94,8 @@ export const getRoomBoard = createServerFn({ method: "GET" })
     const sb: any = context.supabase;
     const today = new Date().toISOString().slice(0, 10);
     const horizon = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
-    const [statesRes, roomsRes, bookingsRes, allocationsRes] = await Promise.all([
+    const [statesRes, bookingsRes, allocationsRes] = await Promise.all([
       sb.from("room_states").select("id, room_id, unit_label, state, state_note, booking_id, updated_at").order("unit_label"),
-      sb.from("rooms").select("id, slug, name").order("sort_order"),
       sb.from("bookings")
         .select("id, reference, guest_name, check_in, check_out, status, room_id")
         .in("status", ["confirmed", "checked_in"])
@@ -108,8 +107,13 @@ export const getRoomBoard = createServerFn({ method: "GET" })
         .lte("check_in", horizon)
         .gte("check_out", today),
     ]);
-    const failed = [statesRes, roomsRes, bookingsRes, allocationsRes].find((result: any) => result.error);
+    const failed = [statesRes, bookingsRes, allocationsRes].find((result: any) => result.error);
     if (failed?.error) throw new Error(`Room board data load failed: ${failed.error.message}`);
+    const roomIds = Array.from(new Set((statesRes.data ?? []).map((state: any) => state.room_id)));
+    const roomsRes = roomIds.length
+      ? await sb.from("rooms").select("id, slug, name").in("id", roomIds).order("sort_order")
+      : { data: [], error: null };
+    if (roomsRes.error) throw new Error(`Room board room lookup failed: ${roomsRes.error.message}`);
     const bookingIds = Array.from(new Set((allocationsRes.data ?? []).map((a: any) => a.booking_id)));
     const operationalRes = bookingIds.length
       ? await sb.from("staynas_distribution_operational_reservations")
