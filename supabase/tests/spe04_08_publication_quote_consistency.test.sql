@@ -45,7 +45,7 @@ SELECT ok(
 SELECT has_function(
   'public',
   'validate_staynas_rate_plan_base_and_occupancy_data',
-  ARRAY[],
+  ARRAY[]::text[],
   'Canonical base-rate and occupancy validator exists'
 );
 
