@@ -1,6 +1,6 @@
 # CC03.02 — Durable Persistence Design Gate
 
-Status: DESIGN IN PROGRESS — NOT A MIGRATION
+Status: IMPLEMENTED ON ENGINEERING BRANCH — NOT APPLIED TO PRODUCTION
 Branch: feat/cc-03-subscription-lifecycle
 Depends on: CC-01 authorization identity scope; CC-02 catalogue, pricing, package composition and trial policy.
 Execution: Inspect → Identify → Implement → Test → Verify → Report.
@@ -93,6 +93,8 @@ Final table names and foreign keys remain subject to inspection of the exact liv
 - CC-04 invoice/payment records and CC-05 entitlement state remain outside CC-03 persistence.
 
 ## CC03.02 implementation artifacts
+
+Implementation is present on the engineering branch only. PostgreSQL execution is gated by the ephemeral CI workflow; the live StayNas production database remains unchanged.
 
 - Migration: `20261107090000_cc03_subscription_lifecycle.sql`.
 - Database contract tests: `supabase/tests/cc03_subscription_lifecycle.test.sql`.
