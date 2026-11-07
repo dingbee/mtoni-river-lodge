@@ -160,7 +160,7 @@ export const recordVerifiedManualCommercialPayment = createServerFn({ method: "P
     if (paymentError || !payment || !["manual", "bank_transfer"].includes(payment.provider)) {
       throw new Error("Only a manual or bank-transfer payment can be verified through this operation.");
     }
-    if (payment.amount_minor !== data.amountMinor || payment.currency !== data.currency) {
+    if (BigInt(payment.amount_minor) !== BigInt(data.amountMinor) || payment.currency !== data.currency) {
       throw new Error("Verified bank evidence must exactly match the recorded payment amount and currency.");
     }
     const { data: result, error } = await admin.rpc("commercial_confirm_and_allocate_payment", {
@@ -242,9 +242,11 @@ export const initiateMyCommercialPesapalPayment = createServerFn({ method: "POST
     const baseUrl = process.env.PUBLIC_BASE_URL;
     if (!baseUrl) throw new Error("PUBLIC_BASE_URL is required for commercial payment callbacks.");
     const { initiateTenantPesapalOrder } = await import("./commercial-pesapal.server");
+    const amountMinor = BigInt(payment.amount_minor);
+    if (amountMinor > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("Payment amount exceeds safe provider transport precision.");
     const order = await initiateTenantPesapalOrder({
       providerAccountId: providerAccount.id, secretRef: providerAccount.credential_secret_ref,
-      paymentId: payment.id, amountMinor: Number(payment.amount_minor), currency: payment.currency,
+      paymentId: payment.id, amountMinor: Number(amountMinor), currency: payment.currency,
       email: data.email, phone: data.phone, firstName: data.firstName, lastName: data.lastName,
       callbackUrl: `${baseUrl.replace(/\/$/, "")}/api/public/commercial-pesapal/ipn`,
     });
@@ -635,7 +637,7 @@ export const confirmUnallocatedCommercialPayment=createServerFn({method:"POST"})
       .select("id,provider,organisation_id,amount_minor,currency,invoice_id")
       .eq("id",data.paymentId).maybeSingle();
     if(paymentError||!payment||payment.invoice_id!==null||!["manual","bank_transfer"].includes(payment.provider)
-      ||Number(payment.amount_minor)!==data.amountMinor||payment.currency!==data.currency) {
+      ||BigInt(payment.amount_minor)!==BigInt(data.amountMinor)||payment.currency!==data.currency) {
       throw new Error("Unallocated manual/bank payment does not match the recorded tenant collection.");
     }
     const {data:replayed,error}=await admin.rpc("commercial_confirm_unallocated_payment",{
