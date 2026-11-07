@@ -13,8 +13,13 @@ type InvoiceDocumentInput = {
 };
 
 function money(minor: number | string, currency: "TZS" | "USD") {
-  const value = Number(minor) / 100;
-  return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+  const value = BigInt(minor);
+  const whole = value / 100n;
+  const fractional = (value % 100n).toString().padStart(2, "0");
+  const formattedWhole = new Intl.NumberFormat("en-US", {
+    style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0,
+  }).format(whole);
+  return `${formattedWhole}.${fractional}`;
 }
 
 /** Builds a PDF strictly from persisted invoice, line and adjustment records. */
