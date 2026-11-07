@@ -113,5 +113,5 @@ jobs:
           src/domains/commercial/subscription-lifecycle-contract.ts
           src/domains/commercial/subscription-lifecycle-contract.test.ts
           src/domains/commercial/subscription.functions.ts
-          src/domains/commercial/subscription.functions.test.ts
+          src/domains/commercial/subscription.authorization.test.ts
           --rule 'prettier/prettier: off'
