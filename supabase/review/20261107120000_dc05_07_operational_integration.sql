@@ -295,14 +295,10 @@ BEGIN
   -- Confirmation is a reservation state only. Payment remains unpaid and no
   -- check-in state is created by a provider confirmation.
   UPDATE public.bookings
-  SET status=v_status::public.booking_status,
-      source='channel',
-      payment_status='unpaid',
-      payment_method=NULL,
-      payment_provider='channel',
-      deposit_amount=0,
-      balance_amount=total,
-      balance_due=total
+  SET status=CASE
+    WHEN status::text='pending' THEN v_status::public.booking_status
+    ELSE status
+  END
   WHERE id=v_booking.id AND property_id=v_link.property_id;
 
   v_room_state_id:=public.staynas_allocate_distribution_physical_room(
