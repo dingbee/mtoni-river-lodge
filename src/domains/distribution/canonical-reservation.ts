@@ -14,22 +14,25 @@ export type CanonicalReservationOutcome =
  * commitment alongside its result before this boundary can be enabled.
  */
 export interface CanonicalReservationWriter {
-  create(input: { event: InboundReservationEvent; externalPrice: ReturnType<typeof buildExternalPriceCommitment> }): Promise<CanonicalReservationOutcome>;
-  modify(input: { event: InboundReservationEvent; externalPrice: ReturnType<typeof buildExternalPriceCommitment> }): Promise<CanonicalReservationOutcome>;
-  cancel(input: { event: InboundReservationEvent }): Promise<CanonicalReservationOutcome>;
+  create(input: { inboxId: string; event: InboundReservationEvent; externalPrice: ReturnType<typeof buildExternalPriceCommitment> }): Promise<CanonicalReservationOutcome>;
+  modify(input: { inboxId: string; event: InboundReservationEvent; externalPrice: ReturnType<typeof buildExternalPriceCommitment> }): Promise<CanonicalReservationOutcome>;
+  cancel(input: { inboxId: string; event: InboundReservationEvent }): Promise<CanonicalReservationOutcome>;
 }
 
 export async function applyInboundReservationEvent(
   rawEvent: unknown,
   writer: CanonicalReservationWriter,
+  inboxId: string,
+  priceVerified = false,
 ): Promise<CanonicalReservationOutcome> {
   const event = validateInboundEvent(rawEvent);
-  if (event.eventType === "cancelled") return writer.cancel({ event });
+  if (event.eventType === "cancelled") return writer.cancel({ inboxId, event });
   const externalPrice = buildExternalPriceCommitment(event);
-  if (externalPrice.priceVerificationStatus === "incomplete" || externalPrice.priceVerificationStatus === "unverified") {
+  if (externalPrice.priceVerificationStatus === "incomplete" || !priceVerified) {
     return { status: "manual_review", reason: "Provider price has not passed verification; automatic booking creation or modification is prohibited." };
   }
+  externalPrice.priceVerificationStatus = "verified";
   return event.eventType === "created"
-    ? writer.create({ event, externalPrice })
-    : writer.modify({ event, externalPrice });
+    ? writer.create({ inboxId, event, externalPrice })
+    : writer.modify({ inboxId, event, externalPrice });
 }
