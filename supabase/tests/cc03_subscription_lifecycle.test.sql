@@ -103,9 +103,9 @@ BEGIN
   END IF;
 
   INSERT INTO auth.users(id) VALUES (v_user), (v_other_user);
-  INSERT INTO public.staynas_organisations(id) VALUES (v_org);
-  INSERT INTO public.staynas_properties(id, organisation_id, status)
-  VALUES (v_property, v_org, 'active');
+  INSERT INTO public.staynas_organisations(id, slug, name) VALUES (v_org, 'cc03-test-org-1', 'CC03 Test Organisation 1');
+  INSERT INTO public.staynas_properties(id, organisation_id, slug, code, name, status)
+  VALUES (v_property, v_org, 'cc03-test-property-1', 'CC03T1', 'CC03 Test Property 1', 'active');
   INSERT INTO public.staynas_property_members(property_id, user_id, status, role)
   VALUES (v_property, v_user, 'active', 'owner');
   INSERT INTO public.commercial_founder_tenant_config(singleton, founder_organisation_id)
@@ -209,7 +209,7 @@ BEGIN
   END;
 
   -- Quote-required Enterprise snapshots cannot invent a total or line items.
-  INSERT INTO public.staynas_organisations(id) VALUES (v_org2);
+  INSERT INTO public.staynas_organisations(id, slug, name) VALUES (v_org2, 'cc03-test-org-2', 'CC03 Test Organisation 2');
   INSERT INTO public.commercial_accounts(id, organisation_id)
   VALUES (v_account2, v_org2);
   INSERT INTO public.commercial_subscriptions(
@@ -220,7 +220,7 @@ BEGIN
     5, 'enterprise-quote-v1', '{"currency":"USD","quoteRequired":true}', true
   );
 
-  INSERT INTO public.staynas_organisations(id) VALUES (v_org3);
+  INSERT INTO public.staynas_organisations(id, slug, name) VALUES (v_org3, 'cc03-test-org-3', 'CC03 Test Organisation 3');
   INSERT INTO public.commercial_accounts(id, organisation_id)
   VALUES (v_account3, v_org3);
 
@@ -321,7 +321,7 @@ BEGIN
   END;
 
   -- Pending subscriptions cannot skip directly to suspended.
-  INSERT INTO public.staynas_organisations(id) VALUES (v_org4);
+  INSERT INTO public.staynas_organisations(id, slug, name) VALUES (v_org4, 'cc03-test-org-4', 'CC03 Test Organisation 4');
   INSERT INTO public.commercial_accounts(id, organisation_id)
   VALUES (v_account4, v_org4);
   INSERT INTO public.commercial_subscriptions(
