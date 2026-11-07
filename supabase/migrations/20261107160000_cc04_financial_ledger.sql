@@ -784,6 +784,11 @@ SELECT i.id,i.organisation_id,i.account_id,i.subscription_id,i.invoice_number,i.
     + coalesce(sum(CASE WHEN a.status='posted' AND a.adjustment_type='debit_note' THEN a.amount_minor ELSE 0 END),0)
     - coalesce(sum(CASE WHEN a.status='posted' AND a.adjustment_type IN ('credit_note','write_off') THEN a.amount_minor ELSE 0 END),0)
     - i.amount_paid_minor,0) END AS outstanding_minor,
+  CASE WHEN i.status='void' THEN 0 ELSE greatest(i.amount_paid_minor
+    - (i.total_minor
+      + coalesce(sum(CASE WHEN a.status='posted' AND a.adjustment_type='debit_note' THEN a.amount_minor ELSE 0 END),0)
+      - coalesce(sum(CASE WHEN a.status='posted' AND a.adjustment_type IN ('credit_note','write_off') THEN a.amount_minor ELSE 0 END),0)),0)
+  END AS credit_balance_minor,
   CASE WHEN i.due_at < now() AND greatest(i.total_minor
     + coalesce(sum(CASE WHEN a.status='posted' AND a.adjustment_type='debit_note' THEN a.amount_minor ELSE 0 END),0)
     - coalesce(sum(CASE WHEN a.status='posted' AND a.adjustment_type IN ('credit_note','write_off') THEN a.amount_minor ELSE 0 END),0)
