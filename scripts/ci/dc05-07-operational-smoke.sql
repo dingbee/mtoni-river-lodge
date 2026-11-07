@@ -330,4 +330,49 @@ BEGIN
 END
 $test$;
 
+-- Exercise actual row-level filtering as authenticated staff: an authorized
+-- property user sees its own operational rows, while another user sees none.
+CREATE OR REPLACE FUNCTION auth.uid()
+RETURNS uuid LANGUAGE sql STABLE AS $function$
+  SELECT NULLIF(current_setting('request.jwt.claim.sub',true),'')::uuid
+$function$;
+CREATE OR REPLACE FUNCTION public.staynas_user_has_property_access(_user_id uuid,_property_id uuid)
+RETURNS boolean LANGUAGE sql STABLE AS $function$
+  SELECT _user_id='07070000-0000-4000-8000-000000000003'::uuid
+     AND _property_id='07070000-0000-4000-8000-000000000002'::uuid
+$function$;
+
+SELECT set_config('request.jwt.claim.role','authenticated',true);
+SELECT set_config('request.jwt.claim.sub','07070000-0000-4000-8000-000000000003',true);
+SET LOCAL ROLE authenticated;
+DO $tenant_read$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.staynas_distribution_operational_reservations
+    WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid)
+     OR NOT EXISTS (SELECT 1 FROM public.staynas_distribution_operational_events
+    WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid)
+     OR NOT EXISTS (SELECT 1 FROM public.staynas_distribution_room_allocations
+    WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid) THEN
+    RAISE EXCEPTION 'Authorized property staff could not read its operational reservation records';
+  END IF;
+END
+$tenant_read$;
+RESET ROLE;
+
+SELECT set_config('request.jwt.claim.sub','07070000-0000-4000-8000-000000000020',true);
+SET LOCAL ROLE authenticated;
+DO $tenant_isolation$
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.staynas_distribution_operational_reservations
+    WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid)
+     OR EXISTS (SELECT 1 FROM public.staynas_distribution_operational_events
+    WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid)
+     OR EXISTS (SELECT 1 FROM public.staynas_distribution_room_allocations
+    WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid) THEN
+    RAISE EXCEPTION 'Cross-tenant authenticated user read another property operational records';
+  END IF;
+END
+$tenant_isolation$;
+RESET ROLE;
+
 ROLLBACK;
