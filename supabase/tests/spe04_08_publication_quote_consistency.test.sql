@@ -101,7 +101,7 @@ SELECT ok(
 
 SELECT ok(
   pg_get_functiondef('public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure)
-    LIKE '%x.publication_number=%',
+    LIKE '%pub.publication_number=(%',
   'Implicit plan lookup is constrained to the latest immutable publication'
 );
 
