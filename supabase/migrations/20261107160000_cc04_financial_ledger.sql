@@ -819,3 +819,86 @@ END;
 $function$;
 REVOKE ALL ON FUNCTION public.commercial_refresh_overdue_invoices() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.commercial_refresh_overdue_invoices() TO service_role;
+
+CREATE OR REPLACE FUNCTION public.commercial_record_payment_failure(
+  _payment_id uuid, _provider_event_ref text, _final_status text,
+  _reason_code text, _idempotency_key text
+)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public
+AS $function$
+DECLARE v_role text := current_setting('request.jwt.claim.role',true);
+  v_payment public.commercial_payment_transactions%ROWTYPE;
+BEGIN
+  IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
+  IF _final_status NOT IN ('failed','cancelled')
+    OR length(btrim(_provider_event_ref)) NOT BETWEEN 1 AND 200
+    OR length(btrim(_reason_code)) NOT BETWEEN 2 AND 120
+    OR length(btrim(_idempotency_key)) NOT BETWEEN 8 AND 200 THEN
+    RAISE EXCEPTION 'Payment failure evidence is invalid' USING ERRCODE='22023';
+  END IF;
+  SELECT * INTO v_payment FROM public.commercial_payment_transactions WHERE id=_payment_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Payment attempt not found' USING ERRCODE='P0002'; END IF;
+  IF v_payment.status IN ('failed','cancelled') THEN
+    IF v_payment.provider_transaction_ref = _provider_event_ref AND v_payment.status = _final_status THEN
+      RETURN true;
+    END IF;
+    RAISE EXCEPTION 'Payment failure state conflicts with previously recorded evidence' USING ERRCODE='23505';
+  END IF;
+  IF v_payment.status <> 'pending' THEN RAISE EXCEPTION 'Only pending payment attempts may fail or cancel' USING ERRCODE='55000'; END IF;
+  UPDATE public.commercial_payment_transactions SET
+    status=_final_status,provider_transaction_ref=_provider_event_ref,updated_at=now()
+  WHERE id=_payment_id;
+  INSERT INTO public.commercial_financial_audit_events(
+    request_id,actor_organisation_id,actor_role,action,resource_type,resource_ref,outcome,reason_code,metadata
+  ) VALUES (_idempotency_key,v_payment.organisation_id,'service_principal','payment.'||_final_status,
+    'payment',_payment_id::text,'succeeded',_reason_code,
+    jsonb_build_object('providerEventRef',_provider_event_ref));
+  RETURN false;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.commercial_record_payment_failure(uuid,text,text,text,text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.commercial_record_payment_failure(uuid,text,text,text,text) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.guard_commercial_reconciliation_item()
+RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog
+AS $function$
+BEGIN
+  IF ROW(NEW.run_id,NEW.item_type,NEW.internal_payment_id,NEW.provider_ref,
+    NEW.expected_amount_minor,NEW.observed_amount_minor,NEW.expected_currency,
+    NEW.observed_currency,NEW.evidence,NEW.created_at)
+    IS DISTINCT FROM
+    ROW(OLD.run_id,OLD.item_type,OLD.internal_payment_id,OLD.provider_ref,
+    OLD.expected_amount_minor,OLD.observed_amount_minor,OLD.expected_currency,
+    OLD.observed_currency,OLD.evidence,OLD.created_at) THEN
+    RAISE EXCEPTION 'Reconciliation source evidence is immutable' USING ERRCODE='55000';
+  END IF;
+  IF TG_OP='DELETE' THEN
+    RAISE EXCEPTION 'Reconciliation evidence cannot be deleted' USING ERRCODE='55000';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.guard_commercial_reconciliation_item() FROM PUBLIC, anon, authenticated, service_role;
+CREATE TRIGGER commercial_reconciliation_evidence_immutable
+  BEFORE UPDATE OR DELETE ON public.commercial_reconciliation_items
+  FOR EACH ROW EXECUTE FUNCTION public.guard_commercial_reconciliation_item();
+
+CREATE OR REPLACE FUNCTION public.guard_commercial_notification_snapshot()
+RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog
+AS $function$
+BEGIN
+  IF ROW(NEW.organisation_id,NEW.invoice_id,NEW.payment_id,NEW.notification_type,
+    NEW.recipient_email,NEW.idempotency_key,NEW.payload_snapshot,NEW.created_at)
+    IS DISTINCT FROM
+    ROW(OLD.organisation_id,OLD.invoice_id,OLD.payment_id,OLD.notification_type,
+    OLD.recipient_email,OLD.idempotency_key,OLD.payload_snapshot,OLD.created_at) THEN
+    RAISE EXCEPTION 'Financial notification evidence is immutable' USING ERRCODE='55000';
+  END IF;
+  IF TG_OP='DELETE' THEN RAISE EXCEPTION 'Financial notification history cannot be deleted' USING ERRCODE='55000'; END IF;
+  RETURN NEW;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.guard_commercial_notification_snapshot() FROM PUBLIC, anon, authenticated, service_role;
+CREATE TRIGGER commercial_notification_snapshot_immutable
+  BEFORE UPDATE OR DELETE ON public.commercial_financial_notifications
+  FOR EACH ROW EXECUTE FUNCTION public.guard_commercial_notification_snapshot();
