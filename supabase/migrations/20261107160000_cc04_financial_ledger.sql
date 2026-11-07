@@ -140,8 +140,8 @@ CREATE TABLE IF NOT EXISTS public.commercial_payment_allocations (
   FOREIGN KEY (invoice_id, organisation_id, account_id, currency)
     REFERENCES public.commercial_invoices(id, organisation_id, account_id, currency) ON DELETE RESTRICT,
   UNIQUE (payment_id),
-  UNIQUE (idempotency_key),
-  UNIQUE (settlement_ref),
+  UNIQUE (organisation_id,idempotency_key),
+  UNIQUE (organisation_id,settlement_ref),
   UNIQUE (id,invoice_id,currency)
 );
 CREATE INDEX IF NOT EXISTS commercial_payment_allocations_invoice_idx
@@ -696,7 +696,7 @@ BEGIN
   IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
   SELECT * INTO v_payment FROM public.commercial_payment_transactions WHERE id=_payment_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Payment not found' USING ERRCODE='P0002'; END IF;
-  SELECT * INTO v_existing FROM public.commercial_payment_reversals WHERE idempotency_key=_idempotency_key;
+  SELECT * INTO v_existing FROM public.commercial_payment_reversals WHERE payment_id=_payment_id AND idempotency_key=_idempotency_key;
   IF FOUND THEN
     IF v_existing.payment_id <> _payment_id OR v_existing.provider_reversal_ref <> _provider_reversal_ref
       OR v_existing.amount_minor <> _amount_minor OR v_existing.currency <> _currency
@@ -923,7 +923,7 @@ BEGIN
   IF NOT FOUND OR v_payment.invoice_id IS NOT NULL OR v_payment.status NOT IN ('successful','partially_reversed') THEN
     RAISE EXCEPTION 'Confirmed unallocated payment was not found' USING ERRCODE='55000';
   END IF;
-  SELECT * INTO v_existing FROM public.commercial_payment_allocations WHERE idempotency_key=_idempotency_key;
+  SELECT * INTO v_existing FROM public.commercial_payment_allocations WHERE organisation_id=v_payment.organisation_id AND idempotency_key=_idempotency_key;
   IF FOUND THEN
     IF v_existing.payment_id<>_payment_id OR v_existing.invoice_id<>_invoice_id
       OR v_existing.amount_minor<>_amount_minor OR v_existing.settlement_ref<>_settlement_ref THEN
@@ -1026,9 +1026,8 @@ BEGIN
       RAISE EXCEPTION 'Credits and write-offs cannot exceed invoice total' USING ERRCODE='22023';
     END IF;
   END IF;
-  IF EXISTS (SELECT 1 FROM public.commercial_invoice_adjustments WHERE adjustment_ref=_adjustment_ref) THEN
-    SELECT id INTO v_id FROM public.commercial_invoice_adjustments WHERE adjustment_ref=_adjustment_ref
-      AND invoice_id=_invoice_id AND adjustment_type=_adjustment_type AND amount_minor=_amount_minor
+  IF EXISTS (SELECT 1 FROM public.commercial_invoice_adjustments WHERE invoice_id=_invoice_id AND adjustment_ref=_adjustment_ref) THEN
+    SELECT id INTO v_id FROM public.commercial_invoice_adjustments WHERE invoice_id=_invoice_id AND adjustment_ref=_adjustment_ref AND adjustment_type=_adjustment_type AND amount_minor=_amount_minor
       AND currency=_currency AND reason_code=_reason_code AND approval_ref=_approval_ref;
     IF v_id IS NOT NULL THEN RETURN v_id; END IF;
     RAISE EXCEPTION 'Adjustment reference was reused with conflicting input' USING ERRCODE='23505';
