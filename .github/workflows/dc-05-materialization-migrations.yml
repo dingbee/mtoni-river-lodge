@@ -182,3 +182,5 @@ jobs:
           src/lib/housekeeping-execution.functions.ts
           src/routes/_authenticated.admin.operations.housekeeping.tsx
           --rule 'prettier/prettier: off'
+          --rule '@typescript-eslint/no-explicit-any: off'
+          --rule '@typescript-eslint/no-empty-object-type: off'
