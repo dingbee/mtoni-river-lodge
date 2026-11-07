@@ -111,7 +111,17 @@ export const issueCommercialInvoice = createServerFn({ method: "POST" })
       resourceRef: String(result?.invoiceId ?? data.subscriptionId),
       metadata: { replayed: result?.replayed === true },
     });
-    return result;
+    let notificationStatus: string = "not_requested";
+    if (result?.invoiceId && result?.replayed !== true) {
+      try {
+        const { sendCommercialInvoiceIssuedEmail } = await import("./commercial-financial-notifications.server");
+        const notification = await sendCommercialInvoiceIssuedEmail({ admin, invoiceId: result.invoiceId });
+        notificationStatus = notification.status;
+      } catch {
+        notificationStatus = "failed";
+      }
+    }
+    return { ...result, notificationStatus };
   });
 
 export const createMyCommercialPaymentAttempt = createServerFn({ method: "POST" })
@@ -322,4 +332,26 @@ export const listMyCommercialPaymentHistory = createServerFn({ method: "GET" })
       .eq("organisation_id", actor.organisationId).order("created_at", { ascending: false });
     if (error) throw new Error("Unable to load tenant payment history.");
     return data ?? [];
+  });
+
+export const generateMyCommercialInvoicePdf = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ invoiceId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const actor = await resolveVerifiedTenantActor(context);
+    if (actor.actorRole !== "tenant_admin") throw new Error("Forbidden: tenant administrator authority is required.");
+    const admin = await getAdmin();
+    const { data: invoice, error } = await admin.from("commercial_invoices").select("*")
+      .eq("id",data.invoiceId).eq("organisation_id",actor.organisationId).maybeSingle();
+    if (error || !invoice) throw new Error("Invoice not found in the active tenant.");
+    const [lines, adjustments] = await Promise.all([
+      admin.from("commercial_invoice_lines").select("*").eq("invoice_id",invoice.id).order("created_at"),
+      admin.from("commercial_invoice_adjustments").select("*").eq("invoice_id",invoice.id).order("created_at"),
+    ]);
+    if (lines.error || adjustments.error) throw new Error("Invoice document records could not be loaded.");
+    const { buildCommercialInvoicePdf } = await import("./commercial-invoice-document.server");
+    const bytes = await buildCommercialInvoicePdf({
+      invoice, lines: lines.data ?? [], adjustments: adjustments.data ?? [],
+    });
+    return { fileName: `${invoice.invoice_number}.pdf`, bytes: Array.from(bytes) };
   });
