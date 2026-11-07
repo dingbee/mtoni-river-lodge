@@ -24,6 +24,10 @@ ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'reservations';
 ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'editor';
 ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'marketing';
 
+-- DC-05.07's disposable policy is only for its own test. HK-S6
+-- recreates the production staff-read policy with the final authorization model.
+DROP POLICY IF EXISTS "Staff read room_states" ON public.room_states;
+
 ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS email text;
 
 -- The canonical HK execution schema uses assignee_id; the legacy operations
