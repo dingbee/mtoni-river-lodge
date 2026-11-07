@@ -5,6 +5,7 @@ import { NAV, type NavItem } from "./nav-config";
 import { canAccessModule } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { usePropertyContext } from "@/modules/property/PropertyContext";
+import { supabase } from "@/integrations/supabase/client";
 
 function isActive(pathname: string, href: string) {
   if (href === "/admin") return pathname === "/admin";
@@ -70,6 +71,30 @@ export function AdminSidebar({
   const { organisation, property } = usePropertyContext();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [groupsRestored, setGroupsRestored] = useState(false);
+  const [founderAdmin, setFounderAdmin] = useState(false);
+
+  // Navigation visibility is only a convenience. The route and every server
+  // operation independently re-authorize the founder using the database.
+  useEffect(() => {
+    let active = true;
+    const verifyFounder = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) {
+        if (active) setFounderAdmin(false);
+        return;
+      }
+      const { data, error } = await supabase.rpc("commercial_is_founder_admin", {
+        _principal_id: authData.user.id,
+      });
+      if (active) setFounderAdmin(!error && data === true);
+    };
+    void verifyFounder();
+    const { data } = supabase.auth.onAuthStateChange(() => { void verifyFounder(); });
+    return () => {
+      active = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
 
   // Keep expanded navigation groups across route changes and browser reloads.
   // Hydrate after mount to avoid server/client markup mismatches.
@@ -102,12 +127,17 @@ export function AdminSidebar({
     () =>
       NAV.map((entry) => {
         if (entry.kind === "item") {
-          return canAccessModule(entry.item.id, roles) ? entry : null;
+          const allowed = entry.item.id === "commercial"
+            ? founderAdmin
+            : canAccessModule(entry.item.id, roles);
+          return allowed ? entry : null;
         }
-        const items = entry.group.items.filter((i) => canAccessModule(i.id, roles));
+        const items = entry.group.items.filter((i) => i.id === "commercial"
+          ? founderAdmin
+          : canAccessModule(i.id, roles));
         return items.length ? { ...entry, group: { ...entry.group, items } } : null;
       }).filter(Boolean) as typeof NAV,
-    [roles],
+    [roles, founderAdmin],
   );
 
   const toggle = (id: string) => setOpenGroups((s) => ({ ...s, [id]: !s[id] }));
