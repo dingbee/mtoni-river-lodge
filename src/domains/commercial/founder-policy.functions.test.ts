@@ -32,7 +32,7 @@ function pricingPayload() {
     planPrices: planCodes.flatMap((planCode) =>
       currencies.flatMap((currency) =>
         terms.map((billingTerm) => ({
-          priceCode: `${planCode}_${currency}_${billingTerm}`,
+          priceCode: `${planCode}_${currency.toLowerCase()}_${billingTerm}`,
           planCode,
           planVersion: 1,
           currency,
