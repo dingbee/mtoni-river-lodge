@@ -1,13 +1,12 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { ProductHomePage } from "@/components/site/StayNasProductSite";
 
 export const Route = createFileRoute("/")({
-  // Auth state is persisted in browser storage; resolve the staff destination on
-  // the client so public visitors and authenticated staff receive different roots.
+  // staynas.com is the product website. The application and property hosts
+  // retain their existing root routing behaviour.
   ssr: false,
   beforeLoad: async ({ location }) => {
-    // Supabase email templates may return auth payloads to the configured Site URL
-    // ("/") instead of the explicit redirectTo URL. Preserve credentials first.
     const query = new URLSearchParams(location.searchStr);
     const hash = new URLSearchParams(
       location.hash.startsWith("#") ? location.hash.slice(1) : location.hash,
@@ -27,6 +26,18 @@ export const Route = createFileRoute("/")({
       });
     }
 
+    const hostname =
+      typeof window === "undefined" ? "" : window.location.hostname.toLowerCase();
+    const isProductWebsiteHost =
+      hostname === "staynas.com" ||
+      hostname === "www.staynas.com" ||
+      hostname.startsWith("staynas-website-") ||
+      query.get("staynas-site") === "preview";
+
+    if (isProductWebsiteHost) return;
+
+    // Preserve the existing app/property entry behaviour on app.staynas.com,
+    // tenant subdomains and property domains.
     const { data, error } = await supabase.auth.getUser();
     if (!error && data.user) {
       throw redirect({ to: "/admin" });
@@ -34,4 +45,5 @@ export const Route = createFileRoute("/")({
 
     throw redirect({ to: "/rooms" });
   },
+  component: ProductHomePage,
 });
