@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, BadgeCheck, BedDouble, Building2, CalendarCheck, ChartNoAxesCombined, Check, ChevronRight, CircleDollarSign, ClipboardCheck, CreditCard, Globe2, House, Layers3, LockKeyhole, Network, ShieldCheck, Sparkles, Users, Workflow, Wrench } from "lucide-react";
+import { ArrowRight, BadgeCheck, BedDouble, Building2, CalendarCheck, ChartNoAxesCombined, Check, ChevronRight, CircleDollarSign, ClipboardCheck, House, Layers3, LockKeyhole, Network, ShieldCheck, Sparkles, Users, Workflow } from "lucide-react";
 
 const modules = [
   { name: "Reservations", group: "Commercial", icon: CalendarCheck, description: "Manage enquiries, availability, booking records, reservation changes and the guest booking lifecycle.", outcomes: ["Availability and booking workflows", "Reservation status and amendments", "Guest and property context"] },
