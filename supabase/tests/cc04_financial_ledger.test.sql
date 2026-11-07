@@ -9,6 +9,9 @@ DECLARE
   v_provider uuid;
   v_payment2 uuid;
   v_payment_failed uuid;
+  v_unallocated_payment uuid;
+  v_unallocated_allocation uuid;
+  v_unallocated_view numeric;
   v_invoice jsonb;
   v_invoice_id uuid;
   v_payment uuid;
@@ -109,6 +112,38 @@ BEGIN
   END IF;
   IF (SELECT outstanding_minor FROM public.commercial_invoice_receivables WHERE id=v_invoice_id) <> 40000 THEN
     RAISE EXCEPTION 'Post-reversal receivable balance incorrect';
+  END IF;
+
+  v_unallocated_payment := public.commercial_record_unallocated_payment(
+    v_account,v_provider,50000,'TZS','cc04-unallocated-payment-001',v_user
+  );
+  IF public.commercial_confirm_unallocated_payment(
+    v_unallocated_payment,'manual-overpayment-001',50000,'TZS',
+    'authorized_manual_verification',now()
+  ) THEN
+    RAISE EXCEPTION 'First unallocated confirmation was unexpectedly a replay';
+  END IF;
+  v_unallocated_allocation := public.commercial_allocate_unallocated_payment(
+    v_unallocated_payment,v_invoice_id,40000,'manual-overpayment-allocation-001',
+    'cc04-unallocated-allocation-001',v_user
+  );
+  SELECT unallocated_minor INTO v_unallocated_view FROM public.commercial_unallocated_collections
+    WHERE payment_id=v_unallocated_payment;
+  IF v_unallocated_view <> 10000 THEN
+    RAISE EXCEPTION 'Overpayment remainder was not retained as unallocated: %',v_unallocated_view;
+  END IF;
+  v_reversal := public.commercial_record_payment_reversal(
+    v_unallocated_payment,'manual-overpayment-refund-001',15000,'TZS',
+    'partial_overpayment_refund','cc04-unallocated-reversal-001',now(),v_user
+  );
+  SELECT amount_paid_minor,status INTO v_paid,v_status FROM public.commercial_invoices WHERE id=v_invoice_id;
+  IF v_paid <> 105000 OR v_status <> 'partially_paid' THEN
+    RAISE EXCEPTION 'Overpayment reversal did not reverse unallocated first and allocated remainder second: %, %',v_paid,v_status;
+  END IF;
+  SELECT unallocated_minor INTO v_unallocated_view FROM public.commercial_unallocated_collections
+    WHERE payment_id=v_unallocated_payment;
+  IF v_unallocated_view <> 0 THEN
+    RAISE EXCEPTION 'Overpayment refund did not clear unallocated remainder: %',v_unallocated_view;
   END IF;
 
   v_allocation := public.commercial_confirm_and_allocate_payment(
