@@ -361,6 +361,18 @@ BEGIN
   );
   BEGIN
     UPDATE public.commercial_subscriptions
+    SET status = 'trialing',
+        activated_at = '2026-11-07T10:00:00Z',
+        trial_policy_version = 1,
+        trial_started_at = '2026-11-07T10:00:01Z',
+        trial_ends_at = '2026-11-21T10:00:01Z'
+    WHERE id = v_subscription4;
+    RAISE EXCEPTION 'Trial start different from activation unexpectedly succeeded';
+  EXCEPTION WHEN check_violation THEN
+    NULL;
+  END;
+  BEGIN
+    UPDATE public.commercial_subscriptions
     SET status = 'suspended',
         suspended_at = '2026-11-07T10:00:00Z',
         suspended_from_status = 'active',
