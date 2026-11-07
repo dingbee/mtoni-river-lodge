@@ -206,9 +206,14 @@ BEGIN
       v_metadata := jsonb_build_object('reasonCode', _reason_code);
 
     WHEN 'expire' THEN
-      v_period_end := CASE WHEN v_subscription.status = 'trialing'
-        THEN v_subscription.trial_ends_at ELSE v_subscription.current_period_ends_at END;
-      IF v_subscription.status NOT IN ('trialing', 'active')
+      v_period_end := CASE
+        WHEN v_subscription.status = 'trialing'
+          OR (v_subscription.status = 'suspended' AND v_subscription.suspended_from_status = 'trialing')
+          THEN v_subscription.trial_ends_at
+        ELSE v_subscription.current_period_ends_at
+      END;
+      IF v_subscription.status NOT IN ('trialing', 'active', 'suspended')
+        OR (v_subscription.status = 'suspended' AND v_subscription.suspended_from_status IS NULL)
         OR v_period_end IS NULL OR v_period_end > v_now THEN
         RAISE EXCEPTION 'Subscription is not eligible to expire'
           USING ERRCODE = '55000';
@@ -216,13 +221,16 @@ BEGIN
       v_next_status := CASE WHEN v_subscription.cancel_at_period_end THEN 'cancelled' ELSE 'expired' END;
       UPDATE public.commercial_subscriptions
       SET status = v_next_status, ended_at = v_now,
-          cancel_at_period_end = false, updated_at = v_now
+          cancel_at_period_end = false,
+          suspended_at = NULL, suspension_reason_code = NULL,
+          suspended_from_status = NULL, updated_at = v_now
       WHERE id = _subscription_id
       RETURNING * INTO v_subscription;
       v_metadata := jsonb_build_object('periodEndedAt', v_period_end);
 
     WHEN 'renewal_authorized' THEN
       IF v_subscription.status <> 'active'
+        OR v_subscription.cancel_at_period_end
         OR v_subscription.current_period_ends_at IS NULL
         OR _commercial_acceptance_ref IS NULL
         OR length(btrim(_commercial_acceptance_ref)) NOT BETWEEN 1 AND 300 THEN
