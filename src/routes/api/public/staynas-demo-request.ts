@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createHmac } from "node:crypto";
 import { stayNasDemoRequestSchema } from "@/domains/marketing/demo-requests";
 
 export const Route = createFileRoute("/api/public/staynas-demo-request")({
@@ -17,46 +19,22 @@ export const Route = createFileRoute("/api/public/staynas-demo-request")({
           if (input.website) return Response.json({ ok: true });
 
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const store = supabaseAdmin as unknown as SupabaseClient;
           const email = input.email.toLowerCase();
-          const recentSince = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-          const recentHour = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-          const ipAddress = request.headers.get("x-real-ip")
-            ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-            ?? null;
-          const { createHmac } = await import("node:crypto");
-          const rateLimitKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-          if (!rateLimitKey) throw new Error("Demo request service is temporarily unavailable.");
-          const ipHash = ipAddress
-            ? createHmac("sha256", rateLimitKey).update(ipAddress).digest("hex")
-            : null;
+          // Vercel supplies x-real-ip at the edge. Do not trust caller-controlled
+          // x-forwarded-for values as a fallback for abuse controls.
+          const ipAddress = request.headers.get("x-real-ip");
+          const hmacKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+          if (!hmacKey) throw new Error("Demo request service is temporarily unavailable.");
+          const ipHash = ipAddress ? createHmac("sha256", hmacKey).update(ipAddress).digest("hex") : null;
 
-          if (ipHash) {
-            const { count, error: rateError } = await (supabaseAdmin as any)
-              .from("staynas_website_demo_requests")
-              .select("id", { count: "exact", head: true })
-              .eq("ip_hash", ipHash)
-              .gte("created_at", recentHour);
-            if (rateError) throw new Error("Demo request service is temporarily unavailable.");
-            if ((count ?? 0) >= 5) {
-              return Response.json({ ok: false, error: "Too many requests. Please try again later." }, { status: 429 });
-            }
-          }
-          const { data: recent, error: recentError } = await (supabaseAdmin as any)
-            .from("staynas_website_demo_requests")
-            .select("id")
-            .eq("email", email)
-            .gte("created_at", recentSince)
-            .limit(1);
-          if (recentError) throw new Error("Demo request service is temporarily unavailable.");
-          if (recent?.length) return Response.json({ ok: true });
-
-          const { data: saved, error } = await (supabaseAdmin as any)
-            .from("staynas_website_demo_requests")
-            .insert({
+          // The database function takes transaction-scoped advisory locks for
+          // the IP and email keys, making deduplication and rate limiting atomic.
+          const { data, error } = await store.rpc("submit_staynas_website_demo_request", {
+            p_ip_hash: ipHash,
+            p_request: {
               name: input.name,
               email,
-              ip_hash: ipHash,
-              consent_at: new Date().toISOString(),
               phone: input.phone || null,
               company: input.company || null,
               country: input.country || null,
@@ -65,11 +43,15 @@ export const Route = createFileRoute("/api/public/staynas-demo-request")({
               interests: input.interests,
               message: input.message || null,
               source: "staynas.com",
-              status: "new",
-            })
-            .select("id, created_at")
-            .single();
-          if (error || !saved) throw new Error("Demo request could not be saved. Please try again.");
+            },
+          });
+          if (error) throw new Error("Demo request could not be saved. Please try again.");
+          const saved = Array.isArray(data) ? data[0] : data;
+          if (!saved) throw new Error("Demo request could not be saved. Please try again.");
+          if (saved.rate_limited) {
+            return Response.json({ ok: false, error: "Too many requests. Please try again later." }, { status: 429 });
+          }
+          if (saved.duplicate) return Response.json({ ok: true });
 
           // Email is an optional notification layer. The durable request is
           // saved first; missing mail configuration must not lose the enquiry.
@@ -97,9 +79,9 @@ export const Route = createFileRoute("/api/public/staynas-demo-request")({
                   "",
                   input.message || "No additional message.",
                   "",
-                  `Request ID: ${saved.id}`,
+                  `Request ID: ${saved.request_id}`,
                 ].join("\n"),
-                idempotencyKey: `staynas-demo-${saved.id}`,
+                idempotencyKey: `staynas-demo-${saved.request_id}`,
                 tags: [{ name: "source", value: "staynas-website" }],
               });
             } catch (notifyError) {
@@ -107,7 +89,7 @@ export const Route = createFileRoute("/api/public/staynas-demo-request")({
             }
           }
 
-          return Response.json({ ok: true, requestId: saved.id });
+          return Response.json({ ok: true, requestId: saved.request_id });
         } catch (error) {
           console.error("[StayNas demo request] Submission failed.", error instanceof Error ? error.message : "unknown");
           return Response.json({ ok: false, error: "We could not submit your request. Please try again later." }, { status: 500 });
