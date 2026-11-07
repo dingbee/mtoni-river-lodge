@@ -3,6 +3,19 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
+type ProviderEvidencePayload = {
+  settlementAmount?: string | number | null;
+  paymentAmount?: string | number | null;
+  refundAmount?: string | number | null;
+  refundReversalAmount?: string | number | null;
+  grossAmount?: string | number | null;
+  expectedSettlement?: string | number | null;
+  settlementCurrency?: string | null;
+  paymentCurrency?: string | null;
+  refundCurrency?: string | null;
+  originalCurrency?: string | null;
+};
+
 type ProviderEvidenceRow = {
   id: string;
   property_id: string;
@@ -12,10 +25,22 @@ type ProviderEvidenceRow = {
   external_reservation_id: string;
   event_type: string;
   provider_reference: string | null;
-  evidence: Record<string, unknown>;
+  evidence: ProviderEvidencePayload;
   reconciliation_status: "unmatched" | "evidence_received" | "review_required" | "duplicate_reference";
   reconciliation_code: string | null;
   received_at: string;
+};
+
+type CanonicalBookingContext = {
+  reference: string;
+  currency: string | null;
+  payment_status: string | null;
+  paid_amount: number | null;
+  balance_amount: number | null;
+};
+
+type DistributionFinancialEvidenceResult = ProviderEvidenceRow & {
+  booking: CanonicalBookingContext | null;
 };
 
 const inputSchema = z.object({
@@ -26,7 +51,7 @@ const inputSchema = z.object({
 export const listDistributionFinancialEvidence = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => inputSchema.parse(input ?? {}))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<DistributionFinancialEvidenceResult[]> => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
 
     // RLS enforces finance role + active-property scope. The evidence table
@@ -44,13 +69,7 @@ export const listDistributionFinancialEvidence = createServerFn({ method: "POST"
     const rows = (evidenceRows ?? []) as ProviderEvidenceRow[];
     const bookingIds = Array.from(new Set(rows.map((row) => row.booking_id).filter((id): id is string => Boolean(id))));
 
-    const bookingsById = new Map<string, {
-      reference: string;
-      currency: string | null;
-      payment_status: string | null;
-      paid_amount: number | null;
-      balance_amount: number | null;
-    }>();
+    const bookingsById = new Map<string, CanonicalBookingContext>();
     if (bookingIds.length) {
       const { data: bookings, error: bookingError } = await context.supabase
         .from("bookings")
