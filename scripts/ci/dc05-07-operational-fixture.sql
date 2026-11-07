@@ -63,7 +63,8 @@ CREATE TRIGGER bookings_link_guest_trg
 
 ALTER TABLE public.ops_tasks
   ADD COLUMN IF NOT EXISTS description text,
-  ADD COLUMN IF NOT EXISTS completed_at timestamptz;
+  ADD COLUMN IF NOT EXISTS completed_at timestamptz,
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
 
 -- Minimal stand-in for the already-installed HK-S1 transition audit table.
 -- The production enum/table are created by the Housekeeping domain migrations.
