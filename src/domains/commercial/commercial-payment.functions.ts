@@ -787,21 +787,22 @@ export const getCommercialReceivablesSummary=createServerFn({method:"GET"})
     const actor=await resolveVerifiedFounderActor(context);
     const admin=await getAdmin();
     const [invoices,unallocated,adjustments]=await Promise.all([
-      admin.from("commercial_invoice_receivables").select("currency,total_minor,amount_paid_minor,outstanding_minor,is_overdue,status")
+      admin.from("commercial_invoice_receivables").select("currency,total_minor,amount_paid_minor,outstanding_minor,credit_balance_minor,is_overdue,status")
         .in("status",["issued","partially_paid","paid","overdue"]),
       admin.from("commercial_unallocated_collections").select("currency,unallocated_minor"),
       admin.from("commercial_invoice_adjustments").select("currency,adjustment_type,amount_minor").eq("status","posted"),
     ]);
     if(invoices.error||unallocated.error||adjustments.error) throw new Error("Commercial receivables summary could not be calculated.");
-    const summary:Record<string,{invoicedMinor:string;collectedMinor:string;outstandingMinor:string;overdueMinor:string;unallocatedMinor:string;creditMinor:string;debitMinor:string;writeOffMinor:string;invoiceCount:number;partiallyPaidCount:number}>={};
+    const summary:Record<string,{invoicedMinor:string;collectedMinor:string;outstandingMinor:string;overdueMinor:string;creditBalanceMinor:string;unallocatedMinor:string;creditMinor:string;debitMinor:string;writeOffMinor:string;invoiceCount:number;partiallyPaidCount:number}>={};
     for(const currency of ["TZS","USD"]){
-      summary[currency]={invoicedMinor:"0",collectedMinor:"0",outstandingMinor:"0",overdueMinor:"0",unallocatedMinor:"0",creditMinor:"0",debitMinor:"0",writeOffMinor:"0",invoiceCount:0,partiallyPaidCount:0};
+      summary[currency]={invoicedMinor:"0",collectedMinor:"0",outstandingMinor:"0",overdueMinor:"0",creditBalanceMinor:"0",unallocatedMinor:"0",creditMinor:"0",debitMinor:"0",writeOffMinor:"0",invoiceCount:0,partiallyPaidCount:0};
     }
     for(const row of invoices.data??[]){
       const target=summary[row.currency]; if(!target) continue;
       target.invoicedMinor=(BigInt(target.invoicedMinor)+BigInt(row.total_minor)).toString();
       target.collectedMinor=(BigInt(target.collectedMinor)+BigInt(row.amount_paid_minor)).toString();
       target.outstandingMinor=(BigInt(target.outstandingMinor)+BigInt(row.outstanding_minor)).toString();
+      target.creditBalanceMinor=(BigInt(target.creditBalanceMinor)+BigInt(row.credit_balance_minor)).toString();
       if(row.is_overdue) target.overdueMinor=(BigInt(target.overdueMinor)+BigInt(row.outstanding_minor)).toString();
       target.invoiceCount+=1;
       if(row.status==="partially_paid") target.partiallyPaidCount+=1;
