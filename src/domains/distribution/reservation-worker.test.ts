@@ -33,9 +33,10 @@ describe("reservation inbox worker", () => {
     const report = await runReservationInboxBatch({
       claim: vi.fn(async () => items), finish, writer,
     });
-    expect(report.applied).toBe(3);
-    expect(writer.create).toHaveBeenCalledTimes(1);
-    expect(writer.modify).toHaveBeenCalledTimes(1);
+    expect(report.applied).toBe(1);
+    expect(report.manualReview).toBe(2);
+    expect(writer.create).not.toHaveBeenCalled();
+    expect(writer.modify).not.toHaveBeenCalled();
     expect(writer.cancel).toHaveBeenCalledTimes(1);
     expect(finish).toHaveBeenCalledTimes(3);
   });
