@@ -15,3 +15,18 @@ export const stayNasDemoRequestSchema = z.object({
 });
 
 export type StayNasDemoRequest = z.infer<typeof stayNasDemoRequestSchema>;
+
+export type StayNasDemoRequestRecord = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  company: string | null;
+  country: string | null;
+  property_type: string;
+  property_count_band: string;
+  interests: string[] | null;
+  message: string | null;
+  status: "new" | "contacted" | "qualified" | "converted" | "closed";
+  created_at: string;
+};
