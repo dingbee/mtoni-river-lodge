@@ -1,6 +1,6 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(39);
+SELECT plan(40);
 
 SELECT has_table('public','staynas_distribution_connections','distribution connections table exists');
 SELECT has_table('public','staynas_distribution_mappings','distribution mappings table exists');
