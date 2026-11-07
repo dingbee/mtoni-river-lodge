@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS public.commercial_subscriptions (
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT commercial_subscriptions_id_account_unique UNIQUE (id, account_id),
   CONSTRAINT commercial_subscriptions_quote_consistency CHECK (
-    quote_required = (accepted_price_snapshot->>'quoteRequired' = 'true')
+    quote_required = (coalesce(accepted_price_snapshot->>'quoteRequired', 'false') = 'true')
     AND (
       NOT quote_required OR (
       plan_code = 'enterprise'
