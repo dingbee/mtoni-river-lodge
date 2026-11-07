@@ -16,6 +16,7 @@ type PolicyRow = {
   effective_from: string | null;
   effective_to: string | null;
   created_at: string;
+  is_current: boolean;
 };
 
 const TYPES: { value: PolicyType; label: string; description: string; template: string }[] = [
@@ -86,9 +87,9 @@ function FounderCommercialAdministration() {
   useEffect(() => { void refresh(); }, [refresh]);
 
   useEffect(() => {
-    const current = policies
-      .filter((row) => row.policy_type === selected)
-      .sort((a, b) => b.version - a.version)[0];
+    const currentRows = policies.filter((row) => row.policy_type === selected);
+    const current = currentRows.find((row) => row.is_current)
+      ?? currentRows.sort((a, b) => b.version - a.version)[0];
     setPayloadText(current ? JSON.stringify(current.payload, null, 2) : selectedType.template);
     setStatus("draft");
     setNotice(null);
@@ -183,7 +184,7 @@ function FounderCommercialAdministration() {
                     <li key={row.id} className="border-t border-border pt-2 text-xs">
                       <div className="flex items-center justify-between gap-2">
                         <strong>Version {row.version}</strong>
-                        <span className="rounded-full bg-muted px-2 py-1">{row.status}</span>
+                        <span className="rounded-full bg-muted px-2 py-1">{row.is_current ? "current" : row.status}</span>
                       </div>
                       <p className="mt-1 text-muted-foreground">{new Date(row.created_at).toLocaleString()}</p>
                       <button type="button" onClick={() => { setPayloadText(JSON.stringify(row.payload, null, 2)); setStatus("draft"); }} className="mt-2 text-primary underline">Load into editor</button>
