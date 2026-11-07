@@ -969,7 +969,7 @@ export const markCommercialPaymentAttemptFailed=createServerFn({method:"POST"})
     const actor=await resolveVerifiedFounderActor(context);
     const admin=await getAdmin();
     const {data:payment,error}=await admin.from("commercial_payment_transactions")
-      .select("id,organisation_id,status").eq("id",data.paymentId).maybeSingle();
+      .select("id,organisation_id,invoice_id,status").eq("id",data.paymentId).maybeSingle();
     if(error||!payment) throw new Error("Commercial payment attempt was not found.");
     const {data:replayed,error:failureError}=await admin.rpc("commercial_record_payment_failure",{
       _payment_id:data.paymentId,_provider_event_ref:data.providerEventRef,
@@ -981,7 +981,7 @@ export const markCommercialPaymentAttemptFailed=createServerFn({method:"POST"})
       action:data.finalStatus==="failed"?"payment.failed":"payment.cancelled",
       resourceType:"payment",resourceRef:data.paymentId,metadata:{providerEventRef:data.providerEventRef,replayed}});
     let notificationStatus="not_applicable";
-    if(data.finalStatus==="failed"){
+    if(data.finalStatus==="failed" && payment.invoice_id!==null){
       try{
         const {sendCommercialPaymentFailureEmail}=await import("./commercial-financial-notifications.server");
         const notification=await sendCommercialPaymentFailureEmail({admin,paymentId:data.paymentId});
