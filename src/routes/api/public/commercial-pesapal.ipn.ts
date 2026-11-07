@@ -25,9 +25,9 @@ async function handleCommercialPesapalNotification(orderTrackingId: string, merc
   }).then(data => ({ data, error: null })).catch(error => ({ data: null, error }));
   if (queryError || !result) return false;
   const referenceMatches = result.merchantReference === merchantReference;
-  const amountMinor = Math.round(result.amount * 100);
+  const amountMinor = providerMajorAmountToMinor(result.amount);
   const amountMatches = result.statusCode !== 1
-    || (Number.isSafeInteger(amountMinor) && amountMinor === Number(payment.amount_minor) && result.currency === payment.currency && Boolean(result.confirmationCode));
+    || (amountMinor !== null && amountMinor === BigInt(payment.amount_minor) && result.currency === payment.currency && Boolean(result.confirmationCode));
   await admin.from("commercial_provider_notifications").upsert({
     organisation_id: payment.organisation_id, provider_account_id: account.id,
     provider: "pesapal", provider_event_ref: `${orderTrackingId}:${notificationType || "unknown"}:verification`,
@@ -44,7 +44,7 @@ async function handleCommercialPesapalNotification(orderTrackingId: string, merc
     if (payment.invoice_id === null) {
       const { error: unallocatedError } = await admin.rpc("commercial_confirm_unallocated_payment", {
         _payment_id: payment.id, _provider_transaction_ref: result.confirmationCode,
-        _verified_amount_minor: amountMinor, _currency: result.currency,
+        _verified_amount_minor: amountMinor?.toString(), _currency: result.currency,
         _verification_source: "server_provider_query", _verified_at: new Date().toISOString(),
       });
       if (unallocatedError) return false;
