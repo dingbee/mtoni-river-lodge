@@ -480,6 +480,7 @@ BEGIN
     IF v_existing_invoice.subscription_id <> v_sub.id
       OR v_existing_invoice.billing_period_start <> _period_start
       OR v_existing_invoice.billing_period_end <> _period_end
+      OR v_existing_invoice.due_at <> _due_at
       OR v_existing_invoice.currency <> v_currency
       OR v_existing_invoice.total_minor <> v_total
       OR v_existing_invoice.pricing_snapshot IS DISTINCT FROM v_sub.accepted_price_snapshot
@@ -907,12 +908,21 @@ AS $function$
 DECLARE v_role text:=current_setting('request.jwt.claim.role',true);
   v_payment public.commercial_payment_transactions%ROWTYPE;
   v_invoice public.commercial_invoices%ROWTYPE;
-  v_outstanding numeric(20,0); v_allocated numeric(20,0); v_id uuid;
+  v_existing public.commercial_payment_allocations%ROWTYPE;
+  v_outstanding numeric(20,0); v_id uuid;
 BEGIN
   IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
   SELECT * INTO v_payment FROM public.commercial_payment_transactions WHERE id=_payment_id FOR UPDATE;
   IF NOT FOUND OR v_payment.invoice_id IS NOT NULL OR v_payment.status NOT IN ('successful','partially_reversed') THEN
     RAISE EXCEPTION 'Confirmed unallocated payment was not found' USING ERRCODE='55000';
+  END IF;
+  SELECT * INTO v_existing FROM public.commercial_payment_allocations WHERE idempotency_key=_idempotency_key;
+  IF FOUND THEN
+    IF v_existing.payment_id<>_payment_id OR v_existing.invoice_id<>_invoice_id
+      OR v_existing.amount_minor<>_amount_minor OR v_existing.settlement_ref<>_settlement_ref THEN
+      RAISE EXCEPTION 'Unallocated payment allocation idempotency conflict' USING ERRCODE='23505';
+    END IF;
+    RETURN v_existing.id;
   END IF;
   SELECT id INTO v_id FROM public.commercial_payment_allocations WHERE payment_id=_payment_id;
   IF v_id IS NOT NULL THEN RAISE EXCEPTION 'This payment already has an allocation; split allocation is not enabled for this payment' USING ERRCODE='55000'; END IF;
@@ -1162,3 +1172,36 @@ REVOKE ALL ON FUNCTION public.validate_commercial_reconciliation_item_tenant() F
 CREATE TRIGGER commercial_reconciliation_item_tenant_guard
   BEFORE INSERT ON public.commercial_reconciliation_items
   FOR EACH ROW EXECUTE FUNCTION public.validate_commercial_reconciliation_item_tenant();
+
+CREATE OR REPLACE FUNCTION public.commercial_void_invoice(
+  _invoice_id uuid,_reason_code text,_approval_ref text,_actor_user_id uuid
+)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public
+AS $function$
+DECLARE v_role text:=current_setting('request.jwt.claim.role',true);
+  v_invoice public.commercial_invoices%ROWTYPE; v_pending_count integer;
+BEGIN
+  IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
+  SELECT * INTO v_invoice FROM public.commercial_invoices WHERE id=_invoice_id FOR UPDATE;
+  IF NOT FOUND OR v_invoice.status IN ('draft','void') OR v_invoice.amount_paid_minor>0
+    OR coalesce(length(btrim(_reason_code)),0)=0 OR coalesce(length(btrim(_approval_ref)),0)=0 THEN
+    RAISE EXCEPTION 'Invoice is not eligible for voiding or approval evidence is missing' USING ERRCODE='55000';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.commercial_payment_allocations WHERE invoice_id=_invoice_id)
+    OR EXISTS (SELECT 1 FROM public.commercial_invoice_adjustments WHERE invoice_id=_invoice_id AND status='posted') THEN
+    RAISE EXCEPTION 'Invoice with financial allocations or posted adjustments cannot be voided' USING ERRCODE='55000';
+  END IF;
+  UPDATE public.commercial_payment_transactions SET status='cancelled',updated_at=now()
+    WHERE invoice_id=_invoice_id AND status='pending';
+  GET DIAGNOSTICS v_pending_count=ROW_COUNT;
+  UPDATE public.commercial_invoices SET status='void',updated_at=now() WHERE id=_invoice_id;
+  INSERT INTO public.commercial_financial_audit_events(
+    request_id,actor_user_id,actor_organisation_id,actor_role,action,resource_type,resource_ref,outcome,reason_code,metadata
+  ) VALUES (_approval_ref,_actor_user_id,v_invoice.organisation_id,'founder_admin',
+    'invoice.voided','invoice',_invoice_id::text,'succeeded',_reason_code,
+    jsonb_build_object('approvalRef',_approval_ref,'cancelledPendingPayments',v_pending_count));
+  RETURN true;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.commercial_void_invoice(uuid,text,text,uuid) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.commercial_void_invoice(uuid,text,text,uuid) TO service_role;
