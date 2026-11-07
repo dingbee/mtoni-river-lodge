@@ -214,6 +214,23 @@ CREATE TABLE IF NOT EXISTS public.commercial_reconciliation_items (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+
+CREATE TABLE IF NOT EXISTS public.commercial_financial_notifications (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id) ON DELETE RESTRICT,
+  invoice_id uuid REFERENCES public.commercial_invoices(id) ON DELETE RESTRICT,
+  payment_id uuid REFERENCES public.commercial_payment_transactions(id) ON DELETE RESTRICT,
+  notification_type text NOT NULL CHECK (notification_type IN ('invoice_issued','payment_confirmation','payment_failure','upcoming_due','overdue_notice','receipt')),
+  recipient_email text NOT NULL CHECK (length(btrim(recipient_email)) BETWEEN 3 AND 255),
+  idempotency_key text NOT NULL UNIQUE,
+  payload_snapshot jsonb NOT NULL CHECK (jsonb_typeof(payload_snapshot)='object'),
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','sent','failed','cancelled')),
+  provider_message_ref text,
+  attempted_at timestamptz,
+  sent_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS public.commercial_financial_audit_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   request_id text NOT NULL,
@@ -238,7 +255,7 @@ BEGIN
     'commercial_payment_transactions','commercial_payment_allocations',
     'commercial_payment_reversals','commercial_invoice_adjustments',
     'commercial_provider_notifications','commercial_reconciliation_runs',
-    'commercial_reconciliation_items','commercial_financial_audit_events'
+    'commercial_reconciliation_items','commercial_financial_audit_events','commercial_financial_notifications'
   ] LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('ALTER TABLE public.%I FORCE ROW LEVEL SECURITY', t);
@@ -730,3 +747,18 @@ GRANT EXECUTE ON FUNCTION public.commercial_post_invoice_adjustment(uuid,text,te
 CREATE TRIGGER commercial_provider_notifications_append_only
   BEFORE UPDATE OR DELETE ON public.commercial_provider_notifications
   FOR EACH ROW EXECUTE FUNCTION public.guard_commercial_financial_append_only();
+
+CREATE OR REPLACE FUNCTION public.commercial_refresh_overdue_invoices()
+RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public
+AS $function$
+DECLARE v_role text := current_setting('request.jwt.claim.role',true); v_count integer;
+BEGIN
+  IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
+  UPDATE public.commercial_invoices SET status='overdue',updated_at=now()
+  WHERE status IN ('issued','partially_paid') AND due_at < now() AND amount_paid_minor < total_minor;
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  RETURN v_count;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.commercial_refresh_overdue_invoices() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.commercial_refresh_overdue_invoices() TO service_role;
