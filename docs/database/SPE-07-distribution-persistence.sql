@@ -578,8 +578,8 @@ CREATE OR REPLACE FUNCTION public.staynas_distribution_claim_reservation_inbox(
 )
 RETURNS TABLE(inbox_id uuid,connection_id uuid,organisation_id uuid,property_id uuid,
   provider_event_id text,external_reservation_id text,event_type text,event_version text,
-  payload_fingerprint text,normalized_payload jsonb,lease_token uuid)
-LANGUAGE plpgsql SET search_path=public,pg_temp AS $$
+  payload_fingerprint text,normalized_payload jsonb,attempt_count integer,lease_token uuid)
+LANGUAGE plpgsql SET search_path=public,pg_temp AS $
 BEGIN
   IF p_limit NOT BETWEEN 1 AND 100 OR p_lease_seconds NOT BETWEEN 15 AND 900 THEN
     RAISE EXCEPTION 'Invalid inbox claim bounds' USING ERRCODE='22023';
@@ -606,7 +606,7 @@ BEGIN
   )
   SELECT c.id,c.connection_id,c.organisation_id,c.property_id,c.provider_event_id,
     c.external_reservation_id,c.event_type,c.event_version,c.payload_fingerprint,
-    c.normalized_payload,c.lock_token FROM claimed c;
+    c.normalized_payload,c.attempt_count,c.lock_token FROM claimed c;
 END $$;
 
 CREATE OR REPLACE FUNCTION public.staynas_distribution_finish_reservation_inbox(
