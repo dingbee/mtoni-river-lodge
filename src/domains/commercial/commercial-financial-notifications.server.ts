@@ -5,8 +5,14 @@ function escapeHtml(value: unknown) {
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
   })[char] ?? char);
 }
-function amount(minor: number | string, currency: string) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(minor) / 100);
+function amount(minor: number | string, currency: "TZS" | "USD") {
+  const value = BigInt(minor);
+  const whole = value / 100n;
+  const fractional = (value % 100n).toString().padStart(2, "0");
+  const formattedWhole = new Intl.NumberFormat("en-US", {
+    style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0,
+  }).format(whole);
+  return `${formattedWhole}.${fractional}`;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
