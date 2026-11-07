@@ -7,6 +7,7 @@ const valid = {
   propertyType: "Hotel / boutique property",
   properties: "1" as const,
   interests: ["Reservations & booking"],
+  consent: true,
 };
 
 describe("StayNas website demo request validation", () => {
