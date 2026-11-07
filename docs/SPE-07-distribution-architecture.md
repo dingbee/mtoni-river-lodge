@@ -44,11 +44,31 @@ Credential references are represented as opaque server-side references only. The
 
 Provider certification requires real API documentation, test credentials/sandbox, account/property mapping, verified outbound updates, verified inbound booking events and documented unsupported capabilities. No provider has been certified by this foundation commit.
 
+## Current implementation status
+
+Implemented on the SPE-07 feature branch:
+- Provider-neutral contracts, capability validation, exact mapping validation, registry and outbound payload validation.
+- Retry/dead-letter policy and reconciliation state transitions.
+- Additive persistence SQL review artifact for connections, mappings, operation ledger, transactional outbox and reservation inbox; browser table access is revoked and trusted RPCs are service-role only.
+- Lease-based outbound and inbound worker cores, with stale-lease protection.
+- Canonical reservation-writer interface only; no production writer is bound.
+- Read-only property-scoped Distribution Centre UI. Its server query resolves the authenticated user's active property and combines global and property-scoped role checks.
+- Channex adapter evaluation document. Channex remains an evaluation candidate, not a selected or certified provider.
+
+Verification:
+- Earlier SPE-07 baseline CI passed 10 unit tests, TypeScript, ESLint, production build and 141 pgTAP database tests on its then-current commit.
+- Later worker and Distribution Centre changes have not yet had a confirmed full CI run. The earlier pass must not be attributed to those later commits.
+- Persistence SQL remains a review artifact generated and tested only in isolated CI; it has not been applied to production.
+
 ## Release gates
 
 - SPE-06 authenticated staff-browser acceptance: outstanding.
 - SPE-06 concurrent last-room test: outstanding.
 - SPE-06 modification/repricing workflow: outstanding.
 - SPE-06 Pesapal callback/invoice reconciliation: outstanding.
-- SPE-07 migration, persistence, queue workers, Distribution Centre UI and provider sandbox acceptance: not yet implemented/verified.
-- Live distribution and inbound booking ingestion: prohibited pending separate authorization and required acceptance.
+- SPE-07 latest-commit CI: outstanding.
+- Canonical external reservation create/modify/cancel writer and durable external booking/financial commitment ledger: outstanding.
+- Durable provider event sequencing, multi-room reservation handling and provider-specific normalization: outstanding.
+- Provider adapter, staging account, credentials, mapping, sandbox end-to-end tests and provider certification: outstanding.
+- Credential vault, encryption and rotation: deferred to physical configuration testing as authorized.
+- Live distribution, inbound booking ingestion, production migration, merge and deployment: prohibited pending separate authorization and all required acceptance gates.
