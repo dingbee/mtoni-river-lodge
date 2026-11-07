@@ -20,7 +20,7 @@ function stableValue(value: unknown): string {
     const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b));
     return `{${entries.map(([key, entry]) => `${JSON.stringify(key)}:${stableValue(entry)}`).join(",")}}`;
   }
-  return JSON.stringify(value);
+  return JSON.stringify(value) ?? "null";
 }
 
 export function payloadFingerprint(value: unknown): string {
