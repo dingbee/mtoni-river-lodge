@@ -463,7 +463,8 @@ export const resolveCommercialReconciliationItem=createServerFn({method:"POST"})
     const admin=await getAdmin();
     const {data:item,error}=await admin.from("commercial_reconciliation_items").select("id,run_id,resolution_status").eq("id",data.itemId).maybeSingle();
     if(error||!item) throw new Error("Reconciliation item not found.");
-    const {data:run}=await admin.from("commercial_reconciliation_runs").select("organisation_id").eq("id",item.run_id).maybeSingle();
+    const {data:run}=await admin.from("commercial_reconciliation_runs").select("organisation_id,status").eq("id",item.run_id).maybeSingle();
+    if(!run||run.status==="completed") throw new Error("Completed reconciliation evidence cannot be changed.");
     const {error:updateError}=await admin.from("commercial_reconciliation_items").update({
       resolution_status:"resolved",resolution_ref:data.resolutionRef,
     }).eq("id",data.itemId);
