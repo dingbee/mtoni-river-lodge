@@ -202,7 +202,7 @@ export const getReservationWorkspace = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!booking) throw new Error("Reservation not found");
 
-    const [nightsRes, extrasRes, paymentsRes, tasksRes, notesRes, roomStatesRes, guestStatsRes, distributionRes, roomAllocationRes] = await Promise.all([
+    const [nightsRes, extrasRes, paymentsRes, tasksRes, notesRes, roomStatesRes, guestStatsRes, distributionRes, roomAllocationRes, eventHistoryRes] = await Promise.all([
       sb.from("booking_nights").select("date, nightly_rate").eq("booking_id", data.id).order("date"),
       sb.from("booking_extras").select("id, quantity, unit_price, line_total, extra:extras(id, slug, name, unit)").eq("booking_id", data.id),
       sb.from("payment_events").select("*").eq("booking_id", data.id).order("created_at", { ascending: false }),
@@ -220,9 +220,13 @@ export const getReservationWorkspace = createServerFn({ method: "POST" })
       sb.from("staynas_distribution_room_allocations")
         .select("room_state_id, check_in, check_out, allocation_status")
         .eq("booking_id", data.id).maybeSingle(),
+      sb.from("staynas_distribution_operational_events")
+        .select("provider_event_id, event_type, provider_status, processing_status, attempt_count, safe_error_summary, received_at, processed_at")
+        .eq("booking_id", data.id).order("received_at", { ascending: false }).limit(30),
     ]);
     if (distributionRes.error) throw new Error(`Unable to load channel reservation provenance: ${distributionRes.error.message}`);
     if (roomAllocationRes.error) throw new Error(`Unable to load physical room allocation: ${roomAllocationRes.error.message}`);
+    if (eventHistoryRes.error) throw new Error(`Unable to load provider event history: ${eventHistoryRes.error.message}`);
 
     return {
       booking: {
@@ -244,6 +248,7 @@ export const getReservationWorkspace = createServerFn({ method: "POST" })
       roomStates: roomStatesRes.data ?? [],
       channel: distributionRes.data ?? null,
       roomAllocation: roomAllocationRes.data ?? null,
+      channelEvents: eventHistoryRes.data ?? [],
     };
   });
 
