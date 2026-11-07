@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import {
   listFounderCommercialPolicies,
   listFounderCommercialPolicyAudit,
@@ -51,6 +52,9 @@ export const Route = createFileRoute("/_authenticated/admin/commercial")({
 });
 
 function FounderCommercialAdministration() {
+  const listPoliciesFn = useServerFn(listFounderCommercialPolicies);
+  const listAuditFn = useServerFn(listFounderCommercialPolicyAudit);
+  const savePolicyFn = useServerFn(saveFounderCommercialPolicy);
   const [selected, setSelected] = useState<PolicyType>("catalogue");
   const [policies, setPolicies] = useState<PolicyRow[]>([]);
   const [audit, setAudit] = useState<Array<Record<string, unknown>>>([]);
@@ -72,8 +76,8 @@ function FounderCommercialAdministration() {
     setError(null);
     try {
       const [rows, auditRows] = await Promise.all([
-        listFounderCommercialPolicies(),
-        listFounderCommercialPolicyAudit(),
+        listPoliciesFn(),
+        listAuditFn(),
       ]);
       setPolicies(rows);
       setAudit(auditRows as Array<Record<string, unknown>>);
@@ -82,7 +86,7 @@ function FounderCommercialAdministration() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [listPoliciesFn, listAuditFn]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
@@ -101,7 +105,7 @@ function FounderCommercialAdministration() {
     setNotice(null);
     try {
       const payload: unknown = JSON.parse(payloadText);
-      const result = await saveFounderCommercialPolicy({
+      const result = await savePolicyFn({
         data: {
           policyType: selected,
           status,
