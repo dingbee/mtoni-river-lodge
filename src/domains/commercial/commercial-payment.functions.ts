@@ -224,7 +224,7 @@ export const initiateMyCommercialPesapalPayment = createServerFn({ method: "POST
       providerAccountId: providerAccount.id, secretRef: providerAccount.credential_secret_ref,
       paymentId: payment.id, amountMinor: Number(payment.amount_minor), currency: payment.currency,
       email: data.email, phone: data.phone, firstName: data.firstName, lastName: data.lastName,
-      callbackUrl: `${baseUrl.replace(/\\/$/, "")}/api/public/commercial-pesapal/ipn`,
+      callbackUrl: `${baseUrl.replace(/\/$/, "")}/api/public/commercial-pesapal/ipn`,
     });
     const { error: updateError } = await admin.from("commercial_payment_transactions").update({
       provider_order_ref: order.orderTrackingId, payment_method: "pesapal", updated_at: new Date().toISOString(),
