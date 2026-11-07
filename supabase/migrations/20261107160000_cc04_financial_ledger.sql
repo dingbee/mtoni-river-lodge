@@ -436,14 +436,10 @@ BEGIN
     pricing_snapshot, tax_snapshot, discount_snapshot, issued_snapshot, created_by
   ) VALUES (
     v_org, v_sub.account_id, v_sub.id, v_invoice_number, _idempotency_key,
-    _period_start, _period_end, v_currency, v_sub.billing_term, 'issued',
-    now(), _due_at, v_subtotal, v_tax, v_discount, v_total,
+    _period_start, _period_end, v_currency, v_sub.billing_term, 'draft',
+    NULL, NULL, v_subtotal, v_tax, v_discount, v_total,
     v_sub.accepted_price_snapshot, _tax_snapshot, _discount_snapshot,
-    jsonb_build_object('planCode',v_sub.plan_code,'planVersion',v_sub.plan_version,
-      'currency',v_currency,'billingTerm',v_sub.billing_term,'periodStart',_period_start,
-      'periodEnd',_period_end,'lines',v_lines,'subtotalMinor',v_subtotal,
-      'tax',_tax_snapshot,'discount',_discount_snapshot,'totalMinor',v_total),
-    _actor_user_id
+    NULL, _actor_user_id
   ) RETURNING id INTO v_invoice_id;
 
   FOR v_line IN SELECT value FROM jsonb_array_elements(v_lines) LOOP
@@ -461,6 +457,15 @@ BEGIN
       v_line
     );
   END LOOP;
+
+  UPDATE public.commercial_invoices SET
+    status='issued', issued_at=now(), due_at=_due_at,
+    issued_snapshot=jsonb_build_object('planCode',v_sub.plan_code,'planVersion',v_sub.plan_version,
+      'currency',v_currency,'billingTerm',v_sub.billing_term,'periodStart',_period_start,
+      'periodEnd',_period_end,'lines',v_lines,'subtotalMinor',v_subtotal,
+      'tax',_tax_snapshot,'discount',_discount_snapshot,'totalMinor',v_total),
+    updated_at=now()
+  WHERE id=v_invoice_id;
 
   INSERT INTO public.commercial_financial_audit_events(
     request_id,actor_user_id,actor_organisation_id,actor_role,action,resource_type,
@@ -599,6 +604,8 @@ BEGIN
   SELECT * INTO v_allocation FROM public.commercial_payment_allocations WHERE payment_id=v_payment.id;
   IF NOT FOUND THEN RAISE EXCEPTION 'Original payment allocation not found' USING ERRCODE='55000'; END IF;
   SELECT coalesce(sum(amount_minor),0) INTO v_reversed FROM public.commercial_payment_reversals WHERE payment_id=v_payment.id;
+  SELECT id INTO v_id FROM public.commercial_payment_reversals WHERE idempotency_key=_idempotency_key;
+  IF v_id IS NOT NULL THEN RETURN v_id; END IF;
   IF _currency <> v_payment.currency OR _amount_minor <= 0 OR v_reversed+_amount_minor > v_allocation.amount_minor
     OR coalesce(length(btrim(_provider_reversal_ref)),0)=0 OR coalesce(length(btrim(_reason_code)),0)=0 THEN
     RAISE EXCEPTION 'Reversal amount, currency or reference is invalid' USING ERRCODE='22023';
