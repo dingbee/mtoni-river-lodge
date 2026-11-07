@@ -216,6 +216,10 @@ BEGIN
      OR v_allocation_status<>'checked_in' THEN
     RAISE EXCEPTION 'Check-in did not bind and occupy the exact allocated physical room';
   END IF;
+  IF (SELECT status FROM public.ops_tasks WHERE booking_id=v_booking
+      AND task_type='channel_reservation_arrival')<>'completed' THEN
+    RAISE EXCEPTION 'Successful check-in did not complete the arrival-preparation task';
+  END IF;
 
   -- A provider date-change that cannot be reallocated safely must not mutate
   -- the canonical stay. It is converted into a durable Operations exception.
