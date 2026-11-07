@@ -214,3 +214,31 @@ export async function recordDistributionPriceCommitment(inboxId: string) {
   });
   return unwrap(data as string, error);
 }
+
+
+export async function isDistributionPriceCommitmentVerified(inboxId: string) {
+  const value = uuid.parse(inboxId);
+  const sb = await adminClient();
+  const { data, error } = await sb.rpc("staynas_distribution_price_commitment_is_verified", {
+    p_inbox_id: value,
+  });
+  return unwrap(Boolean(data), error);
+}
+
+export async function applyDistributionReservationEvent(inboxId: string) {
+  const value = uuid.parse(inboxId);
+  const sb = await adminClient();
+  const { data, error } = await sb.rpc("staynas_distribution_apply_reservation_event", {
+    p_inbox_id: value,
+  });
+  if (error) throw new Error(`SPE-07 canonical reservation apply failed: ${error.message}`);
+  const result = data as { status?: string; booking_id?: string; reason?: string };
+  if (!result || !["applied", "duplicate", "stale", "manual_review"].includes(result.status ?? "")) {
+    throw new Error("SPE-07 canonical reservation RPC returned an invalid outcome");
+  }
+  return {
+    status: result.status as "applied" | "duplicate" | "stale" | "manual_review",
+    ...(result.booking_id ? { bookingId: result.booking_id } : {}),
+    ...(result.reason ? { reason: result.reason } : {}),
+  };
+}
