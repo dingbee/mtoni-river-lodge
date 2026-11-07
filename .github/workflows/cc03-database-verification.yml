@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/cc-03-*
+      - feat/cc03-04-*
   pull_request:
     branches:
       - main
@@ -81,9 +82,12 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261107090000_cc03_subscription_lifecycle.sql
       - name: Apply CC-03.03 atomic trial activation migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261107091000_cc03_trial_activation.sql
+      - name: Apply CC-03.04 subscription administration migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261107110000_cc03_subscription_administration.sql
       - name: Verify persistence, authorization, lifecycle and trial activation contracts
         run: |
           psql -v ON_ERROR_STOP=1 -f supabase/tests/cc03_subscription_lifecycle.test.sql
           psql -v ON_ERROR_STOP=1 -f supabase/tests/cc03_trial_activation.test.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/cc03_subscription_administration.test.sql
       - name: Verify concurrent one-time trial activation
         run: bash supabase/tests/cc03_concurrent_trial_activation.sh
