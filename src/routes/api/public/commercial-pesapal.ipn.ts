@@ -47,6 +47,9 @@ async function handleCommercialPesapalNotification(orderTrackingId: string, merc
         _verification_source: "server_provider_query", _verified_at: new Date().toISOString(),
       });
       if (unallocatedError) return false;
+      await admin.from("commercial_payment_transactions").update({
+        payment_method: result.paymentMethod ?? "pesapal", updated_at: new Date().toISOString(),
+      }).eq("id",payment.id);
       try {
         const { sendCommercialUnallocatedPaymentEmail } = await import("@/domains/commercial/commercial-financial-notifications.server");
         await sendCommercialUnallocatedPaymentEmail({ admin, paymentId: payment.id });
@@ -61,6 +64,9 @@ async function handleCommercialPesapalNotification(orderTrackingId: string, merc
         _idempotency_key: `pesapal-settlement-${result.confirmationCode}`, _verified_at: new Date().toISOString(),
       });
       if (allocationError) return false;
+      await admin.from("commercial_payment_transactions").update({
+        payment_method: result.paymentMethod ?? "pesapal", updated_at: new Date().toISOString(),
+      }).eq("id",payment.id);
       try {
         const { sendCommercialPaymentConfirmationEmail } = await import("@/domains/commercial/commercial-financial-notifications.server");
         await sendCommercialPaymentConfirmationEmail({ admin, paymentId: payment.id });
