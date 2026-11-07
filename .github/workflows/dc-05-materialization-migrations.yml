@@ -163,4 +163,4 @@ jobs:
       - name: Finance regression tests
         run: bunx vitest run src/domains/finance
       - name: Lint changed Finance files
-        run: bunx eslint src/domains/finance/distribution-financial-evidence.functions.ts src/routes/_authenticated.admin.finance.index.tsx src/routes/_authenticated.admin.finance.reconciliation.tsx --rule "@typescript-eslint/no-explicit-any: off"
+        run: bunx eslint src/domains/finance/distribution-financial-evidence.functions.ts src/routes/_authenticated.admin.finance.index.tsx src/routes/_authenticated.admin.finance.reconciliation.tsx --rule '{"@typescript-eslint/no-explicit-any":"off"}'
