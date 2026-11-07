@@ -106,7 +106,11 @@ export const saveFounderCommercialPolicy = createServerFn({ method: "POST" })
     const version = latestVersion + 1;
 
     const supabase = context.supabase as SupabaseClient<Database>;
-    const { data: id, error } = await supabase.rpc("commercial_record_policy_config", {
+    const rpc = supabase.rpc as unknown as (
+      name: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ data: unknown; error: unknown | null }>;
+    const { data: id, error } = await rpc("commercial_record_policy_config", {
       _policy_type: data.policyType,
       _version: version,
       _status: data.status,
