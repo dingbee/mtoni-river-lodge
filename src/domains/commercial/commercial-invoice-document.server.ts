@@ -82,3 +82,23 @@ export async function buildCommercialPaymentReceiptPdf(input: {
   draw("This receipt is generated from the persisted StayNas payment and allocation ledger.",9);
   return await pdf.save();
 }
+
+export async function buildCommercialUnallocatedReceiptPdf(input:{
+  payment:{id:string;provider:string;provider_transaction_ref:string|null;amount_minor:number|string;currency:"TZS"|"USD";confirmed_at:string|null;payment_method:string|null};
+}) {
+  const pdf=await PDFDocument.create();
+  const page=pdf.addPage([595.28,841.89]);
+  const regular=await pdf.embedFont(StandardFonts.Helvetica);
+  const bold=await pdf.embedFont(StandardFonts.HelveticaBold);
+  const draw=(text:string,size=11,isBold=false,y=790)=>{
+    page.drawText(text.slice(0,110),{x:48,y,size,font:isBold?bold:regular,color:rgb(0.12,0.16,0.22)});
+  };
+  draw("STAYNAS — UNALLOCATED COLLECTION RECEIPT",16,true,790);
+  draw(`Payment ID: ${input.payment.id}`,11,false,750);
+  draw(`Provider: ${input.payment.provider} / ${input.payment.payment_method??"unspecified"}`,11,false,725);
+  draw(`Provider reference: ${input.payment.provider_transaction_ref??"verified manual record"}`,11,false,700);
+  draw(`Confirmed: ${input.payment.confirmed_at??"not available"}`,11,false,675);
+  draw(`Amount received: ${money(input.payment.amount_minor,input.payment.currency)}`,14,true,635);
+  draw("This collection has been verified but is not yet allocated to an invoice.",10,false,595);
+  return await pdf.save();
+}
