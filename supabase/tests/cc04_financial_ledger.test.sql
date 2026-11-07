@@ -143,13 +143,23 @@ BEGIN
   IF v_unallocated_view <> 10000 THEN
     RAISE EXCEPTION 'Overpayment remainder was not retained as unallocated: %',v_unallocated_view;
   END IF;
+  v_adjustment := public.commercial_post_invoice_adjustment(
+    v_invoice_id,'cc04-credit-after-payment-001','credit_note',5000,'TZS',
+    'post_payment_customer_credit','approval-cc04-credit-after-payment',v_user
+  );
+  IF (SELECT credit_balance_minor FROM public.commercial_invoice_receivables WHERE id=v_invoice_id) <> 5000 THEN
+    RAISE EXCEPTION 'Credit note against paid invoice did not create customer credit balance';
+  END IF;
   v_unallocated_reversal := public.commercial_record_payment_reversal(
     v_unallocated_payment,'manual-overpayment-refund-001',15000,'TZS',
     'partial_overpayment_refund','cc04-unallocated-reversal-001',now(),v_user
   );
   SELECT amount_paid_minor,status INTO v_paid,v_status FROM public.commercial_invoices WHERE id=v_invoice_id;
-  IF v_paid <> 105000 OR v_status <> 'partially_paid' THEN
+  IF v_paid <> 105000 OR v_status <> 'paid' THEN
     RAISE EXCEPTION 'Overpayment reversal did not reverse unallocated first and allocated remainder second: %, %',v_paid,v_status;
+  END IF;
+  IF (SELECT credit_balance_minor FROM public.commercial_invoice_receivables WHERE id=v_invoice_id) <> 0 THEN
+    RAISE EXCEPTION 'Payment reversal did not correctly consume the customer credit balance';
   END IF;
   SELECT unallocated_minor INTO v_unallocated_view FROM public.commercial_unallocated_collections
     WHERE payment_id=v_unallocated_payment;
