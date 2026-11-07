@@ -26,6 +26,14 @@ function registry() {
   return value;
 }
 
+const capabilities: ProviderCapabilities = {
+  operations: ["rates.push"], restrictions: [],
+  supportsOccupancyPricing: false, supportsTaxBreakdown: false,
+  supportsFeeBreakdown: false, supportsCurrencyConversion: false,
+  reservationDelivery: "none", supportsEventVersioning: false,
+  supportsExternalIdempotency: false,
+};
+
 const item = {
   outboxId: "00000000-0000-4000-8000-000000000001",
   operationId: "00000000-0000-4000-8000-000000000002",
@@ -55,13 +63,7 @@ describe("distribution outbox worker", () => {
           externalPropertyId: "property", credentialReference: "vault-ref",
           idempotencyKey: "stable-idempotency-key", correlationId: item.operationId,
         },
-        capabilities: {
-          operations: ["rates.push"] as ProviderCapabilities["operations"], restrictions: [],
-          supportsOccupancyPricing: false, supportsTaxBreakdown: false,
-          supportsFeeBreakdown: false, supportsCurrencyConversion: false,
-          reservationDelivery: "none", supportsEventVersioning: false,
-          supportsExternalIdempotency: false,
-        } satisfies ProviderCapabilities,
+        capabilities,
       })),
       finish, registry: registry(),
     });
@@ -82,13 +84,7 @@ describe("distribution outbox worker", () => {
           externalPropertyId: "property", credentialReference: "vault-ref",
           idempotencyKey: "stable-idempotency-key", correlationId: item.operationId,
         },
-        capabilities: {
-          operations: ["rates.push"], restrictions: [],
-          supportsOccupancyPricing: false, supportsTaxBreakdown: false,
-          supportsFeeBreakdown: false, supportsCurrencyConversion: false,
-          reservationDelivery: "none", supportsEventVersioning: false,
-          supportsExternalIdempotency: false,
-        },
+        capabilities,
       })),
       finish: vi.fn(async () => false), registry: registry(),
     });
