@@ -1,6 +1,6 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(62);
+SELECT plan(67);
 
 SELECT has_table('public','staynas_distribution_connections','distribution connections table exists');
 SELECT has_table('public','staynas_distribution_mappings','distribution mappings table exists');
@@ -281,21 +281,27 @@ SELECT is(public.staynas_distribution_finish_reservation_inbox(
 -- Full local transaction test: two room allocations create two canonical bookings,
 -- a price-only modification preserves inventory, and cancellation restores it.
 CREATE TEMP TABLE spe07_test_room_category AS
-INSERT INTO public.room_categories(property_id,slug,name,status)
-SELECT property.id,'spe07-ota-category','SPE07 OTA Category','active'
-FROM public.staynas_properties property
-WHERE property.slug='spe07-test-property-a'
-RETURNING id,property_id;
+WITH inserted AS (
+  INSERT INTO public.room_categories(property_id,slug,name,status)
+  SELECT property.id,'spe07-ota-category','SPE07 OTA Category','active'
+  FROM public.staynas_properties property
+  WHERE property.slug='spe07-test-property-a'
+  RETURNING id,property_id
+)
+SELECT * FROM inserted;
 
 CREATE TEMP TABLE spe07_test_rooms AS
-INSERT INTO public.rooms(property_id,category_id,slug,name,capacity_adults,capacity_children,
-  max_occupancy,total_units,base_price,currency,status)
-SELECT property_id,id,'spe07-ota-room-a','SPE07 OTA Room A',2,1,3,2,100,'USD','active'
-FROM spe07_test_room_category
-UNION ALL
-SELECT property_id,id,'spe07-ota-room-b','SPE07 OTA Room B',2,1,3,2,100,'USD','active'
-FROM spe07_test_room_category
-RETURNING id,property_id,slug;
+WITH inserted AS (
+  INSERT INTO public.rooms(property_id,category_id,slug,name,capacity_adults,capacity_children,
+    max_occupancy,total_units,base_price,currency,status)
+  SELECT property_id,id,'spe07-ota-room-a','SPE07 OTA Room A',2,1,3,2,100,'USD','active'
+  FROM spe07_test_room_category
+  UNION ALL
+  SELECT property_id,id,'spe07-ota-room-b','SPE07 OTA Room B',2,1,3,2,100,'USD','active'
+  FROM spe07_test_room_category
+  RETURNING id,property_id,slug
+)
+SELECT * FROM inserted;
 
 INSERT INTO public.staynas_distribution_mappings(
   organisation_id,property_id,connection_id,mapping_type,internal_id,external_id,active
