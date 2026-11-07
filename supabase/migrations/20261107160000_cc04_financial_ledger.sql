@@ -1348,3 +1348,54 @@ ALTER TABLE public.commercial_reconciliation_items
 ALTER TABLE public.commercial_reconciliation_items
   ADD CONSTRAINT commercial_reconciliation_items_item_type_check
   CHECK (item_type IN ('matched','missing_internal','missing_provider','duplicate','amount_mismatch','currency_mismatch','status_mismatch','unallocated','reversed'));
+
+CREATE OR REPLACE FUNCTION public.guard_commercial_payment_identity_and_state()
+RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog
+AS $function$
+BEGIN
+  IF ROW(NEW.organisation_id,NEW.account_id,NEW.invoice_id,NEW.provider_account_id,
+    NEW.provider,NEW.amount_minor,NEW.currency,NEW.idempotency_key)
+    IS DISTINCT FROM
+    ROW(OLD.organisation_id,OLD.account_id,OLD.invoice_id,OLD.provider_account_id,
+    OLD.provider,OLD.amount_minor,OLD.currency,OLD.idempotency_key) THEN
+    RAISE EXCEPTION 'Payment financial identity is immutable' USING ERRCODE='55000';
+  END IF;
+  IF OLD.provider_transaction_ref IS NOT NULL
+    AND NEW.provider_transaction_ref IS DISTINCT FROM OLD.provider_transaction_ref THEN
+    RAISE EXCEPTION 'Provider transaction reference cannot be rewritten' USING ERRCODE='55000';
+  END IF;
+  IF OLD.provider_order_ref IS NOT NULL
+    AND NEW.provider_order_ref IS DISTINCT FROM OLD.provider_order_ref THEN
+    RAISE EXCEPTION 'Provider order reference cannot be rewritten' USING ERRCODE='55000';
+  END IF;
+  IF NOT (
+    NEW.status=OLD.status
+    OR (OLD.status='pending' AND NEW.status IN ('successful','failed','cancelled'))
+    OR (OLD.status='successful' AND NEW.status IN ('partially_reversed','reversed'))
+    OR (OLD.status='partially_reversed' AND NEW.status='reversed')
+  ) THEN
+    RAISE EXCEPTION 'Invalid commercial payment state transition: % -> %',OLD.status,NEW.status USING ERRCODE='55000';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.guard_commercial_payment_identity_and_state() FROM PUBLIC,anon,authenticated,service_role;
+CREATE TRIGGER commercial_payment_identity_state_guard
+  BEFORE UPDATE ON public.commercial_payment_transactions
+  FOR EACH ROW EXECUTE FUNCTION public.guard_commercial_payment_identity_and_state();
+
+CREATE OR REPLACE FUNCTION public.guard_commercial_posted_adjustment_immutable()
+RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog
+AS $function$
+BEGIN
+  IF OLD.status='posted' THEN
+    RAISE EXCEPTION 'Posted financial adjustments are immutable' USING ERRCODE='55000';
+  END IF;
+  IF TG_OP='DELETE' THEN RETURN OLD; END IF;
+  RETURN NEW;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.guard_commercial_posted_adjustment_immutable() FROM PUBLIC,anon,authenticated,service_role;
+CREATE TRIGGER commercial_posted_adjustment_immutable
+  BEFORE UPDATE OR DELETE ON public.commercial_invoice_adjustments
+  FOR EACH ROW EXECUTE FUNCTION public.guard_commercial_posted_adjustment_immutable();
