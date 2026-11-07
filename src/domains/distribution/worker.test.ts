@@ -17,7 +17,7 @@ const adapter: DistributionProviderAdapter = {
 function registry() {
   const value = new DistributionProviderRegistry();
   value.register(adapter, {
-    operations: ["rates.push"], restrictions: [], supportsOccupancyPricing: false,
+    operations: ["rates.push"] as const, restrictions: [], supportsOccupancyPricing: false,
     supportsTaxBreakdown: false, supportsFeeBreakdown: false,
     supportsCurrencyConversion: false, reservationDelivery: "none",
     supportsEventVersioning: false, supportsExternalIdempotency: false,
