@@ -92,20 +92,62 @@ export const getRoomBoard = createServerFn({ method: "GET" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const [statesRes, roomsRes, bookingsRes] = await Promise.all([
+    const today = new Date().toISOString().slice(0, 10);
+    const horizon = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+    const [statesRes, roomsRes, bookingsRes, allocationsRes] = await Promise.all([
       sb.from("room_states").select("id, room_id, unit_label, state, state_note, booking_id, updated_at").order("unit_label"),
       sb.from("rooms").select("id, slug, name").order("sort_order"),
       sb.from("bookings")
         .select("id, reference, guest_name, check_in, check_out, status, room_id")
         .in("status", ["confirmed", "checked_in"])
-        .lte("check_in", new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10)),
+        .lte("check_in", horizon)
+        .gte("check_out", today),
+      sb.from("staynas_distribution_room_allocations")
+        .select("id, booking_id, room_state_id, check_in, check_out, allocation_status")
+        .in("allocation_status", ["reserved", "checked_in"])
+        .lte("check_in", horizon)
+        .gte("check_out", today),
     ]);
+    const failed = [statesRes, roomsRes, bookingsRes, allocationsRes].find((result: any) => result.error);
+    if (failed?.error) throw new Error(`Room board data load failed: ${failed.error.message}`);
+    const bookingIds = Array.from(new Set((allocationsRes.data ?? []).map((a: any) => a.booking_id)));
+    const operationalRes = bookingIds.length
+      ? await sb.from("staynas_distribution_operational_reservations")
+          .select("booking_id, provider_key, external_reservation_id, integration_status")
+          .in("booking_id", bookingIds)
+      : { data: [], error: null };
+    if (operationalRes.error) throw new Error(`Room allocation provenance load failed: ${operationalRes.error.message}`);
     const rooms = new Map<string, any>((roomsRes.data ?? []).map((r: any) => [r.id, r]));
+    const bookings = new Map<string, any>((bookingsRes.data ?? []).map((b: any) => [b.id, b]));
+    const provenance = new Map<string, any>((operationalRes.data ?? []).map((r: any) => [r.booking_id, r]));
+    const allocationsByUnit = new Map<string, any[]>();
+    for (const allocation of allocationsRes.data ?? []) {
+      const booking = bookings.get(allocation.booking_id);
+      if (!booking) continue;
+      const source = provenance.get(allocation.booking_id);
+      const rows = allocationsByUnit.get(allocation.room_state_id) ?? [];
+      rows.push({
+        id: allocation.id,
+        bookingId: allocation.booking_id,
+        reference: booking.reference,
+        guestName: booking.guest_name,
+        checkIn: allocation.check_in,
+        checkOut: allocation.check_out,
+        status: allocation.allocation_status,
+        channel: source ? {
+          providerKey: source.provider_key,
+          externalReservationId: source.external_reservation_id,
+          integrationStatus: source.integration_status,
+        } : null,
+      });
+      allocationsByUnit.set(allocation.room_state_id, rows);
+    }
     return {
       rooms: roomsRes.data ?? [],
       states: (statesRes.data ?? []).map((s: any) => ({
         ...s,
         room: rooms.get(s.room_id),
+        upcomingAllocations: allocationsByUnit.get(s.id) ?? [],
       })),
       upcomingBookings: bookingsRes.data ?? [],
     };
