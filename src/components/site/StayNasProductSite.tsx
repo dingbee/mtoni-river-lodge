@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, ArrowUpRight, BedDouble, Building2, CalendarCheck, ChartNoAxesCombined, Check, ChevronRight, CircleDot, CreditCard, Globe2, House, Layers3, Network, ShieldCheck, Sparkles, Users, Workflow, Wrench } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BedDouble, Building2, CalendarCheck, ChartNoAxesCombined, Check, CircleDot, CreditCard, Globe2, House, Layers3, Network, ShieldCheck, Sparkles, Users, Workflow, Wrench } from "lucide-react";
 import { STAYNAS_PUBLIC_CAPABILITIES, STAYNAS_PILLARS, type PublicCapability } from "@/lib/staynas-public-capabilities";
 
 const capabilityIcons: Record<string, typeof BedDouble> = {
