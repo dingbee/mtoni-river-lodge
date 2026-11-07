@@ -785,3 +785,46 @@ export const getCommercialReceivablesSummary=createServerFn({method:"GET"})
       resourceType:"receivables_summary",resourceRef:"platform",metadata:{currencies:["TZS","USD"]}});
     return summary;
   });
+
+export const createCommercialInvoiceDraft=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>z.object({
+    subscriptionId:z.string().uuid(),periodStart:z.string().datetime({offset:true}),
+    periodEnd:z.string().datetime({offset:true}),idempotencyKey:z.string().trim().min(8).max(200),
+    taxSnapshot:z.record(z.string(),z.unknown()),
+    discountSnapshot:z.record(z.string(),z.unknown()).default({amountMinor:0,policyRef:"none"}),
+  }).parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    const {data:result,error}=await admin.rpc("commercial_create_invoice_draft_from_subscription",{
+      _subscription_id:data.subscriptionId,_period_start:data.periodStart,_period_end:data.periodEnd,
+      _idempotency_key:data.idempotencyKey,_tax_snapshot:data.taxSnapshot,
+      _discount_snapshot:data.discountSnapshot,_actor_user_id:actor.userId,
+    });
+    if(error||!result?.invoiceId) throw new Error("Commercial invoice draft could not be created.");
+    return result;
+  });
+
+export const issueCommercialInvoiceDraft=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>z.object({
+    invoiceId:z.string().uuid(),dueAt:z.string().datetime({offset:true}),
+    approvalRef:z.string().trim().min(4).max(200),
+  }).parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    const {data:result,error}=await admin.rpc("commercial_issue_draft_invoice",{
+      _invoice_id:data.invoiceId,_due_at:data.dueAt,
+      _approval_ref:data.approvalRef,_actor_user_id:actor.userId,
+    });
+    if(error||typeof result!=="boolean") throw new Error("Invoice draft issuance was not confirmed.");
+    let notificationStatus="not_requested";
+    try{
+      const {sendCommercialInvoiceIssuedEmail}=await import("./commercial-financial-notifications.server");
+      const notification=await sendCommercialInvoiceIssuedEmail({admin,invoiceId:data.invoiceId});
+      notificationStatus=notification.status;
+    }catch{notificationStatus="failed";}
+    return {invoiceId:data.invoiceId,status:"issued" as const,replayed:result,notificationStatus};
+  });
