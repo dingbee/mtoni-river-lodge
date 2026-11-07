@@ -24,6 +24,7 @@ export interface ReservationInboxWorkerDependencies {
   }): Promise<boolean>;
   writer: CanonicalReservationWriter;
   recordPriceCommitment(inboxId: string): Promise<string>;
+  isPriceCommitmentVerified(inboxId: string): Promise<boolean>;
   now?: () => Date;
 }
 
@@ -51,11 +52,13 @@ export async function runReservationInboxBatch(
   for (const item of items) {
     try {
       const payload = item.normalizedPayload;
+      let priceVerified = false;
       if (payload.eventType !== "cancelled" && payload.confirmedAmountMinor !== null
         && payload.confirmedAmountMinor !== undefined && typeof payload.currency === "string") {
         await deps.recordPriceCommitment(item.inboxId);
+        priceVerified = await deps.isPriceCommitmentVerified(item.inboxId);
       }
-      const outcome = await applyInboundReservationEvent(payload, deps.writer);
+      const outcome = await applyInboundReservationEvent(payload, deps.writer, item.inboxId, priceVerified);
       const status = outcome.status;
       const saved = await deps.finish({
         inboxId: item.inboxId, leaseToken: item.leaseToken, status,
