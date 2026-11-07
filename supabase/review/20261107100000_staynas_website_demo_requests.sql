@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS public.staynas_website_demo_requests (
   property_count_band text NOT NULL CHECK (property_count_band IN ('1', '2-5', '6-20', '21+')),
   interests text[] NOT NULL DEFAULT '{}',
   message text,
+  ip_hash text,
   source text NOT NULL DEFAULT 'staynas.com',
   status text NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'qualified', 'converted', 'closed')),
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -22,6 +23,9 @@ CREATE INDEX IF NOT EXISTS staynas_website_demo_requests_created_idx
   ON public.staynas_website_demo_requests (created_at DESC);
 CREATE INDEX IF NOT EXISTS staynas_website_demo_requests_email_created_idx
   ON public.staynas_website_demo_requests (email, created_at DESC);
+CREATE INDEX IF NOT EXISTS staynas_website_demo_requests_ip_created_idx
+  ON public.staynas_website_demo_requests (ip_hash, created_at DESC)
+  WHERE ip_hash IS NOT NULL;
 
 ALTER TABLE public.staynas_website_demo_requests ENABLE ROW LEVEL SECURITY;
 
