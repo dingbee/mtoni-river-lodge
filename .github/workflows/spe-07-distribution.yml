@@ -7,6 +7,8 @@ on:
   pull_request:
     paths:
       - "src/domains/distribution/**"
+      - "src/routes/_authenticated.admin.distribution.tsx"
+      - "src/lib/staynas-rpc.ts"
       - "docs/database/SPE-07-distribution-persistence.sql"
       - "supabase/tests/database/**"
       - "scripts/ci/normalize-optional-legacy-revokes.py"
