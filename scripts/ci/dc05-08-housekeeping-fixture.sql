@@ -43,8 +43,12 @@ END
 $task_status$;
 
 ALTER TABLE public.ops_tasks
+  ALTER COLUMN status DROP DEFAULT;
+ALTER TABLE public.ops_tasks
   ALTER COLUMN status TYPE public.ops_task_status
   USING status::text::public.ops_task_status;
+ALTER TABLE public.ops_tasks
+  ALTER COLUMN status SET DEFAULT 'pending'::public.ops_task_status;
 
 CREATE TABLE IF NOT EXISTS public.user_roles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
