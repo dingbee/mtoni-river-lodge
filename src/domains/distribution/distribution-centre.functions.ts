@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 
 type SafeConnection = {
   id: string; provider: string; external_account_id: string;
@@ -19,16 +18,27 @@ export const getDistributionCentre = createServerFn({ method: "GET" })
       throw new Error("Forbidden");
     }
 
-    const propertyId = await getConfiguredBookingPropertyId(context.supabase);
+    // Resolve the authenticated user's active property, never a global booking
+    // property. This RPC returns only a property the caller is a member of.
+    const { data: propertyId, error: activePropertyError } = await context.supabase.rpc("staynas_active_property_id");
+    if (activePropertyError) throw new Error(activePropertyError.message);
+    if (!propertyId) throw new Error("No accessible active property is configured");
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [{ data: property, error: propertyError }, { data: connections, error: connectionError }] = await Promise.all([
-      supabaseAdmin.from("staynas_properties").select("id, organisation_id, name, currency, timezone").eq("id", propertyId).maybeSingle(),
-      supabaseAdmin.from("staynas_distribution_connections")
-        .select("id, provider, external_account_id, external_property_id, status, mapping_version, last_validated_at, last_error_code, created_at, updated_at")
-        .eq("property_id", propertyId).order("created_at", { ascending: false }),
-    ]);
+    const { data: property, error: propertyError } = await supabaseAdmin
+      .from("staynas_properties")
+      .select("id, organisation_id, name, currency, timezone, status")
+      .eq("id", propertyId)
+      .maybeSingle();
     if (propertyError) throw new Error(propertyError.message);
-    if (!property) throw new Error("Active property not found");
+    if (!property || property.status !== "active") throw new Error("Active property not found or unavailable");
+
+    const { data: connections, error: connectionError } = await supabaseAdmin
+      .from("staynas_distribution_connections")
+      .select("id, provider, external_account_id, external_property_id, status, mapping_version, last_validated_at, last_error_code, created_at, updated_at")
+      .eq("organisation_id", property.organisation_id)
+      .eq("property_id", property.id)
+      .order("created_at", { ascending: false });
     if (connectionError) throw new Error(connectionError.message);
 
     const connectionIds = (connections ?? []).map((item) => item.id);
@@ -36,17 +46,26 @@ export const getDistributionCentre = createServerFn({ method: "GET" })
       connectionIds.length
         ? supabaseAdmin.from("staynas_distribution_mappings")
             .select("id, connection_id, mapping_type, internal_id, external_id, active, version, updated_at")
-            .eq("property_id", propertyId).order("mapping_type")
+            .eq("organisation_id", property.organisation_id)
+            .eq("property_id", property.id)
+            .in("connection_id", connectionIds)
+            .order("mapping_type")
         : Promise.resolve({ data: [], error: null }),
       connectionIds.length
         ? supabaseAdmin.from("staynas_distribution_operations")
             .select("id, connection_id, operation_type, status, error_code, safe_error_message, attempt_count, created_at, updated_at")
-            .eq("property_id", propertyId).order("created_at", { ascending: false }).limit(50)
+            .eq("organisation_id", property.organisation_id)
+            .eq("property_id", property.id)
+            .in("connection_id", connectionIds)
+            .order("created_at", { ascending: false }).limit(50)
         : Promise.resolve({ data: [], error: null }),
       connectionIds.length
         ? supabaseAdmin.from("staynas_distribution_reservation_inbox")
             .select("id, connection_id, external_reservation_id, event_type, processing_status, safe_error_code, safe_error_message, received_at, processed_at")
-            .eq("property_id", propertyId).order("received_at", { ascending: false }).limit(50)
+            .eq("organisation_id", property.organisation_id)
+            .eq("property_id", property.id)
+            .in("connection_id", connectionIds)
+            .order("received_at", { ascending: false }).limit(50)
         : Promise.resolve({ data: [], error: null }),
     ]);
     if (mappingResult.error) throw new Error(mappingResult.error.message);
