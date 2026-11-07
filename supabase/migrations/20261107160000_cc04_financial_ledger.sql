@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS public.commercial_invoices (
   ),
   UNIQUE (account_id, idempotency_key),
   UNIQUE (subscription_id, billing_period_start, billing_period_end),
+  UNIQUE (id, organisation_id),
   UNIQUE (id, organisation_id, account_id, currency)
 );
 CREATE INDEX IF NOT EXISTS commercial_invoices_org_due_idx
