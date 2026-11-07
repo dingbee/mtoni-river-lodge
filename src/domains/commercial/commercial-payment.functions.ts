@@ -559,3 +559,37 @@ export const issueNextSubscriptionInvoice=createServerFn({method:"POST"})
     }
     return {...result,billingPeriod:period};
   });
+
+export const dispatchCommercialInvoiceReminders=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>z.object({
+    notificationType:z.enum(["upcoming_due","overdue_notice"]),
+    dueFrom:z.string().datetime({offset:true}).optional(),
+    dueTo:z.string().datetime({offset:true}).optional(),
+  }).refine(value=>value.notificationType!=="upcoming_due" || (value.dueFrom && value.dueTo && value.dueTo>value.dueFrom),
+    {message:"Upcoming reminders require an explicit due-date window."}).parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    let query=admin.from("commercial_invoice_receivables").select("id,organisation_id,invoice_number,due_at,outstanding_minor")
+      .gt("outstanding_minor",0);
+    if(data.notificationType==="upcoming_due") query=query.gte("due_at",data.dueFrom).lte("due_at",data.dueTo);
+    else query=query.lt("due_at",new Date().toISOString());
+    const {data:invoices,error}=await query;
+    if(error) throw new Error("Open receivables for reminder dispatch could not be loaded.");
+    const {sendCommercialInvoiceReminderEmail}=await import("./commercial-financial-notifications.server");
+    const results=[];
+    for(const invoice of invoices??[]){
+      try{
+        const result=await sendCommercialInvoiceReminderEmail({admin,invoiceId:invoice.id,notificationType:data.notificationType});
+        results.push({invoiceId:invoice.id,status:result.status});
+      }catch{
+        results.push({invoiceId:invoice.id,status:"failed"});
+      }
+    }
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:actor.organisationId,actorRole:"founder_admin",action:"invoice.reminders_dispatched",
+      resourceType:"invoice_notification_batch",resourceRef:globalThis.crypto.randomUUID(),
+      metadata:{notificationType:data.notificationType,processed:results.length,failed:results.filter(x=>x.status==="failed").length}});
+    return results;
+  });
