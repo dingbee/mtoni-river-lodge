@@ -407,6 +407,280 @@ CREATE TRIGGER staynas_distribution_booking_operational_reconcile
   FOR EACH ROW WHEN (OLD.status IS DISTINCT FROM NEW.status)
   EXECUTE FUNCTION public.staynas_reconcile_distribution_booking_operations();
 
+
+-- Provider lifecycle updates refresh the operational source projection without
+-- replaying the initial booking materialization or changing payment state.
+CREATE OR REPLACE FUNCTION public.staynas_distribution_reservation_link_lifecycle_sync()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path=''
+AS $function$
+BEGIN
+  UPDATE public.staynas_distribution_operational_reservations
+  SET provider_status=NEW.provider_status,
+      last_provider_event_id=COALESCE(NEW.last_provider_event_id,NEW.source_provider_event_id),
+      last_integrated_at=COALESCE(NEW.last_lifecycle_applied_at,pg_catalog.now()),
+      updated_at=pg_catalog.now()
+  WHERE reservation_link_id=NEW.id
+    AND organisation_id=NEW.organisation_id
+    AND property_id=NEW.property_id;
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_distribution_reservation_link_lifecycle_sync()
+  FROM PUBLIC,anon,authenticated;
+DROP TRIGGER IF EXISTS staynas_distribution_reservation_link_lifecycle_sync
+  ON public.staynas_distribution_reservation_links;
+CREATE TRIGGER staynas_distribution_reservation_link_lifecycle_sync
+  AFTER UPDATE OF provider_status,last_provider_event_id,last_lifecycle_event_type,last_lifecycle_applied_at
+  ON public.staynas_distribution_reservation_links
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_distribution_reservation_link_lifecycle_sync();
+
+-- DC-05.04 deliberately failed reinstatement closed. DC-05.07 adds a controlled
+-- reinstatement path that restores canonical inventory and the physical-room
+-- schedule atomically, while preserving the existing lifecycle worker contract.
+DO $rename$
+BEGIN
+  IF to_regprocedure('public.staynas_apply_distribution_reservation_lifecycle(uuid,uuid,text,text,text,text,text,text,timestamptz,date,date,integer,integer,text,text,text,text)') IS NOT NULL
+     AND to_regprocedure('public.staynas_apply_distribution_reservation_lifecycle_dc0504_base(uuid,uuid,text,text,text,text,text,text,timestamptz,date,date,integer,integer,text,text,text,text)') IS NULL THEN
+    ALTER FUNCTION public.staynas_apply_distribution_reservation_lifecycle(
+      uuid,uuid,text,text,text,text,text,text,timestamptz,date,date,integer,integer,text,text,text,text
+    ) RENAME TO staynas_apply_distribution_reservation_lifecycle_dc0504_base;
+  END IF;
+END
+$rename$;
+
+CREATE OR REPLACE FUNCTION public.staynas_apply_distribution_reservation_lifecycle(
+  _inbox_id uuid,
+  _lease_token uuid,
+  _worker_id text,
+  _payload_fingerprint text,
+  _external_reservation_id text,
+  _event_type text,
+  _provider_event_id text,
+  _provider_status text,
+  _provider_modified_at timestamptz,
+  _arrival_date date,
+  _departure_date date,
+  _adults integer,
+  _children integer,
+  _guest_name text DEFAULT NULL,
+  _guest_email text DEFAULT NULL,
+  _guest_phone text DEFAULT NULL,
+  _country text DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path=''
+AS $function$
+DECLARE
+  v_inbox public.staynas_distribution_webhook_inbox%ROWTYPE;
+  v_link public.staynas_distribution_reservation_links%ROWTYPE;
+  v_booking public.bookings%ROWTYPE;
+  v_connection public.staynas_distribution_connections%ROWTYPE;
+  v_source_event jsonb;
+  v_property public.staynas_properties%ROWTYPE;
+  v_room_state_id uuid;
+  v_day date;
+  v_available integer;
+  v_blocked boolean;
+  v_holds integer;
+  v_due_at timestamptz;
+  v_integration_status text;
+BEGIN
+  IF _event_type IS DISTINCT FROM 'reservation.reinstated' THEN
+    RETURN public.staynas_apply_distribution_reservation_lifecycle_dc0504_base(
+      _inbox_id,_lease_token,_worker_id,_payload_fingerprint,_external_reservation_id,
+      _event_type,_provider_event_id,_provider_status,_provider_modified_at,
+      _arrival_date,_departure_date,_adults,_children,_guest_name,_guest_email,_guest_phone,_country
+    );
+  END IF;
+
+  IF COALESCE(NULLIF(pg_catalog.current_setting('request.jwt.claim.role',true),''),auth.role())<>'service_role' THEN
+    RAISE EXCEPTION 'Reservation reinstatement is service-only.' USING ERRCODE='42501';
+  END IF;
+  SELECT * INTO v_inbox FROM public.staynas_distribution_webhook_inbox i
+  WHERE i.id=_inbox_id AND i.processing_status='processing'
+    AND i.lease_token=_lease_token AND i.lease_owner=_worker_id
+    AND i.lease_expires_at>pg_catalog.now()
+  FOR UPDATE;
+  IF v_inbox.id IS NULL THEN
+    RAISE EXCEPTION 'Reservation lifecycle lease is not current.' USING ERRCODE='42501';
+  END IF;
+  IF _payload_fingerprint IS DISTINCT FROM v_inbox.payload_fingerprint
+     OR NOT EXISTS(SELECT 1 FROM public.staynas_distribution_reservation_payloads p
+       WHERE p.inbox_id=v_inbox.id AND p.payload_fingerprint=_payload_fingerprint)
+     OR _provider_event_id IS DISTINCT FROM v_inbox.provider_event_id
+     OR _event_type IS DISTINCT FROM v_inbox.event_type
+     OR _external_reservation_id IS DISTINCT FROM v_inbox.normalized_event->>'externalReservationId'
+     OR _arrival_date IS DISTINCT FROM (v_inbox.normalized_event->>'arrivalDate')::date
+     OR _departure_date IS DISTINCT FROM (v_inbox.normalized_event->>'departureDate')::date
+     OR _adults IS DISTINCT FROM (v_inbox.normalized_event->>'adults')::integer
+     OR _children IS DISTINCT FROM COALESCE((v_inbox.normalized_event->>'children')::integer,0)
+     OR _provider_status IS DISTINCT FROM v_inbox.normalized_event->>'providerStatus'
+     OR _provider_modified_at IS DISTINCT FROM NULLIF(v_inbox.normalized_event->>'providerModifiedAt','')::timestamptz THEN
+    RETURN jsonb_build_object('outcome','manual_reconciliation','reconciliation_code','reservation_payload_mismatch');
+  END IF;
+  IF _provider_modified_at IS NULL
+     OR lower(btrim(COALESCE(_provider_status,''))) NOT IN ('confirmed','booked','accepted') THEN
+    RETURN jsonb_build_object('outcome','manual_reconciliation','reconciliation_code','invalid_reinstatement_state');
+  END IF;
+
+  SELECT c.* INTO v_connection
+  FROM public.staynas_distribution_connections c
+  JOIN public.staynas_distribution_account_grants g
+    ON g.id=c.account_grant_id AND g.organisation_id=c.organisation_id
+   AND g.property_id=c.property_id AND g.external_account_id=c.external_account_id
+   AND g.provider_key=c.provider_key AND g.environment=c.environment
+  WHERE c.id=v_inbox.connection_id AND c.organisation_id=v_inbox.organisation_id
+    AND c.property_id=v_inbox.property_id AND c.account_grant_id=v_inbox.account_grant_id
+    AND c.external_account_id=v_inbox.external_account_id AND c.provider_key=v_inbox.provider_key
+    AND c.environment=v_inbox.environment AND c.lifecycle='connected'
+    AND g.grant_status='active' AND 'reservation.update'=ANY(g.granted_capabilities);
+  IF v_connection.id IS NULL THEN
+    RETURN jsonb_build_object('outcome','manual_reconciliation','reconciliation_code','connection_grant_inactive');
+  END IF;
+
+  SELECT * INTO v_link FROM public.staynas_distribution_reservation_links l
+  WHERE l.provider_key=v_inbox.provider_key AND l.external_account_id=v_inbox.external_account_id
+    AND l.external_reservation_id=_external_reservation_id
+    AND l.organisation_id=v_inbox.organisation_id AND l.property_id=v_inbox.property_id
+    AND l.connection_id=v_inbox.connection_id AND l.account_grant_id=v_inbox.account_grant_id
+  FOR UPDATE;
+  IF v_link.id IS NULL THEN
+    RETURN jsonb_build_object('outcome','manual_reconciliation','reconciliation_code','canonical_reservation_link_missing');
+  END IF;
+  SELECT i.normalized_event INTO v_source_event
+  FROM public.staynas_distribution_webhook_inbox i WHERE i.id=v_link.source_inbox_id;
+  IF v_source_event IS NULL
+     OR v_inbox.normalized_event->>'externalListingId' IS DISTINCT FROM v_source_event->>'externalListingId'
+     OR v_inbox.normalized_event->>'externalRoomId' IS DISTINCT FROM v_source_event->>'externalRoomId'
+     OR v_inbox.normalized_event->>'externalRatePlanId' IS DISTINCT FROM v_source_event->>'externalRatePlanId' THEN
+    RETURN jsonb_build_object('outcome','manual_reconciliation','reconciliation_code','room_or_rate_plan_change_requires_reallocation');
+  END IF;
+
+  SELECT * INTO v_booking FROM public.bookings b
+  WHERE b.id=v_link.booking_id AND b.property_id=v_link.property_id FOR UPDATE;
+  IF v_booking.id IS NULL THEN
+    RETURN jsonb_build_object('outcome','manual_reconciliation','reconciliation_code','canonical_booking_missing');
+  END IF;
+  IF v_booking.status::text NOT IN ('cancelled','no_show') THEN
+    RETURN jsonb_build_object('outcome','no_lifecycle_change','reason','reservation_not_cancelled');
+  END IF;
+  IF v_link.provider_modified_at IS NOT NULL AND _provider_modified_at<=v_link.provider_modified_at THEN
+    RETURN jsonb_build_object('outcome','no_lifecycle_change','reason','stale_provider_event');
+  END IF;
+  IF _arrival_date IS DISTINCT FROM v_booking.check_in
+     OR _departure_date IS DISTINCT FROM v_booking.check_out
+     OR _adults IS DISTINCT FROM v_booking.adults
+     OR _children IS DISTINCT FROM v_booking.children THEN
+    RETURN jsonb_build_object('outcome','manual_reconciliation','reconciliation_code','stay_change_requires_reallocation');
+  END IF;
+
+  -- Reacquire canonical room inventory in date order and account for active holds.
+  PERFORM public.staynas_lock_room_inventory_dates(
+    v_booking.room_id,v_booking.property_id,v_booking.check_in,v_booking.check_out
+  );
+  v_day:=v_booking.check_in;
+  WHILE v_day<v_booking.check_out LOOP
+    SELECT ri.available_units,ri.is_blocked,
+      (SELECT count(*)::integer FROM public.booking_holds h
+       WHERE h.room_id=v_booking.room_id AND h.property_id=v_booking.property_id
+         AND h.status='active' AND h.expires_at>pg_catalog.now()
+         AND h.check_in<=v_day AND h.check_out>v_day)
+    INTO v_available,v_blocked,v_holds
+    FROM public.room_inventory ri
+    WHERE ri.room_id=v_booking.room_id AND ri.date=v_day
+    FOR UPDATE;
+    IF v_blocked OR v_available-COALESCE(v_holds,0)<=0 THEN
+      RETURN jsonb_build_object('outcome','manual_reconciliation','reconciliation_code','reinstatement_inventory_unavailable');
+    END IF;
+    v_day:=v_day+1;
+  END LOOP;
+  UPDATE public.room_inventory ri
+  SET available_units=ri.available_units-1,updated_at=pg_catalog.now()
+  WHERE ri.room_id=v_booking.room_id AND ri.date>=v_booking.check_in
+    AND ri.date<v_booking.check_out AND ri.available_units>0;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('outcome','manual_reconciliation','reconciliation_code','reinstatement_inventory_unavailable');
+  END IF;
+
+  UPDATE public.bookings
+  SET status='confirmed'::public.booking_status,
+      guest_name=COALESCE(NULLIF(btrim(_guest_name),''),guest_name),
+      guest_email=COALESCE(NULLIF(btrim(_guest_email),''),guest_email),
+      guest_phone=COALESCE(NULLIF(btrim(_guest_phone),''),guest_phone),
+      country=COALESCE(NULLIF(btrim(_country),''),country)
+  WHERE id=v_booking.id AND property_id=v_booking.property_id;
+
+  v_room_state_id:=public.staynas_allocate_distribution_physical_room(
+    v_booking.id,v_link.organisation_id,v_link.property_id
+  );
+  SELECT * INTO v_property FROM public.staynas_properties p
+  WHERE p.id=v_link.property_id AND p.organisation_id=v_link.organisation_id;
+  v_due_at:=((v_booking.check_in::timestamp+time '09:00')
+    AT TIME ZONE COALESCE(NULLIF(v_property.timezone,''),'Africa/Dar_es_Salaam'));
+
+  INSERT INTO public.ops_tasks(
+    property_id,booking_id,room_state_id,task_type,category,title,description,
+    priority,status,due_at,completed_at
+  ) VALUES (
+    v_link.property_id,v_booking.id,v_room_state_id,'channel_reservation_arrival','other',
+    'Prepare channel reservation '||v_booking.reference,
+    'Verify guest details, confirm arrival arrangements and review the allocated room before check-in.',
+    2,'pending',v_due_at,NULL
+  )
+  ON CONFLICT (booking_id,task_type)
+    WHERE booking_id IS NOT NULL AND task_type='channel_reservation_arrival'
+  DO UPDATE SET room_state_id=EXCLUDED.room_state_id,status='pending',
+    completed_at=NULL,due_at=EXCLUDED.due_at,description=EXCLUDED.description;
+
+  IF v_room_state_id IS NULL THEN
+    v_integration_status:='room_assignment_required';
+    INSERT INTO public.ops_alerts(kind,severity,booking_id,room_id,message)
+    VALUES('room_conflict','warning',v_booking.id,v_booking.room_id,
+      'Reinstated channel reservation requires physical room assignment before arrival.')
+    ON CONFLICT (booking_id,kind)
+      WHERE booking_id IS NOT NULL AND kind='room_conflict' AND resolved_at IS NULL
+    DO NOTHING;
+  ELSE
+    v_integration_status:='integrated';
+    UPDATE public.ops_alerts SET resolved_at=pg_catalog.now()
+    WHERE booking_id=v_booking.id AND kind='room_conflict' AND resolved_at IS NULL;
+  END IF;
+
+  UPDATE public.staynas_distribution_reservation_links
+  SET provider_status=_provider_status,provider_modified_at=_provider_modified_at,
+      last_provider_event_id=_provider_event_id,last_lifecycle_event_type=_event_type,
+      last_lifecycle_applied_at=pg_catalog.now()
+  WHERE id=v_link.id;
+
+  UPDATE public.staynas_distribution_operational_reservations
+  SET provider_status=_provider_status,room_state_id=v_room_state_id,
+      integration_status=v_integration_status,last_provider_event_id=_provider_event_id,
+      last_integrated_at=pg_catalog.now(),
+      last_error_code=CASE WHEN v_room_state_id IS NULL
+        THEN 'physical_room_assignment_required' ELSE NULL END,
+      updated_at=pg_catalog.now()
+  WHERE booking_id=v_booking.id AND property_id=v_booking.property_id;
+
+  RETURN jsonb_build_object('outcome','applied','booking_id',v_booking.id,
+    'status','confirmed','duplicate',false,'room_state_id',v_room_state_id,
+    'integration_status',v_integration_status,'payment_status',v_booking.payment_status,
+    'check_in_started',false);
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_apply_distribution_reservation_lifecycle(
+  uuid,uuid,text,text,text,text,text,text,timestamptz,date,date,integer,integer,text,text,text,text
+) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_apply_distribution_reservation_lifecycle(
+  uuid,uuid,text,text,text,text,text,text,timestamptz,date,date,integer,integer,text,text,text,text
+) TO service_role;
+
 -- Provider financial evidence remains a read-only finance evidence surface.
 -- It is never copied into payment, refund, folio or cash-ledger tables.
 GRANT SELECT ON public.staynas_distribution_financial_evidence TO authenticated;
