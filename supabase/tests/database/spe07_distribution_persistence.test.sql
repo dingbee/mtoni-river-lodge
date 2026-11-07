@@ -1,12 +1,13 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(32);
+SELECT plan(39);
 
 SELECT has_table('public','staynas_distribution_connections','distribution connections table exists');
 SELECT has_table('public','staynas_distribution_mappings','distribution mappings table exists');
 SELECT has_table('public','staynas_distribution_operations','operation ledger exists');
 SELECT has_table('public','staynas_distribution_outbox','transactional outbox exists');
 SELECT has_table('public','staynas_distribution_reservation_inbox','reservation inbox exists');
+SELECT has_table('public','staynas_distribution_price_commitments','immutable provider price commitment ledger exists');
 
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.staynas_distribution_connections'::regclass),
   'connections enforce row-level security');
@@ -18,11 +19,18 @@ SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.staynas_distrib
   'outbox enforces row-level security');
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.staynas_distribution_reservation_inbox'::regclass),
   'reservation inbox enforces row-level security');
+SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.staynas_distribution_price_commitments'::regclass),
+  'price commitment ledger enforces row-level security');
 
 SELECT ok(NOT has_table_privilege('anon','public.staynas_distribution_connections','SELECT'),
   'anonymous role cannot read connection secrets or metadata');
 SELECT ok(NOT has_table_privilege('authenticated','public.staynas_distribution_reservation_inbox','SELECT'),
   'authenticated browser role cannot read raw reservation inbox payloads');
+SELECT ok(NOT has_table_privilege('authenticated','public.staynas_distribution_price_commitments','SELECT'),
+  'authenticated browser role cannot read provider financial evidence');
+SELECT ok(has_function_privilege('service_role',
+  'public.staynas_distribution_record_price_commitment(uuid)','EXECUTE'),
+  'trusted service role can record price commitments');
 
 INSERT INTO public.staynas_organisations(slug,name)
 VALUES ('spe07-test-tenant-a','SPE07 Test Tenant A'),('spe07-test-tenant-b','SPE07 Test Tenant B')
@@ -143,7 +151,7 @@ SELECT is((
     (SELECT property_id FROM spe07_test_connection),
     (SELECT id FROM spe07_test_connection),
     'spe07-provider-event-1','spe07-external-reservation-1','created','1',
-    repeat('c',64),'{"external_reservation_id":"spe07-external-reservation-1","amount_minor":12345,"currency":"USD"}'::jsonb
+    repeat('c',64),'{"externalReservationId":"spe07-external-reservation-1","confirmedAmountMinor":12345,"currency":"USD","taxAmountMinor":1234,"feeAmountMinor":250,"commissionAmountMinor":500,"paymentStatus":"unpaid"}'::jsonb
   )
 ),false,'first provider reservation event is durably received');
 
@@ -153,7 +161,7 @@ SELECT is((
     (SELECT property_id FROM spe07_test_connection),
     (SELECT id FROM spe07_test_connection),
     'spe07-provider-event-1','spe07-external-reservation-1','created','1',
-    repeat('c',64),'{"external_reservation_id":"spe07-external-reservation-1","amount_minor":12345,"currency":"USD"}'::jsonb
+    repeat('c',64),'{"externalReservationId":"spe07-external-reservation-1","confirmedAmountMinor":12345,"currency":"USD","taxAmountMinor":1234,"feeAmountMinor":250,"commissionAmountMinor":500,"paymentStatus":"unpaid"}'::jsonb
   )
 ),true,'repeated provider event is identified as a duplicate');
 
@@ -161,6 +169,31 @@ SELECT is((
   SELECT count(*)::integer FROM public.staynas_distribution_reservation_inbox
   WHERE connection_id=(SELECT id FROM spe07_test_connection)
 ),1,'duplicate webhook delivery creates only one inbox record');
+
+CREATE TEMP TABLE spe07_test_price_commitment AS
+SELECT public.staynas_distribution_record_price_commitment(id) AS commitment_id
+FROM public.staynas_distribution_reservation_inbox
+WHERE provider_event_id='spe07-provider-event-1';
+
+SELECT ok((SELECT commitment_id IS NOT NULL FROM spe07_test_price_commitment),
+  'provider-confirmed financial terms are captured in the evidence ledger');
+SELECT is((
+  SELECT confirmed_amount_minor FROM public.staynas_distribution_price_commitments
+  WHERE id=(SELECT commitment_id FROM spe07_test_price_commitment)
+),12345::bigint,'provider-confirmed amount is preserved without local repricing');
+SELECT is((
+  SELECT currency FROM public.staynas_distribution_price_commitments
+  WHERE id=(SELECT commitment_id FROM spe07_test_price_commitment)
+),'USD','provider currency is preserved exactly');
+SELECT throws_ok(
+  $
+    UPDATE public.staynas_distribution_price_commitments
+    SET confirmed_amount_minor=99999
+    WHERE id=(SELECT commitment_id FROM spe07_test_price_commitment)
+  $,
+  '55000', 'Provider price commitment evidence is append-only',
+  'provider financial evidence cannot be silently modified'
+);
 
 SELECT throws_ok(
   $
