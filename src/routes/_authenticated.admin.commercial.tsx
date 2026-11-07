@@ -79,7 +79,7 @@ function FounderCommercialAdministration() {
         listPoliciesFn(),
         listAuditFn(),
       ]);
-      setPolicies(rows);
+      setPolicies(rows as PolicyRow[]);
       setAudit(auditRows as Array<Record<string, unknown>>);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Founder authorization or configuration lookup failed.");
