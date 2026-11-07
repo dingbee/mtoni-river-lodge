@@ -28,6 +28,15 @@ ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'marketing';
 -- recreates the production staff-read policy with the final authorization model.
 DROP POLICY IF EXISTS "Staff read room_states" ON public.room_states;
 
+-- The DC-05.07 fixture starts from a minimal schema where room state may be
+-- text. HK-S1's canonical state machine requires the production room_state enum.
+ALTER TABLE public.room_states ALTER COLUMN state DROP DEFAULT;
+ALTER TABLE public.room_states
+  ALTER COLUMN state TYPE public.room_state
+  USING state::text::public.room_state;
+ALTER TABLE public.room_states
+  ALTER COLUMN state SET DEFAULT 'vacant_clean'::public.room_state;
+
 ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS email text;
 
 -- DC-05.07 smoke runs inside a rollback transaction; its auth.uid() test
