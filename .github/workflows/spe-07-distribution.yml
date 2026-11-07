@@ -7,6 +7,7 @@ on:
     paths:
       - "src/domains/distribution/**"
       - "docs/database/SPE-07-distribution-persistence.sql"
+      - "supabase/tests/database/**"
       - ".github/workflows/spe-07-distribution.yml"
   pull_request:
     paths:
