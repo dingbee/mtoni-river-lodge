@@ -26,7 +26,7 @@ export async function applyInboundReservationEvent(
   const event = validateInboundEvent(rawEvent);
   if (event.eventType === "cancelled") return writer.cancel({ event });
   const externalPrice = buildExternalPriceCommitment(event);
-  if (externalPrice.priceVerificationStatus !== "verified") {
+  if (externalPrice.priceVerificationStatus === "incomplete" || externalPrice.priceVerificationStatus === "unverified") {
     return { status: "manual_review", reason: "Provider price has not passed verification; automatic booking creation or modification is prohibited." };
   }
   return event.eventType === "created"
