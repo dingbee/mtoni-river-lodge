@@ -20,6 +20,8 @@ type AdminQuery = PromiseLike<AdminQueryResult> & {
   maybeSingle: () => Promise<AdminQueryResult>;
 };
 
+type SafeRecord = Record<string, string | number | boolean | null>;
+
 type SafeConnection = {
   id: string; provider: string; external_account_id: string;
   external_property_id: string; status: string; mapping_version: number;
@@ -104,9 +106,9 @@ export const getDistributionCentre = createServerFn({ method: "GET" })
     return ({
       property: { id: property.id, organisationId: property.organisation_id, name: property.name, currency: property.currency, timezone: property.timezone },
       connections: (connections ?? []) as SafeConnection[],
-      mappings: (mappingResult.data ?? []) as Record<string, unknown>[],
-      operations: (operationResult.data ?? []) as Record<string, unknown>[],
-      inbox: (inboxResult.data ?? []) as Record<string, unknown>[],
+      mappings: (mappingResult.data ?? []) as SafeRecord[],
+      operations: (operationResult.data ?? []) as SafeRecord[],
+      inbox: (inboxResult.data ?? []) as SafeRecord[],
       runtime: {
         providerAdaptersRegistered: 0,
         outboundDispatchEnabled: false,
