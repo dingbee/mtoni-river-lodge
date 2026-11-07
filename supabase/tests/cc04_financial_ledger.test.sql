@@ -11,6 +11,7 @@ DECLARE
   v_payment_failed uuid;
   v_unallocated_payment uuid;
   v_unallocated_payment2 uuid;
+  v_unallocated_payment3 uuid;
   v_unallocated_allocation uuid;
   v_org2 uuid := '71000000-0000-4000-8000-000000000002';
   v_account2 uuid := '73000000-0000-4000-8000-000000000002';
@@ -308,6 +309,30 @@ BEGIN
     RAISE EXCEPTION 'Cross-tenant payment allocation was accepted';
   EXCEPTION WHEN SQLSTATE '55000' THEN NULL;
   END;
+
+  v_unallocated_payment3 := public.commercial_record_unallocated_payment(
+    v_account,v_provider,20000,'TZS','cc04-reversed-before-allocation',v_user
+  );
+  PERFORM public.commercial_confirm_unallocated_payment(
+    v_unallocated_payment3,'manual-reversed-before-allocation',20000,'TZS',
+    'authorized_manual_verification',now()
+  );
+  PERFORM public.commercial_record_payment_reversal(
+    v_unallocated_payment3,'manual-reverse-unallocated-5000',5000,'TZS',
+    'partial_unallocated_refund','cc04-reverse-before-allocation',now(),v_user
+  );
+  BEGIN
+    PERFORM public.commercial_allocate_unallocated_payment(
+      v_unallocated_payment3,v_invoice_id3,16000,'reversed-funds-over-allocation',
+      'cc04-reversed-funds-over-allocation',v_user
+    );
+    RAISE EXCEPTION 'Previously reversed funds were allocated';
+  EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
+  END;
+  PERFORM public.commercial_allocate_unallocated_payment(
+    v_unallocated_payment3,v_invoice_id3,15000,'remaining-unallocated-settlement',
+    'cc04-remaining-unallocated-allocation',v_user
+  );
 
   IF has_table_privilege('authenticated','public.commercial_invoices','SELECT')
     OR has_table_privilege('authenticated','public.commercial_payment_transactions','SELECT')
