@@ -1,0 +1,94 @@
+name: CC-04 commercial billing and settlement
+
+on:
+  push:
+    branches:
+      - feat/cc-04-*
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  cc04-database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Bootstrap isolated Supabase-compatible schema
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+          CREATE ROLE service_role NOLOGIN BYPASSRLS;
+          CREATE SCHEMA auth;
+          CREATE TABLE auth.users(id uuid PRIMARY KEY);
+          CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
+            SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid
+          $$;
+          CREATE TABLE public.staynas_organisations(id uuid PRIMARY KEY, slug text UNIQUE NOT NULL, name text NOT NULL, status text NOT NULL DEFAULT 'active');
+          CREATE TABLE public.commercial_accounts(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id), status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(organisation_id));
+          CREATE TABLE public.commercial_subscriptions(
+            id uuid PRIMARY KEY, account_id uuid NOT NULL REFERENCES public.commercial_accounts(id),
+            plan_code text NOT NULL, plan_version integer NOT NULL, currency text NOT NULL,
+            billing_term text NOT NULL, property_count integer NOT NULL, addon_codes text[] NOT NULL DEFAULT '{}',
+            price_resolution_ref text NOT NULL, accepted_price_snapshot jsonb NOT NULL,
+            quote_required boolean NOT NULL DEFAULT false, commercial_acceptance_ref text,
+            status text NOT NULL DEFAULT 'pending_activation', activated_at timestamptz,
+            current_period_starts_at timestamptz, current_period_ends_at timestamptz,
+            created_by uuid, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+            UNIQUE(id,account_id)
+          );
+          GRANT USAGE ON SCHEMA public,auth TO service_role;
+          GRANT ALL ON ALL TABLES IN SCHEMA public,auth TO service_role;
+          GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
+          SQL
+      - name: Apply CC-04 migration to isolated PostgreSQL 17
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/20261107160000_cc04_financial_ledger.sql
+      - name: Verify financial constraints, idempotency, partial allocation, reversal and immutability
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/cc04_financial_ledger.test.sql
+  cc04-contracts:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Verify CC-04 settlement contracts
+        run: bunx vitest run src/domains/commercial/settlement-contract.test.ts src/domains/commercial/commercial-billing-engine.test.ts src/domains/commercial/commercial-payment-adapters.test.ts src/domains/commercial/commercial-reconciliation-engine.test.ts
+      - name: Generate routes and verify production build
+        run: bun run build
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Lint CC-04 contracts
+        run: bunx eslint src/domains/commercial/settlement-contract.ts src/domains/commercial/settlement-contract.test.ts src/domains/commercial/commercial-billing-engine.ts src/domains/commercial/commercial-payment-adapters.ts src/domains/commercial/commercial-reconciliation-engine.ts src/domains/commercial/commercial-payment.functions.ts src/domains/commercial/commercial-pesapal.server.ts src/domains/commercial/commercial-invoice-document.server.ts src/domains/commercial/commercial-financial-notifications.server.ts src/routes/api/public/commercial-pesapal.ipn.ts --rule 'prettier/prettier: off'
