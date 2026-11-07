@@ -72,7 +72,10 @@ BEGIN
   ) VALUES(
     v_inbox,v_org,v_property,v_connection,v_grant,v_account,'airbnb','sandbox',
     'dc0507-event-1','reservation.created',repeat('a',64),
-    jsonb_build_object('externalReservationId','dc0507-reservation-1','externalListingId','dc0507-listing',\n      'externalRoomId',NULL,'externalRatePlanId',NULL,'providerStatus','confirmed',\n      'arrivalDate','2026-12-10','departureDate','2026-12-12','adults',2,'children',0,\n      'providerModifiedAt',NULL),
+    jsonb_build_object('externalReservationId','dc0507-reservation-1','externalListingId','dc0507-listing',
+      'externalRoomId',NULL,'externalRatePlanId',NULL,'providerStatus','confirmed',
+      'arrivalDate','2026-12-10','departureDate','2026-12-12','adults',2,'children',0,
+      'providerModifiedAt',NULL),
     'dc0507-correlation'
   );
 
