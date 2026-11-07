@@ -542,7 +542,9 @@ BEGIN
     OR p_external_reservation_id IS NULL OR length(btrim(p_external_reservation_id)) NOT BETWEEN 1 AND 255
     OR p_event_type IS NULL OR p_event_type NOT IN ('created','modified','cancelled')
     OR p_payload_fingerprint IS NULL OR p_payload_fingerprint !~ '^[a-f0-9]{64}$'
-    OR p_normalized_payload IS NULL OR jsonb_typeof(p_normalized_payload)<>'object' THEN
+    OR p_normalized_payload IS NULL OR jsonb_typeof(p_normalized_payload)<>'object'
+    OR coalesce(p_normalized_payload->>'externalReservationId','')<>btrim(p_external_reservation_id)
+    OR coalesce(p_normalized_payload->>'eventType','')<>p_event_type THEN
     RAISE EXCEPTION 'Invalid normalized reservation event' USING ERRCODE='22023';
   END IF;
   IF NOT EXISTS (
