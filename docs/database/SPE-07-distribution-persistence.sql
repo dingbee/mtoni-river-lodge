@@ -762,7 +762,7 @@ CREATE TABLE IF NOT EXISTS public.staynas_distribution_external_reservation_allo
   adults integer NOT NULL CHECK (adults BETWEEN 1 AND 20),
   children integer NOT NULL DEFAULT 0 CHECK (children BETWEEN 0 AND 20),
   amount_minor bigint NOT NULL CHECK (amount_minor>=0),
-  booking_id uuid REFERENCES public.bookings(id) ON DELETE RESTRICT,
+  booking_id uuid NOT NULL REFERENCES public.bookings(id) ON DELETE RESTRICT,
   status text NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed','cancelled')),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -1035,7 +1035,9 @@ BEGIN
     OR (v_inbox.normalized_payload ? 'externalAccountId'
       AND v_inbox.normalized_payload->>'externalAccountId'<>v_connection.external_account_id)
     OR (v_inbox.normalized_payload ? 'externalPropertyId'
-      AND v_inbox.normalized_payload->>'externalPropertyId'<>v_connection.external_property_id) THEN
+      AND v_inbox.normalized_payload->>'externalPropertyId'<>v_connection.external_property_id)
+    OR (v_inbox.normalized_payload ? 'eventVersion'
+      AND coalesce(v_inbox.normalized_payload->>'eventVersion','')<>coalesce(v_inbox.event_version,'')) THEN
     RETURN jsonb_build_object('status','manual_review','reason','Normalized provider identity does not match the authenticated connection and inbox envelope.');
   END IF;
   IF NOT public.staynas_distribution_price_commitment_is_verified(p_inbox_id) THEN
@@ -1047,6 +1049,9 @@ BEGIN
     RETURN jsonb_build_object('status','manual_review','reason','Provider currency precision exceeds canonical booking monetary precision.');
   END IF;
   v_total:=v_commitment.confirmed_amount_minor::numeric/power(10::numeric,v_exponent);
+  IF coalesce(v_commitment.tax_amount_minor,0)+coalesce(v_commitment.fee_amount_minor,0)>v_commitment.confirmed_amount_minor THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Provider tax and fee components exceed the confirmed reservation amount.');
+  END IF;
 
   v_allocations:=v_inbox.normalized_payload->'allocations';
   IF v_allocations IS NULL THEN
@@ -1121,7 +1126,9 @@ BEGIN
         deposit_amount=0,balance_amount=v_amount,balance_due=v_amount,
         pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
           'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
-          'event_version',v_inbox.event_version)
+          'event_version',v_inbox.event_version,'tax_amount_minor',v_commitment.tax_amount_minor,
+          'fee_amount_minor',v_commitment.fee_amount_minor,'commission_amount_minor',v_commitment.commission_amount_minor,
+          'provider_payment_status',v_commitment.provider_payment_status)
       WHERE id=v_old_alloc.booking_id;
       UPDATE public.staynas_distribution_external_reservation_allocations
       SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
@@ -1232,7 +1239,7 @@ BEGIN
       v_day:=v_day+1;
     END LOOP;
 
-    v_reference:='OTA-'||upper(substr(md5(v_inbox.connection_id::text||v_inbox.external_reservation_id||v_alloc->>'externalAllocationId'),1,12));
+    v_reference:='OTA-'||upper(substr(md5(v_inbox.connection_id::text||v_inbox.external_reservation_id||(v_alloc->>'externalAllocationId')),1,12));
     INSERT INTO public.bookings(
       reference,room_id,property_id,check_in,check_out,nights,adults,children,
       guest_name,guest_email,guest_phone,currency,source,
@@ -1251,7 +1258,9 @@ BEGIN
         'external_reservation_id',v_inbox.external_reservation_id,
         'external_allocation_id',v_alloc->>'externalAllocationId',
         'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
-        'event_version',v_inbox.event_version)
+        'event_version',v_inbox.event_version,'tax_amount_minor',v_commitment.tax_amount_minor,
+        'fee_amount_minor',v_commitment.fee_amount_minor,'commission_amount_minor',v_commitment.commission_amount_minor,
+        'provider_payment_status',v_commitment.provider_payment_status)
     ) RETURNING id INTO v_booking_id;
 
     v_day:=(v_alloc->>'arrivalDate')::date;
