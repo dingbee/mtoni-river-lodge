@@ -19,6 +19,18 @@ CREATE TABLE IF NOT EXISTS public.commercial_policy_config_versions (
 COMMENT ON TABLE public.commercial_policy_config_versions IS
   'Append-only, versioned global StayNas commercial policy configuration. Authored only by verified founder administrators. No tenant-level policy overrides.';
 
+-- One current published pointer per policy family. Historical versions remain
+-- immutable and auditable; publishing a new version atomically advances pointer.
+CREATE TABLE IF NOT EXISTS public.commercial_policy_config_current (
+  policy_type text PRIMARY KEY CHECK (policy_type IN ('catalogue', 'pricing', 'composition', 'trial_policy')),
+  version_id uuid NOT NULL UNIQUE REFERENCES public.commercial_policy_config_versions(id),
+  published_by uuid NOT NULL REFERENCES auth.users(id),
+  published_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.commercial_policy_config_current ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.commercial_policy_config_current FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON TABLE public.commercial_policy_config_current TO service_role;
+
 ALTER TABLE public.commercial_policy_config_versions ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.commercial_policy_config_versions FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.commercial_policy_config_versions TO service_role;
@@ -93,6 +105,16 @@ BEGIN
   ) VALUES (
     _policy_type, _version, _status, _payload, _effective_from, _effective_to, v_actor
   ) RETURNING id INTO v_id;
+
+  IF _status = 'published' THEN
+    INSERT INTO public.commercial_policy_config_current (
+      policy_type, version_id, published_by, published_at
+    ) VALUES (_policy_type, v_id, v_actor, now())
+    ON CONFLICT (policy_type) DO UPDATE SET
+      version_id = EXCLUDED.version_id,
+      published_by = EXCLUDED.published_by,
+      published_at = EXCLUDED.published_at;
+  END IF;
 
   INSERT INTO public.commercial_audit_events (
     request_id, actor_user_id, actor_organisation_id, actor_role,
