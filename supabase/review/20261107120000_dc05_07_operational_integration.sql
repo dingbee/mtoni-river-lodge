@@ -488,6 +488,8 @@ BEGIN
     last_error_code=EXCLUDED.last_error_code,
     updated_at=pg_catalog.now();
 
+  PERFORM public.staynas_sync_distribution_event_history(v_link.source_inbox_id);
+
   RETURN jsonb_build_object(
     'ok',true,'booking_id',v_booking.id,'guest_id',v_booking.guest_id,
     'room_state_id',v_room_state_id,'integration_status',v_integration_status,
