@@ -30,7 +30,7 @@ export const updateStayNasDemoRequest = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertFounder(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin
+    const { error } = await (supabaseAdmin as any)
       .from("staynas_website_demo_requests")
       .update({ status: data.status, updated_at: new Date().toISOString() })
       .eq("id", data.id);
