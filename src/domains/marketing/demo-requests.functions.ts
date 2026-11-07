@@ -11,7 +11,7 @@ export const listStayNasDemoRequests = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertFounder(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from("staynas_website_demo_requests")
       .select("id, name, email, phone, company, country, property_type, property_count_band, interests, message, status, created_at")
       .order("created_at", { ascending: false })
