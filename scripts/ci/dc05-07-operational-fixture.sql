@@ -66,7 +66,19 @@ ALTER TABLE public.ops_tasks
   ADD COLUMN IF NOT EXISTS completed_at timestamptz;
 
 -- Minimal stand-in for the already-installed HK-S1 transition audit table.
--- The production table is created by the Housekeeping domain migration.
+-- The production enum/table are created by the Housekeeping domain migrations.
+DO $room_state_type$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid=t.typnamespace
+    WHERE n.nspname='public' AND t.typname='room_state'
+  ) THEN
+    CREATE TYPE public.room_state AS ENUM (
+      'vacant_clean','vacant_dirty','occupied','reserved','inspection','maintenance','out_of_service'
+    );
+  END IF;
+END
+$room_state_type$;
 CREATE TABLE IF NOT EXISTS public.housekeeping_transition_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   room_state_id uuid NOT NULL REFERENCES public.room_states(id) ON DELETE CASCADE,
