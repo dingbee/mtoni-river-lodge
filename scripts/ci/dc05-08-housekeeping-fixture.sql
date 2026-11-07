@@ -31,6 +31,21 @@ ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS email text;
 ALTER TABLE public.ops_tasks
   ADD COLUMN IF NOT EXISTS assignee_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
 
+DO $task_status$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid=t.typnamespace
+    WHERE n.nspname='public' AND t.typname='ops_task_status'
+  ) THEN
+    CREATE TYPE public.ops_task_status AS ENUM ('pending','in_progress','completed','cancelled');
+  END IF;
+END
+$task_status$;
+
+ALTER TABLE public.ops_tasks
+  ALTER COLUMN status TYPE public.ops_task_status
+  USING status::text::public.ops_task_status;
+
 CREATE TABLE IF NOT EXISTS public.user_roles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
