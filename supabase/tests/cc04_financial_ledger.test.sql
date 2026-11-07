@@ -10,7 +10,11 @@ DECLARE
   v_payment2 uuid;
   v_payment_failed uuid;
   v_unallocated_payment uuid;
+  v_unallocated_payment2 uuid;
   v_unallocated_allocation uuid;
+  v_org2 uuid := '71000000-0000-4000-8000-000000000002';
+  v_account2 uuid := '73000000-0000-4000-8000-000000000002';
+  v_sub2 uuid := '74000000-0000-4000-8000-000000000002';
   v_unallocated_view numeric;
   v_invoice jsonb;
   v_invoice2 jsonb;
@@ -269,6 +273,41 @@ BEGIN
   IF (SELECT status FROM public.commercial_invoices WHERE id=v_invoice_id3) <> 'issued' THEN
     RAISE EXCEPTION 'Invoice draft did not transition to issued';
   END IF;
+
+  INSERT INTO public.staynas_organisations(id,slug,name) VALUES
+    (v_org2,'cc04-isolation-test','CC04 Isolation Test');
+  INSERT INTO public.commercial_accounts(id,organisation_id) VALUES (v_account2,v_org2);
+  INSERT INTO public.commercial_subscriptions(
+    id,account_id,plan_code,plan_version,currency,billing_term,property_count,
+    price_resolution_ref,accepted_price_snapshot,commercial_acceptance_ref,status,activated_at,
+    current_period_starts_at,current_period_ends_at
+  ) VALUES (
+    v_sub2,v_account2,'professional',1,'TZS','monthly',1,'cc04-price-ref-tenant-two',
+    '{"currency":"TZS","totalAmountMinor":120000,"lines":[{"code":"professional_base","kind":"plan_base","description":"Tenant two subscription","quantity":1,"unitAmountMinor":120000,"amountMinor":120000}]}',
+    'cc04-accepted-tenant-two','active',now(),now(),now()+interval '1 month'
+  );
+  v_invoice2 := public.commercial_create_invoice_from_subscription(
+    v_sub2,now(),now()+interval '1 month',now()+interval '14 days',
+    'cc04-tenant-two-invoice',
+    '{"treatment":"not_applicable","policyRef":"tax-policy-test-v1","amountMinor":0,"currency":"TZS"}',
+    '{"amountMinor":0,"policyRef":"discount-none-v1"}',v_user
+  );
+  v_invoice_id2 := (v_invoice2->>'invoiceId')::uuid;
+  v_unallocated_payment2 := public.commercial_record_unallocated_payment(
+    v_account,v_provider,5000,'TZS','cc04-cross-tenant-payment',v_user
+  );
+  PERFORM public.commercial_confirm_unallocated_payment(
+    v_unallocated_payment2,'manual-cross-tenant-receipt',5000,'TZS',
+    'authorized_manual_verification',now()
+  );
+  BEGIN
+    PERFORM public.commercial_allocate_unallocated_payment(
+      v_unallocated_payment2,v_invoice_id2,5000,'cross-tenant-settlement',
+      'cc04-cross-tenant-allocation',v_user
+    );
+    RAISE EXCEPTION 'Cross-tenant payment allocation was accepted';
+  EXCEPTION WHEN SQLSTATE '55000' THEN NULL;
+  END;
 
   IF has_table_privilege('authenticated','public.commercial_invoices','SELECT')
     OR has_table_privilege('authenticated','public.commercial_payment_transactions','SELECT')
