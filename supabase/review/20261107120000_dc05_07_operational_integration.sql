@@ -76,6 +76,96 @@ CREATE POLICY staynas_ops_alerts_property_scope ON public.ops_alerts
     OR (property_id IS NULL AND public.is_any_staff(auth.uid()))
   );
 
+CREATE OR REPLACE FUNCTION public.staynas_enforce_ops_task_property_scope()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path=''
+AS $function$
+DECLARE
+  v_booking_property uuid;
+  v_room_property uuid;
+  v_room_state_id uuid;
+BEGIN
+  IF NEW.booking_id IS NOT NULL THEN
+    SELECT b.property_id INTO v_booking_property
+    FROM public.bookings b WHERE b.id=NEW.booking_id;
+    IF v_booking_property IS NULL THEN
+      RAISE EXCEPTION 'Operations task booking scope is invalid.' USING ERRCODE='42501';
+    END IF;
+    IF NEW.property_id IS NULL THEN
+      NEW.property_id:=v_booking_property;
+    ELSIF NEW.property_id IS DISTINCT FROM v_booking_property THEN
+      RAISE EXCEPTION 'Operations task property does not match its booking.' USING ERRCODE='42501';
+    END IF;
+    IF NEW.room_state_id IS NULL THEN
+      SELECT rs.id INTO v_room_state_id FROM public.room_states rs
+      WHERE rs.booking_id=NEW.booking_id ORDER BY rs.id LIMIT 1;
+      NEW.room_state_id:=v_room_state_id;
+    END IF;
+  END IF;
+  IF NEW.room_state_id IS NOT NULL THEN
+    SELECT r.property_id INTO v_room_property
+    FROM public.room_states rs JOIN public.rooms r ON r.id=rs.room_id
+    WHERE rs.id=NEW.room_state_id;
+    IF v_room_property IS NULL OR v_room_property IS DISTINCT FROM NEW.property_id THEN
+      RAISE EXCEPTION 'Operations task room assignment crosses property scope.' USING ERRCODE='42501';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_enforce_ops_task_property_scope()
+  FROM PUBLIC,anon,authenticated;
+DROP TRIGGER IF EXISTS staynas_ops_task_property_scope ON public.ops_tasks;
+CREATE TRIGGER staynas_ops_task_property_scope
+  BEFORE INSERT OR UPDATE OF booking_id,property_id,room_state_id
+  ON public.ops_tasks FOR EACH ROW
+  EXECUTE FUNCTION public.staynas_enforce_ops_task_property_scope();
+
+CREATE OR REPLACE FUNCTION public.staynas_enforce_ops_alert_property_scope()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path=''
+AS $function$
+DECLARE
+  v_booking_property uuid;
+  v_room_property uuid;
+BEGIN
+  IF NEW.booking_id IS NOT NULL THEN
+    SELECT b.property_id INTO v_booking_property
+    FROM public.bookings b WHERE b.id=NEW.booking_id;
+    IF v_booking_property IS NULL THEN
+      RAISE EXCEPTION 'Operations alert booking scope is invalid.' USING ERRCODE='42501';
+    END IF;
+    IF NEW.property_id IS NULL THEN
+      NEW.property_id:=v_booking_property;
+    ELSIF NEW.property_id IS DISTINCT FROM v_booking_property THEN
+      RAISE EXCEPTION 'Operations alert property does not match its booking.' USING ERRCODE='42501';
+    END IF;
+  END IF;
+  IF NEW.room_id IS NOT NULL THEN
+    SELECT r.property_id INTO v_room_property
+    FROM public.rooms r WHERE r.id=NEW.room_id;
+    IF v_room_property IS NULL OR (NEW.property_id IS NOT NULL AND v_room_property IS DISTINCT FROM NEW.property_id) THEN
+      RAISE EXCEPTION 'Operations alert room assignment crosses property scope.' USING ERRCODE='42501';
+    END IF;
+    NEW.property_id:=COALESCE(NEW.property_id,v_room_property);
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_enforce_ops_alert_property_scope()
+  FROM PUBLIC,anon,authenticated;
+DROP TRIGGER IF EXISTS staynas_ops_alert_property_scope ON public.ops_alerts;
+CREATE TRIGGER staynas_ops_alert_property_scope
+  BEFORE INSERT OR UPDATE OF booking_id,property_id,room_id
+  ON public.ops_alerts FOR EACH ROW
+  EXECUTE FUNCTION public.staynas_enforce_ops_alert_property_scope();
+
 ALTER TABLE public.room_states ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Staff manage room_states" ON public.room_states;
 DROP POLICY IF EXISTS staynas_room_states_property_scope ON public.room_states;
