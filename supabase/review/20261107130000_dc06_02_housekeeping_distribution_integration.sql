@@ -3,6 +3,20 @@
 -- Read-only projection: this function never mutates bookings, allocations, room state or tasks.
 BEGIN;
 
+DO $dependencies$
+BEGIN
+  IF to_regclass('public.staynas_distribution_operational_reservations') IS NULL
+     OR to_regclass('public.staynas_distribution_room_allocations') IS NULL
+     OR to_regclass('public.housekeeping_inspections') IS NULL
+     OR to_regclass('public.ops_tasks') IS NULL
+     OR to_regclass('public.room_states') IS NULL
+     OR to_regprocedure('public.staynas_active_property_id(uuid)') IS NULL
+     OR to_regprocedure('public.staynas_user_has_property_access(uuid,uuid)') IS NULL THEN
+    RAISE EXCEPTION 'DC-06.02 requires DC-05.07 operational projections and the property-scoped Housekeeping foundation.';
+  END IF;
+END
+$dependencies$;
+
 CREATE OR REPLACE FUNCTION public.housekeeping_list_distribution_handoffs()
 RETURNS TABLE (
   booking_id uuid,
