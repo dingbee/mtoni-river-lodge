@@ -155,7 +155,34 @@ export const Route = createFileRoute('/api/public/ops/drain')({
           }
         }
 
-        return Response.json({ ok: true, processed: results.length, results })
+        // Process a bounded batch of provider financial webhooks on the existing cron drain.
+        // Provider callbacks are persisted as evidence only; the finance ledger is not mutated.
+        const financeResults: Array<{ ok: boolean; status?: string; error?: string }> = []
+        try {
+          const { processNextDistributionFinancialEvidence } = await import(
+            '@/domains/distribution/reservations/provider-financial-evidence.server'
+          )
+          for (let i = 0; i < 10; i += 1) {
+            const evidence = await processNextDistributionFinancialEvidence('scheduled-ops-drain', 60)
+            if (!evidence) break
+            financeResults.push({
+              ok: true,
+              status: typeof evidence.status === 'string' ? evidence.status : 'recorded',
+            })
+          }
+        } catch (e: any) {
+          financeResults.push({ ok: false, error: 'provider_finance_processing_failed' })
+        }
+
+        return Response.json({
+          ok: true,
+          processed: results.length,
+          results,
+          provider_finance: {
+            processed: financeResults.length,
+            results: financeResults,
+          },
+        })
       },
     },
   },
