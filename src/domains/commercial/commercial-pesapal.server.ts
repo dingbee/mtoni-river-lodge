@@ -80,7 +80,7 @@ export async function queryTenantPesapalStatus(input: {
   const result = await pesapalRequest(input.providerAccountId, secret,
     `/api/Transactions/GetTransactionStatus?orderTrackingId=${encodeURIComponent(input.orderTrackingId)}`, "GET");
   return {
-    amount: typeof result.amount === "number" ? result.amount : Number(result.amount),
+    amount: String(result.amount),
     currency: typeof result.currency === "string" ? result.currency : null,
     statusCode: typeof result.status_code === "number" ? result.status_code : Number(result.status_code),
     confirmationCode: typeof result.confirmation_code === "string" ? result.confirmation_code : null,
