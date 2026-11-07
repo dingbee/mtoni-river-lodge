@@ -6,7 +6,7 @@ export function fingerprintInboundEvent(event: InboundReservationEvent): string 
     event.provider, event.externalAccountId, event.externalPropertyId,
     event.externalReservationId, event.eventId, event.eventType,
     event.eventVersion ?? "", event.rawPayloadFingerprint,
-  ].join("\\0")).digest("hex");
+  ].join("\0")).digest("hex");
 }
 
 export type InboundSequenceDecision = "apply" | "duplicate" | "stale" | "manual_review";
@@ -22,7 +22,7 @@ export function decideInboundEventSequence(input: {
   if (!input.existingEventId) return "apply";
   if (!input.providerSupportsVersioning) return "manual_review";
   if (input.existingVersion === null || input.incomingVersion === null) return "manual_review";
-  if (/^\\d+$/.test(input.existingVersion) && /^\\d+$/.test(input.incomingVersion)) {
+  if (/^\d+$/.test(input.existingVersion) && /^\d+$/.test(input.incomingVersion)) {
     const oldVersion = BigInt(input.existingVersion);
     const newVersion = BigInt(input.incomingVersion);
     return newVersion > oldVersion ? "apply" : newVersion === oldVersion ? "duplicate" : "stale";
