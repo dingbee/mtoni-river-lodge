@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { randomUUID } from "node:crypto";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   commercialTrialPolicySchema,
@@ -161,7 +160,7 @@ export const listMyCommercialSubscriptions = createServerFn({ method: "GET" })
     if (subscriptionsError) throw new Error("Unable to load tenant subscriptions.");
 
     await writeCommercialAudit(admin, actor, {
-      requestId: randomUUID(),
+      requestId: globalThis.crypto.randomUUID(),
       action: "subscription.listed",
       resourceType: "commercial_account",
       resourceRef: account.id,
@@ -181,7 +180,7 @@ export const activateMyCommercialTrial = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => activateTrialInput.parse(input))
   .handler(async ({ data, context }) => {
     const actor = await resolveVerifiedTenantActor(context);
-    const requestId = randomUUID();
+    const requestId = globalThis.crypto.randomUUID();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const admin = supabaseAdmin as any;
 
@@ -353,7 +352,7 @@ export const listCommercialAccountsForFounder = createServerFn({ method: "GET" }
     if (error) throw new Error("Unable to load commercial accounts.");
 
     await writeCommercialAudit(admin, actor, {
-      requestId: randomUUID(),
+      requestId: globalThis.crypto.randomUUID(),
       action: "commercial_accounts.listed",
       resourceType: "commercial_account",
       resourceRef: "founder-account-index",
