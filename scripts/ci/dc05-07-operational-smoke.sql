@@ -465,9 +465,9 @@ RESET ROLE;
 
 -- Verify DC-06.02 exposes the completed channel stay as an active-property
 -- Housekeeping turnover handoff, while rejecting a different property user.
-CREATE OR REPLACE FUNCTION public.staynas_active_property_id(_uid uuid DEFAULT auth.uid())
+CREATE OR REPLACE FUNCTION public.staynas_active_property_id(_user_id uuid DEFAULT auth.uid())
 RETURNS uuid LANGUAGE sql STABLE AS $function$
-  SELECT CASE WHEN _uid='07070000-0000-4000-8000-000000000003'::uuid
+  SELECT CASE WHEN _user_id='07070000-0000-4000-8000-000000000003'::uuid
     THEN '07070000-0000-4000-8000-000000000002'::uuid ELSE NULL END
 $function$;
 CREATE OR REPLACE FUNCTION public.has_any_role(_uid uuid,_roles public.app_role[])
