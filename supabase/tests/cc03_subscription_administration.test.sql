@@ -10,6 +10,9 @@ DECLARE
   v_org2 uuid := '61000000-0000-4000-8000-000000000002';
   v_account2 uuid := '62000000-0000-4000-8000-000000000002';
   v_pending uuid := '63000000-0000-4000-8000-000000000002';
+  v_org3 uuid := '61000000-0000-4000-8000-000000000003';
+  v_account3 uuid := '62000000-0000-4000-8000-000000000003';
+  v_expired uuid := '63000000-0000-4000-8000-000000000003';
   v_result jsonb;
   v_status text;
   v_event_count integer;
@@ -44,6 +47,25 @@ BEGIN
   ) VALUES (
     v_pending, v_account2, 'essential', 1, 'TZS', 'monthly',
     1, 'cc034-pending-price-v1', '{"currency":"TZS","total":50000}'
+  );
+
+
+  INSERT INTO public.staynas_organisations(id, slug, name)
+  VALUES (v_org3, 'cc034-admin-test-3', 'CC034 Administration Test 3');
+  INSERT INTO public.commercial_accounts(id, organisation_id)
+  VALUES (v_account3, v_org3);
+  INSERT INTO public.commercial_subscriptions(
+    id, account_id, plan_code, plan_version, currency, billing_term,
+    property_count, price_resolution_ref, accepted_price_snapshot,
+    commercial_acceptance_ref, status, activated_at,
+    current_period_starts_at, current_period_ends_at,
+    suspended_at, suspension_reason_code, suspended_from_status
+  ) VALUES (
+    v_expired, v_account3, 'professional', 1, 'TZS', 'monthly',
+    1, 'cc034-expired-price-v1', '{"currency":"TZS","total":120000}',
+    'accepted-agreement-expired', 'suspended', now() - interval '60 days',
+    now() - interval '60 days', now() - interval '30 days',
+    now() - interval '20 days', 'payment_overdue', 'active'
   );
 
   PERFORM set_config('request.jwt.claim.role', 'authenticated', true);
@@ -144,11 +166,20 @@ BEGIN
     RAISE EXCEPTION 'Renewal authorization must not extend a paid period before CC-04 settlement';
   END IF;
 
+
+  v_result := public.commercial_apply_subscription_command(
+    v_account3, v_expired, 'expire', 'cc034-expire-suspended-01',
+    NULL, NULL, 'service_principal', 'period_elapsed', NULL, NULL
+  );
+  IF v_result->>'status' <> 'expired' THEN
+    RAISE EXCEPTION 'System expiry did not terminate an elapsed suspended subscription: %', v_result;
+  END IF;
+
   SELECT count(*) INTO v_event_count
   FROM public.commercial_subscription_events
-  WHERE account_id IN (v_account, v_account2);
-  IF v_event_count <> 5 THEN
-    RAISE EXCEPTION 'Expected five unique lifecycle events, found %', v_event_count;
+  WHERE account_id IN (v_account, v_account2, v_account3);
+  IF v_event_count <> 6 THEN
+    RAISE EXCEPTION 'Expected six unique lifecycle events, found %', v_event_count;
   END IF;
 
   IF NOT EXISTS (
