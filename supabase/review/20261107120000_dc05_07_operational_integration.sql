@@ -127,7 +127,8 @@ BEGIN
   FOR v_unit IN
     SELECT rs.* FROM public.room_states rs
     WHERE rs.room_id=v_booking.room_id
-      AND rs.state NOT IN ('maintenance','out_of_service')
+      AND rs.state IN ('vacant_clean','inspection')
+      AND rs.booking_id IS NULL
       AND NOT EXISTS (
         SELECT 1 FROM public.staynas_distribution_room_allocations a
         WHERE a.room_state_id=rs.id
@@ -166,6 +167,54 @@ REVOKE ALL ON FUNCTION public.staynas_allocate_distribution_physical_room(uuid,u
   FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.staynas_allocate_distribution_physical_room(uuid,uuid,uuid)
   TO service_role;
+
+-- Bind the date-range assignment to the exact physical unit immediately before
+-- staff check-in. The shared lifecycle core then performs its existing occupied
+-- transition against this assigned unit rather than selecting an arbitrary unit.
+CREATE OR REPLACE FUNCTION public.staynas_bind_distribution_room_for_checkin()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path=''
+AS $function$
+DECLARE
+  v_allocation public.staynas_distribution_room_allocations%ROWTYPE;
+  v_room_state public.room_states%ROWTYPE;
+BEGIN
+  IF NEW.source='channel' AND NEW.status::text='checked_in'
+     AND OLD.status::text IS DISTINCT FROM NEW.status::text THEN
+    SELECT * INTO v_allocation
+    FROM public.staynas_distribution_room_allocations a
+    WHERE a.booking_id=NEW.id AND a.property_id=NEW.property_id
+      AND a.allocation_status='reserved'
+      AND a.check_in=NEW.check_in AND a.check_out=NEW.check_out
+    FOR UPDATE;
+    IF v_allocation.id IS NULL THEN
+      RAISE EXCEPTION 'Channel reservation requires a confirmed physical room assignment before check-in.'
+        USING ERRCODE='55000';
+    END IF;
+    SELECT * INTO v_room_state FROM public.room_states rs
+    WHERE rs.id=v_allocation.room_state_id AND rs.room_id=NEW.room_id
+    FOR UPDATE;
+    IF v_room_state.id IS NULL OR v_room_state.state NOT IN ('vacant_clean','inspection')
+       OR v_room_state.booking_id IS NOT NULL THEN
+      RAISE EXCEPTION 'Assigned physical room is not ready for check-in; housekeeping or reassignment is required.'
+        USING ERRCODE='55000';
+    END IF;
+    UPDATE public.room_states
+    SET booking_id=NEW.id,state='reserved'
+    WHERE id=v_room_state.id;
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_bind_distribution_room_for_checkin()
+  FROM PUBLIC,anon,authenticated;
+DROP TRIGGER IF EXISTS staynas_distribution_room_checkin_binding ON public.bookings;
+CREATE TRIGGER staynas_distribution_room_checkin_binding
+  BEFORE UPDATE OF status ON public.bookings
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_bind_distribution_room_for_checkin();
 
 CREATE OR REPLACE FUNCTION public.staynas_integrate_distribution_reservation(
   _reservation_link_id uuid
