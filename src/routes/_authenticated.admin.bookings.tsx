@@ -406,6 +406,18 @@ function AdminBookings() {
                   <span className="text-right">
                     {fmt(Number(detail.data.booking.extras_total), detail.data.booking.currency)}
                   </span>
+                  {Number((detail.data.booking as any).fee_total ?? 0) > 0 && <>
+                    <span className="text-muted-foreground">Fees</span>
+                    <span className="text-right">{fmt(Number((detail.data.booking as any).fee_total), detail.data.booking.currency)}</span>
+                  </>}
+                  {Number((detail.data.booking as any).discount_total ?? 0) > 0 && <>
+                    <span className="text-muted-foreground">Promotion discount</span>
+                    <span className="text-right text-emerald-700">−{fmt(Number((detail.data.booking as any).discount_total), detail.data.booking.currency)}</span>
+                  </>}
+                  {Number(detail.data.booking.tax_addition ?? 0) > 0 && <>
+                    <span className="text-muted-foreground">Taxes added</span>
+                    <span className="text-right">{fmt(Number(detail.data.booking.tax_addition), detail.data.booking.currency)}</span>
+                  </>}
                   <span className="font-display text-base">Total</span>
                   <span className="text-right font-display text-base">
                     {fmt(Number(detail.data.booking.total), detail.data.booking.currency)}
