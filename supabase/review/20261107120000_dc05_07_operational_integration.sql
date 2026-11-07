@@ -232,7 +232,61 @@ BEGIN
   IF COALESCE(NULLIF(pg_catalog.current_setting('request.jwt.claim.role',true),''),auth.role())<>'service_role' THEN
     RAISE EXCEPTION 'Operational reconciliation is service-only.' USING ERRCODE='42501';
   END IF;
-  IF _reconciliation_code IS NULL OR _reconciliation_code !~ '^[a-z0-9_]{1,96}
+  IF _reconciliation_code IS NULL OR length(_reconciliation_code) NOT BETWEEN 1 AND 96
+     OR _reconciliation_code ~ '[^a-z0-9_]' THEN
+    RAISE EXCEPTION 'Invalid operational reconciliation code.' USING ERRCODE='22023';
+  END IF;
+  SELECT * INTO v_inbox FROM public.staynas_distribution_webhook_inbox i
+  WHERE i.id=_inbox_id;
+  IF v_inbox.id IS NULL THEN RAISE EXCEPTION 'Lifecycle inbox event not found.'; END IF;
+  SELECT * INTO v_link FROM public.staynas_distribution_reservation_links l
+  WHERE l.organisation_id=v_inbox.organisation_id AND l.property_id=v_inbox.property_id
+    AND l.connection_id=v_inbox.connection_id AND l.account_grant_id=v_inbox.account_grant_id
+    AND l.external_account_id=v_inbox.external_account_id AND l.provider_key=v_inbox.provider_key
+    AND l.environment=v_inbox.environment
+    AND l.external_reservation_id=v_inbox.normalized_event->>'externalReservationId'
+  FOR UPDATE;
+  IF v_link.id IS NULL THEN
+    RETURN jsonb_build_object('ok',true,'outcome','no_canonical_link');
+  END IF;
+  SELECT * INTO v_booking FROM public.bookings b
+  WHERE b.id=v_link.booking_id AND b.property_id=v_link.property_id
+  FOR UPDATE;
+  IF v_booking.id IS NULL THEN
+    RAISE EXCEPTION 'Canonical reservation scope is invalid.' USING ERRCODE='42501';
+  END IF;
+
+  UPDATE public.staynas_distribution_operational_reservations
+  SET provider_status=COALESCE(v_inbox.normalized_event->>'providerStatus',provider_status),
+      integration_status='reconciliation_required',
+      last_provider_event_id=v_inbox.provider_event_id,
+      last_integrated_at=pg_catalog.now(),
+      last_error_code=_reconciliation_code,
+      updated_at=pg_catalog.now()
+  WHERE booking_id=v_booking.id AND property_id=v_booking.property_id;
+
+  INSERT INTO public.ops_tasks(
+    property_id,booking_id,task_type,category,title,description,priority,status,due_at
+  ) VALUES(
+    v_booking.property_id,v_booking.id,'channel_reservation_reconciliation','other',
+    'Reconcile channel reservation '||v_booking.reference,
+    'Provider lifecycle event requires review ('||_reconciliation_code||'). Canonical booking and payment state were not changed by this event.',
+    1,'pending',pg_catalog.now()
+  )
+  ON CONFLICT (booking_id,task_type)
+    WHERE booking_id IS NOT NULL AND task_type='channel_reservation_reconciliation'
+  DO UPDATE SET description=EXCLUDED.description,status='pending',due_at=EXCLUDED.due_at;
+
+  RETURN jsonb_build_object('ok',true,'outcome','reconciliation_required',
+    'booking_id',v_booking.id,'reconciliation_code',_reconciliation_code);
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_mark_distribution_operational_reconciliation(uuid,text)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_mark_distribution_operational_reconciliation(uuid,text)
+  TO service_role;
+
 CREATE OR REPLACE FUNCTION public.staynas_allocate_distribution_physical_room(
   _booking_id uuid,
   _organisation_id uuid,
