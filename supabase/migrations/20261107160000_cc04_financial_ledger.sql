@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS public.commercial_provider_accounts (
   provider_account_ref text NOT NULL CHECK (length(btrim(provider_account_ref)) BETWEEN 1 AND 200),
   credential_secret_ref text NOT NULL CHECK (length(btrim(credential_secret_ref)) BETWEEN 1 AND 200),
   supported_currencies text[] NOT NULL CHECK (cardinality(supported_currencies) > 0 AND supported_currencies <@ ARRAY['TZS','USD']::text[]),
+  public_configuration jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(public_configuration)='object'),
   status text NOT NULL DEFAULT 'inactive' CHECK (status IN ('inactive','active','suspended')),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -1426,3 +1427,18 @@ REVOKE ALL ON FUNCTION public.guard_commercial_posted_adjustment_immutable() FRO
 CREATE TRIGGER commercial_posted_adjustment_immutable
   BEFORE UPDATE OR DELETE ON public.commercial_invoice_adjustments
   FOR EACH ROW EXECUTE FUNCTION public.guard_commercial_posted_adjustment_immutable();
+
+CREATE OR REPLACE FUNCTION public.guard_commercial_provider_public_configuration()
+RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog
+AS $function$
+BEGIN
+  IF NEW.public_configuration::text ~* '"(secret|password|token|api[_-]?key|client[_-]?secret|private[_-]?key|credential)"[[:space:]]*:' THEN
+    RAISE EXCEPTION 'Provider public configuration cannot contain credential fields' USING ERRCODE='22023';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.guard_commercial_provider_public_configuration() FROM PUBLIC,anon,authenticated,service_role;
+CREATE TRIGGER commercial_provider_public_configuration_guard
+  BEFORE INSERT OR UPDATE OF public_configuration ON public.commercial_provider_accounts
+  FOR EACH ROW EXECUTE FUNCTION public.guard_commercial_provider_public_configuration();
