@@ -347,8 +347,8 @@ BEGIN
     IF v_operation.request_fingerprint<>p_request_fingerprint THEN
       RAISE EXCEPTION 'Distribution idempotency key reused with different payload' USING ERRCODE='23505';
     END IF;
-    SELECT id INTO v_outbox_id FROM public.staynas_distribution_outbox
-    WHERE operation_id=v_operation.id;
+    SELECT o.id INTO v_outbox_id FROM public.staynas_distribution_outbox AS o
+    WHERE o.operation_id=v_operation.id;
     RETURN QUERY SELECT v_operation.id,v_outbox_id,true;
     RETURN;
   END IF;
