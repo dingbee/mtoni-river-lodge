@@ -89,7 +89,7 @@ export function reconcileCommercialProviderStatement(
       });
       continue;
     }
-    if (payment.status === "reversed" || observed.status === "reversed") {
+    if (payment.status === "reversed" && observed.status === "reversed") {
       results.push({
         itemType: "reversed", internalPaymentId: payment.id, providerRef,
         expectedAmountMinor: payment.amountMinor, observedAmountMinor: observed.amountMinor,
