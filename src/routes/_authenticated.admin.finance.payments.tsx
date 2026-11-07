@@ -258,7 +258,7 @@ function Payments() {
                           </div>
                           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
                             {item.provider_reference && <span>Reference: {item.provider_reference}</span>}
-                            {amount != null && <span>Evidence amount: {currency ?? ""} {String(amount)}</span>}
+                            {amount != null && <span>Evidence amount: {String(currency ?? "")} {String(amount)}</span>}
                             <span>{new Date(item.received_at).toLocaleString()}</span>
                           </div>
                           {item.reconciliation_code && (
