@@ -1,6 +1,6 @@
 -- SPE-06 structural contract tests. No live property records are written.
 BEGIN;
-SELECT plan(21);
+SELECT plan(24);
 
 SELECT has_table('public','staynas_reservation_quotes','Durable accepted reservation quotes exist');
 SELECT has_table('public','staynas_reservation_idempotency','Reservation idempotency ledger exists');
@@ -82,6 +82,24 @@ SELECT ok(
   pg_get_functiondef('public.staynas_transition_booking_core(uuid,text,text,uuid,text,uuid)'::regprocedure)
     LIKE '%available_units=LEAST(r.total_units,ri.available_units+1)%',
   'Cancellation restores inventory exactly once through the lifecycle core');
+
+SELECT ok(
+  (SELECT prosecdef FROM pg_proc
+   WHERE oid='public.staynas_transition_booking_core(uuid,text,text,uuid,text,uuid)'::regprocedure),
+  'Lifecycle core executes with controlled definer privileges');
+
+SELECT ok(
+  NOT has_function_privilege('anon','public.staynas_transition_booking_core(uuid,text,text,uuid,text,uuid)','EXECUTE')
+  AND NOT has_function_privilege('authenticated','public.staynas_transition_booking_core(uuid,text,text,uuid,text,uuid)','EXECUTE')
+  AND has_function_privilege('service_role','public.staynas_transition_booking_core(uuid,text,text,uuid,text,uuid)','EXECUTE'),
+  'Lifecycle core is not exposed to browser roles');
+
+SELECT ok(
+  pg_get_functiondef('public.staynas_transition_booking_core(uuid,text,text,uuid,text,uuid)'::regprocedure)
+    LIKE '%staynas_user_has_property_access%'
+  AND pg_get_functiondef('public.staynas_transition_booking_core(uuid,text,text,uuid,text,uuid)'::regprocedure)
+    LIKE '%v_booking.property_id IS DISTINCT FROM _property_id%',
+  'Lifecycle core verifies trusted actor and property scope before mutation');
 
 SELECT ok(
   pg_get_functiondef('public.staynas_lock_room_inventory_dates(uuid,uuid,date,date)'::regprocedure)
