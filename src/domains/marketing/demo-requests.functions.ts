@@ -1,8 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { StayNasDemoRequestRecord } from "./demo-requests";
 
-async function assertFounder(context: { supabase: any }) {
-  const { data, error } = await (context.supabase as any).rpc("is_staynas_founder_ai_admin");
+async function assertFounder(context: { supabase: SupabaseClient }) {
+  const { data, error } = await context.supabase.rpc("is_staynas_founder_ai_admin");
   if (error || data !== true) throw new Error("Founder access is required.");
 }
 
@@ -11,13 +13,14 @@ export const listStayNasDemoRequests = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertFounder(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await (supabaseAdmin as any)
+    const store = supabaseAdmin as unknown as SupabaseClient;
+    const { data, error } = await store
       .from("staynas_website_demo_requests")
       .select("id, name, email, phone, company, country, property_type, property_count_band, interests, message, status, created_at")
       .order("created_at", { ascending: false })
       .limit(250);
     if (error) throw new Error("Unable to load StayNas demo requests.");
-    return data ?? [];
+    return (data ?? []) as unknown as StayNasDemoRequestRecord[];
   });
 
 export const updateStayNasDemoRequest = createServerFn({ method: "POST" })
@@ -30,7 +33,8 @@ export const updateStayNasDemoRequest = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertFounder(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await (supabaseAdmin as any)
+    const store = supabaseAdmin as unknown as SupabaseClient;
+    const { error } = await store
       .from("staynas_website_demo_requests")
       .update({ status: data.status, updated_at: new Date().toISOString() })
       .eq("id", data.id);
