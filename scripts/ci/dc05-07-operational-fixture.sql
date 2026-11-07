@@ -50,6 +50,13 @@ CREATE TRIGGER bookings_link_guest_trg
 ALTER TABLE public.ops_tasks
   ADD COLUMN IF NOT EXISTS description text,
   ADD COLUMN IF NOT EXISTS completed_at timestamptz;
+-- Simulate the real pre-DC-05.07 schema: property and physical-unit keys are
+-- added by the review migration, not pre-seeded by this fixture.
+ALTER TABLE public.ops_tasks
+  DROP COLUMN IF EXISTS property_id,
+  DROP COLUMN IF EXISTS room_state_id;
+ALTER TABLE public.ops_alerts
+  DROP COLUMN IF EXISTS property_id;
 
 DO $type$
 BEGIN
