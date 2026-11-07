@@ -77,6 +77,41 @@ CREATE TABLE IF NOT EXISTS public.staynas_distribution_operational_reservations 
 );
 CREATE INDEX IF NOT EXISTS staynas_distribution_operational_property_idx
   ON public.staynas_distribution_operational_reservations(property_id,integration_status,last_integrated_at DESC);
+
+-- Safe provider event history: one row per durable inbox event, with no raw or
+-- normalized payload and no guest/payment secrets exposed to staff.
+CREATE TABLE IF NOT EXISTS public.staynas_distribution_operational_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  organisation_id uuid NOT NULL,
+  property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
+  booking_id uuid NOT NULL REFERENCES public.bookings(id) ON DELETE RESTRICT,
+  reservation_link_id uuid NOT NULL
+    REFERENCES public.staynas_distribution_reservation_links(id) ON DELETE RESTRICT,
+  source_inbox_id uuid NOT NULL UNIQUE
+    REFERENCES public.staynas_distribution_webhook_inbox(id) ON DELETE RESTRICT,
+  provider_key text NOT NULL,
+  external_reservation_id text NOT NULL,
+  provider_event_id text NOT NULL,
+  event_type text NOT NULL,
+  provider_status text,
+  processing_status text NOT NULL,
+  attempt_count integer NOT NULL DEFAULT 0,
+  safe_error_summary text,
+  received_at timestamptz NOT NULL,
+  processed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS staynas_distribution_operational_events_booking_idx
+  ON public.staynas_distribution_operational_events(property_id,booking_id,received_at DESC);
+ALTER TABLE public.staynas_distribution_operational_events ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.staynas_distribution_operational_events FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.staynas_distribution_operational_events TO authenticated,service_role;
+GRANT INSERT,UPDATE ON public.staynas_distribution_operational_events TO service_role;
+CREATE POLICY staynas_distribution_operational_events_property_read
+  ON public.staynas_distribution_operational_events FOR SELECT TO authenticated
+  USING (public.staynas_user_has_property_access(auth.uid(),property_id));
+
 ALTER TABLE public.staynas_distribution_operational_reservations ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.staynas_distribution_operational_reservations FROM PUBLIC,anon,authenticated;
 GRANT SELECT ON public.staynas_distribution_operational_reservations TO authenticated,service_role;
@@ -84,6 +119,75 @@ GRANT INSERT,UPDATE ON public.staynas_distribution_operational_reservations TO s
 CREATE POLICY staynas_distribution_operational_property_read
   ON public.staynas_distribution_operational_reservations FOR SELECT TO authenticated
   USING (public.staynas_user_has_property_access(auth.uid(),property_id));
+
+CREATE OR REPLACE FUNCTION public.staynas_sync_distribution_event_history(_inbox_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path=''
+AS $function$
+DECLARE
+  v_inbox public.staynas_distribution_webhook_inbox%ROWTYPE;
+  v_link public.staynas_distribution_reservation_links%ROWTYPE;
+BEGIN
+  SELECT * INTO v_inbox FROM public.staynas_distribution_webhook_inbox i
+  WHERE i.id=_inbox_id;
+  IF v_inbox.id IS NULL THEN RETURN jsonb_build_object('ok',false,'outcome','inbox_missing'); END IF;
+  SELECT * INTO v_link FROM public.staynas_distribution_reservation_links l
+  WHERE l.organisation_id=v_inbox.organisation_id AND l.property_id=v_inbox.property_id
+    AND l.connection_id=v_inbox.connection_id AND l.account_grant_id=v_inbox.account_grant_id
+    AND l.external_account_id=v_inbox.external_account_id AND l.provider_key=v_inbox.provider_key
+    AND l.environment=v_inbox.environment
+    AND l.external_reservation_id=v_inbox.normalized_event->>'externalReservationId'
+  FOR UPDATE;
+  IF v_link.id IS NULL THEN RETURN jsonb_build_object('ok',true,'outcome','unlinked'); END IF;
+  INSERT INTO public.staynas_distribution_operational_events(
+    organisation_id,property_id,booking_id,reservation_link_id,source_inbox_id,
+    provider_key,external_reservation_id,provider_event_id,event_type,provider_status,
+    processing_status,attempt_count,safe_error_summary,received_at,processed_at
+  ) VALUES (
+    v_inbox.organisation_id,v_inbox.property_id,v_link.booking_id,v_link.id,v_inbox.id,
+    v_inbox.provider_key,v_link.external_reservation_id,v_inbox.provider_event_id,
+    v_inbox.event_type,v_inbox.normalized_event->>'providerStatus',
+    v_inbox.processing_status,v_inbox.attempt_count,v_inbox.safe_error_summary,
+    v_inbox.received_at,v_inbox.processed_at
+  )
+  ON CONFLICT(source_inbox_id) DO UPDATE SET
+    provider_status=EXCLUDED.provider_status,
+    processing_status=EXCLUDED.processing_status,
+    attempt_count=EXCLUDED.attempt_count,
+    safe_error_summary=EXCLUDED.safe_error_summary,
+    processed_at=EXCLUDED.processed_at,
+    updated_at=pg_catalog.now();
+  RETURN jsonb_build_object('ok',true,'outcome','recorded','booking_id',v_link.booking_id);
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_sync_distribution_event_history(uuid)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_sync_distribution_event_history(uuid)
+  TO service_role;
+
+CREATE OR REPLACE FUNCTION public.staynas_distribution_event_history_sync_trigger()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path=''
+AS $function$
+BEGIN
+  PERFORM public.staynas_sync_distribution_event_history(NEW.id);
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_distribution_event_history_sync_trigger()
+  FROM PUBLIC,anon,authenticated;
+DROP TRIGGER IF EXISTS staynas_distribution_event_history_sync
+  ON public.staynas_distribution_webhook_inbox;
+CREATE TRIGGER staynas_distribution_event_history_sync
+  AFTER INSERT OR UPDATE OF processing_status,attempt_count,safe_error_summary,processed_at
+  ON public.staynas_distribution_webhook_inbox
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_distribution_event_history_sync_trigger();
 
 -- Task and alert idempotency is booking-scoped. Replayed provider events cannot
 -- create another arrival task or another unresolved room-assignment alert.
