@@ -75,3 +75,54 @@ export async function sendCommercialInvoiceIssuedEmail(input: { admin: any; invo
     throw error;
   }
 }
+
+export async function sendCommercialPaymentConfirmationEmail(input: { admin: any; paymentId: string }) {
+  const { admin, paymentId } = input;
+  const { data: payment, error } = await admin.from("commercial_payment_transactions").select("*").eq("id",paymentId).maybeSingle();
+  if (error || !payment || !["successful","partially_reversed","reversed"].includes(payment.status)) {
+    throw new Error("Verified payment could not be loaded for receipt notification.");
+  }
+  const { data: invoice, error: invoiceError } = await admin.from("commercial_invoices").select("*").eq("id",payment.invoice_id).maybeSingle();
+  if (invoiceError || !invoice) throw new Error("Related invoice could not be loaded for receipt notification.");
+  const { data: properties } = await admin.from("staynas_properties").select("id").eq("organisation_id",payment.organisation_id);
+  const propertyIds = (properties ?? []).map((property: {id:string}) => property.id);
+  if (!propertyIds.length) return { status: "skipped" as const, reason: "tenant_has_no_properties" };
+  const { data: members } = await admin.from("staynas_property_members").select("user_id,role,status")
+    .in("property_id",propertyIds).in("role",["owner","admin","manager"]).eq("status","active");
+  const member = members?.[0];
+  if (!member?.user_id) return { status: "skipped" as const, reason: "tenant_billing_admin_not_found" };
+  const { data: userResult, error: userError } = await admin.auth.admin.getUserById(member.user_id);
+  const recipient = userResult?.user?.email;
+  if (userError || !recipient) return { status: "skipped" as const, reason: "tenant_billing_email_not_found" };
+  const idempotencyKey = `cc04-payment-confirmed-${payment.id}`;
+  const { data: existing } = await admin.from("commercial_financial_notifications")
+    .select("id,status,provider_message_ref").eq("idempotency_key",idempotencyKey).maybeSingle();
+  if (existing?.status === "sent") return { status: "sent" as const, providerMessageRef: existing.provider_message_ref };
+  let notificationId = existing?.id as string | undefined;
+  if (!notificationId) {
+    const { data: inserted, error: insertError } = await admin.from("commercial_financial_notifications").insert({
+      organisation_id: payment.organisation_id, invoice_id: invoice.id, payment_id: payment.id,
+      notification_type: "payment_confirmation", recipient_email: recipient, idempotency_key: idempotencyKey,
+      payload_snapshot: { invoiceNumber: invoice.invoice_number, amountMinor: payment.amount_minor, currency: payment.currency, paymentId: payment.id },
+    }).select("id").single();
+    if (insertError || !inserted) throw new Error("Payment receipt notification outbox record could not be created.");
+    notificationId = inserted.id;
+  }
+  const from = process.env.STAYNAS_FINANCE_FROM_EMAIL;
+  if (!from) {
+    await admin.from("commercial_financial_notifications").update({status:"failed",attempted_at:new Date().toISOString()}).eq("id",notificationId);
+    return { status: "failed" as const, reason: "STAYNAS_FINANCE_FROM_EMAIL_not_configured" };
+  }
+  const html = `<h2>StayNas payment confirmation</h2><p>Invoice: ${escapeHtml(invoice.invoice_number)}</p>
+    <p>Amount received: <strong>${amount(payment.amount_minor,payment.currency)}</strong></p>
+    <p>Provider reference: ${escapeHtml(payment.provider_transaction_ref ?? "manual verification")}</p>
+    <p>Payment status: ${escapeHtml(payment.status)}</p><p>Your receipt is available in your StayNas billing workspace.</p>`;
+  try {
+    const sent = await sendResendEmail({from,to:recipient,subject:`StayNas payment receipt — ${invoice.invoice_number}`,html,idempotencyKey});
+    await admin.from("commercial_financial_notifications").update({status:"sent",provider_message_ref:sent.providerMessageId,attempted_at:sent.acceptedAt,sent_at:sent.acceptedAt}).eq("id",notificationId);
+    return {status:"sent" as const,providerMessageRef:sent.providerMessageId};
+  } catch (error) {
+    await admin.from("commercial_financial_notifications").update({status:"failed",attempted_at:new Date().toISOString()}).eq("id",notificationId);
+    throw error;
+  }
+}
