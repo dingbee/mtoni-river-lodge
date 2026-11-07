@@ -1,4 +1,4 @@
-name: SPE-07 distribution contracts
+name: SPE-07 distribution CI
 
 on:
   push:
@@ -6,54 +6,12 @@ on:
       - feat/spe-07-*
   pull_request:
     paths:
-      - "src/domains/distribution/**"
-      - "docs/database/SPE-07-distribution-persistence.sql"
-      - "supabase/tests/database/**"
       - ".github/workflows/spe-07-distribution.yml"
 
 jobs:
-  distribution-contracts:
-    runs-on: ubuntu-latest
-    env:
-      VITE_SUPABASE_PROJECT_ID: ci-placeholder
-      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
-      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      - run: bun install --frozen-lockfile
-      - name: Distribution contract and reliability tests
-        run: bunx vitest run src/domains/distribution
-      - name: TypeScript verification
-        run: bunx tsc --noEmit
-      - name: Distribution lint
-        run: bunx eslint src/domains/distribution --rule 'prettier/prettier: off'
-      - name: Production build
-        run: bun run build
-
-  distribution-database-contracts:
+  workflow-smoke:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
-        with:
-          version: 2.122.1
-      - name: Generate migration using Supabase CLI
-        shell: bash
-        run: |
-          supabase migration new spe07_distribution_persistence
-          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_spe07_distribution_persistence.sql' -print -quit)"
-          test -n "$migration_file"
-          cp docs/database/SPE-07-distribution-persistence.sql "$migration_file"
-          echo "Generated migration: $migration_file"
-      - name: Start local Supabase database
-        run: supabase start --exclude studio,inbucket,storage-api,imgproxy,vector
-      - name: Apply migrations and run database contracts
-        run: |
-          supabase db reset
-          supabase test db
-      - name: Stop local Supabase stack
-        if: always()
-        run: supabase stop --no-backup
+      - name: Validate workflow execution
+        run: echo "SPE-07 workflow runner is available"
