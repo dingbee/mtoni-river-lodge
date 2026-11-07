@@ -49,7 +49,8 @@ $function$;
 -- The canonical HK execution schema uses assignee_id; the legacy operations
 -- table fixture still exposes assigned_to for older non-HK tasks.
 ALTER TABLE public.ops_tasks
-  ADD COLUMN IF NOT EXISTS assignee_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+  ADD COLUMN IF NOT EXISTS assignee_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
 
 DO $task_status$
 BEGIN
