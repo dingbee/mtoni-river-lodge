@@ -316,8 +316,23 @@ BEGIN
     RAISE EXCEPTION 'Pending provider reservation was prematurely assigned or treated as an arrival';
   END IF;
 
-  INSERT INTO public.ops_alerts(property_id,kind,severity,booking_id,room_id,message)
-  VALUES(v_property,'room_conflict','warning',v_booking,v_room,'DC-05.07 property-scope fixture alert');
+  INSERT INTO public.ops_alerts(kind,severity,booking_id,room_id,message)
+  VALUES('room_conflict','warning',v_booking,v_room,'DC-05.07 property-scope fixture alert');
+  IF (SELECT property_id FROM public.ops_alerts WHERE booking_id=v_booking
+      AND message='DC-05.07 property-scope fixture alert') IS DISTINCT FROM v_property THEN
+    RAISE EXCEPTION 'Operations alert did not inherit its canonical booking property';
+  END IF;
+
+  INSERT INTO public.ops_tasks(
+    booking_id,task_type,category,title,priority,status,due_at
+  ) VALUES(
+    v_booking,'dc0507_scope_test','other','DC-05.07 scope fixture task',3,'pending',now()
+  );
+  IF NOT EXISTS (SELECT 1 FROM public.ops_tasks
+      WHERE booking_id=v_booking AND task_type='dc0507_scope_test'
+        AND property_id=v_property AND room_state_id=v_room_state) THEN
+    RAISE EXCEPTION 'Operations task did not inherit its canonical booking and room property scope';
+  END IF;
 
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
