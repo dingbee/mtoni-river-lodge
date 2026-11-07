@@ -124,9 +124,15 @@ function StayNasAnalytics() {
         trackGAEvent("demo_request_click", { event_category: "conversion", cta_location: "product_website" });
       }
     };
+    const handleDemoSuccess = (event: Event) => {
+      const detail = (event as CustomEvent<{ propertyType?: string; propertyCount?: string }>).detail ?? {};
+      trackGAEvent("generate_lead", { event_category: "conversion", form_name: "staynas_demo_request", property_type: detail.propertyType, property_count_band: detail.propertyCount });
+    };
     document.addEventListener("click", handleClick);
+    window.addEventListener("staynas:demo-request-success", handleDemoSuccess);
     return () => {
       document.removeEventListener("click", handleClick);
+      window.removeEventListener("staynas:demo-request-success", handleDemoSuccess);
       script.remove();
     };
   }, [configured, consent, ga4Id, gtmId]);
