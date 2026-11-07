@@ -659,3 +659,74 @@ COMMENT ON TABLE public.commercial_invoices IS 'StayNas subscription invoices; s
 COMMENT ON TABLE public.commercial_payment_transactions IS 'Commercial subscription payment attempts and verified collection state. Never reused for bookings.';
 COMMENT ON TABLE public.commercial_payment_allocations IS 'Append-only successful collection allocations to commercial invoices.';
 COMMENT ON TABLE public.commercial_reconciliation_items IS 'Append-only discrepancy evidence; resolution never rewrites original payment history.';
+
+-- Provider-neutral extension points for Tanzanian mobile-money adapters.
+ALTER TABLE public.commercial_provider_accounts
+  DROP CONSTRAINT IF EXISTS commercial_provider_accounts_provider_check;
+ALTER TABLE public.commercial_provider_accounts
+  ADD CONSTRAINT commercial_provider_accounts_provider_check
+  CHECK (provider IN ('pesapal','airtel_money','mixx_by_yas','mpesa','halopesa','bank_transfer','manual'));
+ALTER TABLE public.commercial_payment_transactions
+  DROP CONSTRAINT IF EXISTS commercial_payment_transactions_provider_check;
+ALTER TABLE public.commercial_payment_transactions
+  ADD CONSTRAINT commercial_payment_transactions_provider_check
+  CHECK (provider IN ('pesapal','airtel_money','mixx_by_yas','mpesa','halopesa','bank_transfer','manual'));
+ALTER TABLE public.commercial_provider_notifications
+  DROP CONSTRAINT IF EXISTS commercial_provider_notifications_provider_check;
+ALTER TABLE public.commercial_provider_notifications
+  ADD CONSTRAINT commercial_provider_notifications_provider_check
+  CHECK (provider IN ('pesapal','airtel_money','mixx_by_yas','mpesa','halopesa','bank_transfer','manual'));
+
+CREATE UNIQUE INDEX IF NOT EXISTS commercial_payment_provider_order_unique
+  ON public.commercial_payment_transactions(provider, provider_order_ref)
+  WHERE provider_order_ref IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION public.commercial_post_invoice_adjustment(
+  _invoice_id uuid, _adjustment_ref text, _adjustment_type text,
+  _amount_minor numeric, _currency text, _reason_code text,
+  _approval_ref text, _actor_user_id uuid
+)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public
+AS $function$
+DECLARE v_role text := current_setting('request.jwt.claim.role',true);
+  v_invoice public.commercial_invoices%ROWTYPE; v_id uuid; v_credit numeric(20,0);
+BEGIN
+  IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
+  IF _adjustment_type NOT IN ('credit_note','debit_note','write_off')
+    OR _amount_minor <= 0 OR length(btrim(_adjustment_ref)) NOT BETWEEN 4 AND 200
+    OR length(btrim(_reason_code)) NOT BETWEEN 2 AND 120
+    OR length(btrim(_approval_ref)) NOT BETWEEN 4 AND 200 THEN
+    RAISE EXCEPTION 'Adjustment input is invalid' USING ERRCODE='22023';
+  END IF;
+  SELECT * INTO v_invoice FROM public.commercial_invoices WHERE id=_invoice_id FOR UPDATE;
+  IF NOT FOUND OR v_invoice.status IN ('draft','void') OR v_invoice.currency <> _currency THEN
+    RAISE EXCEPTION 'Invoice cannot accept this adjustment or currency' USING ERRCODE='55000';
+  END IF;
+  IF _adjustment_type IN ('credit_note','write_off') THEN
+    SELECT coalesce(sum(amount_minor),0) INTO v_credit FROM public.commercial_invoice_adjustments
+      WHERE invoice_id=_invoice_id AND status='posted' AND adjustment_type IN ('credit_note','write_off');
+    IF v_credit + _amount_minor > v_invoice.total_minor THEN
+      RAISE EXCEPTION 'Credits and write-offs cannot exceed invoice total' USING ERRCODE='22023';
+    END IF;
+  END IF;
+  INSERT INTO public.commercial_invoice_adjustments(
+    invoice_id,adjustment_ref,adjustment_type,amount_minor,currency,reason_code,
+    status,approval_ref,created_by,posted_at
+  ) VALUES (_invoice_id,_adjustment_ref,_adjustment_type,_amount_minor,_currency,_reason_code,
+    'posted',_approval_ref,_actor_user_id,now()) RETURNING id INTO v_id;
+  INSERT INTO public.commercial_financial_audit_events(
+    request_id,actor_user_id,actor_organisation_id,actor_role,action,resource_type,resource_ref,
+    outcome,reason_code,metadata
+  ) VALUES (_adjustment_ref,_actor_user_id,v_invoice.organisation_id,'founder_admin',
+    'invoice.adjustment_posted','invoice_adjustment',v_id::text,'succeeded',_reason_code,
+    jsonb_build_object('invoiceId',_invoice_id,'type',_adjustment_type,'amountMinor',_amount_minor,'currency',_currency,'approvalRef',_approval_ref));
+  RETURN v_id;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.commercial_post_invoice_adjustment(uuid,text,text,numeric,text,text,text,uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.commercial_post_invoice_adjustment(uuid,text,text,numeric,text,text,text,uuid) TO service_role;
+
+-- Inbound notifications and reconciliation source evidence are append-only.
+CREATE TRIGGER commercial_provider_notifications_append_only
+  BEFORE UPDATE OR DELETE ON public.commercial_provider_notifications
+  FOR EACH ROW EXECUTE FUNCTION public.guard_commercial_financial_append_only();
