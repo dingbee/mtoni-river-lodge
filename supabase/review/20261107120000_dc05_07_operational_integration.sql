@@ -90,6 +90,9 @@ CREATE POLICY staynas_distribution_operational_property_read
 CREATE UNIQUE INDEX IF NOT EXISTS staynas_channel_arrival_task_booking_uidx
   ON public.ops_tasks(booking_id,task_type)
   WHERE booking_id IS NOT NULL AND task_type='channel_reservation_arrival';
+CREATE UNIQUE INDEX IF NOT EXISTS staynas_channel_review_task_booking_uidx
+  ON public.ops_tasks(booking_id,task_type)
+  WHERE booking_id IS NOT NULL AND task_type='channel_reservation_review';
 CREATE UNIQUE INDEX IF NOT EXISTS staynas_channel_room_alert_booking_uidx
   ON public.ops_alerts(booking_id,kind)
   WHERE booking_id IS NOT NULL AND kind='room_conflict' AND resolved_at IS NULL;
@@ -254,8 +257,10 @@ DECLARE
   v_property public.staynas_properties%ROWTYPE;
   v_room_state_id uuid;
   v_status text;
+  v_effective_status text;
   v_task_due timestamptz;
   v_integration_status text;
+  v_error_code text;
 BEGIN
   SELECT * INTO v_link FROM public.staynas_distribution_reservation_links l
   WHERE l.id=_reservation_link_id;
@@ -292,43 +297,71 @@ BEGIN
     RAISE EXCEPTION 'Unsupported provider reservation state for operational integration.';
   END IF;
 
-  -- Confirmation is a reservation state only. Payment remains unpaid and no
-  -- check-in state is created by a provider confirmation.
+  -- Confirmation is a reservation state only. Payment and check-in state are
+  -- never inferred from a provider event. Pending reservations do not consume a
+  -- physical room assignment until the provider confirms them.
   UPDATE public.bookings
   SET status=CASE
     WHEN status::text='pending' THEN v_status::public.booking_status
     ELSE status
   END
   WHERE id=v_booking.id AND property_id=v_link.property_id;
+  v_effective_status:=CASE
+    WHEN v_booking.status::text='pending' THEN v_status
+    ELSE v_booking.status::text
+  END;
 
-  v_room_state_id:=public.staynas_allocate_distribution_physical_room(
-    v_booking.id,v_link.organisation_id,v_link.property_id
-  );
-
-  v_task_due:=((v_booking.check_in::timestamp + time '09:00')
-    AT TIME ZONE COALESCE(NULLIF(v_property.timezone,''),'Africa/Dar_es_Salaam'));
-  INSERT INTO public.ops_tasks(
-    property_id,booking_id,room_state_id,task_type,category,title,description,
-    priority,status,due_at
-  ) VALUES (
-    v_link.property_id,v_booking.id,v_room_state_id,'channel_reservation_arrival','other',
-    'Prepare channel reservation '||v_booking.reference,
-    'Verify guest details, confirm arrival arrangements and review the allocated room before check-in.',
-    2,'pending',v_task_due
-  )
-  ON CONFLICT (booking_id,task_type)
-    WHERE booking_id IS NOT NULL AND task_type='channel_reservation_arrival'
-  DO UPDATE SET room_state_id=EXCLUDED.room_state_id,
-    description=EXCLUDED.description,due_at=EXCLUDED.due_at;
-
-  IF v_room_state_id IS NULL THEN
-    v_integration_status:='room_assignment_required';
-    INSERT INTO public.ops_alerts(kind,severity,booking_id,room_id,message)
-    VALUES('room_conflict','warning',v_booking.id,v_booking.room_id,
-      'Channel reservation requires physical room assignment before arrival.')
-    ON CONFLICT (booking_id,kind)
-      WHERE booking_id IS NOT NULL AND kind='room_conflict' AND resolved_at IS NULL
-    DO NOTHING;
+  v_room_state_id:=NULL;
+  v_error_code:=NULL;
+  IF v_effective_status='pending' THEN
+    v_integration_status:='integrated';
+    INSERT INTO public.ops_tasks(
+      property_id,booking_id,task_type,category,title,description,priority,status,due_at
+    ) VALUES (
+      v_link.property_id,v_booking.id,'channel_reservation_review','other',
+      'Review pending channel reservation '||v_booking.reference,
+      'Provider reservation is pending confirmation. Verify its state before assigning a physical room.',
+      2,'pending',pg_catalog.now()
+    )
+    ON CONFLICT (booking_id,task_type)
+      WHERE booking_id IS NOT NULL AND task_type='channel_reservation_review'
+    DO UPDATE SET description=EXCLUDED.description,status='pending',due_at=EXCLUDED.due_at;
+  ELSIF v_effective_status IN ('confirmed','checked_in') THEN
+    v_room_state_id:=public.staynas_allocate_distribution_physical_room(
+      v_booking.id,v_link.organisation_id,v_link.property_id
+    );
+    IF v_effective_status='confirmed' THEN
+      v_task_due:=((v_booking.check_in::timestamp + time '09:00')
+        AT TIME ZONE COALESCE(NULLIF(v_property.timezone,''),'Africa/Dar_es_Salaam'));
+      INSERT INTO public.ops_tasks(
+        property_id,booking_id,room_state_id,task_type,category,title,description,
+        priority,status,due_at
+      ) VALUES (
+        v_link.property_id,v_booking.id,v_room_state_id,'channel_reservation_arrival','other',
+        'Prepare channel reservation '||v_booking.reference,
+        'Verify guest details, confirm arrival arrangements and review the allocated room before check-in.',
+        2,'pending',v_task_due
+      )
+      ON CONFLICT (booking_id,task_type)
+        WHERE booking_id IS NOT NULL AND task_type='channel_reservation_arrival'
+      DO UPDATE SET room_state_id=EXCLUDED.room_state_id,
+        description=EXCLUDED.description,due_at=EXCLUDED.due_at;
+      UPDATE public.ops_tasks SET status='cancelled'
+      WHERE booking_id=v_booking.id AND task_type='channel_reservation_review'
+        AND status IN ('pending','in_progress');
+    END IF;
+    IF v_room_state_id IS NULL THEN
+      v_integration_status:='room_assignment_required';
+      v_error_code:='physical_room_assignment_required';
+      INSERT INTO public.ops_alerts(kind,severity,booking_id,room_id,message)
+      VALUES('room_conflict','warning',v_booking.id,v_booking.room_id,
+        'Channel reservation requires physical room assignment before arrival.')
+      ON CONFLICT (booking_id,kind)
+        WHERE booking_id IS NOT NULL AND kind='room_conflict' AND resolved_at IS NULL
+      DO NOTHING;
+    ELSE
+      v_integration_status:='integrated';
+    END IF;
   ELSE
     v_integration_status:='integrated';
   END IF;
@@ -341,14 +374,12 @@ BEGIN
     v_link.organisation_id,v_link.property_id,v_booking.id,v_link.id,v_link.source_inbox_id,
     v_link.provider_key,v_link.external_reservation_id,v_link.provider_status,v_room_state_id,
     v_integration_status,v_link.source_provider_event_id,pg_catalog.now(),
-    CASE WHEN v_room_state_id IS NULL THEN 'physical_room_assignment_required' ELSE NULL END
+    v_error_code
   )
   ON CONFLICT (booking_id) DO UPDATE SET
     provider_status=EXCLUDED.provider_status,
-    room_state_id=COALESCE(EXCLUDED.room_state_id,staynas_distribution_operational_reservations.room_state_id),
-    integration_status=CASE WHEN EXCLUDED.room_state_id IS NULL
-      THEN 'room_assignment_required' ELSE 'integrated' END,
-    last_provider_event_id=EXCLUDED.last_provider_event_id,
+    room_state_id=EXCLUDED.room_state_id,
+    integration_status=EXCLUDED.integration_status,
     last_integrated_at=pg_catalog.now(),
     last_error_code=EXCLUDED.last_error_code,
     updated_at=pg_catalog.now();
@@ -395,8 +426,62 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path=''
 AS $function$
+DECLARE
+  v_link public.staynas_distribution_reservation_links%ROWTYPE;
+  v_property public.staynas_properties%ROWTYPE;
+  v_room_state_id uuid;
+  v_due_at timestamptz;
+  v_integration_status text;
+  v_error_code text;
 BEGIN
-  IF NEW.status::text IN ('cancelled','no_show','completed') THEN
+  IF NEW.status::text='confirmed' AND OLD.status::text='pending' AND NEW.source='channel' THEN
+    SELECT * INTO v_link FROM public.staynas_distribution_reservation_links l
+    WHERE l.booking_id=NEW.id AND l.property_id=NEW.property_id
+    FOR UPDATE;
+    IF v_link.id IS NOT NULL THEN
+      v_room_state_id:=public.staynas_allocate_distribution_physical_room(
+        NEW.id,v_link.organisation_id,v_link.property_id
+      );
+      SELECT * INTO v_property FROM public.staynas_properties p
+      WHERE p.id=v_link.property_id AND p.organisation_id=v_link.organisation_id;
+      v_due_at:=((NEW.check_in::timestamp+time '09:00')
+        AT TIME ZONE COALESCE(NULLIF(v_property.timezone,''),'Africa/Dar_es_Salaam'));
+      INSERT INTO public.ops_tasks(
+        property_id,booking_id,room_state_id,task_type,category,title,description,
+        priority,status,due_at
+      ) VALUES (
+        NEW.property_id,NEW.id,v_room_state_id,'channel_reservation_arrival','other',
+        'Prepare channel reservation '||NEW.reference,
+        'Verify guest details, confirm arrival arrangements and review the allocated room before check-in.',
+        2,'pending',v_due_at
+      )
+      ON CONFLICT (booking_id,task_type)
+        WHERE booking_id IS NOT NULL AND task_type='channel_reservation_arrival'
+      DO UPDATE SET room_state_id=EXCLUDED.room_state_id,
+        description=EXCLUDED.description,due_at=EXCLUDED.due_at;
+      UPDATE public.ops_tasks SET status='cancelled'
+      WHERE booking_id=NEW.id AND task_type='channel_reservation_review'
+        AND status IN ('pending','in_progress');
+      IF v_room_state_id IS NULL THEN
+        v_integration_status:='room_assignment_required';
+        v_error_code:='physical_room_assignment_required';
+        INSERT INTO public.ops_alerts(kind,severity,booking_id,room_id,message)
+        VALUES('room_conflict','warning',NEW.id,NEW.room_id,
+          'Confirmed channel reservation requires physical room assignment before arrival.')
+        ON CONFLICT (booking_id,kind)
+          WHERE booking_id IS NOT NULL AND kind='room_conflict' AND resolved_at IS NULL
+        DO NOTHING;
+      ELSE
+        v_integration_status:='integrated';
+        UPDATE public.ops_alerts SET resolved_at=pg_catalog.now()
+        WHERE booking_id=NEW.id AND kind='room_conflict' AND resolved_at IS NULL;
+      END IF;
+      UPDATE public.staynas_distribution_operational_reservations
+      SET room_state_id=v_room_state_id,integration_status=v_integration_status,
+          last_error_code=v_error_code,updated_at=pg_catalog.now()
+      WHERE booking_id=NEW.id AND property_id=NEW.property_id;
+    END IF;
+  ELSIF NEW.status::text IN ('cancelled','no_show','completed') THEN
     UPDATE public.staynas_distribution_room_allocations
     SET allocation_status='released',updated_at=pg_catalog.now()
     WHERE booking_id=NEW.id AND property_id=NEW.property_id
@@ -405,15 +490,19 @@ BEGIN
     SET integration_status='integrated',room_state_id=NULL,
         last_error_code=NULL,updated_at=pg_catalog.now()
     WHERE booking_id=NEW.id AND property_id=NEW.property_id;
-    UPDATE public.ops_tasks
-    SET status='cancelled'
-    WHERE booking_id=NEW.id AND task_type='channel_reservation_arrival'
+    UPDATE public.ops_tasks SET status='cancelled'
+    WHERE booking_id=NEW.id
+      AND task_type IN ('channel_reservation_arrival','channel_reservation_review')
       AND status IN ('pending','in_progress');
+    UPDATE public.ops_alerts SET resolved_at=pg_catalog.now()
+    WHERE booking_id=NEW.id AND kind='room_conflict' AND resolved_at IS NULL;
   ELSIF NEW.status::text='checked_in' THEN
     UPDATE public.staynas_distribution_room_allocations
     SET allocation_status='checked_in',updated_at=pg_catalog.now()
     WHERE booking_id=NEW.id AND property_id=NEW.property_id
       AND allocation_status='reserved';
+    UPDATE public.ops_alerts SET resolved_at=pg_catalog.now()
+    WHERE booking_id=NEW.id AND kind='room_conflict' AND resolved_at IS NULL;
   END IF;
   RETURN NEW;
 END;
