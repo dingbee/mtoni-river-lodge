@@ -33,6 +33,13 @@ describe("CC-04 provider statement reconciliation",()=>{
     expect(reconcileCommercialProviderStatement([payment({allocatedMinor:0})],[provider()])[0].itemType).toBe("unallocated");
     expect(reconcileCommercialProviderStatement([payment({status:"reversed"})],[provider({status:"reversed"})])[0].itemType).toBe("reversed");
   });
+  it("matches a provider order reference when a transaction reference is also stored",()=>{
+    const result=reconcileCommercialProviderStatement(
+      [payment({providerTransactionRef:"confirmation-1",providerOrderRef:"order-1"})],
+      [provider({providerRef:"order-1"})],
+    );
+    expect(result[0].itemType).toBe("matched");
+  });
   it("detects internal transactions missing from the provider statement",()=>{
     expect(reconcileCommercialProviderStatement([payment()],[])[0].itemType).toBe("missing_provider");
   });
