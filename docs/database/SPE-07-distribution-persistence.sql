@@ -399,6 +399,12 @@ BEGIN
     SET status='processing',locked_at=now(),lock_token=gen_random_uuid(),
         attempt_count=o.attempt_count+1
     FROM candidates c WHERE o.id=c.id RETURNING o.*
+  ), updated_operations AS (
+    UPDATE public.staynas_distribution_operations op
+    SET status='processing',started_at=coalesce(op.started_at,now()),
+        attempt_count=c.attempt_count,updated_at=now()
+    FROM claimed c WHERE op.id=c.operation_id
+    RETURNING op.id
   )
   SELECT c.id,c.operation_id,c.connection_id,c.organisation_id,c.property_id,c.payload,c.lock_token
   FROM claimed c;
