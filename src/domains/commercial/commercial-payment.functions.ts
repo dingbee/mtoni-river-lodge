@@ -640,7 +640,13 @@ export const confirmUnallocatedCommercialPayment=createServerFn({method:"POST"})
     await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
       organisationId:payment.organisation_id,actorRole:"founder_admin",action:"payment.unallocated_verified",
       resourceType:"payment",resourceRef:data.paymentId,metadata:{providerTransactionRef:data.providerTransactionRef,replayed}});
-    return {paymentId:data.paymentId,status:"successful" as const,replayed};
+    let notificationStatus="not_requested";
+    try{
+      const {sendCommercialUnallocatedPaymentEmail}=await import("./commercial-financial-notifications.server");
+      const notification=await sendCommercialUnallocatedPaymentEmail({admin,paymentId:data.paymentId});
+      notificationStatus=notification.status;
+    }catch{notificationStatus="failed";}
+    return {paymentId:data.paymentId,status:"successful" as const,replayed,notificationStatus};
   });
 
 export const allocateUnallocatedCommercialPayment=createServerFn({method:"POST"})
