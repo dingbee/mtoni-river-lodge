@@ -400,7 +400,7 @@ export const generateMyCommercialPaymentReceiptPdf = createServerFn({ method: "G
       const {buildCommercialUnallocatedReceiptPdf}=await import("./commercial-invoice-document.server");
       const bytes=await buildCommercialUnallocatedReceiptPdf({
         payment,allocation:allocation?{...allocation,invoice_number:invoice?.invoice_number??null}:null,
-        unallocatedMinor:unallocated?.unallocated_minor??(allocation?0:payment.amount_minor),
+        unallocatedMinor:unallocated?.unallocated_minor??(allocation||payment.status==="reversed"?0:payment.amount_minor),
       });
       return {fileName:`receipt-${allocation?.settlement_ref??payment.id}.pdf`,bytes:Array.from(bytes)};
     }
@@ -723,7 +723,7 @@ export const generateMyCommercialUnallocatedReceiptPdf=createServerFn({method:"G
     const {buildCommercialUnallocatedReceiptPdf}=await import("./commercial-invoice-document.server");
     const bytes=await buildCommercialUnallocatedReceiptPdf({
       payment,allocation:allocation.data?{...allocation.data,invoice_number:invoice?.invoice_number??null}:null,
-      unallocatedMinor:unallocated.data?.unallocated_minor??(allocation.data?0:payment.amount_minor),
+      unallocatedMinor:unallocated.data?.unallocated_minor??(allocation.data||payment.status==="reversed"?0:payment.amount_minor),
     });
     return {fileName:`receipt-unallocated-${payment.id}.pdf`,bytes:Array.from(bytes)};
   });
