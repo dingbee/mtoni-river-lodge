@@ -114,6 +114,28 @@ function ReservationWorkspace() {
         ) : (
           <p className="text-sm text-muted-foreground">Direct reservation · no external channel link.</p>
         )}
+        {(d.channelEvents ?? []).length > 0 && (
+          <div className="mt-4 border-t pt-3">
+            <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Provider event history</p>
+            <ul className="space-y-2">
+              {d.channelEvents.map((event: any) => (
+                <li key={event.provider_event_id} className="rounded bg-muted/40 p-2 text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-medium">{event.event_type}</span>
+                    <span className="text-muted-foreground">{event.processing_status.replaceAll("_", " ")}</span>
+                  </div>
+                  <p className="mt-1 text-muted-foreground">
+                    {event.provider_event_id} · {new Date(event.received_at).toLocaleString()}
+                    {event.provider_status ? ` · ${event.provider_status}` : ""}
+                  </p>
+                  {event.safe_error_summary && (
+                    <p className="mt-1 text-[color:var(--os-warn)]">{event.safe_error_summary}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </SectionCard>
 
       <div className="grid gap-6 lg:grid-cols-2">
