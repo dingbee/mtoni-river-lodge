@@ -28,7 +28,7 @@ BEGIN
     RAISE EXCEPTION 'Trial activation function is not service-role-only';
   END IF;
 
-  INSERT INTO public.staynas_organisations(id) VALUES (v_org);
+  INSERT INTO public.staynas_organisations(id, slug, name) VALUES (v_org, 'cc03-trial-test-org', 'CC03 Trial Test Organisation');
   INSERT INTO public.commercial_accounts(id, organisation_id)
   VALUES (v_account, v_org);
   INSERT INTO public.commercial_subscriptions(
