@@ -1,24 +1,32 @@
 # SPE-07 persistent distribution infrastructure
 
-The additive schema design is in `docs/database/SPE-07-distribution-persistence.sql`.
+The additive SQL contract is maintained in `docs/database/SPE-07-distribution-persistence.sql`. A server-only TypeScript facade is implemented in `src/domains/distribution/persistence.server.ts`.
 
 ## Persistence model
 
-- **Tenant/property scope:** StayNas uses the canonical `staynas_organisations` tenant and `staynas_properties` ownership relation. Child records carry both IDs and use composite foreign keys to prevent cross-tenant property assignment.
-- **Connections:** one provider account/property connection per property scope, with status, capability snapshot, mapping version and an opaque `credential_secret_ref`. Credential material is deliberately not stored in Postgres or exposed to browser roles.
-- **Mappings:** exact external IDs only. Room-type mappings resolve to `room_categories`; rate-plan mappings resolve to `staynas_rate_plans`; a trigger verifies the target belongs to the same property. External and internal mappings are unique per connection and type.
-- **Operation ledger:** durable idempotency key, request fingerprint, payload, correlation ID, attempt limits, state, retry schedule, provider references and redacted error fields.
-- **Transactional outbox:** operation and outbox event are inserted in one database transaction. Workers claim rows with `FOR UPDATE SKIP LOCKED`, lease tokens and stale-lease recovery. A fencing token prevents an expired worker from acknowledging work reclaimed by another worker.
-- **Reservation inbox:** provider event IDs are unique per connection. Replayed IDs with changed payload fingerprints are rejected. The inbox has bounded attempts, lease-based claiming, event sequence metadata, canonical booking reference and manual-review/dead-letter states.
+- **Tenant/property scope:** StayNas uses `staynas_organisations` as its canonical tenant and `staynas_properties` for properties. Composite foreign keys ensure every connection, mapping, operation, outbox event and reservation inbox record remains within the same tenant/property boundary.
+- **Connections:** provider, external account/property, status, capability snapshot, mapping version and opaque `credential_secret_ref`. Credential material is not stored in Postgres or returned to browser clients.
+- **Mappings:** exact external IDs only. Room-type mappings resolve to `room_categories`; rate-plan mappings resolve to `staynas_rate_plans`; a trigger verifies that the internal target belongs to the same property. External and internal mapping uniqueness is enforced per connection and mapping type.
+- **Operation ledger:** idempotency key, request fingerprint, payload, correlation ID, attempt limits, status, retry schedule, provider references and redacted error fields.
+- **Transactional outbox:** operation and outbox event are inserted in the same database transaction. Workers claim rows with `FOR UPDATE SKIP LOCKED`, lease tokens and stale-lease recovery. A fencing token prevents an expired worker from acknowledging work reclaimed by another worker. Attempts are bounded and exhausted work is dead-lettered.
+- **Reservation inbox:** provider event IDs are unique per connection. Replayed IDs with changed payload fingerprints are rejected. The inbox supports event sequencing metadata, bounded attempts, lease-based claiming, canonical booking references and manual-review/dead-letter states.
 
 ## Authorization and exposure
 
-All five persistence tables have RLS enabled and revoke access from `PUBLIC`, `anon`, and `authenticated`. Only the trusted server `service_role` can access the raw integration records and queue payloads. Connection and mapping creation RPCs require a verified actor ID and independently validate active property membership plus the StayNas owner/manager/admin/reservations role set. The server must derive that actor ID from the verified Supabase session; never accept it from browser-supplied request data.
+All five persistence tables have RLS enabled and revoke access from `PUBLIC`, `anon`, and `authenticated`. Only the trusted server `service_role` can access raw integration records and queue payloads. Connection and mapping creation RPCs independently validate active property membership and the StayNas owner/manager/admin/reservations role set. The server must derive actor IDs from verified Supabase claims; never accept actor identity from browser-supplied JSON.
 
-The server must separately verify provider webhook signatures before calling the inbox RPC. The database inbox function validates connection scope, event shape and replay consistency; it does not claim to verify provider signatures.
+The server facade uses the repository's existing server-only `supabaseAdmin` client and validates all RPC inputs with Zod. It is not imported by browser modules. Provider webhook signatures must be verified before calling the reservation inbox RPC; database inbox validation is not a substitute for signature verification.
 
-## Release and verification boundary
+## Migration and CI verification
 
-**This SQL is a review artifact, not an applied migration.** The Supabase CLI is not available in the current repository-editing tool session, so the required `supabase migration new spe07_distribution_persistence` step could not be executed. Do not rename this file into `supabase/migrations` by guessing a timestamp. Generate the migration through the CLI, review it against a clean local database, then run RLS, cross-tenant, uniqueness, concurrency, outbox lease, replay, retry/dead-letter and rollback tests.
+The SQL remains an additive review artifact in the repository. The SPE-07 workflow now uses the Supabase CLI's `supabase migration new spe07_distribution_persistence` command to generate a migration file in the CI runner, copies the reviewed SQL into that generated file, starts an isolated local Supabase stack, runs `supabase db reset --local`, and executes `supabase test db`. The generated migration is ephemeral in CI; it does not apply to the linked Supabase project or production database.
 
-The inbox is durable and idempotent, but it intentionally does not create or modify canonical bookings. That final handoff must use a SPE-06-compatible server-side writer that preserves the provider-confirmed historical price and does not silently reprice the external commitment. Live ingestion remains disabled until that writer and the outstanding SPE-06 acceptance gates are verified.
+The pgTAP suite checks table existence, RLS enablement, browser-role access restrictions, composite tenant/property isolation and server-only queue RPC grants. Concurrency, worker lease fencing, duplicate-event replay, mapping uniqueness and retry/dead-letter transition tests remain to be expanded after the migration passes on the isolated database.
+
+## Reservation lifecycle boundary
+
+The inbox intentionally does not create or modify canonical bookings. The final handoff must use a SPE-06-compatible server-side writer that preserves provider-confirmed historical price, tax and fee snapshots and does not silently reprice an external commitment. Live ingestion remains disabled until that writer, event sequencing and the outstanding SPE-06 acceptance gates are verified.
+
+## Release boundary
+
+No linked Supabase project has been selected or modified. No production migration, provider activation, merge or deployment has occurred. The CI database reset targets only the ephemeral local Supabase stack on the GitHub runner.
