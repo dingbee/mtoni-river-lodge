@@ -57,6 +57,7 @@ type PolicyRow = {
   effective_from: string | null;
   effective_to: string | null;
   created_at: string;
+  is_current?: boolean;
 };
 type QueryResult = { data: unknown; error: unknown | null };
 type Query = PromiseLike<QueryResult> & {
@@ -68,8 +69,45 @@ type Query = PromiseLike<QueryResult> & {
 };
 type AdminClient = { from(table: string): Query };
 
-function assertPayload(policyType: typeof policyTypes[number], payload: unknown) {
-  return policyPayloadSchemas[policyType].parse(payload);
+function assertPayload(
+  policyType: typeof policyTypes[number],
+  payload: unknown,
+  status: "draft" | "published",
+) {
+  const parsed = policyPayloadSchemas[policyType].parse(payload);
+  if (status !== "published") return parsed;
+
+  if (policyType === "catalogue") {
+    const codes = new Set((parsed as z.infer<typeof policyPayloadSchemas.catalogue>).plans.map((plan) => plan.code));
+    if (codes.size !== 3 || !["essential", "professional", "enterprise"].every((code) => codes.has(code as "essential" | "professional" | "enterprise"))) {
+      throw new Error("A published catalogue must define Essential, Professional and Enterprise.");
+    }
+  }
+  if (policyType === "pricing") {
+    const prices = (parsed as z.infer<typeof policyPayloadSchemas.pricing>).planPrices;
+    const combinations = new Set(prices.map((price) => `${price.planCode}:${price.currency}:${price.billingTerm}`));
+    const required = ["essential", "professional", "enterprise"].flatMap((plan) =>
+      ["TZS", "USD"].flatMap((currency) => ["monthly", "annual"].map((term) => `${plan}:${currency}:${term}`)),
+    );
+    if (!required.every((key) => combinations.has(key))) {
+      throw new Error("Published pricing must explicitly cover all three plans, both supported currencies and both billing terms.");
+    }
+  }
+  if (policyType === "composition") {
+    const compositions = (parsed as z.infer<typeof policyPayloadSchemas.composition>).compositions;
+    const plans = new Set(compositions.map((item) => item.planCode));
+    if (!["essential", "professional", "enterprise"].every((code) => plans.has(code as "essential" | "professional" | "enterprise"))) {
+      throw new Error("Published package composition must define all three commercial plans.");
+    }
+  }
+  if (policyType === "trial_policy") {
+    const policies = parsed as z.infer<typeof policyPayloadSchemas.trial_policy>;
+    const plans = new Set(policies.map((item) => item.planCode));
+    if (policies.length === 0 || !["essential", "professional", "enterprise"].every((code) => plans.has(code as "essential" | "professional" | "enterprise"))) {
+      throw new Error("Published trial policy must define the approved 14-day trial for all three plans.");
+    }
+  }
+  return parsed;
 }
 
 /** Founder-only read. Service-role access never reaches the browser directly. */
@@ -79,11 +117,21 @@ export const listFounderCommercialPolicies = createServerFn({ method: "GET" })
     await resolveVerifiedFounderActor(context as { supabase: unknown; userId: string });
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const admin = supabaseAdmin as unknown as AdminClient;
-    const { data, error } = await admin.from("commercial_policy_config_versions")
-      .select("id, policy_type, version, status, payload, effective_from, effective_to, created_at")
-      .order("created_at", { ascending: false });
-    if (error) throw new Error("Unable to load founder commercial policy configuration.");
-    return (data ?? []) as PolicyRow[];
+    const [{ data, error }, { data: currentData, error: currentError }] = await Promise.all([
+      admin.from("commercial_policy_config_versions")
+        .select("id, policy_type, version, status, payload, effective_from, effective_to, created_at")
+        .order("created_at", { ascending: false }),
+      admin.from("commercial_policy_config_current").select("policy_type, version_id"),
+    ]);
+    if (error || currentError) throw new Error("Unable to load founder commercial policy configuration.");
+    const currentByType = new Map(
+      ((currentData ?? []) as Array<{ policy_type: PolicyType; version_id: string }>)
+        .map((row) => [row.policy_type, row.version_id]),
+    );
+    return ((data ?? []) as PolicyRow[]).map((row) => ({
+      ...row,
+      is_current: currentByType.get(row.policy_type) === row.id,
+    }));
   });
 
 /** Founder-only, schema-validated, append-only configuration write. */
@@ -92,7 +140,7 @@ export const saveFounderCommercialPolicy = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => saveInput.parse(input))
   .handler(async ({ data, context }) => {
     const actor = await resolveVerifiedFounderActor(context as { supabase: unknown; userId: string });
-    const payload = assertPayload(data.policyType, data.payload);
+    const payload = assertPayload(data.policyType, data.payload, data.status);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const admin = supabaseAdmin as unknown as AdminClient;
     const { data: latest, error: latestError } = await admin.from("commercial_policy_config_versions")
