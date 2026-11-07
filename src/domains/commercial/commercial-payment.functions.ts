@@ -360,7 +360,9 @@ export const generateMyCommercialInvoicePdf = createServerFn({ method: "GET" })
     const admin = await getAdmin();
     const { data: invoice, error } = await admin.from("commercial_invoices").select("*")
       .eq("id",data.invoiceId).eq("organisation_id",actor.organisationId).maybeSingle();
-    if (error || !invoice) throw new Error("Invoice not found in the active tenant.");
+    if (error || !invoice || !invoice.issued_at || invoice.status === "draft") {
+      throw new Error("An issued invoice document was not found in the active tenant.");
+    }
     const [lines, adjustments] = await Promise.all([
       admin.from("commercial_invoice_lines").select("*").eq("invoice_id",invoice.id).order("created_at"),
       admin.from("commercial_invoice_adjustments").select("*").eq("invoice_id",invoice.id).order("created_at"),
