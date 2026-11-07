@@ -6,10 +6,12 @@ on:
       - feat/spe-07-*
     paths:
       - "src/domains/distribution/**"
+      - "docs/database/SPE-07-distribution-persistence.sql"
       - ".github/workflows/spe-07-distribution.yml"
   pull_request:
     paths:
       - "src/domains/distribution/**"
+      - "docs/database/SPE-07-distribution-persistence.sql"
       - ".github/workflows/spe-07-distribution.yml"
 
 jobs:
@@ -33,3 +35,26 @@ jobs:
         run: bunx eslint src/domains/distribution --rule 'prettier/prettier: off'
       - name: Production build
         run: bun run build
+
+  distribution-database-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Generate migration using Supabase CLI
+        shell: bash
+        run: |
+          supabase migration new spe07_distribution_persistence
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_spe07_distribution_persistence.sql' -print -quit)"
+          test -n "$migration_file"
+          cp docs/database/SPE-07-distribution-persistence.sql "$migration_file"
+          echo "Generated migration: $migration_file"
+      - name: Start isolated local Supabase stack
+        run: supabase start
+      - name: Apply all migrations to clean local database
+        run: supabase db reset --local
+      - name: Stop local Supabase stack
+        if: always()
+        run: supabase stop --no-backup
