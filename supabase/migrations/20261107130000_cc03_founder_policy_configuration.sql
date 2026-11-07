@@ -28,10 +28,12 @@ CREATE TABLE IF NOT EXISTS public.commercial_policy_config_current (
   published_at timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE public.commercial_policy_config_current ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.commercial_policy_config_current FORCE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.commercial_policy_config_current FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.commercial_policy_config_current TO service_role;
 
 ALTER TABLE public.commercial_policy_config_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.commercial_policy_config_versions FORCE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.commercial_policy_config_versions FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.commercial_policy_config_versions TO service_role;
 
