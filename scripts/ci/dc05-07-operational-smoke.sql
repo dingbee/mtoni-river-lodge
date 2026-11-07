@@ -334,6 +334,33 @@ BEGIN
     RAISE EXCEPTION 'Operations task did not inherit its canonical booking and room property scope';
   END IF;
 
+  -- A real completed channel stay must release the exact checked-in unit
+  -- into the existing Housekeeping queue, not merely release its allocation.
+  PERFORM pg_catalog.set_config('request.jwt.claim.sub',v_user::text,true);
+  PERFORM public.staynas_transition_booking_core(
+    v_booking,'completed',NULL,v_user,'staff',NULL
+  );
+  IF (SELECT state::text FROM public.room_states WHERE id=v_room_state)<>'vacant_dirty'
+     OR (SELECT booking_id FROM public.room_states WHERE id=v_room_state) IS NOT NULL
+     OR NOT EXISTS (
+       SELECT 1 FROM public.ops_tasks
+       WHERE booking_id=v_booking AND room_state_id=v_room_state
+         AND task_type='channel_housekeeping_turnover'
+         AND category='housekeeping' AND status='pending'
+     )
+     OR NOT EXISTS (
+       SELECT 1 FROM public.housekeeping_transition_log
+       WHERE room_state_id=v_room_state
+         AND idempotency_key='channel-checkout:'||v_booking::text
+         AND to_state='vacant_dirty'
+     ) THEN
+    RAISE EXCEPTION 'Completed channel stay did not hand its exact physical unit into Housekeeping turnover';
+  END IF;
+  IF (SELECT allocation_status FROM public.staynas_distribution_room_allocations
+      WHERE booking_id=v_booking)<>'released' THEN
+    RAISE EXCEPTION 'Housekeeping handoff did not release the channel room allocation';
+  END IF;
+
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
     WHERE schemaname='public' AND tablename='staynas_distribution_operational_reservations'
