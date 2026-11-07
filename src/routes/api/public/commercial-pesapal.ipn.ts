@@ -4,6 +4,7 @@ import { queryTenantPesapalStatus } from "@/domains/commercial/commercial-pesapa
 async function handleCommercialPesapalNotification(orderTrackingId: string, merchantReference: string, notificationType: string) {
   if (!orderTrackingId || !merchantReference.startsWith("SN-COM-")) return false;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = supabaseAdmin as any;
   const paymentId = merchantReference.slice("SN-COM-".length);
   const { data: payment, error } = await admin.from("commercial_payment_transactions")
