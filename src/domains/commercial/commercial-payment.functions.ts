@@ -256,7 +256,7 @@ const providerAccountInput = z.object({
   organisationId: z.string().uuid(),
   provider: z.enum(["pesapal","airtel_money","mixx_by_yas","mpesa","halopesa","bank_transfer","manual"]),
   providerAccountRef: z.string().trim().min(2).max(200),
-  credentialSecretRef: z.string().regex(/^STAYNAS_PROVIDER_SECRET_[A-Z0-9_]+$/),
+  credentialSecretRef: z.string().regex(/^STAYNAS_PROVIDER_SECRET_[A-Z0-9_]+$/).optional(),
   supportedCurrencies: z.array(z.enum(["TZS","USD"])).min(1).max(2),
 });
 
@@ -269,11 +269,14 @@ export const configureCommercialProviderAccount = createServerFn({ method: "POST
     const { data: account, error } = await admin.from("commercial_accounts")
       .select("id,organisation_id").eq("organisation_id", data.organisationId).maybeSingle();
     if (error || !account) throw new Error("Target commercial account was not found.");
+    if (!["bank_transfer","manual"].includes(data.provider) && !data.credentialSecretRef) {
+      throw new Error("This provider requires a server-side secret reference.");
+    }
     const { data: provider, error: providerError } = await admin.from("commercial_provider_accounts")
       .insert({
         organisation_id: data.organisationId, provider: data.provider,
         provider_account_ref: data.providerAccountRef,
-        credential_secret_ref: data.credentialSecretRef,
+        credential_secret_ref: data.credentialSecretRef ?? null,
         supported_currencies: [...new Set(data.supportedCurrencies)], status: "inactive",
       }).select("id,organisation_id,provider,provider_account_ref,supported_currencies,status").single();
     if (providerError || !provider) throw new Error("Provider account configuration could not be persisted.");
@@ -500,7 +503,7 @@ export const setCommercialProviderAccountStatus=createServerFn({method:"POST"})
       .select("id,organisation_id,provider,status,credential_secret_ref")
       .eq("id",data.providerAccountId).maybeSingle();
     if(error||!provider) throw new Error("Commercial provider account was not found.");
-    if(data.status==="active" && !provider.credential_secret_ref) throw new Error("A server-side provider secret reference is required before activation.");
+    if(data.status==="active" && !["bank_transfer","manual"].includes(provider.provider) && !provider.credential_secret_ref) throw new Error("A server-side provider secret reference is required before activation.");
     const {error:updateError}=await admin.from("commercial_provider_accounts")
       .update({status:data.status,updated_at:new Date().toISOString()}).eq("id",provider.id);
     if(updateError) throw new Error("Provider account status could not be changed.");
