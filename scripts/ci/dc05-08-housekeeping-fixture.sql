@@ -30,6 +30,13 @@ DROP POLICY IF EXISTS "Staff read room_states" ON public.room_states;
 
 ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS email text;
 
+-- DC-05.07 smoke runs inside a rollback transaction; its auth.uid() test
+-- shim is intentionally rolled back. Re-establish the JWT-backed shim here.
+CREATE OR REPLACE FUNCTION auth.uid()
+RETURNS uuid LANGUAGE sql STABLE AS $function$
+  SELECT NULLIF(current_setting('request.jwt.claim.sub',true),'')::uuid
+$function$;
+
 -- The canonical HK execution schema uses assignee_id; the legacy operations
 -- table fixture still exposes assigned_to for older non-HK tasks.
 ALTER TABLE public.ops_tasks
