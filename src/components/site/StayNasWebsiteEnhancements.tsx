@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
-import { trackGAEvent } from "@/lib/analytics";
 import { ArrowRight, BadgeCheck, BedDouble, Building2, CalendarCheck, ChartNoAxesCombined, Check, ChevronRight, CircleDollarSign, ClipboardCheck, CreditCard, House, Layers3, LockKeyhole, Network, ShieldCheck, Sparkles, Users, Workflow } from "lucide-react";
 
 const modules = [
@@ -127,7 +126,7 @@ export function StayNasDemoRequestForm() {
       const response = await fetch("/api/public/staynas-demo-request", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload?.ok) throw new Error(payload?.error || "We could not submit your request. Please try again.");
-      trackGAEvent("generate_lead", { event_category: "conversion", form_name: "staynas_demo_request", property_type: form.propertyType, property_count_band: form.properties });
+      window.dispatchEvent(new CustomEvent("staynas:demo-request-success", { detail: { propertyType: form.propertyType, propertyCount: form.properties } }));
       setResult({ kind: "success", message: "Your demo request has been received. The StayNas team will follow up using the contact details you provided." });
       setForm(initialDemoForm);
     } catch (error) {
