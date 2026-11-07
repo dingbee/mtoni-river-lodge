@@ -10,7 +10,7 @@ BEGIN
      OR to_regprocedure('public.staynas_active_property_id(uuid)') IS NULL
      OR to_regprocedure('public.staynas_user_has_property_access(uuid,uuid)') IS NULL
      OR to_regprocedure('public.has_any_role(uuid,public.app_role[])') IS NULL
-     OR to_regprocedure('public.is_any_staff(uuid)') IS NULL THEN
+ THEN
     RAISE EXCEPTION 'DC-06.03 requires DC-05.06 financial evidence and tenant/property authorization foundations.';
   END IF;
 END
@@ -29,8 +29,7 @@ CREATE POLICY staynas_distribution_financial_evidence_finance_active_property_re
   ON public.staynas_distribution_financial_evidence
   FOR SELECT TO authenticated
   USING (
-    public.is_any_staff(auth.uid())
-    AND public.has_any_role(
+    public.has_any_role(
       auth.uid(),
       ARRAY['finance','owner','manager','admin']::public.app_role[]
     )
