@@ -12,6 +12,7 @@ BEGIN
      OR to_regclass('public.room_states') IS NULL
      OR to_regclass('public.ops_tasks') IS NULL
      OR to_regclass('public.ops_alerts') IS NULL
+     OR to_regclass('public.housekeeping_transition_log') IS NULL
      OR to_regprocedure('public.staynas_user_has_property_access(uuid,uuid)') IS NULL THEN
     RAISE EXCEPTION 'DC-05.07 requires canonical bookings, guest CRM, room states, operations and DC-05.06 finance evidence';
   END IF;
