@@ -59,6 +59,7 @@ describe("reservation inbox worker", () => {
       }]),
       finish: vi.fn(async () => false), writer,
       recordPriceCommitment: vi.fn(async () => "commitment-id"),
+      isPriceCommitmentVerified: vi.fn(async () => false),
     });
     expect(report.leaseLost).toBe(1);
     expect(report.applied).toBe(0);
