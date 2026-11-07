@@ -277,8 +277,12 @@ BEGIN
   END IF;
 
   IF p_created_by IS NOT NULL AND (
-    NOT public.staynas_user_has_property_access(p_created_by,p_property_id)
-    OR NOT public.has_any_role(p_created_by,ARRAY['owner','manager','admin','reservations']::public.app_role[])
+    NOT EXISTS (
+      SELECT 1 FROM public.staynas_property_members pm
+      WHERE pm.user_id=p_created_by AND pm.property_id=p_property_id
+        AND pm.status='active'
+        AND pm.role=ANY(ARRAY['owner','manager','admin','reservations']::public.app_role[])
+    )
   ) THEN
     RAISE EXCEPTION 'Distribution operation actor is not authorized for this property'
       USING ERRCODE = '42501';
@@ -559,8 +563,12 @@ AS $function$
 DECLARE v_id uuid;
 BEGIN
   IF p_actor_id IS NULL
-    OR NOT public.staynas_user_has_property_access(p_actor_id,p_property_id)
-    OR NOT public.has_any_role(p_actor_id,ARRAY['owner','manager','admin','reservations']::public.app_role[]) THEN
+    OR NOT EXISTS (
+      SELECT 1 FROM public.staynas_property_members pm
+      WHERE pm.user_id=p_actor_id AND pm.property_id=p_property_id
+        AND pm.status='active'
+        AND pm.role=ANY(ARRAY['owner','manager','admin','reservations']::public.app_role[])
+    ) THEN
     RAISE EXCEPTION 'Distribution connection administration denied' USING ERRCODE = '42501';
   END IF;
   INSERT INTO public.staynas_distribution_connections(
@@ -585,8 +593,12 @@ AS $function$
 DECLARE v_id uuid;
 BEGIN
   IF p_actor_id IS NULL
-    OR NOT public.staynas_user_has_property_access(p_actor_id,p_property_id)
-    OR NOT public.has_any_role(p_actor_id,ARRAY['owner','manager','admin','reservations']::public.app_role[]) THEN
+    OR NOT EXISTS (
+      SELECT 1 FROM public.staynas_property_members pm
+      WHERE pm.user_id=p_actor_id AND pm.property_id=p_property_id
+        AND pm.status='active'
+        AND pm.role=ANY(ARRAY['owner','manager','admin','reservations']::public.app_role[])
+    ) THEN
     RAISE EXCEPTION 'Distribution mapping administration denied' USING ERRCODE = '42501';
   END IF;
   INSERT INTO public.staynas_distribution_mappings(
