@@ -78,7 +78,7 @@ type Query = PromiseLike<QueryResult> & {
 };
 type AdminClient = { from(table: string): Query };
 
-function assertPayload(
+export function validateFounderPolicyPayload(
   policyType: typeof policyTypes[number],
   payload: unknown,
   status: "draft" | "published",
@@ -160,7 +160,7 @@ export const saveFounderCommercialPolicy = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => saveInput.parse(input))
   .handler(async ({ data, context }) => {
     const actor = await resolveVerifiedFounderActor(context as { supabase: unknown; userId: string });
-    const payload = assertPayload(data.policyType, data.payload, data.status);
+    const payload = validateFounderPolicyPayload(data.policyType, data.payload, data.status);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const admin = supabaseAdmin as unknown as AdminClient;
     const { data: latest, error: latestError } = await admin.from("commercial_policy_config_versions")
