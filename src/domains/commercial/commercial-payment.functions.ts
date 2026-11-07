@@ -224,10 +224,13 @@ export const initiateMyCommercialPesapalPayment = createServerFn({ method: "POST
     if (actor.actorRole !== "tenant_admin") throw new Error("Forbidden: tenant administrator authority is required.");
     const admin = await getAdmin();
     const { data: payment, error } = await admin.from("commercial_payment_transactions")
-      .select("id,organisation_id,provider_account_id,provider,amount_minor,currency,status")
+      .select("id,organisation_id,provider_account_id,provider,amount_minor,currency,status,provider_order_ref,provider_redirect_url")
       .eq("id", data.paymentId).eq("organisation_id", actor.organisationId).maybeSingle();
     if (error || !payment || payment.provider !== "pesapal" || payment.status !== "pending") {
       throw new Error("Pending tenant Pesapal payment attempt was not found.");
+    }
+    if (payment.provider_order_ref && payment.provider_redirect_url) {
+      return { paymentId: payment.id, redirectUrl: payment.provider_redirect_url, provider: "pesapal" as const, replayed: true };
     }
     const { data: providerAccount, error: providerError } = await admin.from("commercial_provider_accounts")
       .select("id,credential_secret_ref,status")
@@ -246,10 +249,11 @@ export const initiateMyCommercialPesapalPayment = createServerFn({ method: "POST
       callbackUrl: `${baseUrl.replace(/\/$/, "")}/api/public/commercial-pesapal/ipn`,
     });
     const { error: updateError } = await admin.from("commercial_payment_transactions").update({
-      provider_order_ref: order.orderTrackingId, payment_method: "pesapal", updated_at: new Date().toISOString(),
+      provider_order_ref: order.orderTrackingId, provider_redirect_url: order.redirectUrl,
+      payment_method: "pesapal", updated_at: new Date().toISOString(),
     }).eq("id", payment.id).eq("status", "pending");
     if (updateError) throw new Error("Pesapal order reference could not be persisted.");
-    return { paymentId: payment.id, redirectUrl: order.redirectUrl, provider: "pesapal" as const };
+    return { paymentId: payment.id, redirectUrl: order.redirectUrl, provider: "pesapal" as const, replayed: false };
   });
 
 const providerAccountInput = z.object({
