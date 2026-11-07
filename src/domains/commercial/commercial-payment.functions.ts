@@ -733,8 +733,8 @@ export const filterCommercialInvoicesForFounder=createServerFn({method:"GET"})
     if(data.subscriptionId) query=query.eq("subscription_id",data.subscriptionId);
     if(data.currency) query=query.eq("currency",data.currency);
     if(data.status) query=query.eq("status",data.status);
-    if(data.periodFrom) query=query.gte("issued_at",data.periodFrom);
-    if(data.periodTo) query=query.lte("issued_at",data.periodTo);
+    if(data.periodFrom) query=query.gte("billing_period_start",data.periodFrom);
+    if(data.periodTo) query=query.lte("billing_period_end",data.periodTo);
     const {data:rows,error}=await query;
     if(error) throw new Error("Filtered commercial invoices could not be loaded.");
     await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
@@ -749,15 +749,30 @@ export const listCommercialPaymentsForFounder=createServerFn({method:"GET"})
     organisationId:z.string().uuid().optional(),currency:z.enum(["TZS","USD"]).optional(),
     provider:z.enum(["pesapal","airtel_money","mixx_by_yas","mpesa","halopesa","bank_transfer","manual"]).optional(),
     status:z.enum(["pending","successful","failed","cancelled","partially_reversed","reversed"]).optional(),
+    subscriptionId:z.string().uuid().optional(),periodFrom:z.string().datetime({offset:true}).optional(),
+    periodTo:z.string().datetime({offset:true}).optional(),
   }).parse(input??{}))
   .handler(async({data,context})=>{
     const actor=await resolveVerifiedFounderActor(context);
     const admin=await getAdmin();
+    let invoiceIds:string[]|null=null;
+    if(data.subscriptionId||data.periodFrom||data.periodTo){
+      let invoiceQuery=admin.from("commercial_invoices").select("id");
+      if(data.organisationId) invoiceQuery=invoiceQuery.eq("organisation_id",data.organisationId);
+      if(data.subscriptionId) invoiceQuery=invoiceQuery.eq("subscription_id",data.subscriptionId);
+      if(data.periodFrom) invoiceQuery=invoiceQuery.gte("billing_period_start",data.periodFrom);
+      if(data.periodTo) invoiceQuery=invoiceQuery.lte("billing_period_end",data.periodTo);
+      const {data:invoiceRows,error:invoiceError}=await invoiceQuery;
+      if(invoiceError) throw new Error("Payment invoice filters could not be resolved.");
+      invoiceIds=(invoiceRows??[]).map((row:{id:string})=>row.id);
+      if(!invoiceIds.length) return [];
+    }
     let query=admin.from("commercial_payment_transactions").select("*").order("created_at",{ascending:false});
     if(data.organisationId) query=query.eq("organisation_id",data.organisationId);
     if(data.currency) query=query.eq("currency",data.currency);
     if(data.provider) query=query.eq("provider",data.provider);
     if(data.status) query=query.eq("status",data.status);
+    if(invoiceIds) query=query.in("invoice_id",invoiceIds);
     const {data:rows,error}=await query;
     if(error) throw new Error("Commercial payment ledger could not be loaded.");
     await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
@@ -772,13 +787,15 @@ export const getCommercialReceivablesSummary=createServerFn({method:"GET"})
     const actor=await resolveVerifiedFounderActor(context);
     const admin=await getAdmin();
     const [invoices,unallocated]=await Promise.all([
-      admin.from("commercial_invoice_receivables").select("currency,total_minor,amount_paid_minor,outstanding_minor,is_overdue,status"),
+      admin.from("commercial_invoice_receivables").select("currency,total_minor,amount_paid_minor,outstanding_minor,is_overdue,status")
+        .in("status",["issued","partially_paid","paid","overdue"]),
       admin.from("commercial_unallocated_collections").select("currency,unallocated_minor"),
+      admin.from("commercial_invoice_adjustments").select("currency,adjustment_type,amount_minor").eq("status","posted"),
     ]);
     if(invoices.error||unallocated.error) throw new Error("Commercial receivables summary could not be calculated.");
-    const summary:Record<string,{invoicedMinor:string;collectedMinor:string;outstandingMinor:string;overdueMinor:string;unallocatedMinor:string;invoiceCount:number;partiallyPaidCount:number}>={};
+    const summary:Record<string,{invoicedMinor:string;collectedMinor:string;outstandingMinor:string;overdueMinor:string;unallocatedMinor:string;creditMinor:string;debitMinor:string;writeOffMinor:string;invoiceCount:number;partiallyPaidCount:number}>={};
     for(const currency of ["TZS","USD"]){
-      summary[currency]={invoicedMinor:"0",collectedMinor:"0",outstandingMinor:"0",overdueMinor:"0",unallocatedMinor:"0",invoiceCount:0,partiallyPaidCount:0};
+      summary[currency]={invoicedMinor:"0",collectedMinor:"0",outstandingMinor:"0",overdueMinor:"0",unallocatedMinor:"0",creditMinor:"0",debitMinor:"0",writeOffMinor:"0",invoiceCount:0,partiallyPaidCount:0};
     }
     for(const row of invoices.data??[]){
       const target=summary[row.currency]; if(!target) continue;
@@ -791,6 +808,13 @@ export const getCommercialReceivablesSummary=createServerFn({method:"GET"})
     }
     for(const row of unallocated.data??[]){
       const target=summary[row.currency]; if(target) target.unallocatedMinor=(BigInt(target.unallocatedMinor)+BigInt(row.unallocated_minor)).toString();
+    }
+    const adjustments=arguments[0]?.data?.[2]?.data ?? [];
+    for(const row of adjustments){
+      const target=summary[row.currency]; if(!target) continue;
+      if(row.adjustment_type==="credit_note") target.creditMinor=(BigInt(target.creditMinor)+BigInt(row.amount_minor)).toString();
+      if(row.adjustment_type==="debit_note") target.debitMinor=(BigInt(target.debitMinor)+BigInt(row.amount_minor)).toString();
+      if(row.adjustment_type==="write_off") target.writeOffMinor=(BigInt(target.writeOffMinor)+BigInt(row.amount_minor)).toString();
     }
     await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
       organisationId:actor.organisationId,actorRole:"founder_admin",action:"receivables.summary_viewed",
