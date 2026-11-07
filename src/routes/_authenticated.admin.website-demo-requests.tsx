@@ -15,10 +15,10 @@ function WebsiteDemoRequestsPage() {
   const listFn = useServerFn(listStayNasDemoRequests);
   const updateFn = useServerFn(updateStayNasDemoRequest);
   const queryClient = useQueryClient();
-  const requests = useQuery({ queryKey: ["stayn​as.website-demo-requests"], queryFn: () => listFn() });
+  const requests = useQuery({ queryKey: ["staynas.website-demo-requests"], queryFn: () => listFn() });
   const update = useMutation({
     mutationFn: (input: { id: string; status: string }) => updateFn({ data: input }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["stayn​as.website-demo-requests"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["staynas.website-demo-requests"] }),
   });
 
   return <div className="space-y-6 p-6">
