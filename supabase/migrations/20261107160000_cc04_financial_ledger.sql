@@ -916,3 +916,29 @@ REVOKE ALL ON FUNCTION public.guard_commercial_notification_snapshot() FROM PUBL
 CREATE TRIGGER commercial_notification_snapshot_immutable
   BEFORE UPDATE OR DELETE ON public.commercial_financial_notifications
   FOR EACH ROW EXECUTE FUNCTION public.guard_commercial_notification_snapshot();
+
+ALTER TABLE public.commercial_payment_reversals
+  ADD CONSTRAINT commercial_payment_reversal_payment_currency_fk
+  FOREIGN KEY (payment_id,currency)
+  REFERENCES public.commercial_payment_transactions(id,currency) ON DELETE RESTRICT;
+
+CREATE OR REPLACE FUNCTION public.validate_commercial_reconciliation_item_tenant()
+RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, public
+AS $function$
+DECLARE v_org uuid; v_payment_org uuid;
+BEGIN
+  SELECT organisation_id INTO v_org FROM public.commercial_reconciliation_runs WHERE id=NEW.run_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Reconciliation run not found' USING ERRCODE='23503'; END IF;
+  IF NEW.internal_payment_id IS NOT NULL THEN
+    SELECT organisation_id INTO v_payment_org FROM public.commercial_payment_transactions WHERE id=NEW.internal_payment_id;
+    IF NOT FOUND OR v_payment_org IS DISTINCT FROM v_org THEN
+      RAISE EXCEPTION 'Reconciliation payment belongs to a different tenant' USING ERRCODE='42501';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.validate_commercial_reconciliation_item_tenant() FROM PUBLIC, anon, authenticated, service_role;
+CREATE TRIGGER commercial_reconciliation_item_tenant_guard
+  BEFORE INSERT ON public.commercial_reconciliation_items
+  FOR EACH ROW EXECUTE FUNCTION public.validate_commercial_reconciliation_item_tenant();
