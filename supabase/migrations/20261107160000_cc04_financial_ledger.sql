@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS public.commercial_payment_transactions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organisation_id uuid NOT NULL,
   account_id uuid NOT NULL,
-  invoice_id uuid NOT NULL,
+  invoice_id uuid,
   provider_account_id uuid NOT NULL,
   provider text NOT NULL CHECK (provider IN ('pesapal','bank_transfer','manual')),
   provider_order_ref text,
@@ -115,6 +115,7 @@ CREATE TABLE IF NOT EXISTS public.commercial_payment_transactions (
   UNIQUE (provider, provider_transaction_ref),
   UNIQUE (id, organisation_id),
   UNIQUE (id, currency),
+  UNIQUE (id, organisation_id, account_id, currency),
   UNIQUE (id, invoice_id, organisation_id, currency)
 );
 CREATE INDEX IF NOT EXISTS commercial_payment_invoice_idx
@@ -132,10 +133,11 @@ CREATE TABLE IF NOT EXISTS public.commercial_payment_allocations (
   settlement_ref text NOT NULL CHECK (length(btrim(settlement_ref)) BETWEEN 1 AND 200),
   idempotency_key text NOT NULL CHECK (length(btrim(idempotency_key)) BETWEEN 8 AND 200),
   allocated_at timestamptz NOT NULL DEFAULT now(),
-  FOREIGN KEY (payment_id, invoice_id, organisation_id, currency)
-    REFERENCES public.commercial_payment_transactions(id, invoice_id, organisation_id, currency) ON DELETE RESTRICT,
-  FOREIGN KEY (invoice_id, organisation_id)
-    REFERENCES public.commercial_invoices(id, organisation_id) ON DELETE RESTRICT,
+  account_id uuid NOT NULL,
+  FOREIGN KEY (payment_id, organisation_id, account_id, currency)
+    REFERENCES public.commercial_payment_transactions(id, organisation_id, account_id, currency) ON DELETE RESTRICT,
+  FOREIGN KEY (invoice_id, organisation_id, account_id, currency)
+    REFERENCES public.commercial_invoices(id, organisation_id, account_id, currency) ON DELETE RESTRICT,
   UNIQUE (payment_id),
   UNIQUE (idempotency_key),
   UNIQUE (settlement_ref)
@@ -609,6 +611,9 @@ BEGIN
     END IF;
     RAISE EXCEPTION 'Payment settlement idempotency key was reused with conflicting evidence' USING ERRCODE='23505';
   END IF;
+  IF v_payment.invoice_id IS NULL THEN
+    RAISE EXCEPTION 'Unallocated collections must use the unallocated confirmation operation' USING ERRCODE='55000';
+  END IF;
   IF v_payment.status <> 'pending' THEN RAISE EXCEPTION 'Payment attempt is not pending' USING ERRCODE='55000'; END IF;
   IF _verification_source NOT IN ('server_provider_query','authorized_manual_verification','bank_statement_reconciliation')
     OR _verified_amount_minor <> v_payment.amount_minor OR _currency <> v_payment.currency
@@ -631,9 +636,9 @@ BEGIN
     verification_source=_verification_source,updated_at=now()
   WHERE id=v_payment.id;
   INSERT INTO public.commercial_payment_allocations(
-    payment_id,invoice_id,organisation_id,currency,amount_minor,settlement_ref,idempotency_key
+    payment_id,invoice_id,organisation_id,account_id,currency,amount_minor,settlement_ref,idempotency_key
   ) VALUES (
-    v_payment.id,v_invoice.id,v_invoice.organisation_id,v_invoice.currency,
+    v_payment.id,v_invoice.id,v_invoice.organisation_id,v_invoice.account_id,v_invoice.currency,
     v_payment.amount_minor,_settlement_ref,_idempotency_key
   ) RETURNING id INTO v_allocation;
   UPDATE public.commercial_invoices SET
@@ -737,6 +742,157 @@ GROUP BY i.id;
 ALTER VIEW public.commercial_invoice_receivables SET (security_invoker = true);
 REVOKE ALL ON public.commercial_invoice_receivables FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.commercial_invoice_receivables TO service_role;
+
+
+CREATE OR REPLACE VIEW public.commercial_unallocated_collections AS
+SELECT p.id AS payment_id,p.organisation_id,p.account_id,p.provider,p.provider_transaction_ref,
+  p.amount_minor,p.currency,p.status,p.confirmed_at,
+  CASE WHEN a.payment_id IS NULL
+    THEN greatest(p.amount_minor-coalesce(r.reversed_minor,0),0)
+    ELSE greatest(p.amount_minor-a.amount_minor,0)
+  END AS unallocated_minor
+FROM public.commercial_payment_transactions p
+LEFT JOIN public.commercial_payment_allocations a ON a.payment_id=p.id
+LEFT JOIN (
+  SELECT payment_id,sum(amount_minor) AS reversed_minor
+  FROM public.commercial_payment_reversals GROUP BY payment_id
+) r ON r.payment_id=p.id
+WHERE p.status IN ('successful','partially_reversed','reversed')
+  AND (a.payment_id IS NULL OR p.amount_minor>a.amount_minor);
+
+ALTER VIEW public.commercial_unallocated_collections SET (security_invoker=true);
+REVOKE ALL ON public.commercial_unallocated_collections FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.commercial_unallocated_collections TO service_role;
+
+CREATE OR REPLACE FUNCTION public.commercial_record_unallocated_payment(
+  _account_id uuid,_provider_account_id uuid,_amount_minor numeric,_currency text,
+  _idempotency_key text,_actor_user_id uuid
+)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public
+AS $function$
+DECLARE v_role text:=current_setting('request.jwt.claim.role',true);
+  v_org uuid; v_provider public.commercial_provider_accounts%ROWTYPE;
+  v_existing public.commercial_payment_transactions%ROWTYPE; v_id uuid;
+BEGIN
+  IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
+  SELECT organisation_id INTO v_org FROM public.commercial_accounts WHERE id=_account_id AND status='active';
+  IF v_org IS NULL THEN RAISE EXCEPTION 'Active commercial account not found' USING ERRCODE='55000'; END IF;
+  SELECT * INTO v_provider FROM public.commercial_provider_accounts WHERE id=_provider_account_id
+    AND organisation_id=v_org AND status='active' AND _currency=ANY(supported_currencies);
+  IF NOT FOUND THEN RAISE EXCEPTION 'Active provider/currency configuration not found' USING ERRCODE='55000'; END IF;
+  IF _amount_minor<=0 OR _currency NOT IN ('TZS','USD') OR length(btrim(_idempotency_key)) NOT BETWEEN 8 AND 200 THEN
+    RAISE EXCEPTION 'Unallocated payment input is invalid' USING ERRCODE='22023';
+  END IF;
+  SELECT * INTO v_existing FROM public.commercial_payment_transactions
+    WHERE account_id=_account_id AND idempotency_key=_idempotency_key;
+  IF FOUND THEN
+    IF v_existing.invoice_id IS NOT NULL OR v_existing.provider_account_id<>_provider_account_id
+      OR v_existing.amount_minor<>_amount_minor OR v_existing.currency<>_currency THEN
+      RAISE EXCEPTION 'Unallocated payment idempotency key conflict' USING ERRCODE='23505';
+    END IF;
+    RETURN v_existing.id;
+  END IF;
+  INSERT INTO public.commercial_payment_transactions(
+    organisation_id,account_id,invoice_id,provider_account_id,provider,
+    amount_minor,currency,idempotency_key,status,created_by
+  ) VALUES (
+    v_org,_account_id,NULL,_provider_account_id,v_provider.provider,
+    _amount_minor,_currency,_idempotency_key,'pending',_actor_user_id
+  ) RETURNING id INTO v_id;
+  INSERT INTO public.commercial_financial_audit_events(
+    request_id,actor_user_id,actor_organisation_id,actor_role,action,resource_type,resource_ref,outcome,metadata
+  ) VALUES (_idempotency_key,_actor_user_id,v_org,'founder_admin','payment.unallocated_received',
+    'payment',v_id::text,'succeeded',jsonb_build_object('amountMinor',_amount_minor,'currency',_currency));
+  RETURN v_id;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.commercial_record_unallocated_payment(uuid,uuid,numeric,text,text,uuid) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.commercial_record_unallocated_payment(uuid,uuid,numeric,text,text,uuid) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.commercial_confirm_unallocated_payment(
+  _payment_id uuid,_provider_transaction_ref text,_verified_amount_minor numeric,
+  _currency text,_verification_source text,_verified_at timestamptz DEFAULT now()
+)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public
+AS $function$
+DECLARE v_role text:=current_setting('request.jwt.claim.role',true);
+  v_payment public.commercial_payment_transactions%ROWTYPE;
+BEGIN
+  IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
+  SELECT * INTO v_payment FROM public.commercial_payment_transactions WHERE id=_payment_id FOR UPDATE;
+  IF NOT FOUND OR v_payment.invoice_id IS NOT NULL THEN RAISE EXCEPTION 'Unallocated payment not found' USING ERRCODE='55000'; END IF;
+  IF v_payment.status='successful' AND v_payment.provider_transaction_ref=_provider_transaction_ref
+    AND v_payment.amount_minor=_verified_amount_minor AND v_payment.currency=_currency THEN RETURN true; END IF;
+  IF v_payment.status<>'pending' OR v_payment.amount_minor<>_verified_amount_minor OR v_payment.currency<>_currency
+    OR _verification_source NOT IN ('server_provider_query','authorized_manual_verification','bank_statement_reconciliation')
+    OR coalesce(length(btrim(_provider_transaction_ref)),0)=0 THEN
+    RAISE EXCEPTION 'Unallocated payment confirmation evidence is invalid' USING ERRCODE='22023';
+  END IF;
+  UPDATE public.commercial_payment_transactions SET status='successful',
+    provider_transaction_ref=_provider_transaction_ref,confirmed_at=_verified_at,
+    provider_verified_at=_verified_at,verification_source=_verification_source,updated_at=now()
+  WHERE id=_payment_id;
+  INSERT INTO public.commercial_financial_audit_events(
+    request_id,actor_organisation_id,actor_role,action,resource_type,resource_ref,outcome,metadata
+  ) VALUES ('unallocated-'||_payment_id::text,v_payment.organisation_id,'service_principal',
+    'payment.unallocated_confirmed','payment',_payment_id::text,'succeeded',
+    jsonb_build_object('amountMinor',_verified_amount_minor,'currency',_currency,'providerRef',_provider_transaction_ref));
+  RETURN false;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.commercial_confirm_unallocated_payment(uuid,text,numeric,text,text,timestamptz) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.commercial_confirm_unallocated_payment(uuid,text,numeric,text,text,timestamptz) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.commercial_allocate_unallocated_payment(
+  _payment_id uuid,_invoice_id uuid,_amount_minor numeric,
+  _settlement_ref text,_idempotency_key text,_actor_user_id uuid
+)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public
+AS $function$
+DECLARE v_role text:=current_setting('request.jwt.claim.role',true);
+  v_payment public.commercial_payment_transactions%ROWTYPE;
+  v_invoice public.commercial_invoices%ROWTYPE;
+  v_outstanding numeric(20,0); v_allocated numeric(20,0); v_id uuid;
+BEGIN
+  IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
+  SELECT * INTO v_payment FROM public.commercial_payment_transactions WHERE id=_payment_id FOR UPDATE;
+  IF NOT FOUND OR v_payment.invoice_id IS NOT NULL OR v_payment.status NOT IN ('successful','partially_reversed') THEN
+    RAISE EXCEPTION 'Confirmed unallocated payment was not found' USING ERRCODE='55000';
+  END IF;
+  SELECT id INTO v_id FROM public.commercial_payment_allocations WHERE payment_id=_payment_id;
+  IF v_id IS NOT NULL THEN RAISE EXCEPTION 'This payment already has an allocation; split allocation is not enabled for this payment' USING ERRCODE='55000'; END IF;
+  SELECT * INTO v_invoice FROM public.commercial_invoices
+    WHERE id=_invoice_id AND organisation_id=v_payment.organisation_id
+      AND account_id=v_payment.account_id AND currency=v_payment.currency FOR UPDATE;
+  IF NOT FOUND OR v_invoice.status IN ('draft','void','paid') THEN
+    RAISE EXCEPTION 'Target invoice does not match unallocated payment account/currency or is not payable' USING ERRCODE='55000';
+  END IF;
+  SELECT outstanding_minor INTO v_outstanding FROM public.commercial_invoice_receivables WHERE id=v_invoice.id;
+  IF _amount_minor<=0 OR _amount_minor>v_payment.amount_minor OR _amount_minor>coalesce(v_outstanding,0)
+    OR length(btrim(_settlement_ref)) NOT BETWEEN 1 AND 200
+    OR length(btrim(_idempotency_key)) NOT BETWEEN 8 AND 200 THEN
+    RAISE EXCEPTION 'Unallocated payment amount exceeds available collection or invoice balance' USING ERRCODE='22023';
+  END IF;
+  INSERT INTO public.commercial_payment_allocations(
+    payment_id,invoice_id,organisation_id,account_id,currency,amount_minor,settlement_ref,idempotency_key
+  ) VALUES (_payment_id,_invoice_id,v_payment.organisation_id,v_payment.account_id,v_payment.currency,
+    _amount_minor,_settlement_ref,_idempotency_key) RETURNING id INTO v_id;
+  UPDATE public.commercial_invoices SET amount_paid_minor=amount_paid_minor+_amount_minor,
+    status=CASE WHEN amount_paid_minor+_amount_minor>=
+      (SELECT amount_paid_minor+outstanding_minor FROM public.commercial_invoice_receivables WHERE id=_invoice_id)
+      THEN 'paid' ELSE 'partially_paid' END,
+    updated_at=now()
+  WHERE id=_invoice_id;
+  INSERT INTO public.commercial_financial_audit_events(
+    request_id,actor_user_id,actor_organisation_id,actor_role,action,resource_type,resource_ref,outcome,metadata
+  ) VALUES (_idempotency_key,_actor_user_id,v_payment.organisation_id,'founder_admin',
+    'payment.unallocated_payment_allocated','payment_allocation',v_id::text,'succeeded',
+    jsonb_build_object('paymentId',_payment_id,'invoiceId',_invoice_id,'amountMinor',_amount_minor,'currency',v_payment.currency));
+  RETURN v_id;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.commercial_allocate_unallocated_payment(uuid,uuid,numeric,text,text,uuid) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.commercial_allocate_unallocated_payment(uuid,uuid,numeric,text,text,uuid) TO service_role;
 
 COMMENT ON TABLE public.commercial_invoices IS 'StayNas subscription invoices; separate from hospitality booking invoices and guest payments.';
 COMMENT ON TABLE public.commercial_payment_transactions IS 'Commercial subscription payment attempts and verified collection state. Never reused for bookings.';
