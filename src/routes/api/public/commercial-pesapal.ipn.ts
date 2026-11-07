@@ -41,8 +41,18 @@ async function handleCommercialPesapalNotification(orderTrackingId: string, merc
       console.error("[staynas-commercial-pesapal] receipt notification failed", notificationError);
     }
   } else if (result.statusCode === 2) {
-    await admin.from("commercial_payment_transactions").update({ status: "failed", updated_at: new Date().toISOString() })
-      .eq("id", payment.id).eq("status", "pending");
+    const { error: failureError } = await admin.rpc("commercial_record_payment_failure", {
+      _payment_id: payment.id, _provider_event_ref: `pesapal-failed-${orderTrackingId}`,
+      _final_status: "failed", _reason_code: "provider_status_failed",
+      _idempotency_key: `pesapal-failure-${orderTrackingId}`,
+    });
+    if (failureError) return false;
+    try {
+      const { sendCommercialPaymentFailureEmail } = await import("@/domains/commercial/commercial-financial-notifications.server");
+      await sendCommercialPaymentFailureEmail({ admin, paymentId: payment.id });
+    } catch (notificationError) {
+      console.error("[staynas-commercial-pesapal] failure notification failed", notificationError);
+    }
   } else if (result.statusCode === 3) {
     if (!result.confirmationCode) return false;
     const { error: reversalError } = await admin.rpc("commercial_record_payment_reversal", {
