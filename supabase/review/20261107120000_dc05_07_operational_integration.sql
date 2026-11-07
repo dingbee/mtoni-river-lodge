@@ -878,7 +878,7 @@ BEGIN
           DO UPDATE SET room_state_id=EXCLUDED.room_state_id,
             description=EXCLUDED.description,
             status=CASE WHEN public.ops_tasks.status='completed'
-              THEN public.ops_tasks.status ELSE 'pending'::public.ops_task_status END,
+              THEN public.ops_tasks.status ELSE 'pending' END,
             updated_at=pg_catalog.now();
         END IF;
       END IF;
