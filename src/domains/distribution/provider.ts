@@ -50,7 +50,11 @@ export interface DistributionProviderAdapter {
     nextCursor: string | null;
     hasMore: boolean;
   }>;
+  receiveReservation?(context: ProviderContext, event: InboundReservationEvent): Promise<ProviderResult>;
+  modifyReservation?(context: ProviderContext, event: InboundReservationEvent): Promise<ProviderResult>;
+  cancelReservation?(context: ProviderContext, event: InboundReservationEvent): Promise<ProviderResult>;
   acknowledgeReservation?(context: ProviderContext, eventId: string, accepted: boolean, safeReason?: string): Promise<ProviderResult>;
+  reconcile?(context: ProviderContext, operationIds: string[]): Promise<ProviderResult[]>;
 }
 
 export class DistributionProviderError extends Error {
@@ -71,6 +75,10 @@ const operationMethod: Partial<Record<DistributionOperation, keyof DistributionP
   "availability.push": "pushAvailability",
   "restrictions.push": "pushRestrictions",
   "reservations.pull": "pullReservations",
+  "reservations.receive": "receiveReservation",
+  "reservations.modify": "modifyReservation",
+  "reservations.cancel": "cancelReservation",
+  "reconciliation.read": "reconcile",
 };
 
 /** Capability declarations and callable methods must agree; an adapter cannot advertise a missing operation. */
@@ -85,6 +93,11 @@ export function assertAdapterContract(adapter: DistributionProviderAdapter, capa
   if (capabilities.reservationDelivery === "polling" || capabilities.reservationDelivery === "both") {
     if (!capabilities.operations.includes("reservations.pull") || typeof adapter.pullReservations !== "function") {
       throw new Error("Polling delivery requires a reservation-pull capability and implementation.");
+    }
+  }
+  if (capabilities.reservationDelivery === "webhook" || capabilities.reservationDelivery === "both") {
+    if (!capabilities.operations.includes("reservations.receive") || typeof adapter.receiveReservation !== "function") {
+      throw new Error("Webhook delivery requires a reservation-receive capability and implementation.");
     }
   }
 }
