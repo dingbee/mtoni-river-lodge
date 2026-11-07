@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feat/dc05-*
+      - feat/dc06-*
   pull_request:
     branches: [integration/dc05-foundation]
     paths:
@@ -18,6 +19,9 @@ on:
       - "supabase/migrations/20261107100000_dc05_06_provider_financial_evidence.sql"
       - "supabase/migrations/20261107110000_dc05_06_provider_reference_idempotency_fix.sql"
       - "supabase/review/20261107120000_dc05_07_operational_integration.sql"
+      - "supabase/review/20261107130000_dc06_02_housekeeping_distribution_integration.sql"
+      - "scripts/ci/dc06-02-housekeeping-fixture.sql"
+      - "scripts/ci/dc06-02-housekeeping-smoke.sql"
       - "scripts/ci/dc05-07-operational-fixture.sql"
       - "scripts/ci/dc05-07-operational-smoke.sql"
       - "scripts/ci/dc05-06-provider-finance-smoke.sql"
@@ -120,13 +124,63 @@ jobs:
           PGPASSWORD: postgres
         run: |
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc05-07-operational-fixture.sql
+      - name: Prepare DC-06.02 Housekeeping disposable dependencies
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc06-02-housekeeping-fixture.sql
       - name: Apply DC-05.07 operational integration review migration
         env:
           PGPASSWORD: postgres
         run: |
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/review/20261107120000_dc05_07_operational_integration.sql
+      - name: Apply DC-06.02 Housekeeping distribution integration review migration
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/review/20261107130000_dc06_02_housekeeping_distribution_integration.sql
       - name: Verify DC-05.07 operational integration contracts
         env:
           PGPASSWORD: postgres
         run: |
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc05-07-operational-smoke.sql
+      - name: Verify DC-06.02 Housekeeping distribution integration
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc06-02-housekeeping-smoke.sql
+
+  housekeeping-application-check:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Generate routes and verify production build
+        run: bun run build
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Housekeeping regression tests
+        run: >-
+          bunx vitest run
+          src/lib/housekeeping-state-machine.test.ts
+          src/lib/housekeeping-offline.test.ts
+      - name: Lint changed Housekeeping files
+        run: >-
+          bunx eslint
+          src/lib/housekeeping-rpc.ts
+          src/lib/housekeeping-execution.functions.ts
+          src/routes/_authenticated.admin.operations.housekeeping.tsx
+          --rule 'prettier/prettier: off'
+          --rule '@typescript-eslint/no-explicit-any: off'
+          --rule '@typescript-eslint/no-empty-object-type: off'

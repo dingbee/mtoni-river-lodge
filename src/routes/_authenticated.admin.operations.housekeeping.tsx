@@ -14,6 +14,7 @@ import {
   completeHousekeepingTask,
   listHousekeepingStaff,
   listHousekeepingWork,
+  listDistributionHousekeepingHandoffs,
   startHousekeepingTask,
 } from "@/lib/housekeeping-execution.functions";
 import {
@@ -49,6 +50,28 @@ type WorkRow = {
   completed_at: string | null;
   title: string;
   description: string | null;
+};
+
+type DistributionHandoffRow = {
+  booking_id: string;
+  booking_reference: string | null;
+  guest_name: string | null;
+  provider_key: string;
+  external_reservation_id: string;
+  provider_status: string;
+  integration_status: string;
+  last_error_code: string | null;
+  check_in: string;
+  check_out: string;
+  room_state_id: string | null;
+  unit_label: string | null;
+  room_name: string | null;
+  room_state: string | null;
+  allocation_status: string | null;
+  turnover_task_id: string | null;
+  turnover_task_status: string | null;
+  inspection_status: string | null;
+  last_integrated_at: string;
 };
 
 type InspectionRow = {
@@ -118,6 +141,7 @@ function HousekeepingPage() {
   }, []);
 
   const listFn = useServerFn(listHousekeepingWork);
+  const distributionHandoffsFn = useServerFn(listDistributionHousekeepingHandoffs);
   const claimFn = useServerFn(claimHousekeepingTask);
   const startFn = useServerFn(startHousekeepingTask);
   const completeFn = useServerFn(completeHousekeepingTask);
@@ -136,6 +160,7 @@ function HousekeepingPage() {
   const dashboard = useQuery({ queryKey: ["housekeeping-dashboard"], queryFn: () => dashboardFn(), refetchInterval: 60_000 });
   const intelligence = useQuery({ queryKey: ["housekeeping-intelligence"], queryFn: () => intelligenceFn(), refetchInterval: 60_000 });
   const notifications = useQuery({ queryKey: ["housekeeping-notifications"], queryFn: () => notificationsFn({ data: { limit: 50 } }), refetchInterval: 20_000 });
+  const distributionHandoffs = useQuery({ queryKey: ["housekeeping-distribution-handoffs"], queryFn: () => distributionHandoffsFn(), refetchInterval: 30_000 });
 
   const work = useQuery({
     queryKey: ["housekeeping-work", mineOnly],
@@ -175,6 +200,7 @@ function HousekeepingPage() {
       qc.invalidateQueries({ queryKey: ["housekeeping-inspection-queue"] }),
       qc.invalidateQueries({ queryKey: ["housekeeping-exceptions"] }),
       qc.invalidateQueries({ queryKey: ["housekeeping-notifications"] }),
+      qc.invalidateQueries({ queryKey: ["housekeeping-distribution-handoffs"] }),
     ]);
   };
 
@@ -288,6 +314,91 @@ function HousekeepingPage() {
               </div>
             ))}
           </div>
+        </section>
+      )}
+
+      {view === "work" && (
+        <section className="rounded-xl border bg-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold">Distribution housekeeping handoffs</div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Channel-originated room assignments, turnover work and inspection handoffs for the active property.
+              </p>
+            </div>
+            <span className="rounded-full border px-2 py-1 text-xs font-medium">
+              {distributionHandoffs.data?.length ?? 0}
+            </span>
+          </div>
+          {distributionHandoffs.isLoading ? (
+            <div className="mt-3 text-sm text-muted-foreground">Loading distribution handoffs…</div>
+          ) : distributionHandoffs.isError ? (
+            <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              Distribution handoff status could not be loaded. Refresh or verify active-property access.
+            </div>
+          ) : (distributionHandoffs.data ?? []).length === 0 ? (
+            <div className="mt-3 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+              No unresolved distribution handoffs or active channel turnover work.
+            </div>
+          ) : (
+            <div className="mt-3 grid gap-2 lg:grid-cols-2">
+              {(distributionHandoffs.data ?? []).map((handoff) => {
+                const row = handoff as DistributionHandoffRow;
+                const needsAssignment = row.integration_status === "room_assignment_required";
+                const needsReconciliation = row.integration_status === "reconciliation_required";
+                const awaitingInspection = row.inspection_status === "pending";
+                const label = needsAssignment
+                  ? "Room assignment required"
+                  : needsReconciliation
+                    ? "Operational reconciliation required"
+                    : row.inspection_status === "failed"
+                      ? "Re-clean required"
+                      : awaitingInspection
+                        ? "Awaiting inspection"
+                        : row.turnover_task_status === "completed"
+                          ? "Inspection handoff missing"
+                          : row.turnover_task_status === "in_progress"
+                            ? "Turnover cleaning in progress"
+                            : "Turnover cleaning pending";
+                return (
+                  <article key={row.booking_id} className="rounded-lg border p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="text-sm font-semibold">
+                          {row.booking_reference ?? "Channel reservation"}
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {row.provider_key.toUpperCase()} · {row.external_reservation_id}
+                        </div>
+                      </div>
+                      <span className={`rounded-full border px-2 py-1 text-[10px] font-medium ${needsAssignment || needsReconciliation ? "border-amber-500/40 text-amber-700" : "text-muted-foreground"}`}>
+                        {label}
+                      </span>
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      {row.unit_label ? `${row.unit_label} · ${row.room_name ?? "Room"}` : "No physical room assigned"}
+                      {row.guest_name ? ` · ${row.guest_name}` : ""}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {row.check_in} → {row.check_out}
+                      {row.allocation_status ? ` · Allocation: ${row.allocation_status}` : ""}
+                      {row.room_state ? ` · Room: ${row.room_state.replace(/_/g, " ")}` : ""}
+                    </div>
+                    {row.last_error_code && (
+                      <div className="mt-2 rounded bg-muted/50 px-2 py-1 text-xs">
+                        Integration code: <span className="font-mono">{row.last_error_code}</span>
+                      </div>
+                    )}
+                    {needsAssignment && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Assign a physical room before check-in. The reservation remains separate from current room occupancy.
+                      </p>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </section>
       )}
 
