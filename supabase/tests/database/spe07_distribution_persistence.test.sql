@@ -1,6 +1,6 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(16);
+SELECT plan(24);
 
 SELECT has_table('public','staynas_distribution_connections','distribution connections table exists');
 SELECT has_table('public','staynas_distribution_mappings','distribution mappings table exists');
@@ -55,6 +55,81 @@ SELECT ok(NOT has_function_privilege('authenticated',
 SELECT ok(has_function_privilege('service_role',
   'public.staynas_distribution_claim_outbox(integer,integer)','EXECUTE'),
   'trusted service role can claim outbox work');
+
+
+CREATE TEMP TABLE spe07_test_connection AS
+WITH inserted AS (
+  INSERT INTO public.staynas_distribution_connections(
+    organisation_id,property_id,provider,external_account_id,external_property_id,
+    status,credential_secret_ref,capabilities
+  )
+  SELECT tenant.id,property.id,'spe07-test-provider','spe07-test-account',
+    'spe07-test-external-property','active','vault://spe07-test-reference','{"rates":true}'::jsonb
+  FROM public.staynas_organisations tenant
+  CROSS JOIN public.staynas_properties property
+  WHERE tenant.slug='spe07-test-tenant-a' AND property.slug='spe07-test-property-a'
+  RETURNING id,organisation_id,property_id
+)
+SELECT * FROM inserted;
+
+SELECT is((
+  SELECT duplicate FROM public.staynas_distribution_enqueue_operation(
+    (SELECT organisation_id FROM spe07_test_connection),
+    (SELECT property_id FROM spe07_test_connection),
+    (SELECT id FROM spe07_test_connection),
+    'rates.push','spe07-idempotency-key-0001',repeat('a',64),
+    '{"publication_version":7}'::jsonb,NULL,NULL
+  )
+),false,'first enqueue creates a new durable operation');
+
+SELECT is((
+  SELECT duplicate FROM public.staynas_distribution_enqueue_operation(
+    (SELECT organisation_id FROM spe07_test_connection),
+    (SELECT property_id FROM spe07_test_connection),
+    (SELECT id FROM spe07_test_connection),
+    'rates.push','spe07-idempotency-key-0001',repeat('a',64),
+    '{"publication_version":7}'::jsonb,NULL,NULL
+  )
+),true,'repeated enqueue returns the existing operation');
+
+SELECT is((
+  SELECT count(*)::integer FROM public.staynas_distribution_outbox
+  WHERE connection_id=(SELECT id FROM spe07_test_connection)
+),1,'idempotent enqueue creates exactly one outbox event');
+
+SELECT throws_ok(
+  $
+    SELECT * FROM public.staynas_distribution_enqueue_operation(
+      (SELECT organisation_id FROM spe07_test_connection),
+      (SELECT property_id FROM spe07_test_connection),
+      (SELECT id FROM spe07_test_connection),
+      'rates.push','spe07-idempotency-key-0001',repeat('b',64),
+      '{"publication_version":8}'::jsonb,NULL,NULL
+    )
+  $,
+  '23505', NULL,
+  'idempotency key reuse with a different request fingerprint is rejected'
+);
+
+CREATE TEMP TABLE spe07_test_claim AS
+SELECT * FROM public.staynas_distribution_claim_outbox(1,120);
+
+SELECT is((SELECT count(*)::integer FROM spe07_test_claim),1,
+  'outbox worker claims the queued event with a lease');
+
+SELECT is(public.staynas_distribution_finish_outbox(
+  (SELECT outbox_id FROM spe07_test_claim),gen_random_uuid(),'delivered',NULL,NULL
+),false,'stale worker lease token cannot acknowledge an event');
+
+SELECT is(public.staynas_distribution_finish_outbox(
+  (SELECT outbox_id FROM spe07_test_claim),(SELECT lease_token FROM spe07_test_claim),
+  'delivered',NULL,NULL
+),true,'current lease holder can acknowledge the event');
+
+SELECT is((
+  SELECT status FROM public.staynas_distribution_operations
+  WHERE id=(SELECT operation_id FROM spe07_test_claim)
+),'succeeded','successful outbox delivery advances the operation ledger');
 
 SELECT * FROM finish();
 ROLLBACK;
