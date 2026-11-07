@@ -33,6 +33,7 @@ describe("reservation inbox worker", () => {
     const recordPriceCommitment = vi.fn(async (inboxId: string) => `commitment-${inboxId}`);
     const report = await runReservationInboxBatch({
       claim: vi.fn(async () => items), finish, writer, recordPriceCommitment,
+      isPriceCommitmentVerified: vi.fn(async () => false),
     });
     expect(report.applied).toBe(1);
     expect(report.manualReview).toBe(2);
