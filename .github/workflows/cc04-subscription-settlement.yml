@@ -1,0 +1,39 @@
+name: CC-04 subscription settlement contracts
+
+on:
+  push:
+    branches:
+      - feat/cc04-*
+  pull_request:
+    branches:
+      - main
+      - feat/cc03-04-*
+
+jobs:
+  cc04-contracts:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Verify settlement contracts and reconciliation
+        run: bunx vitest run src/domains/commercial/settlement-contract.test.ts
+      - name: Generate routes and verify production build
+        run: bun run build
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Settlement contract lint
+        run: >-
+          bunx eslint
+          src/domains/commercial/settlement-contract.ts
+          src/domains/commercial/settlement-contract.test.ts
+          --rule 'prettier/prettier: off'
