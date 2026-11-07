@@ -23,6 +23,7 @@ on:
       - "scripts/ci/dc05-07-operational-fixture.sql"
       - "scripts/ci/dc05-07-operational-smoke.sql"
       - "scripts/ci/dc05-06-provider-finance-smoke.sql"
+      - "scripts/ci/dc06-03-finance-fixture.sql"
       - "scripts/ci/dc06-03-finance-evidence-smoke.sql"
       - "scripts/ci/dc05-reservation-lifecycle-fixture.sql"
       - "scripts/ci/dc05-reservation-lifecycle-smoke.sql"
@@ -131,6 +132,11 @@ jobs:
           PGPASSWORD: postgres
         run: |
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/review/20261107120000_dc05_07_operational_integration.sql
+      - name: Prepare DC-06.03 finance authorization fixture
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc06-03-finance-fixture.sql
       - name: Apply DC-06.03 Finance evidence visibility review migration
         env:
           PGPASSWORD: postgres
