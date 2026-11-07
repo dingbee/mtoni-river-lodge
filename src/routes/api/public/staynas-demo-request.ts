@@ -19,7 +19,7 @@ export const Route = createFileRoute("/api/public/staynas-demo-request")({
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const email = input.email.toLowerCase();
           const recentSince = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-          const { data: recent, error: recentError } = await supabaseAdmin
+          const { data: recent, error: recentError } = await (supabaseAdmin as any)
             .from("staynas_website_demo_requests")
             .select("id")
             .eq("email", email)
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/api/public/staynas-demo-request")({
           if (recentError) throw new Error("Demo request service is temporarily unavailable.");
           if (recent?.length) return Response.json({ ok: true });
 
-          const { data: saved, error } = await supabaseAdmin
+          const { data: saved, error } = await (supabaseAdmin as any)
             .from("staynas_website_demo_requests")
             .insert({
               name: input.name,
@@ -40,7 +40,7 @@ export const Route = createFileRoute("/api/public/staynas-demo-request")({
               property_count_band: input.properties,
               interests: input.interests,
               message: input.message || null,
-              source: "stayn​as.com",
+              source: "staynas.com",
               status: "new",
             })
             .select("id, created_at")
@@ -75,8 +75,8 @@ export const Route = createFileRoute("/api/public/staynas-demo-request")({
                   "",
                   `Request ID: ${saved.id}`,
                 ].join("\n"),
-                idempotencyKey: `stayn​as-demo-${saved.id}`,
-                tags: [{ name: "source", value: "stayn​as-website" }],
+                idempotencyKey: `staynas-demo-${saved.id}`,
+                tags: [{ name: "source", value: "staynas-website" }],
               });
             } catch (notifyError) {
               console.error("[StayNas demo request] Notification dispatch failed; request remains stored.", notifyError instanceof Error ? notifyError.message : "unknown");
