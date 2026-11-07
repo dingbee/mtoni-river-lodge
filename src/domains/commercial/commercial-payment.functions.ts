@@ -890,3 +890,36 @@ export const reconcileCommercialProviderStatementRun=createServerFn({method:"POS
         discrepancies:results.filter(item=>item.resolutionStatus==="unresolved").length}});
     return results;
   });
+
+export const markCommercialPaymentAttemptFailed=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>z.object({
+    paymentId:z.string().uuid(),finalStatus:z.enum(["failed","cancelled"]),
+    providerEventRef:z.string().trim().min(1).max(200),reasonCode:z.string().trim().min(2).max(120),
+    idempotencyKey:z.string().trim().min(8).max(200),
+  }).parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    const {data:payment,error}=await admin.from("commercial_payment_transactions")
+      .select("id,organisation_id,status").eq("id",data.paymentId).maybeSingle();
+    if(error||!payment) throw new Error("Commercial payment attempt was not found.");
+    const {data:replayed,error:failureError}=await admin.rpc("commercial_record_payment_failure",{
+      _payment_id:data.paymentId,_provider_event_ref:data.providerEventRef,
+      _final_status:data.finalStatus,_reason_code:data.reasonCode,_idempotency_key:data.idempotencyKey,
+    });
+    if(failureError) throw new Error("Payment failure/cancellation could not be recorded.");
+    await writeFinancialAudit(admin,{requestId:data.idempotencyKey,actorUserId:actor.userId,
+      organisationId:payment.organisation_id,actorRole:"founder_admin",
+      action:data.finalStatus==="failed"?"payment.failed":"payment.cancelled",
+      resourceType:"payment",resourceRef:data.paymentId,metadata:{providerEventRef:data.providerEventRef,replayed}});
+    let notificationStatus="not_applicable";
+    if(data.finalStatus==="failed"){
+      try{
+        const {sendCommercialPaymentFailureEmail}=await import("./commercial-financial-notifications.server");
+        const notification=await sendCommercialPaymentFailureEmail({admin,paymentId:data.paymentId});
+        notificationStatus=notification.status;
+      }catch{notificationStatus="failed";}
+    }
+    return {paymentId:data.paymentId,status:data.finalStatus,replayed,notificationStatus};
+  });
