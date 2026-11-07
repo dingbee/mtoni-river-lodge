@@ -1342,3 +1342,9 @@ END;
 $function$;
 REVOKE ALL ON FUNCTION public.commercial_issue_draft_invoice(uuid,timestamptz,text,uuid) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.commercial_issue_draft_invoice(uuid,timestamptz,text,uuid) TO service_role;
+
+ALTER TABLE public.commercial_reconciliation_items
+  DROP CONSTRAINT IF EXISTS commercial_reconciliation_items_item_type_check;
+ALTER TABLE public.commercial_reconciliation_items
+  ADD CONSTRAINT commercial_reconciliation_items_item_type_check
+  CHECK (item_type IN ('matched','missing_internal','missing_provider','duplicate','amount_mismatch','currency_mismatch','status_mismatch','unallocated','reversed'));
