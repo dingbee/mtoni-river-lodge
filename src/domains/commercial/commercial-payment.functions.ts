@@ -953,3 +953,34 @@ export const markCommercialPaymentAttemptFailed=createServerFn({method:"POST"})
     }
     return {paymentId:data.paymentId,status:data.finalStatus,replayed,notificationStatus};
   });
+
+export const getMyCommercialFinancialPosition=createServerFn({method:"GET"})
+  .middleware([requireSupabaseAuth])
+  .handler(async({context})=>{
+    const actor=await resolveVerifiedTenantActor(context);
+    if(actor.actorRole!=="tenant_admin") throw new Error("Forbidden: tenant administrator authority is required.");
+    const admin=await getAdmin();
+    const [invoices,unallocated]=await Promise.all([
+      admin.from("commercial_invoice_receivables").select("currency,total_minor,amount_paid_minor,outstanding_minor,credit_balance_minor,status")
+        .eq("organisation_id",actor.organisationId).in("status",["issued","partially_paid","paid","overdue"]),
+      admin.from("commercial_unallocated_collections").select("currency,unallocated_minor")
+        .eq("organisation_id",actor.organisationId),
+    ]);
+    if(invoices.error||unallocated.error) throw new Error("Tenant financial position could not be loaded.");
+    const summary:Record<string,{invoicedMinor:string;collectedMinor:string;outstandingMinor:string;creditBalanceMinor:string;unallocatedMinor:string;invoiceCount:number}>={};
+    for(const currency of ["TZS","USD"]){
+      summary[currency]={invoicedMinor:"0",collectedMinor:"0",outstandingMinor:"0",creditBalanceMinor:"0",unallocatedMinor:"0",invoiceCount:0};
+    }
+    for(const row of invoices.data??[]){
+      const target=summary[row.currency];if(!target)continue;
+      target.invoicedMinor=(BigInt(target.invoicedMinor)+BigInt(row.total_minor)).toString();
+      target.collectedMinor=(BigInt(target.collectedMinor)+BigInt(row.amount_paid_minor)).toString();
+      target.outstandingMinor=(BigInt(target.outstandingMinor)+BigInt(row.outstanding_minor)).toString();
+      target.creditBalanceMinor=(BigInt(target.creditBalanceMinor)+BigInt(row.credit_balance_minor)).toString();
+      target.invoiceCount+=1;
+    }
+    for(const row of unallocated.data??[]){
+      const target=summary[row.currency];if(target)target.unallocatedMinor=(BigInt(target.unallocatedMinor)+BigInt(row.unallocated_minor)).toString();
+    }
+    return summary;
+  });
