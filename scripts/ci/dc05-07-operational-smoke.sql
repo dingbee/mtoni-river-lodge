@@ -316,6 +316,9 @@ BEGIN
     RAISE EXCEPTION 'Pending provider reservation was prematurely assigned or treated as an arrival';
   END IF;
 
+  INSERT INTO public.ops_alerts(property_id,kind,severity,booking_id,room_id,message)
+  VALUES(v_property,'room_conflict','warning',v_booking,v_room,'DC-05.07 property-scope fixture alert');
+
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
     WHERE schemaname='public' AND tablename='staynas_distribution_operational_reservations'
@@ -368,7 +371,9 @@ BEGIN
      OR NOT EXISTS (SELECT 1 FROM public.ops_tasks
     WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid)
      OR NOT EXISTS (SELECT 1 FROM public.room_states
-    WHERE id='07070000-0000-4000-8000-000000000011'::uuid) THEN
+    WHERE id='07070000-0000-4000-8000-000000000011'::uuid)
+     OR NOT EXISTS (SELECT 1 FROM public.ops_alerts
+    WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid) THEN
     RAISE EXCEPTION 'Authorized property staff could not read its operational reservation records';
   END IF;
 END
@@ -388,7 +393,9 @@ BEGIN
      OR EXISTS (SELECT 1 FROM public.ops_tasks
     WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid)
      OR EXISTS (SELECT 1 FROM public.room_states
-    WHERE id='07070000-0000-4000-8000-000000000011'::uuid) THEN
+    WHERE id='07070000-0000-4000-8000-000000000011'::uuid)
+     OR EXISTS (SELECT 1 FROM public.ops_alerts
+    WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid) THEN
     RAISE EXCEPTION 'Cross-tenant authenticated user read another property operational records';
   END IF;
 END
