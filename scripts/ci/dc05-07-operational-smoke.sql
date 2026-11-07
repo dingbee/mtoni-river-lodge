@@ -364,7 +364,11 @@ BEGIN
      OR NOT EXISTS (SELECT 1 FROM public.staynas_distribution_operational_events
     WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid)
      OR NOT EXISTS (SELECT 1 FROM public.staynas_distribution_room_allocations
-    WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid) THEN
+    WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid)
+     OR NOT EXISTS (SELECT 1 FROM public.ops_tasks
+    WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid)
+     OR NOT EXISTS (SELECT 1 FROM public.room_states
+    WHERE id='07070000-0000-4000-8000-000000000011'::uuid) THEN
     RAISE EXCEPTION 'Authorized property staff could not read its operational reservation records';
   END IF;
 END
@@ -380,7 +384,11 @@ BEGIN
      OR EXISTS (SELECT 1 FROM public.staynas_distribution_operational_events
     WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid)
      OR EXISTS (SELECT 1 FROM public.staynas_distribution_room_allocations
-    WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid) THEN
+    WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid)
+     OR EXISTS (SELECT 1 FROM public.ops_tasks
+    WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid)
+     OR EXISTS (SELECT 1 FROM public.room_states
+    WHERE id='07070000-0000-4000-8000-000000000011'::uuid) THEN
     RAISE EXCEPTION 'Cross-tenant authenticated user read another property operational records';
   END IF;
 END
