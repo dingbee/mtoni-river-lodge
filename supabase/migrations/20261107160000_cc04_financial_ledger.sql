@@ -674,11 +674,7 @@ DECLARE v_role text := current_setting('request.jwt.claim.role',true);
 BEGIN
   IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
   SELECT * INTO v_payment FROM public.commercial_payment_transactions WHERE id=_payment_id FOR UPDATE;
-  IF NOT FOUND OR v_payment.status NOT IN ('successful','partially_reversed') THEN
-    RAISE EXCEPTION 'Payment is not eligible for reversal' USING ERRCODE='55000';
-  END IF;
-  SELECT * INTO v_allocation FROM public.commercial_payment_allocations WHERE payment_id=v_payment.id;
-  IF NOT FOUND THEN RAISE EXCEPTION 'Original payment allocation not found' USING ERRCODE='55000'; END IF;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Payment not found' USING ERRCODE='P0002'; END IF;
   SELECT * INTO v_existing FROM public.commercial_payment_reversals WHERE idempotency_key=_idempotency_key;
   IF FOUND THEN
     IF v_existing.payment_id <> _payment_id OR v_existing.provider_reversal_ref <> _provider_reversal_ref
@@ -688,10 +684,39 @@ BEGIN
     END IF;
     RETURN v_existing.id;
   END IF;
-  SELECT coalesce(sum(amount_minor),0) INTO v_reversed FROM public.commercial_payment_reversals WHERE payment_id=v_payment.id;
-  IF _currency <> v_payment.currency OR _amount_minor <= 0 OR v_reversed+_amount_minor > v_allocation.amount_minor
-    OR coalesce(length(btrim(_provider_reversal_ref)),0)=0 OR coalesce(length(btrim(_reason_code)),0)=0 THEN
+  IF v_payment.status NOT IN ('successful','partially_reversed') THEN
+    RAISE EXCEPTION 'Payment is not eligible for reversal' USING ERRCODE='55000';
+  END IF;
+  SELECT coalesce(sum(amount_minor),0) INTO v_reversed
+    FROM public.commercial_payment_reversals WHERE payment_id=v_payment.id;
+  IF _currency <> v_payment.currency OR _amount_minor <= 0
+    OR coalesce(length(btrim(_provider_reversal_ref)),0)=0
+    OR coalesce(length(btrim(_reason_code)),0)=0
+    OR length(btrim(_idempotency_key)) NOT BETWEEN 8 AND 200 THEN
     RAISE EXCEPTION 'Reversal amount, currency or reference is invalid' USING ERRCODE='22023';
+  END IF;
+  SELECT * INTO v_allocation FROM public.commercial_payment_allocations WHERE payment_id=v_payment.id;
+  IF NOT FOUND THEN
+    IF v_payment.invoice_id IS NOT NULL OR v_reversed+_amount_minor>v_payment.amount_minor THEN
+      RAISE EXCEPTION 'Unallocated payment reversal exceeds unallocated funds' USING ERRCODE='22023';
+    END IF;
+    INSERT INTO public.commercial_payment_reversals(
+      payment_id,provider_reversal_ref,idempotency_key,amount_minor,currency,reason_code,verified_at,created_by
+    ) VALUES (_payment_id,_provider_reversal_ref,_idempotency_key,_amount_minor,_currency,_reason_code,_verified_at,_actor_user_id)
+    RETURNING id INTO v_id;
+    UPDATE public.commercial_payment_transactions SET
+      status=CASE WHEN v_reversed+_amount_minor=v_payment.amount_minor THEN 'reversed' ELSE 'partially_reversed' END,
+      updated_at=now()
+    WHERE id=_payment_id;
+    INSERT INTO public.commercial_financial_audit_events(
+      request_id,actor_user_id,actor_organisation_id,actor_role,action,resource_type,resource_ref,outcome,reason_code,metadata
+    ) VALUES (_idempotency_key,_actor_user_id,v_payment.organisation_id,'founder_admin',
+      'payment.unallocated_reversed','payment_reversal',v_id::text,'succeeded',_reason_code,
+      jsonb_build_object('paymentId',_payment_id,'amountMinor',_amount_minor,'currency',_currency));
+    RETURN v_id;
+  END IF;
+  IF v_reversed+_amount_minor>v_allocation.amount_minor THEN
+    RAISE EXCEPTION 'Reversal exceeds allocated amount' USING ERRCODE='22023';
   END IF;
   SELECT * INTO v_invoice FROM public.commercial_invoices WHERE id=v_payment.invoice_id FOR UPDATE;
   SELECT outstanding_minor INTO v_outstanding FROM public.commercial_invoice_receivables WHERE id=v_invoice.id;
@@ -758,7 +783,9 @@ LEFT JOIN (
   FROM public.commercial_payment_reversals GROUP BY payment_id
 ) r ON r.payment_id=p.id
 WHERE p.status IN ('successful','partially_reversed','reversed')
-  AND (a.payment_id IS NULL OR p.amount_minor>a.amount_minor);
+  AND CASE WHEN a.payment_id IS NULL
+    THEN p.amount_minor-coalesce(r.reversed_minor,0)>0
+    ELSE p.amount_minor>a.amount_minor END;
 
 ALTER VIEW public.commercial_unallocated_collections SET (security_invoker=true);
 REVOKE ALL ON public.commercial_unallocated_collections FROM PUBLIC,anon,authenticated;
