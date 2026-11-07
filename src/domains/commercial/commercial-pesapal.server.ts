@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 const SANDBOX = "https://cybqa.pesapal.com/pesapalv3";
 const LIVE = "https://pay.pesapal.com/v3";
 type TenantPesapalSecret = { consumerKey: string; consumerSecret: string; environment: "sandbox" | "live"; ipnId: string };
