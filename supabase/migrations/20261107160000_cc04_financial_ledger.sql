@@ -158,8 +158,8 @@ CREATE TABLE IF NOT EXISTS public.commercial_payment_reversals (
   verified_at timestamptz NOT NULL,
   created_by uuid REFERENCES auth.users(id) ON DELETE RESTRICT,
   created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (provider_reversal_ref),
-  UNIQUE (idempotency_key)
+  UNIQUE (payment_id,provider_reversal_ref),
+  UNIQUE (payment_id,idempotency_key)
 );
 
 CREATE TABLE IF NOT EXISTS public.commercial_payment_allocation_reversals (
@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS public.commercial_payment_allocation_reversals (
 CREATE TABLE IF NOT EXISTS public.commercial_invoice_adjustments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   invoice_id uuid NOT NULL REFERENCES public.commercial_invoices(id) ON DELETE RESTRICT,
-  adjustment_ref text NOT NULL UNIQUE,
+  adjustment_ref text NOT NULL,
   adjustment_type text NOT NULL CHECK (adjustment_type IN ('credit_note','debit_note','write_off')),
   amount_minor numeric(20,0) NOT NULL CHECK (amount_minor > 0),
   currency text NOT NULL CHECK (currency IN ('TZS','USD')),
@@ -189,6 +189,7 @@ CREATE TABLE IF NOT EXISTS public.commercial_invoice_adjustments (
   posted_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   CHECK ((status = 'posted') = (posted_at IS NOT NULL)),
+  UNIQUE (invoice_id,adjustment_ref),
   FOREIGN KEY (invoice_id, currency)
     REFERENCES public.commercial_invoices(id, currency) ON DELETE RESTRICT
 );
