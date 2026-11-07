@@ -83,7 +83,11 @@ export function AdminSidebar({
         if (active) setFounderAdmin(false);
         return;
       }
-      const { data, error } = await supabase.rpc("commercial_is_founder_admin", {
+      const rpc = supabase.rpc as unknown as (
+        name: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: unknown | null }>;
+      const { data, error } = await rpc("commercial_is_founder_admin", {
         _principal_id: authData.user.id,
       });
       if (active) setFounderAdmin(!error && data === true);
