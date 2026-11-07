@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS public.commercial_subscriptions (
       activated_at IS NOT NULL
       AND trial_policy_version IS NOT NULL
       AND trial_started_at IS NOT NULL
+      AND trial_started_at = activated_at
       AND trial_ends_at = trial_started_at + interval '336 hours'
     )
   ),
