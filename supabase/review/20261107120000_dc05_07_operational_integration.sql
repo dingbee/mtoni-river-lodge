@@ -387,7 +387,7 @@ BEGIN
   RETURN jsonb_build_object(
     'ok',true,'booking_id',v_booking.id,'guest_id',v_booking.guest_id,
     'room_state_id',v_room_state_id,'integration_status',v_integration_status,
-    'payment_status','unpaid','check_in_started',false
+    'payment_status',v_booking.payment_status,'check_in_started',false
   );
 END;
 $function$;
