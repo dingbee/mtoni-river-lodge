@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 async function assertFounder(context: { supabase: any }) {
-  const { data, error } = await context.supabase.rpc("is_staynas_founder_ai_admin");
+  const { data, error } = await (context.supabase as any).rpc("is_staynas_founder_ai_admin");
   if (error || data !== true) throw new Error("Founder access is required.");
 }
 
