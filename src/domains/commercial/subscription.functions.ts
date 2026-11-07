@@ -23,6 +23,17 @@ type CommercialAdminClient = {
 };
 type CommercialAccountRow = { id: string; organisation_id: string; status: string; created_at?: string; updated_at?: string };
 type CommercialSubscriptionRow = { id: string; account_id: string; plan_code: "essential" | "professional" | "enterprise"; plan_version: number; status: string };
+type CommercialTrialActivationResult = {
+  ok: true;
+  replayed: boolean;
+  accountId: string;
+  subscriptionId: string;
+  status: "trialing";
+  policyVersion: number;
+  trialStartedAt: string;
+  trialEndsAt: string;
+  eventId: string;
+};
 
 const activateTrialInput = z.object({
   subscriptionId: z.string().uuid(),
@@ -296,9 +307,39 @@ export const activateMyCommercialTrial = createServerFn({ method: "POST" })
       throw new Error("Trial activation could not be completed.");
     }
 
+    const activation = result as Partial<CommercialTrialActivationResult> | null;
+    if (!activation || activation.ok !== true || activation.status !== "trialing"
+      || typeof activation.accountId !== "string"
+      || typeof activation.subscriptionId !== "string"
+      || typeof activation.policyVersion !== "number"
+      || typeof activation.trialStartedAt !== "string"
+      || typeof activation.trialEndsAt !== "string"
+      || typeof activation.eventId !== "string"
+      || typeof activation.replayed !== "boolean") {
+      await writeCommercialAudit(admin, actor, {
+        requestId,
+        action: "subscription.trial_activation_failed",
+        resourceType: "subscription",
+        resourceRef: subscription.id,
+        outcome: "failed",
+        reasonCode: "invalid_trial_activation_response",
+      });
+      throw new Error("Trial activation returned an invalid confirmation.");
+    }
+
     // The activation RPC writes the success audit in the same transaction as
     // the state transition, permanent claim and lifecycle event.
-    return result;
+    return {
+      ok: true,
+      replayed: activation.replayed,
+      accountId: activation.accountId,
+      subscriptionId: activation.subscriptionId,
+      status: "trialing" as const,
+      policyVersion: activation.policyVersion,
+      trialStartedAt: activation.trialStartedAt,
+      trialEndsAt: activation.trialEndsAt,
+      eventId: activation.eventId,
+    };
   });
 
 
