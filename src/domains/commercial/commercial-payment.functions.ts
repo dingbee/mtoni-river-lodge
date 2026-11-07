@@ -786,13 +786,13 @@ export const getCommercialReceivablesSummary=createServerFn({method:"GET"})
   .handler(async({context})=>{
     const actor=await resolveVerifiedFounderActor(context);
     const admin=await getAdmin();
-    const [invoices,unallocated]=await Promise.all([
+    const [invoices,unallocated,adjustments]=await Promise.all([
       admin.from("commercial_invoice_receivables").select("currency,total_minor,amount_paid_minor,outstanding_minor,is_overdue,status")
         .in("status",["issued","partially_paid","paid","overdue"]),
       admin.from("commercial_unallocated_collections").select("currency,unallocated_minor"),
       admin.from("commercial_invoice_adjustments").select("currency,adjustment_type,amount_minor").eq("status","posted"),
     ]);
-    if(invoices.error||unallocated.error) throw new Error("Commercial receivables summary could not be calculated.");
+    if(invoices.error||unallocated.error||adjustments.error) throw new Error("Commercial receivables summary could not be calculated.");
     const summary:Record<string,{invoicedMinor:string;collectedMinor:string;outstandingMinor:string;overdueMinor:string;unallocatedMinor:string;creditMinor:string;debitMinor:string;writeOffMinor:string;invoiceCount:number;partiallyPaidCount:number}>={};
     for(const currency of ["TZS","USD"]){
       summary[currency]={invoicedMinor:"0",collectedMinor:"0",outstandingMinor:"0",overdueMinor:"0",unallocatedMinor:"0",creditMinor:"0",debitMinor:"0",writeOffMinor:"0",invoiceCount:0,partiallyPaidCount:0};
@@ -809,8 +809,7 @@ export const getCommercialReceivablesSummary=createServerFn({method:"GET"})
     for(const row of unallocated.data??[]){
       const target=summary[row.currency]; if(target) target.unallocatedMinor=(BigInt(target.unallocatedMinor)+BigInt(row.unallocated_minor)).toString();
     }
-    const adjustments=arguments[0]?.data?.[2]?.data ?? [];
-    for(const row of adjustments){
+    for(const row of adjustments.data??[]){
       const target=summary[row.currency]; if(!target) continue;
       if(row.adjustment_type==="credit_note") target.creditMinor=(BigInt(target.creditMinor)+BigInt(row.amount_minor)).toString();
       if(row.adjustment_type==="debit_note") target.debitMinor=(BigInt(target.debitMinor)+BigInt(row.amount_minor)).toString();
