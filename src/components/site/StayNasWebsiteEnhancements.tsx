@@ -108,8 +108,8 @@ export function StayNasCommercialPage() {
   </main>;
 }
 
-type DemoFormState = { name: string; email: string; phone: string; company: string; country: string; propertyType: string; properties: string; interests: string[]; message: string; website: string };
-const initialDemoForm: DemoFormState = { name: "", email: "", phone: "", company: "", country: "", propertyType: "Hotel / boutique property", properties: "1", interests: ["Reservations & booking"], message: "", website: "" };
+type DemoFormState = { name: string; email: string; phone: string; company: string; country: string; propertyType: string; properties: string; interests: string[]; message: string; website: string; consent: boolean };
+const initialDemoForm: DemoFormState = { name: "", email: "", phone: "", company: "", country: "", propertyType: "Hotel / boutique property", properties: "1", interests: ["Reservations & booking"], message: "", website: "", consent: false };
 
 export function StayNasDemoRequestForm() {
   const [form, setForm] = useState<DemoFormState>(initialDemoForm);
@@ -148,6 +148,7 @@ export function StayNasDemoRequestForm() {
     <fieldset className="mt-6"><legend className="text-xs font-semibold text-[#526057]">What would you like to explore?</legend><div className="mt-3 grid gap-2 sm:grid-cols-2">{interestOptions.map((item)=><label key={item} className="flex items-center gap-2 text-xs text-[#526057]"><input type="checkbox" checked={form.interests.includes(item)} onChange={()=>toggleInterest(item)} className="h-4 w-4 accent-[#315744]"/>{item}</label>)}</div></fieldset>
     <label className="mt-6 block text-xs font-semibold text-[#526057]">Anything else we should know?<textarea rows={4} maxLength={2000} value={form.message} onChange={(e)=>update("message",e.target.value)} placeholder="Current systems, operational priorities, integrations or questions…" className="mt-2 w-full rounded-lg border border-[#d8ddd5] px-3 py-3 text-sm font-normal text-[#15251f] outline-none focus:border-[#315744]"/></label>
     <label aria-hidden="true" className="absolute -left-[10000px] top-auto h-px w-px overflow-hidden">Website<input tabIndex={-1} autoComplete="off" value={form.website} onChange={(e)=>update("website",e.target.value)}/></label>
+    <label className="mt-6 flex items-start gap-3 text-xs leading-5 text-[#526057]"><input required type="checkbox" checked={form.consent} onChange={(e)=>setForm((current)=>({...current,consent:e.target.checked}))} className="mt-1 h-4 w-4 accent-[#315744]"/><span>I agree that Nolmark CDMA may use these details to respond to my StayNas enquiry and arrange a product demonstration.</span></label>
     <button disabled={busy} type="submit" className="mt-7 inline-flex items-center justify-center gap-2 rounded-full bg-[#173d2d] px-7 py-3.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">{busy ? "Submitting…" : "Submit demo request"} <ArrowRight className="h-4 w-4"/></button>
     {result && <p role="status" aria-live="polite" className={"mt-4 rounded-lg p-3 text-sm " + (result.kind==="success" ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800")}>{result.message}</p>}
     <p className="mt-4 text-[10px] leading-5 text-[#8b958e]">Your information will be used by Nolmark CDMA to respond to this StayNas enquiry. Do not include passwords, payment card data or sensitive guest information.</p>
