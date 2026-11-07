@@ -17,6 +17,11 @@ describe("StayNas website demo request validation", () => {
     expect(result.interests).toEqual(["Reservations & booking"]);
   });
 
+  it("requires explicit contact consent", () => {
+    const { consent: _consent, ...withoutConsent } = valid;
+    expect(stayNasDemoRequestSchema.safeParse(withoutConsent).success).toBe(false);
+  });
+
   it("rejects an invalid email address", () => {
     expect(stayNasDemoRequestSchema.safeParse({ ...valid, email: "not-an-email" }).success).toBe(false);
   });
