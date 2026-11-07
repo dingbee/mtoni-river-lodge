@@ -27,11 +27,11 @@ export async function applyInboundReservationEvent(
 ): Promise<CanonicalReservationOutcome> {
   const event = validateInboundEvent(rawEvent);
   if (event.eventType === "cancelled") return writer.cancel({ inboxId, event });
-  const externalPrice = buildExternalPriceCommitment(event);
+  const externalPrice = buildExternalPriceCommitment(event, priceVerified);
   if (externalPrice.priceVerificationStatus === "incomplete" || !priceVerified) {
     return { status: "manual_review", reason: "Provider price has not passed verification; automatic booking creation or modification is prohibited." };
   }
   return event.eventType === "created"
-    ? writer.create({ inboxId, event, externalPrice: { ...externalPrice, priceVerificationStatus: "verified" } })
-    : writer.modify({ inboxId, event, externalPrice: { ...externalPrice, priceVerificationStatus: "verified" } });
+    ? writer.create({ inboxId, event, externalPrice })
+    : writer.modify({ inboxId, event, externalPrice });
 }
