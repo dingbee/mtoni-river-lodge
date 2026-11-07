@@ -444,6 +444,21 @@ BEGIN
     WHERE booking_id='07070000-0000-4000-8000-000000000010'::uuid) THEN
     RAISE EXCEPTION 'Cross-tenant authenticated user read another property operational records';
   END IF;
+
+  -- Read isolation alone is insufficient: a staff identity without the
+  -- property grant must also be unable to create operational work there.
+  BEGIN
+    INSERT INTO public.ops_tasks(
+      property_id,booking_id,task_type,category,title,priority,status,due_at
+    ) VALUES(
+      '07070000-0000-4000-8000-000000000002'::uuid,
+      '07070000-0000-4000-8000-000000000010'::uuid,
+      'dc0507_cross_tenant_write','other','Forbidden cross-tenant task',2,'pending',now()
+    );
+    RAISE EXCEPTION 'Cross-tenant user unexpectedly created an operational task';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
 END
 $tenant_isolation$;
 RESET ROLE;
