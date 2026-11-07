@@ -6,6 +6,7 @@ type Result<T> = Promise<{ data: T | null; error: { message: string } | null }>;
 
 export interface StayNasPropertyRpc {
   rpc(fn: "staynas_current_property_role"): Result<string | null>;
+  rpc(fn: "staynas_active_property_id"): Result<string | null>;
   rpc(fn: "staynas_list_properties"): Result<Array<{ id: string; [k: string]: unknown }>>;
   rpc(fn: "staynas_set_active_property", args: { _property_id: string }): Result<unknown>;
 }
