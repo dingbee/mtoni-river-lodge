@@ -176,12 +176,20 @@ export async function processNextDistributionReservationLifecycle(
   try {
     const result = await applyClaimedDistributionReservationLifecycle(lease);
     if (result.outcome === "manual_reconciliation") {
+      const reconciliationCode = result.reconciliation_code ?? "reservation_requires_review";
+      const { error: reconciliationError } = await (supabaseAdmin as any).rpc(
+        "staynas_mark_distribution_operational_reconciliation",
+        { _inbox_id: lease.id, _reconciliation_code: reconciliationCode },
+      );
+      if (reconciliationError) {
+        throw new Error("Operational reconciliation task could not be persisted.");
+      }
       await finishDistributionWebhook({
         inboxId: lease.id,
         leaseToken: lease.lease_token,
         workerId: normalizedWorkerId,
         status: "manual_reconciliation",
-        reconciliationCode: result.reconciliation_code ?? "reservation_requires_review",
+        reconciliationCode,
         safeSummary: "Provider reservation lifecycle event requires operator reconciliation.",
       });
     } else {
