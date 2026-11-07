@@ -1,6 +1,6 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(24);
+SELECT plan(31);
 
 SELECT has_table('public','staynas_distribution_connections','distribution connections table exists');
 SELECT has_table('public','staynas_distribution_mappings','distribution mappings table exists');
@@ -130,6 +130,62 @@ SELECT is((
   SELECT status FROM public.staynas_distribution_operations
   WHERE id=(SELECT operation_id FROM spe07_test_claim)
 ),'succeeded','successful outbox delivery advances the operation ledger');
+
+
+SELECT is((
+  SELECT duplicate FROM public.staynas_distribution_receive_reservation_event(
+    (SELECT organisation_id FROM spe07_test_connection),
+    (SELECT property_id FROM spe07_test_connection),
+    (SELECT id FROM spe07_test_connection),
+    'spe07-provider-event-1','spe07-external-reservation-1','created','1',
+    repeat('c',64),'{"external_reservation_id":"spe07-external-reservation-1","amount_minor":12345,"currency":"USD"}'::jsonb
+  )
+),false,'first provider reservation event is durably received');
+
+SELECT is((
+  SELECT duplicate FROM public.staynas_distribution_receive_reservation_event(
+    (SELECT organisation_id FROM spe07_test_connection),
+    (SELECT property_id FROM spe07_test_connection),
+    (SELECT id FROM spe07_test_connection),
+    'spe07-provider-event-1','spe07-external-reservation-1','created','1',
+    repeat('c',64),'{"external_reservation_id":"spe07-external-reservation-1","amount_minor":12345,"currency":"USD"}'::jsonb
+  )
+),true,'repeated provider event is identified as a duplicate');
+
+SELECT is((
+  SELECT count(*)::integer FROM public.staynas_distribution_reservation_inbox
+  WHERE connection_id=(SELECT id FROM spe07_test_connection)
+),1,'duplicate webhook delivery creates only one inbox record');
+
+SELECT throws_ok(
+  $
+    SELECT * FROM public.staynas_distribution_receive_reservation_event(
+      (SELECT organisation_id FROM spe07_test_connection),
+      (SELECT property_id FROM spe07_test_connection),
+      (SELECT id FROM spe07_test_connection),
+      'spe07-provider-event-1','spe07-external-reservation-1','created','1',
+      repeat('d',64),'{"external_reservation_id":"spe07-external-reservation-1","amount_minor":99999,"currency":"USD"}'::jsonb
+    )
+  $,
+  '23505', NULL,
+  'provider event ID replay with changed payload is rejected'
+);
+
+CREATE TEMP TABLE spe07_test_inbox_claim AS
+SELECT * FROM public.staynas_distribution_claim_reservation_inbox(1,120);
+
+SELECT is((SELECT count(*)::integer FROM spe07_test_inbox_claim),1,
+  'reservation inbox worker claims the event with a lease');
+
+SELECT is(public.staynas_distribution_finish_reservation_inbox(
+  (SELECT inbox_id FROM spe07_test_inbox_claim),gen_random_uuid(),'manual_review',
+  NULL,'TEST_REVIEW', 'Awaiting canonical reservation writer',NULL
+),false,'stale inbox lease token cannot finalize the event');
+
+SELECT is(public.staynas_distribution_finish_reservation_inbox(
+  (SELECT inbox_id FROM spe07_test_inbox_claim),(SELECT lease_token FROM spe07_test_inbox_claim),
+  'manual_review',NULL,'TEST_REVIEW','Awaiting canonical reservation writer',NULL
+),true,'current inbox lease holder can record a manual-review outcome');
 
 SELECT * FROM finish();
 ROLLBACK;
