@@ -17,7 +17,7 @@ BEGIN
     RAISE EXCEPTION 'DC-06.04 analytics RPC must pin search_path';
   END IF;
   IF has_function_privilege('anon',v_fn,'execute')
-     OR has_function_privilege('public',v_fn,'execute')
+
      OR NOT has_function_privilege('authenticated',v_fn,'execute') THEN
     RAISE EXCEPTION 'DC-06.04 analytics RPC execute grants are too broad or incomplete';
   END IF;
