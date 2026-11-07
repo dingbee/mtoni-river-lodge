@@ -9,6 +9,7 @@ function amount(minor: number | string, currency: string) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(minor) / 100);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function sendCommercialInvoiceIssuedEmail(input: { admin: any; invoiceId: string }) {
   const { admin, invoiceId } = input;
   const { data: invoice, error } = await admin.from("commercial_invoices").select("*").eq("id",invoiceId).maybeSingle();
@@ -49,7 +50,7 @@ export async function sendCommercialInvoiceIssuedEmail(input: { admin: any; invo
     await admin.from("commercial_financial_notifications").update({ status: "failed", attempted_at: new Date().toISOString() }).eq("id",notificationId);
     return { status: "failed" as const, reason: "STAYNAS_FINANCE_FROM_EMAIL_not_configured" };
   }
-  const rows = (lines ?? []).map((line: any) =>
+  const rows = (lines ?? []).map((line: { description: string; quantity: number; amount_minor: number | string }) =>
     `<tr><td>${escapeHtml(line.description)}</td><td>${line.quantity}</td><td>${amount(line.amount_minor,invoice.currency)}</td></tr>`
   ).join("");
   const html = `<h2>StayNas commercial invoice ${escapeHtml(invoice.invoice_number)}</h2>
@@ -76,6 +77,7 @@ export async function sendCommercialInvoiceIssuedEmail(input: { admin: any; invo
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function sendCommercialPaymentConfirmationEmail(input: { admin: any; paymentId: string }) {
   const { admin, paymentId } = input;
   const { data: payment, error } = await admin.from("commercial_payment_transactions").select("*").eq("id",paymentId).maybeSingle();
