@@ -107,18 +107,24 @@ BEGIN
   IF v_paid <> 70000 OR v_status <> 'partially_paid' THEN
     RAISE EXCEPTION 'Reversal balance incorrect: %, %',v_paid,v_status;
   END IF;
-  IF (SELECT outstanding_minor FROM public.commercial_invoice_receivables WHERE id=v_invoice_id) <> 50000 THEN
+  IF (SELECT outstanding_minor FROM public.commercial_invoice_receivables WHERE id=v_invoice_id) <> 40000 THEN
     RAISE EXCEPTION 'Post-reversal receivable balance incorrect';
   END IF;
 
+  v_allocation := public.commercial_confirm_and_allocate_payment(
+    v_payment,'manual-receipt-001',50000,'TZS','authorized_manual_verification',
+    'manual-settlement-001','cc04-allocation-001',now()
+  );
+  IF v_allocation->>'replayed' <> 'true' THEN
+    RAISE EXCEPTION 'Exact duplicate settlement was not returned as an idempotent replay';
+  END IF;
   BEGIN
-    v_allocation := public.commercial_confirm_and_allocate_payment(
-      v_payment,'manual-receipt-duplicate',50000,'TZS','authorized_manual_verification',
-      'manual-settlement-duplicate','cc04-allocation-duplicate',now()
+    PERFORM public.commercial_confirm_and_allocate_payment(
+      v_payment,'different-provider-reference',50000,'TZS','authorized_manual_verification',
+      'different-settlement-reference','cc04-conflicting-allocation',now()
     );
-    IF v_allocation->>'replayed' <> 'true' THEN
-      RAISE EXCEPTION 'Duplicate successful payment was not returned as an idempotent replay';
-    END IF;
+    RAISE EXCEPTION 'Conflicting duplicate provider callback was accepted';
+  EXCEPTION WHEN SQLSTATE '23505' THEN NULL;
   END;
 
   BEGIN
@@ -138,6 +144,29 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.commercial_payment_reversals WHERE id=v_reversal) THEN
     RAISE EXCEPTION 'Reversal evidence missing';
   END IF;
+  IF public.commercial_record_payment_reversal(
+    v_payment,'manual-reversal-001',10000,'TZS','verified_refund',
+    'cc04-reversal-001',now(),v_user
+  ) <> v_reversal THEN
+    RAISE EXCEPTION 'Exact reversal retry was not idempotent';
+  END IF;
+
+  IF has_table_privilege('authenticated','public.commercial_invoices','SELECT')
+    OR has_table_privilege('authenticated','public.commercial_payment_transactions','SELECT')
+    OR has_table_privilege('authenticated','public.commercial_payment_allocations','INSERT')
+    OR has_table_privilege('service_role','public.commercial_financial_audit_events','DELETE') THEN
+    RAISE EXCEPTION 'Financial table grants violate least-privilege policy';
+  END IF;
+
+  BEGIN
+    PERFORM public.commercial_post_invoice_adjustment(
+      v_invoice_id,'cc04-wrong-currency-credit','credit_note',100,'USD',
+      'currency_mismatch','approval-cc04-wrong-currency',v_user
+    );
+    RAISE EXCEPTION 'Cross-currency adjustment was accepted';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM = 'Cross-currency adjustment was accepted' THEN RAISE; END IF;
+  END;
 END;
 $test$;
 ROLLBACK;
