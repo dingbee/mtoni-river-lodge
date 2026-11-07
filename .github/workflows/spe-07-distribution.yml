@@ -1,15 +1,9 @@
 name: SPE-07 distribution contracts
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - feat/spe-07-*
-    paths:
-      - "src/domains/distribution/**"
-      - "docs/database/SPE-07-distribution-persistence.sql"
-      - "supabase/tests/database/**"
-      - ".github/workflows/spe-07-distribution.yml"
   pull_request:
     paths:
       - "src/domains/distribution/**"
@@ -45,7 +39,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.122.1
       - name: Generate migration using Supabase CLI
         shell: bash
         run: |
@@ -54,12 +48,12 @@ jobs:
           test -n "$migration_file"
           cp docs/database/SPE-07-distribution-persistence.sql "$migration_file"
           echo "Generated migration: $migration_file"
-      - name: Start isolated local Supabase stack
-        run: supabase start
-      - name: Apply all migrations to clean local database
-        run: supabase db reset --local --yes
-      - name: Run database contract and RLS tests
-        run: supabase test db
+      - name: Start local Supabase database
+        run: supabase start --exclude studio,inbucket,storage-api,imgproxy,vector
+      - name: Apply migrations and run database contracts
+        run: |
+          supabase db reset
+          supabase test db
       - name: Stop local Supabase stack
         if: always()
         run: supabase stop --no-backup
