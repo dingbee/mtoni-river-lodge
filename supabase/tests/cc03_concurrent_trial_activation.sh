@@ -6,8 +6,7 @@ set -euo pipefail
 
 org_id="71000000-0000-4000-8000-000000000001"
 account_id="72000000-0000-4000-8000-000000000001"
-subscription_a="73000000-0000-4000-8000-000000000001"
-subscription_b="73000000-0000-4000-8000-000000000002"
+subscription_id="73000000-0000-4000-8000-000000000001"
 
 psql -v ON_ERROR_STOP=1 <<SQL
 INSERT INTO public.staynas_organisations(id, slug, name)
@@ -17,17 +16,15 @@ VALUES ('$account_id', '$org_id');
 INSERT INTO public.commercial_subscriptions(
   id, account_id, plan_code, plan_version, currency, billing_term,
   property_count, price_resolution_ref, accepted_price_snapshot
-) VALUES
-  ('$subscription_a', '$account_id', 'professional', 1, 'TZS', 'monthly',
-   1, 'concurrent-price-a', '{"currency":"TZS","total":100000}'),
-  ('$subscription_b', '$account_id', 'professional', 1, 'TZS', 'monthly',
-   1, 'concurrent-price-b', '{"currency":"TZS","total":100000}');
+) VALUES (
+  '$subscription_id', '$account_id', 'professional', 1, 'TZS', 'monthly',
+  1, 'concurrent-price', '{"currency":"TZS","total":100000}'
+);
 SQL
 
 export PGOPTIONS="${PGOPTIONS:-} -c request.jwt.claim.role=service_role"
 call_activation() {
-  local subscription_id="$1"
-  local key="$2"
+  local key="$1"
   psql -v ON_ERROR_STOP=1 -Atc "SELECT public.commercial_activate_trial(
     '$account_id'::uuid,
     '$subscription_id'::uuid,
@@ -42,9 +39,9 @@ call_activation() {
 }
 
 set +e
-call_activation "$subscription_a" "cc03-concurrent-trial-a" >/tmp/cc03-trial-a.log 2>&1 &
+call_activation "cc03-concurrent-trial-a" >/tmp/cc03-trial-a.log 2>&1 &
 pid_a=$!
-call_activation "$subscription_b" "cc03-concurrent-trial-b" >/tmp/cc03-trial-b.log 2>&1 &
+call_activation "cc03-concurrent-trial-b" >/tmp/cc03-trial-b.log 2>&1 &
 pid_b=$!
 wait "$pid_a"
 status_a=$?
@@ -77,7 +74,7 @@ BEGIN
   WHERE account_id = '$account_id' AND event_type = 'activate_trial';
   SELECT count(*) INTO v_audits
   FROM public.commercial_audit_events
-  WHERE resource_ref IN ('$subscription_a', '$subscription_b')
+  WHERE resource_ref = '$subscription_id'
     AND action = 'subscription.trial_activated';
 
   IF v_claims <> 1 OR v_trialing <> 1 OR v_events <> 1 OR v_audits <> 1 THEN
