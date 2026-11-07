@@ -1,0 +1,35 @@
+name: SPE-07 distribution contracts
+
+on:
+  push:
+    branches:
+      - feat/spe-07-*
+    paths:
+      - "src/domains/distribution/**"
+      - ".github/workflows/spe-07-distribution.yml"
+  pull_request:
+    paths:
+      - "src/domains/distribution/**"
+      - ".github/workflows/spe-07-distribution.yml"
+
+jobs:
+  distribution-contracts:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Distribution contract and reliability tests
+        run: bunx vitest run src/domains/distribution
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Distribution lint
+        run: bunx eslint src/domains/distribution --rule 'prettier/prettier: off'
+      - name: Production build
+        run: bun run build
