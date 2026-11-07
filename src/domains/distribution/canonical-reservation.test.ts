@@ -40,9 +40,10 @@ describe("canonical reservation boundary", () => {
       create: vi.fn(), modify: vi.fn(async () => ({ status: "applied" as const, bookingId: "booking-id" })),
       cancel: vi.fn(async () => ({ status: "applied" as const, bookingId: "booking-id" })),
     };
-    await applyInboundReservationEvent({ ...event, eventType: "modified" }, writer);
+    const modified = await applyInboundReservationEvent({ ...event, eventType: "modified" }, writer);
     await applyInboundReservationEvent({ ...event, eventType: "cancelled" }, writer);
-    expect(writer.modify).toHaveBeenCalledTimes(1);
+    expect(modified.status).toBe("manual_review");
+    expect(writer.modify).not.toHaveBeenCalled();
     expect(writer.cancel).toHaveBeenCalledTimes(1);
     expect(writer.create).not.toHaveBeenCalled();
   });
