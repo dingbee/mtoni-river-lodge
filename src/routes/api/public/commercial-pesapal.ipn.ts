@@ -23,7 +23,20 @@ async function handleCommercialPesapalNotification(orderTrackingId: string, merc
   const { data: result, error: queryError } = await queryTenantPesapalStatus({
     providerAccountId: account.id, secretRef: account.credential_secret_ref, orderTrackingId,
   }).then(data => ({ data, error: null })).catch(error => ({ data: null, error }));
-  if (queryError || !result || result.merchantReference !== merchantReference) return false;
+  if (queryError || !result) return false;
+  const referenceMatches = result.merchantReference === merchantReference;
+  await admin.from("commercial_provider_notifications").upsert({
+    organisation_id: payment.organisation_id, provider_account_id: account.id,
+    provider: "pesapal", provider_event_ref: `${orderTrackingId}:${notificationType || "unknown"}:verification`,
+    provider_order_ref: orderTrackingId,
+    verification_status: referenceMatches && [1,2,3].includes(result.statusCode) ? "verified" : "mismatch",
+    processed_at: new Date().toISOString(),
+    raw_payload: { orderTrackingId, merchantReference, notificationType,
+      providerStatus: result.statusCode, providerAmount: result.amount,
+      providerCurrency: result.currency, providerTransactionRef: result.confirmationCode,
+      providerMerchantReference: result.merchantReference },
+  }, { onConflict: "provider,provider_event_ref", ignoreDuplicates: true });
+  if (!referenceMatches) return false;
   if (result.statusCode === 1) {
     const amountMinor = Math.round(result.amount * 100);
     if (!Number.isSafeInteger(amountMinor) || amountMinor !== Number(payment.amount_minor) || result.currency !== payment.currency || !result.confirmationCode) return false;
