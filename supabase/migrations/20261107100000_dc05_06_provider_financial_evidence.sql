@@ -44,6 +44,9 @@ CREATE TABLE IF NOT EXISTS public.staynas_distribution_financial_evidence (
   CHECK (booking_id IS NULL OR reconciliation_status <> 'unmatched')
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS staynas_distribution_financial_evidence_reference_uidx
+  ON public.staynas_distribution_financial_evidence(provider_key,external_account_id,event_type,provider_reference)
+  WHERE provider_reference IS NOT NULL AND length(provider_reference)>0;
 CREATE INDEX IF NOT EXISTS staynas_distribution_financial_evidence_booking_idx
   ON public.staynas_distribution_financial_evidence(property_id,booking_id,received_at DESC);
 CREATE INDEX IF NOT EXISTS staynas_distribution_financial_evidence_review_idx
