@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS public.commercial_invoices (
   UNIQUE (account_id, idempotency_key),
   UNIQUE (subscription_id, billing_period_start, billing_period_end),
   UNIQUE (id, organisation_id),
+  UNIQUE (id, currency),
   UNIQUE (id, organisation_id, account_id, currency)
 );
 CREATE INDEX IF NOT EXISTS commercial_invoices_org_due_idx
@@ -112,6 +113,8 @@ CREATE TABLE IF NOT EXISTS public.commercial_payment_transactions (
     REFERENCES public.commercial_provider_accounts(id, organisation_id) ON DELETE RESTRICT,
   UNIQUE (account_id, idempotency_key),
   UNIQUE (provider, provider_transaction_ref),
+  UNIQUE (id, organisation_id),
+  UNIQUE (id, currency),
   UNIQUE (id, invoice_id, organisation_id, currency)
 );
 CREATE INDEX IF NOT EXISTS commercial_payment_invoice_idx
@@ -168,7 +171,9 @@ CREATE TABLE IF NOT EXISTS public.commercial_invoice_adjustments (
   created_by uuid REFERENCES auth.users(id) ON DELETE RESTRICT,
   posted_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
-  CHECK ((status = 'posted') = (posted_at IS NOT NULL))
+  CHECK ((status = 'posted') = (posted_at IS NOT NULL)),
+  FOREIGN KEY (invoice_id, currency)
+    REFERENCES public.commercial_invoices(id, currency) ON DELETE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS public.commercial_provider_notifications (
@@ -182,7 +187,9 @@ CREATE TABLE IF NOT EXISTS public.commercial_provider_notifications (
   raw_payload jsonb NOT NULL CHECK (jsonb_typeof(raw_payload) = 'object'),
   verification_status text NOT NULL DEFAULT 'unverified' CHECK (verification_status IN ('unverified','verified','mismatch','rejected')),
   processed_at timestamptz,
-  UNIQUE (provider, provider_event_ref)
+  UNIQUE (provider, provider_event_ref),
+  FOREIGN KEY (provider_account_id, organisation_id)
+    REFERENCES public.commercial_provider_accounts(id, organisation_id) ON DELETE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS public.commercial_reconciliation_runs (
@@ -197,7 +204,10 @@ CREATE TABLE IF NOT EXISTS public.commercial_reconciliation_runs (
   started_by uuid REFERENCES auth.users(id) ON DELETE RESTRICT,
   completed_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
-  CHECK (period_end > period_start)
+  CHECK (period_end > period_start),
+  CHECK (provider_account_id IS NULL OR organisation_id IS NOT NULL),
+  FOREIGN KEY (provider_account_id, organisation_id)
+    REFERENCES public.commercial_provider_accounts(id, organisation_id) ON DELETE RESTRICT
 );
 CREATE TABLE IF NOT EXISTS public.commercial_reconciliation_items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -229,7 +239,11 @@ CREATE TABLE IF NOT EXISTS public.commercial_financial_notifications (
   provider_message_ref text,
   attempted_at timestamptz,
   sent_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (invoice_id, organisation_id)
+    REFERENCES public.commercial_invoices(id, organisation_id) ON DELETE RESTRICT,
+  FOREIGN KEY (payment_id, organisation_id)
+    REFERENCES public.commercial_payment_transactions(id, organisation_id) ON DELETE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS public.commercial_financial_audit_events (
