@@ -439,7 +439,6 @@ export const addCommercialReconciliationItem=createServerFn({method:"POST"})
       observed_currency:data.observedCurrency??null,evidence:data.evidence,
     }).select("id,item_type,resolution_status").single();
     if(error||!item) throw new Error("Reconciliation evidence could not be recorded.");
-    if(item.item_type!=="matched") await admin.from("commercial_reconciliation_runs").update({status:"discrepancy"}).eq("id",data.runId).eq("status","open");
     await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
       organisationId:run.organisation_id,actorRole:"founder_admin",action:"reconciliation.item_recorded",
       resourceType:"reconciliation_item",resourceRef:item.id,metadata:{itemType:item.item_type}});
@@ -487,4 +486,73 @@ export const completeCommercialReconciliationRun=createServerFn({method:"POST"})
       organisationId:run.organisation_id,actorRole:"founder_admin",action:"reconciliation.completed",
       resourceType:"reconciliation_run",resourceRef:data.runId,metadata:{status,unresolvedItems:count??0}});
     return {runId:data.runId,status};
+  });
+
+export const setCommercialProviderAccountStatus=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>z.object({
+    providerAccountId:z.string().uuid(),status:z.enum(["inactive","active","suspended"]),
+  }).parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    const {data:provider,error}=await admin.from("commercial_provider_accounts")
+      .select("id,organisation_id,provider,status,credential_secret_ref")
+      .eq("id",data.providerAccountId).maybeSingle();
+    if(error||!provider) throw new Error("Commercial provider account was not found.");
+    if(data.status==="active" && !provider.credential_secret_ref) throw new Error("A server-side provider secret reference is required before activation.");
+    const {error:updateError}=await admin.from("commercial_provider_accounts")
+      .update({status:data.status,updated_at:new Date().toISOString()}).eq("id",provider.id);
+    if(updateError) throw new Error("Provider account status could not be changed.");
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:provider.organisation_id,actorRole:"founder_admin",action:"provider_account.status_changed",
+      resourceType:"provider_account",resourceRef:provider.id,metadata:{provider:provider.provider,from:provider.status,to:data.status}});
+    return {providerAccountId:provider.id,status:data.status};
+  });
+
+export const refreshOverdueCommercialInvoices=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .handler(async({context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    const {data:count,error}=await admin.rpc("commercial_refresh_overdue_invoices");
+    if(error) throw new Error("Overdue invoice refresh failed.");
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:actor.organisationId,actorRole:"founder_admin",action:"invoice.overdue_refresh",
+      resourceType:"invoice_collection",resourceRef:"platform",metadata:{updatedCount:count}});
+    return {updatedCount:count};
+  });
+
+export const issueNextSubscriptionInvoice=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>z.object({
+    subscriptionId:z.string().uuid(),dueAt:z.string().datetime({offset:true}),
+    idempotencyKey:z.string().trim().min(8).max(200),
+    taxSnapshot:z.record(z.string(),z.unknown()),
+    discountSnapshot:z.record(z.string(),z.unknown()).default({amountMinor:0,policyRef:"none"}),
+  }).parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    const {data:subscription,error}=await admin.from("commercial_subscriptions")
+      .select("id,status,billing_term,current_period_ends_at,account_id")
+      .eq("id",data.subscriptionId).maybeSingle();
+    if(error||!subscription||subscription.status!=="active"||!subscription.current_period_ends_at) {
+      throw new Error("Active subscription with a current billing period is required.");
+    }
+    const {nextCommercialBillingPeriod}=await import("./commercial-billing-engine");
+    const period=nextCommercialBillingPeriod(subscription.current_period_ends_at,subscription.billing_term);
+    const {data:result,error:invoiceError}=await admin.rpc("commercial_create_invoice_from_subscription",{
+      _subscription_id:data.subscriptionId,_period_start:period.startsAt,_period_end:period.endsAt,
+      _due_at:data.dueAt,_idempotency_key:data.idempotencyKey,_tax_snapshot:data.taxSnapshot,
+      _discount_snapshot:data.discountSnapshot,_actor_user_id:actor.userId,
+    });
+    if(invoiceError) throw new Error("Recurring subscription invoice generation failed.");
+    if(result?.invoiceId && result?.replayed!==true) {
+      try {
+        const {sendCommercialInvoiceIssuedEmail}=await import("./commercial-financial-notifications.server");
+        await sendCommercialInvoiceIssuedEmail({admin,invoiceId:result.invoiceId});
+      } catch { /* Invoice remains issued; outbox status captures delivery failure. */ }
+    }
+    return {...result,billingPeriod:period};
   });
