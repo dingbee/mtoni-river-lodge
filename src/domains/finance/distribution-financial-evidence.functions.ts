@@ -3,6 +3,21 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
+type ProviderEvidenceRow = {
+  id: string;
+  property_id: string;
+  booking_id: string | null;
+  provider_key: string;
+  environment: string;
+  external_reservation_id: string;
+  event_type: string;
+  provider_reference: string | null;
+  evidence: Record<string, unknown>;
+  reconciliation_status: "unmatched" | "evidence_received" | "review_required" | "duplicate_reference";
+  reconciliation_code: string | null;
+  received_at: string;
+};
+
 const inputSchema = z.object({
   status: z.enum(["all", "unmatched", "review_required", "duplicate_reference", "evidence_received"]).default("all"),
   limit: z.number().int().min(1).max(200).default(100),
@@ -26,10 +41,10 @@ export const listDistributionFinancialEvidence = createServerFn({ method: "POST"
 
     const { data: evidenceRows, error } = await query;
     if (error) throw new Error("Unable to load provider financial evidence.");
-    const rows = evidenceRows ?? [];
-    const bookingIds = Array.from(new Set(rows.map((row: { booking_id: string | null }) => row.booking_id).filter((id: string | null): id is string => Boolean(id))));
+    const rows = (evidenceRows ?? []) as ProviderEvidenceRow[];
+    const bookingIds = Array.from(new Set(rows.map((row) => row.booking_id).filter((id): id is string => Boolean(id))));
 
-    let bookingsById = new Map<string, {
+    const bookingsById = new Map<string, {
       reference: string;
       currency: string | null;
       payment_status: string | null;
@@ -42,16 +57,18 @@ export const listDistributionFinancialEvidence = createServerFn({ method: "POST"
         .select("id,reference,currency,payment_status,paid_amount,balance_amount")
         .in("id", bookingIds);
       if (bookingError) throw new Error("Unable to load canonical booking reconciliation context.");
-      bookingsById = new Map((bookings ?? []).map((booking) => [booking.id, {
-        reference: booking.reference,
-        currency: booking.currency,
-        payment_status: booking.payment_status,
-        paid_amount: booking.paid_amount,
-        balance_amount: booking.balance_amount,
-      }]));
+      for (const booking of bookings ?? []) {
+        bookingsById.set(booking.id, {
+          reference: booking.reference,
+          currency: booking.currency,
+          payment_status: booking.payment_status,
+          paid_amount: booking.paid_amount,
+          balance_amount: booking.balance_amount,
+        });
+      }
     }
 
-    return rows.map((row: Record<string, unknown> & { booking_id: string | null }) => ({
+    return rows.map((row) => ({
       ...row,
       booking: row.booking_id ? bookingsById.get(row.booking_id) ?? null : null,
     }));
