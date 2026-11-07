@@ -15,9 +15,9 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_class
     WHERE oid = 'public.commercial_policy_config_versions'::regclass
-      AND relrowsecurity
+      AND relrowsecurity AND relforcerowsecurity
   ) THEN
-    RAISE EXCEPTION 'Policy configuration table must have RLS enabled';
+    RAISE EXCEPTION 'Policy configuration table must have RLS and FORCE RLS enabled';
   END IF;
 
   IF has_table_privilege('anon', 'public.commercial_policy_config_versions', 'SELECT')
@@ -29,6 +29,14 @@ BEGIN
     OR has_table_privilege('service_role', 'public.commercial_policy_config_versions', 'UPDATE')
     OR has_table_privilege('service_role', 'public.commercial_policy_config_versions', 'DELETE') THEN
     RAISE EXCEPTION 'Policy configuration table grants are not least-privilege';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_class
+    WHERE oid = 'public.commercial_policy_config_current'::regclass
+      AND relrowsecurity AND relforcerowsecurity
+  ) THEN
+    RAISE EXCEPTION 'Current published policy pointer must have RLS and FORCE RLS enabled';
   END IF;
 
   IF NOT has_table_privilege('service_role', 'public.commercial_policy_config_versions', 'SELECT')
