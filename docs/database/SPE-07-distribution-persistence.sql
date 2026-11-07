@@ -796,6 +796,8 @@ CREATE TRIGGER staynas_distribution_external_event_immutable
 ALTER TABLE public.staynas_distribution_external_reservations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.staynas_distribution_external_reservation_allocations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.staynas_distribution_external_reservation_events ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.staynas_distribution_external_reservation_events FROM PUBLIC,anon,authenticated;
+GRANT ALL ON public.staynas_distribution_external_reservation_events TO service_role;
 REVOKE ALL ON public.staynas_distribution_external_reservations FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON public.staynas_distribution_external_reservation_allocations FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON public.staynas_distribution_external_reservation_events FROM PUBLIC,anon,authenticated;
@@ -894,6 +896,15 @@ BEGIN
     IF NOT FOUND THEN RETURN jsonb_build_object('status','manual_review','reason','No canonical external reservation exists to cancel.'); END IF;
     IF v_reservation.status='cancelled' THEN
       RETURN jsonb_build_object('status','duplicate','booking_id',v_reservation.primary_booking_id);
+    END IF;
+    IF EXISTS (
+      SELECT 1
+      FROM public.staynas_distribution_external_reservation_allocations a
+      JOIN public.bookings b ON b.id=a.booking_id
+      WHERE a.external_reservation_id=v_reservation.id AND a.status='confirmed'
+        AND b.status::text NOT IN ('pending','confirmed','cancelled')
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','A linked booking has progressed operationally and requires staff-led cancellation.');
     END IF;
     IF v_inbox.event_version IS NULL OR v_reservation.latest_event_version IS NULL
       OR v_inbox.event_version !~ '^[0-9]+$' OR v_reservation.latest_event_version !~ '^[0-9]+$'
@@ -1018,7 +1029,10 @@ BEGIN
       SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
       WHERE id=v_old_alloc.id;
       UPDATE public.booking_nights
-      SET nightly_rate=round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2),
+      SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
+          THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
+            *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
+          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
         pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
       WHERE booking_id=v_old_alloc.booking_id;
     END LOOP;
@@ -1031,6 +1045,11 @@ BEGIN
     ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
       v_inbox.payload_fingerprint,v_inbox.normalized_payload);
     RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+
+  IF nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),'') IS NULL
+    OR nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'') IS NULL THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Guest name and email are required by the canonical guest-linking contract.');
   END IF;
 
   -- Preflight every exact room mapping, property, capacity and currency before
@@ -1059,6 +1078,14 @@ BEGIN
     END IF;
     IF upper(v_room.currency)<>v_currency THEN
       RETURN jsonb_build_object('status','manual_review','reason','Provider currency differs from the mapped room-type currency; FX conversion is not inferred.');
+    END IF;
+    IF nullif(v_alloc->>'ratePlanExternalId','') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM public.staynas_distribution_mappings rm
+      WHERE rm.connection_id=v_inbox.connection_id AND rm.property_id=v_inbox.property_id
+        AND rm.mapping_type='rate_plan' AND rm.active=true
+        AND rm.external_id=v_alloc->>'ratePlanExternalId'
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider rate-plan mapping is missing or inactive.');
     END IF;
     IF EXISTS (
       SELECT 1 FROM public.staynas_distribution_external_reservation_allocations a
@@ -1161,9 +1188,12 @@ BEGIN
   ) VALUES(v_reservation_id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
     v_inbox.payload_fingerprint,v_inbox.normalized_payload);
   RETURN jsonb_build_object('status','applied','booking_id',v_primary_booking_id,'reservation_id',v_reservation_id);
-EXCEPTION WHEN OTHERS THEN
-  RAISE;
-END $$;
+EXCEPTION
+  WHEN SQLSTATE 'P0001' THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Mapped room inventory is unavailable for one or more requested nights.');
+  WHEN OTHERS THEN
+    RAISE;
+END $;
 
 REVOKE ALL ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
   FROM PUBLIC,anon,authenticated;
