@@ -13,7 +13,9 @@ DECLARE
   v_unallocated_allocation uuid;
   v_unallocated_view numeric;
   v_invoice jsonb;
+  v_invoice2 jsonb;
   v_invoice_id uuid;
+  v_invoice_id2 uuid;
   v_payment uuid;
   v_allocation jsonb;
   v_reversal uuid;
@@ -128,6 +130,12 @@ BEGIN
     v_unallocated_payment,v_invoice_id,40000,'manual-overpayment-allocation-001',
     'cc04-unallocated-allocation-001',v_user
   );
+  IF public.commercial_allocate_unallocated_payment(
+    v_unallocated_payment,v_invoice_id,40000,'manual-overpayment-allocation-001',
+    'cc04-unallocated-allocation-001',v_user
+  ) <> v_unallocated_allocation THEN
+    RAISE EXCEPTION 'Unallocated allocation retry was not idempotent';
+  END IF;
   SELECT unallocated_minor INTO v_unallocated_view FROM public.commercial_unallocated_collections
     WHERE payment_id=v_unallocated_payment;
   IF v_unallocated_view <> 10000 THEN
@@ -193,9 +201,25 @@ BEGIN
     RAISE EXCEPTION 'Exact reversal retry was not idempotent';
   END IF;
 
+  v_invoice2 := public.commercial_create_invoice_from_subscription(
+    v_sub,now()+interval '1 month',now()+interval '2 months',now()+interval '1 month 14 days',
+    'cc04-invoice-void-idempotency',
+    '{"treatment":"not_applicable","policyRef":"tax-policy-test-v1","amountMinor":0,"currency":"TZS"}',
+    '{"amountMinor":0,"policyRef":"discount-none-v1"}',v_user
+  );
+  v_invoice_id2 := (v_invoice2->>'invoiceId')::uuid;
+  IF NOT public.commercial_void_invoice(v_invoice_id2,'duplicate_invoice','approval-cc04-void-001',v_user) THEN
+    RAISE EXCEPTION 'Controlled invoice void was not confirmed';
+  END IF;
+  IF (SELECT outstanding_minor FROM public.commercial_invoice_receivables WHERE id=v_invoice_id2) <> 0
+    OR (SELECT status FROM public.commercial_invoices WHERE id=v_invoice_id2) <> 'void' THEN
+    RAISE EXCEPTION 'Voided invoice remains in receivables';
+  END IF;
+
   IF has_table_privilege('authenticated','public.commercial_invoices','SELECT')
     OR has_table_privilege('authenticated','public.commercial_payment_transactions','SELECT')
     OR has_table_privilege('authenticated','public.commercial_payment_allocations','INSERT')
+    OR has_table_privilege('authenticated','public.commercial_payment_allocation_reversals','SELECT')
     OR has_table_privilege('service_role','public.commercial_financial_audit_events','DELETE') THEN
     RAISE EXCEPTION 'Financial table grants violate least-privilege policy';
   END IF;
