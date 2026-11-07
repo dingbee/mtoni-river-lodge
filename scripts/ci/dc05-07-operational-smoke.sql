@@ -353,7 +353,7 @@ BEGIN
   ) OR NOT EXISTS (
     SELECT 1 FROM pg_policies
     WHERE schemaname='public' AND tablename='room_states'
-      AND policyname='staynas_room_states_property_scope'
+      AND policyname='Staff read room_states'
   ) THEN
     RAISE EXCEPTION 'Operational, finance, task, alert or room property-read policy is missing';
   END IF;
@@ -370,6 +370,10 @@ CREATE OR REPLACE FUNCTION public.staynas_user_has_property_access(_user_id uuid
 RETURNS boolean LANGUAGE sql STABLE AS $function$
   SELECT _user_id='07070000-0000-4000-8000-000000000003'::uuid
      AND _property_id='07070000-0000-4000-8000-000000000002'::uuid
+$function$;
+CREATE OR REPLACE FUNCTION public.is_any_staff(_user_id uuid)
+RETURNS boolean LANGUAGE sql STABLE AS $function$
+  SELECT _user_id='07070000-0000-4000-8000-000000000003'::uuid
 $function$;
 
 SELECT set_config('request.jwt.claim.role','authenticated',true);
