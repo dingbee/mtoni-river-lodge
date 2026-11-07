@@ -162,6 +162,16 @@ BEGIN
   ) <> v_unallocated_reversal THEN
     RAISE EXCEPTION 'Unallocated payment reversal retry was not idempotent';
   END IF;
+  BEGIN
+    UPDATE public.commercial_payment_transactions SET amount_minor=1 WHERE id=v_unallocated_payment;
+    RAISE EXCEPTION 'Payment financial identity was mutable';
+  EXCEPTION WHEN SQLSTATE '55000' THEN NULL;
+  END;
+  BEGIN
+    UPDATE public.commercial_payment_allocation_reversals SET amount_minor=1 WHERE reversal_id=v_unallocated_reversal;
+    RAISE EXCEPTION 'Allocation reversal evidence was mutable';
+  EXCEPTION WHEN SQLSTATE '55000' THEN NULL;
+  END;
 
   v_allocation := public.commercial_confirm_and_allocate_payment(
     v_payment,'manual-receipt-001',50000,'TZS','authorized_manual_verification',
