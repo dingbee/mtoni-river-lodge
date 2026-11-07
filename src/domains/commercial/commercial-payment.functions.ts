@@ -386,3 +386,105 @@ export const generateMyCommercialPaymentReceiptPdf = createServerFn({ method: "G
     const bytes = await buildCommercialPaymentReceiptPdf({ payment, invoice: invoice.data, allocation: allocation.data });
     return { fileName: `receipt-${allocation.data.settlement_ref}.pdf`, bytes: Array.from(bytes) };
   });
+
+const reconciliationRunInput = z.object({
+  providerAccountId: z.string().uuid(), currency: z.enum(["TZS","USD"]),
+  periodStart: z.string().datetime({offset:true}), periodEnd: z.string().datetime({offset:true}),
+  sourceRef: z.string().trim().min(3).max(200),
+});
+export const createCommercialReconciliationRun = createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>reconciliationRunInput.parse(input))
+  .handler(async ({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    const {data:provider,error:providerError}=await admin.from("commercial_provider_accounts")
+      .select("id,organisation_id,supported_currencies").eq("id",data.providerAccountId).maybeSingle();
+    if(providerError||!provider||!provider.supported_currencies.includes(data.currency)) throw new Error("Provider account/currency is not configured.");
+    const {data:run,error}=await admin.from("commercial_reconciliation_runs").insert({
+      organisation_id:provider.organisation_id,provider_account_id:provider.id,currency:data.currency,
+      period_start:data.periodStart,period_end:data.periodEnd,source_ref:data.sourceRef,started_by:actor.userId,
+    }).select("id,status").single();
+    if(error||!run) throw new Error("Reconciliation run could not be created.");
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:provider.organisation_id,actorRole:"founder_admin",action:"reconciliation.started",
+      resourceType:"reconciliation_run",resourceRef:run.id,metadata:{currency:data.currency,sourceRef:data.sourceRef}});
+    return run;
+  });
+
+const reconciliationItemInput=z.object({
+  runId:z.string().uuid(),
+  itemType:z.enum(["matched","missing_internal","missing_provider","duplicate","amount_mismatch","currency_mismatch","unallocated","reversed"]),
+  internalPaymentId:z.string().uuid().nullable().optional(),
+  providerRef:z.string().trim().max(200).nullable().optional(),
+  expectedAmountMinor:z.number().int().nonnegative().safe().nullable().optional(),
+  observedAmountMinor:z.number().int().nonnegative().safe().nullable().optional(),
+  expectedCurrency:z.enum(["TZS","USD"]).nullable().optional(),
+  observedCurrency:z.enum(["TZS","USD"]).nullable().optional(),
+  evidence:z.record(z.string(),z.unknown()).default({}),
+});
+export const addCommercialReconciliationItem=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>reconciliationItemInput.parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    const {data:run,error:runError}=await admin.from("commercial_reconciliation_runs")
+      .select("id,organisation_id,status").eq("id",data.runId).maybeSingle();
+    if(runError||!run||run.status!=="open") throw new Error("Open reconciliation run was not found.");
+    const {data:item,error}=await admin.from("commercial_reconciliation_items").insert({
+      run_id:data.runId,item_type:data.itemType,internal_payment_id:data.internalPaymentId??null,
+      provider_ref:data.providerRef??null,expected_amount_minor:data.expectedAmountMinor??null,
+      observed_amount_minor:data.observedAmountMinor??null,expected_currency:data.expectedCurrency??null,
+      observed_currency:data.observedCurrency??null,evidence:data.evidence,
+    }).select("id,item_type,resolution_status").single();
+    if(error||!item) throw new Error("Reconciliation evidence could not be recorded.");
+    if(item.item_type!=="matched") await admin.from("commercial_reconciliation_runs").update({status:"discrepancy"}).eq("id",data.runId).eq("status","open");
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:run.organisation_id,actorRole:"founder_admin",action:"reconciliation.item_recorded",
+      resourceType:"reconciliation_item",resourceRef:item.id,metadata:{itemType:item.item_type}});
+    return item;
+  });
+
+export const resolveCommercialReconciliationItem=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>z.object({itemId:z.string().uuid(),resolutionRef:z.string().trim().min(3).max(200)}).parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    const {data:item,error}=await admin.from("commercial_reconciliation_items").select("id,run_id,resolution_status").eq("id",data.itemId).maybeSingle();
+    if(error||!item) throw new Error("Reconciliation item not found.");
+    const {data:run}=await admin.from("commercial_reconciliation_runs").select("organisation_id").eq("id",item.run_id).maybeSingle();
+    const {error:updateError}=await admin.from("commercial_reconciliation_items").update({
+      resolution_status:"resolved",resolution_ref:data.resolutionRef,
+    }).eq("id",data.itemId);
+    if(updateError) throw new Error("Reconciliation resolution could not be recorded.");
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:run?.organisation_id??actor.organisationId,actorRole:"founder_admin",
+      action:"reconciliation.item_resolved",resourceType:"reconciliation_item",resourceRef:data.itemId,
+      metadata:{resolutionRef:data.resolutionRef}});
+    return {itemId:data.itemId,resolutionStatus:"resolved" as const};
+  });
+
+export const completeCommercialReconciliationRun=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>z.object({runId:z.string().uuid()}).parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    const {data:run,error}=await admin.from("commercial_reconciliation_runs").select("id,organisation_id,status")
+      .eq("id",data.runId).maybeSingle();
+    if(error||!run||run.status==="completed") throw new Error("Open reconciliation run was not found.");
+    const {count,error:countError}=await admin.from("commercial_reconciliation_items")
+      .select("id",{count:"exact",head:true}).eq("run_id",data.runId).neq("resolution_status","resolved");
+    if(countError) throw new Error("Unresolved reconciliation items could not be counted.");
+    const status=(count??0)>0?"discrepancy":"completed";
+    const {error:updateError}=await admin.from("commercial_reconciliation_runs").update({
+      status,completed_at:new Date().toISOString(),
+    }).eq("id",data.runId);
+    if(updateError) throw new Error("Reconciliation run could not be completed.");
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:run.organisation_id,actorRole:"founder_admin",action:"reconciliation.completed",
+      resourceType:"reconciliation_run",resourceRef:data.runId,metadata:{status,unresolvedItems:count??0}});
+    return {runId:data.runId,status};
+  });
