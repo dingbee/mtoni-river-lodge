@@ -418,7 +418,7 @@ export const createCommercialReconciliationRun = createServerFn({method:"POST"})
 
 const reconciliationItemInput=z.object({
   runId:z.string().uuid(),
-  itemType:z.enum(["matched","missing_internal","missing_provider","duplicate","amount_mismatch","currency_mismatch","unallocated","reversed"]),
+  itemType:z.enum(["matched","missing_internal","missing_provider","duplicate","amount_mismatch","currency_mismatch","status_mismatch","unallocated","reversed"]),
   internalPaymentId:z.string().uuid().nullable().optional(),
   providerRef:z.string().trim().max(200).nullable().optional(),
   expectedAmountMinor:z.number().int().nonnegative().safe().nullable().optional(),
