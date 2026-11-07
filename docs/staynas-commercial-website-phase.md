@@ -8,7 +8,7 @@
 
 ## Demo request pipeline
 1. The public form posts to `/api/public/staynas-demo-request`.
-2. The server validates and normalises the submission, applies a honeypot, suppresses repeat submissions from the same email within ten minutes, and limits each hashed request origin to five submissions per hour.
+2. The server validates and normalises the submission, requires explicit contact consent, applies a honeypot, suppresses repeat submissions from the same email within ten minutes, and limits each hashed request origin to five submissions per hour.
 3. The server writes the request to `public.staynas_website_demo_requests` using the server-only Supabase service-role client.
 4. If `RESEND_API_KEY`, `STAYNAS_DEMO_NOTIFICATION_EMAIL` and `STAYNAS_DEMO_FROM_EMAIL` are configured, the server sends an email notification after the durable write.
 5. Founder users can review and update request status at `/admin/website-demo-requests`. Access is gated by `is_staynas_founder_ai_admin()`.
