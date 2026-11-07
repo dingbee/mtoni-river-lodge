@@ -69,7 +69,7 @@ export const listMyCommercialInvoices = createServerFn({ method: "GET" })
     if (actor.actorRole !== "tenant_admin") throw new Error("Forbidden: tenant administrator authority is required.");
     const admin = await getAdmin();
     const { data, error } = await admin.from("commercial_invoice_receivables").select("*")
-      .eq("organisation_id", actor.organisationId).order("issued_at", { ascending: false });
+      .eq("organisation_id", actor.organisationId).neq("status","draft").order("issued_at", { ascending: false });
     if (error) throw new Error("Unable to load tenant invoices.");
     await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
       organisationId:actor.organisationId,actorRole:actor.actorRole,action:"invoice.tenant_list_viewed",
@@ -332,7 +332,7 @@ export const getMyCommercialInvoiceDocumentData = createServerFn({ method: "GET"
     const admin = await getAdmin();
     const { data: invoice, error } = await admin.from("commercial_invoices").select("*")
       .eq("id", data.invoiceId).eq("organisation_id", actor.organisationId).maybeSingle();
-    if (error || !invoice) throw new Error("Invoice not found in the active tenant.");
+    if (error || !invoice || !invoice.issued_at || invoice.status==="draft") throw new Error("Issued invoice not found in the active tenant.");
     const [lines, payments, allocations, adjustments] = await Promise.all([
       admin.from("commercial_invoice_lines").select("*").eq("invoice_id", invoice.id).order("created_at"),
       admin.from("commercial_payment_transactions").select("id,provider,provider_transaction_ref,amount_minor,currency,status,initiated_at,confirmed_at")
