@@ -92,7 +92,11 @@ function FounderCommercialAdministration() {
 
   useEffect(() => {
     const currentRows = policies.filter((row) => row.policy_type === selected);
-    const current = currentRows.find((row) => row.is_current)
+    const newestDraft = currentRows
+      .filter((row) => row.status === "draft")
+      .sort((a, b) => b.version - a.version)[0];
+    const current = newestDraft
+      ?? currentRows.find((row) => row.is_current)
       ?? currentRows.sort((a, b) => b.version - a.version)[0];
     setPayloadText(current ? JSON.stringify(current.payload, null, 2) : selectedType.template);
     setStatus("draft");
