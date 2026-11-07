@@ -8,7 +8,7 @@ async function handleCommercialPesapalNotification(orderTrackingId: string, merc
   const admin = supabaseAdmin as any;
   const paymentId = merchantReference.slice("SN-COM-".length);
   const { data: payment, error } = await admin.from("commercial_payment_transactions")
-    .select("id,organisation_id,provider_account_id,provider,provider_order_ref,amount_minor,currency,status")
+    .select("id,organisation_id,provider_account_id,provider,provider_order_ref,invoice_id,amount_minor,currency,status")
     .eq("id", paymentId).eq("provider", "pesapal").maybeSingle();
   if (error || !payment || payment.provider_order_ref !== orderTrackingId) return false;
   const { data: account, error: accountError } = await admin.from("commercial_provider_accounts")
@@ -40,18 +40,33 @@ async function handleCommercialPesapalNotification(orderTrackingId: string, merc
   if (result.statusCode === 1) {
     const amountMinor = Math.round(result.amount * 100);
     if (!Number.isSafeInteger(amountMinor) || amountMinor !== Number(payment.amount_minor) || result.currency !== payment.currency || !result.confirmationCode) return false;
-    const { error: allocationError } = await admin.rpc("commercial_confirm_and_allocate_payment", {
-      _payment_id: payment.id, _provider_transaction_ref: result.confirmationCode,
-      _verified_amount_minor: amountMinor, _currency: result.currency,
-      _verification_source: "server_provider_query", _settlement_ref: result.confirmationCode,
-      _idempotency_key: `pesapal-settlement-${result.confirmationCode}`, _verified_at: new Date().toISOString(),
-    });
-    if (allocationError) return false;
-    try {
-      const { sendCommercialPaymentConfirmationEmail } = await import("@/domains/commercial/commercial-financial-notifications.server");
-      await sendCommercialPaymentConfirmationEmail({ admin, paymentId: payment.id });
-    } catch (notificationError) {
-      console.error("[staynas-commercial-pesapal] receipt notification failed", notificationError);
+    if (payment.invoice_id === null) {
+      const { error: unallocatedError } = await admin.rpc("commercial_confirm_unallocated_payment", {
+        _payment_id: payment.id, _provider_transaction_ref: result.confirmationCode,
+        _verified_amount_minor: amountMinor, _currency: result.currency,
+        _verification_source: "server_provider_query", _verified_at: new Date().toISOString(),
+      });
+      if (unallocatedError) return false;
+      try {
+        const { sendCommercialUnallocatedPaymentEmail } = await import("@/domains/commercial/commercial-financial-notifications.server");
+        await sendCommercialUnallocatedPaymentEmail({ admin, paymentId: payment.id });
+      } catch (notificationError) {
+        console.error("[staynas-commercial-pesapal] unallocated receipt notification failed", notificationError);
+      }
+    } else {
+      const { error: allocationError } = await admin.rpc("commercial_confirm_and_allocate_payment", {
+        _payment_id: payment.id, _provider_transaction_ref: result.confirmationCode,
+        _verified_amount_minor: amountMinor, _currency: result.currency,
+        _verification_source: "server_provider_query", _settlement_ref: result.confirmationCode,
+        _idempotency_key: `pesapal-settlement-${result.confirmationCode}`, _verified_at: new Date().toISOString(),
+      });
+      if (allocationError) return false;
+      try {
+        const { sendCommercialPaymentConfirmationEmail } = await import("@/domains/commercial/commercial-financial-notifications.server");
+        await sendCommercialPaymentConfirmationEmail({ admin, paymentId: payment.id });
+      } catch (notificationError) {
+        console.error("[staynas-commercial-pesapal] receipt notification failed", notificationError);
+      }
     }
   } else if (result.statusCode === 2) {
     const { error: failureError } = await admin.rpc("commercial_record_payment_failure", {
