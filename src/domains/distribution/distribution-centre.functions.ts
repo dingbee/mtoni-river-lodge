@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { staynasRpc } from "@/lib/staynas-rpc";
 
 type SafeConnection = {
   id: string; provider: string; external_account_id: string;
@@ -11,17 +12,25 @@ type SafeConnection = {
 export const getDistributionCentre = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: roles, error: rolesError } = await context.supabase.rpc("current_user_roles");
-    if (rolesError) throw new Error(rolesError.message);
-    const normalized = (roles ?? []).map((role) => String(role));
+    const propertyRpc = staynasRpc(context.supabase);
+    const [{ data: globalRoles, error: globalRoleError }, { data: propertyRole, error: propertyRoleError }, { data: propertyId, error: activePropertyError }] = await Promise.all([
+      context.supabase.rpc("current_user_roles"),
+      propertyRpc.rpc("staynas_current_property_role"),
+      propertyRpc.rpc("staynas_active_property_id"),
+    ]);
+    if (globalRoleError) throw new Error(globalRoleError.message);
+    if (propertyRoleError) throw new Error(propertyRoleError.message);
+    if (activePropertyError) throw new Error(activePropertyError.message);
+    const normalized = [
+      ...((globalRoles ?? []).map((role) => String(role))),
+      ...(propertyRole ? [String(propertyRole)] : []),
+    ];
     if (!normalized.some((role) => ["owner", "manager", "admin"].includes(role))) {
       throw new Error("Forbidden");
     }
 
     // Resolve the authenticated user's active property, never a global booking
     // property. This RPC returns only a property the caller is a member of.
-    const { data: propertyId, error: activePropertyError } = await context.supabase.rpc("staynas_active_property_id");
-    if (activePropertyError) throw new Error(activePropertyError.message);
     if (!propertyId) throw new Error("No accessible active property is configured");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
