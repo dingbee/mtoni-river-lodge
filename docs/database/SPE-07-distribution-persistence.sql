@@ -201,6 +201,10 @@ CREATE TABLE IF NOT EXISTS public.staynas_distribution_reservation_inbox (
   normalized_payload jsonb NOT NULL CHECK (jsonb_typeof(normalized_payload) = 'object'),
   processing_status text NOT NULL DEFAULT 'received'
     CHECK (processing_status IN ('received','processing','applied','duplicate','stale','manual_review','failed')),
+  attempt_count integer NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+  next_attempt_at timestamptz NOT NULL DEFAULT now(),
+  locked_at timestamptz,
+  lock_token uuid,
   canonical_booking_id uuid REFERENCES public.bookings(id) ON DELETE RESTRICT,
   received_at timestamptz NOT NULL DEFAULT now(),
   processed_at timestamptz,
@@ -259,7 +263,9 @@ DECLARE
   v_operation public.staynas_distribution_operations%ROWTYPE;
   v_outbox_id uuid;
 BEGIN
-  IF p_operation_type NOT IN (
+  IF p_operation_type IS NULL OR p_request_fingerprint IS NULL OR p_idempotency_key IS NULL
+    OR p_request_payload IS NULL OR p_organisation_id IS NULL OR p_property_id IS NULL OR p_connection_id IS NULL
+    OR p_operation_type NOT IN (
     'connection.validate','rates.push','availability.push','restrictions.push',
     'reservations.pull','reservations.receive','reservations.modify',
     'reservations.cancel','reconciliation.read'
@@ -407,6 +413,125 @@ BEGIN
   WHERE id = v_operation_id;
 
   RETURN true;
+END;
+$function$;
+
+-- Receive provider webhook/polling events idempotently. Verify provider signature
+-- before invoking this server-only function.
+CREATE OR REPLACE FUNCTION public.staynas_distribution_receive_reservation_event(
+  p_organisation_id uuid,p_property_id uuid,p_connection_id uuid,
+  p_provider_event_id text,p_external_reservation_id text,p_event_type text,
+  p_event_version text,p_payload_fingerprint text,p_normalized_payload jsonb
+)
+RETURNS TABLE(inbox_id uuid, duplicate boolean)
+LANGUAGE plpgsql SET search_path = public, pg_temp
+AS $function$
+DECLARE v_row public.staynas_distribution_reservation_inbox%ROWTYPE;
+BEGIN
+  IF p_provider_event_id IS NULL OR length(btrim(p_provider_event_id)) NOT BETWEEN 1 AND 255
+    OR p_external_reservation_id IS NULL OR length(btrim(p_external_reservation_id)) NOT BETWEEN 1 AND 255
+    OR p_event_type IS NULL OR p_event_type NOT IN ('created','modified','cancelled')
+    OR p_payload_fingerprint IS NULL OR p_payload_fingerprint !~ '^[a-f0-9]{64}(uuid,uuid,uuid,text,text,text,jsonb,text,uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_claim_outbox(integer,integer) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_finish_outbox(uuid,uuid,text,timestamptz,text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_receive_reservation_event(uuid,uuid,uuid,text,text,text,text,text,jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_claim_reservation_inbox(integer,integer) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_finish_reservation_inbox(uuid,uuid,text,uuid,text,text,timestamptz) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_enqueue_operation(uuid,uuid,uuid,text,text,text,jsonb,text,uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_claim_outbox(integer,integer) TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_finish_outbox(uuid,uuid,text,timestamptz,text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_receive_reservation_event(uuid,uuid,uuid,text,text,text,text,text,jsonb) TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_claim_reservation_inbox(integer,integer) TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_finish_reservation_inbox(uuid,uuid,text,uuid,text,text,timestamptz) TO service_role;
+
+COMMIT;
+
+    OR p_normalized_payload IS NULL OR jsonb_typeof(p_normalized_payload) <> 'object' THEN
+    RAISE EXCEPTION 'Invalid normalized reservation event' USING ERRCODE = '22023';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.staynas_distribution_connections c
+    WHERE c.id=p_connection_id AND c.organisation_id=p_organisation_id
+      AND c.property_id=p_property_id AND c.status='active'
+  ) THEN
+    RAISE EXCEPTION 'Reservation event connection scope or status denied' USING ERRCODE = '42501';
+  END IF;
+  INSERT INTO public.staynas_distribution_reservation_inbox(
+    organisation_id,property_id,connection_id,provider_event_id,
+    external_reservation_id,event_type,event_version,payload_fingerprint,normalized_payload
+  ) VALUES (
+    p_organisation_id,p_property_id,p_connection_id,btrim(p_provider_event_id),
+    btrim(p_external_reservation_id),p_event_type,p_event_version,p_payload_fingerprint,p_normalized_payload
+  ) ON CONFLICT (connection_id,provider_event_id) DO NOTHING
+  RETURNING * INTO v_row;
+  IF v_row.id IS NOT NULL THEN
+    RETURN QUERY SELECT v_row.id,false; RETURN;
+  END IF;
+  SELECT * INTO v_row FROM public.staynas_distribution_reservation_inbox
+  WHERE connection_id=p_connection_id AND provider_event_id=btrim(p_provider_event_id)
+  FOR UPDATE;
+  IF v_row.payload_fingerprint<>p_payload_fingerprint
+    OR v_row.external_reservation_id<>btrim(p_external_reservation_id)
+    OR v_row.event_type<>p_event_type THEN
+    RAISE EXCEPTION 'Provider event identifier was replayed with a different payload'
+      USING ERRCODE = '23505';
+  END IF;
+  RETURN QUERY SELECT v_row.id,true;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.staynas_distribution_claim_reservation_inbox(
+  p_limit integer DEFAULT 25,p_lease_seconds integer DEFAULT 120
+)
+RETURNS TABLE(
+  inbox_id uuid,connection_id uuid,organisation_id uuid,property_id uuid,
+  provider_event_id text,external_reservation_id text,event_type text,
+  event_version text,payload_fingerprint text,normalized_payload jsonb,lease_token uuid
+)
+LANGUAGE plpgsql SET search_path = public, pg_temp
+AS $function$
+BEGIN
+  IF p_limit NOT BETWEEN 1 AND 100 OR p_lease_seconds NOT BETWEEN 15 AND 900 THEN
+    RAISE EXCEPTION 'Invalid inbox claim bounds' USING ERRCODE = '22023';
+  END IF;
+  RETURN QUERY
+  WITH candidates AS (
+    SELECT i.id FROM public.staynas_distribution_reservation_inbox i
+    WHERE (i.processing_status IN ('received','failed') AND i.next_attempt_at<=now())
+       OR (i.processing_status='processing' AND i.locked_at<now()-make_interval(secs=>p_lease_seconds))
+    ORDER BY i.received_at FOR UPDATE SKIP LOCKED LIMIT p_limit
+  ), claimed AS (
+    UPDATE public.staynas_distribution_reservation_inbox i
+    SET processing_status='processing',locked_at=now(),lock_token=gen_random_uuid(),
+        attempt_count=i.attempt_count+1
+    FROM candidates c WHERE i.id=c.id RETURNING i.*
+  )
+  SELECT c.id,c.connection_id,c.organisation_id,c.property_id,c.provider_event_id,
+    c.external_reservation_id,c.event_type,c.event_version,c.payload_fingerprint,
+    c.normalized_payload,c.lock_token FROM claimed c;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.staynas_distribution_finish_reservation_inbox(
+  p_inbox_id uuid,p_lease_token uuid,p_status text,p_booking_id uuid DEFAULT NULL,
+  p_error_code text DEFAULT NULL,p_safe_error_message text DEFAULT NULL,p_retry_at timestamptz DEFAULT NULL
+)
+RETURNS boolean
+LANGUAGE plpgsql SET search_path = public, pg_temp
+AS $function$
+BEGIN
+  IF p_status IS NULL OR p_status NOT IN ('applied','duplicate','stale','manual_review','failed') THEN
+    RAISE EXCEPTION 'Invalid reservation inbox outcome' USING ERRCODE = '22023';
+  END IF;
+  UPDATE public.staynas_distribution_reservation_inbox
+  SET processing_status=p_status,
+      canonical_booking_id=coalesce(p_booking_id,canonical_booking_id),
+      safe_error_code=p_error_code,safe_error_message=p_safe_error_message,
+      next_attempt_at=CASE WHEN p_status='failed' THEN coalesce(p_retry_at,now()) ELSE next_attempt_at END,
+      processed_at=CASE WHEN p_status='failed' THEN NULL ELSE now() END,
+      locked_at=NULL,lock_token=NULL
+  WHERE id=p_inbox_id AND processing_status='processing' AND lock_token=p_lease_token;
+  RETURN FOUND;
 END;
 $function$;
 
