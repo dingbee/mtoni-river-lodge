@@ -14,7 +14,7 @@ export type ReconciliationInternalPayment = {
   allocatedMinor: number;
 };
 export type CommercialReconciliationResult = {
-  itemType: "matched" | "missing_internal" | "missing_provider" | "duplicate" | "amount_mismatch" | "currency_mismatch" | "unallocated" | "reversed";
+  itemType: "matched" | "missing_internal" | "missing_provider" | "duplicate" | "amount_mismatch" | "currency_mismatch" | "status_mismatch" | "unallocated" | "reversed";
   internalPaymentId: string | null;
   providerRef: string | null;
   expectedAmountMinor: number | null;
@@ -96,6 +96,16 @@ export function reconcileCommercialProviderStatement(
         expectedCurrency: payment.currency, observedCurrency: observed.currency,
         evidence: { internalPayment: payment, providerRow: observed },
         resolutionStatus: "resolved", resolutionRef: "reversal_state_matched",
+      });
+      continue;
+    }
+    if (payment.status !== observed.status) {
+      results.push({
+        itemType: "status_mismatch", internalPaymentId: payment.id, providerRef,
+        expectedAmountMinor: payment.amountMinor, observedAmountMinor: observed.amountMinor,
+        expectedCurrency: payment.currency, observedCurrency: observed.currency,
+        evidence: { internalPayment: payment, providerRow: observed },
+        resolutionStatus: "unresolved", resolutionRef: null,
       });
       continue;
     }
