@@ -14,6 +14,9 @@ DECLARE
   v_status text;
   v_event_count integer;
 BEGIN
+  INSERT INTO auth.users(id) VALUES
+    ('64000000-0000-4000-8000-000000000001'),
+    ('64000000-0000-4000-8000-000000000002');
   INSERT INTO public.staynas_organisations(id, slug, name)
   VALUES (v_org, 'cc034-admin-test', 'CC034 Administration Test');
   INSERT INTO public.commercial_accounts(id, organisation_id)
