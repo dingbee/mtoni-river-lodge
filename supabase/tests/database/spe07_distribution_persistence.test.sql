@@ -106,7 +106,7 @@ SELECT is((
 ),1,'idempotent enqueue creates exactly one outbox event');
 
 SELECT throws_ok(
-  $
+  $$
     SELECT * FROM public.staynas_distribution_enqueue_operation(
       (SELECT organisation_id FROM spe07_test_connection),
       (SELECT property_id FROM spe07_test_connection),
@@ -114,7 +114,7 @@ SELECT throws_ok(
       'rates.push','spe07-idempotency-key-0001',repeat('b',64),
       '{"publication_version":8}'::jsonb,NULL,NULL
     )
-  $,
+  $$,
   '23505', NULL,
   'idempotency key reuse with a different request fingerprint is rejected'
 );
@@ -186,17 +186,17 @@ SELECT is((
   WHERE id=(SELECT commitment_id FROM spe07_test_price_commitment)
 ),'USD','provider currency is preserved exactly');
 SELECT throws_ok(
-  $
+  $$
     UPDATE public.staynas_distribution_price_commitments
     SET confirmed_amount_minor=99999
     WHERE id=(SELECT commitment_id FROM spe07_test_price_commitment)
-  $,
+  $$,
   '55000', 'Provider price commitment evidence is append-only',
   'provider financial evidence cannot be silently modified'
 );
 
 SELECT throws_ok(
-  $
+  $$
     SELECT * FROM public.staynas_distribution_receive_reservation_event(
       (SELECT organisation_id FROM spe07_test_connection),
       (SELECT property_id FROM spe07_test_connection),
@@ -204,7 +204,7 @@ SELECT throws_ok(
       'spe07-provider-event-1','spe07-external-reservation-1','created','1',
       repeat('d',64),'{"external_reservation_id":"spe07-external-reservation-1","amount_minor":99999,"currency":"USD"}'::jsonb
     )
-  $,
+  $$,
   '23505', NULL,
   'provider event ID replay with changed payload is rejected'
 );
