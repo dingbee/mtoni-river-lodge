@@ -98,7 +98,7 @@ BEGIN
       AND t.property_id=o.property_id
       AND t.category='housekeeping'
       AND t.task_type='channel_housekeeping_turnover'
-    ORDER BY t.created_at DESC,t.id DESC
+    ORDER BY t.id DESC
     LIMIT 1
   ) turnover ON true
   LEFT JOIN LATERAL (
