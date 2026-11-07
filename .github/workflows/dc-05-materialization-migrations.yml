@@ -20,6 +20,7 @@ on:
       - "supabase/migrations/20261107110000_dc05_06_provider_reference_idempotency_fix.sql"
       - "supabase/review/20261107120000_dc05_07_operational_integration.sql"
       - "supabase/review/20261107130000_dc06_02_housekeeping_distribution_integration.sql"
+      - "scripts/ci/dc06-02-housekeeping-fixture.sql"
       - "scripts/ci/dc06-02-housekeeping-smoke.sql"
       - "scripts/ci/dc05-07-operational-fixture.sql"
       - "scripts/ci/dc05-07-operational-smoke.sql"
@@ -123,6 +124,11 @@ jobs:
           PGPASSWORD: postgres
         run: |
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc05-07-operational-fixture.sql
+      - name: Prepare DC-06.02 Housekeeping disposable dependencies
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc06-02-housekeeping-fixture.sql
       - name: Apply DC-05.07 operational integration review migration
         env:
           PGPASSWORD: postgres
