@@ -593,3 +593,79 @@ export const dispatchCommercialInvoiceReminders=createServerFn({method:"POST"})
       metadata:{notificationType:data.notificationType,processed:results.length,failed:results.filter(x=>x.status==="failed").length}});
     return results;
   });
+
+export const recordUnallocatedCommercialPayment=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>z.object({
+    accountId:z.string().uuid(),providerAccountId:z.string().uuid(),
+    amountMinor:z.number().int().positive().safe(),currency:z.enum(["TZS","USD"]),
+    idempotencyKey:z.string().trim().min(8).max(200),
+  }).parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    const {data:paymentId,error}=await admin.rpc("commercial_record_unallocated_payment",{
+      _account_id:data.accountId,_provider_account_id:data.providerAccountId,
+      _amount_minor:data.amountMinor,_currency:data.currency,
+      _idempotency_key:data.idempotencyKey,_actor_user_id:actor.userId,
+    });
+    if(error||!paymentId) throw new Error("Unallocated collection could not be recorded.");
+    return {paymentId,status:"pending" as const,unallocated:true};
+  });
+
+export const confirmUnallocatedCommercialPayment=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>z.object({
+    paymentId:z.string().uuid(),providerTransactionRef:z.string().trim().min(2).max(200),
+    amountMinor:z.number().int().positive().safe(),currency:z.enum(["TZS","USD"]),
+    verificationSource:z.enum(["authorized_manual_verification","bank_statement_reconciliation"]),
+  }).parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    const {data:payment,error:paymentError}=await admin.from("commercial_payment_transactions")
+      .select("id,provider,organisation_id,amount_minor,currency,invoice_id")
+      .eq("id",data.paymentId).maybeSingle();
+    if(paymentError||!payment||payment.invoice_id!==null||!["manual","bank_transfer"].includes(payment.provider)
+      ||Number(payment.amount_minor)!==data.amountMinor||payment.currency!==data.currency) {
+      throw new Error("Unallocated manual/bank payment does not match the recorded tenant collection.");
+    }
+    const {data:replayed,error}=await admin.rpc("commercial_confirm_unallocated_payment",{
+      _payment_id:data.paymentId,_provider_transaction_ref:data.providerTransactionRef,
+      _verified_amount_minor:data.amountMinor,_currency:data.currency,
+      _verification_source:data.verificationSource,_verified_at:new Date().toISOString(),
+    });
+    if(error) throw new Error("Unallocated collection verification failed.");
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:payment.organisation_id,actorRole:"founder_admin",action:"payment.unallocated_verified",
+      resourceType:"payment",resourceRef:data.paymentId,metadata:{providerTransactionRef:data.providerTransactionRef,replayed}});
+    return {paymentId:data.paymentId,status:"successful" as const,replayed};
+  });
+
+export const allocateUnallocatedCommercialPayment=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>z.object({
+    paymentId:z.string().uuid(),invoiceId:z.string().uuid(),amountMinor:z.number().int().positive().safe(),
+    settlementRef:z.string().trim().min(1).max(200),idempotencyKey:z.string().trim().min(8).max(200),
+  }).parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    const {data:allocationId,error}=await admin.rpc("commercial_allocate_unallocated_payment",{
+      _payment_id:data.paymentId,_invoice_id:data.invoiceId,_amount_minor:data.amountMinor,
+      _settlement_ref:data.settlementRef,_idempotency_key:data.idempotencyKey,_actor_user_id:actor.userId,
+    });
+    if(error||!allocationId) throw new Error("Unallocated collection could not be applied to the invoice.");
+    return {allocationId};
+  });
+
+export const listUnallocatedCommercialCollections=createServerFn({method:"GET"})
+  .middleware([requireSupabaseAuth])
+  .handler(async({context})=>{
+    await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    const {data,error}=await admin.from("commercial_unallocated_collections").select("*")
+      .order("confirmed_at",{ascending:false});
+    if(error) throw new Error("Unallocated collections could not be loaded.");
+    return data??[];
+  });
