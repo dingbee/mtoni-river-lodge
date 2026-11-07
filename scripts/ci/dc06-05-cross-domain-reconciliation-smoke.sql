@@ -19,8 +19,7 @@ BEGIN
     to_regclass('public.staynas_distribution_operational_reservations'),
     to_regclass('public.staynas_distribution_operational_events'),
     to_regclass('public.staynas_distribution_financial_evidence'),
-    to_regclass('public.bookings'),
-    to_regclass('public.payment_events')
+    to_regclass('public.bookings')
   ] LOOP
     IF v_rel IS NULL THEN
       RAISE EXCEPTION 'DC-06.05 required cross-domain relation is missing';
@@ -97,7 +96,7 @@ BEGIN
   IF EXISTS (
     SELECT 1 FROM pg_constraint
     WHERE conrelid='public.staynas_distribution_financial_evidence'::regclass
-      AND contype='f' AND confrelid='public.payment_events'::regclass
+      AND contype='f' AND confrelid=to_regclass('public.payment_events')
   ) THEN
     RAISE EXCEPTION 'Provider evidence must not be structurally coupled to canonical payment events';
   END IF;
