@@ -11,6 +11,7 @@ export const stayNasDemoRequestSchema = z.object({
   interests: z.array(z.string().trim().min(2).max(80)).max(12).default([]),
   message: z.string().trim().max(2000).optional().default(""),
   website: z.string().max(500).optional().default(""),
+  consent: z.literal(true),
 });
 
 export type StayNasDemoRequest = z.infer<typeof stayNasDemoRequestSchema>;
