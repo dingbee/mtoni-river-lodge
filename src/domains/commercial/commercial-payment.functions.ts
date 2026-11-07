@@ -188,3 +188,47 @@ export const reverseCommercialPayment = createServerFn({ method: "POST" })
     });
     return { reversalId: result };
   });
+
+const pesapalInitiationInput = z.object({
+  paymentId: z.string().uuid(),
+  email: z.string().trim().email().max(255),
+  phone: z.string().trim().max(40).nullable().optional(),
+  firstName: z.string().trim().min(1).max(100),
+  lastName: z.string().trim().min(1).max(100),
+});
+
+export const initiateMyCommercialPesapalPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => pesapalInitiationInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const actor = await resolveVerifiedTenantActor(context);
+    if (actor.actorRole !== "tenant_admin") throw new Error("Forbidden: tenant administrator authority is required.");
+    const admin = await getAdmin();
+    const { data: payment, error } = await admin.from("commercial_payment_transactions")
+      .select("id,organisation_id,provider_account_id,provider,amount_minor,currency,status")
+      .eq("id", data.paymentId).eq("organisation_id", actor.organisationId).maybeSingle();
+    if (error || !payment || payment.provider !== "pesapal" || payment.status !== "pending") {
+      throw new Error("Pending tenant Pesapal payment attempt was not found.");
+    }
+    const { data: providerAccount, error: providerError } = await admin.from("commercial_provider_accounts")
+      .select("id,credential_secret_ref,status")
+      .eq("id", payment.provider_account_id).eq("organisation_id", actor.organisationId)
+      .eq("provider", "pesapal").maybeSingle();
+    if (providerError || !providerAccount || providerAccount.status !== "active") {
+      throw new Error("Active tenant Pesapal configuration is unavailable.");
+    }
+    const baseUrl = process.env.PUBLIC_BASE_URL;
+    if (!baseUrl) throw new Error("PUBLIC_BASE_URL is required for commercial payment callbacks.");
+    const { initiateTenantPesapalOrder } = await import("./commercial-pesapal.server");
+    const order = await initiateTenantPesapalOrder({
+      providerAccountId: providerAccount.id, secretRef: providerAccount.credential_secret_ref,
+      paymentId: payment.id, amountMinor: Number(payment.amount_minor), currency: payment.currency,
+      email: data.email, phone: data.phone, firstName: data.firstName, lastName: data.lastName,
+      callbackUrl: `${baseUrl.replace(/\\/$/, "")}/api/public/commercial-pesapal/ipn`,
+    });
+    const { error: updateError } = await admin.from("commercial_payment_transactions").update({
+      provider_order_ref: order.orderTrackingId, payment_method: "pesapal", updated_at: new Date().toISOString(),
+    }).eq("id", payment.id).eq("status", "pending");
+    if (updateError) throw new Error("Pesapal order reference could not be persisted.");
+    return { paymentId: payment.id, redirectUrl: order.redirectUrl, provider: "pesapal" as const };
+  });
