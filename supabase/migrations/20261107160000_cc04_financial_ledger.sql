@@ -1206,3 +1206,139 @@ END;
 $function$;
 REVOKE ALL ON FUNCTION public.commercial_void_invoice(uuid,text,text,uuid) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.commercial_void_invoice(uuid,text,text,uuid) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.commercial_create_invoice_draft_from_subscription(
+  _subscription_id uuid,_period_start timestamptz,_period_end timestamptz,
+  _idempotency_key text,_tax_snapshot jsonb,_discount_snapshot jsonb DEFAULT '{"amountMinor":0,"policyRef":"none"}'::jsonb,
+  _actor_user_id uuid DEFAULT NULL
+)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public
+AS $function$
+DECLARE v_role text:=current_setting('request.jwt.claim.role',true);
+  v_sub public.commercial_subscriptions%ROWTYPE; v_existing public.commercial_invoices%ROWTYPE;
+  v_org uuid; v_lines jsonb; v_line jsonb; v_subtotal numeric(20,0):=0;
+  v_tax numeric(20,0); v_discount numeric(20,0); v_total numeric(20,0);
+  v_tax_treatment text; v_id uuid; v_number text; v_line_ref text;
+BEGIN
+  IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
+  IF _period_start IS NULL OR _period_end<=_period_start OR length(btrim(_idempotency_key)) NOT BETWEEN 8 AND 200
+    OR jsonb_typeof(_tax_snapshot)<>'object' OR jsonb_typeof(_discount_snapshot)<>'object' THEN
+    RAISE EXCEPTION 'Invoice draft inputs are invalid' USING ERRCODE='22023';
+  END IF;
+  v_tax_treatment:=_tax_snapshot->>'treatment';
+  IF v_tax_treatment NOT IN ('not_applicable','exempt','inclusive','exclusive')
+    OR coalesce(length(btrim(_tax_snapshot->>'policyRef')),0)=0
+    OR coalesce(_tax_snapshot->>'currency','') NOT IN ('TZS','USD') THEN
+    RAISE EXCEPTION 'Explicit tax snapshot is required' USING ERRCODE='22023';
+  END IF;
+  v_tax:=coalesce((_tax_snapshot->>'amountMinor')::numeric,-1);
+  v_discount:=coalesce((_discount_snapshot->>'amountMinor')::numeric,-1);
+  IF v_tax<0 OR v_discount<0 OR coalesce(length(btrim(_discount_snapshot->>'policyRef')),0)=0
+    OR (v_tax_treatment IN ('not_applicable','exempt') AND v_tax<>0) THEN
+    RAISE EXCEPTION 'Tax or discount snapshot is invalid' USING ERRCODE='22023';
+  END IF;
+  SELECT * INTO v_sub FROM public.commercial_subscriptions WHERE id=_subscription_id FOR UPDATE;
+  IF NOT FOUND OR v_sub.status<>'active' OR v_sub.quote_required THEN
+    RAISE EXCEPTION 'Active fixed-value subscription required for invoice draft' USING ERRCODE='55000';
+  END IF;
+  SELECT organisation_id INTO v_org FROM public.commercial_accounts WHERE id=v_sub.account_id AND status='active';
+  IF v_org IS NULL OR v_sub.currency<>_tax_snapshot->>'currency' THEN
+    RAISE EXCEPTION 'Commercial account or tax currency mismatch' USING ERRCODE='22023';
+  END IF;
+  v_lines:=coalesce(v_sub.accepted_price_snapshot->'lines',v_sub.accepted_price_snapshot->'lineItems');
+  IF jsonb_typeof(v_lines)<>'array' OR jsonb_array_length(v_lines)=0 THEN
+    RAISE EXCEPTION 'Accepted price snapshot has no invoiceable lines' USING ERRCODE='55000';
+  END IF;
+  FOR v_line IN SELECT value FROM jsonb_array_elements(v_lines) LOOP
+    v_subtotal:=v_subtotal+(v_line->>'amountMinor')::numeric;
+  END LOOP;
+  IF v_subtotal<=0 OR coalesce((v_sub.accepted_price_snapshot->>'totalAmountMinor')::numeric,
+    (v_sub.accepted_price_snapshot->>'total')::numeric,v_subtotal)<>v_subtotal OR v_discount>v_subtotal THEN
+    RAISE EXCEPTION 'Accepted price snapshot total is inconsistent' USING ERRCODE='22023';
+  END IF;
+  IF v_sub.accepted_price_snapshot->>'currency' IS DISTINCT FROM v_sub.currency THEN
+    RAISE EXCEPTION 'Accepted price snapshot currency mismatch' USING ERRCODE='22023';
+  END IF;
+  v_total:=v_subtotal+CASE WHEN v_tax_treatment='exclusive' THEN v_tax ELSE 0 END-v_discount;
+  SELECT * INTO v_existing FROM public.commercial_invoices
+    WHERE account_id=v_sub.account_id AND idempotency_key=_idempotency_key;
+  IF FOUND THEN
+    IF v_existing.subscription_id<>v_sub.id OR v_existing.billing_period_start<>_period_start
+      OR v_existing.billing_period_end<>_period_end OR v_existing.total_minor<>v_total
+      OR v_existing.tax_snapshot IS DISTINCT FROM _tax_snapshot
+      OR v_existing.discount_snapshot IS DISTINCT FROM _discount_snapshot THEN
+      RAISE EXCEPTION 'Invoice draft idempotency conflict' USING ERRCODE='23505';
+    END IF;
+    RETURN jsonb_build_object('invoiceId',v_existing.id,'invoiceNumber',v_existing.invoice_number,'replayed',true);
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.commercial_invoices WHERE subscription_id=v_sub.id
+    AND billing_period_start=_period_start AND billing_period_end=_period_end) THEN
+    RAISE EXCEPTION 'Invoice already exists for this billing period' USING ERRCODE='23505';
+  END IF;
+  v_number:='SN-'||to_char(now() AT TIME ZONE 'UTC','YYYY')||'-'||lpad(nextval('public.commercial_invoice_number_seq')::text,8,'0');
+  INSERT INTO public.commercial_invoices(
+    organisation_id,account_id,subscription_id,invoice_number,idempotency_key,
+    billing_period_start,billing_period_end,currency,billing_term,status,
+    subtotal_minor,tax_minor,discount_minor,total_minor,pricing_snapshot,tax_snapshot,discount_snapshot,created_by
+  ) VALUES (
+    v_org,v_sub.account_id,v_sub.id,v_number,_idempotency_key,
+    _period_start,_period_end,v_sub.currency,v_sub.billing_term,'draft',
+    v_subtotal,v_tax,v_discount,v_total,v_sub.accepted_price_snapshot,_tax_snapshot,_discount_snapshot,_actor_user_id
+  ) RETURNING id INTO v_id;
+  FOR v_line IN SELECT value FROM jsonb_array_elements(v_lines) LOOP
+    v_line_ref:=coalesce(v_line->>'code',v_line->>'lineRef');
+    INSERT INTO public.commercial_invoice_lines(
+      invoice_id,line_ref,kind,description,quantity,unit_amount_minor,amount_minor,line_snapshot
+    ) VALUES (
+      v_id,v_line_ref,
+      CASE WHEN v_line->>'kind' IN ('plan_base','additional_property','addon','adjustment') THEN v_line->>'kind' ELSE 'adjustment' END,
+      coalesce(v_line->>'description',v_line_ref,'Subscription charge'),
+      (v_line->>'quantity')::integer,(v_line->>'unitAmountMinor')::numeric,
+      (v_line->>'amountMinor')::numeric,v_line
+    );
+  END LOOP;
+  INSERT INTO public.commercial_financial_audit_events(
+    request_id,actor_user_id,actor_organisation_id,actor_role,action,resource_type,resource_ref,outcome,metadata
+  ) VALUES (_idempotency_key,_actor_user_id,v_org,'founder_admin','invoice.draft_created',
+    'invoice',v_id::text,'succeeded',jsonb_build_object('invoiceNumber',v_number,'totalMinor',v_total,'currency',v_sub.currency));
+  RETURN jsonb_build_object('invoiceId',v_id,'invoiceNumber',v_number,'replayed',false);
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.commercial_create_invoice_draft_from_subscription(uuid,timestamptz,timestamptz,text,jsonb,jsonb,uuid) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.commercial_create_invoice_draft_from_subscription(uuid,timestamptz,timestamptz,text,jsonb,jsonb,uuid) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.commercial_issue_draft_invoice(
+  _invoice_id uuid,_due_at timestamptz,_approval_ref text,_actor_user_id uuid
+)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public
+AS $function$
+DECLARE v_role text:=current_setting('request.jwt.claim.role',true);
+  v_invoice public.commercial_invoices%ROWTYPE; v_line_total numeric(20,0);
+BEGIN
+  IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
+  SELECT * INTO v_invoice FROM public.commercial_invoices WHERE id=_invoice_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Invoice draft not found' USING ERRCODE='P0002'; END IF;
+  IF v_invoice.status='issued' AND v_invoice.due_at=_due_at THEN RETURN true; END IF;
+  IF v_invoice.status<>'draft' OR _due_at IS NULL OR _due_at<now()
+    OR coalesce(length(btrim(_approval_ref)),0)<4 THEN
+    RAISE EXCEPTION 'Invoice draft cannot be issued or approval reference is missing' USING ERRCODE='55000';
+  END IF;
+  SELECT coalesce(sum(amount_minor),0) INTO v_line_total FROM public.commercial_invoice_lines WHERE invoice_id=_invoice_id;
+  IF v_line_total<>v_invoice.subtotal_minor OR v_invoice.total_minor<>v_invoice.subtotal_minor+v_invoice.tax_minor-v_invoice.discount_minor THEN
+    RAISE EXCEPTION 'Draft line total or invoice arithmetic is inconsistent' USING ERRCODE='23514';
+  END IF;
+  UPDATE public.commercial_invoices SET status='issued',issued_at=now(),due_at=_due_at,
+    issued_snapshot=jsonb_build_object('pricing',pricing_snapshot,'tax',tax_snapshot,'discount',discount_snapshot,
+      'subtotalMinor',subtotal_minor,'taxMinor',tax_minor,'discountMinor',discount_minor,'totalMinor',total_minor,
+      'invoiceNumber',invoice_number,'approvalRef',_approval_ref),
+    updated_at=now()
+  WHERE id=_invoice_id;
+  INSERT INTO public.commercial_financial_audit_events(
+    request_id,actor_user_id,actor_organisation_id,actor_role,action,resource_type,resource_ref,outcome,metadata
+  ) VALUES (_approval_ref,_actor_user_id,v_invoice.organisation_id,'founder_admin','invoice.issued',
+    'invoice',_invoice_id::text,'succeeded',jsonb_build_object('dueAt',_due_at,'invoiceNumber',v_invoice.invoice_number));
+  RETURN false;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.commercial_issue_draft_invoice(uuid,timestamptz,text,uuid) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.commercial_issue_draft_invoice(uuid,timestamptz,text,uuid) TO service_role;
