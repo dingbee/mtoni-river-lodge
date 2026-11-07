@@ -128,3 +128,52 @@ export async function sendCommercialPaymentConfirmationEmail(input: { admin: any
     throw error;
   }
 }
+
+export async function sendCommercialPaymentFailureEmail(input: { admin: any; paymentId: string }) {
+  const { admin, paymentId } = input;
+  const { data: payment, error } = await admin.from("commercial_payment_transactions").select("*").eq("id",paymentId).maybeSingle();
+  if (error || !payment || payment.status !== "failed") throw new Error("Failed payment could not be loaded for notification.");
+  const { data: invoice } = await admin.from("commercial_invoices").select("invoice_number,currency").eq("id",payment.invoice_id).maybeSingle();
+  if (!invoice) throw new Error("Related invoice was not found for failure notification.");
+  const { data: properties } = await admin.from("staynas_properties").select("id").eq("organisation_id",payment.organisation_id);
+  const propertyIds = (properties ?? []).map((property: {id:string}) => property.id);
+  if (!propertyIds.length) return {status:"skipped" as const,reason:"tenant_has_no_properties"};
+  const { data: members } = await admin.from("staynas_property_members").select("user_id,role,status")
+    .in("property_id",propertyIds).in("role",["owner","admin","manager"]).eq("status","active");
+  const member=members?.[0];
+  if (!member?.user_id) return {status:"skipped" as const,reason:"tenant_billing_admin_not_found"};
+  const { data:userResult,error:userError }=await admin.auth.admin.getUserById(member.user_id);
+  const recipient=userResult?.user?.email;
+  if (userError || !recipient) return {status:"skipped" as const,reason:"tenant_billing_email_not_found"};
+  const idempotencyKey=`cc04-payment-failed-${payment.id}`;
+  const {data:existing}=await admin.from("commercial_financial_notifications").select("id,status,provider_message_ref")
+    .eq("idempotency_key",idempotencyKey).maybeSingle();
+  if (existing?.status==="sent") return {status:"sent" as const,providerMessageRef:existing.provider_message_ref};
+  let notificationId=existing?.id as string|undefined;
+  if (!notificationId) {
+    const {data:inserted,error:insertError}=await admin.from("commercial_financial_notifications").insert({
+      organisation_id:payment.organisation_id,invoice_id:invoice.id,payment_id:payment.id,
+      notification_type:"payment_failure",recipient_email:recipient,idempotency_key:idempotencyKey,
+      payload_snapshot:{invoiceNumber:invoice.invoice_number,paymentId:payment.id,status:payment.status},
+    }).select("id").single();
+    if (insertError || !inserted) throw new Error("Payment failure outbox record could not be created.");
+    notificationId=inserted.id;
+  }
+  const from=process.env.STAYNAS_FINANCE_FROM_EMAIL;
+  if (!from) {
+    await admin.from("commercial_financial_notifications").update({status:"failed",attempted_at:new Date().toISOString()}).eq("id",notificationId);
+    return {status:"failed" as const,reason:"STAYNAS_FINANCE_FROM_EMAIL_not_configured"};
+  }
+  try {
+    const sent=await sendResendEmail({
+      from,to:recipient,subject:`StayNas payment unsuccessful — ${invoice.invoice_number}`,
+      html:`<h2>StayNas payment unsuccessful</h2><p>Invoice: ${escapeHtml(invoice.invoice_number)}</p><p>Payment attempt: ${escapeHtml(payment.id)}</p><p>Please review the invoice and try another permitted payment method.</p>`,
+      idempotencyKey,
+    });
+    await admin.from("commercial_financial_notifications").update({status:"sent",provider_message_ref:sent.providerMessageId,attempted_at:sent.acceptedAt,sent_at:sent.acceptedAt}).eq("id",notificationId);
+    return {status:"sent" as const,providerMessageRef:sent.providerMessageId};
+  } catch(error) {
+    await admin.from("commercial_financial_notifications").update({status:"failed",attempted_at:new Date().toISOString()}).eq("id",notificationId);
+    throw error;
+  }
+}
