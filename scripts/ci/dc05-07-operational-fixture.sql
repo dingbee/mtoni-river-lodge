@@ -4,6 +4,16 @@
 CREATE OR REPLACE FUNCTION public.is_any_staff(_user_id uuid)
 RETURNS boolean LANGUAGE sql STABLE AS $function$ SELECT false $function$;
 
+ALTER TABLE public.room_states ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Staff read room_states" ON public.room_states;
+CREATE POLICY "Staff read room_states" ON public.room_states
+  FOR SELECT TO authenticated
+  USING (EXISTS (
+    SELECT 1 FROM public.rooms r
+    WHERE r.id=room_states.room_id
+      AND public.staynas_user_has_property_access(auth.uid(),r.property_id)
+  ));
+
 ALTER TABLE public.staynas_properties
   ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active',
   ADD COLUMN IF NOT EXISTS timezone text NOT NULL DEFAULT 'Africa/Dar_es_Salaam';
