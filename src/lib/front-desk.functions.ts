@@ -25,7 +25,7 @@ export const listFrontDeskBookings = createServerFn({ method: 'GET' })
         ? sb.from('rooms').select('id, name, slug').in('id', roomIds)
         : Promise.resolve({ data: [], error: null }),
       bookingIds.length
-        ? sb.from('staynas_distribution_operational_reservations')
+        ? (sb as any).from('staynas_distribution_operational_reservations')
             .select('booking_id, provider_key, external_reservation_id, provider_status, integration_status, room_state_id, last_provider_event_id, last_integrated_at, last_error_code')
             .in('booking_id', bookingIds)
         : Promise.resolve({ data: [], error: null }),
