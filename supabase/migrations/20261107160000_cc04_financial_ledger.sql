@@ -754,6 +754,7 @@ BEGIN
     UPDATE public.commercial_invoices SET
       amount_paid_minor=amount_paid_minor-v_apply_allocated,
       status=CASE WHEN amount_paid_minor-v_apply_allocated>=v_net_total THEN 'paid'
+        WHEN v_invoice.due_at<now() THEN 'overdue'
         WHEN amount_paid_minor-v_apply_allocated=0 THEN 'issued' ELSE 'partially_paid' END,
       updated_at=now()
     WHERE id=v_invoice.id;
@@ -954,7 +955,7 @@ BEGIN
   UPDATE public.commercial_invoices SET amount_paid_minor=amount_paid_minor+_amount_minor,
     status=CASE WHEN amount_paid_minor+_amount_minor>=
       (SELECT amount_paid_minor+outstanding_minor FROM public.commercial_invoice_receivables WHERE id=_invoice_id)
-      THEN 'paid' ELSE 'partially_paid' END,
+      THEN 'paid' WHEN v_invoice.due_at<now() THEN 'overdue' ELSE 'partially_paid' END,
     updated_at=now()
   WHERE id=_invoice_id;
   INSERT INTO public.commercial_financial_audit_events(
