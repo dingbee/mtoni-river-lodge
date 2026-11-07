@@ -1,7 +1,7 @@
 -- DC-06.05 — cross-domain reconciliation and tenant-isolation contract.
 -- Disposable PostgreSQL only. Catalog-level assertions complement DC-05.07 runtime UAT.
 
-\\set ON_ERROR_STOP on
+\set ON_ERROR_STOP on
 DO $dc0605$
 DECLARE
   v_rel regclass;
