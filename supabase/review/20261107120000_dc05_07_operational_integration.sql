@@ -108,6 +108,9 @@ BEGIN
     SELECT r.property_id INTO v_room_property
     FROM public.room_states rs JOIN public.rooms r ON r.id=rs.room_id
     WHERE rs.id=NEW.room_state_id;
+    IF NEW.property_id IS NULL THEN
+      NEW.property_id:=v_room_property;
+    END IF;
     IF v_room_property IS NULL OR v_room_property IS DISTINCT FROM NEW.property_id THEN
       RAISE EXCEPTION 'Operations task room assignment crosses property scope.' USING ERRCODE='42501';
     END IF;
