@@ -323,14 +323,15 @@ export const getMyCommercialInvoiceDocumentData = createServerFn({ method: "GET"
     const { data: invoice, error } = await admin.from("commercial_invoices").select("*")
       .eq("id", data.invoiceId).eq("organisation_id", actor.organisationId).maybeSingle();
     if (error || !invoice) throw new Error("Invoice not found in the active tenant.");
-    const [lines, payments, adjustments] = await Promise.all([
+    const [lines, payments, allocations, adjustments] = await Promise.all([
       admin.from("commercial_invoice_lines").select("*").eq("invoice_id", invoice.id).order("created_at"),
       admin.from("commercial_payment_transactions").select("id,provider,provider_transaction_ref,amount_minor,currency,status,initiated_at,confirmed_at")
         .eq("invoice_id", invoice.id).order("created_at"),
+      admin.from("commercial_payment_allocations").select("*").eq("invoice_id", invoice.id).order("allocated_at"),
       admin.from("commercial_invoice_adjustments").select("*").eq("invoice_id", invoice.id).order("created_at"),
     ]);
-    if (lines.error || payments.error || adjustments.error) throw new Error("Financial document records could not be loaded.");
-    return { invoice, lines: lines.data ?? [], payments: payments.data ?? [], adjustments: adjustments.data ?? [] };
+    if (lines.error || payments.error || allocations.error || adjustments.error) throw new Error("Financial document records could not be loaded.");
+    return { invoice, lines: lines.data ?? [], payments: payments.data ?? [], allocations: allocations.data ?? [], adjustments: adjustments.data ?? [] };
   });
 
 export const listMyCommercialPaymentHistory = createServerFn({ method: "GET" })
@@ -700,4 +701,87 @@ export const voidCommercialInvoice=createServerFn({method:"POST"})
     });
     if(error||result!==true) throw new Error("Invoice voiding was not confirmed.");
     return {invoiceId:data.invoiceId,status:"void" as const};
+  });
+
+const founderFinancialFilters=z.object({
+  organisationId:z.string().uuid().optional(),subscriptionId:z.string().uuid().optional(),
+  currency:z.enum(["TZS","USD"]).optional(),
+  status:z.enum(["draft","issued","partially_paid","paid","overdue","void"]).optional(),
+  periodFrom:z.string().datetime({offset:true}).optional(),periodTo:z.string().datetime({offset:true}).optional(),
+  provider:z.enum(["pesapal","airtel_money","mixx_by_yas","mpesa","halopesa","bank_transfer","manual"]).optional(),
+});
+export const filterCommercialInvoicesForFounder=createServerFn({method:"GET"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>founderFinancialFilters.parse(input??{}))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    let query=admin.from("commercial_invoice_receivables").select("*").order("issued_at",{ascending:false});
+    if(data.organisationId) query=query.eq("organisation_id",data.organisationId);
+    if(data.subscriptionId) query=query.eq("subscription_id",data.subscriptionId);
+    if(data.currency) query=query.eq("currency",data.currency);
+    if(data.status) query=query.eq("status",data.status);
+    if(data.periodFrom) query=query.gte("issued_at",data.periodFrom);
+    if(data.periodTo) query=query.lte("issued_at",data.periodTo);
+    const {data:rows,error}=await query;
+    if(error) throw new Error("Filtered commercial invoices could not be loaded.");
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:actor.organisationId,actorRole:"founder_admin",action:"invoice.filtered_list_viewed",
+      resourceType:"invoice_index",resourceRef:"platform",metadata:{filters:data,rowCount:rows?.length??0}});
+    return rows??[];
+  });
+
+export const listCommercialPaymentsForFounder=createServerFn({method:"GET"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>z.object({
+    organisationId:z.string().uuid().optional(),currency:z.enum(["TZS","USD"]).optional(),
+    provider:z.enum(["pesapal","airtel_money","mixx_by_yas","mpesa","halopesa","bank_transfer","manual"]).optional(),
+    status:z.enum(["pending","successful","failed","cancelled","partially_reversed","reversed"]).optional(),
+  }).parse(input??{}))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    let query=admin.from("commercial_payment_transactions").select("*").order("created_at",{ascending:false});
+    if(data.organisationId) query=query.eq("organisation_id",data.organisationId);
+    if(data.currency) query=query.eq("currency",data.currency);
+    if(data.provider) query=query.eq("provider",data.provider);
+    if(data.status) query=query.eq("status",data.status);
+    const {data:rows,error}=await query;
+    if(error) throw new Error("Commercial payment ledger could not be loaded.");
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:actor.organisationId,actorRole:"founder_admin",action:"payment.filtered_list_viewed",
+      resourceType:"payment_index",resourceRef:"platform",metadata:{filters:data,rowCount:rows?.length??0}});
+    return rows??[];
+  });
+
+export const getCommercialReceivablesSummary=createServerFn({method:"GET"})
+  .middleware([requireSupabaseAuth])
+  .handler(async({context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    const [invoices,unallocated]=await Promise.all([
+      admin.from("commercial_invoice_receivables").select("currency,total_minor,amount_paid_minor,outstanding_minor,is_overdue,status"),
+      admin.from("commercial_unallocated_collections").select("currency,unallocated_minor"),
+    ]);
+    if(invoices.error||unallocated.error) throw new Error("Commercial receivables summary could not be calculated.");
+    const summary:Record<string,{invoicedMinor:string;collectedMinor:string;outstandingMinor:string;overdueMinor:string;unallocatedMinor:string;invoiceCount:number;partiallyPaidCount:number}>={};
+    for(const currency of ["TZS","USD"]){
+      summary[currency]={invoicedMinor:"0",collectedMinor:"0",outstandingMinor:"0",overdueMinor:"0",unallocatedMinor:"0",invoiceCount:0,partiallyPaidCount:0};
+    }
+    for(const row of invoices.data??[]){
+      const target=summary[row.currency]; if(!target) continue;
+      target.invoicedMinor=(BigInt(target.invoicedMinor)+BigInt(row.total_minor)).toString();
+      target.collectedMinor=(BigInt(target.collectedMinor)+BigInt(row.amount_paid_minor)).toString();
+      target.outstandingMinor=(BigInt(target.outstandingMinor)+BigInt(row.outstanding_minor)).toString();
+      if(row.is_overdue) target.overdueMinor=(BigInt(target.overdueMinor)+BigInt(row.outstanding_minor)).toString();
+      target.invoiceCount+=1;
+      if(row.status==="partially_paid") target.partiallyPaidCount+=1;
+    }
+    for(const row of unallocated.data??[]){
+      const target=summary[row.currency]; if(target) target.unallocatedMinor=(BigInt(target.unallocatedMinor)+BigInt(row.unallocated_minor)).toString();
+    }
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:actor.organisationId,actorRole:"founder_admin",action:"receivables.summary_viewed",
+      resourceType:"receivables_summary",resourceRef:"platform",metadata:{currencies:["TZS","USD"]}});
+    return summary;
   });
