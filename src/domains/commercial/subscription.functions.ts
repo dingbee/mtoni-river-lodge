@@ -156,17 +156,27 @@ async function writeCommercialAudit(
   if (error) throw new Error("Commercial audit persistence failed.");
 }
 
-export function loadTrialPolicies(): CommercialTrialPolicy[] {
-  const raw = process.env.STAYNAS_COMMERCIAL_TRIAL_POLICIES_JSON;
-  if (!raw) throw new Error("Commercial trial policy configuration is not provisioned.");
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error("Commercial trial policy configuration is invalid JSON.");
+export async function loadTrialPolicies(admin: CommercialAdminClient): Promise<CommercialTrialPolicy[]> {
+  const { data: currentData, error: currentError } = await admin
+    .from("commercial_policy_config_current")
+    .select("version_id")
+    .eq("policy_type", "trial_policy")
+    .maybeSingle();
+  const current = currentData as { version_id: string } | null;
+  if (currentError || !current?.version_id) {
+    throw new Error("Founder-managed commercial trial policy is not published.");
   }
-  if (!Array.isArray(parsed)) throw new Error("Commercial trial policy configuration must be an array.");
-  return parsed.map((policy) => commercialTrialPolicySchema.parse(policy));
+
+  const { data: policyData, error: policyError } = await admin
+    .from("commercial_policy_config_versions")
+    .select("payload")
+    .eq("id", current.version_id)
+    .maybeSingle();
+  const payload = (policyData as { payload?: unknown } | null)?.payload;
+  if (policyError || !Array.isArray(payload)) {
+    throw new Error("Published founder-managed trial policy configuration is invalid.");
+  }
+  return payload.map((policy) => commercialTrialPolicySchema.parse(policy));
 }
 
 /** List only the commercial account and subscriptions for the verified active tenant. */
@@ -207,7 +217,7 @@ export const listMyCommercialSubscriptions = createServerFn({ method: "GET" })
 
 /**
  * Activate the tenant's own pending subscription as a one-time trial.
- * Policy JSON is server configuration owned by the CC-02 commercial authority;
+ * The published policy version is loaded from founder-managed durable configuration;
  * browser input cannot select a policy version or supply an actor identity.
  */
 export const activateMyCommercialTrial = createServerFn({ method: "POST" })
@@ -267,7 +277,7 @@ export const activateMyCommercialTrial = createServerFn({ method: "POST" })
         planCode: subscription.plan_code,
         planVersion: subscription.plan_version,
         asOf,
-      }, loadTrialPolicies());
+      }, await loadTrialPolicies(admin));
     } catch {
       await writeCommercialAudit(admin, actor, {
         requestId,

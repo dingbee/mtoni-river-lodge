@@ -141,8 +141,8 @@ describe("CC-03 server-side identity and authority resolution", () => {
     expect(mocks.adminFrom).not.toHaveBeenCalled();
   });
 
-  it("loads only schema-valid CC-02 policy records from server configuration", () => {
-    process.env.STAYNAS_COMMERCIAL_TRIAL_POLICIES_JSON = JSON.stringify([{
+  it("loads only schema-valid trial policies from the current founder-published database version", async () => {
+    const policy = {
       planCode: "professional",
       planVersion: 2,
       policyVersion: 7,
@@ -151,10 +151,22 @@ describe("CC-03 server-side identity and authority resolution", () => {
       startTrigger: "subscription_activated",
       effectiveFrom: null,
       effectiveTo: null,
-    }]);
+    };
+    const admin = {
+      from: vi.fn((table: string) => query(table === "commercial_policy_config_current"
+        ? { data: { version_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }, error: null }
+        : { data: { payload: [policy] }, error: null })),
+    };
 
-    expect(loadTrialPolicies()).toHaveLength(1);
-    process.env.STAYNAS_COMMERCIAL_TRIAL_POLICIES_JSON = "{invalid";
-    expect(() => loadTrialPolicies()).toThrow(/invalid JSON/);
+    await expect(loadTrialPolicies(admin as never)).resolves.toEqual([policy]);
+    expect(admin.from).toHaveBeenCalledWith("commercial_policy_config_current");
+    expect(admin.from).toHaveBeenCalledWith("commercial_policy_config_versions");
+  });
+
+  it("fails closed when no founder-published trial policy version exists", async () => {
+    const admin = {
+      from: vi.fn(() => query({ data: null, error: null })),
+    };
+    await expect(loadTrialPolicies(admin as never)).rejects.toThrow(/not published/);
   });
 });
