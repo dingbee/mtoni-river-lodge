@@ -1,5 +1,9 @@
 -- Disposable dependencies for DC-05.07 operational integration tests only.
 -- Loaded after canonical materialization and lifecycle CI fixtures.
+
+CREATE OR REPLACE FUNCTION public.is_any_staff(_user_id uuid)
+RETURNS boolean LANGUAGE sql STABLE AS $function$ SELECT false $function$;
+
 ALTER TABLE public.staynas_properties
   ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active',
   ADD COLUMN IF NOT EXISTS timezone text NOT NULL DEFAULT 'Africa/Dar_es_Salaam';
