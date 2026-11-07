@@ -1,4 +1,4 @@
-import type { CC04_PAYMENT_PROVIDERS } from "./settlement-contract";
+import { CC04_PAYMENT_PROVIDERS } from "./settlement-contract";
 
 export type CommercialPaymentProvider = (typeof CC04_PAYMENT_PROVIDERS)[number]
   | "airtel_money" | "mixx_by_yas" | "mpesa" | "halopesa";
