@@ -1,6 +1,6 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(40);
+SELECT plan(53);
 
 SELECT has_table('public','staynas_distribution_connections','distribution connections table exists');
 SELECT has_table('public','staynas_distribution_mappings','distribution mappings table exists');
@@ -8,6 +8,37 @@ SELECT has_table('public','staynas_distribution_operations','operation ledger ex
 SELECT has_table('public','staynas_distribution_outbox','transactional outbox exists');
 SELECT has_table('public','staynas_distribution_reservation_inbox','reservation inbox exists');
 SELECT has_table('public','staynas_distribution_price_commitments','immutable provider price commitment ledger exists');
+SELECT has_table('public','staynas_distribution_price_verifications','append-only price verification evidence exists');
+SELECT has_table('public','staynas_distribution_external_reservations','external reservation aggregate exists');
+SELECT has_table('public','staynas_distribution_external_reservation_allocations','multi-room allocation links exist');
+SELECT has_table('public','staynas_distribution_external_reservation_events','external reservation event history exists');
+SELECT ok((
+  SELECT bool_and(relrowsecurity)
+  FROM pg_class
+  WHERE oid IN (
+    'public.staynas_distribution_price_verifications'::regclass,
+    'public.staynas_distribution_external_reservations'::regclass,
+    'public.staynas_distribution_external_reservation_allocations'::regclass,
+    'public.staynas_distribution_external_reservation_events'::regclass
+  )
+),'verification, aggregate, allocation and event evidence tables enforce RLS');
+SELECT ok(
+  NOT has_table_privilege('authenticated','public.staynas_distribution_external_reservations','SELECT')
+  AND NOT has_table_privilege('authenticated','public.staynas_distribution_external_reservation_allocations','SELECT')
+  AND NOT has_table_privilege('authenticated','public.staynas_distribution_external_reservation_events','SELECT')
+  AND NOT has_table_privilege('authenticated','public.staynas_distribution_price_verifications','SELECT'),
+  'browser roles cannot read external reservation aggregates or verification evidence'
+);
+SELECT ok(has_function_privilege('service_role',
+  'public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)','EXECUTE'),
+  'trusted service role can append provider price verification');
+SELECT ok(has_function_privilege('service_role',
+  'public.staynas_distribution_apply_reservation_event(uuid)','EXECUTE'),
+  'trusted service role can apply a verified external reservation transaction');
+SELECT is(public.staynas_currency_minor_unit_exponent('TZS'),0,
+  'Tanzanian shilling minor-unit precision is zero');
+SELECT is(public.staynas_currency_minor_unit_exponent('USD'),2,
+  'US dollar minor-unit precision is two');
 
 SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.staynas_distribution_connections'::regclass),
   'connections enforce row-level security');
@@ -185,8 +216,29 @@ SELECT is((
   SELECT currency FROM public.staynas_distribution_price_commitments
   WHERE id=(SELECT commitment_id FROM spe07_test_price_commitment)
 ),'USD','provider currency is preserved exactly');
+CREATE TEMP TABLE spe07_test_price_verification AS
+SELECT public.staynas_distribution_record_price_verification(
+  (SELECT commitment_id FROM spe07_test_price_commitment),
+  'verified','provider_api','test-provider-confirmation',repeat('e',64),NULL
+) AS verification_id;
+SELECT ok((SELECT verification_id IS NOT NULL FROM spe07_test_price_verification),
+  'provider price verification evidence is appended');
+SELECT ok(public.staynas_distribution_price_commitment_is_verified(
+  (SELECT inbox_id FROM public.staynas_distribution_price_commitments
+   WHERE id=(SELECT commitment_id FROM spe07_test_price_commitment))
+),'verified provider evidence unlocks the canonical reservation gate');
 SELECT throws_ok(
-  $$
+  $
+    UPDATE public.staynas_distribution_price_verifications
+    SET evidence_reference='tampered'
+    WHERE id=(SELECT verification_id FROM spe07_test_price_verification)
+  $,
+  '55000', 'Provider price verification evidence is append-only',
+  'provider verification evidence cannot be modified'
+);
+
+SELECT throws_ok(
+  $
     UPDATE public.staynas_distribution_price_commitments
     SET confirmed_amount_minor=99999
     WHERE id=(SELECT commitment_id FROM spe07_test_price_commitment)
