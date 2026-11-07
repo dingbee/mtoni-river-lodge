@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS public.staynas_website_demo_requests (
   interests text[] NOT NULL DEFAULT '{}',
   message text,
   ip_hash text,
+  consent_at timestamptz NOT NULL DEFAULT now(),
   source text NOT NULL DEFAULT 'staynas.com',
   status text NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'qualified', 'converted', 'closed')),
   created_at timestamptz NOT NULL DEFAULT now(),
