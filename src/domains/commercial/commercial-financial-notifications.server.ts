@@ -226,3 +226,48 @@ export async function sendCommercialInvoiceReminderEmail(input: {
     throw error;
   }
 }
+
+export async function sendCommercialUnallocatedPaymentEmail(input:{admin:any;paymentId:string}) {
+  const {admin,paymentId}=input;
+  const {data:payment,error}=await admin.from("commercial_payment_transactions").select("*").eq("id",paymentId).maybeSingle();
+  if(error||!payment||payment.invoice_id!==null||payment.status!=="successful") throw new Error("Verified unallocated collection not found.");
+  const {data:properties}=await admin.from("staynas_properties").select("id").eq("organisation_id",payment.organisation_id);
+  const propertyIds=(properties??[]).map((property:{id:string})=>property.id);
+  if(!propertyIds.length) return {status:"skipped" as const,reason:"tenant_has_no_properties"};
+  const {data:members}=await admin.from("staynas_property_members").select("user_id,role,status")
+    .in("property_id",propertyIds).in("role",["owner","admin","manager"]).eq("status","active");
+  const member=members?.[0];
+  if(!member?.user_id) return {status:"skipped" as const,reason:"tenant_billing_admin_not_found"};
+  const {data:userResult,error:userError}=await admin.auth.admin.getUserById(member.user_id);
+  const recipient=userResult?.user?.email;
+  if(userError||!recipient) return {status:"skipped" as const,reason:"tenant_billing_email_not_found"};
+  const idempotencyKey=`cc04-unallocated-payment-${payment.id}`;
+  const {data:existing}=await admin.from("commercial_financial_notifications").select("id,status,provider_message_ref")
+    .eq("idempotency_key",idempotencyKey).maybeSingle();
+  if(existing?.status==="sent") return {status:"sent" as const,providerMessageRef:existing.provider_message_ref};
+  let notificationId=existing?.id as string|undefined;
+  if(!notificationId){
+    const {data:inserted,error:insertError}=await admin.from("commercial_financial_notifications").insert({
+      organisation_id:payment.organisation_id,payment_id:payment.id,notification_type:"payment_confirmation",
+      recipient_email:recipient,idempotency_key:idempotencyKey,
+      payload_snapshot:{amountMinor:payment.amount_minor,currency:payment.currency,provider:payment.provider,providerReference:payment.provider_transaction_ref,unallocated:true},
+    }).select("id").single();
+    if(insertError||!inserted) throw new Error("Unallocated payment notification outbox record could not be created.");
+    notificationId=inserted.id;
+  }
+  const from=process.env.STAYNAS_FINANCE_FROM_EMAIL;
+  if(!from){
+    await admin.from("commercial_financial_notifications").update({status:"failed",attempted_at:new Date().toISOString()}).eq("id",notificationId);
+    return {status:"failed" as const,reason:"STAYNAS_FINANCE_FROM_EMAIL_not_configured"};
+  }
+  try{
+    const sent=await sendResendEmail({from,to:recipient,subject:"StayNas payment received — allocation pending",
+      html:`<h2>StayNas payment received</h2><p>Amount: <strong>${amount(payment.amount_minor,payment.currency)}</strong></p><p>Reference: ${escapeHtml(payment.provider_transaction_ref)}</p><p>This collection is recorded and awaiting invoice allocation. No invoice has been marked paid by this receipt.</p>`,
+      idempotencyKey});
+    await admin.from("commercial_financial_notifications").update({status:"sent",provider_message_ref:sent.providerMessageId,attempted_at:sent.acceptedAt,sent_at:sent.acceptedAt}).eq("id",notificationId);
+    return {status:"sent" as const,providerMessageRef:sent.providerMessageId};
+  }catch(error){
+    await admin.from("commercial_financial_notifications").update({status:"failed",attempted_at:new Date().toISOString()}).eq("id",notificationId);
+    throw error;
+  }
+}
