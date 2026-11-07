@@ -64,6 +64,19 @@ CREATE TRIGGER bookings_link_guest_trg
 ALTER TABLE public.ops_tasks
   ADD COLUMN IF NOT EXISTS description text,
   ADD COLUMN IF NOT EXISTS completed_at timestamptz;
+
+-- Minimal stand-in for the already-installed HK-S1 transition audit table.
+-- The production table is created by the Housekeeping domain migration.
+CREATE TABLE IF NOT EXISTS public.housekeeping_transition_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_state_id uuid NOT NULL REFERENCES public.room_states(id) ON DELETE CASCADE,
+  from_state public.room_state NOT NULL,
+  to_state public.room_state NOT NULL,
+  actor_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
+  idempotency_key text NOT NULL UNIQUE,
+  note text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 -- Simulate the real pre-DC-05.07 schema: property and physical-unit keys are
 -- added by the review migration, not pre-seeded by this fixture.
 ALTER TABLE public.ops_tasks
