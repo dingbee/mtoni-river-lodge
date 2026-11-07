@@ -77,29 +77,29 @@ export function AdminSidebar({
   // operation independently re-authorize the founder using the database.
   useEffect(() => {
     let active = true;
-    const verifyFounder = async () => {
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user) {
-        if (active) setFounderAdmin(false);
-        return;
-      }
+    const verifyFounder = async (userId: string) => {
       const rpc = supabase.rpc as unknown as (
         name: string,
         args: Record<string, unknown>,
       ) => Promise<{ data: unknown; error: unknown | null }>;
       const { data, error } = await rpc("commercial_is_founder_admin", {
-        _principal_id: authData.user.id,
+        _principal_id: userId,
       });
       if (active) setFounderAdmin(!error && data === true);
     };
-    void verifyFounder();
-    const { data } = supabase.auth.onAuthStateChange(() => { void verifyFounder(); });
+    void supabase.auth.getUser().then(({ data }) => {
+      if (data.user) void verifyFounder(data.user.id);
+      else if (active) setFounderAdmin(false);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) void verifyFounder(session.user.id);
+      else if (active) setFounderAdmin(false);
+    });
     return () => {
       active = false;
       data.subscription.unsubscribe();
     };
   }, []);
-
   // Keep expanded navigation groups across route changes and browser reloads.
   // Hydrate after mount to avoid server/client markup mismatches.
   useEffect(() => {
