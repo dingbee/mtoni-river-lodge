@@ -1,0 +1,89 @@
+name: CC-03 database verification
+
+on:
+  push:
+    branches:
+      - feat/cc-03-*
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  cc03-database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cc03_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cc03_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: cc03_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Bootstrap isolated Supabase-compatible schema
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+          CREATE ROLE service_role NOLOGIN BYPASSRLS;
+          CREATE SCHEMA auth;
+          CREATE TABLE auth.users (id uuid PRIMARY KEY);
+          CREATE FUNCTION auth.uid() RETURNS uuid
+          LANGUAGE sql STABLE
+          AS $function$
+            SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
+          $function$;
+          CREATE FUNCTION auth.role() RETURNS text
+          LANGUAGE sql STABLE
+          AS $function$
+            SELECT nullif(current_setting('request.jwt.claim.role', true), '')
+          $function$;
+          CREATE TABLE public.staynas_organisations (
+            id uuid PRIMARY KEY,
+            slug text NOT NULL UNIQUE,
+            name text NOT NULL,
+            status text NOT NULL DEFAULT 'active'
+          );
+          CREATE TABLE public.staynas_properties (
+            id uuid PRIMARY KEY,
+            organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id),
+            slug text NOT NULL,
+            code text NOT NULL,
+            name text NOT NULL,
+            status text NOT NULL
+          );
+          CREATE TABLE public.staynas_property_members (
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            user_id uuid NOT NULL REFERENCES auth.users(id),
+            status text NOT NULL,
+            role text NOT NULL,
+            PRIMARY KEY (property_id, user_id)
+          );
+          SQL
+      - name: Apply CC-03.02 migration to ephemeral PostgreSQL
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261107090000_cc03_subscription_lifecycle.sql
+      - name: Apply CC-03.03 atomic trial activation migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261107091000_cc03_trial_activation.sql
+      - name: Verify persistence, authorization, lifecycle and trial activation contracts
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/cc03_subscription_lifecycle.test.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/cc03_trial_activation.test.sql
+      - name: Verify concurrent one-time trial activation
+        run: bash supabase/tests/cc03_concurrent_trial_activation.sh
