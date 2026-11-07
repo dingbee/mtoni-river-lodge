@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { reconcileCommercialProviderStatement } from "./commercial-reconciliation-engine";
+import { reconcileCommercialProviderStatement, type ReconciliationInternalPayment, type ReconciliationProviderRow } from "./commercial-reconciliation-engine";
 
-const payment=(overrides:Record<string,unknown>={})=>({
+const payment=(overrides:Partial<ReconciliationInternalPayment>={})=>({
   id:"payment-1",providerTransactionRef:"provider-1",providerOrderRef:null,
   amountMinor:10000,currency:"TZS" as const,status:"successful" as const,allocatedMinor:10000,
   ...overrides,
 });
-const provider=(overrides:Record<string,unknown>={})=>({
+const provider=(overrides:Partial<ReconciliationProviderRow>={})=>({
   providerRef:"provider-1",amountMinor:10000,currency:"TZS" as const,status:"successful" as const,
   ...overrides,
 });
