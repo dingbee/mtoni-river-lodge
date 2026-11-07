@@ -225,11 +225,24 @@ export const activateMyCommercialTrial = createServerFn({ method: "POST" })
     }
 
     const asOf = new Date().toISOString().slice(0, 10);
-    const policy = resolveCommercialTrialPolicy({
-      planCode: subscription.plan_code,
-      planVersion: subscription.plan_version,
-      asOf,
-    }, loadTrialPolicies());
+    let policy: CommercialTrialPolicy;
+    try {
+      policy = resolveCommercialTrialPolicy({
+        planCode: subscription.plan_code,
+        planVersion: subscription.plan_version,
+        asOf,
+      }, loadTrialPolicies());
+    } catch {
+      await writeCommercialAudit(admin, actor, {
+        requestId,
+        action: "subscription.trial_activation_failed",
+        resourceType: "subscription",
+        resourceRef: subscription.id,
+        outcome: "failed",
+        reasonCode: "trial_policy_resolution_failed",
+      });
+      throw new Error("No single enabled CC-02 trial policy matches this subscription.");
+    }
 
     const { data: result, error: activationError } = await admin.rpc(
       "commercial_activate_trial",
