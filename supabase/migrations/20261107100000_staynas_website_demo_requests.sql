@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.staynas_website_demo_requests (
   property_count_band text NOT NULL CHECK (property_count_band IN ('1', '2-5', '6-20', '21+')),
   interests text[] NOT NULL DEFAULT '{}',
   message text,
-  source text NOT NULL DEFAULT 'stayn​as.com',
+  source text NOT NULL DEFAULT 'staynas.com',
   status text NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'qualified', 'converted', 'closed')),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
