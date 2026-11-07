@@ -26,6 +26,9 @@ describe("CC-04 provider statement reconciliation",()=>{
     expect(reconcileCommercialProviderStatement([payment()],[provider({amountMinor:9000})])[0].itemType).toBe("amount_mismatch");
     expect(reconcileCommercialProviderStatement([payment()],[provider({currency:"USD"})])[0].itemType).toBe("currency_mismatch");
   });
+  it("detects status mismatches without confirming a payment",()=>{
+    expect(reconcileCommercialProviderStatement([payment({status:"pending"})],[provider()])[0].itemType).toBe("status_mismatch");
+  });
   it("detects successful but unallocated collections and reversed transactions",()=>{
     expect(reconcileCommercialProviderStatement([payment({allocatedMinor:0})],[provider()])[0].itemType).toBe("unallocated");
     expect(reconcileCommercialProviderStatement([payment({status:"reversed"})],[provider({status:"reversed"})])[0].itemType).toBe("reversed");
