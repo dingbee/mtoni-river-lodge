@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { useEffect, useState, type ReactNode } from "react";
+import { Link, useLocation } from "@tanstack/react-router";
+import { trackGAEvent, trackPageView } from "@/lib/analytics";
 import { ArrowRight, ArrowUpRight, BedDouble, Building2, CalendarCheck, ChartNoAxesCombined, Check, CircleDot, CreditCard, Globe2, House, Layers3, Network, ShieldCheck, Sparkles, Users, Workflow, Wrench } from "lucide-react";
 import { STAYNAS_PUBLIC_CAPABILITIES, STAYNAS_PILLARS, type PublicCapability } from "@/lib/staynas-public-capabilities";
 import { StayNasDemoRequestForm, StayNasModulePreview } from "@/components/site/StayNasWebsiteEnhancements";
@@ -79,7 +80,70 @@ export function ProductSiteFooter() {
 }
 
 function SiteShell({ children }: { children: ReactNode }) {
-  return <div className="min-h-screen bg-[#f6f5ef] text-[#15251f]"><ProductSiteHeader/>{children}<ProductSiteFooter/></div>;
+  return <div className="min-h-screen bg-[#f6f5ef] text-[#15251f]"><ProductSiteHeader/><StayNasAnalytics/>{children}<ProductSiteFooter/></div>;
+}
+
+function StayNasAnalytics() {
+  const pathname = useLocation({ select: (state) => state.location.pathname });
+  const [consent, setConsent] = useState<boolean | null>(null);
+  const ga4Id = import.meta.env.VITE_STAYNAS_GA4_MEASUREMENT_ID as string | undefined;
+  const gtmId = import.meta.env.VITE_STAYNAS_GTM_CONTAINER_ID as string | undefined;
+  const configured = Boolean(ga4Id || gtmId);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("staynas-analytics-consent");
+    setConsent(saved === "granted" ? true : saved === "denied" ? false : null);
+  }, []);
+
+  useEffect(() => {
+    if (!configured || consent !== true) return;
+    window.dataLayer = window.dataLayer || [];
+    let script: HTMLScriptElement;
+    if (gtmId) {
+      window.dataLayer.push({ "gtm.start": Date.now(), event: "gtm.js" });
+      script = document.createElement("script");
+      script.async = true;
+      script.src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtmId)}`;
+    } else if (ga4Id) {
+      window.gtag = (...args: unknown[]) => window.dataLayer.push(args);
+      window.gtag("js", new Date());
+      window.gtag("config", ga4Id, { send_page_view: false });
+      script = document.createElement("script");
+      script.async = true;
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(ga4Id)}`;
+    } else {
+      return;
+    }
+    document.head.appendChild(script);
+    const handleClick = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+      const anchor = event.target.closest("a[href]");
+      if (!(anchor instanceof HTMLAnchorElement)) return;
+      const destination = new URL(anchor.href, window.location.href);
+      if (destination.origin === window.location.origin && destination.pathname === "/request-demo") {
+        trackGAEvent("demo_request_click", { event_category: "conversion", cta_location: "product_website" });
+      }
+    };
+    document.addEventListener("click", handleClick);
+    return () => {
+      document.removeEventListener("click", handleClick);
+      script.remove();
+    };
+  }, [configured, consent, ga4Id, gtmId]);
+
+  useEffect(() => {
+    if (configured && consent === true) trackPageView(pathname);
+  }, [configured, consent, pathname]);
+
+  if (!configured || consent !== null) return null;
+  const choose = (granted: boolean) => {
+    window.localStorage.setItem("staynas-analytics-consent", granted ? "granted" : "denied");
+    setConsent(granted);
+  };
+  return <aside aria-label="Analytics preferences" className="fixed inset-x-4 bottom-4 z-[60] mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border border-[#d8ddd5] bg-white p-5 shadow-2xl sm:flex-row sm:items-center sm:justify-between">
+    <div><p className="text-sm font-semibold text-[#15251f]">Help improve StayNas</p><p className="mt-1 text-xs leading-5 text-[#69756e]">With your permission, we use analytics to understand website visits and demo interest. Form details and personal contact information are not sent to analytics.</p></div>
+    <div className="flex shrink-0 gap-2"><button type="button" onClick={() => choose(false)} className="rounded-full border border-[#d8ddd5] px-4 py-2.5 text-xs font-semibold text-[#526057]">Essential only</button><button type="button" onClick={() => choose(true)} className="rounded-full bg-[#173d2d] px-4 py-2.5 text-xs font-semibold text-white">Allow analytics</button></div>
+  </aside>;
 }
 
 function Eyebrow({ children }: { children: ReactNode }) {
@@ -101,6 +165,16 @@ function CapabilityCard({ item }: { item: PublicCapability }) {
 export function ProductHomePage() {
   return <SiteShell>
     <main>
+      <script type="application/ld+json">{JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        name: "StayNas",
+        description: "A hospitality operating system connecting reservations, guest experience, property operations, finance and hospitality intelligence.",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+        url: "https://staynas.com",
+        provider: { "@type": "Organization", name: "Nolmark CDMA", url: "https://nolmark.co" },
+      })}</script>
       <section className="relative overflow-hidden bg-[#0c211b] text-white">
         <div className="absolute inset-0 opacity-30" style={{backgroundImage:"radial-gradient(ellipse at 78% 18%, rgba(199,169,107,.42), transparent 34%), radial-gradient(ellipse at 12% 90%, rgba(65,116,83,.5), transparent 40%)"}}/>
         <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-6 py-20 lg:grid-cols-[1.05fr_.95fr] lg:px-10 lg:py-28">
