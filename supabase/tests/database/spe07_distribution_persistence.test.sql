@@ -1,6 +1,6 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(31);
+SELECT plan(32);
 
 SELECT has_table('public','staynas_distribution_connections','distribution connections table exists');
 SELECT has_table('public','staynas_distribution_mappings','distribution mappings table exists');
@@ -116,6 +116,11 @@ SELECT * FROM public.staynas_distribution_claim_outbox(1,120);
 
 SELECT is((SELECT count(*)::integer FROM spe07_test_claim),1,
   'outbox worker claims the queued event with a lease');
+
+SELECT is((
+  SELECT status FROM public.staynas_distribution_operations
+  WHERE id=(SELECT operation_id FROM spe07_test_claim)
+),'processing','claiming outbox work advances the operation ledger to processing');
 
 SELECT is(public.staynas_distribution_finish_outbox(
   (SELECT outbox_id FROM spe07_test_claim),gen_random_uuid(),'delivered',NULL,NULL
