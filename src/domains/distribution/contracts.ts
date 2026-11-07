@@ -97,6 +97,21 @@ export const distributionRestrictionSchema = z.object({
   message: "Restriction end date must not precede its start date.",
 });
 
+export const inboundReservationAllocationSchema = z.object({
+  externalAllocationId: z.string().trim().min(1).max(255),
+  roomTypeExternalId: z.string().trim().min(1).max(255),
+  ratePlanExternalId: z.string().trim().min(1).max(255).nullable().default(null),
+  arrivalDate: z.string().date(),
+  departureDate: z.string().date(),
+  adults: z.number().int().min(1).max(20),
+  children: z.number().int().min(0).max(20).default(0),
+  confirmedAmountMinor: z.number().int().nonnegative(),
+}).superRefine((value, ctx) => {
+  if (value.departureDate <= value.arrivalDate) {
+    ctx.addIssue({ code: "custom", path: ["departureDate"], message: "Departure must be after arrival." });
+  }
+});
+
 export const inboundReservationSchema = z.object({
   provider: distributionProviderIdSchema,
   externalAccountId: z.string().min(1).max(255),
@@ -106,6 +121,7 @@ export const inboundReservationSchema = z.object({
   eventVersion: z.string().max(160).nullable(),
   eventType: z.enum(["created", "modified", "cancelled"]),
   roomTypeExternalId: z.string().min(1).max(255),
+  allocations: z.array(inboundReservationAllocationSchema).min(1).max(20).optional(),
   ratePlanExternalId: z.string().min(1).max(255).nullable(),
   arrivalDate: z.string().date(),
   departureDate: z.string().date(),
@@ -126,6 +142,20 @@ export const inboundReservationSchema = z.object({
 }).superRefine((value, ctx) => {
   if (value.departureDate <= value.arrivalDate) {
     ctx.addIssue({ code: "custom", path: ["departureDate"], message: "Departure must be after arrival." });
+  }
+  if (value.allocations) {
+    const ids = value.allocations.map((allocation) => allocation.externalAllocationId);
+    if (new Set(ids).size !== ids.length) {
+      ctx.addIssue({ code: "custom", path: ["allocations"], message: "External allocation IDs must be unique." });
+    }
+    if (value.confirmedAmountMinor !== null
+      && value.allocations.reduce((sum, allocation) => sum + allocation.confirmedAmountMinor, 0) !== value.confirmedAmountMinor) {
+      ctx.addIssue({ code: "custom", path: ["allocations"], message: "Allocation amounts must equal the provider-confirmed reservation total." });
+    }
+    if (value.allocations.some((allocation) => allocation.arrivalDate < value.arrivalDate
+      || allocation.departureDate > value.departureDate)) {
+      ctx.addIssue({ code: "custom", path: ["allocations"], message: "Room allocations must remain within the reservation stay dates." });
+    }
   }
   if ((value.confirmedAmountMinor === null) !== (value.currency === null)) {
     ctx.addIssue({ code: "custom", path: ["currency"], message: "Confirmed amount and currency must either both be present or both be absent." });
