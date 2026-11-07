@@ -55,10 +55,18 @@ jobs:
           AS $function$
             SELECT nullif(current_setting('request.jwt.claim.role', true), '')
           $function$;
-          CREATE TABLE public.staynas_organisations (id uuid PRIMARY KEY);
+          CREATE TABLE public.staynas_organisations (
+            id uuid PRIMARY KEY,
+            slug text NOT NULL UNIQUE,
+            name text NOT NULL,
+            status text NOT NULL DEFAULT 'active'
+          );
           CREATE TABLE public.staynas_properties (
             id uuid PRIMARY KEY,
             organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id),
+            slug text NOT NULL,
+            code text NOT NULL,
+            name text NOT NULL,
             status text NOT NULL
           );
           CREATE TABLE public.staynas_property_members (
