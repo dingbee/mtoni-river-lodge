@@ -684,3 +684,20 @@ export const generateMyCommercialUnallocatedReceiptPdf=createServerFn({method:"G
     const bytes=await buildCommercialUnallocatedReceiptPdf({payment});
     return {fileName:`receipt-unallocated-${payment.id}.pdf`,bytes:Array.from(bytes)};
   });
+
+export const voidCommercialInvoice=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>z.object({
+    invoiceId:z.string().uuid(),reasonCode:z.string().trim().min(2).max(120),
+    approvalRef:z.string().trim().min(4).max(200),
+  }).parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    const {data:result,error}=await admin.rpc("commercial_void_invoice",{
+      _invoice_id:data.invoiceId,_reason_code:data.reasonCode,
+      _approval_ref:data.approvalRef,_actor_user_id:actor.userId,
+    });
+    if(error||result!==true) throw new Error("Invoice voiding was not confirmed.");
+    return {invoiceId:data.invoiceId,status:"void" as const};
+  });
