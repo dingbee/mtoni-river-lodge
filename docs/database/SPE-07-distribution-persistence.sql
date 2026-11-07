@@ -826,6 +826,89 @@ BEGIN
   RETURN NEW;
 END $$;
 
+
+
+CREATE OR REPLACE FUNCTION public.staynas_distribution_validate_external_reservation()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $
+DECLARE
+  v_commitment public.staynas_distribution_price_commitments%ROWTYPE;
+  v_booking_property uuid;
+BEGIN
+  SELECT * INTO v_commitment FROM public.staynas_distribution_price_commitments
+  WHERE id=NEW.latest_commitment_id;
+  IF NOT FOUND OR v_commitment.connection_id<>NEW.connection_id
+    OR v_commitment.organisation_id<>NEW.organisation_id
+    OR v_commitment.property_id<>NEW.property_id
+    OR v_commitment.external_reservation_id<>NEW.external_reservation_id
+    OR v_commitment.currency<>NEW.currency
+    OR v_commitment.confirmed_amount_minor<>NEW.total_amount_minor THEN
+    RAISE EXCEPTION 'External reservation commitment scope or amount mismatch' USING ERRCODE='23503';
+  END IF;
+  IF NEW.primary_booking_id IS NOT NULL THEN
+    SELECT property_id INTO v_booking_property FROM public.bookings WHERE id=NEW.primary_booking_id;
+    IF v_booking_property IS DISTINCT FROM NEW.property_id THEN
+      RAISE EXCEPTION 'Primary booking belongs to another property' USING ERRCODE='23503';
+    END IF;
+  END IF;
+  NEW.updated_at:=now();
+  RETURN NEW;
+END $;
+DROP TRIGGER IF EXISTS staynas_distribution_external_reservation_scope_trg ON public.staynas_distribution_external_reservations;
+CREATE TRIGGER staynas_distribution_external_reservation_scope_trg
+  BEFORE INSERT OR UPDATE ON public.staynas_distribution_external_reservations
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_distribution_validate_external_reservation();
+
+CREATE OR REPLACE FUNCTION public.staynas_distribution_validate_external_allocation()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $
+DECLARE
+  v_property_id uuid;
+  v_room_property uuid;
+  v_booking_property uuid;
+BEGIN
+  SELECT property_id INTO v_property_id
+  FROM public.staynas_distribution_external_reservations WHERE id=NEW.external_reservation_id;
+  SELECT property_id INTO v_room_property FROM public.rooms WHERE id=NEW.room_id;
+  IF v_property_id IS NULL OR v_room_property IS DISTINCT FROM v_property_id THEN
+    RAISE EXCEPTION 'External allocation room belongs to another property' USING ERRCODE='23503';
+  END IF;
+  IF NEW.booking_id IS NOT NULL THEN
+    SELECT property_id INTO v_booking_property FROM public.bookings WHERE id=NEW.booking_id;
+    IF v_booking_property IS DISTINCT FROM v_property_id THEN
+      RAISE EXCEPTION 'External allocation booking belongs to another property' USING ERRCODE='23503';
+    END IF;
+  END IF;
+  NEW.updated_at:=now();
+  RETURN NEW;
+END $;
+DROP TRIGGER IF EXISTS staynas_distribution_external_allocation_scope_trg ON public.staynas_distribution_external_reservation_allocations;
+CREATE TRIGGER staynas_distribution_external_allocation_scope_trg
+  BEFORE INSERT OR UPDATE ON public.staynas_distribution_external_reservation_allocations
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_distribution_validate_external_allocation();
+
+CREATE OR REPLACE FUNCTION public.staynas_distribution_validate_external_event()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $
+DECLARE
+  v_reservation public.staynas_distribution_external_reservations%ROWTYPE;
+  v_inbox public.staynas_distribution_reservation_inbox%ROWTYPE;
+BEGIN
+  SELECT * INTO v_reservation FROM public.staynas_distribution_external_reservations WHERE id=NEW.external_reservation_id;
+  SELECT * INTO v_inbox FROM public.staynas_distribution_reservation_inbox WHERE id=NEW.inbox_id;
+  IF v_reservation.id IS NULL OR v_inbox.id IS NULL
+    OR v_reservation.connection_id<>v_inbox.connection_id
+    OR v_reservation.organisation_id<>v_inbox.organisation_id
+    OR v_reservation.property_id<>v_inbox.property_id
+    OR v_reservation.external_reservation_id<>v_inbox.external_reservation_id
+    OR NEW.event_type<>v_inbox.event_type
+    OR NEW.payload_fingerprint<>v_inbox.payload_fingerprint THEN
+    RAISE EXCEPTION 'External reservation event scope or evidence mismatch' USING ERRCODE='23503';
+  END IF;
+  RETURN NEW;
+END $;
+DROP TRIGGER IF EXISTS staynas_distribution_external_event_scope_trg ON public.staynas_distribution_external_reservation_events;
+CREATE TRIGGER staynas_distribution_external_event_scope_trg
+  BEFORE INSERT ON public.staynas_distribution_external_reservation_events
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_distribution_validate_external_event();
+
 -- ISO currency minor-unit exponent for supported booking currencies.
 -- Three-decimal and four-decimal currencies are intentionally rejected by the
 -- canonical booking writer because bookings store money at two decimal places.
@@ -907,9 +990,2271 @@ BEGIN
       RETURN jsonb_build_object('status','manual_review','reason','A linked booking has progressed operationally and requires staff-led cancellation.');
     END IF;
     IF v_inbox.event_version IS NULL OR v_reservation.latest_event_version IS NULL
+      OR v_inbox.event_version !~ '^[0-9]+
+    FOR v_old_alloc IN
+      SELECT * FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id AND status='confirmed'
+      ORDER BY id FOR UPDATE
+    LOOP
+      IF v_old_alloc.booking_id IS NOT NULL THEN
+        SELECT status::text INTO v_status FROM public.bookings WHERE id=v_old_alloc.booking_id FOR UPDATE;
+        IF v_status IN ('pending','confirmed') THEN
+          PERFORM public.staynas_transition_booking_core(
+            v_old_alloc.booking_id,'cancelled','Cancelled by external distribution provider',NULL,'distribution',v_inbox.property_id
+          );
+        ELSIF v_status<>'cancelled' THEN
+          RETURN jsonb_build_object('status','manual_review','reason','A linked booking has progressed operationally and requires staff-led cancellation.');
+        END IF;
+      END IF;
+      UPDATE public.staynas_distribution_external_reservation_allocations
+      SET status='cancelled',updated_at=now() WHERE id=v_old_alloc.id;
+    END LOOP;
+    UPDATE public.staynas_distribution_external_reservations
+    SET status='cancelled',latest_event_version=v_inbox.event_version,updated_at=now()
+    WHERE id=v_reservation.id;
+    INSERT INTO public.staynas_distribution_external_reservation_events(
+      external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+    ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+      v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+    RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+
+  SELECT * INTO v_commitment FROM public.staynas_distribution_price_commitments
+  WHERE inbox_id=p_inbox_id;
+  IF NOT FOUND THEN RETURN jsonb_build_object('status','manual_review','reason','Provider financial commitment evidence is missing.'); END IF;
+  IF NOT public.staynas_distribution_price_commitment_is_verified(p_inbox_id) THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Provider price has not been independently verified.'); 
+  END IF;
+  v_currency:=v_commitment.currency;
+  v_exponent:=public.staynas_currency_minor_unit_exponent(v_currency);
+  IF v_exponent>2 THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Provider currency precision exceeds canonical booking monetary precision.');
+  END IF;
+  v_total:=v_commitment.confirmed_amount_minor::numeric/power(10::numeric,v_exponent);
+
+  v_allocations:=v_inbox.normalized_payload->'allocations';
+  IF v_allocations IS NULL THEN
+    v_allocations:=jsonb_build_array(jsonb_build_object(
+      'externalAllocationId','primary',
+      'roomTypeExternalId',v_inbox.normalized_payload->>'roomTypeExternalId',
+      'arrivalDate',v_inbox.normalized_payload->>'arrivalDate',
+      'departureDate',v_inbox.normalized_payload->>'departureDate',
+      'adults',v_inbox.normalized_payload->>'adults',
+      'children',coalesce(v_inbox.normalized_payload->>'children','0'),
+      'confirmedAmountMinor',v_commitment.confirmed_amount_minor
+    ));
+  END IF;
+  IF jsonb_typeof(v_allocations)<>'array' OR jsonb_array_length(v_allocations)<1 OR jsonb_array_length(v_allocations)>20 THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Reservation room allocations are missing or exceed the supported limit.');
+  END IF;
+  IF (SELECT coalesce(sum((item->>'confirmedAmountMinor')::numeric),0) FROM jsonb_array_elements(v_allocations) item)
+      <>v_commitment.confirmed_amount_minor THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Room allocation amounts do not reconcile to provider-confirmed reservation total.');
+  END IF;
+
+  IF v_inbox.event_type='created' AND v_reservation.id IS NOT NULL THEN
+    RETURN jsonb_build_object('status','duplicate','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+  IF v_inbox.event_type='modified' THEN
+    IF v_reservation.id IS NULL OR v_reservation.status<>'confirmed' THEN
+      RETURN jsonb_build_object('status','manual_review','reason','No active canonical external reservation exists to modify.');
+    END IF;
+    IF v_inbox.event_version IS NULL OR v_reservation.latest_event_version IS NULL
+      OR v_inbox.event_version !~ '^[0-9]+
+    SELECT count(*) INTO v_existing_count
+    FROM public.staynas_distribution_external_reservation_allocations
+    WHERE external_reservation_id=v_reservation.id AND status='confirmed';
+    v_incoming_count:=jsonb_array_length(v_allocations);
+    IF v_existing_count<>v_incoming_count THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Room-count changes require staff review until allocation replacement is separately verified.');
+    END IF;
+    FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+    LOOP
+      SELECT * INTO v_old_alloc FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id
+        AND external_allocation_id=v_alloc->>'externalAllocationId' AND status='confirmed'
+      FOR UPDATE;
+      IF NOT FOUND THEN RETURN jsonb_build_object('status','manual_review','reason','Modification changed the external room-allocation identity.'); END IF;
+      SELECT r.* INTO v_room FROM public.rooms r
+      JOIN public.staynas_distribution_mappings m
+        ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+      WHERE m.connection_id=v_inbox.connection_id
+        AND m.external_id=v_alloc->>'roomTypeExternalId'
+        AND r.property_id=v_inbox.property_id AND r.status='active';
+      IF NOT FOUND OR v_room.id<>v_old_alloc.room_id
+        OR v_old_alloc.arrival_date<>(v_alloc->>'arrivalDate')::date
+        OR v_old_alloc.departure_date<>(v_alloc->>'departureDate')::date
+        OR v_old_alloc.adults<>(v_alloc->>'adults')::integer
+        OR v_old_alloc.children<>coalesce((v_alloc->>'children')::integer,0) THEN
+        RETURN jsonb_build_object('status','manual_review','reason','Date, room or occupancy changes require staff-led reallocation.');
+      END IF;
+    END LOOP;
+    FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+    LOOP
+      SELECT * INTO v_old_alloc FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id
+        AND external_allocation_id=v_alloc->>'externalAllocationId' AND status='confirmed' FOR UPDATE;
+      v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
+      UPDATE public.bookings SET subtotal=v_amount,extras_total=0,fee_total=0,discount_total=0,
+        taxes=0,tax_addition=0,tax_breakdown='[]'::jsonb,total=v_amount,
+        deposit_amount=0,balance_amount=v_amount,balance_due=v_amount,
+        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
+          'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
+          'event_version',v_inbox.event_version)
+      WHERE id=v_old_alloc.booking_id;
+      UPDATE public.staynas_distribution_external_reservation_allocations
+      SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
+      WHERE id=v_old_alloc.id;
+      UPDATE public.booking_nights
+      SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
+          THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
+            *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
+          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
+        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
+      WHERE booking_id=v_old_alloc.booking_id;
+    END LOOP;
+    UPDATE public.staynas_distribution_external_reservations
+    SET latest_event_version=v_inbox.event_version,total_amount_minor=v_commitment.confirmed_amount_minor,
+      latest_commitment_id=v_commitment.id,updated_at=now()
+    WHERE id=v_reservation.id;
+    INSERT INTO public.staynas_distribution_external_reservation_events(
+      external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+    ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+      v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+    RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+
+  IF nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),'') IS NULL
+    OR nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'') IS NULL THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Guest name and email are required by the canonical guest-linking contract.');
+  END IF;
+
+  -- Preflight every exact room mapping, property, capacity and currency before
+  -- inserting the aggregate or decrementing inventory.
+  FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+  LOOP
+    IF nullif(v_alloc->>'externalAllocationId','') IS NULL
+      OR nullif(v_alloc->>'roomTypeExternalId','') IS NULL
+      OR (v_alloc->>'departureDate')::date<=(v_alloc->>'arrivalDate')::date
+      OR (v_alloc->>'adults')::integer<1
+      OR coalesce((v_alloc->>'children')::integer,0)<0 THEN
+      RETURN jsonb_build_object('status','manual_review','reason','A room allocation has invalid identity, dates or occupancy.');
+    END IF;
+    SELECT r.* INTO v_room FROM public.rooms r
+    JOIN public.staynas_distribution_mappings m
+      ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+    WHERE m.connection_id=v_inbox.connection_id
+      AND m.organisation_id=v_inbox.organisation_id AND m.property_id=v_inbox.property_id
+      AND m.external_id=v_alloc->>'roomTypeExternalId'
+      AND r.property_id=v_inbox.property_id AND r.status='active';
+    IF NOT FOUND THEN
+      RETURN jsonb_build_object('status','manual_review','reason','No exact active room-type mapping exists for a provider allocation.');
+    END IF;
+    IF (v_alloc->>'adults')::integer+coalesce((v_alloc->>'children')::integer,0)>v_room.max_occupancy THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider occupancy exceeds the mapped room-type capacity.');
+    END IF;
+    IF upper(v_room.currency)<>v_currency THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider currency differs from the mapped room-type currency; FX conversion is not inferred.');
+    END IF;
+    IF nullif(v_alloc->>'ratePlanExternalId','') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM public.staynas_distribution_mappings rm
+      WHERE rm.connection_id=v_inbox.connection_id AND rm.property_id=v_inbox.property_id
+        AND rm.mapping_type='rate_plan' AND rm.active=true
+        AND rm.external_id=v_alloc->>'ratePlanExternalId'
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider rate-plan mapping is missing or inactive.');
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM public.staynas_distribution_external_reservation_allocations a
+      WHERE a.external_reservation_id=v_reservation.id
+        AND a.external_allocation_id=v_alloc->>'externalAllocationId' AND a.status='confirmed'
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','External allocation identity already exists.');
+    END IF;
+  END LOOP;
+
+  PERFORM pg_advisory_xact_lock(hashtext(lower(v_inbox.normalized_payload#>>'{guest,email}')));
+
+  INSERT INTO public.staynas_distribution_external_reservations(
+    organisation_id,property_id,connection_id,external_reservation_id,
+    latest_event_version,status,currency,total_amount_minor,latest_commitment_id
+  ) VALUES (
+    v_inbox.organisation_id,v_inbox.property_id,v_inbox.connection_id,
+    v_inbox.external_reservation_id,v_inbox.event_version,'confirmed',v_currency,
+    v_commitment.confirmed_amount_minor,v_commitment.id
+  ) RETURNING id INTO v_reservation_id;
+
+  FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+  LOOP
+    SELECT r.* INTO v_room FROM public.rooms r
+    JOIN public.staynas_distribution_mappings m
+      ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+    WHERE m.connection_id=v_inbox.connection_id
+      AND m.external_id=v_alloc->>'roomTypeExternalId'
+      AND r.property_id=v_inbox.property_id AND r.status='active';
+    v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
+    v_nights:=(v_alloc->>'departureDate')::date-(v_alloc->>'arrivalDate')::date;
+    v_day:=(v_alloc->>'arrivalDate')::date;
+    WHILE v_day<(v_alloc->>'departureDate')::date LOOP
+      INSERT INTO public.room_inventory(room_id,date,available_units)
+      VALUES(v_room.id,v_day,v_room.total_units) ON CONFLICT(room_id,date) DO NOTHING;
+      SELECT available_units,is_blocked INTO v_units,v_blocked
+      FROM public.room_inventory WHERE room_id=v_room.id AND date=v_day FOR UPDATE;
+      SELECT count(*) INTO v_holds FROM public.booking_holds h
+      WHERE h.room_id=v_room.id AND h.status='active' AND h.expires_at>now()
+        AND h.check_in<=v_day AND h.check_out>v_day;
+      IF v_blocked OR v_units-coalesce(v_holds,0)<=0 THEN
+        RAISE EXCEPTION 'No sellable inventory remains for mapped room type on %',v_day USING ERRCODE='P0001';
+      END IF;
+      UPDATE public.room_inventory SET available_units=available_units-1
+      WHERE room_id=v_room.id AND date=v_day;
+      v_day:=v_day+1;
+    END LOOP;
+
+    v_reference:='OTA-'||upper(substr(md5(v_inbox.connection_id::text||v_inbox.external_reservation_id||v_alloc->>'externalAllocationId'),1,12));
+    INSERT INTO public.bookings(
+      reference,room_id,property_id,check_in,check_out,nights,adults,children,
+      guest_name,guest_email,guest_phone,currency,source,
+      subtotal,extras_total,fee_total,discount_total,taxes,tax_addition,tax_breakdown,
+      total,deposit_amount,balance_amount,balance_due,pricing_snapshot
+    ) VALUES (
+      v_reference,v_room.id,v_inbox.property_id,(v_alloc->>'arrivalDate')::date,
+      (v_alloc->>'departureDate')::date,v_nights,(v_alloc->>'adults')::integer,
+      coalesce((v_alloc->>'children')::integer,0),
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),''),
+      lower(nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'')),
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,phone}'),''),
+      v_currency,'ota:'||v_connection.provider,
+      v_amount,0,0,0,0,0,'[]'::jsonb,v_amount,0,v_amount,v_amount,
+      jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
+        'external_reservation_id',v_inbox.external_reservation_id,
+        'external_allocation_id',v_alloc->>'externalAllocationId',
+        'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
+        'event_version',v_inbox.event_version)
+    ) RETURNING id INTO v_booking_id;
+
+    v_day:=(v_alloc->>'arrivalDate')::date;
+    WHILE v_day<(v_alloc->>'departureDate')::date LOOP
+      v_rate:=CASE WHEN v_day=(v_alloc->>'departureDate')::date-1
+        THEN v_amount-round(v_amount/v_nights,2)*(v_nights-1)
+        ELSE round(v_amount/v_nights,2) END;
+      INSERT INTO public.booking_nights(booking_id,room_id,date,nightly_rate,pricing_snapshot)
+      VALUES(v_booking_id,v_room.id,v_day,v_rate,
+        jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency));
+      v_day:=v_day+1;
+    END LOOP;
+
+    PERFORM public.staynas_transition_booking_core(
+      v_booking_id,'confirmed','Confirmed by external distribution provider',NULL,'distribution',v_inbox.property_id
+    );
+    INSERT INTO public.staynas_distribution_external_reservation_allocations(
+      external_reservation_id,external_allocation_id,room_id,arrival_date,departure_date,
+      adults,children,amount_minor,booking_id
+    ) VALUES (
+      v_reservation_id,v_alloc->>'externalAllocationId',v_room.id,
+      (v_alloc->>'arrivalDate')::date,(v_alloc->>'departureDate')::date,
+      (v_alloc->>'adults')::integer,coalesce((v_alloc->>'children')::integer,0),
+      (v_alloc->>'confirmedAmountMinor')::bigint,v_booking_id
+    );
+    IF v_primary_booking_id IS NULL THEN v_primary_booking_id:=v_booking_id; END IF;
+  END LOOP;
+
+  UPDATE public.staynas_distribution_external_reservations
+  SET primary_booking_id=v_primary_booking_id,updated_at=now()
+  WHERE id=v_reservation_id;
+  INSERT INTO public.staynas_distribution_external_reservation_events(
+    external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+  ) VALUES(v_reservation_id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+    v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+  RETURN jsonb_build_object('status','applied','booking_id',v_primary_booking_id,'reservation_id',v_reservation_id);
+EXCEPTION
+  WHEN SQLSTATE 'P0001' THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Mapped room inventory is unavailable for one or more requested nights.');
+  WHEN OTHERS THEN
+    RAISE;
+END $;
+
+REVOKE ALL ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_price_commitment_is_verified(uuid)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_apply_reservation_event(uuid)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_price_commitment_is_verified(uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_apply_reservation_event(uuid)
+  TO service_role;
+
+COMMIT;
+ OR v_reservation.latest_event_version !~ '^[0-9]+
+    FOR v_old_alloc IN
+      SELECT * FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id AND status='confirmed'
+      ORDER BY id FOR UPDATE
+    LOOP
+      IF v_old_alloc.booking_id IS NOT NULL THEN
+        SELECT status::text INTO v_status FROM public.bookings WHERE id=v_old_alloc.booking_id FOR UPDATE;
+        IF v_status IN ('pending','confirmed') THEN
+          PERFORM public.staynas_transition_booking_core(
+            v_old_alloc.booking_id,'cancelled','Cancelled by external distribution provider',NULL,'distribution',v_inbox.property_id
+          );
+        ELSIF v_status<>'cancelled' THEN
+          RETURN jsonb_build_object('status','manual_review','reason','A linked booking has progressed operationally and requires staff-led cancellation.');
+        END IF;
+      END IF;
+      UPDATE public.staynas_distribution_external_reservation_allocations
+      SET status='cancelled',updated_at=now() WHERE id=v_old_alloc.id;
+    END LOOP;
+    UPDATE public.staynas_distribution_external_reservations
+    SET status='cancelled',latest_event_version=v_inbox.event_version,updated_at=now()
+    WHERE id=v_reservation.id;
+    INSERT INTO public.staynas_distribution_external_reservation_events(
+      external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+    ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+      v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+    RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+
+  SELECT * INTO v_commitment FROM public.staynas_distribution_price_commitments
+  WHERE inbox_id=p_inbox_id;
+  IF NOT FOUND THEN RETURN jsonb_build_object('status','manual_review','reason','Provider financial commitment evidence is missing.'); END IF;
+  IF NOT public.staynas_distribution_price_commitment_is_verified(p_inbox_id) THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Provider price has not been independently verified.'); 
+  END IF;
+  v_currency:=v_commitment.currency;
+  v_exponent:=public.staynas_currency_minor_unit_exponent(v_currency);
+  IF v_exponent>2 THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Provider currency precision exceeds canonical booking monetary precision.');
+  END IF;
+  v_total:=v_commitment.confirmed_amount_minor::numeric/power(10::numeric,v_exponent);
+
+  v_allocations:=v_inbox.normalized_payload->'allocations';
+  IF v_allocations IS NULL THEN
+    v_allocations:=jsonb_build_array(jsonb_build_object(
+      'externalAllocationId','primary',
+      'roomTypeExternalId',v_inbox.normalized_payload->>'roomTypeExternalId',
+      'arrivalDate',v_inbox.normalized_payload->>'arrivalDate',
+      'departureDate',v_inbox.normalized_payload->>'departureDate',
+      'adults',v_inbox.normalized_payload->>'adults',
+      'children',coalesce(v_inbox.normalized_payload->>'children','0'),
+      'confirmedAmountMinor',v_commitment.confirmed_amount_minor
+    ));
+  END IF;
+  IF jsonb_typeof(v_allocations)<>'array' OR jsonb_array_length(v_allocations)<1 OR jsonb_array_length(v_allocations)>20 THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Reservation room allocations are missing or exceed the supported limit.');
+  END IF;
+  IF (SELECT coalesce(sum((item->>'confirmedAmountMinor')::numeric),0) FROM jsonb_array_elements(v_allocations) item)
+      <>v_commitment.confirmed_amount_minor THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Room allocation amounts do not reconcile to provider-confirmed reservation total.');
+  END IF;
+
+  IF v_inbox.event_type='created' AND v_reservation.id IS NOT NULL THEN
+    RETURN jsonb_build_object('status','duplicate','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+  IF v_inbox.event_type='modified' THEN
+    IF v_reservation.id IS NULL OR v_reservation.status<>'confirmed' THEN
+      RETURN jsonb_build_object('status','manual_review','reason','No active canonical external reservation exists to modify.');
+    END IF;
+    IF v_inbox.event_version IS NULL OR v_reservation.latest_event_version IS NULL
       OR v_inbox.event_version !~ '^[0-9]+$' OR v_reservation.latest_event_version !~ '^[0-9]+$'
       OR v_inbox.event_version::numeric<=v_reservation.latest_event_version::numeric THEN
-      RETURN jsonb_build_object('status','manual_review','reason','Cancellation event version is missing, non-numeric or stale.');
+      RETURN jsonb_build_object('status','manual_review','reason','Modification event version is missing, non-numeric or stale.');
+    END IF;
+    SELECT count(*) INTO v_existing_count
+    FROM public.staynas_distribution_external_reservation_allocations
+    WHERE external_reservation_id=v_reservation.id AND status='confirmed';
+    v_incoming_count:=jsonb_array_length(v_allocations);
+    IF v_existing_count<>v_incoming_count THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Room-count changes require staff review until allocation replacement is separately verified.');
+    END IF;
+    FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+    LOOP
+      SELECT * INTO v_old_alloc FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id
+        AND external_allocation_id=v_alloc->>'externalAllocationId' AND status='confirmed'
+      FOR UPDATE;
+      IF NOT FOUND THEN RETURN jsonb_build_object('status','manual_review','reason','Modification changed the external room-allocation identity.'); END IF;
+      SELECT r.* INTO v_room FROM public.rooms r
+      JOIN public.staynas_distribution_mappings m
+        ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+      WHERE m.connection_id=v_inbox.connection_id
+        AND m.external_id=v_alloc->>'roomTypeExternalId'
+        AND r.property_id=v_inbox.property_id AND r.status='active';
+      IF NOT FOUND OR v_room.id<>v_old_alloc.room_id
+        OR v_old_alloc.arrival_date<>(v_alloc->>'arrivalDate')::date
+        OR v_old_alloc.departure_date<>(v_alloc->>'departureDate')::date
+        OR v_old_alloc.adults<>(v_alloc->>'adults')::integer
+        OR v_old_alloc.children<>coalesce((v_alloc->>'children')::integer,0) THEN
+        RETURN jsonb_build_object('status','manual_review','reason','Date, room or occupancy changes require staff-led reallocation.');
+      END IF;
+    END LOOP;
+    FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+    LOOP
+      SELECT * INTO v_old_alloc FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id
+        AND external_allocation_id=v_alloc->>'externalAllocationId' AND status='confirmed' FOR UPDATE;
+      v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
+      UPDATE public.bookings SET subtotal=v_amount,extras_total=0,fee_total=0,discount_total=0,
+        taxes=0,tax_addition=0,tax_breakdown='[]'::jsonb,total=v_amount,
+        deposit_amount=0,balance_amount=v_amount,balance_due=v_amount,
+        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
+          'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
+          'event_version',v_inbox.event_version)
+      WHERE id=v_old_alloc.booking_id;
+      UPDATE public.staynas_distribution_external_reservation_allocations
+      SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
+      WHERE id=v_old_alloc.id;
+      UPDATE public.booking_nights
+      SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
+          THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
+            *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
+          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
+        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
+      WHERE booking_id=v_old_alloc.booking_id;
+    END LOOP;
+    UPDATE public.staynas_distribution_external_reservations
+    SET latest_event_version=v_inbox.event_version,total_amount_minor=v_commitment.confirmed_amount_minor,
+      latest_commitment_id=v_commitment.id,updated_at=now()
+    WHERE id=v_reservation.id;
+    INSERT INTO public.staynas_distribution_external_reservation_events(
+      external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+    ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+      v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+    RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+
+  IF nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),'') IS NULL
+    OR nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'') IS NULL THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Guest name and email are required by the canonical guest-linking contract.');
+  END IF;
+
+  -- Preflight every exact room mapping, property, capacity and currency before
+  -- inserting the aggregate or decrementing inventory.
+  FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+  LOOP
+    IF nullif(v_alloc->>'externalAllocationId','') IS NULL
+      OR nullif(v_alloc->>'roomTypeExternalId','') IS NULL
+      OR (v_alloc->>'departureDate')::date<=(v_alloc->>'arrivalDate')::date
+      OR (v_alloc->>'adults')::integer<1
+      OR coalesce((v_alloc->>'children')::integer,0)<0 THEN
+      RETURN jsonb_build_object('status','manual_review','reason','A room allocation has invalid identity, dates or occupancy.');
+    END IF;
+    SELECT r.* INTO v_room FROM public.rooms r
+    JOIN public.staynas_distribution_mappings m
+      ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+    WHERE m.connection_id=v_inbox.connection_id
+      AND m.organisation_id=v_inbox.organisation_id AND m.property_id=v_inbox.property_id
+      AND m.external_id=v_alloc->>'roomTypeExternalId'
+      AND r.property_id=v_inbox.property_id AND r.status='active';
+    IF NOT FOUND THEN
+      RETURN jsonb_build_object('status','manual_review','reason','No exact active room-type mapping exists for a provider allocation.');
+    END IF;
+    IF (v_alloc->>'adults')::integer+coalesce((v_alloc->>'children')::integer,0)>v_room.max_occupancy THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider occupancy exceeds the mapped room-type capacity.');
+    END IF;
+    IF upper(v_room.currency)<>v_currency THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider currency differs from the mapped room-type currency; FX conversion is not inferred.');
+    END IF;
+    IF nullif(v_alloc->>'ratePlanExternalId','') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM public.staynas_distribution_mappings rm
+      WHERE rm.connection_id=v_inbox.connection_id AND rm.property_id=v_inbox.property_id
+        AND rm.mapping_type='rate_plan' AND rm.active=true
+        AND rm.external_id=v_alloc->>'ratePlanExternalId'
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider rate-plan mapping is missing or inactive.');
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM public.staynas_distribution_external_reservation_allocations a
+      WHERE a.external_reservation_id=v_reservation.id
+        AND a.external_allocation_id=v_alloc->>'externalAllocationId' AND a.status='confirmed'
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','External allocation identity already exists.');
+    END IF;
+  END LOOP;
+
+  INSERT INTO public.staynas_distribution_external_reservations(
+    organisation_id,property_id,connection_id,external_reservation_id,
+    latest_event_version,status,currency,total_amount_minor,latest_commitment_id
+  ) VALUES (
+    v_inbox.organisation_id,v_inbox.property_id,v_inbox.connection_id,
+    v_inbox.external_reservation_id,v_inbox.event_version,'confirmed',v_currency,
+    v_commitment.confirmed_amount_minor,v_commitment.id
+  ) RETURNING id INTO v_reservation_id;
+
+  FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+  LOOP
+    SELECT r.* INTO v_room FROM public.rooms r
+    JOIN public.staynas_distribution_mappings m
+      ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+    WHERE m.connection_id=v_inbox.connection_id
+      AND m.external_id=v_alloc->>'roomTypeExternalId'
+      AND r.property_id=v_inbox.property_id AND r.status='active';
+    v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
+    v_nights:=(v_alloc->>'departureDate')::date-(v_alloc->>'arrivalDate')::date;
+    v_day:=(v_alloc->>'arrivalDate')::date;
+    WHILE v_day<(v_alloc->>'departureDate')::date LOOP
+      INSERT INTO public.room_inventory(room_id,date,available_units)
+      VALUES(v_room.id,v_day,v_room.total_units) ON CONFLICT(room_id,date) DO NOTHING;
+      SELECT available_units,is_blocked INTO v_units,v_blocked
+      FROM public.room_inventory WHERE room_id=v_room.id AND date=v_day FOR UPDATE;
+      SELECT count(*) INTO v_holds FROM public.booking_holds h
+      WHERE h.room_id=v_room.id AND h.status='active' AND h.expires_at>now()
+        AND h.check_in<=v_day AND h.check_out>v_day;
+      IF v_blocked OR v_units-coalesce(v_holds,0)<=0 THEN
+        RAISE EXCEPTION 'No sellable inventory remains for mapped room type on %',v_day USING ERRCODE='P0001';
+      END IF;
+      UPDATE public.room_inventory SET available_units=available_units-1
+      WHERE room_id=v_room.id AND date=v_day;
+      v_day:=v_day+1;
+    END LOOP;
+
+    v_reference:='OTA-'||upper(substr(md5(v_inbox.connection_id::text||v_inbox.external_reservation_id||v_alloc->>'externalAllocationId'),1,12));
+    INSERT INTO public.bookings(
+      reference,room_id,property_id,check_in,check_out,nights,adults,children,
+      guest_name,guest_email,guest_phone,currency,source,
+      subtotal,extras_total,fee_total,discount_total,taxes,tax_addition,tax_breakdown,
+      total,deposit_amount,balance_amount,balance_due,pricing_snapshot
+    ) VALUES (
+      v_reference,v_room.id,v_inbox.property_id,(v_alloc->>'arrivalDate')::date,
+      (v_alloc->>'departureDate')::date,v_nights,(v_alloc->>'adults')::integer,
+      coalesce((v_alloc->>'children')::integer,0),
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),''),
+      lower(nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'')),
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,phone}'),''),
+      v_currency,'ota:'||v_connection.provider,
+      v_amount,0,0,0,0,0,'[]'::jsonb,v_amount,0,v_amount,v_amount,
+      jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
+        'external_reservation_id',v_inbox.external_reservation_id,
+        'external_allocation_id',v_alloc->>'externalAllocationId',
+        'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
+        'event_version',v_inbox.event_version)
+    ) RETURNING id INTO v_booking_id;
+
+    v_day:=(v_alloc->>'arrivalDate')::date;
+    WHILE v_day<(v_alloc->>'departureDate')::date LOOP
+      v_rate:=CASE WHEN v_day=(v_alloc->>'departureDate')::date-1
+        THEN v_amount-round(v_amount/v_nights,2)*(v_nights-1)
+        ELSE round(v_amount/v_nights,2) END;
+      INSERT INTO public.booking_nights(booking_id,room_id,date,nightly_rate,pricing_snapshot)
+      VALUES(v_booking_id,v_room.id,v_day,v_rate,
+        jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency));
+      v_day:=v_day+1;
+    END LOOP;
+
+    PERFORM public.staynas_transition_booking_core(
+      v_booking_id,'confirmed','Confirmed by external distribution provider',NULL,'distribution',v_inbox.property_id
+    );
+    INSERT INTO public.staynas_distribution_external_reservation_allocations(
+      external_reservation_id,external_allocation_id,room_id,arrival_date,departure_date,
+      adults,children,amount_minor,booking_id
+    ) VALUES (
+      v_reservation_id,v_alloc->>'externalAllocationId',v_room.id,
+      (v_alloc->>'arrivalDate')::date,(v_alloc->>'departureDate')::date,
+      (v_alloc->>'adults')::integer,coalesce((v_alloc->>'children')::integer,0),
+      (v_alloc->>'confirmedAmountMinor')::bigint,v_booking_id
+    );
+    IF v_primary_booking_id IS NULL THEN v_primary_booking_id:=v_booking_id; END IF;
+  END LOOP;
+
+  UPDATE public.staynas_distribution_external_reservations
+  SET primary_booking_id=v_primary_booking_id,updated_at=now()
+  WHERE id=v_reservation_id;
+  INSERT INTO public.staynas_distribution_external_reservation_events(
+    external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+  ) VALUES(v_reservation_id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+    v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+  RETURN jsonb_build_object('status','applied','booking_id',v_primary_booking_id,'reservation_id',v_reservation_id);
+EXCEPTION
+  WHEN SQLSTATE 'P0001' THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Mapped room inventory is unavailable for one or more requested nights.');
+  WHEN OTHERS THEN
+    RAISE;
+END $;
+
+REVOKE ALL ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_price_commitment_is_verified(uuid)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_apply_reservation_event(uuid)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_price_commitment_is_verified(uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_apply_reservation_event(uuid)
+  TO service_role;
+
+COMMIT;
+ THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Cancellation event version is missing or non-numeric.');
+    END IF;
+    IF v_inbox.event_version::numeric<=v_reservation.latest_event_version::numeric THEN
+      RETURN jsonb_build_object('status','stale');
+    END IF;
+    FOR v_old_alloc IN
+      SELECT * FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id AND status='confirmed'
+      ORDER BY id FOR UPDATE
+    LOOP
+      IF v_old_alloc.booking_id IS NOT NULL THEN
+        SELECT status::text INTO v_status FROM public.bookings WHERE id=v_old_alloc.booking_id FOR UPDATE;
+        IF v_status IN ('pending','confirmed') THEN
+          PERFORM public.staynas_transition_booking_core(
+            v_old_alloc.booking_id,'cancelled','Cancelled by external distribution provider',NULL,'distribution',v_inbox.property_id
+          );
+        ELSIF v_status<>'cancelled' THEN
+          RETURN jsonb_build_object('status','manual_review','reason','A linked booking has progressed operationally and requires staff-led cancellation.');
+        END IF;
+      END IF;
+      UPDATE public.staynas_distribution_external_reservation_allocations
+      SET status='cancelled',updated_at=now() WHERE id=v_old_alloc.id;
+    END LOOP;
+    UPDATE public.staynas_distribution_external_reservations
+    SET status='cancelled',latest_event_version=v_inbox.event_version,updated_at=now()
+    WHERE id=v_reservation.id;
+    INSERT INTO public.staynas_distribution_external_reservation_events(
+      external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+    ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+      v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+    RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+
+  SELECT * INTO v_commitment FROM public.staynas_distribution_price_commitments
+  WHERE inbox_id=p_inbox_id;
+  IF NOT FOUND THEN RETURN jsonb_build_object('status','manual_review','reason','Provider financial commitment evidence is missing.'); END IF;
+  IF NOT public.staynas_distribution_price_commitment_is_verified(p_inbox_id) THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Provider price has not been independently verified.'); 
+  END IF;
+  v_currency:=v_commitment.currency;
+  v_exponent:=public.staynas_currency_minor_unit_exponent(v_currency);
+  IF v_exponent>2 THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Provider currency precision exceeds canonical booking monetary precision.');
+  END IF;
+  v_total:=v_commitment.confirmed_amount_minor::numeric/power(10::numeric,v_exponent);
+
+  v_allocations:=v_inbox.normalized_payload->'allocations';
+  IF v_allocations IS NULL THEN
+    v_allocations:=jsonb_build_array(jsonb_build_object(
+      'externalAllocationId','primary',
+      'roomTypeExternalId',v_inbox.normalized_payload->>'roomTypeExternalId',
+      'arrivalDate',v_inbox.normalized_payload->>'arrivalDate',
+      'departureDate',v_inbox.normalized_payload->>'departureDate',
+      'adults',v_inbox.normalized_payload->>'adults',
+      'children',coalesce(v_inbox.normalized_payload->>'children','0'),
+      'confirmedAmountMinor',v_commitment.confirmed_amount_minor
+    ));
+  END IF;
+  IF jsonb_typeof(v_allocations)<>'array' OR jsonb_array_length(v_allocations)<1 OR jsonb_array_length(v_allocations)>20 THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Reservation room allocations are missing or exceed the supported limit.');
+  END IF;
+  IF (SELECT coalesce(sum((item->>'confirmedAmountMinor')::numeric),0) FROM jsonb_array_elements(v_allocations) item)
+      <>v_commitment.confirmed_amount_minor THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Room allocation amounts do not reconcile to provider-confirmed reservation total.');
+  END IF;
+
+  IF v_inbox.event_type='created' AND v_reservation.id IS NOT NULL THEN
+    RETURN jsonb_build_object('status','duplicate','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+  IF v_inbox.event_type='modified' THEN
+    IF v_reservation.id IS NULL OR v_reservation.status<>'confirmed' THEN
+      RETURN jsonb_build_object('status','manual_review','reason','No active canonical external reservation exists to modify.');
+    END IF;
+    IF v_inbox.event_version IS NULL OR v_reservation.latest_event_version IS NULL
+      OR v_inbox.event_version !~ '^[0-9]+$' OR v_reservation.latest_event_version !~ '^[0-9]+$'
+      OR v_inbox.event_version::numeric<=v_reservation.latest_event_version::numeric THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Modification event version is missing, non-numeric or stale.');
+    END IF;
+    SELECT count(*) INTO v_existing_count
+    FROM public.staynas_distribution_external_reservation_allocations
+    WHERE external_reservation_id=v_reservation.id AND status='confirmed';
+    v_incoming_count:=jsonb_array_length(v_allocations);
+    IF v_existing_count<>v_incoming_count THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Room-count changes require staff review until allocation replacement is separately verified.');
+    END IF;
+    FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+    LOOP
+      SELECT * INTO v_old_alloc FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id
+        AND external_allocation_id=v_alloc->>'externalAllocationId' AND status='confirmed'
+      FOR UPDATE;
+      IF NOT FOUND THEN RETURN jsonb_build_object('status','manual_review','reason','Modification changed the external room-allocation identity.'); END IF;
+      SELECT r.* INTO v_room FROM public.rooms r
+      JOIN public.staynas_distribution_mappings m
+        ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+      WHERE m.connection_id=v_inbox.connection_id
+        AND m.external_id=v_alloc->>'roomTypeExternalId'
+        AND r.property_id=v_inbox.property_id AND r.status='active';
+      IF NOT FOUND OR v_room.id<>v_old_alloc.room_id
+        OR v_old_alloc.arrival_date<>(v_alloc->>'arrivalDate')::date
+        OR v_old_alloc.departure_date<>(v_alloc->>'departureDate')::date
+        OR v_old_alloc.adults<>(v_alloc->>'adults')::integer
+        OR v_old_alloc.children<>coalesce((v_alloc->>'children')::integer,0) THEN
+        RETURN jsonb_build_object('status','manual_review','reason','Date, room or occupancy changes require staff-led reallocation.');
+      END IF;
+    END LOOP;
+    FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+    LOOP
+      SELECT * INTO v_old_alloc FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id
+        AND external_allocation_id=v_alloc->>'externalAllocationId' AND status='confirmed' FOR UPDATE;
+      v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
+      UPDATE public.bookings SET subtotal=v_amount,extras_total=0,fee_total=0,discount_total=0,
+        taxes=0,tax_addition=0,tax_breakdown='[]'::jsonb,total=v_amount,
+        deposit_amount=0,balance_amount=v_amount,balance_due=v_amount,
+        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
+          'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
+          'event_version',v_inbox.event_version)
+      WHERE id=v_old_alloc.booking_id;
+      UPDATE public.staynas_distribution_external_reservation_allocations
+      SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
+      WHERE id=v_old_alloc.id;
+      UPDATE public.booking_nights
+      SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
+          THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
+            *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
+          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
+        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
+      WHERE booking_id=v_old_alloc.booking_id;
+    END LOOP;
+    UPDATE public.staynas_distribution_external_reservations
+    SET latest_event_version=v_inbox.event_version,total_amount_minor=v_commitment.confirmed_amount_minor,
+      latest_commitment_id=v_commitment.id,updated_at=now()
+    WHERE id=v_reservation.id;
+    INSERT INTO public.staynas_distribution_external_reservation_events(
+      external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+    ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+      v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+    RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+
+  IF nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),'') IS NULL
+    OR nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'') IS NULL THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Guest name and email are required by the canonical guest-linking contract.');
+  END IF;
+
+  -- Preflight every exact room mapping, property, capacity and currency before
+  -- inserting the aggregate or decrementing inventory.
+  FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+  LOOP
+    IF nullif(v_alloc->>'externalAllocationId','') IS NULL
+      OR nullif(v_alloc->>'roomTypeExternalId','') IS NULL
+      OR (v_alloc->>'departureDate')::date<=(v_alloc->>'arrivalDate')::date
+      OR (v_alloc->>'adults')::integer<1
+      OR coalesce((v_alloc->>'children')::integer,0)<0 THEN
+      RETURN jsonb_build_object('status','manual_review','reason','A room allocation has invalid identity, dates or occupancy.');
+    END IF;
+    SELECT r.* INTO v_room FROM public.rooms r
+    JOIN public.staynas_distribution_mappings m
+      ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+    WHERE m.connection_id=v_inbox.connection_id
+      AND m.organisation_id=v_inbox.organisation_id AND m.property_id=v_inbox.property_id
+      AND m.external_id=v_alloc->>'roomTypeExternalId'
+      AND r.property_id=v_inbox.property_id AND r.status='active';
+    IF NOT FOUND THEN
+      RETURN jsonb_build_object('status','manual_review','reason','No exact active room-type mapping exists for a provider allocation.');
+    END IF;
+    IF (v_alloc->>'adults')::integer+coalesce((v_alloc->>'children')::integer,0)>v_room.max_occupancy THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider occupancy exceeds the mapped room-type capacity.');
+    END IF;
+    IF upper(v_room.currency)<>v_currency THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider currency differs from the mapped room-type currency; FX conversion is not inferred.');
+    END IF;
+    IF nullif(v_alloc->>'ratePlanExternalId','') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM public.staynas_distribution_mappings rm
+      WHERE rm.connection_id=v_inbox.connection_id AND rm.property_id=v_inbox.property_id
+        AND rm.mapping_type='rate_plan' AND rm.active=true
+        AND rm.external_id=v_alloc->>'ratePlanExternalId'
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider rate-plan mapping is missing or inactive.');
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM public.staynas_distribution_external_reservation_allocations a
+      WHERE a.external_reservation_id=v_reservation.id
+        AND a.external_allocation_id=v_alloc->>'externalAllocationId' AND a.status='confirmed'
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','External allocation identity already exists.');
+    END IF;
+  END LOOP;
+
+  INSERT INTO public.staynas_distribution_external_reservations(
+    organisation_id,property_id,connection_id,external_reservation_id,
+    latest_event_version,status,currency,total_amount_minor,latest_commitment_id
+  ) VALUES (
+    v_inbox.organisation_id,v_inbox.property_id,v_inbox.connection_id,
+    v_inbox.external_reservation_id,v_inbox.event_version,'confirmed',v_currency,
+    v_commitment.confirmed_amount_minor,v_commitment.id
+  ) RETURNING id INTO v_reservation_id;
+
+  FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+  LOOP
+    SELECT r.* INTO v_room FROM public.rooms r
+    JOIN public.staynas_distribution_mappings m
+      ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+    WHERE m.connection_id=v_inbox.connection_id
+      AND m.external_id=v_alloc->>'roomTypeExternalId'
+      AND r.property_id=v_inbox.property_id AND r.status='active';
+    v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
+    v_nights:=(v_alloc->>'departureDate')::date-(v_alloc->>'arrivalDate')::date;
+    v_day:=(v_alloc->>'arrivalDate')::date;
+    WHILE v_day<(v_alloc->>'departureDate')::date LOOP
+      INSERT INTO public.room_inventory(room_id,date,available_units)
+      VALUES(v_room.id,v_day,v_room.total_units) ON CONFLICT(room_id,date) DO NOTHING;
+      SELECT available_units,is_blocked INTO v_units,v_blocked
+      FROM public.room_inventory WHERE room_id=v_room.id AND date=v_day FOR UPDATE;
+      SELECT count(*) INTO v_holds FROM public.booking_holds h
+      WHERE h.room_id=v_room.id AND h.status='active' AND h.expires_at>now()
+        AND h.check_in<=v_day AND h.check_out>v_day;
+      IF v_blocked OR v_units-coalesce(v_holds,0)<=0 THEN
+        RAISE EXCEPTION 'No sellable inventory remains for mapped room type on %',v_day USING ERRCODE='P0001';
+      END IF;
+      UPDATE public.room_inventory SET available_units=available_units-1
+      WHERE room_id=v_room.id AND date=v_day;
+      v_day:=v_day+1;
+    END LOOP;
+
+    v_reference:='OTA-'||upper(substr(md5(v_inbox.connection_id::text||v_inbox.external_reservation_id||v_alloc->>'externalAllocationId'),1,12));
+    INSERT INTO public.bookings(
+      reference,room_id,property_id,check_in,check_out,nights,adults,children,
+      guest_name,guest_email,guest_phone,currency,source,
+      subtotal,extras_total,fee_total,discount_total,taxes,tax_addition,tax_breakdown,
+      total,deposit_amount,balance_amount,balance_due,pricing_snapshot
+    ) VALUES (
+      v_reference,v_room.id,v_inbox.property_id,(v_alloc->>'arrivalDate')::date,
+      (v_alloc->>'departureDate')::date,v_nights,(v_alloc->>'adults')::integer,
+      coalesce((v_alloc->>'children')::integer,0),
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),''),
+      lower(nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'')),
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,phone}'),''),
+      v_currency,'ota:'||v_connection.provider,
+      v_amount,0,0,0,0,0,'[]'::jsonb,v_amount,0,v_amount,v_amount,
+      jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
+        'external_reservation_id',v_inbox.external_reservation_id,
+        'external_allocation_id',v_alloc->>'externalAllocationId',
+        'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
+        'event_version',v_inbox.event_version)
+    ) RETURNING id INTO v_booking_id;
+
+    v_day:=(v_alloc->>'arrivalDate')::date;
+    WHILE v_day<(v_alloc->>'departureDate')::date LOOP
+      v_rate:=CASE WHEN v_day=(v_alloc->>'departureDate')::date-1
+        THEN v_amount-round(v_amount/v_nights,2)*(v_nights-1)
+        ELSE round(v_amount/v_nights,2) END;
+      INSERT INTO public.booking_nights(booking_id,room_id,date,nightly_rate,pricing_snapshot)
+      VALUES(v_booking_id,v_room.id,v_day,v_rate,
+        jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency));
+      v_day:=v_day+1;
+    END LOOP;
+
+    PERFORM public.staynas_transition_booking_core(
+      v_booking_id,'confirmed','Confirmed by external distribution provider',NULL,'distribution',v_inbox.property_id
+    );
+    INSERT INTO public.staynas_distribution_external_reservation_allocations(
+      external_reservation_id,external_allocation_id,room_id,arrival_date,departure_date,
+      adults,children,amount_minor,booking_id
+    ) VALUES (
+      v_reservation_id,v_alloc->>'externalAllocationId',v_room.id,
+      (v_alloc->>'arrivalDate')::date,(v_alloc->>'departureDate')::date,
+      (v_alloc->>'adults')::integer,coalesce((v_alloc->>'children')::integer,0),
+      (v_alloc->>'confirmedAmountMinor')::bigint,v_booking_id
+    );
+    IF v_primary_booking_id IS NULL THEN v_primary_booking_id:=v_booking_id; END IF;
+  END LOOP;
+
+  UPDATE public.staynas_distribution_external_reservations
+  SET primary_booking_id=v_primary_booking_id,updated_at=now()
+  WHERE id=v_reservation_id;
+  INSERT INTO public.staynas_distribution_external_reservation_events(
+    external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+  ) VALUES(v_reservation_id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+    v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+  RETURN jsonb_build_object('status','applied','booking_id',v_primary_booking_id,'reservation_id',v_reservation_id);
+EXCEPTION
+  WHEN SQLSTATE 'P0001' THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Mapped room inventory is unavailable for one or more requested nights.');
+  WHEN OTHERS THEN
+    RAISE;
+END $;
+
+REVOKE ALL ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_price_commitment_is_verified(uuid)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_apply_reservation_event(uuid)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_price_commitment_is_verified(uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_apply_reservation_event(uuid)
+  TO service_role;
+
+COMMIT;
+ OR v_reservation.latest_event_version !~ '^[0-9]+
+    SELECT count(*) INTO v_existing_count
+    FROM public.staynas_distribution_external_reservation_allocations
+    WHERE external_reservation_id=v_reservation.id AND status='confirmed';
+    v_incoming_count:=jsonb_array_length(v_allocations);
+    IF v_existing_count<>v_incoming_count THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Room-count changes require staff review until allocation replacement is separately verified.');
+    END IF;
+    FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+    LOOP
+      SELECT * INTO v_old_alloc FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id
+        AND external_allocation_id=v_alloc->>'externalAllocationId' AND status='confirmed'
+      FOR UPDATE;
+      IF NOT FOUND THEN RETURN jsonb_build_object('status','manual_review','reason','Modification changed the external room-allocation identity.'); END IF;
+      SELECT r.* INTO v_room FROM public.rooms r
+      JOIN public.staynas_distribution_mappings m
+        ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+      WHERE m.connection_id=v_inbox.connection_id
+        AND m.external_id=v_alloc->>'roomTypeExternalId'
+        AND r.property_id=v_inbox.property_id AND r.status='active';
+      IF NOT FOUND OR v_room.id<>v_old_alloc.room_id
+        OR v_old_alloc.arrival_date<>(v_alloc->>'arrivalDate')::date
+        OR v_old_alloc.departure_date<>(v_alloc->>'departureDate')::date
+        OR v_old_alloc.adults<>(v_alloc->>'adults')::integer
+        OR v_old_alloc.children<>coalesce((v_alloc->>'children')::integer,0) THEN
+        RETURN jsonb_build_object('status','manual_review','reason','Date, room or occupancy changes require staff-led reallocation.');
+      END IF;
+    END LOOP;
+    FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+    LOOP
+      SELECT * INTO v_old_alloc FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id
+        AND external_allocation_id=v_alloc->>'externalAllocationId' AND status='confirmed' FOR UPDATE;
+      v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
+      UPDATE public.bookings SET subtotal=v_amount,extras_total=0,fee_total=0,discount_total=0,
+        taxes=0,tax_addition=0,tax_breakdown='[]'::jsonb,total=v_amount,
+        deposit_amount=0,balance_amount=v_amount,balance_due=v_amount,
+        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
+          'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
+          'event_version',v_inbox.event_version)
+      WHERE id=v_old_alloc.booking_id;
+      UPDATE public.staynas_distribution_external_reservation_allocations
+      SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
+      WHERE id=v_old_alloc.id;
+      UPDATE public.booking_nights
+      SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
+          THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
+            *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
+          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
+        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
+      WHERE booking_id=v_old_alloc.booking_id;
+    END LOOP;
+    UPDATE public.staynas_distribution_external_reservations
+    SET latest_event_version=v_inbox.event_version,total_amount_minor=v_commitment.confirmed_amount_minor,
+      latest_commitment_id=v_commitment.id,updated_at=now()
+    WHERE id=v_reservation.id;
+    INSERT INTO public.staynas_distribution_external_reservation_events(
+      external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+    ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+      v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+    RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+
+  IF nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),'') IS NULL
+    OR nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'') IS NULL THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Guest name and email are required by the canonical guest-linking contract.');
+  END IF;
+
+  -- Preflight every exact room mapping, property, capacity and currency before
+  -- inserting the aggregate or decrementing inventory.
+  FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+  LOOP
+    IF nullif(v_alloc->>'externalAllocationId','') IS NULL
+      OR nullif(v_alloc->>'roomTypeExternalId','') IS NULL
+      OR (v_alloc->>'departureDate')::date<=(v_alloc->>'arrivalDate')::date
+      OR (v_alloc->>'adults')::integer<1
+      OR coalesce((v_alloc->>'children')::integer,0)<0 THEN
+      RETURN jsonb_build_object('status','manual_review','reason','A room allocation has invalid identity, dates or occupancy.');
+    END IF;
+    SELECT r.* INTO v_room FROM public.rooms r
+    JOIN public.staynas_distribution_mappings m
+      ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+    WHERE m.connection_id=v_inbox.connection_id
+      AND m.organisation_id=v_inbox.organisation_id AND m.property_id=v_inbox.property_id
+      AND m.external_id=v_alloc->>'roomTypeExternalId'
+      AND r.property_id=v_inbox.property_id AND r.status='active';
+    IF NOT FOUND THEN
+      RETURN jsonb_build_object('status','manual_review','reason','No exact active room-type mapping exists for a provider allocation.');
+    END IF;
+    IF (v_alloc->>'adults')::integer+coalesce((v_alloc->>'children')::integer,0)>v_room.max_occupancy THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider occupancy exceeds the mapped room-type capacity.');
+    END IF;
+    IF upper(v_room.currency)<>v_currency THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider currency differs from the mapped room-type currency; FX conversion is not inferred.');
+    END IF;
+    IF nullif(v_alloc->>'ratePlanExternalId','') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM public.staynas_distribution_mappings rm
+      WHERE rm.connection_id=v_inbox.connection_id AND rm.property_id=v_inbox.property_id
+        AND rm.mapping_type='rate_plan' AND rm.active=true
+        AND rm.external_id=v_alloc->>'ratePlanExternalId'
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider rate-plan mapping is missing or inactive.');
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM public.staynas_distribution_external_reservation_allocations a
+      WHERE a.external_reservation_id=v_reservation.id
+        AND a.external_allocation_id=v_alloc->>'externalAllocationId' AND a.status='confirmed'
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','External allocation identity already exists.');
+    END IF;
+  END LOOP;
+
+  INSERT INTO public.staynas_distribution_external_reservations(
+    organisation_id,property_id,connection_id,external_reservation_id,
+    latest_event_version,status,currency,total_amount_minor,latest_commitment_id
+  ) VALUES (
+    v_inbox.organisation_id,v_inbox.property_id,v_inbox.connection_id,
+    v_inbox.external_reservation_id,v_inbox.event_version,'confirmed',v_currency,
+    v_commitment.confirmed_amount_minor,v_commitment.id
+  ) RETURNING id INTO v_reservation_id;
+
+  FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+  LOOP
+    SELECT r.* INTO v_room FROM public.rooms r
+    JOIN public.staynas_distribution_mappings m
+      ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+    WHERE m.connection_id=v_inbox.connection_id
+      AND m.external_id=v_alloc->>'roomTypeExternalId'
+      AND r.property_id=v_inbox.property_id AND r.status='active';
+    v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
+    v_nights:=(v_alloc->>'departureDate')::date-(v_alloc->>'arrivalDate')::date;
+    v_day:=(v_alloc->>'arrivalDate')::date;
+    WHILE v_day<(v_alloc->>'departureDate')::date LOOP
+      INSERT INTO public.room_inventory(room_id,date,available_units)
+      VALUES(v_room.id,v_day,v_room.total_units) ON CONFLICT(room_id,date) DO NOTHING;
+      SELECT available_units,is_blocked INTO v_units,v_blocked
+      FROM public.room_inventory WHERE room_id=v_room.id AND date=v_day FOR UPDATE;
+      SELECT count(*) INTO v_holds FROM public.booking_holds h
+      WHERE h.room_id=v_room.id AND h.status='active' AND h.expires_at>now()
+        AND h.check_in<=v_day AND h.check_out>v_day;
+      IF v_blocked OR v_units-coalesce(v_holds,0)<=0 THEN
+        RAISE EXCEPTION 'No sellable inventory remains for mapped room type on %',v_day USING ERRCODE='P0001';
+      END IF;
+      UPDATE public.room_inventory SET available_units=available_units-1
+      WHERE room_id=v_room.id AND date=v_day;
+      v_day:=v_day+1;
+    END LOOP;
+
+    v_reference:='OTA-'||upper(substr(md5(v_inbox.connection_id::text||v_inbox.external_reservation_id||v_alloc->>'externalAllocationId'),1,12));
+    INSERT INTO public.bookings(
+      reference,room_id,property_id,check_in,check_out,nights,adults,children,
+      guest_name,guest_email,guest_phone,currency,source,
+      subtotal,extras_total,fee_total,discount_total,taxes,tax_addition,tax_breakdown,
+      total,deposit_amount,balance_amount,balance_due,pricing_snapshot
+    ) VALUES (
+      v_reference,v_room.id,v_inbox.property_id,(v_alloc->>'arrivalDate')::date,
+      (v_alloc->>'departureDate')::date,v_nights,(v_alloc->>'adults')::integer,
+      coalesce((v_alloc->>'children')::integer,0),
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),''),
+      lower(nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'')),
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,phone}'),''),
+      v_currency,'ota:'||v_connection.provider,
+      v_amount,0,0,0,0,0,'[]'::jsonb,v_amount,0,v_amount,v_amount,
+      jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
+        'external_reservation_id',v_inbox.external_reservation_id,
+        'external_allocation_id',v_alloc->>'externalAllocationId',
+        'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
+        'event_version',v_inbox.event_version)
+    ) RETURNING id INTO v_booking_id;
+
+    v_day:=(v_alloc->>'arrivalDate')::date;
+    WHILE v_day<(v_alloc->>'departureDate')::date LOOP
+      v_rate:=CASE WHEN v_day=(v_alloc->>'departureDate')::date-1
+        THEN v_amount-round(v_amount/v_nights,2)*(v_nights-1)
+        ELSE round(v_amount/v_nights,2) END;
+      INSERT INTO public.booking_nights(booking_id,room_id,date,nightly_rate,pricing_snapshot)
+      VALUES(v_booking_id,v_room.id,v_day,v_rate,
+        jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency));
+      v_day:=v_day+1;
+    END LOOP;
+
+    PERFORM public.staynas_transition_booking_core(
+      v_booking_id,'confirmed','Confirmed by external distribution provider',NULL,'distribution',v_inbox.property_id
+    );
+    INSERT INTO public.staynas_distribution_external_reservation_allocations(
+      external_reservation_id,external_allocation_id,room_id,arrival_date,departure_date,
+      adults,children,amount_minor,booking_id
+    ) VALUES (
+      v_reservation_id,v_alloc->>'externalAllocationId',v_room.id,
+      (v_alloc->>'arrivalDate')::date,(v_alloc->>'departureDate')::date,
+      (v_alloc->>'adults')::integer,coalesce((v_alloc->>'children')::integer,0),
+      (v_alloc->>'confirmedAmountMinor')::bigint,v_booking_id
+    );
+    IF v_primary_booking_id IS NULL THEN v_primary_booking_id:=v_booking_id; END IF;
+  END LOOP;
+
+  UPDATE public.staynas_distribution_external_reservations
+  SET primary_booking_id=v_primary_booking_id,updated_at=now()
+  WHERE id=v_reservation_id;
+  INSERT INTO public.staynas_distribution_external_reservation_events(
+    external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+  ) VALUES(v_reservation_id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+    v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+  RETURN jsonb_build_object('status','applied','booking_id',v_primary_booking_id,'reservation_id',v_reservation_id);
+EXCEPTION
+  WHEN SQLSTATE 'P0001' THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Mapped room inventory is unavailable for one or more requested nights.');
+  WHEN OTHERS THEN
+    RAISE;
+END $;
+
+REVOKE ALL ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_price_commitment_is_verified(uuid)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_apply_reservation_event(uuid)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_price_commitment_is_verified(uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_apply_reservation_event(uuid)
+  TO service_role;
+
+COMMIT;
+ OR v_reservation.latest_event_version !~ '^[0-9]+
+    FOR v_old_alloc IN
+      SELECT * FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id AND status='confirmed'
+      ORDER BY id FOR UPDATE
+    LOOP
+      IF v_old_alloc.booking_id IS NOT NULL THEN
+        SELECT status::text INTO v_status FROM public.bookings WHERE id=v_old_alloc.booking_id FOR UPDATE;
+        IF v_status IN ('pending','confirmed') THEN
+          PERFORM public.staynas_transition_booking_core(
+            v_old_alloc.booking_id,'cancelled','Cancelled by external distribution provider',NULL,'distribution',v_inbox.property_id
+          );
+        ELSIF v_status<>'cancelled' THEN
+          RETURN jsonb_build_object('status','manual_review','reason','A linked booking has progressed operationally and requires staff-led cancellation.');
+        END IF;
+      END IF;
+      UPDATE public.staynas_distribution_external_reservation_allocations
+      SET status='cancelled',updated_at=now() WHERE id=v_old_alloc.id;
+    END LOOP;
+    UPDATE public.staynas_distribution_external_reservations
+    SET status='cancelled',latest_event_version=v_inbox.event_version,updated_at=now()
+    WHERE id=v_reservation.id;
+    INSERT INTO public.staynas_distribution_external_reservation_events(
+      external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+    ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+      v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+    RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+
+  SELECT * INTO v_commitment FROM public.staynas_distribution_price_commitments
+  WHERE inbox_id=p_inbox_id;
+  IF NOT FOUND THEN RETURN jsonb_build_object('status','manual_review','reason','Provider financial commitment evidence is missing.'); END IF;
+  IF NOT public.staynas_distribution_price_commitment_is_verified(p_inbox_id) THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Provider price has not been independently verified.'); 
+  END IF;
+  v_currency:=v_commitment.currency;
+  v_exponent:=public.staynas_currency_minor_unit_exponent(v_currency);
+  IF v_exponent>2 THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Provider currency precision exceeds canonical booking monetary precision.');
+  END IF;
+  v_total:=v_commitment.confirmed_amount_minor::numeric/power(10::numeric,v_exponent);
+
+  v_allocations:=v_inbox.normalized_payload->'allocations';
+  IF v_allocations IS NULL THEN
+    v_allocations:=jsonb_build_array(jsonb_build_object(
+      'externalAllocationId','primary',
+      'roomTypeExternalId',v_inbox.normalized_payload->>'roomTypeExternalId',
+      'arrivalDate',v_inbox.normalized_payload->>'arrivalDate',
+      'departureDate',v_inbox.normalized_payload->>'departureDate',
+      'adults',v_inbox.normalized_payload->>'adults',
+      'children',coalesce(v_inbox.normalized_payload->>'children','0'),
+      'confirmedAmountMinor',v_commitment.confirmed_amount_minor
+    ));
+  END IF;
+  IF jsonb_typeof(v_allocations)<>'array' OR jsonb_array_length(v_allocations)<1 OR jsonb_array_length(v_allocations)>20 THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Reservation room allocations are missing or exceed the supported limit.');
+  END IF;
+  IF (SELECT coalesce(sum((item->>'confirmedAmountMinor')::numeric),0) FROM jsonb_array_elements(v_allocations) item)
+      <>v_commitment.confirmed_amount_minor THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Room allocation amounts do not reconcile to provider-confirmed reservation total.');
+  END IF;
+
+  IF v_inbox.event_type='created' AND v_reservation.id IS NOT NULL THEN
+    RETURN jsonb_build_object('status','duplicate','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+  IF v_inbox.event_type='modified' THEN
+    IF v_reservation.id IS NULL OR v_reservation.status<>'confirmed' THEN
+      RETURN jsonb_build_object('status','manual_review','reason','No active canonical external reservation exists to modify.');
+    END IF;
+    IF v_inbox.event_version IS NULL OR v_reservation.latest_event_version IS NULL
+      OR v_inbox.event_version !~ '^[0-9]+$' OR v_reservation.latest_event_version !~ '^[0-9]+$'
+      OR v_inbox.event_version::numeric<=v_reservation.latest_event_version::numeric THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Modification event version is missing, non-numeric or stale.');
+    END IF;
+    SELECT count(*) INTO v_existing_count
+    FROM public.staynas_distribution_external_reservation_allocations
+    WHERE external_reservation_id=v_reservation.id AND status='confirmed';
+    v_incoming_count:=jsonb_array_length(v_allocations);
+    IF v_existing_count<>v_incoming_count THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Room-count changes require staff review until allocation replacement is separately verified.');
+    END IF;
+    FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+    LOOP
+      SELECT * INTO v_old_alloc FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id
+        AND external_allocation_id=v_alloc->>'externalAllocationId' AND status='confirmed'
+      FOR UPDATE;
+      IF NOT FOUND THEN RETURN jsonb_build_object('status','manual_review','reason','Modification changed the external room-allocation identity.'); END IF;
+      SELECT r.* INTO v_room FROM public.rooms r
+      JOIN public.staynas_distribution_mappings m
+        ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+      WHERE m.connection_id=v_inbox.connection_id
+        AND m.external_id=v_alloc->>'roomTypeExternalId'
+        AND r.property_id=v_inbox.property_id AND r.status='active';
+      IF NOT FOUND OR v_room.id<>v_old_alloc.room_id
+        OR v_old_alloc.arrival_date<>(v_alloc->>'arrivalDate')::date
+        OR v_old_alloc.departure_date<>(v_alloc->>'departureDate')::date
+        OR v_old_alloc.adults<>(v_alloc->>'adults')::integer
+        OR v_old_alloc.children<>coalesce((v_alloc->>'children')::integer,0) THEN
+        RETURN jsonb_build_object('status','manual_review','reason','Date, room or occupancy changes require staff-led reallocation.');
+      END IF;
+    END LOOP;
+    FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+    LOOP
+      SELECT * INTO v_old_alloc FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id
+        AND external_allocation_id=v_alloc->>'externalAllocationId' AND status='confirmed' FOR UPDATE;
+      v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
+      UPDATE public.bookings SET subtotal=v_amount,extras_total=0,fee_total=0,discount_total=0,
+        taxes=0,tax_addition=0,tax_breakdown='[]'::jsonb,total=v_amount,
+        deposit_amount=0,balance_amount=v_amount,balance_due=v_amount,
+        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
+          'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
+          'event_version',v_inbox.event_version)
+      WHERE id=v_old_alloc.booking_id;
+      UPDATE public.staynas_distribution_external_reservation_allocations
+      SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
+      WHERE id=v_old_alloc.id;
+      UPDATE public.booking_nights
+      SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
+          THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
+            *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
+          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
+        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
+      WHERE booking_id=v_old_alloc.booking_id;
+    END LOOP;
+    UPDATE public.staynas_distribution_external_reservations
+    SET latest_event_version=v_inbox.event_version,total_amount_minor=v_commitment.confirmed_amount_minor,
+      latest_commitment_id=v_commitment.id,updated_at=now()
+    WHERE id=v_reservation.id;
+    INSERT INTO public.staynas_distribution_external_reservation_events(
+      external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+    ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+      v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+    RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+
+  IF nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),'') IS NULL
+    OR nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'') IS NULL THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Guest name and email are required by the canonical guest-linking contract.');
+  END IF;
+
+  -- Preflight every exact room mapping, property, capacity and currency before
+  -- inserting the aggregate or decrementing inventory.
+  FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+  LOOP
+    IF nullif(v_alloc->>'externalAllocationId','') IS NULL
+      OR nullif(v_alloc->>'roomTypeExternalId','') IS NULL
+      OR (v_alloc->>'departureDate')::date<=(v_alloc->>'arrivalDate')::date
+      OR (v_alloc->>'adults')::integer<1
+      OR coalesce((v_alloc->>'children')::integer,0)<0 THEN
+      RETURN jsonb_build_object('status','manual_review','reason','A room allocation has invalid identity, dates or occupancy.');
+    END IF;
+    SELECT r.* INTO v_room FROM public.rooms r
+    JOIN public.staynas_distribution_mappings m
+      ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+    WHERE m.connection_id=v_inbox.connection_id
+      AND m.organisation_id=v_inbox.organisation_id AND m.property_id=v_inbox.property_id
+      AND m.external_id=v_alloc->>'roomTypeExternalId'
+      AND r.property_id=v_inbox.property_id AND r.status='active';
+    IF NOT FOUND THEN
+      RETURN jsonb_build_object('status','manual_review','reason','No exact active room-type mapping exists for a provider allocation.');
+    END IF;
+    IF (v_alloc->>'adults')::integer+coalesce((v_alloc->>'children')::integer,0)>v_room.max_occupancy THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider occupancy exceeds the mapped room-type capacity.');
+    END IF;
+    IF upper(v_room.currency)<>v_currency THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider currency differs from the mapped room-type currency; FX conversion is not inferred.');
+    END IF;
+    IF nullif(v_alloc->>'ratePlanExternalId','') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM public.staynas_distribution_mappings rm
+      WHERE rm.connection_id=v_inbox.connection_id AND rm.property_id=v_inbox.property_id
+        AND rm.mapping_type='rate_plan' AND rm.active=true
+        AND rm.external_id=v_alloc->>'ratePlanExternalId'
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider rate-plan mapping is missing or inactive.');
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM public.staynas_distribution_external_reservation_allocations a
+      WHERE a.external_reservation_id=v_reservation.id
+        AND a.external_allocation_id=v_alloc->>'externalAllocationId' AND a.status='confirmed'
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','External allocation identity already exists.');
+    END IF;
+  END LOOP;
+
+  INSERT INTO public.staynas_distribution_external_reservations(
+    organisation_id,property_id,connection_id,external_reservation_id,
+    latest_event_version,status,currency,total_amount_minor,latest_commitment_id
+  ) VALUES (
+    v_inbox.organisation_id,v_inbox.property_id,v_inbox.connection_id,
+    v_inbox.external_reservation_id,v_inbox.event_version,'confirmed',v_currency,
+    v_commitment.confirmed_amount_minor,v_commitment.id
+  ) RETURNING id INTO v_reservation_id;
+
+  FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+  LOOP
+    SELECT r.* INTO v_room FROM public.rooms r
+    JOIN public.staynas_distribution_mappings m
+      ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+    WHERE m.connection_id=v_inbox.connection_id
+      AND m.external_id=v_alloc->>'roomTypeExternalId'
+      AND r.property_id=v_inbox.property_id AND r.status='active';
+    v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
+    v_nights:=(v_alloc->>'departureDate')::date-(v_alloc->>'arrivalDate')::date;
+    v_day:=(v_alloc->>'arrivalDate')::date;
+    WHILE v_day<(v_alloc->>'departureDate')::date LOOP
+      INSERT INTO public.room_inventory(room_id,date,available_units)
+      VALUES(v_room.id,v_day,v_room.total_units) ON CONFLICT(room_id,date) DO NOTHING;
+      SELECT available_units,is_blocked INTO v_units,v_blocked
+      FROM public.room_inventory WHERE room_id=v_room.id AND date=v_day FOR UPDATE;
+      SELECT count(*) INTO v_holds FROM public.booking_holds h
+      WHERE h.room_id=v_room.id AND h.status='active' AND h.expires_at>now()
+        AND h.check_in<=v_day AND h.check_out>v_day;
+      IF v_blocked OR v_units-coalesce(v_holds,0)<=0 THEN
+        RAISE EXCEPTION 'No sellable inventory remains for mapped room type on %',v_day USING ERRCODE='P0001';
+      END IF;
+      UPDATE public.room_inventory SET available_units=available_units-1
+      WHERE room_id=v_room.id AND date=v_day;
+      v_day:=v_day+1;
+    END LOOP;
+
+    v_reference:='OTA-'||upper(substr(md5(v_inbox.connection_id::text||v_inbox.external_reservation_id||v_alloc->>'externalAllocationId'),1,12));
+    INSERT INTO public.bookings(
+      reference,room_id,property_id,check_in,check_out,nights,adults,children,
+      guest_name,guest_email,guest_phone,currency,source,
+      subtotal,extras_total,fee_total,discount_total,taxes,tax_addition,tax_breakdown,
+      total,deposit_amount,balance_amount,balance_due,pricing_snapshot
+    ) VALUES (
+      v_reference,v_room.id,v_inbox.property_id,(v_alloc->>'arrivalDate')::date,
+      (v_alloc->>'departureDate')::date,v_nights,(v_alloc->>'adults')::integer,
+      coalesce((v_alloc->>'children')::integer,0),
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),''),
+      lower(nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'')),
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,phone}'),''),
+      v_currency,'ota:'||v_connection.provider,
+      v_amount,0,0,0,0,0,'[]'::jsonb,v_amount,0,v_amount,v_amount,
+      jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
+        'external_reservation_id',v_inbox.external_reservation_id,
+        'external_allocation_id',v_alloc->>'externalAllocationId',
+        'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
+        'event_version',v_inbox.event_version)
+    ) RETURNING id INTO v_booking_id;
+
+    v_day:=(v_alloc->>'arrivalDate')::date;
+    WHILE v_day<(v_alloc->>'departureDate')::date LOOP
+      v_rate:=CASE WHEN v_day=(v_alloc->>'departureDate')::date-1
+        THEN v_amount-round(v_amount/v_nights,2)*(v_nights-1)
+        ELSE round(v_amount/v_nights,2) END;
+      INSERT INTO public.booking_nights(booking_id,room_id,date,nightly_rate,pricing_snapshot)
+      VALUES(v_booking_id,v_room.id,v_day,v_rate,
+        jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency));
+      v_day:=v_day+1;
+    END LOOP;
+
+    PERFORM public.staynas_transition_booking_core(
+      v_booking_id,'confirmed','Confirmed by external distribution provider',NULL,'distribution',v_inbox.property_id
+    );
+    INSERT INTO public.staynas_distribution_external_reservation_allocations(
+      external_reservation_id,external_allocation_id,room_id,arrival_date,departure_date,
+      adults,children,amount_minor,booking_id
+    ) VALUES (
+      v_reservation_id,v_alloc->>'externalAllocationId',v_room.id,
+      (v_alloc->>'arrivalDate')::date,(v_alloc->>'departureDate')::date,
+      (v_alloc->>'adults')::integer,coalesce((v_alloc->>'children')::integer,0),
+      (v_alloc->>'confirmedAmountMinor')::bigint,v_booking_id
+    );
+    IF v_primary_booking_id IS NULL THEN v_primary_booking_id:=v_booking_id; END IF;
+  END LOOP;
+
+  UPDATE public.staynas_distribution_external_reservations
+  SET primary_booking_id=v_primary_booking_id,updated_at=now()
+  WHERE id=v_reservation_id;
+  INSERT INTO public.staynas_distribution_external_reservation_events(
+    external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+  ) VALUES(v_reservation_id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+    v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+  RETURN jsonb_build_object('status','applied','booking_id',v_primary_booking_id,'reservation_id',v_reservation_id);
+EXCEPTION
+  WHEN SQLSTATE 'P0001' THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Mapped room inventory is unavailable for one or more requested nights.');
+  WHEN OTHERS THEN
+    RAISE;
+END $;
+
+REVOKE ALL ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_price_commitment_is_verified(uuid)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_apply_reservation_event(uuid)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_price_commitment_is_verified(uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_apply_reservation_event(uuid)
+  TO service_role;
+
+COMMIT;
+ THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Cancellation event version is missing or non-numeric.');
+    END IF;
+    IF v_inbox.event_version::numeric<=v_reservation.latest_event_version::numeric THEN
+      RETURN jsonb_build_object('status','stale');
+    END IF;
+    FOR v_old_alloc IN
+      SELECT * FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id AND status='confirmed'
+      ORDER BY id FOR UPDATE
+    LOOP
+      IF v_old_alloc.booking_id IS NOT NULL THEN
+        SELECT status::text INTO v_status FROM public.bookings WHERE id=v_old_alloc.booking_id FOR UPDATE;
+        IF v_status IN ('pending','confirmed') THEN
+          PERFORM public.staynas_transition_booking_core(
+            v_old_alloc.booking_id,'cancelled','Cancelled by external distribution provider',NULL,'distribution',v_inbox.property_id
+          );
+        ELSIF v_status<>'cancelled' THEN
+          RETURN jsonb_build_object('status','manual_review','reason','A linked booking has progressed operationally and requires staff-led cancellation.');
+        END IF;
+      END IF;
+      UPDATE public.staynas_distribution_external_reservation_allocations
+      SET status='cancelled',updated_at=now() WHERE id=v_old_alloc.id;
+    END LOOP;
+    UPDATE public.staynas_distribution_external_reservations
+    SET status='cancelled',latest_event_version=v_inbox.event_version,updated_at=now()
+    WHERE id=v_reservation.id;
+    INSERT INTO public.staynas_distribution_external_reservation_events(
+      external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+    ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+      v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+    RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+
+  SELECT * INTO v_commitment FROM public.staynas_distribution_price_commitments
+  WHERE inbox_id=p_inbox_id;
+  IF NOT FOUND THEN RETURN jsonb_build_object('status','manual_review','reason','Provider financial commitment evidence is missing.'); END IF;
+  IF NOT public.staynas_distribution_price_commitment_is_verified(p_inbox_id) THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Provider price has not been independently verified.'); 
+  END IF;
+  v_currency:=v_commitment.currency;
+  v_exponent:=public.staynas_currency_minor_unit_exponent(v_currency);
+  IF v_exponent>2 THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Provider currency precision exceeds canonical booking monetary precision.');
+  END IF;
+  v_total:=v_commitment.confirmed_amount_minor::numeric/power(10::numeric,v_exponent);
+
+  v_allocations:=v_inbox.normalized_payload->'allocations';
+  IF v_allocations IS NULL THEN
+    v_allocations:=jsonb_build_array(jsonb_build_object(
+      'externalAllocationId','primary',
+      'roomTypeExternalId',v_inbox.normalized_payload->>'roomTypeExternalId',
+      'arrivalDate',v_inbox.normalized_payload->>'arrivalDate',
+      'departureDate',v_inbox.normalized_payload->>'departureDate',
+      'adults',v_inbox.normalized_payload->>'adults',
+      'children',coalesce(v_inbox.normalized_payload->>'children','0'),
+      'confirmedAmountMinor',v_commitment.confirmed_amount_minor
+    ));
+  END IF;
+  IF jsonb_typeof(v_allocations)<>'array' OR jsonb_array_length(v_allocations)<1 OR jsonb_array_length(v_allocations)>20 THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Reservation room allocations are missing or exceed the supported limit.');
+  END IF;
+  IF (SELECT coalesce(sum((item->>'confirmedAmountMinor')::numeric),0) FROM jsonb_array_elements(v_allocations) item)
+      <>v_commitment.confirmed_amount_minor THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Room allocation amounts do not reconcile to provider-confirmed reservation total.');
+  END IF;
+
+  IF v_inbox.event_type='created' AND v_reservation.id IS NOT NULL THEN
+    RETURN jsonb_build_object('status','duplicate','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+  IF v_inbox.event_type='modified' THEN
+    IF v_reservation.id IS NULL OR v_reservation.status<>'confirmed' THEN
+      RETURN jsonb_build_object('status','manual_review','reason','No active canonical external reservation exists to modify.');
+    END IF;
+    IF v_inbox.event_version IS NULL OR v_reservation.latest_event_version IS NULL
+      OR v_inbox.event_version !~ '^[0-9]+$' OR v_reservation.latest_event_version !~ '^[0-9]+$'
+      OR v_inbox.event_version::numeric<=v_reservation.latest_event_version::numeric THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Modification event version is missing, non-numeric or stale.');
+    END IF;
+    SELECT count(*) INTO v_existing_count
+    FROM public.staynas_distribution_external_reservation_allocations
+    WHERE external_reservation_id=v_reservation.id AND status='confirmed';
+    v_incoming_count:=jsonb_array_length(v_allocations);
+    IF v_existing_count<>v_incoming_count THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Room-count changes require staff review until allocation replacement is separately verified.');
+    END IF;
+    FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+    LOOP
+      SELECT * INTO v_old_alloc FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id
+        AND external_allocation_id=v_alloc->>'externalAllocationId' AND status='confirmed'
+      FOR UPDATE;
+      IF NOT FOUND THEN RETURN jsonb_build_object('status','manual_review','reason','Modification changed the external room-allocation identity.'); END IF;
+      SELECT r.* INTO v_room FROM public.rooms r
+      JOIN public.staynas_distribution_mappings m
+        ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+      WHERE m.connection_id=v_inbox.connection_id
+        AND m.external_id=v_alloc->>'roomTypeExternalId'
+        AND r.property_id=v_inbox.property_id AND r.status='active';
+      IF NOT FOUND OR v_room.id<>v_old_alloc.room_id
+        OR v_old_alloc.arrival_date<>(v_alloc->>'arrivalDate')::date
+        OR v_old_alloc.departure_date<>(v_alloc->>'departureDate')::date
+        OR v_old_alloc.adults<>(v_alloc->>'adults')::integer
+        OR v_old_alloc.children<>coalesce((v_alloc->>'children')::integer,0) THEN
+        RETURN jsonb_build_object('status','manual_review','reason','Date, room or occupancy changes require staff-led reallocation.');
+      END IF;
+    END LOOP;
+    FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+    LOOP
+      SELECT * INTO v_old_alloc FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id
+        AND external_allocation_id=v_alloc->>'externalAllocationId' AND status='confirmed' FOR UPDATE;
+      v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
+      UPDATE public.bookings SET subtotal=v_amount,extras_total=0,fee_total=0,discount_total=0,
+        taxes=0,tax_addition=0,tax_breakdown='[]'::jsonb,total=v_amount,
+        deposit_amount=0,balance_amount=v_amount,balance_due=v_amount,
+        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
+          'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
+          'event_version',v_inbox.event_version)
+      WHERE id=v_old_alloc.booking_id;
+      UPDATE public.staynas_distribution_external_reservation_allocations
+      SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
+      WHERE id=v_old_alloc.id;
+      UPDATE public.booking_nights
+      SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
+          THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
+            *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
+          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
+        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
+      WHERE booking_id=v_old_alloc.booking_id;
+    END LOOP;
+    UPDATE public.staynas_distribution_external_reservations
+    SET latest_event_version=v_inbox.event_version,total_amount_minor=v_commitment.confirmed_amount_minor,
+      latest_commitment_id=v_commitment.id,updated_at=now()
+    WHERE id=v_reservation.id;
+    INSERT INTO public.staynas_distribution_external_reservation_events(
+      external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+    ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+      v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+    RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+
+  IF nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),'') IS NULL
+    OR nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'') IS NULL THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Guest name and email are required by the canonical guest-linking contract.');
+  END IF;
+
+  -- Preflight every exact room mapping, property, capacity and currency before
+  -- inserting the aggregate or decrementing inventory.
+  FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+  LOOP
+    IF nullif(v_alloc->>'externalAllocationId','') IS NULL
+      OR nullif(v_alloc->>'roomTypeExternalId','') IS NULL
+      OR (v_alloc->>'departureDate')::date<=(v_alloc->>'arrivalDate')::date
+      OR (v_alloc->>'adults')::integer<1
+      OR coalesce((v_alloc->>'children')::integer,0)<0 THEN
+      RETURN jsonb_build_object('status','manual_review','reason','A room allocation has invalid identity, dates or occupancy.');
+    END IF;
+    SELECT r.* INTO v_room FROM public.rooms r
+    JOIN public.staynas_distribution_mappings m
+      ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+    WHERE m.connection_id=v_inbox.connection_id
+      AND m.organisation_id=v_inbox.organisation_id AND m.property_id=v_inbox.property_id
+      AND m.external_id=v_alloc->>'roomTypeExternalId'
+      AND r.property_id=v_inbox.property_id AND r.status='active';
+    IF NOT FOUND THEN
+      RETURN jsonb_build_object('status','manual_review','reason','No exact active room-type mapping exists for a provider allocation.');
+    END IF;
+    IF (v_alloc->>'adults')::integer+coalesce((v_alloc->>'children')::integer,0)>v_room.max_occupancy THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider occupancy exceeds the mapped room-type capacity.');
+    END IF;
+    IF upper(v_room.currency)<>v_currency THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider currency differs from the mapped room-type currency; FX conversion is not inferred.');
+    END IF;
+    IF nullif(v_alloc->>'ratePlanExternalId','') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM public.staynas_distribution_mappings rm
+      WHERE rm.connection_id=v_inbox.connection_id AND rm.property_id=v_inbox.property_id
+        AND rm.mapping_type='rate_plan' AND rm.active=true
+        AND rm.external_id=v_alloc->>'ratePlanExternalId'
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider rate-plan mapping is missing or inactive.');
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM public.staynas_distribution_external_reservation_allocations a
+      WHERE a.external_reservation_id=v_reservation.id
+        AND a.external_allocation_id=v_alloc->>'externalAllocationId' AND a.status='confirmed'
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','External allocation identity already exists.');
+    END IF;
+  END LOOP;
+
+  INSERT INTO public.staynas_distribution_external_reservations(
+    organisation_id,property_id,connection_id,external_reservation_id,
+    latest_event_version,status,currency,total_amount_minor,latest_commitment_id
+  ) VALUES (
+    v_inbox.organisation_id,v_inbox.property_id,v_inbox.connection_id,
+    v_inbox.external_reservation_id,v_inbox.event_version,'confirmed',v_currency,
+    v_commitment.confirmed_amount_minor,v_commitment.id
+  ) RETURNING id INTO v_reservation_id;
+
+  FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+  LOOP
+    SELECT r.* INTO v_room FROM public.rooms r
+    JOIN public.staynas_distribution_mappings m
+      ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+    WHERE m.connection_id=v_inbox.connection_id
+      AND m.external_id=v_alloc->>'roomTypeExternalId'
+      AND r.property_id=v_inbox.property_id AND r.status='active';
+    v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
+    v_nights:=(v_alloc->>'departureDate')::date-(v_alloc->>'arrivalDate')::date;
+    v_day:=(v_alloc->>'arrivalDate')::date;
+    WHILE v_day<(v_alloc->>'departureDate')::date LOOP
+      INSERT INTO public.room_inventory(room_id,date,available_units)
+      VALUES(v_room.id,v_day,v_room.total_units) ON CONFLICT(room_id,date) DO NOTHING;
+      SELECT available_units,is_blocked INTO v_units,v_blocked
+      FROM public.room_inventory WHERE room_id=v_room.id AND date=v_day FOR UPDATE;
+      SELECT count(*) INTO v_holds FROM public.booking_holds h
+      WHERE h.room_id=v_room.id AND h.status='active' AND h.expires_at>now()
+        AND h.check_in<=v_day AND h.check_out>v_day;
+      IF v_blocked OR v_units-coalesce(v_holds,0)<=0 THEN
+        RAISE EXCEPTION 'No sellable inventory remains for mapped room type on %',v_day USING ERRCODE='P0001';
+      END IF;
+      UPDATE public.room_inventory SET available_units=available_units-1
+      WHERE room_id=v_room.id AND date=v_day;
+      v_day:=v_day+1;
+    END LOOP;
+
+    v_reference:='OTA-'||upper(substr(md5(v_inbox.connection_id::text||v_inbox.external_reservation_id||v_alloc->>'externalAllocationId'),1,12));
+    INSERT INTO public.bookings(
+      reference,room_id,property_id,check_in,check_out,nights,adults,children,
+      guest_name,guest_email,guest_phone,currency,source,
+      subtotal,extras_total,fee_total,discount_total,taxes,tax_addition,tax_breakdown,
+      total,deposit_amount,balance_amount,balance_due,pricing_snapshot
+    ) VALUES (
+      v_reference,v_room.id,v_inbox.property_id,(v_alloc->>'arrivalDate')::date,
+      (v_alloc->>'departureDate')::date,v_nights,(v_alloc->>'adults')::integer,
+      coalesce((v_alloc->>'children')::integer,0),
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),''),
+      lower(nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'')),
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,phone}'),''),
+      v_currency,'ota:'||v_connection.provider,
+      v_amount,0,0,0,0,0,'[]'::jsonb,v_amount,0,v_amount,v_amount,
+      jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
+        'external_reservation_id',v_inbox.external_reservation_id,
+        'external_allocation_id',v_alloc->>'externalAllocationId',
+        'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
+        'event_version',v_inbox.event_version)
+    ) RETURNING id INTO v_booking_id;
+
+    v_day:=(v_alloc->>'arrivalDate')::date;
+    WHILE v_day<(v_alloc->>'departureDate')::date LOOP
+      v_rate:=CASE WHEN v_day=(v_alloc->>'departureDate')::date-1
+        THEN v_amount-round(v_amount/v_nights,2)*(v_nights-1)
+        ELSE round(v_amount/v_nights,2) END;
+      INSERT INTO public.booking_nights(booking_id,room_id,date,nightly_rate,pricing_snapshot)
+      VALUES(v_booking_id,v_room.id,v_day,v_rate,
+        jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency));
+      v_day:=v_day+1;
+    END LOOP;
+
+    PERFORM public.staynas_transition_booking_core(
+      v_booking_id,'confirmed','Confirmed by external distribution provider',NULL,'distribution',v_inbox.property_id
+    );
+    INSERT INTO public.staynas_distribution_external_reservation_allocations(
+      external_reservation_id,external_allocation_id,room_id,arrival_date,departure_date,
+      adults,children,amount_minor,booking_id
+    ) VALUES (
+      v_reservation_id,v_alloc->>'externalAllocationId',v_room.id,
+      (v_alloc->>'arrivalDate')::date,(v_alloc->>'departureDate')::date,
+      (v_alloc->>'adults')::integer,coalesce((v_alloc->>'children')::integer,0),
+      (v_alloc->>'confirmedAmountMinor')::bigint,v_booking_id
+    );
+    IF v_primary_booking_id IS NULL THEN v_primary_booking_id:=v_booking_id; END IF;
+  END LOOP;
+
+  UPDATE public.staynas_distribution_external_reservations
+  SET primary_booking_id=v_primary_booking_id,updated_at=now()
+  WHERE id=v_reservation_id;
+  INSERT INTO public.staynas_distribution_external_reservation_events(
+    external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+  ) VALUES(v_reservation_id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+    v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+  RETURN jsonb_build_object('status','applied','booking_id',v_primary_booking_id,'reservation_id',v_reservation_id);
+EXCEPTION
+  WHEN SQLSTATE 'P0001' THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Mapped room inventory is unavailable for one or more requested nights.');
+  WHEN OTHERS THEN
+    RAISE;
+END $;
+
+REVOKE ALL ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_price_commitment_is_verified(uuid)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_apply_reservation_event(uuid)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_price_commitment_is_verified(uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_apply_reservation_event(uuid)
+  TO service_role;
+
+COMMIT;
+ THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Modification event version is missing or non-numeric.');
+    END IF;
+    IF v_inbox.event_version::numeric<=v_reservation.latest_event_version::numeric THEN
+      RETURN jsonb_build_object('status','stale');
+    END IF;
+    SELECT count(*) INTO v_existing_count
+    FROM public.staynas_distribution_external_reservation_allocations
+    WHERE external_reservation_id=v_reservation.id AND status='confirmed';
+    v_incoming_count:=jsonb_array_length(v_allocations);
+    IF v_existing_count<>v_incoming_count THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Room-count changes require staff review until allocation replacement is separately verified.');
+    END IF;
+    FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+    LOOP
+      SELECT * INTO v_old_alloc FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id
+        AND external_allocation_id=v_alloc->>'externalAllocationId' AND status='confirmed'
+      FOR UPDATE;
+      IF NOT FOUND THEN RETURN jsonb_build_object('status','manual_review','reason','Modification changed the external room-allocation identity.'); END IF;
+      SELECT r.* INTO v_room FROM public.rooms r
+      JOIN public.staynas_distribution_mappings m
+        ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+      WHERE m.connection_id=v_inbox.connection_id
+        AND m.external_id=v_alloc->>'roomTypeExternalId'
+        AND r.property_id=v_inbox.property_id AND r.status='active';
+      IF NOT FOUND OR v_room.id<>v_old_alloc.room_id
+        OR v_old_alloc.arrival_date<>(v_alloc->>'arrivalDate')::date
+        OR v_old_alloc.departure_date<>(v_alloc->>'departureDate')::date
+        OR v_old_alloc.adults<>(v_alloc->>'adults')::integer
+        OR v_old_alloc.children<>coalesce((v_alloc->>'children')::integer,0) THEN
+        RETURN jsonb_build_object('status','manual_review','reason','Date, room or occupancy changes require staff-led reallocation.');
+      END IF;
+    END LOOP;
+    FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+    LOOP
+      SELECT * INTO v_old_alloc FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id
+        AND external_allocation_id=v_alloc->>'externalAllocationId' AND status='confirmed' FOR UPDATE;
+      v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
+      UPDATE public.bookings SET subtotal=v_amount,extras_total=0,fee_total=0,discount_total=0,
+        taxes=0,tax_addition=0,tax_breakdown='[]'::jsonb,total=v_amount,
+        deposit_amount=0,balance_amount=v_amount,balance_due=v_amount,
+        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
+          'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
+          'event_version',v_inbox.event_version)
+      WHERE id=v_old_alloc.booking_id;
+      UPDATE public.staynas_distribution_external_reservation_allocations
+      SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
+      WHERE id=v_old_alloc.id;
+      UPDATE public.booking_nights
+      SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
+          THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
+            *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
+          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
+        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
+      WHERE booking_id=v_old_alloc.booking_id;
+    END LOOP;
+    UPDATE public.staynas_distribution_external_reservations
+    SET latest_event_version=v_inbox.event_version,total_amount_minor=v_commitment.confirmed_amount_minor,
+      latest_commitment_id=v_commitment.id,updated_at=now()
+    WHERE id=v_reservation.id;
+    INSERT INTO public.staynas_distribution_external_reservation_events(
+      external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+    ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+      v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+    RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+
+  IF nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),'') IS NULL
+    OR nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'') IS NULL THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Guest name and email are required by the canonical guest-linking contract.');
+  END IF;
+
+  -- Preflight every exact room mapping, property, capacity and currency before
+  -- inserting the aggregate or decrementing inventory.
+  FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+  LOOP
+    IF nullif(v_alloc->>'externalAllocationId','') IS NULL
+      OR nullif(v_alloc->>'roomTypeExternalId','') IS NULL
+      OR (v_alloc->>'departureDate')::date<=(v_alloc->>'arrivalDate')::date
+      OR (v_alloc->>'adults')::integer<1
+      OR coalesce((v_alloc->>'children')::integer,0)<0 THEN
+      RETURN jsonb_build_object('status','manual_review','reason','A room allocation has invalid identity, dates or occupancy.');
+    END IF;
+    SELECT r.* INTO v_room FROM public.rooms r
+    JOIN public.staynas_distribution_mappings m
+      ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+    WHERE m.connection_id=v_inbox.connection_id
+      AND m.organisation_id=v_inbox.organisation_id AND m.property_id=v_inbox.property_id
+      AND m.external_id=v_alloc->>'roomTypeExternalId'
+      AND r.property_id=v_inbox.property_id AND r.status='active';
+    IF NOT FOUND THEN
+      RETURN jsonb_build_object('status','manual_review','reason','No exact active room-type mapping exists for a provider allocation.');
+    END IF;
+    IF (v_alloc->>'adults')::integer+coalesce((v_alloc->>'children')::integer,0)>v_room.max_occupancy THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider occupancy exceeds the mapped room-type capacity.');
+    END IF;
+    IF upper(v_room.currency)<>v_currency THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider currency differs from the mapped room-type currency; FX conversion is not inferred.');
+    END IF;
+    IF nullif(v_alloc->>'ratePlanExternalId','') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM public.staynas_distribution_mappings rm
+      WHERE rm.connection_id=v_inbox.connection_id AND rm.property_id=v_inbox.property_id
+        AND rm.mapping_type='rate_plan' AND rm.active=true
+        AND rm.external_id=v_alloc->>'ratePlanExternalId'
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider rate-plan mapping is missing or inactive.');
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM public.staynas_distribution_external_reservation_allocations a
+      WHERE a.external_reservation_id=v_reservation.id
+        AND a.external_allocation_id=v_alloc->>'externalAllocationId' AND a.status='confirmed'
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','External allocation identity already exists.');
+    END IF;
+  END LOOP;
+
+  INSERT INTO public.staynas_distribution_external_reservations(
+    organisation_id,property_id,connection_id,external_reservation_id,
+    latest_event_version,status,currency,total_amount_minor,latest_commitment_id
+  ) VALUES (
+    v_inbox.organisation_id,v_inbox.property_id,v_inbox.connection_id,
+    v_inbox.external_reservation_id,v_inbox.event_version,'confirmed',v_currency,
+    v_commitment.confirmed_amount_minor,v_commitment.id
+  ) RETURNING id INTO v_reservation_id;
+
+  FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+  LOOP
+    SELECT r.* INTO v_room FROM public.rooms r
+    JOIN public.staynas_distribution_mappings m
+      ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+    WHERE m.connection_id=v_inbox.connection_id
+      AND m.external_id=v_alloc->>'roomTypeExternalId'
+      AND r.property_id=v_inbox.property_id AND r.status='active';
+    v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
+    v_nights:=(v_alloc->>'departureDate')::date-(v_alloc->>'arrivalDate')::date;
+    v_day:=(v_alloc->>'arrivalDate')::date;
+    WHILE v_day<(v_alloc->>'departureDate')::date LOOP
+      INSERT INTO public.room_inventory(room_id,date,available_units)
+      VALUES(v_room.id,v_day,v_room.total_units) ON CONFLICT(room_id,date) DO NOTHING;
+      SELECT available_units,is_blocked INTO v_units,v_blocked
+      FROM public.room_inventory WHERE room_id=v_room.id AND date=v_day FOR UPDATE;
+      SELECT count(*) INTO v_holds FROM public.booking_holds h
+      WHERE h.room_id=v_room.id AND h.status='active' AND h.expires_at>now()
+        AND h.check_in<=v_day AND h.check_out>v_day;
+      IF v_blocked OR v_units-coalesce(v_holds,0)<=0 THEN
+        RAISE EXCEPTION 'No sellable inventory remains for mapped room type on %',v_day USING ERRCODE='P0001';
+      END IF;
+      UPDATE public.room_inventory SET available_units=available_units-1
+      WHERE room_id=v_room.id AND date=v_day;
+      v_day:=v_day+1;
+    END LOOP;
+
+    v_reference:='OTA-'||upper(substr(md5(v_inbox.connection_id::text||v_inbox.external_reservation_id||v_alloc->>'externalAllocationId'),1,12));
+    INSERT INTO public.bookings(
+      reference,room_id,property_id,check_in,check_out,nights,adults,children,
+      guest_name,guest_email,guest_phone,currency,source,
+      subtotal,extras_total,fee_total,discount_total,taxes,tax_addition,tax_breakdown,
+      total,deposit_amount,balance_amount,balance_due,pricing_snapshot
+    ) VALUES (
+      v_reference,v_room.id,v_inbox.property_id,(v_alloc->>'arrivalDate')::date,
+      (v_alloc->>'departureDate')::date,v_nights,(v_alloc->>'adults')::integer,
+      coalesce((v_alloc->>'children')::integer,0),
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),''),
+      lower(nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'')),
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,phone}'),''),
+      v_currency,'ota:'||v_connection.provider,
+      v_amount,0,0,0,0,0,'[]'::jsonb,v_amount,0,v_amount,v_amount,
+      jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
+        'external_reservation_id',v_inbox.external_reservation_id,
+        'external_allocation_id',v_alloc->>'externalAllocationId',
+        'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
+        'event_version',v_inbox.event_version)
+    ) RETURNING id INTO v_booking_id;
+
+    v_day:=(v_alloc->>'arrivalDate')::date;
+    WHILE v_day<(v_alloc->>'departureDate')::date LOOP
+      v_rate:=CASE WHEN v_day=(v_alloc->>'departureDate')::date-1
+        THEN v_amount-round(v_amount/v_nights,2)*(v_nights-1)
+        ELSE round(v_amount/v_nights,2) END;
+      INSERT INTO public.booking_nights(booking_id,room_id,date,nightly_rate,pricing_snapshot)
+      VALUES(v_booking_id,v_room.id,v_day,v_rate,
+        jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency));
+      v_day:=v_day+1;
+    END LOOP;
+
+    PERFORM public.staynas_transition_booking_core(
+      v_booking_id,'confirmed','Confirmed by external distribution provider',NULL,'distribution',v_inbox.property_id
+    );
+    INSERT INTO public.staynas_distribution_external_reservation_allocations(
+      external_reservation_id,external_allocation_id,room_id,arrival_date,departure_date,
+      adults,children,amount_minor,booking_id
+    ) VALUES (
+      v_reservation_id,v_alloc->>'externalAllocationId',v_room.id,
+      (v_alloc->>'arrivalDate')::date,(v_alloc->>'departureDate')::date,
+      (v_alloc->>'adults')::integer,coalesce((v_alloc->>'children')::integer,0),
+      (v_alloc->>'confirmedAmountMinor')::bigint,v_booking_id
+    );
+    IF v_primary_booking_id IS NULL THEN v_primary_booking_id:=v_booking_id; END IF;
+  END LOOP;
+
+  UPDATE public.staynas_distribution_external_reservations
+  SET primary_booking_id=v_primary_booking_id,updated_at=now()
+  WHERE id=v_reservation_id;
+  INSERT INTO public.staynas_distribution_external_reservation_events(
+    external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+  ) VALUES(v_reservation_id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+    v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+  RETURN jsonb_build_object('status','applied','booking_id',v_primary_booking_id,'reservation_id',v_reservation_id);
+EXCEPTION
+  WHEN SQLSTATE 'P0001' THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Mapped room inventory is unavailable for one or more requested nights.');
+  WHEN OTHERS THEN
+    RAISE;
+END $;
+
+REVOKE ALL ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_price_commitment_is_verified(uuid)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_apply_reservation_event(uuid)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_price_commitment_is_verified(uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_apply_reservation_event(uuid)
+  TO service_role;
+
+COMMIT;
+ OR v_reservation.latest_event_version !~ '^[0-9]+
+    FOR v_old_alloc IN
+      SELECT * FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id AND status='confirmed'
+      ORDER BY id FOR UPDATE
+    LOOP
+      IF v_old_alloc.booking_id IS NOT NULL THEN
+        SELECT status::text INTO v_status FROM public.bookings WHERE id=v_old_alloc.booking_id FOR UPDATE;
+        IF v_status IN ('pending','confirmed') THEN
+          PERFORM public.staynas_transition_booking_core(
+            v_old_alloc.booking_id,'cancelled','Cancelled by external distribution provider',NULL,'distribution',v_inbox.property_id
+          );
+        ELSIF v_status<>'cancelled' THEN
+          RETURN jsonb_build_object('status','manual_review','reason','A linked booking has progressed operationally and requires staff-led cancellation.');
+        END IF;
+      END IF;
+      UPDATE public.staynas_distribution_external_reservation_allocations
+      SET status='cancelled',updated_at=now() WHERE id=v_old_alloc.id;
+    END LOOP;
+    UPDATE public.staynas_distribution_external_reservations
+    SET status='cancelled',latest_event_version=v_inbox.event_version,updated_at=now()
+    WHERE id=v_reservation.id;
+    INSERT INTO public.staynas_distribution_external_reservation_events(
+      external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+    ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+      v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+    RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+
+  SELECT * INTO v_commitment FROM public.staynas_distribution_price_commitments
+  WHERE inbox_id=p_inbox_id;
+  IF NOT FOUND THEN RETURN jsonb_build_object('status','manual_review','reason','Provider financial commitment evidence is missing.'); END IF;
+  IF NOT public.staynas_distribution_price_commitment_is_verified(p_inbox_id) THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Provider price has not been independently verified.'); 
+  END IF;
+  v_currency:=v_commitment.currency;
+  v_exponent:=public.staynas_currency_minor_unit_exponent(v_currency);
+  IF v_exponent>2 THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Provider currency precision exceeds canonical booking monetary precision.');
+  END IF;
+  v_total:=v_commitment.confirmed_amount_minor::numeric/power(10::numeric,v_exponent);
+
+  v_allocations:=v_inbox.normalized_payload->'allocations';
+  IF v_allocations IS NULL THEN
+    v_allocations:=jsonb_build_array(jsonb_build_object(
+      'externalAllocationId','primary',
+      'roomTypeExternalId',v_inbox.normalized_payload->>'roomTypeExternalId',
+      'arrivalDate',v_inbox.normalized_payload->>'arrivalDate',
+      'departureDate',v_inbox.normalized_payload->>'departureDate',
+      'adults',v_inbox.normalized_payload->>'adults',
+      'children',coalesce(v_inbox.normalized_payload->>'children','0'),
+      'confirmedAmountMinor',v_commitment.confirmed_amount_minor
+    ));
+  END IF;
+  IF jsonb_typeof(v_allocations)<>'array' OR jsonb_array_length(v_allocations)<1 OR jsonb_array_length(v_allocations)>20 THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Reservation room allocations are missing or exceed the supported limit.');
+  END IF;
+  IF (SELECT coalesce(sum((item->>'confirmedAmountMinor')::numeric),0) FROM jsonb_array_elements(v_allocations) item)
+      <>v_commitment.confirmed_amount_minor THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Room allocation amounts do not reconcile to provider-confirmed reservation total.');
+  END IF;
+
+  IF v_inbox.event_type='created' AND v_reservation.id IS NOT NULL THEN
+    RETURN jsonb_build_object('status','duplicate','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+  IF v_inbox.event_type='modified' THEN
+    IF v_reservation.id IS NULL OR v_reservation.status<>'confirmed' THEN
+      RETURN jsonb_build_object('status','manual_review','reason','No active canonical external reservation exists to modify.');
+    END IF;
+    IF v_inbox.event_version IS NULL OR v_reservation.latest_event_version IS NULL
+      OR v_inbox.event_version !~ '^[0-9]+$' OR v_reservation.latest_event_version !~ '^[0-9]+$'
+      OR v_inbox.event_version::numeric<=v_reservation.latest_event_version::numeric THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Modification event version is missing, non-numeric or stale.');
+    END IF;
+    SELECT count(*) INTO v_existing_count
+    FROM public.staynas_distribution_external_reservation_allocations
+    WHERE external_reservation_id=v_reservation.id AND status='confirmed';
+    v_incoming_count:=jsonb_array_length(v_allocations);
+    IF v_existing_count<>v_incoming_count THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Room-count changes require staff review until allocation replacement is separately verified.');
+    END IF;
+    FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+    LOOP
+      SELECT * INTO v_old_alloc FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id
+        AND external_allocation_id=v_alloc->>'externalAllocationId' AND status='confirmed'
+      FOR UPDATE;
+      IF NOT FOUND THEN RETURN jsonb_build_object('status','manual_review','reason','Modification changed the external room-allocation identity.'); END IF;
+      SELECT r.* INTO v_room FROM public.rooms r
+      JOIN public.staynas_distribution_mappings m
+        ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+      WHERE m.connection_id=v_inbox.connection_id
+        AND m.external_id=v_alloc->>'roomTypeExternalId'
+        AND r.property_id=v_inbox.property_id AND r.status='active';
+      IF NOT FOUND OR v_room.id<>v_old_alloc.room_id
+        OR v_old_alloc.arrival_date<>(v_alloc->>'arrivalDate')::date
+        OR v_old_alloc.departure_date<>(v_alloc->>'departureDate')::date
+        OR v_old_alloc.adults<>(v_alloc->>'adults')::integer
+        OR v_old_alloc.children<>coalesce((v_alloc->>'children')::integer,0) THEN
+        RETURN jsonb_build_object('status','manual_review','reason','Date, room or occupancy changes require staff-led reallocation.');
+      END IF;
+    END LOOP;
+    FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+    LOOP
+      SELECT * INTO v_old_alloc FROM public.staynas_distribution_external_reservation_allocations
+      WHERE external_reservation_id=v_reservation.id
+        AND external_allocation_id=v_alloc->>'externalAllocationId' AND status='confirmed' FOR UPDATE;
+      v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
+      UPDATE public.bookings SET subtotal=v_amount,extras_total=0,fee_total=0,discount_total=0,
+        taxes=0,tax_addition=0,tax_breakdown='[]'::jsonb,total=v_amount,
+        deposit_amount=0,balance_amount=v_amount,balance_due=v_amount,
+        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
+          'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
+          'event_version',v_inbox.event_version)
+      WHERE id=v_old_alloc.booking_id;
+      UPDATE public.staynas_distribution_external_reservation_allocations
+      SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
+      WHERE id=v_old_alloc.id;
+      UPDATE public.booking_nights
+      SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
+          THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
+            *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
+          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
+        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
+      WHERE booking_id=v_old_alloc.booking_id;
+    END LOOP;
+    UPDATE public.staynas_distribution_external_reservations
+    SET latest_event_version=v_inbox.event_version,total_amount_minor=v_commitment.confirmed_amount_minor,
+      latest_commitment_id=v_commitment.id,updated_at=now()
+    WHERE id=v_reservation.id;
+    INSERT INTO public.staynas_distribution_external_reservation_events(
+      external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+    ) VALUES(v_reservation.id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+      v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+    RETURN jsonb_build_object('status','applied','booking_id',v_reservation.primary_booking_id,'reservation_id',v_reservation.id);
+  END IF;
+
+  IF nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),'') IS NULL
+    OR nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'') IS NULL THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Guest name and email are required by the canonical guest-linking contract.');
+  END IF;
+
+  -- Preflight every exact room mapping, property, capacity and currency before
+  -- inserting the aggregate or decrementing inventory.
+  FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+  LOOP
+    IF nullif(v_alloc->>'externalAllocationId','') IS NULL
+      OR nullif(v_alloc->>'roomTypeExternalId','') IS NULL
+      OR (v_alloc->>'departureDate')::date<=(v_alloc->>'arrivalDate')::date
+      OR (v_alloc->>'adults')::integer<1
+      OR coalesce((v_alloc->>'children')::integer,0)<0 THEN
+      RETURN jsonb_build_object('status','manual_review','reason','A room allocation has invalid identity, dates or occupancy.');
+    END IF;
+    SELECT r.* INTO v_room FROM public.rooms r
+    JOIN public.staynas_distribution_mappings m
+      ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+    WHERE m.connection_id=v_inbox.connection_id
+      AND m.organisation_id=v_inbox.organisation_id AND m.property_id=v_inbox.property_id
+      AND m.external_id=v_alloc->>'roomTypeExternalId'
+      AND r.property_id=v_inbox.property_id AND r.status='active';
+    IF NOT FOUND THEN
+      RETURN jsonb_build_object('status','manual_review','reason','No exact active room-type mapping exists for a provider allocation.');
+    END IF;
+    IF (v_alloc->>'adults')::integer+coalesce((v_alloc->>'children')::integer,0)>v_room.max_occupancy THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider occupancy exceeds the mapped room-type capacity.');
+    END IF;
+    IF upper(v_room.currency)<>v_currency THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider currency differs from the mapped room-type currency; FX conversion is not inferred.');
+    END IF;
+    IF nullif(v_alloc->>'ratePlanExternalId','') IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM public.staynas_distribution_mappings rm
+      WHERE rm.connection_id=v_inbox.connection_id AND rm.property_id=v_inbox.property_id
+        AND rm.mapping_type='rate_plan' AND rm.active=true
+        AND rm.external_id=v_alloc->>'ratePlanExternalId'
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Provider rate-plan mapping is missing or inactive.');
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM public.staynas_distribution_external_reservation_allocations a
+      WHERE a.external_reservation_id=v_reservation.id
+        AND a.external_allocation_id=v_alloc->>'externalAllocationId' AND a.status='confirmed'
+    ) THEN
+      RETURN jsonb_build_object('status','manual_review','reason','External allocation identity already exists.');
+    END IF;
+  END LOOP;
+
+  INSERT INTO public.staynas_distribution_external_reservations(
+    organisation_id,property_id,connection_id,external_reservation_id,
+    latest_event_version,status,currency,total_amount_minor,latest_commitment_id
+  ) VALUES (
+    v_inbox.organisation_id,v_inbox.property_id,v_inbox.connection_id,
+    v_inbox.external_reservation_id,v_inbox.event_version,'confirmed',v_currency,
+    v_commitment.confirmed_amount_minor,v_commitment.id
+  ) RETURNING id INTO v_reservation_id;
+
+  FOR v_alloc IN SELECT value FROM jsonb_array_elements(v_allocations)
+  LOOP
+    SELECT r.* INTO v_room FROM public.rooms r
+    JOIN public.staynas_distribution_mappings m
+      ON m.internal_id=r.id AND m.mapping_type='room_type' AND m.active=true
+    WHERE m.connection_id=v_inbox.connection_id
+      AND m.external_id=v_alloc->>'roomTypeExternalId'
+      AND r.property_id=v_inbox.property_id AND r.status='active';
+    v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
+    v_nights:=(v_alloc->>'departureDate')::date-(v_alloc->>'arrivalDate')::date;
+    v_day:=(v_alloc->>'arrivalDate')::date;
+    WHILE v_day<(v_alloc->>'departureDate')::date LOOP
+      INSERT INTO public.room_inventory(room_id,date,available_units)
+      VALUES(v_room.id,v_day,v_room.total_units) ON CONFLICT(room_id,date) DO NOTHING;
+      SELECT available_units,is_blocked INTO v_units,v_blocked
+      FROM public.room_inventory WHERE room_id=v_room.id AND date=v_day FOR UPDATE;
+      SELECT count(*) INTO v_holds FROM public.booking_holds h
+      WHERE h.room_id=v_room.id AND h.status='active' AND h.expires_at>now()
+        AND h.check_in<=v_day AND h.check_out>v_day;
+      IF v_blocked OR v_units-coalesce(v_holds,0)<=0 THEN
+        RAISE EXCEPTION 'No sellable inventory remains for mapped room type on %',v_day USING ERRCODE='P0001';
+      END IF;
+      UPDATE public.room_inventory SET available_units=available_units-1
+      WHERE room_id=v_room.id AND date=v_day;
+      v_day:=v_day+1;
+    END LOOP;
+
+    v_reference:='OTA-'||upper(substr(md5(v_inbox.connection_id::text||v_inbox.external_reservation_id||v_alloc->>'externalAllocationId'),1,12));
+    INSERT INTO public.bookings(
+      reference,room_id,property_id,check_in,check_out,nights,adults,children,
+      guest_name,guest_email,guest_phone,currency,source,
+      subtotal,extras_total,fee_total,discount_total,taxes,tax_addition,tax_breakdown,
+      total,deposit_amount,balance_amount,balance_due,pricing_snapshot
+    ) VALUES (
+      v_reference,v_room.id,v_inbox.property_id,(v_alloc->>'arrivalDate')::date,
+      (v_alloc->>'departureDate')::date,v_nights,(v_alloc->>'adults')::integer,
+      coalesce((v_alloc->>'children')::integer,0),
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),''),
+      lower(nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'')),
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,phone}'),''),
+      v_currency,'ota:'||v_connection.provider,
+      v_amount,0,0,0,0,0,'[]'::jsonb,v_amount,0,v_amount,v_amount,
+      jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
+        'external_reservation_id',v_inbox.external_reservation_id,
+        'external_allocation_id',v_alloc->>'externalAllocationId',
+        'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
+        'event_version',v_inbox.event_version)
+    ) RETURNING id INTO v_booking_id;
+
+    v_day:=(v_alloc->>'arrivalDate')::date;
+    WHILE v_day<(v_alloc->>'departureDate')::date LOOP
+      v_rate:=CASE WHEN v_day=(v_alloc->>'departureDate')::date-1
+        THEN v_amount-round(v_amount/v_nights,2)*(v_nights-1)
+        ELSE round(v_amount/v_nights,2) END;
+      INSERT INTO public.booking_nights(booking_id,room_id,date,nightly_rate,pricing_snapshot)
+      VALUES(v_booking_id,v_room.id,v_day,v_rate,
+        jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency));
+      v_day:=v_day+1;
+    END LOOP;
+
+    PERFORM public.staynas_transition_booking_core(
+      v_booking_id,'confirmed','Confirmed by external distribution provider',NULL,'distribution',v_inbox.property_id
+    );
+    INSERT INTO public.staynas_distribution_external_reservation_allocations(
+      external_reservation_id,external_allocation_id,room_id,arrival_date,departure_date,
+      adults,children,amount_minor,booking_id
+    ) VALUES (
+      v_reservation_id,v_alloc->>'externalAllocationId',v_room.id,
+      (v_alloc->>'arrivalDate')::date,(v_alloc->>'departureDate')::date,
+      (v_alloc->>'adults')::integer,coalesce((v_alloc->>'children')::integer,0),
+      (v_alloc->>'confirmedAmountMinor')::bigint,v_booking_id
+    );
+    IF v_primary_booking_id IS NULL THEN v_primary_booking_id:=v_booking_id; END IF;
+  END LOOP;
+
+  UPDATE public.staynas_distribution_external_reservations
+  SET primary_booking_id=v_primary_booking_id,updated_at=now()
+  WHERE id=v_reservation_id;
+  INSERT INTO public.staynas_distribution_external_reservation_events(
+    external_reservation_id,inbox_id,event_type,event_version,payload_fingerprint,payload_snapshot
+  ) VALUES(v_reservation_id,v_inbox.id,v_inbox.event_type,v_inbox.event_version,
+    v_inbox.payload_fingerprint,v_inbox.normalized_payload);
+  RETURN jsonb_build_object('status','applied','booking_id',v_primary_booking_id,'reservation_id',v_reservation_id);
+EXCEPTION
+  WHEN SQLSTATE 'P0001' THEN
+    RETURN jsonb_build_object('status','manual_review','reason','Mapped room inventory is unavailable for one or more requested nights.');
+  WHEN OTHERS THEN
+    RAISE;
+END $;
+
+REVOKE ALL ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_price_commitment_is_verified(uuid)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_apply_reservation_event(uuid)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_record_price_verification(uuid,text,text,text,text,uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_price_commitment_is_verified(uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_apply_reservation_event(uuid)
+  TO service_role;
+
+COMMIT;
+ THEN
+      RETURN jsonb_build_object('status','manual_review','reason','Cancellation event version is missing or non-numeric.');
+    END IF;
+    IF v_inbox.event_version::numeric<=v_reservation.latest_event_version::numeric THEN
+      RETURN jsonb_build_object('status','stale');
     END IF;
     FOR v_old_alloc IN
       SELECT * FROM public.staynas_distribution_external_reservation_allocations
