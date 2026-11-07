@@ -13,7 +13,7 @@ CREATE INDEX IF NOT EXISTS dc06_02_housekeeping_inspection_task_idx
 
 -- The focused DC-05 CI fixture omits the property-context migration. The smoke
 -- test replaces this inert stub with its deterministic fixture-property resolver.
-CREATE OR REPLACE FUNCTION public.staynas_active_property_id(_uid uuid DEFAULT auth.uid())
+CREATE OR REPLACE FUNCTION public.staynas_active_property_id(_user_id uuid DEFAULT auth.uid())
 RETURNS uuid
 LANGUAGE sql
 STABLE
