@@ -354,6 +354,7 @@ AS $function$
 DECLARE
   v_role text := current_setting('request.jwt.claim.role', true);
   v_sub public.commercial_subscriptions%ROWTYPE;
+  v_existing_invoice public.commercial_invoices%ROWTYPE;
   v_org uuid;
   v_currency text;
   v_lines jsonb;
@@ -440,10 +441,24 @@ BEGIN
   IF v_discount > v_subtotal THEN RAISE EXCEPTION 'Discount exceeds invoice subtotal' USING ERRCODE = '22023'; END IF;
   v_total := v_subtotal + CASE WHEN v_tax_treatment = 'exclusive' THEN v_tax ELSE 0 END - v_discount;
 
-  SELECT id INTO v_invoice_id FROM public.commercial_invoices
+  SELECT * INTO v_existing_invoice FROM public.commercial_invoices
   WHERE account_id = v_sub.account_id AND idempotency_key = _idempotency_key;
-  IF v_invoice_id IS NOT NULL THEN
-    RETURN jsonb_build_object('invoiceId',v_invoice_id,'replayed',true);
+  IF FOUND THEN
+    IF v_existing_invoice.subscription_id <> v_sub.id
+      OR v_existing_invoice.billing_period_start <> _period_start
+      OR v_existing_invoice.billing_period_end <> _period_end
+      OR v_existing_invoice.currency <> v_currency
+      OR v_existing_invoice.total_minor <> v_total THEN
+      RAISE EXCEPTION 'Invoice idempotency key was reused with conflicting billing input' USING ERRCODE = '23505';
+    END IF;
+    RETURN jsonb_build_object('invoiceId',v_existing_invoice.id,'invoiceNumber',v_existing_invoice.invoice_number,'replayed',true);
+  END IF;
+  SELECT * INTO v_existing_invoice FROM public.commercial_invoices
+  WHERE subscription_id = v_sub.id
+    AND billing_period_start = _period_start
+    AND billing_period_end = _period_end;
+  IF FOUND THEN
+    RAISE EXCEPTION 'A billing invoice already exists for this subscription period' USING ERRCODE = '23505';
   END IF;
   v_invoice_number := 'SN-' || to_char(now() AT TIME ZONE 'UTC','YYYY') || '-' ||
     lpad(nextval('public.commercial_invoice_number_seq')::text,8,'0');
@@ -517,13 +532,20 @@ BEGIN
     WHERE id=_provider_account_id AND organisation_id=v_invoice.organisation_id AND status='active'
       AND _currency=ANY(supported_currencies);
   IF NOT FOUND THEN RAISE EXCEPTION 'Active tenant provider account/currency configuration not found' USING ERRCODE='55000'; END IF;
-  IF _currency <> v_invoice.currency OR _amount_minor <= 0 OR _amount_minor > v_invoice.total_minor-v_invoice.amount_paid_minor
+  SELECT outstanding_minor INTO v_outstanding FROM public.commercial_invoice_receivables WHERE id=v_invoice.id;
+  IF _currency <> v_invoice.currency OR _amount_minor <= 0 OR _amount_minor > coalesce(v_outstanding,0)
     OR length(btrim(_idempotency_key)) NOT BETWEEN 8 AND 200 THEN
     RAISE EXCEPTION 'Payment amount, currency or idempotency key is invalid' USING ERRCODE='22023';
   END IF;
-  SELECT id INTO v_id FROM public.commercial_payment_transactions
+  SELECT * INTO v_existing FROM public.commercial_payment_transactions
     WHERE account_id=v_invoice.account_id AND idempotency_key=_idempotency_key;
-  IF v_id IS NOT NULL THEN RETURN v_id; END IF;
+  IF FOUND THEN
+    IF v_existing.invoice_id <> v_invoice.id OR v_existing.provider_account_id <> v_provider.id
+      OR v_existing.amount_minor <> _amount_minor OR v_existing.currency <> _currency THEN
+      RAISE EXCEPTION 'Payment idempotency key was reused with conflicting input' USING ERRCODE='23505';
+    END IF;
+    RETURN v_existing.id;
+  END IF;
   INSERT INTO public.commercial_payment_transactions(
     organisation_id,account_id,invoice_id,provider_account_id,provider,amount_minor,currency,
     idempotency_key,status,created_by
@@ -551,14 +573,24 @@ AS $function$
 DECLARE v_role text := current_setting('request.jwt.claim.role',true);
   v_payment public.commercial_payment_transactions%ROWTYPE;
   v_invoice public.commercial_invoices%ROWTYPE;
+  v_existing_allocation public.commercial_payment_allocations%ROWTYPE;
   v_allocation uuid;
+  v_outstanding numeric(20,0);
+  v_net_total numeric(20,0);
 BEGIN
   IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
   SELECT * INTO v_payment FROM public.commercial_payment_transactions WHERE id=_payment_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Payment attempt not found' USING ERRCODE='P0002'; END IF;
   IF v_payment.status IN ('successful','partially_reversed','reversed') THEN
-    SELECT id INTO v_allocation FROM public.commercial_payment_allocations WHERE payment_id=v_payment.id;
-    IF v_allocation IS NOT NULL THEN RETURN jsonb_build_object('allocationId',v_allocation,'replayed',true); END IF;
+    SELECT * INTO v_existing_allocation FROM public.commercial_payment_allocations WHERE payment_id=v_payment.id;
+    IF FOUND AND v_payment.provider_transaction_ref = _provider_transaction_ref
+      AND v_existing_allocation.amount_minor = _verified_amount_minor
+      AND v_existing_allocation.currency = _currency
+      AND v_existing_allocation.settlement_ref = _settlement_ref
+      AND v_existing_allocation.idempotency_key = _idempotency_key THEN
+      RETURN jsonb_build_object('allocationId',v_existing_allocation.id,'replayed',true);
+    END IF;
+    RAISE EXCEPTION 'Payment settlement idempotency key was reused with conflicting evidence' USING ERRCODE='23505';
   END IF;
   IF v_payment.status <> 'pending' THEN RAISE EXCEPTION 'Payment attempt is not pending' USING ERRCODE='55000'; END IF;
   IF _verification_source NOT IN ('server_provider_query','authorized_manual_verification','bank_statement_reconciliation')
@@ -569,9 +601,11 @@ BEGIN
     RAISE EXCEPTION 'Verified payment evidence does not match expected amount, currency or provenance' USING ERRCODE='22023';
   END IF;
   SELECT * INTO v_invoice FROM public.commercial_invoices WHERE id=v_payment.invoice_id FOR UPDATE;
+  SELECT outstanding_minor INTO v_outstanding FROM public.commercial_invoice_receivables WHERE id=v_invoice.id;
+  v_net_total := v_invoice.amount_paid_minor + coalesce(v_outstanding,0);
   IF NOT FOUND OR v_invoice.status IN ('draft','void','paid')
     OR v_invoice.currency <> v_payment.currency
-    OR v_payment.amount_minor > v_invoice.total_minor-v_invoice.amount_paid_minor THEN
+    OR v_payment.amount_minor > coalesce(v_outstanding,0) THEN
     RAISE EXCEPTION 'Invoice cannot accept this allocation or payment exceeds outstanding balance' USING ERRCODE='55000';
   END IF;
   UPDATE public.commercial_payment_transactions SET
@@ -587,7 +621,7 @@ BEGIN
   ) RETURNING id INTO v_allocation;
   UPDATE public.commercial_invoices SET
     amount_paid_minor=amount_paid_minor+v_payment.amount_minor,
-    status=CASE WHEN amount_paid_minor+v_payment.amount_minor=total_minor THEN 'paid' ELSE 'partially_paid' END,
+    status=CASE WHEN amount_paid_minor+v_payment.amount_minor>=v_net_total THEN 'paid' ELSE 'partially_paid' END,
     updated_at=now()
   WHERE id=v_invoice.id;
   INSERT INTO public.commercial_financial_audit_events(
@@ -612,7 +646,9 @@ DECLARE v_role text := current_setting('request.jwt.claim.role',true);
   v_payment public.commercial_payment_transactions%ROWTYPE;
   v_allocation public.commercial_payment_allocations%ROWTYPE;
   v_invoice public.commercial_invoices%ROWTYPE;
+  v_existing public.commercial_payment_reversals%ROWTYPE;
   v_reversed numeric(20,0); v_id uuid;
+  v_outstanding numeric(20,0); v_net_total numeric(20,0);
 BEGIN
   IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
   SELECT * INTO v_payment FROM public.commercial_payment_transactions WHERE id=_payment_id FOR UPDATE;
@@ -621,22 +657,31 @@ BEGIN
   END IF;
   SELECT * INTO v_allocation FROM public.commercial_payment_allocations WHERE payment_id=v_payment.id;
   IF NOT FOUND THEN RAISE EXCEPTION 'Original payment allocation not found' USING ERRCODE='55000'; END IF;
+  SELECT * INTO v_existing FROM public.commercial_payment_reversals WHERE idempotency_key=_idempotency_key;
+  IF FOUND THEN
+    IF v_existing.payment_id <> _payment_id OR v_existing.provider_reversal_ref <> _provider_reversal_ref
+      OR v_existing.amount_minor <> _amount_minor OR v_existing.currency <> _currency
+      OR v_existing.reason_code <> _reason_code THEN
+      RAISE EXCEPTION 'Reversal idempotency key was reused with conflicting evidence' USING ERRCODE='23505';
+    END IF;
+    RETURN v_existing.id;
+  END IF;
   SELECT coalesce(sum(amount_minor),0) INTO v_reversed FROM public.commercial_payment_reversals WHERE payment_id=v_payment.id;
-  SELECT id INTO v_id FROM public.commercial_payment_reversals WHERE idempotency_key=_idempotency_key;
-  IF v_id IS NOT NULL THEN RETURN v_id; END IF;
   IF _currency <> v_payment.currency OR _amount_minor <= 0 OR v_reversed+_amount_minor > v_allocation.amount_minor
     OR coalesce(length(btrim(_provider_reversal_ref)),0)=0 OR coalesce(length(btrim(_reason_code)),0)=0 THEN
     RAISE EXCEPTION 'Reversal amount, currency or reference is invalid' USING ERRCODE='22023';
   END IF;
   SELECT * INTO v_invoice FROM public.commercial_invoices WHERE id=v_payment.invoice_id FOR UPDATE;
+  SELECT outstanding_minor INTO v_outstanding FROM public.commercial_invoice_receivables WHERE id=v_invoice.id;
+  v_net_total := v_invoice.amount_paid_minor + coalesce(v_outstanding,0);
   INSERT INTO public.commercial_payment_reversals(
     payment_id,provider_reversal_ref,idempotency_key,amount_minor,currency,reason_code,verified_at,created_by
   ) VALUES (_payment_id,_provider_reversal_ref,_idempotency_key,_amount_minor,_currency,_reason_code,_verified_at,_actor_user_id)
   RETURNING id INTO v_id;
   UPDATE public.commercial_invoices SET
     amount_paid_minor=amount_paid_minor-_amount_minor,
-    status=CASE WHEN amount_paid_minor-_amount_minor=0 THEN 'issued'
-      WHEN amount_paid_minor-_amount_minor<total_minor THEN 'partially_paid' ELSE status END,
+    status=CASE WHEN amount_paid_minor-_amount_minor>=v_net_total THEN 'paid'
+      WHEN amount_paid_minor-_amount_minor=0 THEN 'issued' ELSE 'partially_paid' END,
     updated_at=now()
   WHERE id=v_invoice.id;
   UPDATE public.commercial_payment_transactions SET
@@ -664,7 +709,10 @@ SELECT i.id,i.organisation_id,i.account_id,i.subscription_id,i.invoice_number,i.
   greatest(i.total_minor + coalesce(sum(CASE WHEN a.status='posted' AND a.adjustment_type='debit_note' THEN a.amount_minor ELSE 0 END),0)
     - coalesce(sum(CASE WHEN a.status='posted' AND a.adjustment_type IN ('credit_note','write_off') THEN a.amount_minor ELSE 0 END),0)
     - i.amount_paid_minor,0) AS outstanding_minor,
-  CASE WHEN i.due_at < now() AND i.amount_paid_minor < i.total_minor AND i.status NOT IN ('void','paid') THEN true ELSE false END AS is_overdue
+  CASE WHEN i.due_at < now() AND greatest(i.total_minor
+    + coalesce(sum(CASE WHEN a.status='posted' AND a.adjustment_type='debit_note' THEN a.amount_minor ELSE 0 END),0)
+    - coalesce(sum(CASE WHEN a.status='posted' AND a.adjustment_type IN ('credit_note','write_off') THEN a.amount_minor ELSE 0 END),0)
+    - i.amount_paid_minor,0)>0 AND i.status NOT IN ('void','paid') THEN true ELSE false END AS is_overdue
 FROM public.commercial_invoices i
 LEFT JOIN public.commercial_invoice_adjustments a ON a.invoice_id=i.id
 GROUP BY i.id;
@@ -727,6 +775,13 @@ BEGIN
       RAISE EXCEPTION 'Credits and write-offs cannot exceed invoice total' USING ERRCODE='22023';
     END IF;
   END IF;
+  IF EXISTS (SELECT 1 FROM public.commercial_invoice_adjustments WHERE adjustment_ref=_adjustment_ref) THEN
+    SELECT id INTO v_id FROM public.commercial_invoice_adjustments WHERE adjustment_ref=_adjustment_ref
+      AND invoice_id=_invoice_id AND adjustment_type=_adjustment_type AND amount_minor=_amount_minor
+      AND currency=_currency AND reason_code=_reason_code AND approval_ref=_approval_ref;
+    IF v_id IS NOT NULL THEN RETURN v_id; END IF;
+    RAISE EXCEPTION 'Adjustment reference was reused with conflicting input' USING ERRCODE='23505';
+  END IF;
   INSERT INTO public.commercial_invoice_adjustments(
     invoice_id,adjustment_ref,adjustment_type,amount_minor,currency,reason_code,
     status,approval_ref,created_by,posted_at
@@ -755,8 +810,9 @@ AS $function$
 DECLARE v_role text := current_setting('request.jwt.claim.role',true); v_count integer;
 BEGIN
   IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
-  UPDATE public.commercial_invoices SET status='overdue',updated_at=now()
-  WHERE status IN ('issued','partially_paid') AND due_at < now() AND amount_paid_minor < total_minor;
+  UPDATE public.commercial_invoices i SET status='overdue',updated_at=now()
+  WHERE i.status IN ('issued','partially_paid') AND i.due_at < now()
+    AND EXISTS (SELECT 1 FROM public.commercial_invoice_receivables r WHERE r.id=i.id AND r.outstanding_minor>0);
   GET DIAGNOSTICS v_count = ROW_COUNT;
   RETURN v_count;
 END;
