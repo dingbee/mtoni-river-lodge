@@ -90,6 +90,8 @@ export async function buildCommercialPaymentReceiptPdf(input: {
 
 export async function buildCommercialUnallocatedReceiptPdf(input:{
   payment:{id:string;provider:string;provider_transaction_ref:string|null;amount_minor:number|string;currency:"TZS"|"USD";confirmed_at:string|null;payment_method:string|null};
+  allocation?:{settlement_ref:string;amount_minor:number|string;invoice_number:string|null}|null;
+  unallocatedMinor:number|string;
 }) {
   const pdf=await PDFDocument.create();
   const page=pdf.addPage([595.28,841.89]);
@@ -104,6 +106,13 @@ export async function buildCommercialUnallocatedReceiptPdf(input:{
   draw(`Provider reference: ${input.payment.provider_transaction_ref??"verified manual record"}`,11,false,700);
   draw(`Confirmed: ${input.payment.confirmed_at??"not available"}`,11,false,675);
   draw(`Amount received: ${money(input.payment.amount_minor,input.payment.currency)}`,14,true,635);
-  draw("This collection has been verified but is not yet allocated to an invoice.",10,false,595);
+  if(input.allocation){
+    draw(`Allocation reference: ${input.allocation.settlement_ref}`,11,false,595);
+    draw(`Invoice: ${input.allocation.invoice_number??"not available"}`,11,false,570);
+    draw(`Allocated amount: ${money(input.allocation.amount_minor,input.payment.currency)}`,11,false,545);
+  }
+  const unallocated=BigInt(input.unallocatedMinor);
+  if(unallocated>0n) draw(`Unallocated balance: ${money(unallocated.toString(),input.payment.currency)}`,11,true,510);
+  else draw("No unallocated balance remains for this collection.",10,false,510);
   return await pdf.save();
 }
