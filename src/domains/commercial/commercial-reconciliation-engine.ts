@@ -32,6 +32,12 @@ export function reconcileCommercialProviderStatement(
   providerRows: readonly ReconciliationProviderRow[],
 ): CommercialReconciliationResult[] {
   const results: CommercialReconciliationResult[] = [];
+  for (const payment of internal) {
+    if (!Number.isSafeInteger(payment.amountMinor) || payment.amountMinor < 0
+      || !Number.isSafeInteger(payment.allocatedMinor) || payment.allocatedMinor < 0) {
+      throw new Error("Internal payment amount is outside safe integer precision.");
+    }
+  }
   const providerByRef = new Map<string, ReconciliationProviderRow[]>();
   for (const row of providerRows) {
     if (!row.providerRef.trim() || !Number.isSafeInteger(row.amountMinor) || row.amountMinor < 0) {
