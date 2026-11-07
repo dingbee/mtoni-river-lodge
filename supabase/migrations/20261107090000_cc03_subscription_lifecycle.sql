@@ -64,13 +64,13 @@ CREATE TABLE IF NOT EXISTS public.commercial_subscriptions (
       plan_code = 'enterprise'
       AND accepted_price_snapshot->>'quoteRequired' = 'true'
       AND NOT (accepted_price_snapshot ? 'total')
-      AND coalesce(jsonb_array_length(
-        CASE
-          WHEN jsonb_typeof(accepted_price_snapshot->'lineItems') = 'array'
-            THEN accepted_price_snapshot->'lineItems'
-          ELSE '[]'::jsonb
-        END
-      ), 0) = 0
+      AND (
+        NOT (accepted_price_snapshot ? 'lineItems')
+        OR (
+          jsonb_typeof(accepted_price_snapshot->'lineItems') = 'array'
+          AND jsonb_array_length(accepted_price_snapshot->'lineItems') = 0
+        )
+      )
       )
     )
   ),
