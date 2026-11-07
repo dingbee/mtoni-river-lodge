@@ -192,7 +192,7 @@ SELECT is((
     (SELECT property_id FROM spe07_test_connection),
     (SELECT id FROM spe07_test_connection),
     'spe07-provider-event-1','spe07-external-reservation-1','created','1',
-    repeat('c',64),'{"externalReservationId":"spe07-external-reservation-1","confirmedAmountMinor":12345,"currency":"USD","taxAmountMinor":1234,"feeAmountMinor":250,"commissionAmountMinor":500,"paymentStatus":"unpaid"}'::jsonb
+    repeat('c',64),'{"externalReservationId":"spe07-external-reservation-1","eventType":"created","confirmedAmountMinor":12345,"currency":"USD","taxAmountMinor":1234,"feeAmountMinor":250,"commissionAmountMinor":500,"paymentStatus":"unpaid"}'::jsonb
   )
 ),true,'repeated provider event is identified as a duplicate');
 
