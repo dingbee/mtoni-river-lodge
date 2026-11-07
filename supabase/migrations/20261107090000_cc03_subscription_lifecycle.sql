@@ -412,9 +412,12 @@ AS $function$
     ELSE EXISTS (
       SELECT 1
       FROM public.staynas_properties p
+      JOIN public.staynas_organisations o
+        ON o.id = p.organisation_id
       JOIN public.staynas_property_members pm
         ON pm.property_id = p.id
       WHERE p.organisation_id = _organisation_id
+        AND o.status = 'active'
         AND p.status = 'active'
         AND pm.user_id = auth.uid()
         AND pm.status = 'active'
@@ -456,9 +459,12 @@ AS $function$
         AND EXISTS (
           SELECT 1
           FROM public.staynas_properties p
+          JOIN public.staynas_organisations o
+            ON o.id = p.organisation_id
           JOIN public.staynas_property_members pm
             ON pm.property_id = p.id
           WHERE p.organisation_id = cfg.founder_organisation_id
+            AND o.status = 'active'
             AND p.status = 'active'
             AND pm.user_id = _principal_id
             AND pm.status = 'active'
