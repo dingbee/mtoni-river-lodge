@@ -92,8 +92,9 @@ export function AdminSidebar({
       else if (active) setFounderAdmin(false);
     });
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) void verifyFounder(session.user.id);
-      else if (active) setFounderAdmin(false);
+      if (session?.user) {
+        void Promise.resolve().then(() => verifyFounder(session.user.id));
+      } else if (active) setFounderAdmin(false);
     });
     return () => {
       active = false;
