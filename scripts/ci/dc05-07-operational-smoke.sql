@@ -463,4 +463,60 @@ END
 $tenant_isolation$;
 RESET ROLE;
 
+-- Verify DC-06.02 exposes the completed channel stay as an active-property
+-- Housekeeping turnover handoff, while rejecting a different property user.
+CREATE OR REPLACE FUNCTION public.staynas_active_property_id(_uid uuid DEFAULT auth.uid())
+RETURNS uuid LANGUAGE sql STABLE AS $function$
+  SELECT CASE WHEN _uid='07070000-0000-4000-8000-000000000003'::uuid
+    THEN '07070000-0000-4000-8000-000000000002'::uuid ELSE NULL END
+$function$;
+CREATE OR REPLACE FUNCTION public.has_any_role(_uid uuid,_roles public.app_role[])
+RETURNS boolean LANGUAGE sql STABLE AS $function$
+  SELECT _uid='07070000-0000-4000-8000-000000000003'::uuid
+     AND 'housekeeping'::public.app_role=ANY(_roles)
+$function$;
+
+SELECT set_config('request.jwt.claim.role','authenticated',true);
+SELECT set_config('request.jwt.claim.sub','07070000-0000-4000-8000-000000000003',true);
+SET LOCAL ROLE authenticated;
+DO $housekeeping_handoff$
+DECLARE
+  v_count integer;
+  v_row record;
+BEGIN
+  SELECT count(*) INTO v_count
+  FROM public.housekeeping_list_distribution_handoffs();
+  IF v_count<>1 THEN
+    RAISE EXCEPTION 'Expected one active-property distribution housekeeping handoff; found %',v_count;
+  END IF;
+
+  SELECT * INTO v_row
+  FROM public.housekeeping_list_distribution_handoffs()
+  LIMIT 1;
+  IF v_row.booking_id<>'07070000-0000-4000-8000-000000000010'::uuid
+     OR v_row.provider_key<>'airbnb'
+     OR v_row.integration_status<>'integrated'
+     OR v_row.turnover_task_status<>'pending'
+     OR v_row.allocation_status<>'released'
+     OR v_row.room_state<>'vacant_dirty' THEN
+    RAISE EXCEPTION 'Distribution handoff did not preserve provider, turnover, allocation and room-state provenance';
+  END IF;
+END
+$housekeeping_handoff$;
+RESET ROLE;
+
+SELECT set_config('request.jwt.claim.sub','07070000-0000-4000-8000-000000000020',true);
+SET LOCAL ROLE authenticated;
+DO $housekeeping_tenant_isolation$
+BEGIN
+  BEGIN
+    PERFORM count(*) FROM public.housekeeping_list_distribution_handoffs();
+    RAISE EXCEPTION 'Cross-property user unexpectedly read distribution housekeeping handoffs';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
+END
+$housekeeping_tenant_isolation$;
+RESET ROLE;
+
 ROLLBACK;
