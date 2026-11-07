@@ -9,6 +9,7 @@ on:
       - "src/domains/distribution/**"
       - "docs/database/SPE-07-distribution-persistence.sql"
       - "supabase/tests/database/**"
+      - "scripts/ci/normalize-optional-legacy-revokes.py"
       - ".github/workflows/spe-07-distribution.yml"
 
 jobs:
@@ -42,6 +43,8 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: "2.122.1"
+      - name: Normalize optional legacy migration drift in ephemeral checkout
+        run: python3 scripts/ci/normalize-optional-legacy-revokes.py
       - name: Generate migration using Supabase CLI
         shell: bash
         run: |
