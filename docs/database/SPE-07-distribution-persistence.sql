@@ -438,6 +438,8 @@ REVOKE ALL ON FUNCTION public.staynas_distribution_receive_reservation_event(uui
 REVOKE ALL ON FUNCTION public.staynas_distribution_claim_reservation_inbox(integer,integer) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.staynas_distribution_finish_reservation_inbox(uuid,uuid,text,uuid,text,text,timestamptz) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.staynas_distribution_enqueue_operation(uuid,uuid,uuid,text,text,text,jsonb,text,uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_create_connection(uuid,uuid,uuid,text,text,text,text,jsonb) TO service_role;
+GRANT EXECUTE ON FUNCTION public.staynas_distribution_upsert_mapping(uuid,uuid,uuid,uuid,text,uuid,text,boolean) TO service_role;
 GRANT EXECUTE ON FUNCTION public.staynas_distribution_claim_outbox(integer,integer) TO service_role;
 GRANT EXECUTE ON FUNCTION public.staynas_distribution_finish_outbox(uuid,uuid,text,timestamptz,text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.staynas_distribution_receive_reservation_event(uuid,uuid,uuid,text,text,text,text,text,jsonb) TO service_role;
@@ -535,7 +537,73 @@ BEGIN
 END;
 $function$;
 
+-- Staff-authorized connection and mapping writes. actor_id must be derived by
+-- the trusted server from the verified Supabase session, never request JSON.
+CREATE OR REPLACE FUNCTION public.staynas_distribution_create_connection(
+  p_actor_id uuid,p_organisation_id uuid,p_property_id uuid,p_provider text,
+  p_external_account_id text,p_external_property_id text,p_credential_secret_ref text,
+  p_capabilities jsonb DEFAULT '{}'::jsonb
+)
+RETURNS uuid
+LANGUAGE plpgsql SET search_path = public, pg_temp
+AS $function$
+DECLARE v_id uuid;
+BEGIN
+  IF p_actor_id IS NULL
+    OR NOT public.staynas_user_has_property_access(p_actor_id,p_property_id)
+    OR NOT public.has_any_role(p_actor_id,ARRAY['owner','manager','admin','reservations']::public.app_role[]) THEN
+    RAISE EXCEPTION 'Distribution connection administration denied' USING ERRCODE = '42501';
+  END IF;
+  INSERT INTO public.staynas_distribution_connections(
+    organisation_id,property_id,provider,external_account_id,external_property_id,
+    credential_secret_ref,capabilities,created_by,updated_by
+  ) VALUES (
+    p_organisation_id,p_property_id,btrim(p_provider),btrim(p_external_account_id),
+    btrim(p_external_property_id),btrim(p_credential_secret_ref),coalesce(p_capabilities,'{}'::jsonb),
+    p_actor_id,p_actor_id
+  ) RETURNING id INTO v_id;
+  RETURN v_id;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.staynas_distribution_upsert_mapping(
+  p_actor_id uuid,p_organisation_id uuid,p_property_id uuid,p_connection_id uuid,
+  p_mapping_type text,p_internal_id uuid,p_external_id text,p_active boolean DEFAULT true
+)
+RETURNS uuid
+LANGUAGE plpgsql SET search_path = public, pg_temp
+AS $function$
+DECLARE v_id uuid;
+BEGIN
+  IF p_actor_id IS NULL
+    OR NOT public.staynas_user_has_property_access(p_actor_id,p_property_id)
+    OR NOT public.has_any_role(p_actor_id,ARRAY['owner','manager','admin','reservations']::public.app_role[]) THEN
+    RAISE EXCEPTION 'Distribution mapping administration denied' USING ERRCODE = '42501';
+  END IF;
+  INSERT INTO public.staynas_distribution_mappings(
+    organisation_id,property_id,connection_id,mapping_type,internal_id,external_id,
+    active,created_by,updated_by
+  ) VALUES (
+    p_organisation_id,p_property_id,p_connection_id,p_mapping_type,p_internal_id,
+    btrim(p_external_id),coalesce(p_active,true),p_actor_id,p_actor_id
+  )
+  ON CONFLICT (connection_id,mapping_type,external_id) DO UPDATE
+  SET internal_id=EXCLUDED.internal_id,active=EXCLUDED.active,
+      version=public.staynas_distribution_mappings.version+1,
+      updated_by=p_actor_id,updated_at=now()
+  WHERE public.staynas_distribution_mappings.organisation_id=p_organisation_id
+    AND public.staynas_distribution_mappings.property_id=p_property_id
+  RETURNING id INTO v_id;
+  IF v_id IS NULL THEN
+    RAISE EXCEPTION 'Mapping conflict or connection scope mismatch' USING ERRCODE = '23505';
+  END IF;
+  RETURN v_id;
+END;
+$function$;
+
 REVOKE ALL ON FUNCTION public.staynas_distribution_enqueue_operation(uuid,uuid,uuid,text,text,text,jsonb,text,uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_create_connection(uuid,uuid,uuid,text,text,text,text,jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_distribution_upsert_mapping(uuid,uuid,uuid,uuid,text,uuid,text,boolean) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.staynas_distribution_claim_outbox(integer,integer) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.staynas_distribution_finish_outbox(uuid,uuid,text,timestamptz,text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.staynas_distribution_enqueue_operation(uuid,uuid,uuid,text,text,text,jsonb,text,uuid) TO service_role;
