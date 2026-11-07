@@ -1190,7 +1190,16 @@ DECLARE v_role text:=current_setting('request.jwt.claim.role',true);
 BEGIN
   IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
   SELECT * INTO v_invoice FROM public.commercial_invoices WHERE id=_invoice_id FOR UPDATE;
-  IF NOT FOUND OR v_invoice.status IN ('draft','void') OR v_invoice.amount_paid_minor>0
+  IF NOT FOUND THEN RAISE EXCEPTION 'Invoice not found' USING ERRCODE='P0002'; END IF;
+  IF v_invoice.status='void' THEN
+    IF EXISTS (SELECT 1 FROM public.commercial_financial_audit_events
+      WHERE request_id=_approval_ref AND action='invoice.voided'
+        AND resource_ref=_invoice_id::text AND reason_code=_reason_code) THEN
+      RETURN true;
+    END IF;
+    RAISE EXCEPTION 'Invoice was already voided with different approval evidence' USING ERRCODE='23505';
+  END IF;
+  IF v_invoice.status='draft' OR v_invoice.amount_paid_minor>0
     OR coalesce(length(btrim(_reason_code)),0)=0 OR coalesce(length(btrim(_approval_ref)),0)=0 THEN
     RAISE EXCEPTION 'Invoice is not eligible for voiding or approval evidence is missing' USING ERRCODE='55000';
   END IF;
@@ -1324,7 +1333,11 @@ BEGIN
   IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
   SELECT * INTO v_invoice FROM public.commercial_invoices WHERE id=_invoice_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Invoice draft not found' USING ERRCODE='P0002'; END IF;
-  IF v_invoice.status='issued' AND v_invoice.due_at=_due_at THEN RETURN true; END IF;
+  IF v_invoice.status='issued' AND v_invoice.due_at=_due_at
+    AND v_invoice.issued_snapshot->>'approvalRef'=_approval_ref THEN RETURN true; END IF;
+  IF v_invoice.status='issued' THEN
+    RAISE EXCEPTION 'Invoice was already issued with different approval evidence' USING ERRCODE='23505';
+  END IF;
   IF v_invoice.status<>'draft' OR _due_at IS NULL OR _due_at<now()
     OR coalesce(length(btrim(_approval_ref)),0)<4 THEN
     RAISE EXCEPTION 'Invoice draft cannot be issued or approval reference is missing' USING ERRCODE='55000';
