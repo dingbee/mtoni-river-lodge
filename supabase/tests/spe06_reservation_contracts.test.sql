@@ -1,6 +1,6 @@
 -- SPE-06 structural contract tests. No live property records are written.
 BEGIN;
-SELECT plan(24);
+SELECT plan(25);
 
 SELECT has_table('public','staynas_reservation_quotes','Durable accepted reservation quotes exist');
 SELECT has_table('public','staynas_reservation_idempotency','Reservation idempotency ledger exists');
@@ -24,6 +24,11 @@ SELECT has_function(
   'public','staynas_create_reservation_quote',
   ARRAY['uuid','text','date','date','integer','integer','integer','jsonb','uuid','text','text','integer'],
   'Canonical quote creation persists a server-issued quote token');
+
+SELECT has_function(
+  'public','staynas_lock_room_inventory_dates',
+  ARRAY['uuid','uuid','date','date'],
+  'Lifecycle cancellation locks and materializes each affected inventory night');
 
 SELECT has_function(
   'public','staynas_create_reservation_from_quote',
