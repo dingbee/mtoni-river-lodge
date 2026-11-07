@@ -228,17 +228,17 @@ SELECT ok(public.staynas_distribution_price_commitment_is_verified(
    WHERE id=(SELECT commitment_id FROM spe07_test_price_commitment))
 ),'verified provider evidence unlocks the canonical reservation gate');
 SELECT throws_ok(
-  $
+  $$
     UPDATE public.staynas_distribution_price_verifications
     SET evidence_reference='tampered'
     WHERE id=(SELECT verification_id FROM spe07_test_price_verification)
-  $,
+  $$,
   '55000', 'Provider price verification evidence is append-only',
   'provider verification evidence cannot be modified'
 );
 
 SELECT throws_ok(
-  $
+  $$
     UPDATE public.staynas_distribution_price_commitments
     SET confirmed_amount_minor=99999
     WHERE id=(SELECT commitment_id FROM spe07_test_price_commitment)
