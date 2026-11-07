@@ -56,7 +56,10 @@ export const getDistributionAnalytics = createServerFn({ method: "POST" })
     const defaults = defaultWindow();
     const from = data.from ?? defaults.from;
     const to = data.to ?? defaults.to;
-    const { data: projection, error } = await context.supabase.rpc(
+    const client = context.supabase as unknown as {
+      rpc: (name: string, args: { _from: string; _to: string }) => Promise<{ data: unknown; error: { message: string } | null }>;
+    };
+    const { data: projection, error } = await client.rpc(
       "staynas_get_distribution_analytics",
       { _from: from, _to: to },
     );
