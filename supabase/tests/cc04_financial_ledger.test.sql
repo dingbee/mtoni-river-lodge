@@ -17,6 +17,7 @@ DECLARE
   v_payment uuid;
   v_allocation jsonb;
   v_reversal uuid;
+  v_unallocated_reversal uuid;
   v_adjustment uuid;
   v_paid numeric;
   v_status text;
@@ -132,7 +133,7 @@ BEGIN
   IF v_unallocated_view <> 10000 THEN
     RAISE EXCEPTION 'Overpayment remainder was not retained as unallocated: %',v_unallocated_view;
   END IF;
-  v_reversal := public.commercial_record_payment_reversal(
+  v_unallocated_reversal := public.commercial_record_payment_reversal(
     v_unallocated_payment,'manual-overpayment-refund-001',15000,'TZS',
     'partial_overpayment_refund','cc04-unallocated-reversal-001',now(),v_user
   );
@@ -144,6 +145,12 @@ BEGIN
     WHERE payment_id=v_unallocated_payment;
   IF v_unallocated_view <> 0 THEN
     RAISE EXCEPTION 'Overpayment refund did not clear unallocated remainder: %',v_unallocated_view;
+  END IF;
+  IF public.commercial_record_payment_reversal(
+    v_unallocated_payment,'manual-overpayment-refund-001',15000,'TZS',
+    'partial_overpayment_refund','cc04-unallocated-reversal-001',now(),v_user
+  ) <> v_unallocated_reversal THEN
+    RAISE EXCEPTION 'Unallocated payment reversal retry was not idempotent';
   END IF;
 
   v_allocation := public.commercial_confirm_and_allocate_payment(
