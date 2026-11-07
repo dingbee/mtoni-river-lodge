@@ -25,21 +25,22 @@ async function handleCommercialPesapalNotification(orderTrackingId: string, merc
   }).then(data => ({ data, error: null })).catch(error => ({ data: null, error }));
   if (queryError || !result) return false;
   const referenceMatches = result.merchantReference === merchantReference;
+  const amountMinor = Math.round(result.amount * 100);
+  const amountMatches = result.statusCode !== 1
+    || (Number.isSafeInteger(amountMinor) && amountMinor === Number(payment.amount_minor) && result.currency === payment.currency && Boolean(result.confirmationCode));
   await admin.from("commercial_provider_notifications").upsert({
     organisation_id: payment.organisation_id, provider_account_id: account.id,
     provider: "pesapal", provider_event_ref: `${orderTrackingId}:${notificationType || "unknown"}:verification`,
     provider_order_ref: orderTrackingId,
-    verification_status: referenceMatches && [1,2,3].includes(result.statusCode) ? "verified" : "mismatch",
+    verification_status: referenceMatches && amountMatches && [1,2,3].includes(result.statusCode) ? "verified" : "mismatch",
     processed_at: new Date().toISOString(),
     raw_payload: { orderTrackingId, merchantReference, notificationType,
       providerStatus: result.statusCode, providerAmount: result.amount,
       providerCurrency: result.currency, providerTransactionRef: result.confirmationCode,
       providerMerchantReference: result.merchantReference },
   }, { onConflict: "provider,provider_event_ref", ignoreDuplicates: true });
-  if (!referenceMatches) return false;
+  if (!referenceMatches || !amountMatches) return false;
   if (result.statusCode === 1) {
-    const amountMinor = Math.round(result.amount * 100);
-    if (!Number.isSafeInteger(amountMinor) || amountMinor !== Number(payment.amount_minor) || result.currency !== payment.currency || !result.confirmationCode) return false;
     if (payment.invoice_id === null) {
       const { error: unallocatedError } = await admin.rpc("commercial_confirm_unallocated_payment", {
         _payment_id: payment.id, _provider_transaction_ref: result.confirmationCode,
