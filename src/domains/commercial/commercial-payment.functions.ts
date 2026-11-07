@@ -355,3 +355,25 @@ export const generateMyCommercialInvoicePdf = createServerFn({ method: "GET" })
     });
     return { fileName: `${invoice.invoice_number}.pdf`, bytes: Array.from(bytes) };
   });
+
+export const generateMyCommercialPaymentReceiptPdf = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ paymentId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const actor = await resolveVerifiedTenantActor(context);
+    if (actor.actorRole !== "tenant_admin") throw new Error("Forbidden: tenant administrator authority is required.");
+    const admin = await getAdmin();
+    const { data: payment, error } = await admin.from("commercial_payment_transactions").select("*")
+      .eq("id",data.paymentId).eq("organisation_id",actor.organisationId).maybeSingle();
+    if (error || !payment || !["successful","partially_reversed","reversed"].includes(payment.status)) {
+      throw new Error("A verified tenant payment receipt was not found.");
+    }
+    const [invoice, allocation] = await Promise.all([
+      admin.from("commercial_invoices").select("invoice_number,currency").eq("id",payment.invoice_id).eq("organisation_id",actor.organisationId).maybeSingle(),
+      admin.from("commercial_payment_allocations").select("settlement_ref,amount_minor,allocated_at").eq("payment_id",payment.id).maybeSingle(),
+    ]);
+    if (invoice.error || allocation.error || !invoice.data || !allocation.data) throw new Error("Persisted receipt evidence is incomplete.");
+    const { buildCommercialPaymentReceiptPdf } = await import("./commercial-invoice-document.server");
+    const bytes = await buildCommercialPaymentReceiptPdf({ payment, invoice: invoice.data, allocation: allocation.data });
+    return { fileName: `receipt-${allocation.data.settlement_ref}.pdf`, bytes: Array.from(bytes) };
+  });
