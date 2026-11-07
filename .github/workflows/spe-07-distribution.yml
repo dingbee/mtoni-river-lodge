@@ -1,6 +1,7 @@
 name: SPE-07 distribution contracts
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - feat/spe-07-*
@@ -13,6 +14,7 @@ on:
     paths:
       - "src/domains/distribution/**"
       - "docs/database/SPE-07-distribution-persistence.sql"
+      - "supabase/tests/database/**"
       - ".github/workflows/spe-07-distribution.yml"
 
 jobs:
@@ -55,7 +57,7 @@ jobs:
       - name: Start isolated local Supabase stack
         run: supabase start
       - name: Apply all migrations to clean local database
-        run: supabase db reset --local
+        run: supabase db reset --local --yes
       - name: Run database contract and RLS tests
         run: supabase test db
       - name: Stop local Supabase stack
