@@ -692,7 +692,7 @@ DECLARE v_role text := current_setting('request.jwt.claim.role',true);
   v_reversed numeric(20,0); v_allocated_reversed numeric(20,0);
   v_unallocated_available numeric(20,0); v_apply_unallocated numeric(20,0);
   v_apply_allocated numeric(20,0); v_allocated_available numeric(20,0);
-  v_id uuid; v_outstanding numeric(20,0); v_net_total numeric(20,0);
+  v_id uuid; v_outstanding numeric(20,0); v_credit_balance numeric(20,0); v_net_total numeric(20,0);
 BEGIN
   IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
   SELECT * INTO v_payment FROM public.commercial_payment_transactions WHERE id=_payment_id FOR UPDATE;
@@ -748,8 +748,9 @@ BEGIN
       reversal_id,allocation_id,invoice_id,currency,amount_minor
     ) VALUES (v_id,v_allocation.id,v_allocation.invoice_id,v_allocation.currency,v_apply_allocated);
     SELECT * INTO v_invoice FROM public.commercial_invoices WHERE id=v_allocation.invoice_id FOR UPDATE;
-    SELECT outstanding_minor INTO v_outstanding FROM public.commercial_invoice_receivables WHERE id=v_invoice.id;
-    v_net_total := v_invoice.amount_paid_minor + coalesce(v_outstanding,0);
+    SELECT outstanding_minor,credit_balance_minor INTO v_outstanding,v_credit_balance
+      FROM public.commercial_invoice_receivables WHERE id=v_invoice.id;
+    v_net_total := v_invoice.amount_paid_minor + coalesce(v_outstanding,0) - coalesce(v_credit_balance,0);
     UPDATE public.commercial_invoices SET
       amount_paid_minor=amount_paid_minor-v_apply_allocated,
       status=CASE WHEN amount_paid_minor-v_apply_allocated>=v_net_total THEN 'paid'
