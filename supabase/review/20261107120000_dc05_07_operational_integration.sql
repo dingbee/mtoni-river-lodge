@@ -172,6 +172,7 @@ CREATE TRIGGER staynas_ops_alert_property_scope
   EXECUTE FUNCTION public.staynas_enforce_ops_alert_property_scope();
 
 ALTER TABLE public.room_states ENABLE ROW LEVEL SECURITY;
+GRANT SELECT ON public.rooms TO authenticated,service_role;
 GRANT SELECT,INSERT,UPDATE ON public.room_states TO authenticated,service_role;
 DROP POLICY IF EXISTS "Staff manage room_states" ON public.room_states;
 DROP POLICY IF EXISTS staynas_room_states_property_scope ON public.room_states;
