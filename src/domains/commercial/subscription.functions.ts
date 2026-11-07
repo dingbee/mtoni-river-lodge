@@ -74,7 +74,7 @@ async function resolveVerifiedTenantActor(context: {
     throw new Error("Active organisation could not be verified.");
   }
 
-  const { data: hasAccess, error: accessError } = await context.supabase.rpc(
+  const { data: hasAccess, error: accessError } = await (context.supabase as any).rpc(
     "commercial_user_has_organisation_access",
     { _organisation_id: organisation.id },
   );
@@ -287,7 +287,7 @@ async function resolveVerifiedFounderActor(context: {
     throw new Error("Unauthenticated");
   }
 
-  const { data: authorised, error: authorityError } = await context.supabase.rpc(
+  const { data: authorised, error: authorityError } = await (context.supabase as any).rpc(
     "commercial_is_founder_admin",
     { _principal_id: authData.user.id },
   );
