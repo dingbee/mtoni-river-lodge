@@ -223,6 +223,14 @@ BEGIN
   IF NOT public.commercial_void_invoice(v_invoice_id2,'duplicate_invoice','approval-cc04-void-001',v_user) THEN
     RAISE EXCEPTION 'Controlled invoice void was not confirmed';
   END IF;
+  IF NOT public.commercial_void_invoice(v_invoice_id2,'duplicate_invoice','approval-cc04-void-001',v_user) THEN
+    RAISE EXCEPTION 'Exact invoice void retry was not idempotent';
+  END IF;
+  BEGIN
+    PERFORM public.commercial_void_invoice(v_invoice_id2,'duplicate_invoice','different-void-approval',v_user);
+    RAISE EXCEPTION 'Conflicting invoice void approval was accepted';
+  EXCEPTION WHEN SQLSTATE '23505' THEN NULL;
+  END;
   IF (SELECT outstanding_minor FROM public.commercial_invoice_receivables WHERE id=v_invoice_id2) <> 0
     OR (SELECT status FROM public.commercial_invoices WHERE id=v_invoice_id2) <> 'void' THEN
     RAISE EXCEPTION 'Voided invoice remains in receivables';
