@@ -79,4 +79,21 @@ describe("DC-05.04 reservation lifecycle RPC contract", () => {
     const args = buildReservationLifecycleRpcArgs(lease, event);
     expect(args._provider_modified_at).toBeNull();
   });
+
+  it("binds reinstatement to the durable event and trusted provider timestamp", () => {
+    const { event, lease } = fixture({
+      ...base,
+      eventType: "reservation.reinstated",
+      providerStatus: "confirmed",
+      providerEventId: "event-reinstated",
+      providerModifiedAt: "2026-11-07T08:00:00Z",
+    });
+    const args = buildReservationLifecycleRpcArgs(lease, event);
+    expect(args).toMatchObject({
+      _event_type: "reservation.reinstated",
+      _provider_status: "confirmed",
+      _provider_event_id: "event-reinstated",
+      _provider_modified_at: "2026-11-07T08:00:00Z",
+    });
+  });
 });
