@@ -13,13 +13,24 @@ import {
 } from "@/lib/public-booking.functions";
 
 export const Route = createFileRoute("/$propertySlug")({
-  head: ({ params }) => ({
-    meta: [
-      { title: `${params.propertySlug} — StayNas Direct` },
-      { name: "description", content: "A direct booking page powered by StayNas." },
-      { name: "robots", content: "noindex,nofollow" },
-    ],
-  }),
+  head: ({ params }) => {
+    const isNolmark = params.propertySlug === "nolmark-cdma-staynas";
+    const title = isNolmark ? "Nolmark CDMA — Direct Booking" : `${params.propertySlug} — StayNas Direct`;
+    const description = isNolmark
+      ? "Check availability and request a reservation at Nolmark CDMA. Direct reservations powered by StayNas."
+      : "A direct booking page powered by StayNas.";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:site_name", content: isNolmark ? "Nolmark CDMA" : "StayNas Direct" },
+        { name: "theme-color", content: isNolmark ? "#000000" : "#1e352a" },
+        { name: "robots", content: "noindex,nofollow" },
+      ],
+    };
+  },
   component: PublicPropertyBookingPage,
 });
 
@@ -150,9 +161,9 @@ function PublicPropertyBookingPage() {
     <main style={brandStyle} className="min-h-screen bg-[var(--direct-background)] pb-28 text-[var(--direct-text)] selection:bg-[#dce8df]">
       <header className="relative z-10 border-b border-black/[0.06] bg-[#f5f4ef]/95">
         <div className="mx-auto flex h-[68px] max-w-7xl items-center justify-between px-5 sm:px-8">
-          <a href="/" className="flex items-center gap-2.5" aria-label="StayNas home">
-            {branding.logoUrl ? <img src={branding.logoUrl} alt={property.name} className="h-9 max-w-32 object-contain" /> : <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--direct-primary)] text-sm font-semibold tracking-tight text-white">S</span>}
-            <span className="text-[17px] font-semibold tracking-[-0.04em] text-[var(--direct-primary)]">{branding.logoUrl ? property.name : <>staynas<span className="ml-1.5 text-[10px] font-medium uppercase tracking-[0.2em] text-[#718078]">direct</span></>}</span>
+          <a href="/" className="flex items-center gap-2.5" aria-label={`${property.name} booking home`}>
+            {branding.logoUrl ? <img src={branding.logoUrl} alt={property.name} className="h-9 max-w-32 object-contain" /> : <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--direct-primary)] text-sm font-semibold tracking-tight text-white">{property.name.trim().charAt(0).toUpperCase() || "N"}</span>}
+            <span className="text-[17px] font-semibold tracking-[-0.04em] text-[var(--direct-primary)]">{property.name}<span className="ml-1.5 text-[10px] font-medium uppercase tracking-[0.2em] text-[#718078]">direct</span></span>
           </a>
           <div className="flex items-center gap-2 text-[11px] font-medium tracking-wide text-[#68766d]"><ShieldCheck className="h-4 w-4"/><span className="hidden sm:inline">BOOK DIRECT · BOOK SECURE</span><span className="sm:hidden">BOOK DIRECT</span></div>
         </div>
