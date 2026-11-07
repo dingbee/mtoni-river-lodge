@@ -56,6 +56,7 @@ export const Route = createFileRoute("/api/public/staynas-demo-request")({
               name: input.name,
               email,
               ip_hash: ipHash,
+              consent_at: new Date().toISOString(),
               phone: input.phone || null,
               company: input.company || null,
               country: input.country || null,
