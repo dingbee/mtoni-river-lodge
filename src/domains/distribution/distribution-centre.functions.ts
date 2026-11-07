@@ -3,6 +3,14 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { staynasRpc } from "@/lib/staynas-rpc";
 
 type AdminQueryResult = { data: unknown; error: { message: string } | null };
+type SafeProperty = {
+  id: string;
+  organisation_id: string;
+  name: string;
+  currency: string;
+  timezone: string;
+  status: string;
+};
 type AdminQuery = PromiseLike<AdminQueryResult> & {
   select: (columns: string) => AdminQuery;
   eq: (column: string, value: unknown) => AdminQuery;
@@ -51,7 +59,7 @@ export const getDistributionCentre = createServerFn({ method: "GET" })
       .eq("id", propertyId)
       .maybeSingle();
     if (propertyResult.error) throw new Error(propertyResult.error.message);
-    const property = propertyResult.data as Record<string, unknown> | null;
+    const property = propertyResult.data as SafeProperty | null;
     if (!property || property.status !== "active") throw new Error("Active property not found or unavailable");
 
     const { data: connections, error: connectionError } = await admin
