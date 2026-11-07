@@ -103,4 +103,7 @@ Implementation is present on the engineering branch only. PostgreSQL execution i
 - `commercial_user_has_organisation_access` and `commercial_is_founder_admin` are caller-bound predicates. Founder tenant/principal configuration remains intentionally unseeded and must be provisioned only after independent identity and membership verification.
 
 ## Release gate
-CC03.02 is not implementation-complete until the exact latest commit passes the ephemeral PostgreSQL migration/security tests and the required application CI, the migration history is reconciled, and tenant/founder API authorization is integrated in the later CC03.05 milestone. Production remains untouched.
+
+CC03.02 persistence and the scoped CC03.05 tenant/founder read and trial-activation handlers are implemented on the rebased engineering branch. The PostgreSQL 17 workflow has passed migration application, grants/RLS and tenant/founder predicate regression tests, append-only and immutable-record checks, atomic trial activation, idempotent replay, and the concurrent one-trial test.
+
+The full P1 build/type/lint and cross-domain regression workflows are running against the same rebased commit. Application UAT must use isolated test identities and a server-provisioned CC-02 trial-policy configuration. No production migration, tenant data, founder identity, membership/role or deployment has been changed.
