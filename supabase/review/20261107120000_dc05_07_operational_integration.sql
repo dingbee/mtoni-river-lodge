@@ -122,45 +122,52 @@ CREATE POLICY staynas_distribution_operational_property_read
 
 CREATE OR REPLACE FUNCTION public.staynas_sync_distribution_event_history(_inbox_id uuid)
 RETURNS jsonb
-LANGUAGE plpgsql
+LANGUAGE sql
 SECURITY DEFINER
 SET search_path=''
 AS $function$
-DECLARE
-  v_inbox public.staynas_distribution_webhook_inbox%ROWTYPE;
-  v_link public.staynas_distribution_reservation_links%ROWTYPE;
-BEGIN
-  SELECT * INTO v_inbox FROM public.staynas_distribution_webhook_inbox i
-  WHERE i.id=_inbox_id;
-  IF v_inbox.id IS NULL THEN RETURN jsonb_build_object('ok',false,'outcome','inbox_missing'); END IF;
-  SELECT * INTO v_link FROM public.staynas_distribution_reservation_links l
-  WHERE l.organisation_id=v_inbox.organisation_id AND l.property_id=v_inbox.property_id
-    AND l.connection_id=v_inbox.connection_id AND l.account_grant_id=v_inbox.account_grant_id
-    AND l.external_account_id=v_inbox.external_account_id AND l.provider_key=v_inbox.provider_key
-    AND l.environment=v_inbox.environment
-    AND l.external_reservation_id=v_inbox.normalized_event->>'externalReservationId'
-  FOR UPDATE;
-  IF v_link.id IS NULL THEN RETURN jsonb_build_object('ok',true,'outcome','unlinked'); END IF;
-  INSERT INTO public.staynas_distribution_operational_events(
-    organisation_id,property_id,booking_id,reservation_link_id,source_inbox_id,
-    provider_key,external_reservation_id,provider_event_id,event_type,provider_status,
-    processing_status,attempt_count,safe_error_summary,received_at,processed_at
-  ) VALUES (
-    v_inbox.organisation_id,v_inbox.property_id,v_link.booking_id,v_link.id,v_inbox.id,
-    v_inbox.provider_key,v_link.external_reservation_id,v_inbox.provider_event_id,
-    v_inbox.event_type,v_inbox.normalized_event->>'providerStatus',
-    v_inbox.processing_status,v_inbox.attempt_count,v_inbox.safe_error_summary,
-    v_inbox.received_at,v_inbox.processed_at
+  WITH source AS MATERIALIZED (
+    SELECT i.* FROM public.staynas_distribution_webhook_inbox i WHERE i.id=_inbox_id
+  ),
+  linked AS MATERIALIZED (
+    SELECT l.id AS reservation_link_id,l.booking_id,l.organisation_id,l.property_id,
+      l.provider_key,l.external_reservation_id,s.id AS source_inbox_id,
+      s.provider_event_id,s.event_type,s.normalized_event->>'providerStatus' AS provider_status,
+      s.processing_status,s.attempt_count,s.safe_error_summary,s.received_at,s.processed_at
+    FROM source s
+    JOIN public.staynas_distribution_reservation_links l
+      ON l.organisation_id=s.organisation_id AND l.property_id=s.property_id
+     AND l.connection_id=s.connection_id AND l.account_grant_id=s.account_grant_id
+     AND l.external_account_id=s.external_account_id AND l.provider_key=s.provider_key
+     AND l.environment=s.environment
+     AND l.external_reservation_id=s.normalized_event->>'externalReservationId'
+  ),
+  upserted AS (
+    INSERT INTO public.staynas_distribution_operational_events(
+      organisation_id,property_id,booking_id,reservation_link_id,source_inbox_id,
+      provider_key,external_reservation_id,provider_event_id,event_type,provider_status,
+      processing_status,attempt_count,safe_error_summary,received_at,processed_at
+    )
+    SELECT organisation_id,property_id,booking_id,reservation_link_id,source_inbox_id,
+      provider_key,external_reservation_id,provider_event_id,event_type,provider_status,
+      processing_status,attempt_count,safe_error_summary,received_at,processed_at
+    FROM linked
+    ON CONFLICT(source_inbox_id) DO UPDATE SET
+      provider_status=EXCLUDED.provider_status,
+      processing_status=EXCLUDED.processing_status,
+      attempt_count=EXCLUDED.attempt_count,
+      safe_error_summary=EXCLUDED.safe_error_summary,
+      processed_at=EXCLUDED.processed_at,
+      updated_at=pg_catalog.now()
+    RETURNING booking_id
   )
-  ON CONFLICT(source_inbox_id) DO UPDATE SET
-    provider_status=EXCLUDED.provider_status,
-    processing_status=EXCLUDED.processing_status,
-    attempt_count=EXCLUDED.attempt_count,
-    safe_error_summary=EXCLUDED.safe_error_summary,
-    processed_at=EXCLUDED.processed_at,
-    updated_at=pg_catalog.now();
-  RETURN jsonb_build_object('ok',true,'outcome','recorded','booking_id',v_link.booking_id);
-END;
+  SELECT CASE
+    WHEN NOT EXISTS(SELECT 1 FROM source)
+      THEN jsonb_build_object('ok',false,'outcome','inbox_missing')
+    WHEN NOT EXISTS(SELECT 1 FROM linked)
+      THEN jsonb_build_object('ok',true,'outcome','unlinked')
+    ELSE jsonb_build_object('ok',true,'outcome','recorded','booking_id',(SELECT booking_id FROM linked LIMIT 1))
+  END;
 $function$;
 
 REVOKE ALL ON FUNCTION public.staynas_sync_distribution_event_history(uuid)
