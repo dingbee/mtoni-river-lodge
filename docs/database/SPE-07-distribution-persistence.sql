@@ -200,8 +200,9 @@ CREATE TABLE IF NOT EXISTS public.staynas_distribution_reservation_inbox (
   payload_fingerprint text NOT NULL CHECK (payload_fingerprint ~ '^[a-f0-9]{64}$'),
   normalized_payload jsonb NOT NULL CHECK (jsonb_typeof(normalized_payload) = 'object'),
   processing_status text NOT NULL DEFAULT 'received'
-    CHECK (processing_status IN ('received','processing','applied','duplicate','stale','manual_review','failed')),
+    CHECK (processing_status IN ('received','processing','applied','duplicate','stale','manual_review','failed','dead_letter')),
   attempt_count integer NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+  max_attempts integer NOT NULL DEFAULT 8 CHECK (max_attempts BETWEEN 1 AND 20),
   next_attempt_at timestamptz NOT NULL DEFAULT now(),
   locked_at timestamptz,
   lock_token uuid,
@@ -273,6 +274,14 @@ BEGIN
     OR length(btrim(p_idempotency_key)) NOT BETWEEN 8 AND 200
     OR jsonb_typeof(p_request_payload) NOT IN ('object','array') THEN
     RAISE EXCEPTION 'Invalid distribution operation request' USING ERRCODE = '22023';
+  END IF;
+
+  IF p_created_by IS NOT NULL AND (
+    NOT public.staynas_user_has_property_access(p_created_by,p_property_id)
+    OR NOT public.has_any_role(p_created_by,ARRAY['owner','manager','admin','reservations']::public.app_role[])
+  ) THEN
+    RAISE EXCEPTION 'Distribution operation actor is not authorized for this property'
+      USING ERRCODE = '42501';
   END IF;
 
   IF NOT EXISTS (
@@ -384,7 +393,7 @@ SET search_path = public, pg_temp
 AS $function$
 DECLARE v_operation_id uuid;
 BEGIN
-  IF p_status NOT IN ('delivered','retry_wait','dead_letter') THEN
+  IF p_status IS NULL OR p_status NOT IN ('delivered','retry_wait','dead_letter') THEN
     RAISE EXCEPTION 'Invalid outbox terminal/retry status' USING ERRCODE = '22023';
   END IF;
 
@@ -526,11 +535,11 @@ BEGIN
     RAISE EXCEPTION 'Invalid reservation inbox outcome' USING ERRCODE = '22023';
   END IF;
   UPDATE public.staynas_distribution_reservation_inbox
-  SET processing_status=p_status,
+  SET processing_status=CASE WHEN p_status='failed' AND attempt_count>=max_attempts THEN 'dead_letter' ELSE p_status END,
       canonical_booking_id=coalesce(p_booking_id,canonical_booking_id),
       safe_error_code=p_error_code,safe_error_message=p_safe_error_message,
       next_attempt_at=CASE WHEN p_status='failed' THEN coalesce(p_retry_at,now()) ELSE next_attempt_at END,
-      processed_at=CASE WHEN p_status='failed' THEN NULL ELSE now() END,
+      processed_at=CASE WHEN p_status='failed' AND attempt_count<max_attempts THEN NULL ELSE now() END,
       locked_at=NULL,lock_token=NULL
   WHERE id=p_inbox_id AND processing_status='processing' AND lock_token=p_lease_token;
   RETURN FOUND;
