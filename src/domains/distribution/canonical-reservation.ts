@@ -31,8 +31,7 @@ export async function applyInboundReservationEvent(
   if (externalPrice.priceVerificationStatus === "incomplete" || !priceVerified) {
     return { status: "manual_review", reason: "Provider price has not passed verification; automatic booking creation or modification is prohibited." };
   }
-  externalPrice.priceVerificationStatus = "verified";
   return event.eventType === "created"
-    ? writer.create({ inboxId, event, externalPrice })
-    : writer.modify({ inboxId, event, externalPrice });
+    ? writer.create({ inboxId, event, externalPrice: { ...externalPrice, priceVerificationStatus: "verified" } })
+    : writer.modify({ inboxId, event, externalPrice: { ...externalPrice, priceVerificationStatus: "verified" } });
 }
