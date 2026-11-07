@@ -11,7 +11,7 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: "Every stay. Every operation. One intelligent system." },
       { property: "og:type", content: "website" },
     ],
-    links: [{ rel: "canonical", href: "https://stayn​as.com/" }],
+    links: [{ rel: "canonical", href: "https://staynas.com/" }],
   }),
   // staynas.com is the product website. The application and property hosts
   // retain their existing root routing behaviour.
