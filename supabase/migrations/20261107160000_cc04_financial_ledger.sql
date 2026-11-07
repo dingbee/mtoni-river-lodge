@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS public.commercial_payment_transactions (
   provider_account_id uuid NOT NULL,
   provider text NOT NULL CHECK (provider IN ('pesapal','bank_transfer','manual')),
   provider_order_ref text,
+  provider_redirect_url text,
   provider_transaction_ref text,
   idempotency_key text NOT NULL CHECK (length(btrim(idempotency_key)) BETWEEN 8 AND 200),
   amount_minor numeric(20,0) NOT NULL CHECK (amount_minor > 0),
@@ -1367,6 +1368,10 @@ BEGIN
   IF OLD.provider_order_ref IS NOT NULL
     AND NEW.provider_order_ref IS DISTINCT FROM OLD.provider_order_ref THEN
     RAISE EXCEPTION 'Provider order reference cannot be rewritten' USING ERRCODE='55000';
+  END IF;
+  IF OLD.provider_redirect_url IS NOT NULL
+    AND NEW.provider_redirect_url IS DISTINCT FROM OLD.provider_redirect_url THEN
+    RAISE EXCEPTION 'Provider redirect URL cannot be rewritten' USING ERRCODE='55000';
   END IF;
   IF NOT (
     NEW.status=OLD.status
