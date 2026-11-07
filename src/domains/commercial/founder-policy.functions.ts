@@ -48,6 +48,26 @@ const saveInput = z.object({
   }
 });
 
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+type PolicyRecord = {
+  id: string;
+  policy_type: typeof policyTypes[number];
+  version: number;
+  status: "draft" | "published" | "retired";
+  payload: JsonValue;
+  effective_from: string | null;
+  effective_to: string | null;
+  created_at: string;
+};
+type PolicyAuditRecord = {
+  id: string;
+  actor_user_id: string | null;
+  action: string;
+  resource_ref: string;
+  outcome: string;
+  occurred_at: string;
+  metadata: JsonValue;
+};
 type QueryResult = { data: unknown; error: unknown | null };
 type Query = PromiseLike<QueryResult> & {
   select(columns?: string): Query;
@@ -117,7 +137,7 @@ export const listFounderCommercialPolicies = createServerFn({ method: "GET" })
       ((currentData ?? []) as Array<{ policy_type: typeof policyTypes[number]; version_id: string }>)
         .map((row) => [row.policy_type, row.version_id]),
     );
-    return ((data ?? []) as Array<{ id: string; policy_type: typeof policyTypes[number]; version: number; status: "draft" | "published" | "retired"; payload: unknown; effective_from: string | null; effective_to: string | null; created_at: string }>).map((row) => ({
+    return ((data ?? []) as PolicyRecord[]).map((row) => ({
       ...row,
       is_current: currentByType.get(row.policy_type) === row.id,
     }));
@@ -180,5 +200,5 @@ export const listFounderCommercialPolicyAudit = createServerFn({ method: "GET" }
       .order("occurred_at", { ascending: false })
       .limit(100);
     if (error) throw new Error("Unable to load founder commercial policy audit evidence.");
-    return data ?? [];
+    return (data ?? []) as PolicyAuditRecord[];
   });
