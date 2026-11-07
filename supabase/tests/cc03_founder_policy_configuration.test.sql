@@ -31,8 +31,10 @@ BEGIN
     RAISE EXCEPTION 'Policy configuration table grants are not least-privilege';
   END IF;
 
-  IF NOT has_table_privilege('service_role', 'public.commercial_policy_config_versions', 'SELECT') THEN
-    RAISE EXCEPTION 'Trusted server read access is missing';
+  IF NOT has_table_privilege('service_role', 'public.commercial_policy_config_versions', 'SELECT')
+    OR NOT has_table_privilege('service_role', 'public.commercial_policy_config_current', 'SELECT')
+    OR has_table_privilege('authenticated', 'public.commercial_policy_config_current', 'SELECT') THEN
+    RAISE EXCEPTION 'Trusted server read access or client isolation is incorrect';
   END IF;
 
   IF has_function_privilege('anon', 'public.commercial_record_policy_config(text,integer,text,jsonb,date,date)', 'EXECUTE')
@@ -69,8 +71,12 @@ BEGIN
     SELECT 1 FROM public.commercial_policy_config_versions
     WHERE id = v_id AND policy_type = 'trial_policy'
       AND version = 1 AND status = 'published'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM public.commercial_policy_config_current
+    WHERE policy_type = 'trial_policy' AND version_id = v_id
+      AND published_by = v_user
   ) THEN
-    RAISE EXCEPTION 'Founder policy configuration was not persisted';
+    RAISE EXCEPTION 'Founder policy configuration or current published pointer was not persisted';
   END IF;
 
   IF NOT EXISTS (
