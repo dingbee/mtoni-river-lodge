@@ -77,6 +77,46 @@ describe("distribution contracts", () => {
     }).success).toBe(false);
   });
 
+
+  it("accepts multi-room allocations only when their amounts reconcile exactly", () => {
+    const multiRoom = {
+      provider: "test.provider",
+      externalAccountId: "acct-1",
+      externalPropertyId: "prop-1",
+      externalReservationId: "booking-multi",
+      eventId: "event-multi",
+      eventVersion: "3",
+      eventType: "created",
+      roomTypeExternalId: "room-1",
+      ratePlanExternalId: "rate-1",
+      arrivalDate: "2026-12-01",
+      departureDate: "2026-12-04",
+      adults: 3,
+      children: 1,
+      guest: { fullName: "Test Guest", email: "guest@example.com", phone: null },
+      confirmedAmountMinor: 30000,
+      currency: "USD",
+      taxAmountMinor: null,
+      feeAmountMinor: null,
+      commissionAmountMinor: null,
+      paymentStatus: "unpaid",
+      rawPayloadFingerprint: "c".repeat(64),
+      allocations: [
+        { externalAllocationId: "line-1", roomTypeExternalId: "room-1", arrivalDate: "2026-12-01", departureDate: "2026-12-04", adults: 2, children: 0, confirmedAmountMinor: 18000 },
+        { externalAllocationId: "line-2", roomTypeExternalId: "room-2", arrivalDate: "2026-12-01", departureDate: "2026-12-04", adults: 1, children: 1, confirmedAmountMinor: 12000 },
+      ],
+    };
+    expect(inboundReservationSchema.safeParse(multiRoom).success).toBe(true);
+    expect(inboundReservationSchema.safeParse({
+      ...multiRoom,
+      allocations: multiRoom.allocations.map((line, index) => ({ ...line, externalAllocationId: index ? "line-1" : "line-1" })),
+    }).success).toBe(false);
+    expect(inboundReservationSchema.safeParse({
+      ...multiRoom,
+      allocations: multiRoom.allocations.map((line) => ({ ...line, confirmedAmountMinor: line.confirmedAmountMinor + 1 })),
+    }).success).toBe(false);
+  });
+
   it("rejects unsupported operations advertised without a provider method", () => {
     const adapter = {
       id: "test.provider",
