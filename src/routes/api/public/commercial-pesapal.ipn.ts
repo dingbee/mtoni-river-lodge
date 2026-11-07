@@ -33,6 +33,12 @@ async function handleCommercialPesapalNotification(orderTrackingId: string, merc
       _idempotency_key: `pesapal-settlement-${result.confirmationCode}`, _verified_at: new Date().toISOString(),
     });
     if (allocationError) return false;
+    try {
+      const { sendCommercialPaymentConfirmationEmail } = await import("@/domains/commercial/commercial-financial-notifications.server");
+      await sendCommercialPaymentConfirmationEmail({ admin, paymentId: payment.id });
+    } catch (notificationError) {
+      console.error("[staynas-commercial-pesapal] receipt notification failed", notificationError);
+    }
   } else if (result.statusCode === 2) {
     await admin.from("commercial_payment_transactions").update({ status: "failed", updated_at: new Date().toISOString() })
       .eq("id", payment.id).eq("status", "pending");
