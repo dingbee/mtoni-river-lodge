@@ -7,11 +7,14 @@ DECLARE
   v_account uuid := '73000000-0000-4000-8000-000000000001';
   v_sub uuid := '74000000-0000-4000-8000-000000000001';
   v_provider uuid;
+  v_payment2 uuid;
+  v_payment_failed uuid;
   v_invoice jsonb;
   v_invoice_id uuid;
   v_payment uuid;
   v_allocation jsonb;
   v_reversal uuid;
+  v_adjustment uuid;
   v_paid numeric;
   v_status text;
 BEGIN
@@ -50,6 +53,12 @@ BEGIN
   v_payment := public.commercial_create_payment_attempt(
     v_invoice_id,v_provider,50000,'TZS','cc04-payment-attempt-001',v_user
   );
+  v_payment2 := public.commercial_create_payment_attempt(
+    v_invoice_id,v_provider,30000,'TZS','cc04-payment-attempt-002',v_user
+  );
+  v_payment_failed := public.commercial_create_payment_attempt(
+    v_invoice_id,v_provider,1000,'TZS','cc04-payment-attempt-failed',v_user
+  );
   v_allocation := public.commercial_confirm_and_allocate_payment(
     v_payment,'manual-receipt-001',50000,'TZS','authorized_manual_verification',
     'manual-settlement-001','cc04-allocation-001',now()
@@ -60,13 +69,46 @@ BEGIN
     RAISE EXCEPTION 'Partial payment balance incorrect: %, %',v_paid,v_status;
   END IF;
 
+  v_allocation := public.commercial_confirm_and_allocate_payment(
+    v_payment2,'manual-receipt-002',30000,'TZS','authorized_manual_verification',
+    'manual-settlement-002','cc04-allocation-002',now()
+  );
+  v_adjustment := public.commercial_post_invoice_adjustment(
+    v_invoice_id,'cc04-credit-note-001','credit_note',10000,'TZS',
+    'contractual_credit','approval-cc04-credit-001',v_user
+  );
+  IF (SELECT outstanding_minor FROM public.commercial_invoice_receivables WHERE id=v_invoice_id) <> 30000 THEN
+    RAISE EXCEPTION 'Credit note was not reflected in the receivable balance';
+  END IF;
+  IF public.commercial_record_payment_failure(
+    v_payment_failed,'manual-failed-ref-001','failed','bank_confirmation_failed','cc04-failure-001'
+  ) THEN
+    RAISE EXCEPTION 'First payment failure was unexpectedly a replay';
+  END IF;
+  IF NOT public.commercial_record_payment_failure(
+    v_payment_failed,'manual-failed-ref-001','failed','bank_confirmation_failed','cc04-failure-001'
+  ) THEN
+    RAISE EXCEPTION 'Payment failure replay was not idempotent';
+  END IF;
+  BEGIN
+    PERFORM public.commercial_create_payment_attempt(
+      v_invoice_id,v_provider,40000,'TZS','cc04-payment-overpay-001',v_user
+    );
+    RAISE EXCEPTION 'Payment attempt exceeding adjusted outstanding was accepted';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM = 'Payment attempt exceeding adjusted outstanding was accepted' THEN RAISE; END IF;
+  END;
+
   v_reversal := public.commercial_record_payment_reversal(
     v_payment,'manual-reversal-001',10000,'TZS','verified_refund',
     'cc04-reversal-001',now(),v_user
   );
   SELECT amount_paid_minor,status INTO v_paid,v_status FROM public.commercial_invoices WHERE id=v_invoice_id;
-  IF v_paid <> 40000 OR v_status <> 'partially_paid' THEN
+  IF v_paid <> 70000 OR v_status <> 'partially_paid' THEN
     RAISE EXCEPTION 'Reversal balance incorrect: %, %',v_paid,v_status;
+  END IF;
+  IF (SELECT outstanding_minor FROM public.commercial_invoice_receivables WHERE id=v_invoice_id) <> 50000 THEN
+    RAISE EXCEPTION 'Post-reversal receivable balance incorrect';
   END IF;
 
   BEGIN
