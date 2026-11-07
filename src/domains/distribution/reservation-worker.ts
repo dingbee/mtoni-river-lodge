@@ -23,6 +23,7 @@ export interface ReservationInboxWorkerDependencies {
     retryAt?: string;
   }): Promise<boolean>;
   writer: CanonicalReservationWriter;
+  recordPriceCommitment(inboxId: string): Promise<string>;
   now?: () => Date;
 }
 
@@ -49,7 +50,12 @@ export async function runReservationInboxBatch(
 
   for (const item of items) {
     try {
-      const outcome = await applyInboundReservationEvent(item.normalizedPayload, deps.writer);
+      const payload = item.normalizedPayload;
+      if (payload.eventType !== "cancelled" && payload.confirmedAmountMinor !== null
+        && payload.confirmedAmountMinor !== undefined && typeof payload.currency === "string") {
+        await deps.recordPriceCommitment(item.inboxId);
+      }
+      const outcome = await applyInboundReservationEvent(payload, deps.writer);
       const status = outcome.status;
       const saved = await deps.finish({
         inboxId: item.inboxId, leaseToken: item.leaseToken, status,
