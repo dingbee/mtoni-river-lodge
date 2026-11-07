@@ -35,7 +35,7 @@ export function validateInboundEvent(raw: unknown): InboundReservationEvent {
 }
 
 /** External confirmed price is a historical commitment, never a replacement for the live public rate. */
-export function buildExternalPriceCommitment(event: InboundReservationEvent) {
+export function buildExternalPriceCommitment(event: InboundReservationEvent, verified = false) {
   return {
     externalQuotedAmountMinor: event.confirmedAmountMinor,
     externalConfirmedAmountMinor: event.confirmedAmountMinor,
@@ -44,6 +44,6 @@ export function buildExternalPriceCommitment(event: InboundReservationEvent) {
     feeAmountMinor: event.feeAmountMinor,
     commissionAmountMinor: event.commissionAmountMinor,
     paymentStatus: event.paymentStatus,
-    priceVerificationStatus: event.confirmedAmountMinor === null ? "incomplete" as const : "unverified" as const,
+    priceVerificationStatus: event.confirmedAmountMinor === null ? "incomplete" as const : verified ? "verified" as const : "unverified" as const,
   };
 }
