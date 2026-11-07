@@ -1067,3 +1067,20 @@ export const previewCommercialProration=createServerFn({method:"POST"})
         totalUnits:data.totalUnits,rounding:data.rounding,amountMinor}});
     return {amountMinor,contractReference:data.contractReference,rounding:data.rounding};
   });
+
+export const listMyCommercialPaymentMethods=createServerFn({method:"GET"})
+  .middleware([requireSupabaseAuth])
+  .handler(async({context})=>{
+    const actor=await resolveVerifiedTenantActor(context);
+    if(actor.actorRole!=="tenant_admin") throw new Error("Forbidden: tenant administrator authority is required.");
+    const admin=await getAdmin();
+    const {data,error}=await admin.from("commercial_provider_accounts")
+      .select("id,provider,provider_account_ref,supported_currencies,public_configuration")
+      .eq("organisation_id",actor.organisationId).eq("status","active")
+      .order("provider",{ascending:true});
+    if(error) throw new Error("Active commercial payment methods could not be loaded.");
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:actor.organisationId,actorRole:actor.actorRole,action:"payment.methods_viewed",
+      resourceType:"payment_method_index",resourceRef:actor.organisationId,metadata:{methodCount:data?.length??0}});
+    return data??[];
+  });
