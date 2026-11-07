@@ -828,3 +828,59 @@ export const issueCommercialInvoiceDraft=createServerFn({method:"POST"})
     }catch{notificationStatus="failed";}
     return {invoiceId:data.invoiceId,status:"issued" as const,replayed:result,notificationStatus};
   });
+
+const providerStatementRow=z.object({
+  providerRef:z.string().trim().min(1).max(200),
+  amountMinor:z.number().int().nonnegative().safe(),
+  currency:z.enum(["TZS","USD"]),
+  status:z.enum(["successful","failed","cancelled","reversed"]),
+});
+export const reconcileCommercialProviderStatementRun=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>z.object({
+    runId:z.string().uuid(),providerRows:z.array(providerStatementRow).max(1000),
+  }).parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context);
+    const admin=await getAdmin();
+    const {data:run,error:runError}=await admin.from("commercial_reconciliation_runs").select("*")
+      .eq("id",data.runId).maybeSingle();
+    if(runError||!run||run.status!=="open") throw new Error("Open reconciliation run was not found.");
+    if(!run.provider_account_id||!run.organisation_id) throw new Error("A tenant provider account is required for automated statement matching.");
+    const {data:payments,error:paymentError}=await admin.from("commercial_payment_transactions").select("*")
+      .eq("organisation_id",run.organisation_id).eq("provider_account_id",run.provider_account_id)
+      .eq("currency",run.currency).gte("initiated_at",run.period_start).lte("initiated_at",run.period_end);
+    if(paymentError) throw new Error("Internal payments for the reconciliation period could not be loaded.");
+    const paymentIds=(payments??[]).map((payment:{id:string})=>payment.id);
+    const allocations=paymentIds.length
+      ? await admin.from("commercial_payment_allocations").select("payment_id,amount_minor").in("payment_id",paymentIds)
+      : {data:[],error:null};
+    if(allocations.error) throw new Error("Payment allocations for reconciliation could not be loaded.");
+    const allocatedByPayment=new Map<string,number>();
+    for(const allocation of allocations.data??[]){
+      allocatedByPayment.set(allocation.payment_id,(allocatedByPayment.get(allocation.payment_id)??0)+Number(allocation.amount_minor));
+    }
+    const internal=(payments??[]).map((payment:{id:string;provider_transaction_ref:string|null;provider_order_ref:string|null;amount_minor:number|string;currency:"TZS"|"USD";status:"pending"|"successful"|"failed"|"cancelled"|"partially_reversed"|"reversed"})=>({
+      id:payment.id,providerTransactionRef:payment.provider_transaction_ref,providerOrderRef:payment.provider_order_ref,
+      amountMinor:Number(payment.amount_minor),currency:payment.currency,status:payment.status,
+      allocatedMinor:allocatedByPayment.get(payment.id)??0,
+    }));
+    const {reconcileCommercialProviderStatement}=await import("./commercial-reconciliation-engine");
+    const results=reconcileCommercialProviderStatement(internal,data.providerRows);
+    if(results.length){
+      const {error:insertError}=await admin.from("commercial_reconciliation_items").insert(results.map(item=>({
+        run_id:data.runId,item_type:item.itemType,internal_payment_id:item.internalPaymentId,
+        provider_ref:item.providerRef,expected_amount_minor:item.expectedAmountMinor,
+        observed_amount_minor:item.observedAmountMinor,expected_currency:item.expectedCurrency,
+        observed_currency:item.observedCurrency,evidence:item.evidence,
+        resolution_status:item.resolutionStatus,resolution_ref:item.resolutionRef,
+      })));
+      if(insertError) throw new Error("Reconciliation evidence could not be persisted.");
+    }
+    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+      organisationId:run.organisation_id,actorRole:"founder_admin",action:"reconciliation.statement_compared",
+      resourceType:"reconciliation_run",resourceRef:data.runId,
+      metadata:{providerRows:data.providerRows.length,internalPayments:internal.length,findings:results.length,
+        discrepancies:results.filter(item=>item.resolutionStatus==="unresolved").length}});
+    return results;
+  });
