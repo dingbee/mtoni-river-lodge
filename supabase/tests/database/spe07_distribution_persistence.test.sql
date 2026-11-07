@@ -182,7 +182,7 @@ SELECT is((
     (SELECT property_id FROM spe07_test_connection),
     (SELECT id FROM spe07_test_connection),
     'spe07-provider-event-1','spe07-external-reservation-1','created','1',
-    repeat('c',64),'{"externalReservationId":"spe07-external-reservation-1","confirmedAmountMinor":12345,"currency":"USD","taxAmountMinor":1234,"feeAmountMinor":250,"commissionAmountMinor":500,"paymentStatus":"unpaid"}'::jsonb
+    repeat('c',64),'{"externalReservationId":"spe07-external-reservation-1","eventType":"created","confirmedAmountMinor":12345,"currency":"USD","taxAmountMinor":1234,"feeAmountMinor":250,"commissionAmountMinor":500,"paymentStatus":"unpaid"}'::jsonb
   )
 ),false,'first provider reservation event is durably received');
 
@@ -318,7 +318,7 @@ SELECT is((
     'spe07-provider-event-multi-create','spe07-external-reservation-multi','created','1',
     repeat('f',64),
     '{
-      "eventType":"created","roomTypeExternalId":"spe07-external-room-a","ratePlanExternalId":null,
+      "provider":"spe07-test-provider","externalAccountId":"spe07-test-account","externalPropertyId":"spe07-test-external-property","externalReservationId":"spe07-external-reservation-multi","eventId":"spe07-provider-event-multi-create","eventVersion":"1","eventType":"created","roomTypeExternalId":"spe07-external-room-a","ratePlanExternalId":null,
       "arrivalDate":"2026-12-01","departureDate":"2026-12-03","adults":2,"children":0,
       "guest":{"fullName":"SPE07 OTA Guest","email":"ota-guest-spe07@example.com","phone":null},
       "confirmedAmountMinor":19134,"currency":"USD","taxAmountMinor":1000,"feeAmountMinor":0,
@@ -376,7 +376,7 @@ SELECT is((
     'spe07-provider-event-multi-modify','spe07-external-reservation-multi','modified','2',
     repeat('2',64),
     '{
-      "eventType":"modified","roomTypeExternalId":"spe07-external-room-a","ratePlanExternalId":null,
+      "provider":"spe07-test-provider","externalAccountId":"spe07-test-account","externalPropertyId":"spe07-test-external-property","externalReservationId":"spe07-external-reservation-multi","eventId":"spe07-provider-event-multi-modify","eventVersion":"2","eventType":"modified","roomTypeExternalId":"spe07-external-room-a","ratePlanExternalId":null,
       "arrivalDate":"2026-12-01","departureDate":"2026-12-03","adults":2,"children":0,
       "guest":{"fullName":"SPE07 OTA Guest","email":"ota-guest-spe07@example.com","phone":null},
       "confirmedAmountMinor":20000,"currency":"USD","taxAmountMinor":1200,"feeAmountMinor":0,
@@ -421,7 +421,7 @@ SELECT is((
     (SELECT property_id FROM spe07_test_connection),
     (SELECT id FROM spe07_test_connection),
     'spe07-provider-event-multi-cancel','spe07-external-reservation-multi','cancelled','3',
-    repeat('4',64),'{"eventType":"cancelled"}'::jsonb
+    repeat('4',64),'{"provider":"spe07-test-provider","externalAccountId":"spe07-test-account","externalPropertyId":"spe07-test-external-property","externalReservationId":"spe07-external-reservation-multi","eventId":"spe07-provider-event-multi-cancel","eventVersion":"3","eventType":"cancelled"}'::jsonb
   )
 ),false,'external reservation cancellation is received');
 CREATE TEMP TABLE spe07_test_cancel_claim AS
