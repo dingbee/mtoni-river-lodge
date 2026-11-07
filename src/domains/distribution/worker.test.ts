@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { runDistributionOutboxBatch } from "./worker";
 import { DistributionProviderRegistry } from "./registry";
 import type { DistributionProviderAdapter } from "./provider";
+import type { ProviderCapabilities } from "./contracts";
 
 const adapter: DistributionProviderAdapter = {
   id: "test-provider",
@@ -55,7 +56,7 @@ describe("distribution outbox worker", () => {
           idempotencyKey: "stable-idempotency-key", correlationId: item.operationId,
         },
         capabilities: {
-          operations: ["rates.push"], restrictions: [],
+          operations: ["rates.push"] as ProviderCapabilities["operations"], restrictions: [],
           supportsOccupancyPricing: false, supportsTaxBreakdown: false,
           supportsFeeBreakdown: false, supportsCurrencyConversion: false,
           reservationDelivery: "none", supportsEventVersioning: false,
