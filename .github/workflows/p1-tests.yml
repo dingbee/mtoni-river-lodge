@@ -62,6 +62,7 @@ jobs:
           src/domains/commercial/settlement-contract.test.ts
           src/domains/commercial/commercial-billing-engine.test.ts
           src/domains/commercial/commercial-payment-adapters.test.ts
+          src/domains/commercial/commercial-reconciliation-engine.test.ts
       # TanStack Start generates routeTree.gen.ts during the Vite build.
       - name: Generate routes and verify production build
         run: bun run build
