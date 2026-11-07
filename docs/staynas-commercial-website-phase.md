@@ -14,7 +14,7 @@
 5. Founder users can review and update request status at `/admin/website-demo-requests`. Access is gated by `is_staynas_founder_ai_admin()`.
 
 ## Release requirements
-- Review and apply `supabase/migrations/20261107100000_staynas_website_demo_requests.sql` through the approved database migration process before enabling public submissions.
+- Review and apply `supabase/review/20261107100000_staynas_website_demo_requests.sql` through the approved database migration process before enabling public submissions.
 - Configure the optional Resend notification variables in the deployment environment if email alerts are required.
 - Run the marketing validation tests, full CI, generated route verification and production build.
 - Verify apex and www domains, all product routes, the demo request path, founder inbox access and existing tenant guest booking entry points.
