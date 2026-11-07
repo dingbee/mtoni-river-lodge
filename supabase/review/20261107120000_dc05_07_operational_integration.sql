@@ -49,6 +49,8 @@ ALTER TABLE public.staynas_distribution_room_allocations ENABLE ROW LEVEL SECURI
 REVOKE ALL ON public.staynas_distribution_room_allocations FROM PUBLIC,anon,authenticated;
 GRANT SELECT ON public.staynas_distribution_room_allocations TO authenticated,service_role;
 GRANT INSERT,UPDATE ON public.staynas_distribution_room_allocations TO service_role;
+DROP POLICY IF EXISTS staynas_distribution_room_allocations_property_read
+  ON public.staynas_distribution_room_allocations;
 CREATE POLICY staynas_distribution_room_allocations_property_read
   ON public.staynas_distribution_room_allocations FOR SELECT TO authenticated
   USING (public.staynas_user_has_property_access(auth.uid(),property_id));
@@ -108,6 +110,8 @@ ALTER TABLE public.staynas_distribution_operational_events ENABLE ROW LEVEL SECU
 REVOKE ALL ON public.staynas_distribution_operational_events FROM PUBLIC,anon,authenticated;
 GRANT SELECT ON public.staynas_distribution_operational_events TO authenticated,service_role;
 GRANT INSERT,UPDATE ON public.staynas_distribution_operational_events TO service_role;
+DROP POLICY IF EXISTS staynas_distribution_operational_events_property_read
+  ON public.staynas_distribution_operational_events;
 CREATE POLICY staynas_distribution_operational_events_property_read
   ON public.staynas_distribution_operational_events FOR SELECT TO authenticated
   USING (public.staynas_user_has_property_access(auth.uid(),property_id));
@@ -116,6 +120,8 @@ ALTER TABLE public.staynas_distribution_operational_reservations ENABLE ROW LEVE
 REVOKE ALL ON public.staynas_distribution_operational_reservations FROM PUBLIC,anon,authenticated;
 GRANT SELECT ON public.staynas_distribution_operational_reservations TO authenticated,service_role;
 GRANT INSERT,UPDATE ON public.staynas_distribution_operational_reservations TO service_role;
+DROP POLICY IF EXISTS staynas_distribution_operational_property_read
+  ON public.staynas_distribution_operational_reservations;
 CREATE POLICY staynas_distribution_operational_property_read
   ON public.staynas_distribution_operational_reservations FOR SELECT TO authenticated
   USING (public.staynas_user_has_property_access(auth.uid(),property_id));
