@@ -99,6 +99,9 @@ BEGIN
     RAISE EXCEPTION 'Channel confirmation did not preserve reservation/payment/guest state';
   END IF;
 
+  IF (SELECT count(*) FROM public.staynas_distribution_operational_events WHERE booking_id=v_booking)<>1 THEN
+    RAISE EXCEPTION 'Initial provider event was not copied to safe reservation history';
+  END IF;
   SELECT integration_status INTO v_integration_status
   FROM public.staynas_distribution_operational_reservations WHERE booking_id=v_booking;
   SELECT allocation_status INTO v_allocation_status
@@ -183,6 +186,9 @@ BEGIN
      OR v_reinstate_result->>'check_in_started'<>'false' THEN
     RAISE EXCEPTION 'Provider reinstatement was not safely applied: %',v_reinstate_result;
   END IF;
+  IF (SELECT count(*) FROM public.staynas_distribution_operational_events WHERE booking_id=v_booking)<>2 THEN
+    RAISE EXCEPTION 'Reinstatement event was not preserved in reservation history';
+  END IF;
   SELECT status::text INTO v_booking_status FROM public.bookings WHERE id=v_booking;
   SELECT allocation_status INTO v_allocation_status
   FROM public.staynas_distribution_room_allocations WHERE booking_id=v_booking;
@@ -246,6 +252,9 @@ BEGIN
   PERFORM public.staynas_mark_distribution_operational_reconciliation(
     v_modify_inbox,'stay_change_requires_reallocation'
   );
+  IF (SELECT count(*) FROM public.staynas_distribution_operational_events WHERE booking_id=v_booking)<>3 THEN
+    RAISE EXCEPTION 'Modified provider event was not preserved in reservation history';
+  END IF;
   IF (SELECT integration_status FROM public.staynas_distribution_operational_reservations
       WHERE booking_id=v_booking)<>'reconciliation_required'
      OR (SELECT check_in FROM public.bookings WHERE id=v_booking)<>'2026-12-10'
