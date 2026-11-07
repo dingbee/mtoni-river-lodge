@@ -919,7 +919,7 @@ DECLARE v_role text:=current_setting('request.jwt.claim.role',true);
   v_payment public.commercial_payment_transactions%ROWTYPE;
   v_invoice public.commercial_invoices%ROWTYPE;
   v_existing public.commercial_payment_allocations%ROWTYPE;
-  v_outstanding numeric(20,0); v_id uuid;
+  v_outstanding numeric(20,0); v_reversed numeric(20,0); v_available numeric(20,0); v_id uuid;
 BEGIN
   IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
   SELECT * INTO v_payment FROM public.commercial_payment_transactions WHERE id=_payment_id FOR UPDATE;
@@ -943,7 +943,9 @@ BEGIN
     RAISE EXCEPTION 'Target invoice does not match unallocated payment account/currency or is not payable' USING ERRCODE='55000';
   END IF;
   SELECT outstanding_minor INTO v_outstanding FROM public.commercial_invoice_receivables WHERE id=v_invoice.id;
-  IF _amount_minor<=0 OR _amount_minor>v_payment.amount_minor OR _amount_minor>coalesce(v_outstanding,0)
+  SELECT coalesce(sum(amount_minor),0) INTO v_reversed FROM public.commercial_payment_reversals WHERE payment_id=_payment_id;
+  v_available:=v_payment.amount_minor-v_reversed;
+  IF _amount_minor<=0 OR _amount_minor>v_available OR _amount_minor>coalesce(v_outstanding,0)
     OR length(btrim(_settlement_ref)) NOT BETWEEN 1 AND 200
     OR length(btrim(_idempotency_key)) NOT BETWEEN 8 AND 200 THEN
     RAISE EXCEPTION 'Unallocated payment amount exceeds available collection or invoice balance' USING ERRCODE='22023';
