@@ -1,25 +1,57 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [
+  "redirects": [
     {
       "source": "/site.webmanifest",
-      "has": [{ "type": "host", "value": "nolmarkcdma\\.staynas\\.com" }],
-      "destination": "/nolmarkcdma.webmanifest"
+      "has": [
+        {
+          "type": "host",
+          "value": {
+            "eq": "nolmarkcdma.staynas.com"
+          }
+        }
+      ],
+      "destination": "/nolmarkcdma.webmanifest",
+      "permanent": false
     },
     {
       "source": "/",
-      "has": [{ "type": "host", "value": "nolmarkcdma\\.staynas\\.com" }],
-      "destination": "/nolmark-cdma-staynas"
+      "has": [
+        {
+          "type": "host",
+          "value": {
+            "eq": "nolmarkcdma.staynas.com"
+          }
+        }
+      ],
+      "destination": "/nolmark-cdma-staynas",
+      "permanent": false
     },
     {
-      "source": "/book",
-      "has": [{ "type": "host", "value": "nolmarkcdma\\.staynas\\.com" }],
-      "destination": "/nolmark-cdma-staynas"
+      "source": "/book/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": {
+            "eq": "nolmarkcdma.staynas.com"
+          }
+        }
+      ],
+      "destination": "/nolmark-cdma-staynas",
+      "permanent": false
     },
     {
-      "source": "/rooms",
-      "has": [{ "type": "host", "value": "nolmarkcdma\\.staynas\\.com" }],
-      "destination": "/nolmark-cdma-staynas"
+      "source": "/rooms/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": {
+            "eq": "nolmarkcdma.staynas.com"
+          }
+        }
+      ],
+      "destination": "/nolmark-cdma-staynas",
+      "permanent": false
     }
   ]
 }
