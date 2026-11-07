@@ -95,6 +95,12 @@ ALTER TABLE public.ops_tasks
   DROP COLUMN IF EXISTS property_id,
   DROP COLUMN IF EXISTS room_state_id;
 
+-- Room-readiness columns supplied by the production room/housekeeping schema.
+ALTER TABLE public.room_states
+  ADD COLUMN IF NOT EXISTS state_note text,
+  ADD COLUMN IF NOT EXISTS updated_by uuid,
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+
 DO $type$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid=t.typnamespace
