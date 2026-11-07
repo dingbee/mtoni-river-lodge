@@ -351,11 +351,15 @@ function HousekeepingPage() {
                   ? "Room assignment required"
                   : needsReconciliation
                     ? "Operational reconciliation required"
-                    : awaitingInspection
-                      ? "Awaiting inspection"
-                      : row.turnover_task_status === "in_progress"
-                        ? "Turnover cleaning in progress"
-                        : "Turnover cleaning pending";
+                    : row.inspection_status === "failed"
+                      ? "Re-clean required"
+                      : awaitingInspection
+                        ? "Awaiting inspection"
+                        : row.turnover_task_status === "completed"
+                          ? "Inspection handoff missing"
+                          : row.turnover_task_status === "in_progress"
+                            ? "Turnover cleaning in progress"
+                            : "Turnover cleaning pending";
                 return (
                   <article key={row.booking_id} className="rounded-lg border p-3">
                     <div className="flex items-start justify-between gap-2">
