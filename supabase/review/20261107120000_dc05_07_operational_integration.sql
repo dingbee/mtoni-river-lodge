@@ -18,6 +18,78 @@ BEGIN
 END
 $dependencies$;
 
+-- Extend the existing operating tables with the property keys they lacked.
+-- Backfill from their canonical booking/room relations before replacing the
+-- former global-staff RLS policies.
+ALTER TABLE public.ops_tasks
+  ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS room_state_id uuid REFERENCES public.room_states(id) ON DELETE SET NULL;
+UPDATE public.ops_tasks t
+SET property_id=b.property_id
+FROM public.bookings b
+WHERE t.booking_id=b.id AND t.property_id IS NULL;
+UPDATE public.ops_tasks t
+SET room_state_id=rs.id
+FROM public.room_states rs
+WHERE t.booking_id=rs.booking_id AND t.room_state_id IS NULL;
+CREATE INDEX IF NOT EXISTS ops_tasks_property_status_due_idx
+  ON public.ops_tasks(property_id,status,due_at);
+
+DROP POLICY IF EXISTS "Staff manage ops_tasks" ON public.ops_tasks;
+DROP POLICY IF EXISTS staynas_ops_tasks_property_scope ON public.ops_tasks;
+CREATE POLICY staynas_ops_tasks_property_scope ON public.ops_tasks
+  FOR ALL TO authenticated
+  USING (
+    (property_id IS NOT NULL AND public.staynas_user_has_property_access(auth.uid(),property_id))
+    OR (property_id IS NULL AND public.is_any_staff(auth.uid()))
+  )
+  WITH CHECK (
+    (property_id IS NOT NULL AND public.staynas_user_has_property_access(auth.uid(),property_id))
+    OR (property_id IS NULL AND public.is_any_staff(auth.uid()))
+  );
+
+ALTER TABLE public.ops_alerts
+  ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE CASCADE;
+UPDATE public.ops_alerts a
+SET property_id=b.property_id
+FROM public.bookings b
+WHERE a.booking_id=b.id AND a.property_id IS NULL;
+UPDATE public.ops_alerts a
+SET property_id=r.property_id
+FROM public.rooms r
+WHERE a.room_id=r.id AND a.property_id IS NULL;
+CREATE INDEX IF NOT EXISTS ops_alerts_property_open_idx
+  ON public.ops_alerts(property_id,resolved_at) WHERE resolved_at IS NULL;
+
+DROP POLICY IF EXISTS "Staff manage ops_alerts" ON public.ops_alerts;
+DROP POLICY IF EXISTS staynas_ops_alerts_property_scope ON public.ops_alerts;
+CREATE POLICY staynas_ops_alerts_property_scope ON public.ops_alerts
+  FOR ALL TO authenticated
+  USING (
+    (property_id IS NOT NULL AND public.staynas_user_has_property_access(auth.uid(),property_id))
+    OR (property_id IS NULL AND public.is_any_staff(auth.uid()))
+  )
+  WITH CHECK (
+    (property_id IS NOT NULL AND public.staynas_user_has_property_access(auth.uid(),property_id))
+    OR (property_id IS NULL AND public.is_any_staff(auth.uid()))
+  );
+
+ALTER TABLE public.room_states ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Staff manage room_states" ON public.room_states;
+DROP POLICY IF EXISTS staynas_room_states_property_scope ON public.room_states;
+CREATE POLICY staynas_room_states_property_scope ON public.room_states
+  FOR ALL TO authenticated
+  USING (EXISTS (
+    SELECT 1 FROM public.rooms r
+    WHERE r.id=room_states.room_id
+      AND public.staynas_user_has_property_access(auth.uid(),r.property_id)
+  ))
+  WITH CHECK (EXISTS (
+    SELECT 1 FROM public.rooms r
+    WHERE r.id=room_states.room_id
+      AND public.staynas_user_has_property_access(auth.uid(),r.property_id)
+  ));
+
 -- A physical room is allocated for the reservation's date range. This is
 -- separate from room_states, which describes the unit's present housekeeping/
 -- occupancy condition. It avoids marking a future room occupied or blocking a
@@ -531,8 +603,8 @@ BEGIN
     IF v_room_state_id IS NULL THEN
       v_integration_status:='room_assignment_required';
       v_error_code:='physical_room_assignment_required';
-      INSERT INTO public.ops_alerts(kind,severity,booking_id,room_id,message)
-      VALUES('room_conflict','warning',v_booking.id,v_booking.room_id,
+      INSERT INTO public.ops_alerts(property_id,kind,severity,booking_id,room_id,message)
+      VALUES(v_link.property_id,'room_conflict','warning',v_booking.id,v_booking.room_id,
         'Channel reservation requires physical room assignment before arrival.')
       ON CONFLICT (booking_id,kind)
         WHERE booking_id IS NOT NULL AND kind='room_conflict' AND resolved_at IS NULL
@@ -645,8 +717,8 @@ BEGIN
       IF v_room_state_id IS NULL THEN
         v_integration_status:='room_assignment_required';
         v_error_code:='physical_room_assignment_required';
-        INSERT INTO public.ops_alerts(kind,severity,booking_id,room_id,message)
-        VALUES('room_conflict','warning',NEW.id,NEW.room_id,
+        INSERT INTO public.ops_alerts(property_id,kind,severity,booking_id,room_id,message)
+        VALUES(NEW.property_id,'room_conflict','warning',NEW.id,NEW.room_id,
           'Confirmed channel reservation requires physical room assignment before arrival.')
         ON CONFLICT (booking_id,kind)
           WHERE booking_id IS NOT NULL AND kind='room_conflict' AND resolved_at IS NULL
@@ -933,8 +1005,8 @@ BEGIN
 
   IF v_room_state_id IS NULL THEN
     v_integration_status:='room_assignment_required';
-    INSERT INTO public.ops_alerts(kind,severity,booking_id,room_id,message)
-    VALUES('room_conflict','warning',v_booking.id,v_booking.room_id,
+    INSERT INTO public.ops_alerts(property_id,kind,severity,booking_id,room_id,message)
+    VALUES(v_link.property_id,'room_conflict','warning',v_booking.id,v_booking.room_id,
       'Reinstated channel reservation requires physical room assignment before arrival.')
     ON CONFLICT (booking_id,kind)
       WHERE booking_id IS NOT NULL AND kind='room_conflict' AND resolved_at IS NULL
