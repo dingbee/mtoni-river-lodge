@@ -249,7 +249,7 @@ export const getPaymentTimeline = createServerFn({ method: "POST" })
         .select("*")
         .eq("booking_id", data.bookingId)
         .order("created_at", { ascending: false }),
-      context.supabase
+      (context.supabase as any)
         .from("staynas_distribution_financial_evidence")
         .select("id, provider_key, external_reservation_id, event_type, provider_reference, evidence, reconciliation_status, reconciliation_code, received_at")
         .eq("booking_id", data.bookingId)
