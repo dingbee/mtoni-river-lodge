@@ -27,6 +27,16 @@ on:
       - "supabase/migrations/20261106180000_dc05_webhook_processing_replay.sql"
       - "scripts/ci/dc05-canonical-materialization-fixture.sql"
       - "scripts/ci/dc05-canonical-materialization-smoke.sql"
+      - "scripts/ci/dc05-08-housekeeping-fixture.sql"
+      - "scripts/ci/dc05-08-operational-uat.sql"
+      - "docs/dc05-08-e2e-uat.md"
+      - "supabase/migrations/20260924130000_hk_s1_domain_integrity.sql"
+      - "supabase/migrations/20260924150000_hk_s2_staff_execution.sql"
+      - "supabase/migrations/20260924151000_hk_s2_staff_directory.sql"
+      - "supabase/migrations/20260924152000_hk_s2_task_room_backfill.sql"
+      - "supabase/migrations/20260924170000_hk_s3_inspection_readiness.sql"
+      - "supabase/migrations/20260924190000_hk_s4_exceptions.sql"
+      - "supabase/migrations/20260926140000_hk_s6_certification.sql"
       - ".github/workflows/dc-05-materialization-migrations.yml"
 
 jobs:
@@ -130,3 +140,25 @@ jobs:
           PGPASSWORD: postgres
         run: |
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc05-07-operational-smoke.sql
+
+      - name: Prepare DC-05.08 Housekeeping staff fixture
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc05-08-housekeeping-fixture.sql
+      - name: Apply existing Housekeeping execution and inspection migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20260924130000_hk_s1_domain_integrity.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20260924150000_hk_s2_staff_execution.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20260924151000_hk_s2_staff_directory.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20260924152000_hk_s2_task_room_backfill.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20260924170000_hk_s3_inspection_readiness.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20260924190000_hk_s4_exceptions.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f supabase/migrations/20260926140000_hk_s6_certification.sql
+      - name: Verify DC-05.08 channel-to-Housekeeping operational UAT
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc05-08-operational-uat.sql
