@@ -40,9 +40,18 @@ CC-03 owns the customer commercial subscription lifecycle and the association be
 ## Implemented milestone details
 
 - **CC03.01 — Implemented:** typed commercial account/subscription lifecycle contracts and deterministic transition regression tests.
-- **CC03.02 — Implemented on the engineering branch:** durable commercial account, subscription, permanent trial-claim, lifecycle-event, audit and founder-authority persistence; RLS/grants; immutable accepted snapshots; database lifecycle transition guard; exact 336-hour trial claim requirement; tenant/founder caller-bound predicates. No production migration or bootstrap.
-- **CC03.03 — In verification:** service-role-only `commercial_activate_trial` transaction. The application handler must authenticate the caller, verify tenant/founder authority and resolve an enabled CC-02 policy before invoking it. The transaction locks the commercial account, prevents a second trial, activates the pending subscription, creates the permanent claim, appends the lifecycle event and audit record, and returns the original activation window on an idempotent replay. Trial duration is exactly 336 hours with an exclusive end boundary.
-- **CC03.03 security boundary:** the database function is not executable by anon/authenticated clients. It is a server-side primitive, not a tenant-facing API. Tenant and founder API handlers remain CC03.05 work.
+- **CC03.02 — Implemented and PostgreSQL-verified on the engineering branch:** durable commercial account, subscription, permanent trial-claim, lifecycle-event, audit and founder-authority persistence; RLS/grants; immutable accepted snapshots; database lifecycle transition guard; exact 336-hour trial claim requirement; tenant/founder caller-bound predicates.
+- **CC03.03 — Implemented and PostgreSQL-verified:** service-role-only `commercial_activate_trial` transaction. It locks the commercial account, prevents a second trial, activates the pending subscription, creates the permanent claim, appends the lifecycle event and audit record, and returns the original activation window on idempotent replay. Trial duration is exactly 336 hours with an exclusive end boundary.
+- **CC03.05 — Server handlers implemented:** tenant subscription listing and one-time trial activation derive the actor from a verified Supabase Auth user, selected active property, active membership and active organisation. The handler uses the caller-bound organisation predicate, scopes service-role reads to that organisation, derives actor role server-side, resolves the CC-02 policy from server-only configuration, and persists success/denial/failure audit evidence. Founder account listing requires the dedicated caller-bound founder predicate, configured founder organisation and active property membership. No browser-supplied actor IDs, roles, policy versions or tenant IDs are accepted.
+- **CC03.06 — Database acceptance passed:** PostgreSQL 17 migration application, RLS/grant checks, tenant/founder authorization predicates, immutable/append-only history, lifecycle constraints, one-time trial activation, idempotent replay and concurrent activation tests all pass in isolated CI. P1 build, TypeScript and lint checks are running against the current rebased PR commit; final release reconciliation follows their completion.
+
+### Required server configuration
+
+Trial activation fails closed unless `STAYNAS_COMMERCIAL_TRIAL_POLICIES_JSON` contains the authoritative CC-02 policy records. Each record must match the CC-02 policy contract, including plan code/version, policy version, enabled state, 14-day duration, activation trigger and effective dates. This variable is server-only and must be provisioned by the commercial policy owner before trial activation is enabled. No policy version can be supplied by the browser.
+
+### Scope boundary
+
+CC03.04 paid activation, plan changes, suspension/reinstatement, cancellation and renewal authorization remain a separate lifecycle-administration increment. CC-04 payment processing and CC-05 entitlement enforcement remain excluded from CC-03. Production remains unchanged; no migration, founder bootstrap, role/membership mutation or deployment has been performed.
 
 ## Explicit exclusions
 
