@@ -44,9 +44,16 @@ const enqueueInput = z.object({
   actorId: uuid.optional(),
 });
 
-async function adminClient() {
+type RpcClient = {
+  rpc(name: string, args: Record<string, unknown>): Promise<{
+    data: unknown;
+    error: { message: string } | null;
+  }>;
+};
+
+async function adminClient(): Promise<RpcClient> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin as any;
+  return supabaseAdmin as unknown as RpcClient;
 }
 
 function unwrap<T>(data: T, error: { message: string } | null): T {
