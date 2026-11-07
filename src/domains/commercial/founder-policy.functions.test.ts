@@ -102,7 +102,7 @@ describe("founder commercial policy payload validation", () => {
     const incomplete = pricingPayload();
     incomplete.planPrices.pop();
     expect(() => validateFounderPolicyPayload("pricing", incomplete, "published"))
-      .toThrow(/both supported currencies and both billing terms/);
+      .toThrow(/both currencies and billing terms/);
   });
 
   it("requires Enterprise quote pricing and fixed pricing for Essential and Professional", () => {
@@ -112,7 +112,7 @@ describe("founder commercial policy payload validation", () => {
     invalid.planPrices[0]!.includedProperties = null;
     invalid.planPrices[0]!.additionalPropertyAmountMinor = null;
     expect(() => validateFounderPolicyPayload("pricing", invalid, "published"))
-      .toThrow(/Enterprise must be quote-required/);
+      .toThrow(/Quote-required pricing is reserved for Enterprise/);
   });
 
   it("requires all three package compositions without duplicate plan versions", () => {
