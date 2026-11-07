@@ -302,6 +302,13 @@ DECLARE
   v_unit public.room_states%ROWTYPE;
   v_allocation uuid;
 BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.staynas_properties p
+    WHERE p.id=_property_id AND p.organisation_id=_organisation_id AND p.status='active'
+  ) THEN
+    RAISE EXCEPTION 'Distribution room allocation organisation/property scope is invalid.'
+      USING ERRCODE='42501';
+  END IF;
   SELECT * INTO v_booking FROM public.bookings b
   WHERE b.id=_booking_id AND b.property_id=_property_id
   FOR UPDATE;
