@@ -14,21 +14,14 @@ const event = {
 };
 
 describe("canonical reservation boundary", () => {
-  it("passes the external commercial commitment to canonical create", async () => {
+  it("blocks an unverified provider price before canonical create", async () => {
     const writer: CanonicalReservationWriter = {
       create: vi.fn(async () => ({ status: "applied" as const, bookingId: "booking-id" })),
       modify: vi.fn(), cancel: vi.fn(),
     };
     const result = await applyInboundReservationEvent(event, writer);
-    expect(result).toEqual({ status: "applied", bookingId: "booking-id" });
-    expect(writer.create).toHaveBeenCalledWith(expect.objectContaining({
-      externalPrice: {
-        externalQuotedAmountMinor: 250000, externalConfirmedAmountMinor: 250000,
-        currency: "TZS", taxAmountMinor: 25000, feeAmountMinor: 0,
-        commissionAmountMinor: 12500, paymentStatus: "unpaid",
-        priceVerificationStatus: "unverified",
-      },
-    }));
+    expect(result).toEqual({ status: "manual_review", reason: "Provider price has not passed verification; automatic booking creation or modification is prohibited." });
+    expect(writer.create).not.toHaveBeenCalled();
   });
 
   it("routes missing provider price to manual review", async () => {
