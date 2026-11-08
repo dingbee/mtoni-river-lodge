@@ -74,6 +74,10 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
     if (bookingDateResult.error) throw new Error("Unable to load booking-date analytics.");
     const bookingDateRows = (bookingDateResult.data ?? []) as AnyRow[];
     const stayBookings = bookings.filter((b) => String(b.check_in) >= data.from && String(b.check_in) <= data.to);
+    const { data: ratePlanRows, error: ratePlanError } = await context.supabase.from("staynas_rate_plans")
+      .select("id,code,name,version").eq("property_id", propertyId).limit(200);
+    if (ratePlanError) throw new Error("Unable to load property rate-plan catalogue.");
+    const ratePlanById = new Map((ratePlanRows ?? []).map((p: AnyRow) => [String(p.id), p]));
 
     const days = Math.max(1, dayDiff(data.from, data.to) + 1);
     const units = rooms.reduce((n, r) => n + Math.max(0, finite(r.total_units)), 0);
@@ -101,7 +105,7 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
         const evidence = (b.pricing_snapshot as AnyRow | null)?.pricing_evidence ?? {};
         const planId = String(evidence.rate_plan_id ?? "unattributed");
         const plan = byRatePlan.get(planId) ?? {
-          ratePlanId: planId, version: evidence.rate_plan_version ?? null, bookings: 0,
+          ratePlanId: planId, name: ratePlanById.get(planId)?.name ?? (planId === "unattributed" ? "Unattributed" : "Unknown plan"), code: ratePlanById.get(planId)?.code ?? null, version: evidence.rate_plan_version ?? null, publicationNumber: evidence.publication_number ?? null, bookings: 0,
           bookingValueByCurrency: {}, roomNights: 0, accommodationByCurrency: {},
         };
         plan.bookings++;
