@@ -1121,9 +1121,9 @@ BEGIN
       WHERE external_reservation_id=v_reservation.id
         AND external_allocation_id=v_alloc->>'externalAllocationId' AND status='confirmed' FOR UPDATE;
       v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
-      UPDATE public.bookings SET subtotal=v_amount,extras_total=0,fee_total=0,discount_total=0,
-        taxes=0,tax_addition=0,tax_breakdown='[]'::jsonb,total=v_amount,
-        deposit_amount=0,balance_amount=v_amount,balance_due=v_amount,
+      UPDATE public.bookings SET subtotal=v_amount,extras_total=0,
+        taxes=round(coalesce(v_commitment.tax_amount_minor,0)::numeric/power(10::numeric,v_exponent),2),
+        total=v_amount,deposit_amount=0,balance_amount=v_amount,balance_due=v_amount,
         pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
           'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
           'event_version',v_inbox.event_version,'tax_amount_minor',v_commitment.tax_amount_minor,
