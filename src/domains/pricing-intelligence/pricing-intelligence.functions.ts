@@ -256,11 +256,11 @@ export const getPricingDemandForecast = createServerFn({ method: "POST" })
       const date = addDays(today, i);
       const bookedUnits = forwardByDay.get(date) ?? 0;
       const hist = weekdays[weekday(date)];
-      const bookedOccupancy = units ? Math.min(1, bookedUnits / units) : null;
+      const bookedOccupancy = units ? bookedUnits / units : null;
       const baseline = sufficient && hist.meanOccupancy !== null ? hist.meanOccupancy : null;
-      const expectedOccupancy = baseline === null ? null : Math.max(bookedOccupancy ?? 0, baseline);
+      const expectedOccupancy = baseline === null ? null : Math.min(1, Math.max(bookedOccupancy ?? 0, baseline));
       const uncertainty = hist.observations ? Math.min(0.5, 1 / Math.sqrt(hist.observations)) : null;
-      return { date, bookedUnits, bookedOccupancy, expectedOccupancy, uncertainty, historicalWeekdayObservations: hist.observations };
+      return { date, bookedUnits, bookedOccupancy, expectedOccupancy, overbooked: (bookedOccupancy ?? 0) > 1, uncertainty, historicalWeekdayObservations: hist.observations };
     });
     const valid = daily.filter((d) => d.expectedOccupancy !== null);
     const forecast = {
@@ -277,6 +277,7 @@ export const getPricingDemandForecast = createServerFn({ method: "POST" })
         "Historical actual proxy uses checked_in/completed reservation status and may not represent physical room occupancy.",
         "Seasonality beyond weekday effects is not modelled.",
         "Pending reservations are excluded from committed demand.",
+        ...(daily.some((d) => d.overbooked) ? ["Forward booked room nights exceed configured capacity on one or more dates; expected occupancy is capped at 100% and overbooking is flagged."] : []),
         ...(!sufficient ? ["At least 28 distinct historical stay dates, 5 weekdays with 3+ observations each, and configured room units are required."] : []),
       ],
     };
@@ -301,11 +302,8 @@ export const generatePricingReviewRecommendations = createServerFn({ method: "PO
     const highDemand = forecast.daily.filter((d: AnyRow) => d.expectedOccupancy !== null && d.expectedOccupancy >= 0.85 && d.expectedOccupancy - (d.bookedOccupancy ?? 0) >= 0.1);
     if (!highDemand.length) return { generated: 0, status: "no_supported_opportunity" as const };
     const from = highDemand[0].date, to = highDemand[highDemand.length - 1].date;
-    const { data: rooms, error } = await context.supabase.from("rooms")
-      .select("id,name,currency,total_units").eq("property_id", propertyId).eq("status", "active").limit(100);
-    if (error) throw new Error("Unable to inspect room inventory for recommendations.");
     let generated = 0;
-    for (const room of [{ id: null, name: "Property-wide", currency: null, total_units: null }]) {
+    {
       const evidence = highDemand.map((d: AnyRow) => ({ date: d.date, expectedOccupancy: d.expectedOccupancy, bookedOccupancy: d.bookedOccupancy, historicalWeekdayObservations: d.historicalWeekdayObservations }));
       const inserted = await context.supabase.from("staynas_pricing_recommendations").insert({
         property_id: propertyId, room_id: null, recommendation_type: "rate_review",
@@ -323,13 +321,13 @@ export const generatePricingReviewRecommendations = createServerFn({ method: "PO
         limitations: forecast.limitations, status: "pending_review", expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
         created_by: context.userId,
       }).select("id").single();
-      if (!inserted.error) {
-        generated++;
-        await context.supabase.from("staynas_pricing_recommendation_events").insert({
-          property_id: propertyId, recommendation_id: inserted.data.id, event_type: "generated",
-          actor_id: context.userId, evidence: { forecastId: forecast.forecastId },
-        });
-      }
+      if (inserted.error) throw new Error("Recommendation could not be persisted.");
+      generated++;
+      const event = await context.supabase.from("staynas_pricing_recommendation_events").insert({
+        property_id: propertyId, recommendation_id: inserted.data.id, event_type: "generated",
+        actor_id: context.userId, evidence: { forecastId: forecast.forecastId },
+      });
+      if (event.error) throw new Error("Recommendation saved but audit event persistence failed.");
     }
     return { generated, status: "complete" as const, reviewWindow: { from, to } };
   });
