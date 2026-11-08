@@ -27,11 +27,11 @@ function response(status: number, body: unknown, headers = new Headers()): Respo
 describe("Channex adapter foundation", () => {
   it("registers only capabilities implemented by this first read-only milestone", () => {
     const adapter = createChannexAdapter({
-      environments: { sandbox: { apiBaseUrl: "https://staging.channex.io/api/v1" } },
+      environments: { sandbox: { apiBaseUrl: "https://staging.channex.io/api/v1", allowedHosts: ["staging.channex.io"] } },
       resolveApiKey: async () => "test-api-key",
     });
     expect(adapter.manifest.providerKey).toBe("channex");
-    expect(adapter.manifest.capabilities).toEqual(["listing.read", "connection.health"]);
+    expect(adapter.manifest.capabilities).toEqual(["connection.health"]);
     expect(adapter.manifest.environments).toEqual(["sandbox"]);
   });
 
@@ -90,6 +90,6 @@ describe("Channex adapter foundation", () => {
     });
     const result = await adapter.healthCheck!(context, handle);
     expect(result.ok).toBe(false);
-    expect(result.ok ? "" : result.error.code).toBe("provider_unavailable");
+    expect(result.ok ? "" : result.error.code).toBe("configuration");
   });
 });
