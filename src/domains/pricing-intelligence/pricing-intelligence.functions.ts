@@ -12,7 +12,12 @@ const horizonSchema = z.object({ horizonDays: z.union([z.literal(7), z.literal(1
 function iso(d: Date) { return d.toISOString().slice(0, 10); }
 function addDays(date: string, days: number) { const d = new Date(date + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + days); return iso(d); }
 function dayDiff(from: string, to: string) { return Math.round((Date.parse(to + "T00:00:00Z") - Date.parse(from + "T00:00:00Z")) / 86400000); }
-function weekday(date: string) { return new Date(date + "T00:00:00Z").getUTCDay(); }\nfunction localDateInZone(date: Date, timeZone: string) {\n  const parts = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);\n  const values = Object.fromEntries(parts.map((p) => [p.type, p.value]));\n  return String(values.year) + "-" + String(values.month).padStart(2, "0") + "-" + String(values.day).padStart(2, "0");\n}
+function weekday(date: string) { return new Date(date + "T00:00:00Z").getUTCDay(); }
+function localDateInZone(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  return String(values.year) + "-" + String(values.month).padStart(2, "0") + "-" + String(values.day).padStart(2, "0");
+}
 function finite(n: unknown) { const v = Number(n); return Number.isFinite(v) ? v : 0; }
 function isLive(status: string) { return ["confirmed", "checked_in", "completed"].includes(status); }
 function isHistoricalActual(status: string) { return ["checked_in", "completed"].includes(status); }
@@ -58,11 +63,14 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
     const propertyId = await propertyContext(context.supabase, context.userId);
+    const { data: propertyMeta, error: propertyMetaError } = await context.supabase.from("staynas_properties").select("timezone").eq("id", propertyId).maybeSingle();
+    if (propertyMetaError || !propertyMeta?.timezone) throw new Error("Property timezone is not configured.");
+    const propertyTimezone = String(propertyMeta.timezone);
     const { rooms, bookings, nights, bookingById } = await loadPropertyData(context.supabase, propertyId, data.from, data.to);
     const bookingDateResult = await context.supabase.from("bookings")
       .select("id,created_at,status").eq("property_id", propertyId)
-      .gte("created_at", data.from + "T00:00:00.000Z")
-      .lte("created_at", data.to + "T23:59:59.999Z").limit(5000);
+      .gte("created_at", addDays(data.from, -1) + "T00:00:00.000Z")
+      .lte("created_at", addDays(data.to, 1) + "T23:59:59.999Z").limit(5000);
     if (bookingDateResult.error) throw new Error("Unable to load booking-date analytics.");
     const bookingDateRows = (bookingDateResult.data ?? []) as AnyRow[];
     const stayBookings = bookings.filter((b) => String(b.check_in) >= data.from && String(b.check_in) <= data.to);
@@ -133,8 +141,8 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
       };
     });
     const bookingDates = new Map<string, number>();
-    for (const b of bookings) {
-      const d = String(b.created_at ?? "").slice(0, 10);
+    for (const b of bookingDateRows) {
+      const d = b.created_at ? localDateInZone(new Date(String(b.created_at)), propertyTimezone) : "";
       if (d >= data.from && d <= data.to) bookingDates.set(d, (bookingDates.get(d) ?? 0) + 1);
     }
     const reservationCount = stayBookings.length;
@@ -167,8 +175,8 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
         bookedAdrByCurrency: currencyBreakdown.map((b) => ({ currency: b.currency, adr: b.adr })),
         bookedRevparByCurrency: currencyBreakdown.map((b) => ({ currency: b.currency, revpar: b.revpar })),
         bookedOccupancy: units * days ? Math.min(1, bookedRoomNights / (units * days)) : null,
-        averageLengthOfStay: bookings.filter((b) => isLive(String(b.status))).length
-          ? bookings.filter((b) => isLive(String(b.status))).reduce((n, b) => n + finite(b.nights), 0) / bookings.filter((b) => isLive(String(b.status))).length : null,
+        averageLengthOfStay: stayBookings.filter((b) => isLive(String(b.status))).length
+          ? stayBookings.filter((b) => isLive(String(b.status))).reduce((n, b) => n + finite(b.nights), 0) / stayBookings.filter((b) => isLive(String(b.status))).length : null,
         averageBookingLeadDays: leadDays.length ? leadDays.reduce((n, v) => n + v, 0) / leadDays.length : null,
         cancellationRate, noShowRate, cancellationCount: cancelled, noShowCount: noShows,
         byStayDate: [...byStayDate.values()].sort((a, b) => a.date.localeCompare(b.date)),
@@ -185,7 +193,9 @@ export const getPricingDemandForecast = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
     const propertyId = await propertyContext(context.supabase, context.userId);
-    const today = iso(new Date());
+    const { data: propertyMeta, error: propertyMetaError } = await context.supabase.from("staynas_properties").select("timezone").eq("id", propertyId).maybeSingle();
+    if (propertyMetaError || !propertyMeta?.timezone) throw new Error("Property timezone is not configured.");
+    const today = localDateInZone(new Date(), String(propertyMeta.timezone));
     const to = addDays(today, data.horizonDays - 1);
     const historyFrom = addDays(today, -365);
     const { rooms, bookings, nights, bookingById } = await loadPropertyData(context.supabase, propertyId, historyFrom, to);
@@ -332,7 +342,10 @@ export const savePricingScenario = createServerFn({ method: "POST" })
       _booking_timestamp: new Date().toISOString(),
     });
     if (error || !resolved || resolved.ok !== true) throw new Error("Canonical published pricing could not resolve this scenario. Select an eligible rate plan and retry.");
-    if (resolved.mode === "legacy" || resolved.accommodation_subtotal === null || resolved.accommodation_subtotal === undefined || !Number.isFinite(Number(resolved.accommodation_subtotal))) {\n      throw new Error("Scenario requires an eligible published rate plan with canonical accommodation subtotal.");\n    }\n    const baseline = finite(resolved.accommodation_subtotal);
+    if (resolved.mode === "legacy" || resolved.accommodation_subtotal === null || resolved.accommodation_subtotal === undefined || !Number.isFinite(Number(resolved.accommodation_subtotal))) {
+      throw new Error("Scenario requires an eligible published rate plan with canonical accommodation subtotal.");
+    }
+    const baseline = finite(resolved.accommodation_subtotal);
     const proposed = Math.round((baseline * (1 + data.adjustmentPercent / 100) + Number.EPSILON) * 100) / 100;
     const result = {
       baselineAccommodation: baseline, proposedAccommodation: proposed,
