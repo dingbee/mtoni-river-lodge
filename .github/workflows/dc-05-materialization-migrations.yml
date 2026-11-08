@@ -22,6 +22,8 @@ on:
       - "supabase/review/20261107140000_dc06_03_finance_evidence_visibility.sql"
       - "supabase/review/20261107160000_dc06_04_distribution_analytics.sql"
       - "scripts/ci/dc06-04-distribution-analytics-smoke.sql"
+      - "scripts/ci/dc06-05-cross-domain-reconciliation-smoke.sql"
+      - "docs/dc-06-05-cross-domain-reconciliation.md"
       - "src/domains/analytics/distribution-analytics.functions.ts"
       - "src/routes/_authenticated.admin.analytics.distribution.tsx"
       - "src/routes/_authenticated.admin.analytics.tsx"
@@ -159,6 +161,7 @@ jobs:
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc05-07-operational-smoke.sql
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc06-03-finance-evidence-smoke.sql
           psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc06-04-distribution-analytics-smoke.sql
+          psql -h localhost -U postgres -d staynas_dc05_03_ci -v ON_ERROR_STOP=1 -f scripts/ci/dc06-05-cross-domain-reconciliation-smoke.sql
 
   finance-application-check:
     runs-on: ubuntu-latest
