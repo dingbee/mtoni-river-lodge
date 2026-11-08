@@ -93,8 +93,20 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
         if (!b.source) unattributed++;
         const bucket = currencyBuckets.get(c) ?? { currency: c || "INVALID", bookingValue: 0, bookedAccommodation: 0, completedAccommodation: 0, bookedRoomNights: 0, completedRoomNights: 0, bookingCount: 0, taxesRecorded: 0, taxAddition: 0, extrasTotal: 0 };
         bucket.bookingValue += finite(b.total);
+        bucket.taxesRecorded += finite(b.taxes);
+        bucket.taxAddition += finite(b.tax_addition);
+        bucket.extrasTotal += finite(b.extras_total);
         bucket.bookingCount++;
         currencyBuckets.set(c, bucket);
+        const evidence = (b.pricing_snapshot as AnyRow | null)?.pricing_evidence ?? {};
+        const planId = String(evidence.rate_plan_id ?? "unattributed");
+        const plan = byRatePlan.get(planId) ?? {
+          ratePlanId: planId, version: evidence.rate_plan_version ?? null, bookings: 0,
+          bookingValueByCurrency: {}, roomNights: 0, accommodationByCurrency: {},
+        };
+        plan.bookings++;
+        plan.bookingValueByCurrency[c] = finite(plan.bookingValueByCurrency[c]) + finite(b.total);
+        byRatePlan.set(planId, plan);
       }
     }
     for (const n of nights) {
@@ -103,7 +115,7 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
       const currency = String(b.currency ?? "").toUpperCase();
       const amount = finite(n.nightly_rate);
       if (n.nightly_rate === null || n.nightly_rate === undefined || !Number.isFinite(Number(n.nightly_rate))) missingNightRates++;
-      const bucket = currencyBuckets.get(currency) ?? { currency: currency || "INVALID", bookingValue: 0, bookedAccommodation: 0, completedAccommodation: 0, bookedRoomNights: 0, completedRoomNights: 0, bookingCount: 0 };
+      const bucket = currencyBuckets.get(currency) ?? { currency: currency || "INVALID", bookingValue: 0, bookedAccommodation: 0, completedAccommodation: 0, bookedRoomNights: 0, completedRoomNights: 0, bookingCount: 0, taxesRecorded: 0, taxAddition: 0, extrasTotal: 0 };
       bucket.bookedAccommodation += amount;
       bucket.bookedRoomNights++;
       bookedAccommodation += amount; bookedRoomNights++;
@@ -122,9 +134,22 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
       ch.roomNights++; ch.accommodationByCurrency[currency || "INVALID"] = finite(ch.accommodationByCurrency[currency || "INVALID"]) + amount;
       byChannel.set(source, ch);
       const roomId = String(n.room_id ?? b.room_id);
-      const room = byRoom.get(roomId) ?? { roomId, roomName: rooms.find((r) => String(r.id) === roomId)?.name ?? "Unmapped room", roomNights: 0, accommodationByCurrency: {} as Record<string, number> };
-      room.roomNights++; room.accommodationByCurrency[currency || "INVALID"] = finite(room.accommodationByCurrency[currency || "INVALID"]) + amount;
+      const roomRecord = rooms.find((r) => String(r.id) === roomId);
+      const roomKey = String(roomRecord?.catalogue_type_id ?? roomId);
+      const room = byRoom.get(roomKey) ?? {
+        roomId: roomKey, roomName: roomRecord?.name ?? "Unmapped room type",
+        roomNights: 0, accommodationByCurrency: {} as Record<string, number>,
+      };
+      room.roomNights++;
+      room.accommodationByCurrency[currency || "INVALID"] = finite(room.accommodationByCurrency[currency || "INVALID"]) + amount;
       byRoom.set(roomKey, room);
+      const evidence = (b.pricing_snapshot as AnyRow | null)?.pricing_evidence ?? {};
+      const planId = String(evidence.rate_plan_id ?? "unattributed");
+      const plan = byRatePlan.get(planId);
+      if (plan) {
+        plan.roomNights++;
+        plan.accommodationByCurrency[currency || "INVALID"] = finite(plan.accommodationByCurrency[currency || "INVALID"]) + amount;
+      }
       const evidence = (b.pricing_snapshot as AnyRow | null)?.pricing_evidence ?? {};
       const planId = String(evidence.rate_plan_id ?? "unattributed");
       const plan = byRatePlan.get(planId);
@@ -157,15 +182,17 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
       Math.max(0, (Date.parse(String(b.check_in) + "T00:00:00Z") - Date.parse(localDateInZone(new Date(String(b.created_at)), propertyTimezone) + "T00:00:00Z")) / 86400000)
     );
     const coverage = {
+      invalidBookedOccupancy: units * days > 0 && bookedRoomNights > units * days,
+      missingHistoricalSnapshots: stayBookings.filter((b) => !b.pricing_snapshot || Object.keys(b.pricing_snapshot).length === 0).length,
       roomCount: rooms.length, totalUnits: units, reservationRows: bookings.length,
       bookingNightRows: nights.length, missingNightRates, invalidCurrencies, unattributedChannelRows: unattributed,
-      historicalSnapshotsAvailable: bookings.filter((b) => b.pricing_snapshot && Object.keys(b.pricing_snapshot).length > 0).length,
+      historicalSnapshotsAvailable: stayBookings.filter((b) => b.pricing_snapshot && Object.keys(b.pricing_snapshot).length > 0).length,
       financialClassification: "Booking-night nightly_rate is treated as accommodation-only booked value; booking total is booking value and is not recognized revenue.",
     };
     const limitations = [
       "Booked occupancy is not actual occupied inventory. Only checked-in/completed status is separately identifiable; physical room occupancy is not independently verified.",
       "Recognized revenue is not reported because an accounting recognition policy is not configured.",
-      "Tax, fee, discount, promotion and channel commission attribution is not inferred from booking totals.",
+      "Recorded tax fields and extras are reported separately; fee, discount, promotion and channel commission attribution remains unavailable without authoritative ledgers.",
       "Currencies are kept separate; no exchange-rate conversion is configured.",
       ...(missingNightRates ? ["Some booking-night rates are missing."] : []),
       ...(invalidCurrencies ? ["Some reservations have invalid or missing currency codes."] : []),
@@ -187,7 +214,7 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
         cancellationRate, noShowRate, cancellationCount: cancelled, noShowCount: noShows,
         byStayDate: [...byStayDate.values()].sort((a, b) => a.date.localeCompare(b.date)),
         byBookingDate: [...bookingDates.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, count]) => ({ date, count })),
-        byChannel: [...byChannel.values()], byRoom: [...byRoom.values()], byRatePlan: [...byRatePlan.values()],
+        byChannel: [...byChannel.values()], byRoom: [...byRoom.values()], byRatePlan: [...byRatePlan.values()], byRatePlan: [...byRatePlan.values()],
       },
       dataQuality: coverage, limitations,
     };
