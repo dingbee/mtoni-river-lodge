@@ -311,10 +311,10 @@ export const decidePricingRecommendation = createServerFn({ method: "POST" })
     if (readError || !current) throw new Error("Recommendation not found for the active property.");
     if (current.status !== "pending_review" && current.status !== "generated") throw new Error("Recommendation is no longer reviewable.");
     if (current.expires_at && Date.parse(current.expires_at) <= Date.now()) throw new Error("Recommendation has expired.");
-    const { error } = await context.supabase.from("staynas_pricing_recommendations").update({
+    const { data: updated, error } = await context.supabase.from("staynas_pricing_recommendations").update({
       status: data.decision, reviewed_by: context.userId, reviewed_at: new Date().toISOString(), decision_reason: data.reason,
-    }).eq("id", data.id).eq("property_id", propertyId).in("status", ["generated", "pending_review"]);
-    if (error) throw new Error("Recommendation decision was not saved.");
+    }).eq("id", data.id).eq("property_id", propertyId).in("status", ["generated", "pending_review"]).select("id").maybeSingle();
+    if (error || !updated) throw new Error("Recommendation decision was not saved; property administrator approval is required.");
     const event = await context.supabase.from("staynas_pricing_recommendation_events").insert({
       property_id: propertyId, recommendation_id: data.id, event_type: data.decision,
       actor_id: context.userId, reason: data.reason,
