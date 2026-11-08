@@ -105,9 +105,9 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/cc04_financial_ledger.test.sql
       - name: Verify concurrent CC-04 payment allocation
         run: bash supabase/tests/cc04_concurrent_allocation.sh
-      - name: Apply StayNas provider configuration migration
-        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261108130000_staynas_payment_provider_configuration.sql
-      - name: Verify provider configuration and Vault access boundaries
-        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/staynas_payment_provider_configuration.test.sql
+      - name: Apply StayNas payment provider management migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261108120000_staynas_payment_provider_management.sql
+      - name: Verify provider configuration scopes and access boundaries
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/staynas_payment_provider_configs.test.sql
       - name: Verify concurrent one-time trial activation
         run: bash supabase/tests/cc03_concurrent_trial_activation.sh
