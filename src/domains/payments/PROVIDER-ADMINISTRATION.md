@@ -33,6 +33,15 @@ A catalogue entry is not proof of an operational integration. Every scope/provid
 
 The shared contract and registry are in `provider-adapter.contract.ts`. The registry fails closed when an adapter is absent.
 
+## Tanzania provider onboarding dependencies
+
+- **Vodacom M-Pesa:** its official Open API portal exposes C2B, reversals and transaction-status queries. A business account/short code and product approval are required before sandbox development and go-live review. See the [M-Pesa developer portal](https://business.m-pesa.com/developers/) and [Tanzania onboarding guide](https://business.m-pesa.com/vodacom-tanzania/business-onboarding-tanzania/).
+- **Airtel Money:** Airtel's Tanzania developer portal requires an organisation account, application registration, product selection, sandbox testing and production approval. See the [Airtel Tanzania developer portal](https://developers.airtel.co.tz/home).
+- **Mixx by Yas:** the public site confirms merchant payment and corporate services, but the merchant API contract is not publicly exposed there. Obtain the partner API specification, credentials, callback requirements and certification process from Yas/Mixx before implementing the direct adapter. See [Mixx by Yas](https://www.mixx.co.tz/).
+- **HaloPesa:** the public site confirms merchant payment services and directs businesses to merchant onboarding, but does not publish a complete developer API contract. Obtain the merchant integration specification and test credentials from HaloPesa before implementing the direct adapter. See [HaloPesa](https://halopesa.co.tz/).
+
+A multi-network aggregator is a possible alternative, but it must be selected and commercially approved before adding an aggregator-specific adapter. The current provider catalogue does not silently route one wallet through another provider.
+
 ## Activation policy
 
 New and changed provider configurations are saved inactive with `integration_status='adapter_pending'`. Activation is rejected unless the matching adapter has been certified and the configuration has `integration_status='ready'`.
