@@ -65,6 +65,14 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/20261107160000_cc04_financial_ledger.sql
+      - name: Apply scoped payment provider management migration
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/20261108120000_staynas_payment_provider_management.sql
+      - name: Verify provider scope and credential access boundaries
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/staynas_payment_provider_management.test.sql
       - name: Verify financial constraints, idempotency, partial allocation, reversal and immutability
         env:
           PGPASSWORD: postgres
@@ -91,4 +99,4 @@ jobs:
       - name: TypeScript verification
         run: bunx tsc --noEmit
       - name: Lint CC-04 contracts
-        run: bunx eslint src/domains/commercial/settlement-contract.ts src/domains/commercial/settlement-contract.test.ts src/domains/commercial/commercial-billing-engine.ts src/domains/commercial/commercial-payment-adapters.ts src/domains/commercial/commercial-reconciliation-engine.ts src/domains/commercial/commercial-payment.functions.ts src/domains/commercial/commercial-pesapal.server.ts src/domains/commercial/commercial-invoice-document.server.ts src/domains/commercial/commercial-financial-notifications.server.ts src/routes/api/public/commercial-pesapal.ipn.ts --rule 'prettier/prettier: off'
+        run: bunx eslint src/domains/commercial/settlement-contract.ts src/domains/commercial/settlement-contract.test.ts src/domains/commercial/commercial-billing-engine.ts src/domains/commercial/commercial-payment-adapters.ts src/domains/commercial/commercial-reconciliation-engine.ts src/domains/commercial/commercial-payment.functions.ts src/domains/commercial/commercial-pesapal.server.ts src/domains/commercial/commercial-invoice-document.server.ts src/domains/commercial/commercial-financial-notifications.server.ts src/domains/payments/payment-provider-management.functions.ts src/routes/_authenticated.admin.settings.payment-providers.tsx src/routes/api/public/commercial-pesapal.ipn.ts --rule 'prettier/prettier: off'
