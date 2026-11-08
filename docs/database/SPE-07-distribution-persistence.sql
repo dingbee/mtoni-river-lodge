@@ -1253,7 +1253,7 @@ BEGIN
       nullif(btrim(v_inbox.normalized_payload#>>'{guest,phone}'),''),
       v_currency,'ota:'||v_connection.provider,
       v_amount,0,
-      round(coalesce(v_commitment.tax_amount_minor,0)::numeric/power(10,v_exponent),2),
+      round(coalesce(v_commitment.tax_amount_minor,0)::numeric/power(10::numeric,v_exponent),2),
       v_amount,0,v_amount,v_amount,
       jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
         'external_reservation_id',v_inbox.external_reservation_id,
