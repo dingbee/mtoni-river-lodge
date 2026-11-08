@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createCipheriv, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { CommercialAdminClient } from "@/domains/commercial/commercial-payment.functions";
@@ -60,6 +60,30 @@ function encryptCredentials(raw: string): string {
   const encrypted = Buffer.concat([cipher.update(JSON.stringify(parsed), "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
   return `v1.${iv.toString("hex")}.${tag.toString("hex")}.${encrypted.toString("hex")}`;
+}
+
+/** Server-only credential reader for provider adapters. Never call from browser code. */
+export function decryptProviderCredentials(envelope: string): Record<string, unknown> {
+  const keyHex = process.env.STAYNAS_PROVIDER_CREDENTIALS_KEY;
+  if (!keyHex || !/^[a-fA-F0-9]{64}$/.test(keyHex)) {
+    throw new Error("Provider credential decryption is not provisioned.");
+  }
+  const [version, ivHex, tagHex, payloadHex] = envelope.split(".");
+  if (version !== "v1" || !ivHex || !tagHex || !payloadHex) {
+    throw new Error("Provider credential envelope is invalid.");
+  }
+  try {
+    const decipher = createDecipheriv("aes-256-gcm", Buffer.from(keyHex, "hex"), Buffer.from(ivHex, "hex"));
+    decipher.setAuthTag(Buffer.from(tagHex, "hex"));
+    const plaintext = Buffer.concat([decipher.update(Buffer.from(payloadHex, "hex")), decipher.final()]).toString("utf8");
+    const parsed: unknown = JSON.parse(plaintext);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("Credential payload is not an object.");
+    }
+    return parsed as Record<string, unknown>;
+  } catch {
+    throw new Error("Provider credentials could not be decrypted. Verify the configured encryption key and stored envelope.");
+  }
 }
 
 function validatePublicConfiguration(value: Record<string, unknown>) {
