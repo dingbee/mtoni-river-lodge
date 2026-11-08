@@ -32,10 +32,11 @@ Recognized revenue, tax/fee contribution, discount impact, commission and promot
 
 ## Forecast method
 
-`weekday-occupancy-baseline-v1` uses completed/checked-in historical booking-night rows, grouped by weekday. For each future date, expected occupancy is the greater of confirmed forward occupancy and the historical weekday mean. The method requires at least 28 distinct historical stay dates and at least five weekdays with three or more observations. Otherwise it returns `insufficient_data`.
+The forecast endpoint is coverage-gated. It records property-local generation time, requested horizon, observed historical stay-activity dates, room-unit count, weekday sample diagnostics, method version and limitations. It reports confirmed forward booking occupancy as committed demand.
 
-The confidence value is a coverage proxy capped below 0.75, not a calibrated probability. Per-date uncertainty is a sample-size proxy. No holdout backtest or forecast accuracy claim is made. Financial revenue forecasts and seasonal uplift are not inferred.
+It deliberately returns `insufficient_data` for expected occupancy until an authoritative daily inventory/history coverage source is certified. Dates without booking-night rows cannot safely be assumed to represent zero demand because historical migration completeness has not been established. Weekday averages from active-stay dates are diagnostic only and are not used to manufacture an occupancy forecast.
 
+No expected accommodation revenue, seasonality uplift, demand elasticity or forecast accuracy is reported. A forecast backtest and certified daily inventory coverage are release gates.
 ## Recommendations and authority
 
 The initial deterministic rule identifies dates where the weekday baseline is at least 85% and exceeds confirmed forward occupancy by at least 10 percentage points. It recommends a human review of published pricing; it does not propose an unsupported numeric rate or revenue uplift.
