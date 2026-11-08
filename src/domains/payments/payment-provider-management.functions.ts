@@ -23,6 +23,9 @@ type ProviderScope = "platform_subscription" | "property_guest";
 type ProviderStatus = "inactive" | "active" | "suspended";
 type IntegrationStatus = "adapter_pending" | "ready" | "blocked";
 
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+type JsonObject = { [key: string]: JsonValue };
+
 type ProviderConfigRow = {
   id: string;
   provider: z.infer<typeof providerSchema>;
@@ -30,7 +33,7 @@ type ProviderConfigRow = {
   credential_secret_ref: string | null;
   environment: "sandbox" | "live";
   supported_currencies: string[];
-  public_configuration: Record<string, unknown>;
+  public_configuration: JsonObject;
   integration_status: IntegrationStatus;
   status: ProviderStatus;
   credential_updated_at: string | null;
@@ -38,22 +41,24 @@ type ProviderConfigRow = {
   updated_at: string;
 };
 
-function validatePublicConfiguration(value: Record<string, unknown>) {
-  const inspect = (input: unknown, path = "publicConfiguration") => {
-    if (!input || typeof input !== "object") return;
-    if (Array.isArray(input)) {
-      input.forEach((entry, index) => inspect(entry, `${path}[${index}]`));
-      return;
-    }
-    for (const [key, child] of Object.entries(input)) {
-      if (/(secret|password|token|credential|api.?key|consumer.?key|client.?secret)/i.test(key)) {
-        throw new Error(`Secret-like field "${path}.${key}" is not allowed in public configuration. Put it in the encrypted credentials field.`);
+function validatePublicConfiguration(value: Record<string, unknown>): JsonObject {
+  const inspect = (input: unknown, path = "publicConfiguration"): JsonValue => {
+    if (input === null || typeof input === "string" || typeof input === "boolean") return input;
+    if (typeof input === "number" && Number.isFinite(input)) return input;
+    if (Array.isArray(input)) return input.map((entry, index) => inspect(entry, `${path}[${index}]`));
+    if (typeof input === "object") {
+      const result: Record<string, JsonValue> = {};
+      for (const [key, child] of Object.entries(input)) {
+        if (/(secret|password|token|credential|api.?key|consumer.?key|client.?secret)/i.test(key)) {
+          throw new Error(`Secret-like field "${path}.${key}" is not allowed in public configuration. Put it in the encrypted credentials field.`);
+        }
+        result[key] = inspect(child, `${path}.${key}`);
       }
-      inspect(child, `${path}.${key}`);
+      return result;
     }
+    throw new Error(`Public configuration contains a non-JSON value at ${path}.`);
   };
-  inspect(value);
-  return value;
+  return inspect(value) as JsonObject;
 }
 
 function validateCredentialsJson(raw: string) {
