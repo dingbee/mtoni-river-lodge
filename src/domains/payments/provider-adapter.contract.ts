@@ -113,3 +113,15 @@ export class StayNasPaymentProviderRegistry {
     ]));
   }
 }
+
+
+/** Provider identifiers supported by the current CC-04 subscription collection ledger. */
+export type CommercialPlatformProvider = "pesapal" | "bank_transfer" | "manual";
+
+export function commercialPlatformProvider(
+  provider: StayNasPaymentProvider,
+): CommercialPlatformProvider | null {
+  return provider === "pesapal" || provider === "bank_transfer" || provider === "manual"
+    ? provider
+    : null;
+}
