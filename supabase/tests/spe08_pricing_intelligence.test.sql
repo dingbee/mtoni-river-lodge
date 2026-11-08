@@ -64,4 +64,12 @@ BEGIN
   IF has_table_privilege('authenticated','public.staynas_pricing_recommendation_events','DELETE') THEN
     RAISE EXCEPTION 'Authenticated users must not delete recommendation audit history';
   END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='staynas_pricing_recommendations'
+      AND policyname='staynas_pi_recommendations_property_update'
+      AND qual LIKE '%owner%' AND qual LIKE '%manager%' AND qual LIKE '%admin%'
+      AND qual NOT LIKE '%finance%'
+  ) THEN RAISE EXCEPTION 'Recommendation approval policy is not limited to property administrators'; END IF;
 END $$;
