@@ -1,0 +1,2 @@
+-- Historical first application is represented by the final idempotent compatibility migration at 20261106152227.
+-- The production schema already contains the initial version; this placeholder preserves the deployed migration ledger during clean resets.

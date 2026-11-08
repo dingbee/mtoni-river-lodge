@@ -1,0 +1,2 @@
+-- Historical first application is represented by the final consistency migration at 20261106095558.
+-- The production schema already contains the initial version; this placeholder preserves the deployed migration ledger during clean resets.
