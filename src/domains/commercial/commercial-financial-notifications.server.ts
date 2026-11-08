@@ -1,8 +1,7 @@
 import { sendResendEmail } from "@/domains/ai/concierge/providers/resend-email.server";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+import type { CommercialAdminClient } from "./commercial-payment.functions";
 
-type FinanceNotificationAdmin = SupabaseClient<Database>;
+type FinanceNotificationAdmin = CommercialAdminClient;
 
 function escapeHtml(value: unknown) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({
