@@ -145,11 +145,13 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
       byRoom.set(roomKey, room);
       const evidence = (b.pricing_snapshot as AnyRow | null)?.pricing_evidence ?? {};
       const planId = String(evidence.rate_plan_id ?? "unattributed");
-      const plan = byRatePlan.get(planId);
-      if (plan) {
-        plan.roomNights++;
-        plan.accommodationByCurrency[currency || "INVALID"] = finite(plan.accommodationByCurrency[currency || "INVALID"]) + amount;
-      }
+      const plan = byRatePlan.get(planId) ?? {
+        ratePlanId: planId, version: evidence.rate_plan_version ?? null, bookings: 0,
+        bookingValueByCurrency: {}, roomNights: 0, accommodationByCurrency: {},
+      };
+      plan.roomNights++;
+      plan.accommodationByCurrency[currency || "INVALID"] = finite(plan.accommodationByCurrency[currency || "INVALID"]) + amount;
+      byRatePlan.set(planId, plan);
     }
     for (const b of stayBookings) {
       if (!isLive(String(b.status))) continue;
@@ -210,7 +212,7 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
         cancellationRate, noShowRate, cancellationCount: cancelled, noShowCount: noShows,
         byStayDate: [...byStayDate.values()].sort((a, b) => a.date.localeCompare(b.date)),
         byBookingDate: [...bookingDates.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, count]) => ({ date, count })),
-        byChannel: [...byChannel.values()], byRoom: [...byRoom.values()], byRatePlan: [...byRatePlan.values()], byRatePlan: [...byRatePlan.values()],
+        byChannel: [...byChannel.values()], byRoom: [...byRoom.values()], byRatePlan: [...byRatePlan.values()],
       },
       dataQuality: coverage, limitations,
     };
