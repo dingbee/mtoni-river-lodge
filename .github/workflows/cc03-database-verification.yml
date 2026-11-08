@@ -56,6 +56,13 @@ jobs:
           AS $function$
             SELECT nullif(current_setting('request.jwt.claim.role', true), '')
           $function$;
+          CREATE SCHEMA vault;
+          CREATE TABLE vault.test_secrets(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), secret text NOT NULL);
+          CREATE FUNCTION vault.create_secret(text,text,text) RETURNS uuid LANGUAGE plpgsql AS $
+            DECLARE secret_id uuid;
+            BEGIN INSERT INTO vault.test_secrets(secret) VALUES ($1) RETURNING id INTO secret_id; RETURN secret_id; END
+          $;
+          CREATE VIEW vault.decrypted_secrets AS SELECT id, secret AS decrypted_secret FROM vault.test_secrets;
           CREATE TABLE public.staynas_organisations (
             id uuid PRIMARY KEY,
             slug text NOT NULL UNIQUE,
@@ -98,5 +105,9 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/cc04_financial_ledger.test.sql
       - name: Verify concurrent CC-04 payment allocation
         run: bash supabase/tests/cc04_concurrent_allocation.sh
+      - name: Apply StayNas provider configuration migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261108130000_staynas_payment_provider_configuration.sql
+      - name: Verify provider configuration and Vault access boundaries
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/staynas_payment_provider_configuration.test.sql
       - name: Verify concurrent one-time trial activation
         run: bash supabase/tests/cc03_concurrent_trial_activation.sh
