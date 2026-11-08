@@ -19,6 +19,10 @@ const handle: CredentialHandle = {
   connectionId: context.connectionId,
   environment: "sandbox",
 };
+const sandbox = {
+  apiBaseUrl: "https://staging.channex.io/api/v1",
+  allowedHosts: ["staging.channex.io"],
+};
 
 function response(status: number, body: unknown, headers = new Headers()): Response {
   return new Response(JSON.stringify(body), { status, headers });
@@ -27,7 +31,7 @@ function response(status: number, body: unknown, headers = new Headers()): Respo
 describe("Channex adapter foundation", () => {
   it("registers only capabilities implemented by this first read-only milestone", () => {
     const adapter = createChannexAdapter({
-      environments: { sandbox: { apiBaseUrl: "https://staging.channex.io/api/v1", allowedHosts: ["staging.channex.io"] } },
+      environments: { sandbox },
       resolveApiKey: async () => "test-api-key",
     });
     expect(adapter.manifest.providerKey).toBe("channex");
@@ -35,7 +39,7 @@ describe("Channex adapter foundation", () => {
     expect(adapter.manifest.environments).toEqual(["sandbox"]);
   });
 
-  it("validates the connection using an injected, admin-managed endpoint and server-side key", async () => {
+  it("validates the connection using an injected endpoint and server-side key", async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(String(input)).toBe("https://staging.channex.io/api/v1/properties/?pagination[limit]=1");
       expect(new Headers(init?.headers).get("user-api-key")).toBe("test-api-key");
@@ -43,7 +47,7 @@ describe("Channex adapter foundation", () => {
     }) as unknown as typeof fetch;
     const resolveApiKey = vi.fn(async () => "test-api-key");
     const adapter = createChannexAdapter({
-      environments: { sandbox: { apiBaseUrl: "https://staging.channex.io/api/v1" } },
+      environments: { sandbox },
       resolveApiKey,
       fetchImpl,
       now: () => 1_800_000_000_000,
@@ -57,7 +61,7 @@ describe("Channex adapter foundation", () => {
   it("rejects mismatched credential handles before making a provider request", async () => {
     const fetchImpl = vi.fn() as unknown as typeof fetch;
     const adapter = createChannexAdapter({
-      environments: { sandbox: { apiBaseUrl: "https://staging.channex.io/api/v1" } },
+      environments: { sandbox },
       resolveApiKey: async () => "test-api-key",
       fetchImpl,
     });
@@ -69,7 +73,7 @@ describe("Channex adapter foundation", () => {
   it("normalizes authentication and rate-limit errors without exposing provider payloads", async () => {
     for (const [status, expectedCode] of [[401, "authentication"], [429, "rate_limited"]] as const) {
       const adapter = createChannexAdapter({
-        environments: { sandbox: { apiBaseUrl: "https://staging.channex.io/api/v1" } },
+        environments: { sandbox },
         resolveApiKey: async () => "test-api-key",
         fetchImpl: (async () => response(status, { errors: { title: "secret provider response" } }, new Headers({ "retry-after": "30" }))) as typeof fetch,
       });
@@ -82,14 +86,28 @@ describe("Channex adapter foundation", () => {
     }
   });
 
-  it("rejects non-HTTPS or credential-bearing endpoint configuration", async () => {
+  it("rejects non-HTTPS and unapproved endpoint hosts", async () => {
+    for (const apiBaseUrl of ["http://localhost:3000", "https://attacker.example/api/v1"]) {
+      const adapter = createChannexAdapter({
+        environments: { sandbox: { apiBaseUrl, allowedHosts: sandbox.allowedHosts } },
+        resolveApiKey: async () => "test-api-key",
+        fetchImpl: vi.fn() as unknown as typeof fetch,
+      });
+      const result = await adapter.healthCheck!(context, handle);
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error.code).toBe("configuration");
+    }
+  });
+
+  it("does not send credentials to an endpoint containing embedded credentials", async () => {
+    const fetchImpl = vi.fn() as unknown as typeof fetch;
     const adapter = createChannexAdapter({
-      environments: { sandbox: { apiBaseUrl: "http://localhost:3000" } },
+      environments: { sandbox: { apiBaseUrl: "https://user:pass@staging.channex.io/api/v1", allowedHosts: sandbox.allowedHosts } },
       resolveApiKey: async () => "test-api-key",
-      fetchImpl: vi.fn() as unknown as typeof fetch,
+      fetchImpl,
     });
     const result = await adapter.healthCheck!(context, handle);
     expect(result.ok).toBe(false);
-    expect(result.ok ? "" : result.error.code).toBe("configuration");
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 });
