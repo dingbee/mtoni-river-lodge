@@ -1250,7 +1250,7 @@ BEGIN
       coalesce((v_alloc->>'children')::integer,0),
       nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),''),
       lower(nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'')),
-      nullif(btrim(v_inbox.normalized_payload#>>'{guest,phone}'),''),'',
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,phone}'),''),
       v_currency,'ota:'||v_connection.provider,
       v_amount,0,
       round(coalesce(v_commitment.tax_amount_minor,0)::numeric/power(10,v_exponent),2),
