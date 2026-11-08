@@ -97,7 +97,7 @@ function PricingIntelligence() {
       <PageHeader
         title="Pricing Intelligence"
         description="Evidence-led revenue analysis, occupancy forecasting and controlled pricing decisions."
-        actions={<Badge variant="secondary">Decision support only</Badge>}
+        actions={<Badge variant="secondary">Rule-based decision support only</Badge>}
       />
 
       <SectionCard title="Reporting period" description="Historical booked results are separated from forecasts and hypothetical scenarios.">
@@ -195,7 +195,7 @@ function PricingIntelligence() {
         </>
       ) : null}
 
-      <SectionCard title="Demand and occupancy forecast" description="Weekday historical baseline. This is not a validated financial or revenue prediction.">
+      <SectionCard title="Demand and occupancy forecast" description="Expected occupancy is withheld until historical daily-inventory coverage is certified. Confirmed bookings remain visible as committed demand.">
         <div className="flex flex-wrap items-end gap-3">
           <label className="text-sm">Horizon
             <select className="mt-1 block h-10 rounded-md border bg-background px-3" value={horizonDays} onChange={(e) => setHorizonDays(Number(e.target.value) as 7 | 14 | 30 | 60 | 90)}>
