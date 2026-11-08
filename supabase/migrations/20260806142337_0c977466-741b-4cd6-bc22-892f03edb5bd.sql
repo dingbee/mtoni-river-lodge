@@ -1,10 +1,31 @@
 DO $$
 DECLARE
-  r_std uuid := '3b476463-ea58-4d5b-abb4-ad460e844a8b';
-  unit1 uuid := '29e99ca2-0778-42f3-a6a6-23ccbc3cb319';
+  r_std uuid;
+  unit1 uuid;
   b1 uuid; b2 uuid; b3 uuid; b4 uuid; b5 uuid;
   c1 uuid; c2 uuid; c4 uuid;
 BEGIN
+  -- Resolve seeded fixtures by stable business keys, never environment-specific UUIDs.
+  SELECT id INTO r_std
+  FROM public.rooms
+  WHERE slug = 'standard-river'
+  ORDER BY created_at, id
+  LIMIT 1;
+
+  IF r_std IS NULL THEN
+    RAISE EXCEPTION 'Required test fixture room standard-river is missing';
+  END IF;
+
+  SELECT id INTO unit1
+  FROM public.room_states
+  WHERE room_id = r_std
+  ORDER BY unit_label, id
+  LIMIT 1;
+
+  IF unit1 IS NULL THEN
+    RAISE EXCEPTION 'Required physical room-state fixture for standard-river is missing';
+  END IF;
+
   INSERT INTO public.bookings (reference, room_id, check_in, check_out, nights, adults, guest_name, guest_email, guest_phone, country, status, payment_status, subtotal, total, source, special_requests)
   VALUES ('TEST-JS-0001', r_std, '2026-08-12', '2026-08-15', 3, 2, 'John Smith', 'john.smith@example.com', '+255700000001', 'United Kingdom', 'confirmed', 'deposit_paid', 780, 780, 'test-data', 'Late arrival, quiet room please')
   RETURNING id INTO b1;
