@@ -37,7 +37,7 @@ async function loadPropertyData(supabase: any, propertyId: string, from: string,
     supabase.from("rooms").select("id,name,total_units,currency,catalogue_type_id,status")
       .eq("property_id", propertyId).eq("status", "active").limit(500),
     supabase.from("bookings")
-      .select("id,property_id,room_id,check_in,check_out,nights,total,subtotal,extras_total,taxes,currency,status,source,created_at,pricing_snapshot")
+      .select("id,property_id,room_id,check_in,check_out,nights,total,subtotal,extras_total,taxes,tax_addition,fee_total,discount_total,currency,status,source,created_at,pricing_snapshot")
       .eq("property_id", propertyId).gte("check_out", from).lte("check_in", to)
       .order("check_in", { ascending: true }).limit(5000),
   ]);
