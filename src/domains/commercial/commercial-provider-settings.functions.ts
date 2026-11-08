@@ -161,3 +161,17 @@ export const setFounderCommercialProviderStatus = createServerFn({ method: "POST
       resourceRef: provider.id, metadata: { provider: provider.provider, status: data.status } });
     return { providerAccountId: provider.id, status: data.status };
   });
+
+export const listFounderCommercialAccounts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await resolveVerifiedFounderActor(context);
+    const admin = await getAdmin();
+    const { data, error } = await admin.from("commercial_accounts").select("organisation_id").order("created_at", { ascending: false });
+    if (error) throw new Error("StayNas commercial accounts could not be loaded.");
+    const ids = [...new Set((data ?? []).map((row: { organisation_id: string }) => row.organisation_id))];
+    const { data: organisations } = ids.length
+      ? await admin.from("staynas_organisations").select("id,name,slug").in("id", ids)
+      : { data: [] };
+    return organisations ?? [];
+  });
