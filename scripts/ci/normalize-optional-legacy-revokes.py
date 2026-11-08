@@ -14,13 +14,13 @@ legacy = Path(
 )
 source = legacy.read_text()
 pattern = re.compile(
-    r"^REVOKE EXECUTE ON FUNCTION (public\.[^(]+\([^)]*\)) FROM ([^;]+);$",
+    r"^(REVOKE (?:ALL|EXECUTE) ON FUNCTION) (public\\.[^(]+\\([^)]*\\)) FROM ([^;]+);$",
     re.MULTILINE,
 )
 
 def conditional_revoke(match: re.Match[str]) -> str:
-    signature, roles = match.groups()
-    statement = f"REVOKE EXECUTE ON FUNCTION {signature} FROM {roles}"
+    privilege, signature, roles = match.groups()
+    statement = f"{privilege} {signature} FROM {roles}"
     return (
         "DO $ci$ BEGIN "
         f"IF to_regprocedure('{signature}') IS NOT NULL THEN "
