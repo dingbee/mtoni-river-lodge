@@ -209,7 +209,7 @@ export async function sendCommercialInvoiceReminderEmail(input: {
   let notificationId=existing?.id as string|undefined;
   if(!notificationId){
     const {data:inserted,error:insertError}=await admin.from("commercial_financial_notifications").insert({
-      organisation_id:invoice.organisation_id,invoice_id:invoice.id,notification_type,
+      organisation_id:invoice.organisation_id,invoice_id:invoice.id,notification_type:notificationType,
       recipient_email:recipient,idempotency_key:idempotencyKey,
       payload_snapshot:{invoiceNumber:invoice.invoice_number,currency:invoice.currency,outstandingMinor:invoice.outstanding_minor,dueAt:invoice.due_at},
     }).select("id").single();
