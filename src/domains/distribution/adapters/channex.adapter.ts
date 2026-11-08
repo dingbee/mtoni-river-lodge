@@ -48,7 +48,7 @@ function validateBaseUrl(value: string, allowedHosts: readonly string[]): URL {
   if (!allowedHosts.includes(url.hostname.toLowerCase())) {
     throw new ChannexConfigurationError("Channex endpoint host is not in the platform-managed provider allowlist.");
   }
-  return new URL(url.toString().replace(/\\/+$/, "") + "/");
+  return new URL(url.toString().replace(/\/+$/, "") + "/");
 }
 
 function normalizeFailure(status: number, correlationId: string, retryAfter?: string): NormalizedAdapterError {
