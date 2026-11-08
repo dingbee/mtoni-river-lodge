@@ -268,7 +268,7 @@ const providerAccountInput = z.object({
   organisationId: z.string().uuid(),
   provider: z.enum(["pesapal","bank_transfer","manual"]),
   providerAccountRef: z.string().trim().min(2).max(200),
-  credentialSecretRef: z.string().regex(/^STAYNAS_PROVIDER_SECRET_[A-Z0-9_]+$/).optional(),
+  credentialSecretRef: z.string().uuid().optional(),
   supportedCurrencies: z.array(z.enum(["TZS","USD"])).min(1).max(2),
 });
 
