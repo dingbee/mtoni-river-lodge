@@ -46,10 +46,10 @@ jobs:
           $$;
           CREATE SCHEMA vault;
           CREATE TABLE vault.test_secrets(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), secret text NOT NULL);
-          CREATE FUNCTION vault.create_secret(text,text,text) RETURNS uuid LANGUAGE plpgsql AS $
+          CREATE FUNCTION vault.create_secret(text,text,text) RETURNS uuid LANGUAGE plpgsql AS $$
             DECLARE secret_id uuid;
             BEGIN INSERT INTO vault.test_secrets(secret) VALUES ($1) RETURNING id INTO secret_id; RETURN secret_id; END
-          $;
+          $$;
           CREATE VIEW vault.decrypted_secrets AS SELECT id, secret AS decrypted_secret FROM vault.test_secrets;
           CREATE TABLE public.staynas_organisations(id uuid PRIMARY KEY, slug text UNIQUE NOT NULL, name text NOT NULL, status text NOT NULL DEFAULT 'active');
           CREATE TABLE public.staynas_properties(id uuid PRIMARY KEY, organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id), slug text NOT NULL, code text NOT NULL, name text NOT NULL, status text NOT NULL DEFAULT 'active');
