@@ -1,4 +1,8 @@
 import { sendResendEmail } from "@/domains/ai/concierge/providers/resend-email.server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
+
+type FinanceNotificationAdmin = SupabaseClient<Database>;
 
 function escapeHtml(value: unknown) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -15,8 +19,7 @@ function amount(minor: number | string, currency: "TZS" | "USD") {
   return `${formattedWhole}.${fractional}`;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function sendCommercialInvoiceIssuedEmail(input: { admin: any; invoiceId: string }) {
+export async function sendCommercialInvoiceIssuedEmail(input: { admin: FinanceNotificationAdmin; invoiceId: string }) {
   const { admin, invoiceId } = input;
   const { data: invoice, error } = await admin.from("commercial_invoices").select("*").eq("id",invoiceId).maybeSingle();
   if (error || !invoice) throw new Error("Persisted invoice could not be loaded for notification.");
@@ -83,8 +86,7 @@ export async function sendCommercialInvoiceIssuedEmail(input: { admin: any; invo
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function sendCommercialPaymentConfirmationEmail(input: { admin: any; paymentId: string }) {
+export async function sendCommercialPaymentConfirmationEmail(input: { admin: FinanceNotificationAdmin; paymentId: string }) {
   const { admin, paymentId } = input;
   const { data: payment, error } = await admin.from("commercial_payment_transactions").select("*").eq("id",paymentId).maybeSingle();
   if (error || !payment || !["successful","partially_reversed","reversed"].includes(payment.status)) {
@@ -135,8 +137,7 @@ export async function sendCommercialPaymentConfirmationEmail(input: { admin: any
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function sendCommercialPaymentFailureEmail(input: { admin: any; paymentId: string }) {
+export async function sendCommercialPaymentFailureEmail(input: { admin: FinanceNotificationAdmin; paymentId: string }) {
   const { admin, paymentId } = input;
   const { data: payment, error } = await admin.from("commercial_payment_transactions").select("*").eq("id",paymentId).maybeSingle();
   if (error || !payment || payment.status !== "failed") throw new Error("Failed payment could not be loaded for notification.");
@@ -185,9 +186,8 @@ export async function sendCommercialPaymentFailureEmail(input: { admin: any; pay
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function sendCommercialInvoiceReminderEmail(input: {
-  admin: any; invoiceId: string; notificationType: "upcoming_due" | "overdue_notice";
+  admin: FinanceNotificationAdmin; invoiceId: string; notificationType: "upcoming_due" | "overdue_notice";
 }) {
   const {admin,invoiceId,notificationType}=input;
   const {data:invoice,error}=await admin.from("commercial_invoice_receivables").select("*").eq("id",invoiceId).maybeSingle();
@@ -235,8 +235,7 @@ export async function sendCommercialInvoiceReminderEmail(input: {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function sendCommercialUnallocatedPaymentEmail(input:{admin:any;paymentId:string}) {
+export async function sendCommercialUnallocatedPaymentEmail(input:{admin:FinanceNotificationAdmin;paymentId:string}) {
   const {admin,paymentId}=input;
   const {data:payment,error}=await admin.from("commercial_payment_transactions").select("*").eq("id",paymentId).maybeSingle();
   if(error||!payment||payment.invoice_id!==null||payment.status!=="successful") throw new Error("Verified unallocated collection not found.");
