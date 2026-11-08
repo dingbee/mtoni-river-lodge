@@ -817,7 +817,7 @@ export const listCommercialPaymentsForFounder=createServerFn({method:"GET"})
       const {data:invoiceRows,error:invoiceError}=await invoiceQuery;
       if(invoiceError) throw new Error("Payment invoice filters could not be resolved.");
       invoiceIds=(invoiceRows??[]).map((row:{id:string})=>row.id);
-      if(!invoiceIds.length) return [];
+      if(!invoiceIds || invoiceIds.length===0) return [];
     }
     let query=admin.from("commercial_payment_transactions").select("*").order("created_at",{ascending:false});
     if(data.organisationId) query=query.eq("organisation_id",data.organisationId);
