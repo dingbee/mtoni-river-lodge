@@ -44,7 +44,15 @@ jobs:
           CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
             SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid
           $$;
+          CREATE SCHEMA vault;
+          CREATE TABLE vault.test_secrets(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), secret text NOT NULL);
+          CREATE FUNCTION vault.create_secret(text,text,text) RETURNS uuid LANGUAGE plpgsql AS $
+            DECLARE secret_id uuid;
+            BEGIN INSERT INTO vault.test_secrets(secret) VALUES ($1) RETURNING id INTO secret_id; RETURN secret_id; END
+          $;
+          CREATE VIEW vault.decrypted_secrets AS SELECT id, secret AS decrypted_secret FROM vault.test_secrets;
           CREATE TABLE public.staynas_organisations(id uuid PRIMARY KEY, slug text UNIQUE NOT NULL, name text NOT NULL, status text NOT NULL DEFAULT 'active');
+          CREATE TABLE public.staynas_properties(id uuid PRIMARY KEY, organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id), slug text NOT NULL, code text NOT NULL, name text NOT NULL, status text NOT NULL DEFAULT 'active');
           CREATE TABLE public.commercial_accounts(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id), status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(organisation_id));
           CREATE TABLE public.commercial_subscriptions(
             id uuid PRIMARY KEY, account_id uuid NOT NULL REFERENCES public.commercial_accounts(id),
@@ -77,6 +85,14 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/cc04_financial_ledger.test.sql
+      - name: Apply scoped provider configuration migration
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/20261108130000_staynas_payment_provider_configuration.sql
+      - name: Verify provider configuration and Vault access boundaries
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/staynas_payment_provider_configuration.test.sql
   cc04-contracts:
     runs-on: ubuntu-latest
     env:
