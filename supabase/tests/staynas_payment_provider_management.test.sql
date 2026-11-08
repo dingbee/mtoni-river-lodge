@@ -38,7 +38,7 @@ BEGIN
       configuration_scope, organisation_id, property_id, provider,
       provider_account_ref, environment, supported_currencies
     ) VALUES (
-      'platform_subscription', gen_random_uuid(), gen_random_uuid(), 'airtel_money',
+      'platform_subscription', NULL, gen_random_uuid(), 'airtel_money',
       'INVALID-SCOPE', 'sandbox', ARRAY['TZS']
     );
     RAISE EXCEPTION 'Invalid scope ownership combination was accepted';
