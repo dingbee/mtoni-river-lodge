@@ -401,6 +401,8 @@ SELECT public.staynas_distribution_record_price_verification(
 );
 CREATE TEMP TABLE spe07_test_modify_claim AS
 SELECT * FROM public.staynas_distribution_claim_reservation_inbox(1,120);
+-- The canonical writer is a trusted service-role worker; model its JWT claim for the finance guard.
+SELECT set_config('request.jwt.claim.role','service_role',true);
 CREATE TEMP TABLE spe07_test_modify_apply AS
 SELECT public.staynas_distribution_apply_reservation_event(inbox_id) AS result
 FROM spe07_test_modify_claim;
