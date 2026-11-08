@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS public.staynas_pricing_recommendations (
   updated_at timestamptz NOT NULL DEFAULT now(),
   CHECK (window_to >= window_from),
   CHECK (expires_at IS NULL OR expires_at > generated_at),
+  CONSTRAINT staynas_pi_recommendations_id_property_unique UNIQUE (id, property_id),
   CONSTRAINT staynas_pi_recommendation_room_property_fk
     FOREIGN KEY (room_id, property_id) REFERENCES public.rooms(id, property_id) ON DELETE CASCADE
 );
@@ -69,13 +70,16 @@ CREATE INDEX IF NOT EXISTS staynas_pi_recommendations_expiry_idx
 CREATE TABLE IF NOT EXISTS public.staynas_pricing_recommendation_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE CASCADE,
-  recommendation_id uuid NOT NULL REFERENCES public.staynas_pricing_recommendations(id) ON DELETE RESTRICT,
+  recommendation_id uuid NOT NULL,
   event_type text NOT NULL CHECK (event_type IN ('generated','submitted','approved','rejected','expired','superseded','applied','failed','outcome_recorded')),
   actor_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   reason text,
   execution_reference text,
   evidence jsonb NOT NULL DEFAULT '{}'::jsonb,
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT staynas_pi_event_recommendation_property_fk
+    FOREIGN KEY (recommendation_id, property_id)
+    REFERENCES public.staynas_pricing_recommendations(id, property_id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS staynas_pi_recommendation_events_lookup_idx
   ON public.staynas_pricing_recommendation_events(property_id, recommendation_id, created_at DESC);
