@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- existing public room catalog payload is dynamically shaped */
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -8,22 +9,57 @@ import {
 } from "lucide-react";
 import {
   createPublicDemoBooking,
+  getPublicDemoQuote,
   getPublicDemoProperty,
   searchPublicDemoAvailability,
 } from "@/lib/public-booking.functions";
 
 export const Route = createFileRoute("/$propertySlug")({
-  head: ({ params }) => ({
-    meta: [
-      { title: `${params.propertySlug} — StayNas Direct` },
-      { name: "description", content: "A direct booking page powered by StayNas." },
-      { name: "robots", content: "noindex,nofollow" },
-    ],
-  }),
+  loader: async ({ params }) => {
+    try {
+      const propertyData = await getPublicDemoProperty({ data: { propertySlug: params.propertySlug } });
+      return { propertyData, pageError: "" };
+    } catch (error) {
+      return {
+        propertyData: null,
+        pageError: error instanceof Error ? error.message : "This booking page is unavailable.",
+      };
+    }
+  },
+  head: ({ params }) => {
+    const isNolmark = params.propertySlug === "nolmark-cdma-staynas";
+    const title = isNolmark ? "Nolmark CDMA — Direct Booking" : `${params.propertySlug} — StayNas Direct`;
+    const description = isNolmark
+      ? "Check availability and request a reservation at Nolmark CDMA. Direct reservations powered by StayNas."
+      : "A direct booking page powered by StayNas.";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:site_name", content: isNolmark ? "Nolmark CDMA" : "StayNas Direct" },
+        { name: "theme-color", content: isNolmark ? "#000000" : "#1e352a" },
+        { name: "robots", content: "noindex,nofollow" },
+      ],
+    };
+  },
   component: PublicPropertyBookingPage,
 });
-
 type PropertyPageData = Awaited<ReturnType<typeof getPublicDemoProperty>>;
+type PublicBookingQuote = {
+  quote_id: string;
+  quote_expires_at: string;
+  accommodation_subtotal?: number;
+  extras_total?: number;
+  fee_total?: number;
+  discount_total?: number;
+  taxes?: number;
+  tax_addition?: number;
+  total: number;
+  currency: string;
+};
+
 type RatePlanOption = { rate_plan_id: string; name: string; description: string | null; meal_plan: string | null; refundable: boolean; currency: string; total: number; average_nightly_rate: number; minimum_stay: number; nightly_breakdown: Array<{ date: string; nightly_rate: number; currency: string; source_label: string; pricing_basis: string; source_rate: number }>; publication_id: string; publication_number: number; rate_plan_version: number; snapshot_hash: string };
 type AvailableRoom = {
   room_id: string; slug: string; name: string; base_price: number; currency: string;
@@ -57,13 +93,11 @@ const roomVisuals = [
 
 function PublicPropertyBookingPage() {
   const { propertySlug } = Route.useParams();
-  const loadProperty = useServerFn(getPublicDemoProperty);
+  const { propertyData, pageError } = Route.useLoaderData();
   const searchAvailability = useServerFn(searchPublicDemoAvailability);
   const createBooking = useServerFn(createPublicDemoBooking);
+  const getQuote = useServerFn(getPublicDemoQuote);
 
-  const [propertyData, setPropertyData] = useState<PropertyPageData | null>(null);
-  const [loadingProperty, setLoadingProperty] = useState(true);
-  const [pageError, setPageError] = useState("");
   const [checkIn, setCheckIn] = useState(addDays(7));
   const [checkOut, setCheckOut] = useState(addDays(9));
   const [guests, setGuests] = useState(2);
@@ -78,16 +112,9 @@ function PublicPropertyBookingPage() {
   const [country, setCountry] = useState("");
   const [specialRequests, setSpecialRequests] = useState("");
   const [confirmation, setConfirmation] = useState<Awaited<ReturnType<typeof createPublicDemoBooking>> | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoadingProperty(true);
-    loadProperty({ data: { propertySlug } })
-      .then((result) => { if (!cancelled) setPropertyData(result); })
-      .catch((error: Error) => { if (!cancelled) setPageError(error.message || "This booking page is unavailable."); })
-      .finally(() => { if (!cancelled) setLoadingProperty(false); });
-    return () => { cancelled = true; };
-  }, [loadProperty, propertySlug]);
+  const [bookingQuote, setBookingQuote] = useState<PublicBookingQuote | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState("");
 
   const nights = useMemo(() => {
     if (!checkIn || !checkOut) return 0;
@@ -102,6 +129,8 @@ function PublicPropertyBookingPage() {
       setSelectedRoom(null);
       setSelectedRatePlanId("");
       setSelectedRatePlans({});
+      setBookingQuote(null);
+      setQuoteError("");
       setConfirmation(null);
       window.setTimeout(() => document.getElementById("room-results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
     },
@@ -110,9 +139,11 @@ function PublicPropertyBookingPage() {
   const bookingMutation = useMutation({
     mutationFn: () => {
       if (!selectedRoom) throw new Error("Select a room to continue.");
+      if (!bookingQuote?.quote_id) throw new Error("Enter a valid guest email and wait for the final quote before booking.");
+      if (bookingQuote.quote_expires_at && Date.parse(bookingQuote.quote_expires_at) <= Date.now()) throw new Error("The quote expired. Refresh the price before submitting.");
       return createBooking({
         data: {
-          propertySlug, roomSlug: selectedRoom.slug, ratePlanId: selectedRatePlanId || undefined, checkIn, checkOut,
+          propertySlug, quoteId: bookingQuote.quote_id, roomSlug: selectedRoom.slug, ratePlanId: selectedRatePlanId || undefined, checkIn, checkOut,
           adults: guests, children: 0, guestName, guestEmail, guestPhone, country, specialRequests,
         },
       });
@@ -123,13 +154,45 @@ function PublicPropertyBookingPage() {
     },
   });
 
+  const resolvedRatePlanId = selectedRatePlanId || (selectedRoom?.rate_plan_options?.length === 1 ? selectedRoom.rate_plan_options[0].rate_plan_id : "");
+  const validGuestEmail = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(guestEmail.trim()) ? guestEmail.trim() : "";
+
+  useEffect(() => {
+    if (!selectedRoom || !resolvedRatePlanId || !validGuestEmail || nights < 1) {
+      setBookingQuote(null);
+      setQuoteLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setQuoteLoading(true);
+    setBookingQuote(null);
+    setQuoteError("");
+    getQuote({ data: {
+      propertySlug,
+      roomSlug: selectedRoom.slug,
+      checkIn,
+      checkOut,
+      adults: guests,
+      ratePlanId: resolvedRatePlanId,
+      guestEmail: validGuestEmail,
+    } }).then((quote) => {
+      if (!cancelled) {
+        setBookingQuote(quote as PublicBookingQuote);
+        setQuoteLoading(false);
+      }
+    }).catch((error) => {
+      if (!cancelled) {
+        setBookingQuote(null);
+        setQuoteError(error instanceof Error ? error.message : "The final quote could not be calculated.");
+        setQuoteLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [getQuote, propertySlug, selectedRoom?.slug, resolvedRatePlanId, checkIn, checkOut, guests, validGuestEmail, nights]);
+
   const runAvailability = () => {
     if (nights > 0) availabilityMutation.mutate();
   };
-
-  if (loadingProperty) {
-    return <main className="flex min-h-screen items-center justify-center bg-[#f5f4ef] px-5 text-sm text-slate-500">Preparing your stay…</main>;
-  }
 
   if (!propertyData) {
     return <main className="flex min-h-screen items-center justify-center bg-[#f5f4ef] px-5"><div className="max-w-md rounded-[2rem] border border-stone-200 bg-white p-8 text-center shadow-sm"><h1 className="text-2xl font-semibold text-slate-900">Booking page unavailable</h1><p className="mt-3 text-sm text-slate-600">{pageError || "This property is not currently published on StayNas."}</p><a href="/" className="mt-6 inline-flex rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white">StayNas home</a></div></main>;
@@ -252,6 +315,19 @@ function PublicPropertyBookingPage() {
         {selectedRoom && !confirmation && <form id="guest-details" onSubmit={(event) => { event.preventDefault(); bookingMutation.mutate(); }} className="mt-7 scroll-mt-5 rounded-[1.5rem] border border-[#e6e4dc] bg-white p-5 shadow-[0_12px_35px_rgba(33,43,36,0.06)] sm:p-7">
           <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#718078]">Your reservation</p><h2 className="mt-1 text-2xl font-medium tracking-[-0.045em] text-[#202820]">A few details before we confirm</h2></div><span className="rounded-full bg-[#edf3ed] px-3 py-1.5 text-[10px] font-semibold text-[#416149]">Room selected</span></div>
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#f7f7f2] p-4"><div><p className="text-sm font-semibold text-[#29372e]">{selectedRoom.name}</p>{selectedPlan && <p className="mt-1 text-[11px] text-[#65776a]">{selectedPlan.name} · {selectedPlan.meal_plan || "No meal plan"} · {selectedPlan.refundable ? "Refundable" : "Non-refundable"}</p>}<p className="mt-1 text-[11px] text-[#7d887f]">{prettyDate(checkIn)} — {prettyDate(checkOut)} · {guests} guests</p></div><div className="text-right"><p className="text-lg font-semibold text-[#29372e]">{money(selectedTotal, selectedPlan?.currency ?? selectedRoom.currency)}</p><p className="text-[10px] text-[#7d887f]">accommodation subtotal · before taxes</p></div></div>{selectedPlan?.nightly_breakdown?.length ? <div className="mt-3 rounded-xl border border-[#e8e9e2] bg-white p-4"><div className="flex items-center justify-between gap-2"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#718078]">Nightly price breakdown</p><span className="text-[10px] text-[#899188]">{selectedPlan.nightly_breakdown.length} nights</span></div><div className="mt-2 divide-y divide-[#f0f0eb]">{selectedPlan.nightly_breakdown.map((night) => <div key={night.date} className="flex items-center justify-between gap-3 py-2 text-xs"><div><p className="font-medium text-[#35463a]">{prettyDate(night.date)}</p><p className="mt-0.5 text-[10px] text-[#899188]">{night.source_label} · {night.pricing_basis.replaceAll("_", " ")}</p></div><span className="font-semibold tabular-nums text-[#29372e]">{money(Number(night.nightly_rate), night.currency)}</span></div>)}</div><div className="mt-2 flex items-center justify-between border-t border-[#e9eae3] pt-3 text-xs"><span className="font-semibold text-[#536258]">Accommodation subtotal</span><span className="font-semibold tabular-nums text-[#29372e]">{money(selectedTotal, selectedPlan.currency)}</span></div></div> : null}
+          <div className="mt-4 rounded-xl border border-[#e8e9e2] bg-white p-4">
+            <div className="flex items-center justify-between text-xs"><span className="text-[#718078]">Final price calculation</span><span className="text-[10px] text-[#899188]">{quoteLoading ? "Calculating…" : bookingQuote?.quote_expires_at ? `Valid until ${new Date(bookingQuote.quote_expires_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Awaiting guest email"}</span></div>
+            {bookingQuote ? <div className="mt-3 space-y-2 text-xs">
+              <div className="flex justify-between gap-3"><span>Accommodation</span><span>{money(Number(bookingQuote.accommodation_subtotal ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
+              <div className="flex justify-between gap-3"><span>Extras</span><span>{money(Number(bookingQuote.extras_total ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
+              <div className="flex justify-between gap-3"><span>Fees</span><span>{money(Number(bookingQuote.fee_total ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
+              <div className="flex justify-between gap-3"><span>Discounts</span><span>−{money(Number(bookingQuote.discount_total ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
+              <div className="flex justify-between gap-3"><span>Included taxes</span><span>{money(Number(bookingQuote.taxes ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
+              <div className="flex justify-between gap-3"><span>Additional taxes</span><span>{money(Number(bookingQuote.tax_addition ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
+              <div className="flex justify-between gap-3 border-t border-[#e9eae3] pt-3 text-sm font-semibold text-[#29372e]"><span>Total</span><span>{money(Number(bookingQuote.total ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
+            </div> : <p className="mt-2 text-[11px] text-[#7d887f]">{quoteLoading ? "Resolving published rates, fees, promotions and taxes…" : "Enter a valid email address to resolve the final guest quote."}</p>}
+            {quoteError && <p role="alert" className="mt-2 text-[11px] text-red-700">{quoteError}</p>}
+          </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <label className="grid gap-1.5 text-[11px] font-semibold text-[#526057]">Full name<input required minLength={2} maxLength={100} value={guestName} onChange={(event) => setGuestName(event.target.value)} className="h-11 rounded-xl border border-[#e5e6df] bg-[#fcfcfa] px-3 text-sm font-normal text-[#253229] outline-none focus:border-[#78917e]" placeholder="Your full name"/></label>
             <label className="grid gap-1.5 text-[11px] font-semibold text-[#526057]">Email address<input required type="email" value={guestEmail} onChange={(event) => setGuestEmail(event.target.value)} className="h-11 rounded-xl border border-[#e5e6df] bg-[#fcfcfa] px-3 text-sm font-normal text-[#253229] outline-none focus:border-[#78917e]" placeholder="you@example.com"/></label>
@@ -260,7 +336,7 @@ function PublicPropertyBookingPage() {
             <label className="grid gap-1.5 text-[11px] font-semibold text-[#526057] sm:col-span-2">Special requests <span className="font-normal text-[#929a93]">Optional</span><textarea value={specialRequests} onChange={(event) => setSpecialRequests(event.target.value)} className="min-h-20 rounded-xl border border-[#e5e6df] bg-[#fcfcfa] p-3 text-sm font-normal text-[#253229] outline-none focus:border-[#78917e]" maxLength={1000} placeholder="Let the property know if you have any requests…"/></label>
           </div>
           {bookingMutation.isError && <p role="alert" className="mt-4 text-xs text-red-700">{(bookingMutation.error as Error).message}</p>}
-          <button type="submit" disabled={bookingMutation.isPending} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#1e352a] px-5 text-xs font-semibold text-white transition hover:bg-[#294536] disabled:opacity-50">{bookingMutation.isPending ? "Submitting reservation…" : "Request this reservation"}<ArrowRight className="h-4 w-4"/></button>
+          <button type="submit" disabled={bookingMutation.isPending || quoteLoading || !bookingQuote?.quote_id} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#1e352a] px-5 text-xs font-semibold text-white transition hover:bg-[#294536] disabled:opacity-50">{bookingMutation.isPending ? "Submitting reservation…" : "Request this reservation"}<ArrowRight className="h-4 w-4"/></button>
           <p className="mt-3 text-center text-[10px] text-[#899188]">UAT demonstration · No payment is collected.</p>
         </form>}
 

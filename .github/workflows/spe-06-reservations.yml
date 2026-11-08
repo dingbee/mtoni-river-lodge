@@ -1,0 +1,74 @@
+name: SPE-06 reservation integration
+
+on:
+  push:
+    branches:
+      - feat/spe-06-*
+  pull_request:
+    branches:
+      - feat/spe-05-*
+    paths:
+      - "src/lib/booking.functions.ts"
+      - "src/lib/staff-reservations.functions.ts"
+      - "src/lib/public-booking.functions.ts"
+      - "src/routes/book.tsx"
+      - "src/routes/$propertySlug.tsx"
+      - "src/components/os/reservations/NewReservationDialog.tsx"
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - ".github/workflows/spe-06-reservations.yml"
+
+jobs:
+  reservation-app:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Reservation, lifecycle and pricing regression tests
+        run: >-
+          bunx vitest run
+          src/lib/booking-lifecycle.test.ts
+          src/domains/finance/pricing-engine.test.ts
+          src/domains/finance/finance-currency.test.ts
+          src/domains/finance/finance-reconciliation.test.ts
+          src/lib/pesapal-currency.test.ts
+      - name: Production build
+        run: bun run build
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Lint changed reservation paths
+        run: >-
+          bunx eslint
+          src/lib/booking.functions.ts
+          src/lib/staff-reservations.functions.ts
+          src/lib/public-booking.functions.ts
+          src/routes/book.tsx
+          'src/routes/$propertySlug.tsx'
+          src/components/os/reservations/NewReservationDialog.tsx
+          --rule 'prettier/prettier: off'
+
+  reservation-database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.1
+      - name: Normalize optional legacy function revoke in ephemeral checkout
+        run: python3 scripts/ci/normalize-optional-legacy-revokes.py
+      - name: Start local Supabase database
+        run: supabase start --exclude studio,inbucket,storage-api,imgproxy,vector
+      - name: Apply migrations and run pgTAP contract suite
+        run: |
+          supabase db reset
+          supabase test db
