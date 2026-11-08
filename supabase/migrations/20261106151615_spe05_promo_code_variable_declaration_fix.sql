@@ -1,29 +1,4 @@
--- SPE-05 kernel refinement: stackable promotions, proportional discount allocation,
--- legacy tax applicability, inclusive-tax extraction and fee-specific tax mappings.
 BEGIN;
-DO $constraints$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='staynas_promotion_percentage_max_check'
-    AND conrelid='public.staynas_property_promotions'::regclass) THEN
-    ALTER TABLE public.staynas_property_promotions
-      ADD CONSTRAINT staynas_promotion_percentage_max_check
-      CHECK(discount_type<>'percentage' OR discount_value<=100);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='staynas_promotion_booking_window_check'
-    AND conrelid='public.staynas_property_promotions'::regclass) THEN
-    ALTER TABLE public.staynas_property_promotions
-      ADD CONSTRAINT staynas_promotion_booking_window_check
-      CHECK(booking_window_to IS NULL OR booking_window_from IS NULL OR booking_window_to>=booking_window_from);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='staynas_promotion_stay_window_check'
-    AND conrelid='public.staynas_property_promotions'::regclass) THEN
-    ALTER TABLE public.staynas_property_promotions
-      ADD CONSTRAINT staynas_promotion_stay_window_check
-      CHECK(stay_to IS NULL OR stay_from IS NULL OR stay_to>=stay_from);
-  END IF;
-END;
-$constraints$;
-
 CREATE OR REPLACE FUNCTION public.calculate_staynas_spe05_adjustments(
   _property_id uuid,
   _check_in date,
@@ -344,7 +319,7 @@ BEGIN
       'tax_mode',CASE WHEN v_tax.calculation_type='inclusive_percent' THEN 'inclusive'
                       WHEN v_tax.calculation_type='exclusive_percent' THEN 'exclusive'
                       ELSE v_tax.tax_mode END,
-      'taxable_amount',v_tax_base,'gross_taxable_amount',v_taxable,'amount',v_tax_amount,'currency',v_currency));
+      'taxable_amount',v_taxable,'amount',v_tax_amount,'currency',v_currency));
   END LOOP;
 
   RETURN jsonb_build_object('ok',true,'property_id',_property_id,'currency',v_currency,'timezone',v_timezone,
@@ -359,4 +334,5 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.calculate_staynas_spe05_adjustments(uuid,date,date,text,jsonb,uuid,uuid,text,text,date) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.calculate_staynas_spe05_adjustments(uuid,date,date,text,jsonb,uuid,uuid,text,text,date) TO service_role;
+
 COMMIT;
