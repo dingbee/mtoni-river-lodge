@@ -39,7 +39,7 @@ It deliberately returns `insufficient_data` for expected occupancy until an auth
 No expected accommodation revenue, seasonality uplift, demand elasticity or forecast accuracy is reported. A forecast backtest and certified daily inventory coverage are release gates.
 ## Recommendations and authority
 
-The initial deterministic rule identifies dates where the weekday baseline is at least 85% and exceeds confirmed forward occupancy by at least 10 percentage points. It recommends a human review of published pricing; it does not propose an unsupported numeric rate or revenue uplift.
+The deterministic rate-review rule is implemented but is gated behind a validated expected-occupancy forecast. Because historical daily-inventory coverage is not yet certified, the current forecast returns insufficient-data and the recommendation scan generates no rate recommendations. When the coverage gate is satisfied, the rule identifies dates where the validated baseline is at least 85% and exceeds confirmed forward occupancy by at least 10 percentage points. It recommends a human review of published pricing; it does not propose an unsupported numeric rate or revenue uplift.
 
 Approval records a decision only. It does not publish a rate, activate a promotion, mutate a reservation, or enqueue distribution. An authorized user must separately use the existing versioned rate-plan publication workflow. Decision and audit evidence are stored under the active property.
 
