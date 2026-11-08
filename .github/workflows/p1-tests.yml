@@ -10,7 +10,9 @@ on:
       - feat/finance-*
       - feat/spe-03-*
       - feat/spe-04-*
+      - feat/spe-08-*
       - spe-02/**
+      - feat/spe-07-*
   pull_request:
     branches:
       - main
