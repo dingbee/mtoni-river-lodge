@@ -209,7 +209,7 @@ function PricingIntelligence() {
           <div className="mt-4 rounded-lg border p-3">
             <div className="flex flex-wrap items-center gap-2"><Badge variant={forecast.data.status === "available" ? "secondary" : "destructive"}>{forecast.data.status}</Badge><span className="text-xs text-muted-foreground">Generated {new Date(forecast.data.generatedAt).toLocaleString()}</span></div>
             <div className="mt-2 text-lg font-semibold">Expected occupancy: {percent(forecast.data.expectedOccupancy)}</div>
-            <p className="text-xs text-muted-foreground">Confidence proxy: {percent(forecast.data.confidence)} · {forecast.data.dataCoverage.historicalDays} historical stay dates · {forecast.data.methodVersion}</p>
+            <p className="text-xs text-muted-foreground">Confidence proxy: {percent(forecast.data.confidence)} · {forecast.data.dataCoverage.historicalDaysWithStayActivity} historical stay dates · {forecast.data.methodVersion}</p>
             <div className="mt-3 space-y-1 text-sm">
               {forecast.data.daily.map((d) => <div key={d.date} className="flex justify-between border-b py-1"><span>{d.date}</span><span>Booked {percent(d.bookedOccupancy)} · Expected {percent(d.expectedOccupancy)}</span></div>)}
             </div>
