@@ -18,6 +18,7 @@ import {
   Users,
   Wrench,
   QrCode,
+  Network,
 } from "lucide-react";
 import type { ComponentType } from "react";
 
@@ -118,6 +119,7 @@ export const NAV: NavEntry[] = [
       label: "Administration",
       icon: Settings,
       items: [
+        { id: "system", label: "Distribution Centre", href: "/admin/distribution", icon: Network },
         { id: "system.health", label: "Health", href: "/admin/system/health", icon: Activity },
         { id: "system.information", label: "System Information", href: "/admin/system/nova", icon: Wrench },
         { id: "system.users", label: "Users", href: "/admin/staff/users", icon: UserCog },
