@@ -4,23 +4,20 @@ type TenantPesapalSecret = { consumerKey: string; consumerSecret: string; enviro
 type CachedToken = { token: string; expiresAt: number };
 const tokenCache = new Map<string, CachedToken>();
 
-async function loadSecret(secretRef: string): Promise<TenantPesapalSecret> {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(secretRef)) {
-    throw new Error("Provider credential reference must identify a Supabase Vault secret.");
+function loadSecret(secretRef: string): TenantPesapalSecret {
+  if (!/^STAYNAS_PROVIDER_SECRET_[A-Z0-9_]+$/.test(secretRef)) {
+    throw new Error("Provider secret reference is not an approved server environment key.");
   }
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  // The RPC is service-role-only and returns decrypted material only to this server process.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabaseAdmin as any).rpc("staynas_read_provider_secret", { _secret_id: secretRef });
-  if (error || typeof data !== "string") throw new Error("Provider credentials could not be read from secure Vault storage.");
+  const raw = process.env[secretRef];
+  if (!raw) throw new Error("Tenant Pesapal credentials are not provisioned in server secret storage.");
   let parsed: unknown;
-  try { parsed = JSON.parse(data); } catch { throw new Error("Tenant Pesapal credentials are not valid JSON."); }
+  try { parsed = JSON.parse(raw); } catch { throw new Error("Tenant Pesapal secret payload is invalid."); }
   const value = parsed as Partial<TenantPesapalSecret>;
   if (typeof value.consumerKey !== "string" || !value.consumerKey
     || typeof value.consumerSecret !== "string" || !value.consumerSecret
     || (value.environment !== "sandbox" && value.environment !== "live")
     || typeof value.ipnId !== "string" || !value.ipnId) {
-    throw new Error("Tenant Pesapal credentials are incomplete.");
+    throw new Error("Tenant Pesapal secret payload is incomplete.");
   }
   return value as TenantPesapalSecret;
 }
@@ -62,7 +59,7 @@ export async function initiateTenantPesapalOrder(input: {
   currency: "TZS" | "USD"; email: string; phone?: string | null; firstName: string; lastName: string;
   callbackUrl: string;
 }) {
-  const secret = await loadSecret(input.secretRef);
+  const secret = loadSecret(input.secretRef);
   const merchantReference = `SN-COM-${input.paymentId}`;
   const result = await pesapalRequest(input.providerAccountId, secret, "/api/Transactions/SubmitOrderRequest", "POST", {
     id: merchantReference, currency: input.currency, amount: input.amountMinor / 100,
@@ -79,7 +76,7 @@ export async function initiateTenantPesapalOrder(input: {
 export async function queryTenantPesapalStatus(input: {
   providerAccountId: string; secretRef: string; orderTrackingId: string;
 }) {
-  const secret = await loadSecret(input.secretRef);
+  const secret = loadSecret(input.secretRef);
   const result = await pesapalRequest(input.providerAccountId, secret,
     `/api/Transactions/GetTransactionStatus?orderTrackingId=${encodeURIComponent(input.orderTrackingId)}`, "GET");
   return {
