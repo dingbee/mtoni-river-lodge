@@ -9,10 +9,12 @@ on:
       - feat/finance-*
       - feat/spe-03-*
       - feat/spe-04-*
+      - feat/spe-08-*
   pull_request:
     branches:
       - main
       - spe-02/**
+      - feat/spe-07-*
 
 jobs:
   build:
