@@ -250,12 +250,12 @@ export const generatePricingReviewRecommendations = createServerFn({ method: "PO
       .select("id,name,currency,total_units").eq("property_id", propertyId).eq("status", "active").limit(100);
     if (error) throw new Error("Unable to inspect room inventory for recommendations.");
     let generated = 0;
-    for (const room of rooms ?? []) {
+    for (const room of [{ id: null, name: "Property-wide", currency: null, total_units: null }]) {
       const evidence = highDemand.map((d: AnyRow) => ({ date: d.date, expectedOccupancy: d.expectedOccupancy, bookedOccupancy: d.bookedOccupancy, historicalWeekdayObservations: d.historicalWeekdayObservations }));
       const inserted = await context.supabase.from("staynas_pricing_recommendations").insert({
-        property_id: propertyId, room_id: room.id, recommendation_type: "rate_increase_review",
-        window_from: from, window_to: to, currency: String(room.currency ?? "").toUpperCase(),
-        current_context: { roomName: room.name, totalUnits: room.total_units, basis: "published rate must be reviewed in canonical rate-plan workspace" },
+        property_id: propertyId, room_id: null, recommendation_type: "rate_review",
+        window_from: from, window_to: to, currency: null,
+        current_context: { scope: "property", basis: "published room-type and rate-plan pricing must be reviewed in canonical rate-plan workspace" },
         proposed_action: { action: "Review the published rate for these high-demand dates.", suggestedRate: null, automaticExecution: false },
         expected_impact: { amount: null, note: "Not estimated; no validated price-elasticity or conversion model is configured." },
         evidence, explanation: {
