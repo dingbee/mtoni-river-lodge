@@ -44,6 +44,8 @@ async function getAdmin() {
   return supabaseAdmin as any;
 }
 
+export type CommercialAdminClient = Awaited<ReturnType<typeof getAdmin>>;
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function writeFinancialAudit(admin: any, input: {
   requestId: string; actorUserId: string | null; organisationId: string | null;
