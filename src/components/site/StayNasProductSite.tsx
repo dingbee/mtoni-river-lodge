@@ -84,7 +84,7 @@ function SiteShell({ children }: { children: ReactNode }) {
 }
 
 function StayNasAnalytics() {
-  const pathname = useLocation({ select: (state) => state.location.pathname });
+  const pathname = useLocation({ select: (location) => location.pathname });
   const [consent, setConsent] = useState<boolean | null>(null);
   const ga4Id = import.meta.env.VITE_STAYNAS_GA4_MEASUREMENT_ID as string | undefined;
   const gtmId = import.meta.env.VITE_STAYNAS_GTM_CONTAINER_ID as string | undefined;
