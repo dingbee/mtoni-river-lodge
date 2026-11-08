@@ -14,6 +14,8 @@ import {
   listPropertyPaymentProviderConfigs,
   savePlatformPaymentProviderConfig,
   savePropertyPaymentProviderConfig,
+  setPlatformPaymentProviderStatus,
+  setPropertyPaymentProviderStatus,
 } from "@/domains/payments/payment-provider-management.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/settings/payment-providers")({
@@ -42,7 +44,7 @@ type ProviderRow = {
   hasCredentials: boolean;
   credentialUpdatedAt: string | null;
   status: "inactive" | "active" | "suspended";
-  adapterStatus: "adapter_required";
+  integrationStatus: "adapter_pending" | "ready" | "blocked";
   createdAt: string;
   updatedAt: string;
 };
@@ -54,6 +56,8 @@ function PaymentProviderSettings() {
   const propertyListFn = useServerFn(listPropertyPaymentProviderConfigs);
   const savePlatformFn = useServerFn(savePlatformPaymentProviderConfig);
   const savePropertyFn = useServerFn(savePropertyPaymentProviderConfig);
+  const setPlatformStatusFn = useServerFn(setPlatformPaymentProviderStatus);
+  const setPropertyStatusFn = useServerFn(setPropertyPaymentProviderStatus);
   const founderStatus = useQuery({ queryKey: ["settings.founder-admin-status"], queryFn: () => founderStatusFn() });
   const isFounder = founderStatus.data?.isFounderAdmin === true;
   const platformQuery = useQuery({
@@ -99,9 +103,21 @@ function PaymentProviderSettings() {
         : savePropertyFn({ data: common });
     },
     onSuccess: () => {
-      toast.success("Provider configuration saved securely. It remains inactive until its adapter is certified.");
+      toast.success("Provider configuration saved in Supabase Vault. It remains inactive until its adapter is certified.");
       setCredentialsJson("");
       setAccountReference("");
+      queryClient.invalidateQueries({ queryKey: [isFounder ? "payments.platform-provider-configs" : "payments.property-provider-configs"] });
+    },
+    onError: (error: unknown) => toast.error((error as Error).message),
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: (input: { providerConfigId: string; status: "inactive" | "active" | "suspended" }) =>
+      isFounder
+        ? setPlatformStatusFn({ data: input })
+        : setPropertyStatusFn({ data: input }),
+    onSuccess: () => {
+      toast.success("Provider status updated.");
       queryClient.invalidateQueries({ queryKey: [isFounder ? "payments.platform-provider-configs" : "payments.property-provider-configs"] });
     },
     onError: (error: unknown) => toast.error((error as Error).message),
@@ -178,7 +194,7 @@ function PaymentProviderSettings() {
               autoComplete="off"
               spellCheck={false}
             />
-            <span className="block text-xs text-muted-foreground">Enter credentials supplied by the provider. They are encrypted with AES-256-GCM before storage. The plaintext is not logged or returned. Leave blank only when updating non-secret settings on an existing configuration.</span>
+            <span className="block text-xs text-muted-foreground">Enter credentials supplied by the provider. They are stored in Supabase Vault. Only the Vault UUID reference is stored in the provider account; the plaintext is not logged or returned. Leave blank only when updating non-secret settings on an existing configuration.</span>
           </label>
 
           <label className="block space-y-1 text-sm">
@@ -216,12 +232,12 @@ function PaymentProviderSettings() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-medium">{providers.find((item) => item.value === row.provider)?.label ?? row.provider}</span>
                     <Badge variant="outline">{row.status}</Badge>
-                    <Badge variant="secondary">Adapter required</Badge>
+                    <Badge variant="secondary">{row.integrationStatus.replaceAll("_", " ")}</Badge>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">{row.accountReference} · {row.environment.toUpperCase()} · {row.supportedCurrencies.join(", ")}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{row.hasCredentials ? "Encrypted credentials saved" : "No credentials saved"}{row.credentialUpdatedAt ? ` · Updated ${new Date(row.credentialUpdatedAt).toLocaleString()}` : ""}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{row.hasCredentials ? "Vault credentials saved" : "No credentials saved"}{row.credentialUpdatedAt ? ` · Updated ${new Date(row.credentialUpdatedAt).toLocaleString()}` : ""}</p>
                 </div>
-                <p className="text-xs text-muted-foreground">Inactive pending adapter certification</p>
+                <div className="flex flex-wrap items-center gap-2">\n                  {row.status === "active" ? (\n                    <Button size="sm" variant="outline" disabled={statusMutation.isPending} onClick={() => statusMutation.mutate({ providerConfigId: row.id, status: "suspended" })}>Suspend</Button>\n                  ) : (\n                    <Button size="sm" variant="outline" disabled={statusMutation.isPending || row.integrationStatus !== "ready"} onClick={() => statusMutation.mutate({ providerConfigId: row.id, status: "active" })}>Activate</Button>\n                  )}\n                  {row.status !== "inactive" && <Button size="sm" variant="ghost" disabled={statusMutation.isPending} onClick={() => statusMutation.mutate({ providerConfigId: row.id, status: "inactive" })}>Set inactive</Button>}\n                </div>
               </div>
             ))}
           </div>
