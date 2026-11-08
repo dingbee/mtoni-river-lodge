@@ -9,14 +9,15 @@ CREATE TABLE IF NOT EXISTS public.commercial_provider_accounts (
   organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id) ON DELETE RESTRICT,
   provider text NOT NULL CHECK (provider IN ('pesapal','bank_transfer','manual')),
   provider_account_ref text NOT NULL CHECK (length(btrim(provider_account_ref)) BETWEEN 1 AND 200),
-  credential_secret_ref text NOT NULL CHECK (length(btrim(credential_secret_ref)) BETWEEN 1 AND 200),
+  credential_secret_ref text CHECK (credential_secret_ref IS NULL OR length(btrim(credential_secret_ref)) BETWEEN 1 AND 200),
   supported_currencies text[] NOT NULL CHECK (cardinality(supported_currencies) > 0 AND supported_currencies <@ ARRAY['TZS','USD']::text[]),
   public_configuration jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(public_configuration)='object'),
   status text NOT NULL DEFAULT 'inactive' CHECK (status IN ('inactive','active','suspended')),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (organisation_id, provider, provider_account_ref),
-  UNIQUE (id, organisation_id)
+  UNIQUE (id, organisation_id),
+  CHECK (status <> 'active' OR provider IN ('bank_transfer','manual') OR credential_secret_ref IS NOT NULL)
 );
 COMMENT ON COLUMN public.commercial_provider_accounts.credential_secret_ref IS
   'Reference to server-side secret storage only. Never store provider credentials in this table.';
