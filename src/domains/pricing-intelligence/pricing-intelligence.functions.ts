@@ -150,10 +150,6 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
         plan.roomNights++;
         plan.accommodationByCurrency[currency || "INVALID"] = finite(plan.accommodationByCurrency[currency || "INVALID"]) + amount;
       }
-      const evidence = (b.pricing_snapshot as AnyRow | null)?.pricing_evidence ?? {};
-      const planId = String(evidence.rate_plan_id ?? "unattributed");
-      const plan = byRatePlan.get(planId);
-      if (plan) { plan.roomNights++; plan.accommodationByCurrency[currency || "INVALID"] = finite(plan.accommodationByCurrency[currency || "INVALID"]) + amount; }
     }
     for (const b of stayBookings) {
       if (!isLive(String(b.status))) continue;
