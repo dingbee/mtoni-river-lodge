@@ -10,6 +10,8 @@ import type {
 export type ChannexEnvironmentConfig = Readonly<{
   /** Admin-managed provider endpoint; never supplied by a tenant/browser request. */
   apiBaseUrl: string;
+  /** Exact host allowlist loaded from the platform-managed provider catalogue. */
+  allowedHosts: readonly string[];
 }>;
 
 export type ChannexAdapterConfig = Readonly<{
@@ -25,15 +27,15 @@ type ChannexEnvelope = Readonly<{
   errors?: unknown;
 }>;
 
-function validateBaseUrl(value: string): URL {
+class ChannexConfigurationError extends Error {\n  constructor(message: string) { super(message); this.name = "ChannexConfigurationError"; }\n}\n\nfunction validateBaseUrl(value: string, allowedHosts: readonly string[]): URL {
   let url: URL;
   try {
     url = new URL(value);
   } catch {
-    throw new Error("Channex endpoint configuration is invalid.");
+    throw new ChannexConfigurationError("Channex endpoint configuration is invalid.");
   }
   if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) {
-    throw new Error("Channex endpoint must be an HTTPS URL without embedded credentials, query or fragment.");
+    throw new ChannexConfigurationError("Channex endpoint must be an HTTPS URL without embedded credentials, query or fragment.");\n  }\n  if (!allowedHosts.includes(url.hostname.toLowerCase())) {\n    throw new ChannexConfigurationError("Channex endpoint host is not in the platform-managed provider allowlist.");
   }
   return new URL(url.toString().replace(/\/+$/, "") + "/");
 }
@@ -60,11 +62,11 @@ export function createChannexAdapter(config: ChannexAdapterConfig): Distribution
       providerKey: "channex",
       adapterVersion: "1.0.0",
       contractVersion: "1.0",
-      capabilities: ["listing.read", "connection.health"] as const,
+      capabilities: ["connection.health"],
       environments: Object.keys(config.environments).filter(
         (environment): environment is "sandbox" | "live" => environment === "sandbox" || environment === "live",
       ),
-      authenticationModes: ["api_key"] as const,
+      authenticationModes: ["api_key"],
       supportsHealthCheck: true,
     }),
     async healthCheck(
@@ -81,7 +83,7 @@ export function createChannexAdapter(config: ChannexAdapterConfig): Distribution
         if (!environmentConfig) {
           return { ok: false, error: { code: "configuration", retryable: false, safeMessage: "Channex is not configured for this environment.", correlationId: context.correlationId } };
         }
-        const baseUrl = validateBaseUrl(environmentConfig.apiBaseUrl);
+        const baseUrl = validateBaseUrl(environmentConfig.apiBaseUrl, environmentConfig.allowedHosts);
         const apiKey = await config.resolveApiKey(context, handle);
         if (!apiKey || apiKey.length > 65_536) {
           return { ok: false, error: { code: "configuration", retryable: false, safeMessage: "The Channex API credential is unavailable.", correlationId: context.correlationId } };
@@ -102,7 +104,7 @@ export function createChannexAdapter(config: ChannexAdapterConfig): Distribution
         }
         return { ok: true, value: { state: "healthy", checkedAt: new Date((config.now ?? Date.now)()).toISOString(), latencyMs } };
       } catch (error) {
-        const isTimeout = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
+        const isConfigurationError = error instanceof ChannexConfigurationError;\n        const isTimeout = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
         return {
           ok: false,
           error: {
