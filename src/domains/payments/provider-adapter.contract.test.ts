@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   StayNasPaymentProviderRegistry,
+  commercialPlatformProvider,
   type StayNasPaymentProviderAdapter,
 } from "./provider-adapter.contract";
 
@@ -59,5 +60,20 @@ describe("StayNas dual-scope payment adapter contract", () => {
     const registry = new StayNasPaymentProviderRegistry();
     registry.register(adapter("property_guest", "mpesa"));
     expect(() => registry.register(adapter("property_guest", "mpesa"))).toThrow(/already registered/);
+  });
+});
+
+describe("CC-04 platform provider mapping", () => {
+  it("preserves supported platform collection provider identities", () => {
+    expect(commercialPlatformProvider("pesapal")).toBe("pesapal");
+    expect(commercialPlatformProvider("bank_transfer")).toBe("bank_transfer");
+    expect(commercialPlatformProvider("manual")).toBe("manual");
+  });
+
+  it("does not map property mobile-money providers into the CC-04 subscription ledger", () => {
+    expect(commercialPlatformProvider("mpesa")).toBeNull();
+    expect(commercialPlatformProvider("airtel_money")).toBeNull();
+    expect(commercialPlatformProvider("mixx_by_yas")).toBeNull();
+    expect(commercialPlatformProvider("halopesa")).toBeNull();
   });
 });
