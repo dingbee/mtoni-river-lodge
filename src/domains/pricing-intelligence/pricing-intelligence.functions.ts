@@ -59,6 +59,14 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
     const propertyId = await propertyContext(context.supabase, context.userId);
     const { rooms, bookings, nights, bookingById } = await loadPropertyData(context.supabase, propertyId, data.from, data.to);
+    const bookingDateResult = await context.supabase.from("bookings")
+      .select("id,created_at,status").eq("property_id", propertyId)
+      .gte("created_at", data.from + "T00:00:00.000Z")
+      .lte("created_at", data.to + "T23:59:59.999Z").limit(5000);
+    if (bookingDateResult.error) throw new Error("Unable to load booking-date analytics.");
+    const bookingDateRows = (bookingDateResult.data ?? []) as AnyRow[];
+    const stayBookings = bookings.filter((b) => String(b.check_in) >= data.from && String(b.check_in) <= data.to);
+
     const days = Math.max(1, dayDiff(data.from, data.to) + 1);
     const units = rooms.reduce((n, r) => n + Math.max(0, finite(r.total_units)), 0);
     const currencyBuckets = new Map<string, AnyRow>();
@@ -67,7 +75,7 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
     const byRoom = new Map<string, AnyRow>();
     let bookedRoomNights = 0, completedRoomNights = 0, bookedAccommodation = 0, completedAccommodation = 0;
     let missingNightRates = 0, invalidCurrencies = 0, unattributed = 0, cancelled = 0, noShows = 0;
-    for (const b of bookings) {
+    for (const b of stayBookings) {
       if (b.status === "cancelled") cancelled++;
       if (b.status === "no_show") noShows++;
       if (b.status === "confirmed" || b.status === "checked_in" || b.status === "completed") {
@@ -109,7 +117,7 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
       room.roomNights++; room.accommodationByCurrency[currency || "INVALID"] = finite(room.accommodationByCurrency[currency || "INVALID"]) + amount;
       byRoom.set(roomId, room);
     }
-    for (const b of bookings) {
+    for (const b of stayBookings) {
       if (!isLive(String(b.status))) continue;
       const channel = String(b.source ?? "unattributed");
       const ch = byChannel.get(channel);
@@ -129,10 +137,10 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
       const d = String(b.created_at ?? "").slice(0, 10);
       if (d >= data.from && d <= data.to) bookingDates.set(d, (bookingDates.get(d) ?? 0) + 1);
     }
-    const reservationCount = bookings.length;
+    const reservationCount = stayBookings.length;
     const cancellationRate = reservationCount ? cancelled / reservationCount : null;
     const noShowRate = reservationCount ? noShows / reservationCount : null;
-    const leadDays = bookings.filter((b) => isLive(String(b.status))).map((b) =>
+    const leadDays = stayBookings.filter((b) => isLive(String(b.status))).map((b) =>
       Math.max(0, (Date.parse(String(b.check_in) + "T00:00:00Z") - Date.parse(String(b.created_at).slice(0, 10) + "T00:00:00Z")) / 86400000)
     );
     const coverage = {
@@ -155,7 +163,7 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
       metrics: {
         bookingValueByCurrency: currencyBreakdown.map((b) => ({ currency: b.currency, bookingValue: b.bookingValue })),
         accommodationByCurrency: currencyBreakdown,
-        bookedRoomNights, completedRoomNights, bookedAccommodation, completedAccommodation,
+        bookedRoomNights, completedRoomNights,
         bookedAdrByCurrency: currencyBreakdown.map((b) => ({ currency: b.currency, adr: b.adr })),
         bookedRevparByCurrency: currencyBreakdown.map((b) => ({ currency: b.currency, revpar: b.revpar })),
         bookedOccupancy: units * days ? Math.min(1, bookedRoomNights / (units * days)) : null,
