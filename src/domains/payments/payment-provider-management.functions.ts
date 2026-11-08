@@ -315,10 +315,11 @@ export const setPlatformPaymentProviderStatus = createServerFn({ method: "POST" 
       .update({ status: data.status, updated_by: actor.userId, updated_at: new Date().toISOString() })
       .eq("id", provider.id);
     if (error) throw new Error("Platform provider status could not be updated.");
-    if (["pesapal", "bank_transfer", "manual"].includes(provider.provider)) {
+    const commercialProvider = commercialPlatformProvider(provider.provider as StayNasPaymentProvider);
+    if (commercialProvider) {
       const { error: mappingError } = await admin.from("commercial_provider_accounts")
         .update({ status: data.status, updated_at: new Date().toISOString() })
-        .eq("provider", "pesapal").eq("provider_account_ref", provider.provider_account_ref);
+        .eq("provider", commercialProvider).eq("provider_account_ref", provider.provider_account_ref);
       if (mappingError) throw new Error("CC-04 platform payment provider mappings could not be synchronized.");
     }
     await auditProviderChange(admin, actor, "provider.platform_status_changed", provider.id, { status: data.status });
