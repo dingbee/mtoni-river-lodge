@@ -197,6 +197,27 @@ export const savePlatformPaymentProviderConfig = createServerFn({ method: "POST"
       provider: data.provider, environment: data.environment, status: "inactive",
       credentialsUpdated: Boolean(credentialSecretRef),
     });
+    // Bridge the founder-managed platform account into CC-04's tenant-scoped
+    // payment-attempt FK. The same platform credential reference is reused;
+    // tenants cannot read or change the underlying platform provider config.
+    if (data.provider === "pesapal" && saved.credential_secret_ref) {
+      const { data: commercialAccounts, error: accountsError } = await admin.from("commercial_accounts")
+        .select("organisation_id");
+      if (accountsError) throw new Error("Commercial tenant accounts could not be synchronized to the platform provider.");
+      const mappings = (commercialAccounts ?? []).map((account: { organisation_id: string }) => ({
+        organisation_id: account.organisation_id,
+        provider: "pesapal",
+        provider_account_ref: saved.provider_account_ref,
+        credential_secret_ref: String(saved.credential_secret_ref),
+        supported_currencies: saved.supported_currencies,
+        status: "inactive",
+      }));
+      if (mappings.length) {
+        const { error: mappingError } = await admin.from("commercial_provider_accounts")
+          .upsert(mappings, { onConflict: "organisation_id,provider,provider_account_ref" });
+        if (mappingError) throw new Error("CC-04 tenant payment provider mappings could not be synchronized.");
+      }
+    }
     return safeProviderRow(saved as ProviderConfigRow, "platform_subscription");
   });
 
@@ -271,15 +292,25 @@ export const setPlatformPaymentProviderStatus = createServerFn({ method: "POST" 
     const actor = await resolveVerifiedFounderActor(context);
     const admin = await getAdmin();
     const { data: provider, error: lookupError } = await admin.from("staynas_platform_payment_provider_accounts")
-      .select("id,integration_status,status").eq("id", data.providerConfigId).maybeSingle();
+      .select("id,provider,provider_account_ref,credential_secret_ref,integration_status,status")
+      .eq("id", data.providerConfigId).maybeSingle();
     if (lookupError || !provider) throw new Error("Platform provider configuration was not found.");
     if (data.status === "active" && provider.integration_status !== "ready") {
       throw new Error("Provider activation is blocked until its platform adapter passes certification.");
+    }
+    if (data.status === "active" && !["pesapal","bank_transfer","manual"].includes(provider.provider)) {
+      throw new Error("No certified CC-04 platform collection adapter is available for this provider.");
     }
     const { error } = await admin.from("staynas_platform_payment_provider_accounts")
       .update({ status: data.status, updated_by: actor.userId, updated_at: new Date().toISOString() })
       .eq("id", provider.id);
     if (error) throw new Error("Platform provider status could not be updated.");
+    if (provider.provider === "pesapal") {
+      const { error: mappingError } = await admin.from("commercial_provider_accounts")
+        .update({ status: data.status, updated_at: new Date().toISOString() })
+        .eq("provider", "pesapal").eq("provider_account_ref", provider.provider_account_ref);
+      if (mappingError) throw new Error("CC-04 platform payment provider mappings could not be synchronized.");
+    }
     await auditProviderChange(admin, actor, "provider.platform_status_changed", provider.id, { status: data.status });
     return { id: provider.id, status: data.status };
   });
