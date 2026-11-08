@@ -15,7 +15,9 @@ CREATE TABLE IF NOT EXISTS public.staynas_guest_payment_provider_accounts (
   property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
   provider text NOT NULL CHECK (provider IN ('pesapal','mpesa','airtel_money','mixx_by_yas','halopesa','bank_transfer','manual')),
   provider_account_ref text NOT NULL CHECK (length(btrim(provider_account_ref)) BETWEEN 2 AND 200),
-  credential_secret_ref text,
+  credential_secret_ref uuid,
+  environment text NOT NULL DEFAULT 'sandbox' CHECK (environment IN ('sandbox','live')),
+  credential_updated_at timestamptz,
   supported_currencies text[] NOT NULL CHECK (cardinality(supported_currencies) > 0 AND supported_currencies <@ ARRAY['TZS','USD']::text[]),
   public_configuration jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(public_configuration)='object'),
   integration_status text NOT NULL DEFAULT 'adapter_pending' CHECK (integration_status IN ('adapter_pending','ready','blocked')),
@@ -33,7 +35,7 @@ CREATE INDEX IF NOT EXISTS staynas_guest_payment_provider_property_idx
   ON public.staynas_guest_payment_provider_accounts(organisation_id, property_id, status);
 
 ALTER TABLE public.staynas_guest_payment_provider_accounts ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.staynas_guest_payment_provider_accounts FROM anon, authenticated;
+REVOKE ALL ON public.staynas_guest_payment_provider_accounts FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.staynas_guest_payment_provider_accounts TO service_role;
 
 COMMENT ON TABLE public.staynas_guest_payment_provider_accounts IS
