@@ -78,7 +78,7 @@ export async function initiateTenantPesapalOrder(input: {
 export async function queryTenantPesapalStatus(input: {
   providerAccountId: string; secretRef: string; orderTrackingId: string;
 }) {
-  const secret = loadSecret(input.secretRef);
+  const secret = await loadSecret(input.secretRef);
   const result = await pesapalRequest(input.providerAccountId, secret,
     `/api/Transactions/GetTransactionStatus?orderTrackingId=${encodeURIComponent(input.orderTrackingId)}`, "GET");
   return {
