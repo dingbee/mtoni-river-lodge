@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { z } from "zod";
 
-const VERSION = "spe08-weekday-baseline-v1";
+const VERSION = "spe08-coverage-gated-baseline-v1";
 type AnyRow = Record<string, any>;
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const rangeSchema = z.object({ from: dateSchema, to: dateSchema }).refine((v) => v.to >= v.from);
@@ -251,13 +251,13 @@ export const getPricingDemandForecast = createServerFn({ method: "POST" })
       const values = [...historicalByDay.entries()].filter(([d]) => weekday(d) === w).map(([, v]) => v / Math.max(1, units));
       return { weekday: w, observations: values.length, meanOccupancy: values.length ? values.reduce((a, b) => a + b, 0) / values.length : null };
     });
-    const sufficient = units > 0 && historyDays >= 28 && weekdays.filter((w) => w.observations >= 3).length >= 5;
+    const historySampleSufficient = units > 0 && historyDays >= 28 && weekdays.filter((w) => w.observations >= 3).length >= 5;\n    const certifiedCalendarCoverage = false; // No authoritative historical daily-inventory coverage certification exists yet.\n    const sufficient = historySampleSufficient && certifiedCalendarCoverage;
     const daily = Array.from({ length: data.horizonDays }, (_, i) => {
       const date = addDays(today, i);
       const bookedUnits = forwardByDay.get(date) ?? 0;
       const hist = weekdays[weekday(date)];
       const bookedOccupancy = units ? bookedUnits / units : null;
-      const baseline = sufficient && hist.meanOccupancy !== null ? hist.meanOccupancy : null;
+      const baseline = null; // Active-booking dates alone cannot establish zero-demand days.\n      void hist;
       const expectedOccupancy = baseline === null ? null : Math.min(1, Math.max(bookedOccupancy ?? 0, baseline));
       const uncertainty = hist.observations ? Math.min(0.5, 1 / Math.sqrt(hist.observations)) : null;
       return { date, bookedUnits, bookedOccupancy, expectedOccupancy, overbooked: (bookedOccupancy ?? 0) > 1, uncertainty, historicalWeekdayObservations: hist.observations };
@@ -266,8 +266,8 @@ export const getPricingDemandForecast = createServerFn({ method: "POST" })
     const forecast = {
       status: sufficient ? "available" : "insufficient_data",
       generatedAt: new Date().toISOString(), horizonDays: data.horizonDays,
-      methodVersion: VERSION, method: "Historical completed/checked-in occupancy by weekday; expected occupancy is the greater of confirmed forward bookings and weekday baseline.",
-      dataCoverage: { historicalDays: historyDays, historicalBookingNights: [...historicalByDay.values()].reduce((a, b) => a + b, 0), roomUnits: units, weekdayCoverage: weekdays },
+      methodVersion: VERSION, method: "Forecast suppressed until historical daily inventory coverage is certified; confirmed future bookings are shown as committed occupancy only.",
+      dataCoverage: { historicalDaysWithStayActivity: historyDays, historicalBookingNights: [...historicalByDay.values()].reduce((a, b) => a + b, 0), roomUnits: units, weekdayCoverage: weekdays, historySampleSufficient, certifiedCalendarCoverage, forecastEligible: sufficient },
       expectedOccupancy: valid.length ? valid.reduce((n, d) => n + finite(d.expectedOccupancy), 0) / valid.length : null,
       daily, confidence: sufficient ? Math.min(0.75, 0.35 + Math.min(0.4, historyDays / 365 * 0.4)) : null,
       uncertainty: "Per-date uncertainty is a transparent sample-size proxy, not measured forecast accuracy.",
@@ -278,7 +278,7 @@ export const getPricingDemandForecast = createServerFn({ method: "POST" })
         "Seasonality beyond weekday effects is not modelled.",
         "Pending reservations are excluded from committed demand.",
         ...(daily.some((d) => d.overbooked) ? ["Forward booked room nights exceed configured capacity on one or more dates; expected occupancy is capped at 100% and overbooking is flagged."] : []),
-        ...(!sufficient ? ["At least 28 distinct historical stay dates, 5 weekdays with 3+ observations each, and configured room units are required."] : []),
+        ...(!historySampleSufficient ? ["At least 28 distinct historical stay dates, 5 weekdays with 3+ observations each, and configured room units are required."] : []),\n        "Historical zero-demand days and daily inventory coverage are not certified. Weekday samples are diagnostic only and are not used to manufacture an occupancy forecast.",
       ],
     };
     const save = await context.supabase.from("staynas_pricing_forecasts").insert({
