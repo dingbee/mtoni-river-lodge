@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- existing public room catalog payload is dynamically shaped */
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -15,16 +15,37 @@ import {
 } from "@/lib/public-booking.functions";
 
 export const Route = createFileRoute("/$propertySlug")({
-  head: ({ params }) => ({
-    meta: [
-      { title: `${params.propertySlug} — StayNas Direct` },
-      { name: "description", content: "A direct booking page powered by StayNas." },
-      { name: "robots", content: "noindex,nofollow" },
-    ],
-  }),
+  loader: async ({ params }) => {
+    try {
+      const propertyData = await getPublicDemoProperty({ data: { propertySlug: params.propertySlug } });
+      return { propertyData, pageError: "" };
+    } catch (error) {
+      return {
+        propertyData: null,
+        pageError: error instanceof Error ? error.message : "This booking page is unavailable.",
+      };
+    }
+  },
+  head: ({ params }) => {
+    const isNolmark = params.propertySlug === "nolmark-cdma-staynas";
+    const title = isNolmark ? "Nolmark CDMA — Direct Booking" : `${params.propertySlug} — StayNas Direct`;
+    const description = isNolmark
+      ? "Check availability and request a reservation at Nolmark CDMA. Direct reservations powered by StayNas."
+      : "A direct booking page powered by StayNas.";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:site_name", content: isNolmark ? "Nolmark CDMA" : "StayNas Direct" },
+        { name: "theme-color", content: isNolmark ? "#000000" : "#1e352a" },
+        { name: "robots", content: "noindex,nofollow" },
+      ],
+    };
+  },
   component: PublicPropertyBookingPage,
 });
-
 type PropertyPageData = Awaited<ReturnType<typeof getPublicDemoProperty>>;
 type PublicBookingQuote = {
   quote_id: string;
@@ -72,14 +93,11 @@ const roomVisuals = [
 
 function PublicPropertyBookingPage() {
   const { propertySlug } = Route.useParams();
-  const loadProperty = useServerFn(getPublicDemoProperty);
+  const { propertyData, pageError } = Route.useLoaderData();
   const searchAvailability = useServerFn(searchPublicDemoAvailability);
   const createBooking = useServerFn(createPublicDemoBooking);
   const getQuote = useServerFn(getPublicDemoQuote);
 
-  const [propertyData, setPropertyData] = useState<PropertyPageData | null>(null);
-  const [loadingProperty, setLoadingProperty] = useState(true);
-  const [pageError, setPageError] = useState("");
   const [checkIn, setCheckIn] = useState(addDays(7));
   const [checkOut, setCheckOut] = useState(addDays(9));
   const [guests, setGuests] = useState(2);
@@ -97,16 +115,6 @@ function PublicPropertyBookingPage() {
   const [bookingQuote, setBookingQuote] = useState<PublicBookingQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState("");
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoadingProperty(true);
-    loadProperty({ data: { propertySlug } })
-      .then((result) => { if (!cancelled) setPropertyData(result); })
-      .catch((error: Error) => { if (!cancelled) setPageError(error.message || "This booking page is unavailable."); })
-      .finally(() => { if (!cancelled) setLoadingProperty(false); });
-    return () => { cancelled = true; };
-  }, [loadProperty, propertySlug]);
 
   const nights = useMemo(() => {
     if (!checkIn || !checkOut) return 0;
@@ -185,10 +193,6 @@ function PublicPropertyBookingPage() {
   const runAvailability = () => {
     if (nights > 0) availabilityMutation.mutate();
   };
-
-  if (loadingProperty) {
-    return <main className="flex min-h-screen items-center justify-center bg-[#f5f4ef] px-5 text-sm text-slate-500">Preparing your stay…</main>;
-  }
 
   if (!propertyData) {
     return <main className="flex min-h-screen items-center justify-center bg-[#f5f4ef] px-5"><div className="max-w-md rounded-[2rem] border border-stone-200 bg-white p-8 text-center shadow-sm"><h1 className="text-2xl font-semibold text-slate-900">Booking page unavailable</h1><p className="mt-3 text-sm text-slate-600">{pageError || "This property is not currently published on StayNas."}</p><a href="/" className="mt-6 inline-flex rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white">StayNas home</a></div></main>;
