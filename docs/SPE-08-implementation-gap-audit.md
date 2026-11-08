@@ -100,4 +100,6 @@ The GitHub connector did not return a GitHub Actions workflow run for the initia
 
 ## 6. Release controls
 
-No staging account, provider API key, production credential, provider activation, production migration, production database mutation, merge, Vercel deployment or live OTA traffic is evidenced or authorized by this audit.
+No staging account, provider API key, production credential, provider activation, production migration, production database mutation, merge or live OTA traffic is evidenced or authorized by this audit.
+
+The three SPE-08 Git commits automatically triggered three Vercel Git-integration preview deployments for the `staynas-website` project. This was not an intentional deployment action. All three preview deployments were immediately canceled and their final state was independently verified as `CANCELED`; none was promoted to production. Do not create further SPE-08 commits until the Vercel Git-integration preview behavior has been explicitly controlled or the user authorizes the resulting previews.
