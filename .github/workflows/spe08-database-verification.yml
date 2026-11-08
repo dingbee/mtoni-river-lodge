@@ -64,8 +64,12 @@ jobs:
             property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
             user_id uuid NOT NULL REFERENCES auth.users(id),
             status text NOT NULL DEFAULT 'active',
-            role public.app_role NOT NULL,
             PRIMARY KEY (property_id, user_id)
+          );
+          CREATE TABLE public.user_roles (
+            user_id uuid NOT NULL REFERENCES auth.users(id),
+            role public.app_role NOT NULL,
+            PRIMARY KEY (user_id, role)
           );
           CREATE FUNCTION public.staynas_user_has_property_access(_uid uuid,_property_id uuid)
           RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $function$
@@ -77,8 +81,8 @@ jobs:
           CREATE FUNCTION public.has_any_role(_uid uuid,_roles public.app_role[])
           RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $function$
             SELECT EXISTS (
-              SELECT 1 FROM public.staynas_property_members m
-              WHERE m.user_id=_uid AND m.status='active' AND m.role=ANY(_roles)
+              SELECT 1 FROM public.user_roles r
+              WHERE r.user_id=_uid AND r.role=ANY(_roles)
             )
           $function$;
           SQL
