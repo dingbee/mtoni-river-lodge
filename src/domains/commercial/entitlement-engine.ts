@@ -1,10 +1,10 @@
 /**
  * CC-05 entitlement resolution core.
  *
- * This module consumes the published CC-02 policy and trusted CC-03 subscription
- * context. It deliberately contains no plan matrix, price, quota, or frontend
- * identity assumptions. Callers must resolve tenant/subscription identity on
- * the server before invoking it.
+ * Consumes published CC-02 plan composition and trusted, server-resolved
+ * subscription/add-on context. It does not invent plan matrices, add-on
+ * compatibility, prices, or quotas. Resolve tenant identity and policy on
+ * the server before calling this function.
  */
 export type EntitlementOutcome =
   | "granted"
@@ -28,7 +28,11 @@ export type SubscriptionStatus =
 
 export interface EntitlementFeaturePolicy {
   featureCode: string;
-  requiredAddonCodes?: string[];
+}
+
+export interface EntitlementAddonGrant {
+  addonCode: string;
+  featureCodes: string[];
 }
 
 export interface EntitlementOverride {
@@ -52,12 +56,14 @@ export interface EntitlementResolutionInput {
   };
   /** Published CC-02 plan composition for this exact plan/version. */
   planFeatures: EntitlementFeaturePolicy[];
-  /** Add-ons actually assigned to this subscription and currently effective. */
+  /** Effective add-on assignments and their published feature grants. */
   purchasedAddonCodes: string[];
+  addonFeatureGrants?: EntitlementAddonGrant[];
   /** Approved, effective Enterprise/custom grants. */
   customFeatureCodes?: string[];
   overrides?: EntitlementOverride[];
-  /** Authoritative commercial property allowance; null means not defined. */
+  /** Only apply property allowance when authorizing property creation. */
+  propertyCreationRequested?: boolean;
   propertyAllowance?: number | null;
   activePropertyCount?: number;
   /** Only explicitly configured quotas may be supplied/enforced. */
@@ -137,10 +143,10 @@ export function resolveEntitlement(
     }
   }
 
-  const overrides = (input.overrides ?? []).filter(
+  const activeOverrides = (input.overrides ?? []).filter(
     (item) => item.featureCode === featureCode && isEffective(item.effectiveFrom, item.effectiveTo, now),
   );
-  const activeOverride = overrides.at(-1);
+  const activeOverride = activeOverrides.at(-1);
   if (activeOverride?.status === "suspended") {
     return deny("temporarily_suspended", "An authorized commercial override suspends this capability.");
   }
@@ -148,23 +154,23 @@ export function resolveEntitlement(
   const planIncludes = input.planFeatures.some((item) => item.featureCode === featureCode);
   const customIncludes = (input.customFeatureCodes ?? []).includes(featureCode);
   const overrideGrants = activeOverride?.status === "granted";
-  const addonCodes = input.planFeatures.find((item) => item.featureCode === featureCode)?.requiredAddonCodes ?? [];
-  const addonIncludes = addonCodes.some((code) => input.purchasedAddonCodes.includes(code));
+  const eligibleAddonCodes = (input.addonFeatureGrants ?? [])
+    .filter((grant) => grant.featureCodes.includes(featureCode))
+    .map((grant) => grant.addonCode);
+  const addonIncludes = eligibleAddonCodes.some((code) => input.purchasedAddonCodes.includes(code));
 
-  if (!planIncludes && !customIncludes && !overrideGrants) {
+  if (!planIncludes && !customIncludes && !overrideGrants && !addonIncludes) {
     return deny(
-      addonCodes.length ? "addon_required" : "not_included_in_plan",
-      addonCodes.length ? "An eligible add-on is required." : "Capability is not included in the published plan.",
-      addonCodes.length ? { requiredAddonCodes: addonCodes } : {},
+      eligibleAddonCodes.length ? "addon_required" : "not_included_in_plan",
+      eligibleAddonCodes.length ? "An eligible add-on is required." : "Capability is not included in the published plan.",
+      eligibleAddonCodes.length ? { requiredAddonCodes: eligibleAddonCodes } : {},
     );
   }
-  if (planIncludes && addonCodes.length && !addonIncludes && !customIncludes && !overrideGrants) {
-    return deny("addon_required", "An eligible add-on is required.", { requiredAddonCodes: addonCodes });
-  }
 
-  if (input.propertyAllowance !== undefined && input.propertyAllowance !== null
-    && (input.activePropertyCount ?? 0) > input.propertyAllowance) {
-    return deny("commercial_review_required", "Existing property count exceeds the approved allowance; review is required.");
+  if (input.propertyCreationRequested && input.propertyAllowance !== undefined
+    && input.propertyAllowance !== null
+    && (input.activePropertyCount ?? 0) >= input.propertyAllowance) {
+    return deny("property_limit_reached", "The approved property allowance has been reached.");
   }
   if (input.usage && input.usage.used >= input.usage.limit) {
     return deny("usage_limit_reached", "The configured usage limit has been reached.", { usage: input.usage });
