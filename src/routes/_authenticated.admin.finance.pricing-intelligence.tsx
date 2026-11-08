@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 
+// Query payloads are runtime-shaped by server functions; retain the boundary type until shared DTOs are generated.
+/* eslint-disable @typescript-eslint/no-explicit-any */
 type PricingRecord = Record<string, any>;
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
