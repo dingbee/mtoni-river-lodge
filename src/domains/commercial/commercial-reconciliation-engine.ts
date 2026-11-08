@@ -13,6 +13,8 @@ export type ReconciliationInternalPayment = {
   status: "pending" | "successful" | "failed" | "cancelled" | "partially_reversed" | "reversed";
   allocatedMinor: number;
 };
+export type ReconciliationJsonValue = string | number | boolean | null | ReconciliationJsonValue[] | { [key: string]: ReconciliationJsonValue };
+
 export type CommercialReconciliationResult = {
   itemType: "matched" | "missing_internal" | "missing_provider" | "duplicate" | "amount_mismatch" | "currency_mismatch" | "status_mismatch" | "unallocated" | "reversed";
   internalPaymentId: string | null;
@@ -21,7 +23,7 @@ export type CommercialReconciliationResult = {
   observedAmountMinor: number | null;
   expectedCurrency: "TZS" | "USD" | null;
   observedCurrency: "TZS" | "USD" | null;
-  evidence: Record<string, unknown>;
+  evidence: Record<string, ReconciliationJsonValue>;
   resolutionStatus: "resolved" | "unresolved";
   resolutionRef: string | null;
 };
