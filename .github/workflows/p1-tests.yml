@@ -17,6 +17,7 @@ on:
     branches:
       - main
       - spe-02/**
+      - feat/spe-07-*
 
 jobs:
   tests:
