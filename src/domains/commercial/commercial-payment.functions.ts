@@ -266,7 +266,7 @@ export const initiateMyCommercialPesapalPayment = createServerFn({ method: "POST
 
 const providerAccountInput = z.object({
   organisationId: z.string().uuid(),
-  provider: z.enum(["pesapal","airtel_money","mixx_by_yas","mpesa","halopesa","bank_transfer","manual"]),
+  provider: z.enum(["pesapal","bank_transfer","manual"]),
   providerAccountRef: z.string().trim().min(2).max(200),
   credentialSecretRef: z.string().regex(/^STAYNAS_PROVIDER_SECRET_[A-Z0-9_]+$/).optional(),
   supportedCurrencies: z.array(z.enum(["TZS","USD"])).min(1).max(2),
@@ -774,7 +774,7 @@ const founderFinancialFilters=z.object({
   currency:z.enum(["TZS","USD"]).optional(),
   status:z.enum(["draft","issued","partially_paid","paid","overdue","void"]).optional(),
   periodFrom:z.string().datetime({offset:true}).optional(),periodTo:z.string().datetime({offset:true}).optional(),
-  provider:z.enum(["pesapal","airtel_money","mixx_by_yas","mpesa","halopesa","bank_transfer","manual"]).optional(),
+  provider:z.enum(["pesapal","bank_transfer","manual"]).optional(),
 });
 export const filterCommercialInvoicesForFounder=createServerFn({method:"GET"})
   .middleware([requireSupabaseAuth])
