@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { CommercialAdminClient } from "@/domains/commercial/commercial-payment.functions";
@@ -22,69 +21,22 @@ const publicConfigurationSchema = z.record(z.string(), z.unknown()).default({});
 
 type ProviderScope = "platform_subscription" | "property_guest";
 type ProviderStatus = "inactive" | "active" | "suspended";
+type IntegrationStatus = "adapter_pending" | "ready" | "blocked";
 
 type ProviderConfigRow = {
   id: string;
-  configuration_scope: ProviderScope;
-  organisation_id: string | null;
-  property_id: string | null;
   provider: z.infer<typeof providerSchema>;
   provider_account_ref: string;
+  credential_secret_ref: string | null;
   environment: "sandbox" | "live";
   supported_currencies: string[];
   public_configuration: Record<string, unknown>;
-  encrypted_credentials: string | null;
-  credential_updated_at: string | null;
+  integration_status: IntegrationStatus;
   status: ProviderStatus;
+  credential_updated_at: string | null;
   created_at: string;
   updated_at: string;
 };
-
-function encryptCredentials(raw: string): string {
-  const keyHex = process.env.STAYNAS_PROVIDER_CREDENTIALS_KEY;
-  if (!keyHex || !/^[a-fA-F0-9]{64}$/.test(keyHex)) {
-    throw new Error("Provider credential encryption is not provisioned. Configure the 32-byte server encryption key before saving credentials.");
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error("Credentials must be valid JSON containing the provider-specific credential fields.");
-  }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)
-    || Object.keys(parsed as Record<string, unknown>).length === 0) {
-    throw new Error("Credentials must be a non-empty JSON object.");
-  }
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", Buffer.from(keyHex, "hex"), iv);
-  const encrypted = Buffer.concat([cipher.update(JSON.stringify(parsed), "utf8"), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return `v1.${iv.toString("hex")}.${tag.toString("hex")}.${encrypted.toString("hex")}`;
-}
-
-/** Server-only credential reader for provider adapters. Never call from browser code. */
-export function decryptProviderCredentials(envelope: string): Record<string, unknown> {
-  const keyHex = process.env.STAYNAS_PROVIDER_CREDENTIALS_KEY;
-  if (!keyHex || !/^[a-fA-F0-9]{64}$/.test(keyHex)) {
-    throw new Error("Provider credential decryption is not provisioned.");
-  }
-  const [version, ivHex, tagHex, payloadHex] = envelope.split(".");
-  if (version !== "v1" || !ivHex || !tagHex || !payloadHex) {
-    throw new Error("Provider credential envelope is invalid.");
-  }
-  try {
-    const decipher = createDecipheriv("aes-256-gcm", Buffer.from(keyHex, "hex"), Buffer.from(ivHex, "hex"));
-    decipher.setAuthTag(Buffer.from(tagHex, "hex"));
-    const plaintext = Buffer.concat([decipher.update(Buffer.from(payloadHex, "hex")), decipher.final()]).toString("utf8");
-    const parsed: unknown = JSON.parse(plaintext);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new Error("Credential payload is not an object.");
-    }
-    return parsed as Record<string, unknown>;
-  } catch {
-    throw new Error("Provider credentials could not be decrypted. Verify the configured encryption key and stored envelope.");
-  }
-}
 
 function validatePublicConfiguration(value: Record<string, unknown>) {
   const inspect = (input: unknown, path = "publicConfiguration") => {
@@ -104,26 +56,59 @@ function validatePublicConfiguration(value: Record<string, unknown>) {
   return value;
 }
 
+function validateCredentialsJson(raw: string) {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error("Credentials must be valid JSON containing provider-specific fields.");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)
+    || Object.keys(parsed as Record<string, unknown>).length === 0) {
+    throw new Error("Credentials must be a non-empty JSON object.");
+  }
+  return JSON.stringify(parsed);
+}
+
 async function getAdmin(): Promise<CommercialAdminClient> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   return supabaseAdmin as unknown as CommercialAdminClient;
 }
 
-function safeProviderRow(row: ProviderConfigRow) {
+/** Store provider credentials in Supabase Vault. Only the returned UUID is persisted in public rows. */
+async function storeProviderCredentials(admin: CommercialAdminClient, raw: string, name: string) {
+  const secret = validateCredentialsJson(raw);
+  const { data, error } = await admin.rpc("staynas_create_provider_secret", {
+    _secret: secret,
+    _name: name,
+    _description: "StayNas payment provider credentials",
+  });
+  if (error || typeof data !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data)) {
+    throw new Error("Provider credentials could not be stored in the encrypted Vault.");
+  }
+  return data;
+}
+
+/** Server-only reader used by certified provider adapters. Never expose this result to browser code. */
+export async function readProviderCredentials(admin: CommercialAdminClient, secretRef: string) {
+  const { data, error } = await admin.rpc("staynas_read_provider_secret", { _secret_id: secretRef });
+  if (error || typeof data !== "string") throw new Error("Provider credentials could not be loaded from Vault.");
+  return validateCredentialsJson(data) as unknown as Record<string, unknown>;
+}
+
+function safeProviderRow(row: ProviderConfigRow, scope: ProviderScope) {
   return {
     id: row.id,
-    scope: row.configuration_scope,
-    organisationId: row.organisation_id,
-    propertyId: row.property_id,
+    scope,
     provider: row.provider,
     accountReference: row.provider_account_ref,
     environment: row.environment,
     supportedCurrencies: row.supported_currencies,
     publicConfiguration: row.public_configuration,
-    hasCredentials: Boolean(row.encrypted_credentials),
+    hasCredentials: Boolean(row.credential_secret_ref),
     credentialUpdatedAt: row.credential_updated_at,
+    integrationStatus: row.integration_status,
     status: row.status,
-    adapterStatus: "adapter_required" as const,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -150,7 +135,7 @@ async function auditProviderChange(
   if (error) throw new Error("Payment provider audit event could not be persisted.");
 }
 
-const savePlatformInput = z.object({
+const saveProviderInput = z.object({
   provider: providerSchema,
   accountReference: z.string().trim().min(2).max(200),
   environment: z.enum(["sandbox", "live"]),
@@ -164,99 +149,90 @@ export const listPlatformPaymentProviderConfigs = createServerFn({ method: "GET"
   .handler(async ({ context }) => {
     await resolveVerifiedFounderActor(context);
     const admin = await getAdmin();
-    const { data, error } = await admin.from("staynas_payment_provider_configs")
-      .select("*").eq("configuration_scope", "platform_subscription")
-      .order("provider", { ascending: true });
+    const { data, error } = await admin.from("staynas_platform_payment_provider_accounts")
+      .select("*").order("provider", { ascending: true });
     if (error) throw new Error("Platform subscription payment providers could not be loaded.");
-    return ((data ?? []) as ProviderConfigRow[]).map(safeProviderRow);
+    return ((data ?? []) as ProviderConfigRow[]).map((row) => safeProviderRow(row, "platform_subscription"));
   });
 
 export const savePlatformPaymentProviderConfig = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => savePlatformInput.parse(input))
+  .inputValidator((input: unknown) => saveProviderInput.parse(input))
   .handler(async ({ data, context }) => {
     const actor = await resolveVerifiedFounderActor(context);
     const admin = await getAdmin();
     const publicConfiguration = validatePublicConfiguration(data.publicConfiguration);
-    const { data: existing, error: lookupError } = await admin.from("staynas_payment_provider_configs")
-      .select("id,encrypted_credentials").eq("configuration_scope", "platform_subscription")
-      .eq("provider", data.provider).eq("provider_account_ref", data.accountReference).maybeSingle();
+    const { data: existing, error: lookupError } = await admin.from("staynas_platform_payment_provider_accounts")
+      .select("id,credential_secret_ref").eq("provider", data.provider)
+      .eq("provider_account_ref", data.accountReference).maybeSingle();
     if (lookupError) throw new Error("Existing platform provider configuration could not be checked.");
-    const credentials = data.credentialsJson ? encryptCredentials(data.credentialsJson) : null;
-    if (!existing && !credentials && !["bank_transfer", "manual"].includes(data.provider)) {
+    const credentialSecretRef = data.credentialsJson
+      ? await storeProviderCredentials(admin, data.credentialsJson, `staynas-platform-${data.provider}-${data.accountReference}`)
+      : null;
+    if (!existing && !credentialSecretRef && !["bank_transfer", "manual"].includes(data.provider)) {
       throw new Error("Credentials are required when first configuring this provider.");
     }
     const values = {
-      configuration_scope: "platform_subscription",
-      organisation_id: null,
-      property_id: null,
       provider: data.provider,
       provider_account_ref: data.accountReference,
       environment: data.environment,
       supported_currencies: [...new Set(data.supportedCurrencies)],
       public_configuration: publicConfiguration,
-      ...(credentials ? { encrypted_credentials: credentials, credential_updated_at: new Date().toISOString() } : {}),
+      ...(credentialSecretRef ? {
+        credential_secret_ref: credentialSecretRef,
+        credential_updated_at: new Date().toISOString(),
+      } : {}),
+      integration_status: "adapter_pending",
       status: "inactive",
       updated_by: actor.userId,
       updated_at: new Date().toISOString(),
       ...(!existing ? { created_by: actor.userId } : {}),
     };
     const query = existing
-      ? admin.from("staynas_payment_provider_configs").update(values).eq("id", existing.id).select("*").single()
-      : admin.from("staynas_payment_provider_configs").insert(values).select("*").single();
+      ? admin.from("staynas_platform_payment_provider_accounts").update(values).eq("id", existing.id).select("*").single()
+      : admin.from("staynas_platform_payment_provider_accounts").insert(values).select("*").single();
     const { data: saved, error } = await query;
     if (error || !saved) throw new Error("Platform payment provider configuration could not be saved.");
     await auditProviderChange(admin, actor, "provider.platform_configured", saved.id, {
       provider: data.provider, environment: data.environment, status: "inactive",
-      credentialsUpdated: Boolean(credentials),
+      credentialsUpdated: Boolean(credentialSecretRef),
     });
-    return safeProviderRow(saved as ProviderConfigRow);
+    return safeProviderRow(saved as ProviderConfigRow, "platform_subscription");
   });
 
-const propertyListInput = z.object({
-  organisationId: z.string().uuid().optional(),
-  propertyId: z.string().uuid().optional(),
-});
 export const listPropertyPaymentProviderConfigs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => propertyListInput.parse(input ?? {}))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ context }) => {
     const actor = await resolveVerifiedTenantActor(context);
     if (actor.actorRole !== "tenant_admin") throw new Error("Property administrator authority is required.");
-    const organisationId = actor.organisationId;
-    const propertyId = actor.propertyId;
     const admin = await getAdmin();
-    const { data: rows, error } = await admin.from("staynas_payment_provider_configs")
-      .select("*").eq("configuration_scope", "property_guest")
-      .eq("organisation_id", organisationId).eq("property_id", propertyId)
-      .order("provider", { ascending: true });
+    const { data, error } = await admin.from("staynas_guest_payment_provider_accounts")
+      .select("*").eq("organisation_id", actor.organisationId)
+      .eq("property_id", actor.propertyId).order("provider", { ascending: true });
     if (error) throw new Error("Property guest-payment providers could not be loaded.");
-    return ((rows ?? []) as ProviderConfigRow[]).map(safeProviderRow);
+    return ((data ?? []) as ProviderConfigRow[]).map((row) => safeProviderRow(row, "property_guest"));
   });
 
-const savePropertyInput = savePlatformInput.extend({
-  organisationId: z.string().uuid().optional(),
-  propertyId: z.string().uuid().optional(),
-});
 export const savePropertyPaymentProviderConfig = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => savePropertyInput.parse(input))
+  .inputValidator((input: unknown) => saveProviderInput.parse(input))
   .handler(async ({ data, context }) => {
     const actor = await resolveVerifiedTenantActor(context);
     if (actor.actorRole !== "tenant_admin") throw new Error("Property administrator authority is required.");
     const admin = await getAdmin();
     const publicConfiguration = validatePublicConfiguration(data.publicConfiguration);
-    const { data: existing, error: lookupError } = await admin.from("staynas_payment_provider_configs")
-      .select("id,encrypted_credentials").eq("configuration_scope", "property_guest")
-      .eq("organisation_id", actor.organisationId).eq("property_id", actor.propertyId)
-      .eq("provider", data.provider).eq("provider_account_ref", data.accountReference).maybeSingle();
+    const { data: existing, error: lookupError } = await admin.from("staynas_guest_payment_provider_accounts")
+      .select("id,credential_secret_ref").eq("organisation_id", actor.organisationId)
+      .eq("property_id", actor.propertyId).eq("provider", data.provider)
+      .eq("provider_account_ref", data.accountReference).maybeSingle();
     if (lookupError) throw new Error("Existing property provider configuration could not be checked.");
-    const credentials = data.credentialsJson ? encryptCredentials(data.credentialsJson) : null;
-    if (!existing && !credentials && !["bank_transfer", "manual"].includes(data.provider)) {
+    const credentialSecretRef = data.credentialsJson
+      ? await storeProviderCredentials(admin, data.credentialsJson, `staynas-property-${actor.propertyId}-${data.provider}-${data.accountReference}`)
+      : null;
+    if (!existing && !credentialSecretRef && !["bank_transfer", "manual"].includes(data.provider)) {
       throw new Error("Credentials are required when first configuring this provider.");
     }
     const values = {
-      configuration_scope: "property_guest",
       organisation_id: actor.organisationId,
       property_id: actor.propertyId,
       provider: data.provider,
@@ -264,40 +240,71 @@ export const savePropertyPaymentProviderConfig = createServerFn({ method: "POST"
       environment: data.environment,
       supported_currencies: [...new Set(data.supportedCurrencies)],
       public_configuration: publicConfiguration,
-      ...(credentials ? { encrypted_credentials: credentials, credential_updated_at: new Date().toISOString() } : {}),
+      ...(credentialSecretRef ? {
+        credential_secret_ref: credentialSecretRef,
+        credential_updated_at: new Date().toISOString(),
+      } : {}),
+      integration_status: "adapter_pending",
       status: "inactive",
-      updated_by: actor.userId,
       updated_at: new Date().toISOString(),
       ...(!existing ? { created_by: actor.userId } : {}),
     };
     const query = existing
-      ? admin.from("staynas_payment_provider_configs").update(values).eq("id", existing.id).select("*").single()
-      : admin.from("staynas_payment_provider_configs").insert(values).select("*").single();
+      ? admin.from("staynas_guest_payment_provider_accounts").update(values).eq("id", existing.id).select("*").single()
+      : admin.from("staynas_guest_payment_provider_accounts").insert(values).select("*").single();
     const { data: saved, error } = await query;
     if (error || !saved) throw new Error("Property guest-payment provider configuration could not be saved.");
     await auditProviderChange(admin, actor, "provider.property_configured", saved.id, {
       provider: data.provider, propertyId: actor.propertyId, environment: data.environment,
-      status: "inactive", credentialsUpdated: Boolean(credentials),
+      status: "inactive", credentialsUpdated: Boolean(credentialSecretRef),
     });
-    return safeProviderRow(saved as ProviderConfigRow);
+    return safeProviderRow(saved as ProviderConfigRow, "property_guest");
+  });
+
+export const setPlatformPaymentProviderStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({
+    providerConfigId: z.string().uuid(),
+    status: z.enum(["inactive", "active", "suspended"]),
+  }).parse(input))
+  .handler(async ({ data, context }) => {
+    const actor = await resolveVerifiedFounderActor(context);
+    const admin = await getAdmin();
+    const { data: provider, error: lookupError } = await admin.from("staynas_platform_payment_provider_accounts")
+      .select("id,integration_status,status").eq("id", data.providerConfigId).maybeSingle();
+    if (lookupError || !provider) throw new Error("Platform provider configuration was not found.");
+    if (data.status === "active" && provider.integration_status !== "ready") {
+      throw new Error("Provider activation is blocked until its platform adapter passes certification.");
+    }
+    const { error } = await admin.from("staynas_platform_payment_provider_accounts")
+      .update({ status: data.status, updated_by: actor.userId, updated_at: new Date().toISOString() })
+      .eq("id", provider.id);
+    if (error) throw new Error("Platform provider status could not be updated.");
+    await auditProviderChange(admin, actor, "provider.platform_status_changed", provider.id, { status: data.status });
+    return { id: provider.id, status: data.status };
   });
 
 export const setPropertyPaymentProviderStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({
     providerConfigId: z.string().uuid(),
-    status: z.enum(["inactive", "suspended"]),
+    status: z.enum(["inactive", "active", "suspended"]),
   }).parse(input))
   .handler(async ({ data, context }) => {
     const actor = await resolveVerifiedTenantActor(context);
     if (actor.actorRole !== "tenant_admin") throw new Error("Property administrator authority is required.");
     const admin = await getAdmin();
-    const { data: updated, error } = await admin.from("staynas_payment_provider_configs")
-      .update({ status: data.status, updated_by: actor.userId, updated_at: new Date().toISOString() })
-      .eq("id", data.providerConfigId).eq("configuration_scope", "property_guest")
-      .eq("organisation_id", actor.organisationId).eq("property_id", actor.propertyId)
-      .select("id").maybeSingle();
-    if (error || !updated) throw new Error("Property provider status could not be updated.");
-    await auditProviderChange(admin, actor, "provider.property_status_changed", updated.id, { status: data.status });
-    return { id: updated.id, status: data.status };
+    const { data: provider, error: lookupError } = await admin.from("staynas_guest_payment_provider_accounts")
+      .select("id,integration_status,status").eq("id", data.providerConfigId)
+      .eq("organisation_id", actor.organisationId).eq("property_id", actor.propertyId).maybeSingle();
+    if (lookupError || !provider) throw new Error("Property provider configuration was not found.");
+    if (data.status === "active" && provider.integration_status !== "ready") {
+      throw new Error("Provider activation is blocked until its property guest-payment adapter passes certification.");
+    }
+    const { error } = await admin.from("staynas_guest_payment_provider_accounts")
+      .update({ status: data.status, updated_at: new Date().toISOString() })
+      .eq("id", provider.id).eq("organisation_id", actor.organisationId).eq("property_id", actor.propertyId);
+    if (error) throw new Error("Property provider status could not be updated.");
+    await auditProviderChange(admin, actor, "provider.property_status_changed", provider.id, { status: data.status });
+    return { id: provider.id, status: data.status };
   });
