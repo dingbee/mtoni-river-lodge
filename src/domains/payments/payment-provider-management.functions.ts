@@ -93,7 +93,7 @@ async function storeProviderCredentials(admin: CommercialAdminClient, raw: strin
 export async function readProviderCredentials(admin: CommercialAdminClient, secretRef: string) {
   const { data, error } = await admin.rpc("staynas_read_provider_secret", { _secret_id: secretRef });
   if (error || typeof data !== "string") throw new Error("Provider credentials could not be loaded from Vault.");
-  return validateCredentialsJson(data) as unknown as Record<string, unknown>;
+  return JSON.parse(validateCredentialsJson(data)) as Record<string, unknown>;
 }
 
 function safeProviderRow(row: ProviderConfigRow, scope: ProviderScope) {
