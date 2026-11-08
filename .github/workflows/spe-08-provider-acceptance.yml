@@ -1,0 +1,69 @@
+name: SPE-08 provider acceptance
+
+on:
+  push:
+    branches:
+      - feat/spe-08-*
+  pull_request:
+    paths:
+      - "docs/SPE-08-*.md"
+      - "src/domains/distribution/**"
+      - "src/routes/_authenticated.admin.distribution.tsx"
+      - "src/lib/staynas-rpc.ts"
+      - "src/components/os/nav-config.ts"
+      - "docs/database/SPE-07-distribution-persistence.sql"
+      - "supabase/migrations/**"
+      - "supabase/tests/database/**"
+      - "scripts/ci/normalize-optional-legacy-revokes.py"
+      - ".github/workflows/spe-08-provider-acceptance.yml"
+
+jobs:
+  distribution-provider-contracts:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Distribution and provider contract tests
+        run: bunx vitest run src/domains/distribution
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Distribution lint
+        run: >-
+          bunx eslint src/domains/distribution
+          --rule "prettier/prettier: off"
+      - name: Production build
+        run: bun run build
+
+  distribution-database-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: "2.122.1"
+      - name: Normalize optional legacy migration drift in ephemeral checkout
+        run: python3 scripts/ci/normalize-optional-legacy-revokes.py
+      - name: Generate migration using Supabase CLI
+        shell: bash
+        run: |
+          supabase migration new spe07_distribution_persistence
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_spe07_distribution_persistence.sql' -print -quit)"
+          test -n "$migration_file"
+          cp docs/database/SPE-07-distribution-persistence.sql "$migration_file"
+          echo "Generated migration: $migration_file"
+      - name: Start local Supabase database
+        run: supabase start --exclude studio,inbucket,storage-api,imgproxy,vector
+      - name: Apply migrations and run database contracts
+        run: |
+          supabase db reset
+          supabase test db
+      - name: Stop local Supabase stack
+        if: always()
+        run: supabase stop --no-backup
