@@ -200,7 +200,10 @@ export const savePlatformPaymentProviderConfig = createServerFn({ method: "POST"
     // Bridge the founder-managed platform account into CC-04's tenant-scoped
     // payment-attempt FK. The same platform credential reference is reused;
     // tenants cannot read or change the underlying platform provider config.
-    if (data.provider === "pesapal" && saved.credential_secret_ref) {
+    if (["pesapal", "bank_transfer", "manual"].includes(data.provider)) {
+      if (data.provider === "pesapal" && !saved.credential_secret_ref) {
+        throw new Error("Pesapal credentials are required before creating CC-04 payment mappings.");
+      }
       const { data: commercialAccounts, error: accountsError } = await admin.from("commercial_accounts")
         .select("organisation_id");
       if (accountsError) throw new Error("Commercial tenant accounts could not be synchronized to the platform provider.");
@@ -208,7 +211,7 @@ export const savePlatformPaymentProviderConfig = createServerFn({ method: "POST"
         organisation_id: account.organisation_id,
         provider: "pesapal",
         provider_account_ref: saved.provider_account_ref,
-        credential_secret_ref: String(saved.credential_secret_ref),
+        credential_secret_ref: saved.credential_secret_ref ? String(saved.credential_secret_ref) : null,
         supported_currencies: saved.supported_currencies,
         status: "inactive",
       }));
@@ -305,7 +308,7 @@ export const setPlatformPaymentProviderStatus = createServerFn({ method: "POST" 
       .update({ status: data.status, updated_by: actor.userId, updated_at: new Date().toISOString() })
       .eq("id", provider.id);
     if (error) throw new Error("Platform provider status could not be updated.");
-    if (provider.provider === "pesapal") {
+    if (["pesapal", "bank_transfer", "manual"].includes(provider.provider)) {
       const { error: mappingError } = await admin.from("commercial_provider_accounts")
         .update({ status: data.status, updated_at: new Date().toISOString() })
         .eq("provider", "pesapal").eq("provider_account_ref", provider.provider_account_ref);
