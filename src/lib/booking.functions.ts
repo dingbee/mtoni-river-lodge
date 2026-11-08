@@ -86,6 +86,10 @@ export type BookingPricingQuote = {
   occupants: number;
   paid_occupants: number;
   extra_occupants: number;
+  fee_total?: number;
+  fees?: Array<Record<string, string | number | boolean | null>>;
+  discount_total?: number;
+  promotion?: Record<string, string | number | null> | null;
 };
 
 export const checkAvailability = createServerFn({ method: "POST" })
@@ -155,6 +159,7 @@ const extraSchema = z.object({
 const createBookingSchema = z.object({
   roomSlug: z.string().min(1),
   ratePlanId: z.string().uuid().optional(),
+  promoCode: z.string().trim().max(64).optional().or(z.literal("")),
   checkIn: dateStr,
   checkOut: dateStr,
   adults: z.number().int().min(1).max(10),
@@ -178,6 +183,8 @@ export const getBookingQuote = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({
     roomSlug: z.string().min(1),
     ratePlanId: z.string().uuid().optional(),
+    promoCode: z.string().trim().max(64).optional().or(z.literal("")),
+    guestEmail: z.string().trim().email().max(255).optional(),
     checkIn: dateStr,
     checkOut: dateStr,
     adults: z.number().int().min(1).max(10),
@@ -188,7 +195,7 @@ export const getBookingQuote = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
-    const { data: quote, error } = await (supabaseAdmin as any).rpc("get_staynas_booking_quote_with_rate_plan", {
+    const { data: quote, error } = await (supabaseAdmin as any).rpc("get_staynas_booking_quote_with_rate_plan_and_promo", {
       _property_id: propertyId,
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
@@ -198,6 +205,8 @@ export const getBookingQuote = createServerFn({ method: "POST" })
       _children_7_plus: data.children7Plus,
       _extras: data.extras,
       _rate_plan_id: data.ratePlanId ?? null,
+      _promo_code: data.promoCode?.trim() || null,
+      _guest_email: data.guestEmail?.trim() || null,
     });
     if (error) throw new Error(error.message);
     if (!quote) throw new Error("Pricing quote could not be calculated");
@@ -216,7 +225,7 @@ export const createBooking = createServerFn({ method: "POST" })
     const below6 = data.childrenBelow6 ?? 0;
     const plus7 = data.children7Plus ?? Math.max(0, (data.children ?? 0) - below6);
     const totalChildren = below6 + plus7;
-    const { data: result, error } = await sb.rpc("create_booking_for_property_with_rate_plan", {
+    const { data: result, error } = await sb.rpc("create_booking_for_property_with_rate_plan_and_promo", {
       _property_id: propertyId,
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
@@ -235,6 +244,7 @@ export const createBooking = createServerFn({ method: "POST" })
       _session_id: data.sessionId ?? null,
       _payment_method: "online",
       _rate_plan_id: data.ratePlanId ?? null,
+      _promo_code: data.promoCode?.trim() || null,
     });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;

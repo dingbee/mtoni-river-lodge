@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -305,6 +305,7 @@ function RatePlans() {
   };
   const restrictionEntries=Object.entries(readRestrictions());
   return <div className="w-full min-w-0 max-w-full space-y-6 overflow-x-clip">
+    <div className="flex justify-end"><Link to="/admin/finance/pricing-adjustments" className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted">Taxes, fees & promotions →</Link></div>
     <PageHeader title="Rate Plans" description="Manage property-scoped commercial accommodation products, room eligibility, seasonal pricing, daily rate overrides and publication." />
     {data?.property&&<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><span className="font-medium text-foreground">{data.property.name}</span><Badge variant="outline">{String(data.property.currency).toUpperCase()}</Badge><span>{data.property.timezone}</span></div>}
     <SectionCard className="min-w-0" title={editing?"Edit rate plan":"Create rate plan"} description="A rate plan defines the commercial terms applied to one or more room types. Room assignments are managed separately.">
