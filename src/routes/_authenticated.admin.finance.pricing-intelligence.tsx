@@ -121,7 +121,7 @@ function PricingIntelligence() {
               <StatCard label="Average booking lead time" value={data.metrics.averageBookingLeadDays === null ? "Not available" : data.metrics.averageBookingLeadDays.toFixed(1) + " days"} />
               <StatCard label="Cancellation rate" value={percent(data.metrics.cancellationRate)} />
               <StatCard label="No-show rate" value={percent(data.metrics.noShowRate)} />
-              <StatCard label="Completed accommodation value" value={data.metrics.completedAccommodation.toLocaleString()} hint="See currency breakdown below" />
+              <StatCard label="Currency buckets" value={data.metrics.accommodationByCurrency.length.toLocaleString()} hint="Financial totals remain separated by currency below" />
             </div>
             <div className="mt-4 space-y-3">
               {data.metrics.accommodationByCurrency.map((c) => (
