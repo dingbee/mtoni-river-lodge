@@ -12,7 +12,7 @@ const horizonSchema = z.object({ horizonDays: z.union([z.literal(7), z.literal(1
 function iso(d: Date) { return d.toISOString().slice(0, 10); }
 function addDays(date: string, days: number) { const d = new Date(date + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + days); return iso(d); }
 function dayDiff(from: string, to: string) { return Math.round((Date.parse(to + "T00:00:00Z") - Date.parse(from + "T00:00:00Z")) / 86400000); }
-function weekday(date: string) { return new Date(date + "T00:00:00Z").getUTCDay(); }
+function weekday(date: string) { return new Date(date + "T00:00:00Z").getUTCDay(); }\nfunction localDateInZone(date: Date, timeZone: string) {\n  const parts = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);\n  const values = Object.fromEntries(parts.map((p) => [p.type, p.value]));\n  return String(values.year) + "-" + String(values.month).padStart(2, "0") + "-" + String(values.day).padStart(2, "0");\n}
 function finite(n: unknown) { const v = Number(n); return Number.isFinite(v) ? v : 0; }
 function isLive(status: string) { return ["confirmed", "checked_in", "completed"].includes(status); }
 function isHistoricalActual(status: string) { return ["checked_in", "completed"].includes(status); }
@@ -141,7 +141,7 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
     const cancellationRate = reservationCount ? cancelled / reservationCount : null;
     const noShowRate = reservationCount ? noShows / reservationCount : null;
     const leadDays = stayBookings.filter((b) => isLive(String(b.status))).map((b) =>
-      Math.max(0, (Date.parse(String(b.check_in) + "T00:00:00Z") - Date.parse(String(b.created_at).slice(0, 10) + "T00:00:00Z")) / 86400000)
+      Math.max(0, (Date.parse(String(b.check_in) + "T00:00:00Z") - Date.parse(localDateInZone(new Date(String(b.created_at)), propertyTimezone) + "T00:00:00Z")) / 86400000)
     );
     const coverage = {
       roomCount: rooms.length, totalUnits: units, reservationRows: bookings.length,
@@ -332,7 +332,7 @@ export const savePricingScenario = createServerFn({ method: "POST" })
       _booking_timestamp: new Date().toISOString(),
     });
     if (error || !resolved || resolved.ok !== true) throw new Error("Canonical published pricing could not resolve this scenario. Select an eligible rate plan and retry.");
-    const baseline = finite(resolved.accommodation_subtotal);
+    if (resolved.mode === "legacy" || resolved.accommodation_subtotal === null || resolved.accommodation_subtotal === undefined || !Number.isFinite(Number(resolved.accommodation_subtotal))) {\n      throw new Error("Scenario requires an eligible published rate plan with canonical accommodation subtotal.");\n    }\n    const baseline = finite(resolved.accommodation_subtotal);
     const proposed = Math.round((baseline * (1 + data.adjustmentPercent / 100) + Number.EPSILON) * 100) / 100;
     const result = {
       baselineAccommodation: baseline, proposedAccommodation: proposed,
