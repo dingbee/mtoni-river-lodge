@@ -14,7 +14,7 @@ legacy = Path(
 )
 source = legacy.read_text()
 pattern = re.compile(
-    r"^(REVOKE (?:ALL|EXECUTE) ON FUNCTION) (public\.[^(]+\\([^)]*\\)) FROM ([^;]+);$",
+    r"^(REVOKE (?:ALL|EXECUTE) ON FUNCTION) (public\.[^(]+\([^)]*\)) FROM ([^;]+);$",
     re.MULTILINE,
 )
 
