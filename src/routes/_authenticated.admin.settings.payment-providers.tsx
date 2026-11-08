@@ -67,7 +67,7 @@ function PaymentProviderSettings() {
   });
   const propertyQuery = useQuery({
     queryKey: ["payments.property-provider-configs"],
-    queryFn: () => propertyListFn({ data: {} }),
+    queryFn: () => propertyListFn(),
     enabled: founderStatus.isSuccess && !isFounder,
   });
   const rows = (isFounder ? platformQuery.data : propertyQuery.data) as ProviderRow[] | undefined;
