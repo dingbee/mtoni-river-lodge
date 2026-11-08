@@ -10,11 +10,20 @@ on:
       - feat/finance-*
       - feat/spe-03-*
       - feat/spe-04-*
+      - feat/cc-03-*
+      - feat/spe-07-*
+      - feat/spe-08-*
       - spe-02/**
   pull_request:
     branches:
       - main
       - spe-02/**
+      - feat/spe-07-*
+      - feat/spe-08-*
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   tests:
@@ -50,6 +59,14 @@ jobs:
           src/domains/finance/rate-plan-restrictions.test.ts
           src/domains/finance/rate-plan-publication.test.ts
           src/lib/pesapal-currency.test.ts
+          src/domains/commercial/catalogue.test.ts
+          src/domains/commercial/pricing-engine.test.ts
+          src/domains/commercial/package-composition.test.ts
+          src/domains/commercial/trial-configuration.test.ts
+          src/domains/commercial/founder-administration.test.ts
+          src/domains/commercial/commercial-api-contract.test.ts
+          src/domains/commercial/subscription-lifecycle-contract.test.ts
+          src/domains/commercial/subscription.authorization.test.ts
       # TanStack Start generates routeTree.gen.ts during the Vite build.
       - name: Generate routes and verify production build
         run: bun run build
@@ -87,4 +104,25 @@ jobs:
           src/lib/payment-finalize.server.ts
           src/lib/pesapal-currency.ts
           src/lib/pesapal-currency.test.ts
+          src/domains/commercial/catalogue.ts
+          src/domains/commercial/catalogue-contract.ts
+          src/domains/commercial/catalogue.test.ts
+          src/domains/commercial/pricing-contract.ts
+          src/domains/commercial/pricing-engine.ts
+          src/domains/commercial/pricing-engine.test.ts
+          src/domains/commercial/package-composition-contract.ts
+          src/domains/commercial/package-composition.test.ts
+          src/domains/commercial/trial-configuration-contract.ts
+          src/domains/commercial/trial-configuration.test.ts
+          src/domains/commercial/founder-administration-contract.ts
+          src/domains/commercial/founder-administration.test.ts
+          src/domains/commercial/commercial-api-contract.ts
+          src/domains/commercial/commercial-api-contract.test.ts
+          src/domains/commercial/subscription-lifecycle-contract.ts
+          src/domains/commercial/subscription-lifecycle-contract.test.ts
+          src/domains/commercial/subscription.functions.ts
+          src/domains/commercial/subscription.authorization.test.ts
+          src/domains/pricing-intelligence/pricing-intelligence.functions.ts
+          src/domains/pricing-intelligence/pricing-intelligence-catalogue.functions.ts
+          src/routes/_authenticated.admin.finance.pricing-intelligence.tsx
           --rule 'prettier/prettier: off'
