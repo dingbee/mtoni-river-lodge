@@ -85,14 +85,14 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/cc04_financial_ledger.test.sql
-      - name: Apply StayNas payment provider management migration
+      - name: Apply property guest payment provider migration
         env:
           PGPASSWORD: postgres
-        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/20261108120000_staynas_payment_provider_management.sql
-      - name: Verify provider configuration scopes and access boundaries
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/20261108130000_staynas_payment_provider_configuration.sql
+      - name: Verify property guest provider security and activation boundaries
         env:
           PGPASSWORD: postgres
-        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/staynas_payment_provider_configs.test.sql
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/staynas_guest_payment_provider_accounts.test.sql
   cc04-contracts:
     runs-on: ubuntu-latest
     env:
