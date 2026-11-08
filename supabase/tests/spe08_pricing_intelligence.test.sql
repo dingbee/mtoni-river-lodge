@@ -1,6 +1,6 @@
 -- SPE-08 property-scoped pricing intelligence database contracts.
 BEGIN;
-SELECT plan(22);
+SELECT plan(23);
 
 SELECT has_table('public','staynas_pricing_intelligence_runs','Analytics run evidence table exists');
 SELECT has_table('public','staynas_pricing_recommendations','Recommendation lifecycle table exists');
