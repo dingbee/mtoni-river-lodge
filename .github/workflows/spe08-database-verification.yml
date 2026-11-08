@@ -8,6 +8,10 @@ on:
     branches:
       - feat/spe-07-*
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   spe08-database:
     runs-on: ubuntu-latest
