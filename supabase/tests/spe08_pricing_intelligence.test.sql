@@ -55,6 +55,12 @@ BEGIN
     WHERE table_schema='public' AND table_name='staynas_pricing_recommendations' AND column_name='explanation'
   ) THEN RAISE EXCEPTION 'Recommendation explanation column missing'; END IF;
 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='public.staynas_pricing_recommendation_events'::regclass
+      AND conname='staynas_pi_event_recommendation_property_fk'
+  ) THEN RAISE EXCEPTION 'Recommendation event/property composite foreign key missing'; END IF;
+
   IF has_table_privilege('authenticated','public.staynas_pricing_recommendation_events','DELETE') THEN
     RAISE EXCEPTION 'Authenticated users must not delete recommendation audit history';
   END IF;
