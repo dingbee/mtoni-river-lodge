@@ -161,3 +161,16 @@ new_loop = """  FOREACH v_signature_text IN ARRAY ARRAY[
 if old_loop not in jwt_compat_source:
     raise SystemExit("Expected legacy JWT compatibility function loop was not found.")
 jwt_compat_migration.write_text(jwt_compat_source.replace(old_loop, new_loop, 1))
+
+# The current CC-01 authorization migration revokes direct access from legacy
+# trigger functions that are present in deployed schemas but not all clean CI
+# baselines. Keep the migration unchanged for deployed environments; normalize
+# only the ephemeral checkout so absent optional trigger functions are skipped.
+cc01_migration = Path(
+    "supabase/migrations/20261106180545_cc01_authorization_identity_scope.sql"
+)
+cc01_source = cc01_migration.read_text()
+cc01_patched, cc01_count = pattern.subn(conditional_revoke, cc01_source)
+if cc01_count < 1:
+    raise SystemExit("No CC-01 trigger-function revokes found; inspect migration drift.")
+cc01_migration.write_text(cc01_patched)
