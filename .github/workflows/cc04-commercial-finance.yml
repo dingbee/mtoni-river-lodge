@@ -109,7 +109,7 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - name: Verify CC-04 settlement contracts
-        run: bunx vitest run src/domains/commercial/settlement-contract.test.ts src/domains/commercial/commercial-billing-engine.test.ts src/domains/commercial/commercial-payment-adapters.test.ts src/domains/commercial/commercial-reconciliation-engine.test.ts
+        run: bunx vitest run src/domains/commercial/settlement-contract.test.ts src/domains/commercial/commercial-billing-engine.test.ts src/domains/commercial/commercial-payment-adapters.test.ts src/domains/commercial/commercial-reconciliation-engine.test.ts src/domains/payments/provider-adapter.contract.test.ts
       - name: Generate routes and verify production build
         run: bun run build
       - name: TypeScript verification
