@@ -74,10 +74,12 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
     if (bookingDateResult.error) throw new Error("Unable to load booking-date analytics.");
     const bookingDateRows = (bookingDateResult.data ?? []) as AnyRow[];
     const stayBookings = bookings.filter((b) => String(b.check_in) >= data.from && String(b.check_in) <= data.to);
-    const { data: ratePlanRows, error: ratePlanError } = await context.supabase.from("staynas_rate_plans")
+    const { data: ratePlanRows, error: ratePlanError } = await (context.supabase as any).from("staynas_rate_plans")
       .select("id,code,name,version").eq("property_id", propertyId).limit(200);
     if (ratePlanError) throw new Error("Unable to load property rate-plan catalogue.");
-    const ratePlanById = new Map((ratePlanRows ?? []).map((p: AnyRow) => [String(p.id), p]));
+    const ratePlanById = new Map<string, AnyRow>(
+      ((ratePlanRows ?? []) as AnyRow[]).map((p) => [String(p.id), p] as [string, AnyRow]),
+    );
 
     const days = Math.max(1, dayDiff(data.from, data.to) + 1);
     const units = rooms.reduce((n, r) => n + Math.max(0, finite(r.total_units)), 0);
