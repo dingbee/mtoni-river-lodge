@@ -254,7 +254,7 @@ SELECT throws_ok(
       (SELECT property_id FROM spe07_test_connection),
       (SELECT id FROM spe07_test_connection),
       'spe07-provider-event-1','spe07-external-reservation-1','created','1',
-      repeat('d',64),'{"external_reservation_id":"spe07-external-reservation-1","amount_minor":99999,"currency":"USD"}'::jsonb
+      repeat('d',64),'{"externalReservationId":"spe07-external-reservation-1","eventType":"created","confirmedAmountMinor":99999,"currency":"USD"}'::jsonb
     )
   $$,
   '23505', NULL,
