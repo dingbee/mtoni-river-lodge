@@ -86,6 +86,23 @@ describe("Channex adapter foundation", () => {
     }
   });
 
+  it("normalizes permission and provider outage responses", async () => {
+    for (const [status, expectedCode, retryable] of [[403, "authorization", false], [503, "provider_unavailable", true]] as const) {
+      const adapter = createChannexAdapter({
+        environments: { sandbox },
+        resolveApiKey: async () => "test-api-key",
+        fetchImpl: (async () => response(status, { errors: { title: "private provider detail" } })) as typeof fetch,
+      });
+      const result = await adapter.healthCheck!(context, handle);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe(expectedCode);
+        expect(result.error.retryable).toBe(retryable);
+        expect(result.error.safeMessage).not.toContain("private provider detail");
+      }
+    }
+  });
+
   it("rejects non-HTTPS and unapproved endpoint hosts", async () => {
     for (const apiBaseUrl of ["http://localhost:3000", "https://attacker.example/api/v1"]) {
       const adapter = createChannexAdapter({
