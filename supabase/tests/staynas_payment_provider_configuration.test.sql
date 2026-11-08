@@ -21,10 +21,10 @@ BEGIN
   IF secret_value NOT LIKE '%consumerSecret%' THEN RAISE EXCEPTION 'Vault secret round-trip failed'; END IF;
 
   INSERT INTO public.staynas_guest_payment_provider_accounts(
-    organisation_id,property_id,provider,provider_account_ref,credential_secret_ref,supported_currencies
+    organisation_id,property_id,provider,provider_account_ref,credential_secret_ref,environment,credential_updated_at,supported_currencies
   ) VALUES (
     'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-    'mpesa','merchant-test',secret_id::text,ARRAY['TZS']
+    'mpesa','merchant-test',secret_id,'sandbox',now(),ARRAY['TZS']
   );
 
   BEGIN
