@@ -183,10 +183,10 @@ CREATE POLICY staynas_pi_recommendations_property_insert ON public.staynas_prici
 CREATE POLICY staynas_pi_recommendations_property_update ON public.staynas_pricing_recommendations
   FOR UPDATE TO authenticated USING (
     public.staynas_user_has_property_access((select auth.uid()), property_id)
-    AND public.has_any_role((select auth.uid()), ARRAY['owner','manager','finance','admin']::public.app_role[])
+    AND public.has_any_role((select auth.uid()), ARRAY['owner','manager','admin']::public.app_role[])
   ) WITH CHECK (
     public.staynas_user_has_property_access((select auth.uid()), property_id)
-    AND public.has_any_role((select auth.uid()), ARRAY['owner','manager','finance','admin']::public.app_role[])
+    AND public.has_any_role((select auth.uid()), ARRAY['owner','manager','admin']::public.app_role[])
   );
 CREATE POLICY staynas_pi_events_property_insert ON public.staynas_pricing_recommendation_events
   FOR INSERT TO authenticated WITH CHECK (
