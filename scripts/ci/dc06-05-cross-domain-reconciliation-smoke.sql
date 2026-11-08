@@ -33,8 +33,7 @@ BEGIN
     'public.staynas_distribution_outbox'::regclass,
     'public.staynas_distribution_webhook_inbox'::regclass,
     'public.staynas_distribution_webhook_attempts'::regclass,
-    'public.staynas_distribution_reservation_links'::regclass,
-    'public.staynas_distribution_financial_evidence'::regclass
+    'public.staynas_distribution_reservation_links'::regclass
   ] LOOP
     SELECT c.relrowsecurity INTO v_rls FROM pg_class c WHERE c.oid=v_rel;
     IF NOT coalesce(v_rls,false) THEN
@@ -53,6 +52,28 @@ BEGIN
      OR has_table_privilege('service_role','public.staynas_distribution_financial_evidence','UPDATE')
      OR has_table_privilege('service_role','public.staynas_distribution_financial_evidence','DELETE') THEN
     RAISE EXCEPTION 'Immutable distribution evidence/attempt ledger has mutation grants';
+  END IF;
+
+  -- Finance evidence is an explicitly authorized, read-only RLS surface.
+  -- DC-06.03 grants authenticated SELECT, while policy checks active property
+  -- and finance roles. Anonymous access and all mutation privileges are denied.
+  SELECT c.relrowsecurity INTO v_rls
+  FROM pg_class c WHERE c.oid='public.staynas_distribution_financial_evidence'::regclass;
+  IF NOT coalesce(v_rls,false)
+     OR has_table_privilege('anon','public.staynas_distribution_financial_evidence','SELECT')
+     OR NOT has_table_privilege('authenticated','public.staynas_distribution_financial_evidence','SELECT')
+     OR has_table_privilege('authenticated','public.staynas_distribution_financial_evidence','INSERT')
+     OR has_table_privilege('authenticated','public.staynas_distribution_financial_evidence','UPDATE')
+     OR has_table_privilege('authenticated','public.staynas_distribution_financial_evidence','DELETE')
+     OR NOT EXISTS (
+       SELECT 1 FROM pg_policies
+       WHERE schemaname='public'
+         AND tablename='staynas_distribution_financial_evidence'
+         AND cmd='SELECT'
+         AND qual ILIKE '%has_any_role%'
+         AND qual ILIKE '%staynas_active_property_id%'
+     ) THEN
+    RAISE EXCEPTION 'Finance evidence RLS, finance-role policy or read-only grants are incorrect';
   END IF;
 
   -- Canonical reservation identity: provider/account/external ID is unique,
