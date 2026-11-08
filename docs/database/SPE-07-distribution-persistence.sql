@@ -1132,8 +1132,7 @@ BEGIN
       SET nightly_rate=CASE WHEN date=v_old_alloc.departure_date-1
           THEN v_amount-round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2)
             *((v_old_alloc.departure_date-v_old_alloc.arrival_date)-1)
-          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END,
-        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,'currency',v_currency)
+          ELSE round(v_amount/(v_old_alloc.departure_date-v_old_alloc.arrival_date),2) END
       WHERE booking_id=v_old_alloc.booking_id;
     END LOOP;
     UPDATE public.staynas_distribution_external_reservations
