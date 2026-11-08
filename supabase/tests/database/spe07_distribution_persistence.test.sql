@@ -404,6 +404,7 @@ SELECT * FROM public.staynas_distribution_claim_reservation_inbox(1,120);
 CREATE TEMP TABLE spe07_test_modify_apply AS
 SELECT public.staynas_distribution_apply_reservation_event(inbox_id) AS result
 FROM spe07_test_modify_claim;
+SELECT diag((SELECT result::text FROM spe07_test_modify_apply));
 SELECT is((SELECT result->>'status' FROM spe07_test_modify_apply),'applied',
   'versioned price-only modification is applied');
 SELECT is((SELECT sum(b.total)::numeric(12,2) FROM public.bookings b
