@@ -11,11 +11,19 @@ on:
       - feat/spe-03-*
       - feat/spe-04-*
       - feat/cc-03-*
+      - feat/spe-07-*
+      - feat/spe-08-*
       - spe-02/**
   pull_request:
     branches:
       - main
       - spe-02/**
+      - feat/spe-07-*
+      - feat/spe-08-*
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   tests:
@@ -114,4 +122,7 @@ jobs:
           src/domains/commercial/subscription-lifecycle-contract.test.ts
           src/domains/commercial/subscription.functions.ts
           src/domains/commercial/subscription.authorization.test.ts
+          src/domains/pricing-intelligence/pricing-intelligence.functions.ts
+          src/domains/pricing-intelligence/pricing-intelligence-catalogue.functions.ts
+          src/routes/_authenticated.admin.finance.pricing-intelligence.tsx
           --rule 'prettier/prettier: off'
