@@ -27,7 +27,14 @@ type ChannexEnvelope = Readonly<{
   errors?: unknown;
 }>;
 
-class ChannexConfigurationError extends Error {\n  constructor(message: string) { super(message); this.name = "ChannexConfigurationError"; }\n}\n\nfunction validateBaseUrl(value: string, allowedHosts: readonly string[]): URL {
+class ChannexConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ChannexConfigurationError";
+  }
+}
+
+function validateBaseUrl(value: string, allowedHosts: readonly string[]): URL {
   let url: URL;
   try {
     url = new URL(value);
@@ -35,9 +42,12 @@ class ChannexConfigurationError extends Error {\n  constructor(message: string) 
     throw new ChannexConfigurationError("Channex endpoint configuration is invalid.");
   }
   if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) {
-    throw new ChannexConfigurationError("Channex endpoint must be an HTTPS URL without embedded credentials, query or fragment.");\n  }\n  if (!allowedHosts.includes(url.hostname.toLowerCase())) {\n    throw new ChannexConfigurationError("Channex endpoint host is not in the platform-managed provider allowlist.");
+    throw new ChannexConfigurationError("Channex endpoint must be an HTTPS URL without embedded credentials, query or fragment.");
   }
-  return new URL(url.toString().replace(/\/+$/, "") + "/");
+  if (!allowedHosts.includes(url.hostname.toLowerCase())) {
+    throw new ChannexConfigurationError("Channex endpoint host is not in the platform-managed provider allowlist.");
+  }
+  return new URL(url.toString().replace(/\\/+$/, "") + "/");
 }
 
 function normalizeFailure(status: number, correlationId: string, retryAfter?: string): NormalizedAdapterError {
@@ -104,13 +114,14 @@ export function createChannexAdapter(config: ChannexAdapterConfig): Distribution
         }
         return { ok: true, value: { state: "healthy", checkedAt: new Date((config.now ?? Date.now)()).toISOString(), latencyMs } };
       } catch (error) {
-        const isConfigurationError = error instanceof ChannexConfigurationError;\n        const isTimeout = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
+        const isConfigurationError = error instanceof ChannexConfigurationError;
+        const isTimeout = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
         return {
           ok: false,
           error: {
-            code: isTimeout ? "timeout" : "provider_unavailable",
-            retryable: true,
-            safeMessage: isTimeout ? "The Channex connection check timed out." : "The Channex connection check could not be completed.",
+            code: isConfigurationError ? "configuration" : isTimeout ? "timeout" : "provider_unavailable",
+            retryable: !isConfigurationError,
+            safeMessage: isConfigurationError ? "The Channex endpoint configuration is invalid or not approved." : isTimeout ? "The Channex connection check timed out." : "The Channex connection check could not be completed.",
             correlationId: context.correlationId,
           },
         };
