@@ -163,8 +163,8 @@ function PricingIntelligence() {
               <div className="space-y-3 text-sm">
                 {data.metrics.byRatePlan.map((r) => (
                   <div key={r.ratePlanId} className="border-b pb-2">
-                    <div className="font-medium">{r.ratePlanId === "unattributed" ? "Unattributed" : r.ratePlanId}</div>
-                    <div className="text-xs text-muted-foreground">Version {r.version ?? "Not captured"} · {r.bookings} bookings · {r.roomNights} room nights</div>
+                    <div className="font-medium">{r.name}{r.code ? ` · ${r.code}` : ""}</div>
+                    <div className="text-xs text-muted-foreground">Version {r.version ?? "Not captured"} · Publication {r.publicationNumber ?? "Not captured"} · {r.bookings} bookings · {r.roomNights} room nights</div>
                     {Object.entries(r.accommodationByCurrency ?? {}).map(([currency, amount]) => (
                       <div key={currency}>{currency} accommodation: <strong>{money(Number(amount), currency)}</strong></div>
                     ))}
@@ -185,6 +185,8 @@ function PricingIntelligence() {
               <div>Invalid currency rows: <strong>{data.dataQuality.invalidCurrencies}</strong></div>
               <div>Unattributed channel rows: <strong>{data.dataQuality.unattributedChannelRows}</strong></div>
               <div>Historical pricing snapshots: <strong>{data.dataQuality.historicalSnapshotsAvailable}</strong></div>
+              <div>Missing historical snapshots: <strong>{data.dataQuality.missingHistoricalSnapshots}</strong></div>
+              <div>Invalid booked occupancy: <strong>{data.dataQuality.invalidBookedOccupancy ? "Yes" : "No"}</strong></div>
             </div>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
               {data.limitations.map((item, i) => <li key={i}>{item}</li>)}
