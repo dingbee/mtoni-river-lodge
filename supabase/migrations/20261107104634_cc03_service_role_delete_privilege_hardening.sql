@@ -6,5 +6,6 @@ REVOKE DELETE ON TABLE
   public.commercial_accounts,
   public.commercial_subscriptions,
   public.commercial_founder_tenant_config,
-  public.commercial_founder_admin_memberships
+  public.commercial_founder_admin_memberships,
+  public.commercial_trial_claims
 FROM service_role;
