@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
+
+type PricingRecord = Record<string, any>;
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { StatCard } from "@/components/os/StatCard";
@@ -61,11 +63,11 @@ function PricingIntelligence() {
   });
   const recommendations = useQuery({
     queryKey: ["spe08.recommendations"],
-    queryFn: () => recommendationsFn({ data: { limit: 50 } }),
+    queryFn: async () => (await recommendationsFn({ data: { limit: 50 } })) as PricingRecord[],
   });
   const scenarios = useQuery({
     queryKey: ["spe08.scenarios"],
-    queryFn: () => scenariosFn({ data: { limit: 20 } }),
+    queryFn: async () => (await scenariosFn({ data: { limit: 20 } })) as PricingRecord[],
   });
   const rooms = useQuery({ queryKey: ["spe08.rooms"], queryFn: () => roomsFn() });
 
