@@ -165,7 +165,7 @@ export const getPricingIntelligenceDashboard = createServerFn({ method: "POST" }
       const ch = byChannel.get(channel);
       if (ch) ch.bookings++;
     }
-    const currencyBreakdown = [...currencyBuckets.values()].map((b) => {
+    const currencyBreakdown: AnyRow[] = [...currencyBuckets.values()].map((b): AnyRow => {
       const capacity = units * days;
       return {
         ...b,
@@ -285,7 +285,7 @@ export const getPricingDemandForecast = createServerFn({ method: "POST" })
         "Historical zero-demand days and daily inventory coverage are not certified. Weekday samples are diagnostic only and are not used to manufacture an occupancy forecast.",
       ],
     };
-    const save = await context.supabase.from("staynas_pricing_forecasts").insert({
+    const save = await (context.supabase as any).from("staynas_pricing_forecasts").insert({
       property_id: propertyId, horizon_days: data.horizonDays, from_date: today, to_date: to,
       method_version: VERSION, data_coverage: forecast.dataCoverage, forecast,
       confidence: forecast.confidence, uncertainty: { type: "sample_size_proxy" },
@@ -301,7 +301,7 @@ export const generatePricingReviewRecommendations = createServerFn({ method: "PO
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
     const propertyId = await propertyContext(context.supabase, context.userId);
-    const forecast = await getPricingDemandForecast({ data: { horizonDays: data.horizonDays } } as never);
+    const forecast = await (getPricingDemandForecast as any)({ data: { horizonDays: data.horizonDays } });
     if (forecast.status !== "available") return { generated: 0, status: "insufficient_data" as const };
     const highDemand = forecast.daily.filter((d: AnyRow) => d.expectedOccupancy !== null && d.expectedOccupancy >= 0.85 && d.expectedOccupancy - (d.bookedOccupancy ?? 0) >= 0.1);
     if (!highDemand.length) return { generated: 0, status: "no_supported_opportunity" as const };
@@ -309,7 +309,7 @@ export const generatePricingReviewRecommendations = createServerFn({ method: "PO
     let generated = 0;
     {
       const evidence = highDemand.map((d: AnyRow) => ({ date: d.date, expectedOccupancy: d.expectedOccupancy, bookedOccupancy: d.bookedOccupancy, historicalWeekdayObservations: d.historicalWeekdayObservations }));
-      const inserted = await context.supabase.from("staynas_pricing_recommendations").insert({
+      const inserted = await (context.supabase as any).from("staynas_pricing_recommendations").insert({
         property_id: propertyId, room_id: null, recommendation_type: "rate_review",
         window_from: from, window_to: to, currency: null,
         current_context: { scope: "property", basis: "published room-type and rate-plan pricing must be reviewed in canonical rate-plan workspace" },
@@ -327,7 +327,7 @@ export const generatePricingReviewRecommendations = createServerFn({ method: "PO
       }).select("id").single();
       if (inserted.error) throw new Error("Recommendation could not be persisted.");
       generated++;
-      const event = await context.supabase.from("staynas_pricing_recommendation_events").insert({
+      const event = await (context.supabase as any).from("staynas_pricing_recommendation_events").insert({
         property_id: propertyId, recommendation_id: inserted.data.id, event_type: "generated",
         actor_id: context.userId, evidence: { forecastId: forecast.forecastId },
       });
@@ -345,16 +345,16 @@ export const decidePricingRecommendation = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
     const propertyId = await propertyContext(context.supabase, context.userId);
-    const { data: current, error: readError } = await context.supabase.from("staynas_pricing_recommendations")
+    const { data: current, error: readError } = await (context.supabase as any).from("staynas_pricing_recommendations")
       .select("id,status,expires_at").eq("id", data.id).eq("property_id", propertyId).maybeSingle();
     if (readError || !current) throw new Error("Recommendation not found for the active property.");
     if (current.status !== "pending_review" && current.status !== "generated") throw new Error("Recommendation is no longer reviewable.");
     if (current.expires_at && Date.parse(current.expires_at) <= Date.now()) throw new Error("Recommendation has expired.");
-    const { data: updated, error } = await context.supabase.from("staynas_pricing_recommendations").update({
+    const { data: updated, error } = await (context.supabase as any).from("staynas_pricing_recommendations").update({
       status: data.decision, reviewed_by: context.userId, reviewed_at: new Date().toISOString(), decision_reason: data.reason,
     }).eq("id", data.id).eq("property_id", propertyId).in("status", ["generated", "pending_review"]).select("id").maybeSingle();
     if (error || !updated) throw new Error("Recommendation decision was not saved; property administrator approval is required.");
-    const event = await context.supabase.from("staynas_pricing_recommendation_events").insert({
+    const event = await (context.supabase as any).from("staynas_pricing_recommendation_events").insert({
       property_id: propertyId, recommendation_id: data.id, event_type: data.decision,
       actor_id: context.userId, reason: data.reason,
     });
@@ -375,7 +375,7 @@ export const savePricingScenario = createServerFn({ method: "POST" })
     const { data: room, error: roomError } = await context.supabase.from("rooms")
       .select("id,slug,currency").eq("id", data.roomId).eq("property_id", propertyId).eq("status", "active").maybeSingle();
     if (roomError || !room) throw new Error("Room is not available in the active property.");
-    const { data: resolved, error } = await context.supabase.rpc("resolve_staynas_published_room_pricing", {
+    const { data: resolved, error } = await (context.supabase as any).rpc("resolve_staynas_published_room_pricing", {
       _property_id: propertyId, _room_id: data.roomId, _check_in: data.from, _check_out: data.to,
       _adults: data.adults, _children_below_6: 0, _children_7_plus: 0, _rate_plan_id: data.ratePlanId ?? null,
       _booking_timestamp: new Date().toISOString(),
@@ -400,7 +400,7 @@ export const savePricingScenario = createServerFn({ method: "POST" })
       "Demand elasticity, conversion and occupancy response are not estimated.",
       "No live rate, inventory, booking or distribution record is changed.",
     ];
-    const saved = await context.supabase.from("staynas_pricing_scenarios").insert({
+    const saved = await (context.supabase as any).from("staynas_pricing_scenarios").insert({
       property_id: propertyId, name: data.name, currency: result.currency, window_from: data.from, window_to: data.to,
       baseline: { accommodation: baseline, publicationId: result.publicationId, ratePlanId: result.ratePlanId },
       proposal: { adjustmentPercent: data.adjustmentPercent, proposedAccommodation: proposed },
@@ -417,7 +417,7 @@ export const listPricingRecommendations = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
     const propertyId = await propertyContext(context.supabase, context.userId);
-    const { data: rows, error } = await context.supabase.from("staynas_pricing_recommendations")
+    const { data: rows, error } = await (context.supabase as any).from("staynas_pricing_recommendations")
       .select("id,room_id,recommendation_type,window_from,window_to,currency,current_context,proposed_action,expected_impact,evidence,explanation,confidence,status,generated_at,expires_at,limitations")
       .eq("property_id", propertyId).order("generated_at", { ascending: false }).limit(data.limit);
     if (error) throw new Error("Unable to load pricing recommendations.");
@@ -430,7 +430,7 @@ export const listPricingScenarios = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
     const propertyId = await propertyContext(context.supabase, context.userId);
-    const { data: rows, error } = await context.supabase.from("staynas_pricing_scenarios")
+    const { data: rows, error } = await (context.supabase as any).from("staynas_pricing_scenarios")
       .select("id,name,currency,window_from,window_to,result,limitations,created_at")
       .eq("property_id", propertyId).order("created_at", { ascending: false }).limit(data.limit);
     if (error) throw new Error("Unable to load pricing scenario history.");
