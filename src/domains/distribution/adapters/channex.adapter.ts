@@ -5,6 +5,7 @@ import type {
   AdapterExecutionContext,
   CredentialHandle,
   NormalizedAdapterError,
+  AdapterManifest,
 } from "./contracts";
 
 export type ChannexEnvironmentConfig = Readonly<{
@@ -67,8 +68,7 @@ function normalizeFailure(status: number, correlationId: string, retryAfter?: st
  */
 export function createChannexAdapter(config: ChannexAdapterConfig): DistributionAdapter {
   const fetchImpl = config.fetchImpl ?? fetch;
-  return Object.freeze({
-    manifest: Object.freeze({
+  const manifest: AdapterManifest = {
       providerKey: "channex",
       adapterVersion: "1.0.0",
       contractVersion: "1.0",
@@ -78,7 +78,9 @@ export function createChannexAdapter(config: ChannexAdapterConfig): Distribution
       ),
       authenticationModes: ["api_key"],
       supportsHealthCheck: true,
-    }),
+  };
+  return Object.freeze({
+    manifest: Object.freeze(manifest),
     async healthCheck(
       context: AdapterExecutionContext,
       handle: CredentialHandle,
