@@ -1243,17 +1243,18 @@ BEGIN
     INSERT INTO public.bookings(
       reference,room_id,property_id,check_in,check_out,nights,adults,children,
       guest_name,guest_email,guest_phone,currency,source,
-      subtotal,extras_total,fee_total,discount_total,taxes,tax_addition,tax_breakdown,
-      total,deposit_amount,balance_amount,balance_due,pricing_snapshot
+      subtotal,extras_total,taxes,total,deposit_amount,balance_amount,balance_due,pricing_snapshot
     ) VALUES (
       v_reference,v_room.id,v_inbox.property_id,(v_alloc->>'arrivalDate')::date,
       (v_alloc->>'departureDate')::date,v_nights,(v_alloc->>'adults')::integer,
       coalesce((v_alloc->>'children')::integer,0),
       nullif(btrim(v_inbox.normalized_payload#>>'{guest,fullName}'),''),
       lower(nullif(btrim(v_inbox.normalized_payload#>>'{guest,email}'),'')),
-      nullif(btrim(v_inbox.normalized_payload#>>'{guest,phone}'),''),
+      nullif(btrim(v_inbox.normalized_payload#>>'{guest,phone}'),''),'',
       v_currency,'ota:'||v_connection.provider,
-      v_amount,0,0,0,0,0,'[]'::jsonb,v_amount,0,v_amount,v_amount,
+      v_amount,0,
+      round(coalesce(v_commitment.tax_amount_minor,0)::numeric/power(10,v_exponent),2),
+      v_amount,0,v_amount,v_amount,
       jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
         'external_reservation_id',v_inbox.external_reservation_id,
         'external_allocation_id',v_alloc->>'externalAllocationId',
