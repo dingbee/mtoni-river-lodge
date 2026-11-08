@@ -143,7 +143,7 @@ BEGIN
     END IF;
     RETURN jsonb_build_object(
       'ok',true,'mode','legacy','rate_plan_id',NULL,'publication_id',NULL,
-      'pricing',public.calculate_staynas_room_pricing(
+      'pricing',public.calculate_staynas_room_pricing_legacy(
         _property_id,_room_id,_check_in,_check_out,_adults,
         COALESCE(_children_below_6,0),COALESCE(_children_7_plus,0)
       )
@@ -167,7 +167,12 @@ BEGIN
       AND (p2.effective_to IS NULL OR p2.effective_to>=_check_out-1)
       AND (x.effective_from IS NULL OR x.effective_from<=_check_in)
       AND (x.effective_to IS NULL OR x.effective_to>=_check_out-1)
-    ORDER BY p2.id LIMIT 1
+      AND x.publication_number=(
+        SELECT max(pub2.publication_number)
+        FROM public.staynas_rate_plan_publications pub2
+        WHERE pub2.property_id=x.property_id AND pub2.rate_plan_id=x.rate_plan_id
+      )
+    LIMIT 1
   )) AND p.property_id=_property_id AND a.room_type_id=v_room.catalogue_type_id
   LIMIT 1;
 
@@ -177,7 +182,7 @@ BEGIN
   ORDER BY pub.publication_number DESC LIMIT 1;
   IF NOT FOUND OR v_publication.snapshot_hash IS NULL THEN
     RETURN jsonb_build_object('ok',false,'error_code','RATE_SOURCE_MISSING',
-      'message','Eligible plan has no immutable publication snapshot');
+      'message','Eligible rate plan and latest publication could not be resolved consistently');
   END IF;
   IF upper(v_plan.currency)<>v_property_currency
      OR upper(v_publication.currency)<>v_property_currency THEN
