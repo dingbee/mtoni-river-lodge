@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { commercialPlatformProvider, type StayNasPaymentProvider } from "./provider-adapter.contract";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { CommercialAdminClient } from "@/domains/commercial/commercial-payment.functions";
 import {
@@ -205,8 +206,9 @@ export const savePlatformPaymentProviderConfig = createServerFn({ method: "POST"
     // Bridge the founder-managed platform account into CC-04's tenant-scoped
     // payment-attempt FK. The same platform credential reference is reused;
     // tenants cannot read or change the underlying platform provider config.
-    if (["pesapal", "bank_transfer", "manual"].includes(data.provider)) {
-      if (data.provider === "pesapal" && !saved.credential_secret_ref) {
+    const commercialProvider = commercialPlatformProvider(data.provider);
+    if (commercialProvider) {
+      if (commercialProvider === "pesapal" && !saved.credential_secret_ref) {
         throw new Error("Pesapal credentials are required before creating CC-04 payment mappings.");
       }
       const { data: commercialAccounts, error: accountsError } = await admin.from("commercial_accounts")
@@ -214,7 +216,7 @@ export const savePlatformPaymentProviderConfig = createServerFn({ method: "POST"
       if (accountsError) throw new Error("Commercial tenant accounts could not be synchronized to the platform provider.");
       const mappings = (commercialAccounts ?? []).map((account: { organisation_id: string }) => ({
         organisation_id: account.organisation_id,
-        provider: "pesapal",
+        provider: commercialProvider,
         provider_account_ref: saved.provider_account_ref,
         credential_secret_ref: saved.credential_secret_ref ? String(saved.credential_secret_ref) : null,
         supported_currencies: saved.supported_currencies,
