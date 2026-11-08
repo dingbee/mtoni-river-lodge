@@ -561,7 +561,8 @@ CREATE OR REPLACE FUNCTION public.commercial_create_payment_attempt(
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public
 AS $function$
 DECLARE v_role text := current_setting('request.jwt.claim.role',true); v_invoice public.commercial_invoices%ROWTYPE;
-  v_provider public.commercial_provider_accounts%ROWTYPE; v_id uuid;
+  v_provider public.commercial_provider_accounts%ROWTYPE; v_existing public.commercial_payment_transactions%ROWTYPE;
+  v_outstanding numeric; v_id uuid;
 BEGIN
   IF v_role IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'Service role required' USING ERRCODE='42501'; END IF;
   SELECT * INTO v_invoice FROM public.commercial_invoices WHERE id=_invoice_id FOR UPDATE;
