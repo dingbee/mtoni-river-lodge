@@ -132,6 +132,9 @@ function PricingIntelligence() {
                     <div>Booked accommodation: <strong>{money(c.bookedAccommodation, c.currency)}</strong></div>
                     <div>ADR (booked): <strong>{money(c.adr, c.currency)}</strong></div>
                     <div>RevPAR (booked): <strong>{money(c.revpar, c.currency)}</strong></div>
+                    <div>Recorded tax amount: <strong>{money(c.taxesRecorded, c.currency)}</strong></div>
+                    <div>Tax addition: <strong>{money(c.taxAddition, c.currency)}</strong></div>
+                    <div>Extras total: <strong>{money(c.extrasTotal, c.currency)}</strong></div>
                   </div>
                 </div>
               ))}
@@ -154,6 +157,20 @@ function PricingIntelligence() {
                   <div key={r.roomId} className="flex justify-between border-b pb-2"><span>{r.roomName}</span><span>{r.roomNights} room nights</span></div>
                 ))}
                 {!data.metrics.byRoom.length && <p className="text-muted-foreground">No room-level booking-night data.</p>}
+              </div>
+            </SectionCard>
+            <SectionCard title="Revenue by rate plan" description="Rate-plan attribution comes from the immutable booking pricing snapshot.">
+              <div className="space-y-3 text-sm">
+                {data.metrics.byRatePlan.map((r) => (
+                  <div key={r.ratePlanId} className="border-b pb-2">
+                    <div className="font-medium">{r.ratePlanId === "unattributed" ? "Unattributed" : r.ratePlanId}</div>
+                    <div className="text-xs text-muted-foreground">Version {r.version ?? "Not captured"} · {r.bookings} bookings · {r.roomNights} room nights</div>
+                    {Object.entries(r.accommodationByCurrency ?? {}).map(([currency, amount]) => (
+                      <div key={currency}>{currency} accommodation: <strong>{money(Number(amount), currency)}</strong></div>
+                    ))}
+                  </div>
+                ))}
+                {!data.metrics.byRatePlan.length && <p className="text-muted-foreground">No rate-plan snapshot attribution is available.</p>}
               </div>
             </SectionCard>
           </div>
