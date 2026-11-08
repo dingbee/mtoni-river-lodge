@@ -3,6 +3,9 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { z } from "zod";
 
+// Dynamic Supabase row/RPC boundaries remain runtime-validated until generated SPE-08 types are available.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 const VERSION = "spe08-coverage-gated-baseline-v1";
 type AnyRow = Record<string, any>;
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
