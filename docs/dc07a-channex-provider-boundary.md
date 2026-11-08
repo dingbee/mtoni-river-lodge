@@ -14,7 +14,7 @@ Channex is the first provider adapter, not a hardcoded distribution mode. StayNa
 
 ## Initial adapter scope
 
-This foundation implements only a read-only authenticated connection check by listing at most one accessible Channex property. Its manifest advertises only `listing.read` and `connection.health`. It does not claim to implement ARI writes, reservation ingestion, acknowledgement, webhook handling, or channel activation.
+This foundation implements only a read-only authenticated connection check by listing at most one accessible Channex property. Its manifest advertises only `connection.health`; it does not yet claim listing discovery. It does not claim to implement ARI writes, reservation ingestion, acknowledgement, webhook handling, or channel activation.
 
 ## Required next increments
 
