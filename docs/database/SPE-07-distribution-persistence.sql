@@ -1123,12 +1123,7 @@ BEGIN
       v_amount:=(v_alloc->>'confirmedAmountMinor')::numeric/power(10::numeric,v_exponent);
       UPDATE public.bookings SET subtotal=v_amount,extras_total=0,
         taxes=round(coalesce(v_commitment.tax_amount_minor,0)::numeric/power(10::numeric,v_exponent),2),
-        total=v_amount,deposit_amount=0,balance_amount=v_amount,balance_due=v_amount,
-        pricing_snapshot=jsonb_build_object('source','distribution','commitment_id',v_commitment.id,
-          'amount_minor',(v_alloc->>'confirmedAmountMinor')::bigint,'currency',v_currency,
-          'event_version',v_inbox.event_version,'tax_amount_minor',v_commitment.tax_amount_minor,
-          'fee_amount_minor',v_commitment.fee_amount_minor,'commission_amount_minor',v_commitment.commission_amount_minor,
-          'provider_payment_status',v_commitment.provider_payment_status)
+        total=v_amount,deposit_amount=0,balance_amount=v_amount,balance_due=v_amount
       WHERE id=v_old_alloc.booking_id;
       UPDATE public.staynas_distribution_external_reservation_allocations
       SET amount_minor=(v_alloc->>'confirmedAmountMinor')::bigint,updated_at=now()
