@@ -90,4 +90,7 @@ jobs:
           src/lib/payment-finalize.server.ts
           src/lib/pesapal-currency.ts
           src/lib/pesapal-currency.test.ts
+          src/domains/pricing-intelligence/pricing-intelligence.functions.ts
+          src/domains/pricing-intelligence/pricing-intelligence-catalogue.functions.ts
+          src/routes/_authenticated.admin.finance.pricing-intelligence.tsx
           --rule 'prettier/prettier: off'
