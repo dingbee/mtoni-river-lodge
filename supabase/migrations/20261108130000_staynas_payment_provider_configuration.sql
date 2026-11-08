@@ -11,9 +11,6 @@ END $$;
 CREATE UNIQUE INDEX IF NOT EXISTS staynas_properties_id_organisation_unique
   ON public.staynas_properties(id, organisation_id);
 
-CREATE UNIQUE INDEX IF NOT EXISTS staynas_properties_id_organisation_unique
-  ON public.staynas_properties(id, organisation_id);
-
 CREATE TABLE IF NOT EXISTS public.staynas_guest_payment_provider_accounts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id) ON DELETE RESTRICT,
@@ -32,8 +29,6 @@ CREATE TABLE IF NOT EXISTS public.staynas_guest_payment_provider_accounts (
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (property_id, provider, provider_account_ref),
   UNIQUE (id, organisation_id, property_id),
-  FOREIGN KEY (property_id, organisation_id)
-    REFERENCES public.staynas_properties(id, organisation_id) ON DELETE RESTRICT,
   FOREIGN KEY (property_id, organisation_id)
     REFERENCES public.staynas_properties(id, organisation_id) ON DELETE RESTRICT,
   CHECK (status <> 'active' OR integration_status = 'ready'),
