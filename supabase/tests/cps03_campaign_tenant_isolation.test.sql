@@ -61,11 +61,13 @@ INSERT INTO public.staynas_properties(id,organisation_id,slug,code,name,status) 
 INSERT INTO public.staynas_property_members(property_id,user_id,role,status) VALUES
   ('20000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000001','owner','active'),
   ('20000000-0000-4000-8000-000000000002','40000000-0000-4000-8000-000000000002','owner','active');
-INSERT INTO public.rooms(id,property_id,slug,name,status) VALUES
-  ('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','room-one','Room One','active'),
-  ('30000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002','room-two','Room Two','active');
-INSERT INTO public.staynas_rate_plan_publications(id,property_id,code,name,currency) VALUES
-  ('50000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','RACK','Rack Rate','TZS');
+INSERT INTO public.rooms(id,property_id,slug,name,status,catalogue_type_id) VALUES
+  ('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','room-one','Room One','active','32000000-0000-4000-8000-000000000001'),
+  ('30000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002','room-two','Room Two','active','32000000-0000-4000-8000-000000000002');
+INSERT INTO public.staynas_rate_plans(id,property_id,code,name,currency,publication_status,active) VALUES
+  ('51000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','RACK','Rack Rate','TZS','published',true);
+INSERT INTO public.staynas_rate_plan_publications(id,property_id,rate_plan_id,publication_number,rate_plan_version,code,name,currency,effective_from,effective_to,snapshot_hash,room_type_assignments)
+VALUES ('50000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','51000000-0000-4000-8000-000000000001',1,1,'RACK','Rack Rate','TZS',current_date-1,null,'0123456789abcdef0123456789abcdef','[{"room_type_id":"32000000-0000-4000-8000-000000000001","name":"Room One","slug":"room-one","display_order":1}]'::jsonb);
 
 SELECT set_config('request.jwt.claim.sub','40000000-0000-4000-8000-000000000001',true);
 SET LOCAL ROLE authenticated;
