@@ -356,6 +356,22 @@ BEGIN
   );
 
   PERFORM set_config('request.jwt.claim.role','service_role',true);
+  BEGIN
+    PERFORM public.commercial_replace_active_subscription_for_founder(
+      v_old_sub,'essential',1,'USD','monthly',1,ARRAY[]::text[],
+      'cc07-invalid-usd-price',
+      '{"currency":"USD","planCode":"essential","planVersion":1,"billingTerm":"monthly","propertyCount":1,"priceCode":"invalid-usd","quoteRequired":false,"total":100000,"lineItems":[{"kind":"plan_base","code":"essential","quantity":1,"unitAmountMinor":100000,"amountMinor":100000}],"addonCodes":[]}'::jsonb,
+      'cc07-invalid-currency-acceptance','not-applicable',now()+interval '10 days',
+      'cc07-invalid-currency-key','invalid_currency_test',v_user,v_founder_org
+    );
+    RAISE EXCEPTION 'Subscription replacement accepted a cross-currency contract';
+  EXCEPTION WHEN SQLSTATE '22023' THEN
+    NULL;
+  END;
+  IF EXISTS (SELECT 1 FROM public.commercial_subscription_revenue_movements WHERE previous_subscription_id=v_old_sub)
+    OR NOT EXISTS (SELECT 1 FROM public.commercial_subscriptions WHERE id=v_old_sub AND status='active') THEN
+    RAISE EXCEPTION 'Rejected currency change mutated the subscription ledger';
+  END IF;
   v_result := public.commercial_replace_active_subscription_for_founder(
     v_old_sub,'professional',1,'TZS','monthly',1,ARRAY[]::text[],
     'cc07-new-price',v_new_snapshot,'cc07-new-acceptance','CC07-DEBIT-001',
