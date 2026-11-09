@@ -40,9 +40,9 @@ INSERT INTO public.staynas_property_members(property_id,user_id,role) VALUES
 \i supabase/migrations/20261108143000_lb01_service_auth_nonce_ledger.sql
 \i supabase/migrations/20261109110000_lb01_secure_handoff_and_delivery.sql
 
-SET LOCAL ROLE authenticated;
-SELECT set_config('request.test_user_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',true);
-SELECT set_config('request.test_role','authenticated',true);
+SET ROLE authenticated;
+SELECT set_config('request.test_user_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',false);
+SELECT set_config('request.test_role','authenticated',false);
 SELECT public.staynas_request_lexibite_connection(
  '30000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000001',
  '20000000-0000-4000-8000-000000000001',
@@ -51,8 +51,8 @@ SELECT public.staynas_request_lexibite_connection(
 SELECT public.staynas_approve_lexibite_connection(:'connection_id');
 RESET ROLE;
 
-SET LOCAL ROLE service_role;
-SELECT set_config('request.test_role','service_role',true);
+SET ROLE service_role;
+SELECT set_config('request.test_role','service_role',false);
 SELECT public.staynas_record_lexibite_approval(
  '30000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000001',
  '50000000-0000-4000-8000-000000000001','60000000-0000-4000-8000-000000000001','lb01-test-connection-a'
@@ -69,8 +69,8 @@ BEGIN
  END IF;
 END $lb01active$;
 
-SET LOCAL ROLE authenticated;
-SELECT set_config('request.test_user_id','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2',true);
+SET ROLE authenticated;
+SELECT set_config('request.test_user_id','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2',false);
 DO $lb01property$
 BEGIN
  IF (SELECT count(*) FROM public.staynas_product_connections) <> 0 THEN
@@ -88,8 +88,8 @@ BEGIN
 END $lb01property$;
 RESET ROLE;
 
-SET LOCAL ROLE authenticated;
-SELECT set_config('request.test_user_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',true);
+SET ROLE authenticated;
+SELECT set_config('request.test_user_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',false);
 SELECT public.staynas_set_lexibite_connection_state(
  (SELECT id FROM public.staynas_product_connections WHERE correlation_id='lb01-test-connection-a'),'suspend',NULL
 );
@@ -113,21 +113,21 @@ BEGIN
 END $lb01revocation$;
 
 -- A single integration tenant may map multiple properties.
-SELECT set_config('request.test_user_id','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2',true);
+SELECT set_config('request.test_user_id','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2',false);
 SELECT public.staynas_request_lexibite_connection(
  '30000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000002',
  '20000000-0000-4000-8000-000000000002',
  '50000000-0000-4000-8000-000000000001','60000000-0000-4000-8000-000000000002','lb01-test-second-property'
 );
 -- Revocation permits a fresh authorization with new canonical identifiers.
-SELECT set_config('request.test_user_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',true);
+SELECT set_config('request.test_user_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',false);
 SELECT public.staynas_request_lexibite_connection(
  '30000000-0000-4000-8000-000000000003','40000000-0000-4000-8000-000000000003',
  '20000000-0000-4000-8000-000000000001',
  '50000000-0000-4000-8000-000000000003','60000000-0000-4000-8000-000000000003','lb01-test-reauthorization'
 );
 -- A different organisation cannot enumerate or administer this property's mapping.
-SELECT set_config('request.test_user_id','cccccccc-cccc-4ccc-8ccc-ccccccccccc3',true);
+SELECT set_config('request.test_user_id','cccccccc-cccc-4ccc-8ccc-ccccccccccc3',false);
 DO $lb01test$
 BEGIN
  IF (SELECT count(*) FROM public.staynas_product_connections) <> 0 THEN
@@ -146,9 +146,9 @@ END $lb01test$;
 RESET ROLE;
 
 -- LB-01.03B: scoped credential issue/rotation/revocation and durable nonce replay prevention.
-SET LOCAL ROLE authenticated;
-SELECT set_config('request.test_user_id','cccccccc-cccc-4ccc-8ccc-ccccccccccc3',true);
-SELECT set_config('request.test_role','authenticated',true);
+SET ROLE authenticated;
+SELECT set_config('request.test_user_id','cccccccc-cccc-4ccc-8ccc-ccccccccccc3',false);
+SELECT set_config('request.test_role','authenticated',false);
 SELECT public.staynas_request_lexibite_connection(
  '30000000-0000-4000-8000-000000000009','40000000-0000-4000-8000-000000000009',
  '20000000-0000-4000-8000-000000000003',
@@ -157,8 +157,8 @@ SELECT public.staynas_request_lexibite_connection(
 SELECT public.staynas_approve_lexibite_connection(:'service_connection_id');
 RESET ROLE;
 
-SET LOCAL ROLE service_role;
-SELECT set_config('request.test_role','service_role',true);
+SET ROLE service_role;
+SELECT set_config('request.test_role','service_role',false);
 SELECT public.staynas_record_lexibite_approval(
  '30000000-0000-4000-8000-000000000009','40000000-0000-4000-8000-000000000009',
  '50000000-0000-4000-8000-000000000009','60000000-0000-4000-8000-000000000009','lb01-test-auth-active'
@@ -166,8 +166,8 @@ SELECT public.staynas_record_lexibite_approval(
 RESET ROLE;
 
 -- Only the property administrator may issue or rotate the connection credential.
-SET LOCAL ROLE authenticated;
-SELECT set_config('request.test_user_id','cccccccc-cccc-4ccc-8ccc-ccccccccccc3',true);
+SET ROLE authenticated;
+SELECT set_config('request.test_user_id','cccccccc-cccc-4ccc-8ccc-ccccccccccc3',false);
 SELECT public.lb01_issue_product_service_credential(
  :'service_connection_id','abcdef0123456789abcdef01',decode(repeat('aa',32),'hex'),now()+interval '1 day'
 ) AS first_credential_id \gset
@@ -177,8 +177,8 @@ SELECT public.lb01_issue_product_service_credential(
 
 RESET ROLE;
 
-SET LOCAL ROLE service_role;
-SELECT set_config('request.test_role','service_role',true);
+SET ROLE service_role;
+SELECT set_config('request.test_role','service_role',false);
 DO $lb01rotation$
 DECLARE _old_status text; _new_status text; _audit_count integer;
 BEGIN
@@ -206,8 +206,8 @@ BEGIN
 END $lb01nonce$;
 RESET ROLE;
 
-SET LOCAL ROLE authenticated;
-SELECT set_config('request.test_user_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',true);
+SET ROLE authenticated;
+SELECT set_config('request.test_user_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',false);
 DO $lb01deniedissue$
 BEGIN
  BEGIN
@@ -221,13 +221,13 @@ BEGIN
 END $lb01deniedissue$;
 RESET ROLE;
 
-SET LOCAL ROLE authenticated;
-SELECT set_config('request.test_user_id','cccccccc-cccc-4ccc-8ccc-ccccccccccc3',true);
+SET ROLE authenticated;
+SELECT set_config('request.test_user_id','cccccccc-cccc-4ccc-8ccc-ccccccccccc3',false);
 SELECT public.lb01_revoke_product_service_credential(:'active_credential_id','test revocation');
 RESET ROLE;
 
-SET LOCAL ROLE service_role;
-SELECT set_config('request.test_role','service_role',true);
+SET ROLE service_role;
+SELECT set_config('request.test_role','service_role',false);
 DO $lb01revoked$
 BEGIN
  IF public.lb01_claim_service_nonce((SELECT id FROM public.product_service_credentials WHERE credential_prefix='abcdef0123456789abcdef02'),'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',now()+interval '5 minutes') THEN
@@ -236,7 +236,7 @@ BEGIN
 END $lb01revoked$;
 RESET ROLE;
 
-SET LOCAL ROLE authenticated;
+SET ROLE authenticated;
 DO $lb01credentialisolation$
 BEGIN
  BEGIN
@@ -254,9 +254,9 @@ RESET ROLE;
 
 
 -- LB-01.04: pending-state authentication, property authorization and encrypted handoff consumption.
-SET LOCAL ROLE authenticated;
-SELECT set_config('request.test_user_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',true);
-SELECT set_config('request.test_role','authenticated',true);
+SET ROLE authenticated;
+SELECT set_config('request.test_user_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',false);
+SELECT set_config('request.test_role','authenticated',false);
 DO $lb01pending$
 DECLARE _credential uuid; _connection uuid;
 BEGIN
@@ -272,8 +272,8 @@ BEGIN
 END $lb01pending$;
 RESET ROLE;
 
-SET LOCAL ROLE service_role;
-SELECT set_config('request.test_role','service_role',true);
+SET ROLE service_role;
+SELECT set_config('request.test_role','service_role',false);
 INSERT INTO public.lb01_credential_handoffs(
   connection_id, credential_id, peer_product, correlation_id, code_hash,
   encrypted_token, encryption_iv, encryption_tag, expires_at, created_by
@@ -315,8 +315,8 @@ BEGIN
 END $lb01handoff$;
 RESET ROLE;
 
-SET LOCAL ROLE authenticated;
-SELECT set_config('request.test_user_id','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2',true);
+SET ROLE authenticated;
+SELECT set_config('request.test_user_id','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2',false);
 DO $lb01adminisolation$
 BEGIN
   IF public.lb01_can_manage_product_connection(
@@ -344,8 +344,8 @@ END $lb01adminisolation$;
 RESET ROLE;
 
 -- Revocation must erase both stored peer-token ciphertext and unused handoff ciphertext.
-SET LOCAL ROLE service_role;
-SELECT set_config('request.test_role','service_role',true);
+SET ROLE service_role;
+SELECT set_config('request.test_role','service_role',false);
 INSERT INTO public.lb01_peer_credentials(
   connection_id, peer_product, credential_prefix, encrypted_token,
   encryption_iv, encryption_tag, status, imported_by
@@ -370,9 +370,9 @@ WHERE c.correlation_id='lb01-test-reauthorization'
   AND p.credential_prefix='abcdef0123456789abcdef04';
 RESET ROLE;
 
-SET LOCAL ROLE authenticated;
-SELECT set_config('request.test_user_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',true);
-SELECT set_config('request.test_role','authenticated',true);
+SET ROLE authenticated;
+SELECT set_config('request.test_user_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',false);
+SELECT set_config('request.test_role','authenticated',false);
 SELECT public.staynas_set_lexibite_connection_state(
   (SELECT id FROM public.staynas_product_connections WHERE correlation_id='lb01-test-reauthorization'),
   'revoke',
@@ -380,8 +380,8 @@ SELECT public.staynas_set_lexibite_connection_state(
 );
 RESET ROLE;
 
-SET LOCAL ROLE service_role;
-SELECT set_config('request.test_role','service_role',true);
+SET ROLE service_role;
+SELECT set_config('request.test_role','service_role',false);
 DO $lb01revocation$
 BEGIN
   IF NOT EXISTS (
@@ -407,4 +407,3 @@ BEGIN
 END $lb01revocation$;
 RESET ROLE;
 
-ROLLBACK;
