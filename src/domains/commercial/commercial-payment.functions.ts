@@ -485,6 +485,12 @@ export const addCommercialReconciliationItem=createServerFn({method:"POST"})
       observed_currency:data.observedCurrency??null,evidence:data.evidence,
     }).select("id,item_type,resolution_status").single();
     if(error||!item) throw new Error("Reconciliation evidence could not be recorded.");
+    const { error: lifecycleError } = await admin.rpc("commercial_record_reconciliation_item_event", {
+      _item_id: item.id, _event_type: "opened", _actor_user_id: actor.userId,
+      _actor_role: "founder_admin", _reason_code: "reconciliation_exception_opened",
+      _note: null, _evidence: data.evidence, _resolution_ref: null,
+    });
+    if (lifecycleError) throw new Error("Reconciliation exception lifecycle evidence could not be recorded.");
     await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
       organisationId:run.organisation_id,actorRole:"founder_admin",action:"reconciliation.item_recorded",
       resourceType:"reconciliation_item",resourceRef:item.id,metadata:{itemType:item.item_type}});
@@ -505,11 +511,53 @@ export const resolveCommercialReconciliationItem=createServerFn({method:"POST"})
       resolution_status:"resolved",resolution_ref:data.resolutionRef,
     }).eq("id",data.itemId);
     if(updateError) throw new Error("Reconciliation resolution could not be recorded.");
+    const { error: lifecycleError } = await admin.rpc("commercial_record_reconciliation_item_event", {
+      _item_id: data.itemId, _event_type: "resolved", _actor_user_id: actor.userId,
+      _actor_role: "founder_admin", _reason_code: "reconciliation_exception_resolved",
+      _note: null, _evidence: { resolutionRef: data.resolutionRef }, _resolution_ref: data.resolutionRef,
+    });
+    if (lifecycleError) throw new Error("Reconciliation resolution evidence could not be appended.");
     await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
       organisationId:run?.organisation_id??actor.organisationId,actorRole:"founder_admin",
       action:"reconciliation.item_resolved",resourceType:"reconciliation_item",resourceRef:data.itemId,
       metadata:{resolutionRef:data.resolutionRef}});
     return {itemId:data.itemId,resolutionStatus:"resolved" as const};
+  });
+
+const reconciliationLifecycleInput = z.object({
+  itemId: z.string().uuid(),
+  eventType: z.enum(["review_started", "evidence_added", "escalated"]),
+  reasonCode: z.string().trim().min(2).max(120),
+  note: z.string().trim().max(2000).nullable().optional(),
+  evidence: z.record(z.string(), z.unknown()).default({}),
+});
+export const recordCommercialReconciliationLifecycleEvent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => reconciliationLifecycleInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const actor = await resolveVerifiedFounderActor(context);
+    const admin = await getAdmin();
+    const { data: item, error: itemError } = await admin.from("commercial_reconciliation_items")
+      .select("id,run_id").eq("id", data.itemId).maybeSingle();
+    if (itemError || !item) throw new Error("Reconciliation exception was not found.");
+    const { data: run, error: runError } = await admin.from("commercial_reconciliation_runs")
+      .select("id,organisation_id,status").eq("id", item.run_id).maybeSingle();
+    if (runError || !run || run.status === "completed") {
+      throw new Error("Completed reconciliation evidence cannot be changed.");
+    }
+    const { data: eventId, error } = await admin.rpc("commercial_record_reconciliation_item_event", {
+      _item_id: data.itemId, _event_type: data.eventType, _actor_user_id: actor.userId,
+      _actor_role: "founder_admin", _reason_code: data.reasonCode,
+      _note: data.note ?? null, _evidence: data.evidence, _resolution_ref: null,
+    });
+    if (error || !eventId) throw new Error("Reconciliation lifecycle event could not be recorded.");
+    await writeFinancialAudit(admin, {
+      requestId: globalThis.crypto.randomUUID(), actorUserId: actor.userId,
+      organisationId: run.organisation_id, actorRole: "founder_admin",
+      action: `reconciliation.${data.eventType}`, resourceType: "reconciliation_item",
+      resourceRef: data.itemId, metadata: { eventId, reasonCode: data.reasonCode },
+    });
+    return { itemId: data.itemId, eventId, eventType: data.eventType };
   });
 
 export const completeCommercialReconciliationRun=createServerFn({method:"POST"})
