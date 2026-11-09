@@ -117,7 +117,7 @@ export const listPricingAdjustments = createServerFn({ method:"GET" })
       sb.from("staynas_property_tax_rules").select("*").eq("property_id",propertyId).order("priority").order("name"),
       sb.from("staynas_property_fee_rules").select("*").eq("property_id",propertyId).order("priority").order("name"),
       sb.from("staynas_property_promotions").select("*").eq("property_id",propertyId).order("priority").order("name"),
-      sb.from("staynas_pricing_configuration_audit").select("*").eq("property_id",propertyId).order("created_at",{ascending:false}).limit(100),
+      sb.from("staynas_pricing_configuration_audit").select("*").eq("property_id",propertyId).order("changed_at",{ascending:false}).limit(100),
       sb.from("rooms").select("id,name").eq("property_id",propertyId).order("name"),
       sb.from("staynas_rate_plans").select("id,name").eq("property_id",propertyId).order("name"),
       sb.from("extras").select("slug,name").eq("property_id",propertyId).eq("active",true).order("name"),
