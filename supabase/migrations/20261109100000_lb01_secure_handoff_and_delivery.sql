@@ -57,6 +57,20 @@ REVOKE ALL ON public.lb01_peer_credentials, public.lb01_credential_handoffs, pub
 GRANT ALL ON public.lb01_peer_credentials, public.lb01_credential_handoffs, public.lb01_approval_delivery_attempts
   TO service_role;
 
+CREATE OR REPLACE FUNCTION public.staynas_can_manage_product_connection(_uid uuid, _property_id uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $lb01$
+  SELECT _uid IS NOT NULL AND _uid = auth.uid() AND EXISTS (
+    SELECT 1 FROM public.staynas_property_members m
+    WHERE m.user_id = _uid AND m.property_id = _property_id
+      AND m.status = 'active'
+      AND m.role = ANY(ARRAY['owner','manager','admin']::public.app_role[])
+  )
+$lb01$;
+REVOKE ALL ON FUNCTION public.staynas_can_manage_product_connection(uuid,uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.staynas_can_manage_product_connection(uuid,uuid) TO authenticated, service_role;
+
 CREATE OR REPLACE FUNCTION public.lb01_can_manage_product_connection(_connection_id uuid)
 RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
@@ -99,12 +113,17 @@ BEGIN
   WHERE h.code_hash = _code_hash
     AND h.peer_product = _requester_product
     AND h.correlation_id = _correlation_id
-    AND h.consumed_at IS NULL
+    AND (h.consumed_at IS NULL OR h.consumed_at > now() - interval '2 minutes')
     AND h.expires_at > now()
     AND c.status IN ('pending','active')
+    AND EXISTS (
+      SELECT 1 FROM public.product_service_credentials pc
+      WHERE pc.id = h.credential_id AND pc.connection_id = h.connection_id
+        AND pc.status = 'active' AND pc.expires_at > now()
+    )
   FOR UPDATE OF h;
   IF NOT FOUND THEN RETURN; END IF;
-  UPDATE public.lb01_credential_handoffs SET consumed_at = now() WHERE id = _handoff.id;
+  UPDATE public.lb01_credential_handoffs SET consumed_at = coalesce(consumed_at, now()) WHERE id = _handoff.id;
   RETURN QUERY SELECT _handoff.connection_id, _handoff.credential_id,
     (SELECT c.credential_prefix FROM public.product_service_credentials c WHERE c.id = _handoff.credential_id),
     _handoff.encrypted_token, _handoff.encryption_iv, _handoff.encryption_tag;
