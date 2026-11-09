@@ -445,7 +445,8 @@ BEGIN
     resource_type,resource_ref,outcome,metadata
   ) VALUES (
     gen_random_uuid()::text,_actor_user_id,v_run.organisation_id,'founder_admin',
-    'reconciliation.completed','reconciliation_run',_run_id::text,'succeeded',
+    CASE WHEN v_status='completed' THEN 'reconciliation.completed' ELSE 'reconciliation.discrepancy_detected' END,
+    'reconciliation_run',_run_id::text,'succeeded',
     jsonb_build_object('status',v_status,'unresolvedItems',v_unresolved)
   );
   RETURN jsonb_build_object('runId',_run_id,'status',v_status,'unresolvedItems',v_unresolved,'replayed',false);
