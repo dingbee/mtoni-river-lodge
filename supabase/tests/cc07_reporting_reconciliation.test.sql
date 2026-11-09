@@ -103,7 +103,11 @@ BEGIN
     OR (SELECT data_type FROM information_schema.columns WHERE table_schema='public'
       AND table_name='commercial_founder_revenue_collection_facts' AND column_name='net_collected_minor')<>'text'
     OR (SELECT data_type FROM information_schema.columns WHERE table_schema='public'
-      AND table_name='commercial_founder_receivables_aging' AND column_name='outstanding_minor')<>'text' THEN
+      AND table_name='commercial_founder_receivables_aging' AND column_name='outstanding_minor')<>'text'
+    OR (SELECT data_type FROM information_schema.columns WHERE table_schema='public'
+      AND table_name='commercial_founder_unallocated_collection_workspace_facts' AND column_name='unallocated_minor')<>'text'
+    OR (SELECT data_type FROM information_schema.columns WHERE table_schema='public'
+      AND table_name='commercial_founder_payment_workspace_facts' AND column_name='amount_minor')<>'text' THEN
     RAISE EXCEPTION 'Founder reporting projections must serialize NUMERIC(20,0) as text';
   END IF;
 
