@@ -213,7 +213,7 @@ function FounderReconciliationWorkspace() {
                     <div><p className="text-sm font-medium">{label(item.item_type)} · {String(item.provider_ref ?? item.internal_payment_id ?? "No reference")}</p>
                       <p className="text-xs text-muted-foreground">Expected {String(item.expected_amount_minor ?? "—")} {String(item.expected_currency ?? "")} · Observed {String(item.observed_amount_minor ?? "—")} {String(item.observed_currency ?? "")}</p>
                     </div>
-                    <span className="text-xs">{label(item.resolution_status)}</span>
+                    <span className="text-xs">{exceptionStatus(item.resolution_status)}</span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {["open", "discrepancy"].includes(String(run.status)) && item.resolution_status !== "resolved" && <>
