@@ -144,6 +144,7 @@ $$;
 ALTER TABLE public.ai_concierge_leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_escalations ENABLE ROW LEVEL SECURITY;
 GRANT ALL ON TABLE public.ai_concierge_sessions, public.ai_concierge_messages, public.ai_concierge_leads, public.ai_escalations TO anon, authenticated;
+GRANT ALL ON TABLE public.rooms, public.extras, public.ai_concierge_channels, public.ops_tasks, public.notifications TO anon, authenticated;
 GRANT USAGE ON SCHEMA public, auth TO anon, authenticated, service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
 
@@ -206,6 +207,18 @@ BEGIN
      OR has_table_privilege('authenticated','public.ai_concierge_sessions','INSERT')
      OR has_table_privilege('authenticated','public.ai_concierge_messages','INSERT') THEN
     RAISE EXCEPTION 'staff must not write raw Concierge records outside validated workflows';
+  END IF;
+  IF has_table_privilege('anon','public.rooms','TRUNCATE')
+     OR has_table_privilege('anon','public.extras','TRUNCATE')
+     OR has_table_privilege('anon','public.ai_concierge_channels','TRUNCATE')
+     OR has_table_privilege('anon','public.ops_tasks','TRUNCATE')
+     OR has_table_privilege('anon','public.notifications','TRUNCATE')
+     OR has_table_privilege('authenticated','public.ops_tasks','TRUNCATE')
+     OR has_table_privilege('authenticated','public.notifications','TRUNCATE') THEN
+    RAISE EXCEPTION 'anonymous/staff roles must not retain destructive table privileges';
+  END IF;
+  IF NOT has_table_privilege('anon','public.rooms','SELECT') THEN
+    RAISE EXCEPTION 'public room catalogue read access must be preserved';
   END IF;
 END
 $test$;
