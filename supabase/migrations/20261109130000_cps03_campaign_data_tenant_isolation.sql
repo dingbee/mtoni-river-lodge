@@ -284,7 +284,7 @@ grant update (slug, title, seo_metadata, theme_config, booking_config, updated_b
   on public.booking_pages to authenticated;
 grant delete on public.booking_pages to authenticated;
 
-grant insert (organisation_id, property_id, slug, name, starts_at, ends_at, created_by, updated_by)
+grant insert (id, organisation_id, property_id, slug, name, starts_at, ends_at, created_by, updated_by)
   on public.booking_campaigns to authenticated;
 grant update (slug, name, starts_at, ends_at, updated_by, updated_at)
   on public.booking_campaigns to authenticated;
