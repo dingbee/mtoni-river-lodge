@@ -186,3 +186,47 @@ export const resolveMyCommercialEntitlement = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => assertCommercialEntitlement(
     context as { supabase: unknown; userId: string }, data.featureCode,
   ));
+
+const founderGrantInput = z.object({
+  grantType: z.enum(["addon_feature", "custom_feature", "override", "platform_restriction"]),
+  organisationId: z.string().uuid().nullable(),
+  addonCode: z.string().trim().min(2).max(60).regex(/^[a-z][a-z0-9_]*$/).nullable(),
+  featureCode: z.enum(COMMERCIAL_MODULE_CODES),
+  effect: z.enum(["granted", "suspended", "review"]),
+  effectiveFrom: z.string().datetime(),
+  effectiveTo: z.string().datetime().nullable(),
+  reason: z.string().trim().min(3).max(500),
+}).superRefine((value, ctx) => {
+  if (value.effectiveTo && Date.parse(value.effectiveTo) <= Date.parse(value.effectiveFrom)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["effectiveTo"], message: "Effective end must follow effective start." });
+  }
+  const valid =
+    (value.grantType === "addon_feature" && value.addonCode !== null && value.organisationId === null && value.effect === "granted")
+    || (value.grantType === "custom_feature" && value.addonCode === null && value.organisationId !== null && value.effect === "granted")
+    || (value.grantType === "override" && value.addonCode === null && value.organisationId !== null && ["granted", "suspended"].includes(value.effect))
+    || (value.grantType === "platform_restriction" && value.addonCode === null && ["suspended", "review"].includes(value.effect));
+  if (!valid) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Grant scope, target and effect are inconsistent." });
+});
+
+/** Founder-only policy authoring; database independently rechecks founder authority. */
+export const recordFounderEntitlementGrant = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => founderGrantInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await resolveVerifiedFounderActor(context as { supabase: unknown; userId: string });
+    const client = context.supabase as {
+      rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown | null }>;
+    };
+    const { data: id, error } = await client.rpc("commercial_record_entitlement_grant", {
+      _grant_type: data.grantType,
+      _organisation_id: data.organisationId,
+      _addon_code: data.addonCode,
+      _feature_code: data.featureCode,
+      _effect: data.effect,
+      _effective_from: data.effectiveFrom,
+      _effective_to: data.effectiveTo,
+      _reason: data.reason,
+    });
+    if (error || typeof id !== "string") throw new Error("Founder entitlement rule could not be persisted.");
+    return { id };
+  });

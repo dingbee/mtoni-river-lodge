@@ -63,6 +63,7 @@ jobs:
           src/domains/commercial/subscription-lifecycle-contract.test.ts
           src/domains/commercial/subscription.authorization.test.ts
           src/domains/commercial/founder-policy.functions.test.ts
+          src/domains/commercial/entitlement-engine.test.ts
           src/domains/commercial/settlement-contract.test.ts
           src/domains/commercial/commercial-billing-engine.test.ts
           src/domains/commercial/commercial-payment-adapters.test.ts
@@ -143,6 +144,9 @@ jobs:
           src/routes/pricing.tsx
           src/routes/robots[.]txt.ts
           src/routes/sitemap[.]xml.ts
+          src/domains/commercial/entitlement.functions.ts
+          src/domains/commercial/entitlement-engine.ts
+          src/domains/commercial/entitlement-engine.test.ts
           src/domains/commercial/settlement-contract.ts
           src/domains/commercial/settlement-contract.test.ts
           src/domains/commercial/commercial-billing-engine.ts
