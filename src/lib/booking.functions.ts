@@ -192,7 +192,7 @@ export const getBookingQuote = createServerFn({ method: "POST" })
   }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
     const { data: quote, error } = await (supabaseAdmin as any).rpc("staynas_create_public_channel_quote", {
       _sales_channel_id: channel.channelId,
       _room_slug: data.roomSlug,
@@ -220,7 +220,6 @@ export const createBooking = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const sb: any = supabaseAdmin;
-    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
     const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
     const propertyId = channel.propertyId;
     const { data: result, error } = await sb.rpc("staynas_create_public_channel_reservation", {
