@@ -111,7 +111,15 @@ export function classifyIntent(message: string, history: string[] = []): Concier
 
   const combined = [message, ...history].join(" ");
   const dates = parseDates(combined);
-  const party = parseParty(combined);
+  const currentParty = parseParty(message);
+  const historicalParty = parseParty(history.join(" "));
+  const party = {
+    adults: currentParty.adults ?? historicalParty.adults,
+    children: currentParty.children ?? historicalParty.children,
+    // An explicit current child-count update invalidates any older age split.
+    childrenBelow6: currentParty.children !== null ? currentParty.childrenBelow6 : historicalParty.childrenBelow6,
+    children7Plus: currentParty.children !== null ? currentParty.children7Plus : historicalParty.children7Plus,
+  };
   const interests = parseInterests(combined);
 
   // Upgrade to high if we have concrete dates + party
