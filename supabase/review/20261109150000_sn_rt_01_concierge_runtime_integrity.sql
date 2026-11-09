@@ -104,6 +104,26 @@ GRANT SELECT ON TABLE
 TO authenticated;
 GRANT SELECT, UPDATE ON TABLE public.ai_concierge_leads TO authenticated;
 
+-- Server-only service-role grants required by the existing Concierge runtime.
+-- These do not grant browser roles access and remain subject to server-side
+-- property derivation before any tenant-scoped query is issued.
+GRANT SELECT ON TABLE
+  public.rooms,
+  public.extras,
+  public.staynas_properties,
+  public.staynas_property_domains
+TO service_role;
+GRANT SELECT, INSERT, UPDATE ON TABLE
+  public.ai_concierge_sessions,
+  public.ai_concierge_leads
+TO service_role;
+GRANT SELECT, INSERT ON TABLE public.ai_concierge_messages TO service_role;
+GRANT INSERT ON TABLE
+  public.ai_concierge_intents,
+  public.ai_concierge_recommendations,
+  public.ai_personalization_events
+TO service_role;
+
 DROP POLICY IF EXISTS "Escalations read in active property" ON public.ai_escalations;
 DROP POLICY IF EXISTS "Escalations manage in active property" ON public.ai_escalations;
 CREATE POLICY "Escalations read in active property"
