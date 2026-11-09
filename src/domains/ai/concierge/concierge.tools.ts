@@ -92,10 +92,10 @@ export async function searchAvailability(input: {
         ? row.pricing_quote as Record<string, unknown>
         : null;
       const currency = typeof row.currency === "string" ? row.currency.toUpperCase() : "";
-      const quoteCurrency = typeof quote?.currency === "string" ? quote.currency.toUpperCase() : currency;
+      const quoteCurrency = typeof quote?.currency === "string" ? quote.currency.toUpperCase() : "";
       const total = Number(quote?.total);
       return !quote || quote.ok !== true || !Number.isFinite(total) || total < 0 ||
-        !/^[A-Z]{3}$/.test(currency) || quoteCurrency !== currency;
+        !/^[A-Z]{3}$/.test(currency) || !/^[A-Z]{3}$/.test(quoteCurrency) || quoteCurrency !== currency;
     });
     if (pricingFailed) return { status: "pricing_service_failure", rooms: [] };
 
