@@ -111,6 +111,7 @@ CREATE OR REPLACE FUNCTION public.staynas_create_concierge_escalation(
   p_property_id uuid,
   p_session_id uuid,
   p_guest_id uuid,
+  p_channel text,
   p_reason text,
   p_summary text,
   p_ai_confidence numeric,
@@ -128,6 +129,7 @@ DECLARE
 BEGIN
   IF p_property_id IS NULL OR p_session_id IS NULL
      OR p_dedupe_key IS NULL OR length(p_dedupe_key) < 16
+     OR p_channel NOT IN ('web','whatsapp','email')
      OR p_reason NOT IN ('low_confidence','complaint','payment_issue','complex_request','human_requested','other')
      OR p_priority NOT BETWEEN 1 AND 3 THEN
     RAISE EXCEPTION 'Invalid Concierge escalation contract' USING ERRCODE = '22023';
@@ -155,7 +157,7 @@ BEGIN
     ai_confidence, priority, status, dedupe_key
   )
   VALUES (
-    p_property_id, p_session_id, p_guest_id, 'web', p_reason,
+    p_property_id, p_session_id, p_guest_id, p_channel, p_reason,
     left(coalesce(p_summary, ''), 2000), p_ai_confidence,
     p_priority, 'open', p_dedupe_key
   )
@@ -202,9 +204,9 @@ BEGIN
 END
 $function$;
 
-REVOKE ALL ON FUNCTION public.staynas_create_concierge_escalation(uuid,uuid,uuid,text,text,numeric,smallint,text)
+REVOKE ALL ON FUNCTION public.staynas_create_concierge_escalation(uuid,uuid,uuid,text,text,text,numeric,smallint,text)
   FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.staynas_create_concierge_escalation(uuid,uuid,uuid,text,text,numeric,smallint,text)
+GRANT EXECUTE ON FUNCTION public.staynas_create_concierge_escalation(uuid,uuid,uuid,text,text,text,numeric,smallint,text)
   TO authenticated, service_role;
 
 
