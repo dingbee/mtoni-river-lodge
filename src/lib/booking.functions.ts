@@ -75,6 +75,12 @@ async function resolveCampaignBookingContext(
   if (planError || !plan || !plan.active || plan.publication_status !== "published" || plan.currency !== property.currency) {
     throw new Error("Campaign rate plan is no longer active and published for this property.");
   }
+  const { data: latestPublication, error: latestPublicationError } = await sb.from("staynas_rate_plan_publications")
+    .select("id").eq("property_id", propertyId).eq("rate_plan_id", publication.rate_plan_id)
+    .order("publication_number", { ascending: false }).limit(1).maybeSingle();
+  if (latestPublicationError || latestPublication?.id !== publication.id) {
+    throw new Error("Campaign offer snapshot has been superseded. Reconfigure the offer against the latest published rate plan.");
+  }
   const { data: selections, error: selectionsError } = await sb.from("campaign_room_selections")
     .select("room_id").eq("campaign_id", campaign.id).eq("property_id", propertyId);
   if (selectionsError || !selections?.length) throw new Error("Campaign has no active room selection.");
