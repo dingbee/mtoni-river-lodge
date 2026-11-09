@@ -420,6 +420,34 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Reversed unallocated cash was not separated from net collected revenue';
   END IF;
+  INSERT INTO public.commercial_payment_transactions(
+    id,organisation_id,account_id,invoice_id,provider_account_id,provider,
+    idempotency_key,amount_minor,currency,payment_method,status,created_by
+  ) VALUES (
+    v_allocated_payment,v_customer_org,v_account,v_invoice,v_customer_provider,'manual',
+    'cc07-allocated-payment-key',50000,'TZS','bank_transfer','pending',v_user
+  );
+  PERFORM public.commercial_confirm_and_allocate_payment(
+    v_allocated_payment,'cc07-allocated-provider-tx',50000,'TZS',
+    'authorized_manual_verification','CC07-ALLOCATED-SETTLEMENT',
+    'cc07-allocated-settlement-key',now()
+  );
+  v_allocated_reversal := public.commercial_record_payment_reversal(
+    v_allocated_payment,'cc07-allocated-reversal-ref',10000,'TZS',
+    'provider_partial_reversal','cc07-allocated-reversal-key',now(),v_user
+  );
+  IF NOT EXISTS (
+    SELECT 1 FROM public.commercial_founder_revenue_collection_facts
+    WHERE payment_id=v_allocated_payment AND net_collected_minor='40000' AND currency='TZS'
+  ) THEN
+    RAISE EXCEPTION 'Allocated collection reporting did not net the partial allocation reversal';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.commercial_founder_revenue_reversal_facts
+    WHERE account_id=v_account AND currency='TZS' AND reversed_minor='30000' AND reversal_count=2
+  ) THEN
+    RAISE EXCEPTION 'Partial allocated and unallocated reversals were not reconciled in revenue facts';
+  END IF;
   IF NOT EXISTS (
     SELECT 1 FROM public.commercial_founder_revenue_invoice_facts
     WHERE invoice_id=v_invoice AND gross_invoiced_minor='100000'
