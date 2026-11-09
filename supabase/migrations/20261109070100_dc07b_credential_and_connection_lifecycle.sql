@@ -36,7 +36,10 @@ BEGIN
     SELECT 1 FROM public.staynas_user_property_context pc
     JOIN public.staynas_property_members pm
       ON pm.property_id=pc.property_id AND pm.user_id=pc.user_id
+    JOIN public.staynas_properties p ON p.id=pc.property_id
+    JOIN public.staynas_organisations o ON o.id=p.organisation_id
     WHERE pc.user_id=_actor_user_id AND pc.property_id=_property_id
+      AND p.organisation_id=_organisation_id AND p.status='active' AND o.status='active'
       AND pm.status='active' AND pm.role::text IN ('owner','manager','admin')
   ) THEN
     RAISE EXCEPTION 'Active selected-property manager membership is required.' USING ERRCODE='42501';
@@ -128,7 +131,10 @@ BEGIN
     SELECT 1 FROM public.staynas_user_property_context pc
     JOIN public.staynas_property_members pm
       ON pm.property_id=pc.property_id AND pm.user_id=pc.user_id
+    JOIN public.staynas_properties p ON p.id=pc.property_id
+    JOIN public.staynas_organisations o ON o.id=p.organisation_id
     WHERE pc.user_id=_actor_user_id AND pc.property_id=_property_id
+      AND p.organisation_id=_organisation_id AND p.status='active' AND o.status='active'
       AND pm.status='active' AND pm.role::text IN ('owner','manager','admin')
   ) THEN
     RAISE EXCEPTION 'Active selected-property manager membership is required.' USING ERRCODE='42501';
