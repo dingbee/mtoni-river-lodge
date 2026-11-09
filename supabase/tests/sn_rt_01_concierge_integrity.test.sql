@@ -20,6 +20,19 @@ CREATE TABLE public.staynas_properties(
   id uuid PRIMARY KEY,
   status text NOT NULL DEFAULT 'active'
 );
+CREATE TABLE public.staynas_property_domains(
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+  hostname text NOT NULL,
+  verification_status text NOT NULL,
+  verified_at timestamptz
+);
+CREATE TABLE public.rooms(property_id uuid NOT NULL REFERENCES public.staynas_properties(id), slug text);
+CREATE TABLE public.extras(property_id uuid NOT NULL REFERENCES public.staynas_properties(id), slug text);
+CREATE TABLE public.ai_concierge_intents(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), session_id uuid);
+CREATE TABLE public.ai_concierge_recommendations(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), session_id uuid);
+CREATE TABLE public.ai_personalization_events(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), property_id uuid, session_id uuid);
+
 CREATE TABLE public.staynas_property_members(
   property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
   user_id uuid NOT NULL REFERENCES auth.users(id),
@@ -132,7 +145,6 @@ ALTER TABLE public.ai_concierge_leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_escalations ENABLE ROW LEVEL SECURITY;
 GRANT ALL ON TABLE public.ai_concierge_sessions, public.ai_concierge_messages, public.ai_concierge_leads, public.ai_escalations TO anon, authenticated;
 GRANT USAGE ON SCHEMA public, auth TO anon, authenticated, service_role;
-GRANT ALL ON ALL TABLES IN SCHEMA public, auth TO service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
 
 INSERT INTO public.staynas_properties(id,status) VALUES
@@ -174,6 +186,20 @@ BEGIN
   IF NOT has_table_privilege('authenticated','public.ai_concierge_leads','SELECT')
      OR NOT has_table_privilege('authenticated','public.ai_concierge_leads','UPDATE') THEN
     RAISE EXCEPTION 'authorized staff lead read/update access must be preserved';
+  END IF;
+  IF NOT has_table_privilege('service_role','public.ai_concierge_sessions','SELECT')
+     OR NOT has_table_privilege('service_role','public.ai_concierge_sessions','INSERT')
+     OR NOT has_table_privilege('service_role','public.ai_concierge_sessions','UPDATE')
+     OR NOT has_table_privilege('service_role','public.ai_concierge_messages','SELECT')
+     OR NOT has_table_privilege('service_role','public.ai_concierge_messages','INSERT')
+     OR NOT has_table_privilege('service_role','public.ai_concierge_leads','INSERT')
+     OR NOT has_table_privilege('service_role','public.ai_concierge_leads','UPDATE')
+     OR NOT has_table_privilege('service_role','public.extras','SELECT')
+     OR NOT has_table_privilege('service_role','public.staynas_property_domains','SELECT') THEN
+    RAISE EXCEPTION 'server-only Concierge runtime privileges are incomplete';
+  END IF;
+  IF has_table_privilege('service_role','public.ai_escalations','INSERT') THEN
+    RAISE EXCEPTION 'service role must create escalations through the scoped RPC';
   END IF;
   IF has_table_privilege('authenticated','public.ai_concierge_leads','INSERT')
      OR has_table_privilege('authenticated','public.ai_concierge_leads','DELETE')
