@@ -215,7 +215,7 @@ BEGIN
   END IF;
 
   IF auth.role() <> 'service_role' AND NOT public.staynas_ai_property_in_active_context(
-    p_property_id, ARRAY['owner','manager','admin','reservations']::public.app_role[]
+    p_property_id, ARRAY['owner','manager','admin','reservations','reception']::public.app_role[]
   ) THEN
     RAISE EXCEPTION 'Active property authorization is required' USING ERRCODE = '42501';
   END IF;
