@@ -214,6 +214,26 @@ END
 $test$;
 
 RESET ROLE;
+SET LOCAL ROLE service_role;
+UPDATE public.staynas_properties SET currency='USD'
+WHERE id='20000000-0000-4000-8000-000000000001';
+RESET ROLE;
+SET LOCAL ROLE anon;
+DO $test$
+BEGIN
+  IF (SELECT count(*) FROM public.booking_campaigns WHERE id='60000000-0000-4000-8000-000000000001') <> 0 THEN
+    RAISE EXCEPTION 'Campaign remained public while property base currency is USD';
+  END IF;
+  IF (SELECT count(*) FROM public.booking_pages WHERE property_id='20000000-0000-4000-8000-000000000001') <> 1 THEN
+    RAISE EXCEPTION 'USD campaign restriction hid the permanent direct booking page';
+  END IF;
+END
+$test$;
+RESET ROLE;
+SET LOCAL ROLE service_role;
+UPDATE public.staynas_properties SET currency='TZS'
+WHERE id='20000000-0000-4000-8000-000000000001';
+RESET ROLE;
 SET LOCAL ROLE authenticated;
 DO $test$
 BEGIN
