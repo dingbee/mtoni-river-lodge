@@ -17,8 +17,7 @@ ALTER TABLE public.ai_concierge_leads
   ADD COLUMN IF NOT EXISTS consent_version text;
 
 CREATE UNIQUE INDEX IF NOT EXISTS ai_concierge_leads_idempotency_key_uidx
-  ON public.ai_concierge_leads(idempotency_key)
-  WHERE idempotency_key IS NOT NULL;
+  ON public.ai_concierge_leads(idempotency_key);
 
 DO $lead_consent$
 BEGIN
