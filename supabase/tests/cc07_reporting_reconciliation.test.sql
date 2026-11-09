@@ -103,6 +103,24 @@ BEGIN
     v_blocked := true;
   END;
   IF NOT v_blocked THEN RAISE EXCEPTION 'Reconciliation lifecycle evidence was mutable'; END IF;
+
+  PERFORM public.commercial_resolve_reconciliation_item(v_item,'cc07-test-resolution',NULL);
+  IF NOT EXISTS (
+    SELECT 1 FROM public.commercial_reconciliation_items
+    WHERE id=v_item AND resolution_status='resolved' AND resolution_ref='cc07-test-resolution'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM public.commercial_reconciliation_item_events
+    WHERE item_id=v_item AND event_type='resolved' AND resolution_ref='cc07-test-resolution'
+  ) THEN
+    RAISE EXCEPTION 'Resolution and lifecycle evidence were not committed together';
+  END IF;
+
+  PERFORM public.commercial_complete_reconciliation_run(v_run,NULL);
+  IF NOT EXISTS (
+    SELECT 1 FROM public.commercial_reconciliation_runs WHERE id=v_run AND status='completed'
+  ) THEN
+    RAISE EXCEPTION 'Reconciliation run did not close after all exceptions were resolved';
+  END IF;
 END
 $data_test$;
 
