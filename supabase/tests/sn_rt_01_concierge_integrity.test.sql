@@ -263,7 +263,7 @@ BEGIN
   IF (SELECT count(*) FROM public.ops_tasks) <> 2 THEN
     RAISE EXCEPTION 'each new escalation must create exactly one operations task';
   END IF;
-  IF (SELECT count(*) FROM public.notifications WHERE kind='concierge_escalation') <> 1 THEN
+  IF (SELECT count(*) FROM public.notifications WHERE kind='concierge_escalation') <> 2 THEN
     RAISE EXCEPTION 'staff notification must be property-assigned and deduplicated';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.ai_escalations WHERE ops_task_id IS NOT NULL AND property_id='11111111-1111-4111-8111-111111111111') THEN
