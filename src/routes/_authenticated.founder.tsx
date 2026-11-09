@@ -100,6 +100,7 @@ function FounderWorkspace() {
         <div className="flex flex-wrap gap-2">
           <a href="#tenants" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Tenant registry</a>
           <a href="/founder/plans" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Plans & pricing</a>
+          <a href="/founder/entitlements" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Entitlements</a>
           <a href="#notifications" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Notifications</a>
           <a href="#subscriptions" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Subscriptions</a>
           <a href="/founder/billing" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Billing & collections</a>

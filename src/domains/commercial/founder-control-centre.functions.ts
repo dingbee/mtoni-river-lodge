@@ -18,7 +18,7 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const admin = supabaseAdmin as any;
-    const [organisationsResult, accountsResult, subscriptionsResult, propertiesResult, invoicesResult, paymentsResult, assignmentsResult, eventsResult, financialEventsResult, policyVersionsResult, policyCurrentResult, notificationsResult, decisionsResult, providerAccountsResult, unallocatedResult, reconciliationRunsResult] = await Promise.all([
+    const [organisationsResult, accountsResult, subscriptionsResult, propertiesResult, invoicesResult, paymentsResult, assignmentsResult, eventsResult, financialEventsResult, policyVersionsResult, policyCurrentResult, notificationsResult, decisionsResult, providerAccountsResult, unallocatedResult, reconciliationRunsResult, grantRulesResult] = await Promise.all([
       admin.from("staynas_organisations").select("id,slug,name,status,created_at").order("created_at", { ascending: false }),
       admin.from("commercial_accounts").select("id,organisation_id,status,created_at,updated_at"),
       admin.from("commercial_subscriptions").select("id,account_id,plan_code,plan_version,currency,billing_term,status,property_count,addon_codes,trial_started_at,trial_ends_at,current_period_starts_at,current_period_ends_at,cancel_at_period_end,accepted_price_snapshot,quote_required,created_at"),
@@ -35,8 +35,9 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
       admin.from("commercial_provider_accounts").select("id,organisation_id,provider,provider_account_ref,supported_currencies,status,created_at").order("created_at", { ascending: false }),
       admin.from("commercial_unallocated_collections").select("*").order("confirmed_at", { ascending: false }),
       admin.from("commercial_reconciliation_runs").select("id,organisation_id,provider_account_id,currency,period_start,period_end,status,source_ref,completed_at,created_at").order("created_at", { ascending: false }).limit(100),
+      admin.from("commercial_entitlement_grant_rules").select("id,grant_type,organisation_id,addon_code,feature_code,effect,effective_from,effective_to,reason,created_by,created_at").order("created_at", { ascending: false }),
     ]);
-    const errors = [organisationsResult, accountsResult, subscriptionsResult, propertiesResult, invoicesResult, paymentsResult, assignmentsResult, eventsResult, financialEventsResult, policyVersionsResult, policyCurrentResult, notificationsResult, decisionsResult, providerAccountsResult, unallocatedResult, reconciliationRunsResult].filter((result) => result.error);
+    const errors = [organisationsResult, accountsResult, subscriptionsResult, propertiesResult, invoicesResult, paymentsResult, assignmentsResult, eventsResult, financialEventsResult, policyVersionsResult, policyCurrentResult, notificationsResult, decisionsResult, providerAccountsResult, unallocatedResult, reconciliationRunsResult, grantRulesResult].filter((result) => result.error);
     if (errors.length) throw new Error("Founder commercial workspace data could not be loaded from authoritative records.");
     const organisations = rows(organisationsResult.data);
     const accounts = rows(accountsResult.data);
@@ -150,6 +151,7 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
       reconciliationRuns: rows(reconciliationRunsResult.data).map((run) => ({
         ...run, tenant_name: organisations.find((organisation) => organisation.id === run.organisation_id)?.name ?? "Unknown tenant",
       })),
+      entitlementGrantRules: rows(grantRulesResult.data),
       recentEvents,
     };
   });
