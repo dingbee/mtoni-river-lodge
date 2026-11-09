@@ -27,19 +27,16 @@ export const Route = createFileRoute("/$propertySlug")({
     }
   },
   head: ({ params }) => {
-    const isNolmark = params.propertySlug === "nolmark-cdma-staynas";
-    const title = isNolmark ? "Nolmark CDMA — Direct Booking" : `${params.propertySlug} — StayNas Direct`;
-    const description = isNolmark
-      ? "Check availability and request a reservation at Nolmark CDMA. Direct reservations powered by StayNas."
-      : "A direct booking page powered by StayNas.";
+    const title = `${params.propertySlug} — Direct Booking | StayNas`;
+    const description = "Check availability and book directly with this property, powered by StayNas.";
     return {
       meta: [
         { title },
         { name: "description", content: description },
         { property: "og:title", content: title },
         { property: "og:description", content: description },
-        { property: "og:site_name", content: isNolmark ? "Nolmark CDMA" : "StayNas Direct" },
-        { name: "theme-color", content: isNolmark ? "#000000" : "#1e352a" },
+        { property: "og:site_name", content: "StayNas" },
+        { name: "theme-color", content: "#1e352a" },
         { name: "robots", content: "noindex,nofollow" },
       ],
     };
@@ -199,7 +196,7 @@ function PublicPropertyBookingPage() {
   }
 
   const { property, rooms, branding } = propertyData;
-  const currency = property.currency || "USD";
+  const currency = property.currency;
   const brandStyle = {
     "--direct-primary": branding.primaryColor,
     "--direct-secondary": branding.secondaryColor,
@@ -231,7 +228,7 @@ function PublicPropertyBookingPage() {
             <p className="mt-3 max-w-md text-sm leading-6 text-white/85 sm:mt-4 sm:text-base">{branding.description || "Find your dates. Choose your room. Book directly."}</p>
             <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/15 px-3 py-1.5 text-[10px] font-medium tracking-wide text-white/90 backdrop-blur-sm"><Globe2 className="h-3.5 w-3.5"/> DIRECT RESERVATIONS · POWERED BY STAYNAS</div>
           </div>
-          <div className="absolute right-5 top-5 hidden rounded-full border border-white/25 bg-black/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur-sm sm:block">UAT booking preview</div>
+          
         </div>
 
         <section id="availability" className="relative z-10 mx-auto -mt-5 max-w-5xl rounded-[1.4rem] border border-[#e6e4dc] bg-white p-4 shadow-[0_18px_55px_rgba(33,43,36,0.10)] sm:-mt-8 sm:rounded-[1.7rem] sm:p-6">
@@ -343,11 +340,11 @@ function PublicPropertyBookingPage() {
         {confirmation && <section id="booking-confirmation" className="mt-7 scroll-mt-6 rounded-[1.5rem] border border-[#cbdccf] bg-[#edf4ed] p-6 sm:p-8">
           <CheckCircle2 className="h-9 w-9 text-[#3d7650]"/><h2 className="mt-3 text-2xl font-medium tracking-tight text-[#21392a]">Your reservation is recorded</h2><p className="mt-2 text-sm text-[#536b59]">The reservation has been saved to {confirmation.propertyName}.</p>
           <div className="mt-5 grid gap-4 rounded-xl bg-white/80 p-4 text-sm sm:grid-cols-2"><div><p className="text-[10px] text-[#7e8a80]">BOOKING REFERENCE</p><p className="mt-1 font-semibold">{confirmation.reference}</p></div><div><p className="text-[10px] text-[#7e8a80]">RESERVATION TOTAL</p><p className="mt-1 font-semibold">{money(confirmation.total, confirmation.currency)}</p></div><div><p className="text-[10px] text-[#7e8a80]">PAYMENT STATUS</p><p className="mt-1 font-semibold">Unpaid · No payment gateway</p></div><div><p className="text-[10px] text-[#7e8a80]">PROPERTY</p><p className="mt-1 font-semibold">{confirmation.propertyName}</p></div></div>
-          <button type="button" onClick={() => { setConfirmation(null); setSelectedRoom(null); setGuestName(""); setGuestEmail(""); setGuestPhone(""); setCountry(""); setSpecialRequests(""); setAvailableRooms([]); setHasSearched(false); }} className="mt-5 rounded-full border border-[#78917e] px-5 py-2.5 text-xs font-semibold text-[#31523b]">Start another demo booking</button>
+          <button type="button" onClick={() => { setConfirmation(null); setSelectedRoom(null); setGuestName(""); setGuestEmail(""); setGuestPhone(""); setCountry(""); setSpecialRequests(""); setAvailableRooms([]); setHasSearched(false); }} className="mt-5 rounded-full border border-[#78917e] px-5 py-2.5 text-xs font-semibold text-[#31523b]">Make another reservation</button>
         </section>}
       </section>
 
-      <footer className="border-t border-[#e7e5dd] bg-[#eeeee7] px-5 py-7 text-center">{branding.logoUrl ? <img src={branding.logoUrl} alt={property.name} className="mx-auto h-8 max-w-32 object-contain"/> : <p className="text-sm font-semibold tracking-tight text-[#314338]">{property.name}</p>}{branding.showStayNasAttribution && <p className="mt-2 text-[10px] text-[#879188]">Property-owned reservations · Powered by StayNas</p>}<p className="mt-1 text-[9px] text-[#9aa198]">UAT booking preview — verify property configuration before publication.</p></footer>
+      <footer className="border-t border-[#e7e5dd] bg-[#eeeee7] px-5 py-7 text-center">{branding.logoUrl ? <img src={branding.logoUrl} alt={property.name} className="mx-auto h-8 max-w-32 object-contain"/> : <p className="text-sm font-semibold tracking-tight text-[#314338]">{property.name}</p>}{branding.showStayNasAttribution && <p className="mt-2 text-[10px] text-[#879188]">Property-owned reservations · Powered by StayNas</p>}</footer>
 
       {!confirmation && <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#e6e4dc] bg-[#fafaf7]/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-lg sm:hidden">
         <div className="mx-auto flex max-w-lg items-center gap-3">
