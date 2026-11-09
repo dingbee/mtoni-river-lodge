@@ -51,7 +51,7 @@ function parseDates(text: string): { check_in: string | null; check_out: string 
 }
 
 function parseChildAges(text: string): number[] | null {
-  const match = text.match(/\b(?:children?|kids?)\s*(?:aged?|ages?)\s*[:\-]?\s*(\d{1,2}(?:\s*(?:,|and|&)\s*\d{1,2})*)/i);
+  const match = text.match(/\b(?:children?|kids?)\s*[,(:]?\s*(?:are\s*)?(?:aged?|ages?)?\s*[:\-]?\s*(\d{1,2}(?:\s*(?:,|and|&)\s*\d{1,2})*)/i);
   if (!match) return null;
   const ages = match[1].match(/\d{1,2}/g)?.map((age) => Number(age)) ?? [];
   return ages.length > 0 && ages.every((age) => Number.isInteger(age) && age >= 0 && age <= 17) ? ages : null;
