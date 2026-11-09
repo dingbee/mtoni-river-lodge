@@ -129,9 +129,9 @@ DECLARE
 BEGIN
   IF p_property_id IS NULL OR p_session_id IS NULL
      OR p_dedupe_key IS NULL OR length(p_dedupe_key) < 16
-     OR p_channel NOT IN ('web','whatsapp','email')
-     OR p_reason NOT IN ('low_confidence','complaint','payment_issue','complex_request','human_requested','other')
-     OR p_priority NOT BETWEEN 1 AND 3 THEN
+     OR p_channel IS NULL OR p_channel NOT IN ('web','whatsapp','email')
+     OR p_reason IS NULL OR p_reason NOT IN ('low_confidence','complaint','payment_issue','complex_request','human_requested','other')
+     OR p_priority IS NULL OR p_priority NOT BETWEEN 1 AND 3 THEN
     RAISE EXCEPTION 'Invalid Concierge escalation contract' USING ERRCODE = '22023';
   END IF;
 
@@ -147,6 +147,7 @@ BEGIN
     WHERE property.id = p_property_id
       AND property.status = 'active'
       AND session.id = p_session_id
+      AND (p_guest_id IS NULL OR session.guest_id = p_guest_id)
   ) THEN
     RAISE EXCEPTION 'Concierge session does not belong to the active property'
       USING ERRCODE = '23503';
@@ -387,7 +388,6 @@ SET search_path = public, pg_temp
 AS $function$
 DECLARE
   v_count integer;
-  v_expired boolean;
 BEGIN
   IF p_key_hash IS NULL OR p_key_hash !~ '^[a-f0-9]{64}
      OR p_limit < 1 OR p_limit > 1000
