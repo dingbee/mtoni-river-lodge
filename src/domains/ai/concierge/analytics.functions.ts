@@ -1,5 +1,40 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertFounderAiAdmin } from "@/domains/ai/ai.authorization.server";
+
+async function requirePropertyScope(
+  sb: any,
+  userId: string,
+  roles: string[] = ["owner", "manager", "admin", "reception", "marketing"],
+): Promise<string> {
+  const { data: propertyId, error: contextError } = await sb.rpc("staynas_active_property_id", { _uid: userId });
+  if (contextError || !propertyId) throw new Error("No active property selected.");
+  const { data: membership, error: membershipError } = await sb
+    .from("staynas_property_members")
+    .select("property_id")
+    .eq("user_id", userId)
+    .eq("property_id", propertyId)
+    .eq("status", "active")
+    .in("role", roles)
+    .maybeSingle();
+  if (membershipError || !membership) throw new Error("Forbidden");
+  return String(propertyId);
+}
+
+async function propertySessionIds(sb: any, propertyId: string, since?: string): Promise<string[]> {
+  const ids: string[] = [];
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    let q = sb.from("ai_concierge_sessions").select("id").eq("property_id", propertyId);
+    if (since) q = q.gte("created_at", since);
+    const { data, error } = await q.range(from, from + pageSize - 1);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []).map((row: { id: string }) => row.id);
+    ids.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return ids;
+}
 
 type Window = "7d" | "30d" | "90d";
 
@@ -17,11 +52,13 @@ export const getConciergeAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { window?: Window } | undefined) => ({ window: parseWindow(input?.window) }))
   .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
     const since = sinceDays(data.window);
     const s = context.supabase;
+    const sessionIds = await propertySessionIds(s, propertyId, since);
 
+    const zero = { count: 0, data: [], error: null };
     const [
-      sessions,
       messages,
       escalations,
       leads,
@@ -32,19 +69,21 @@ export const getConciergeAnalytics = createServerFn({ method: "POST" })
       feedbackNot,
       avgConfRow,
     ] = await Promise.all([
-      s.from("ai_concierge_sessions").select("id", { count: "exact", head: true }).gte("created_at", since),
-      s.from("ai_concierge_messages").select("id", { count: "exact", head: true }).gte("created_at", since),
-      s.from("ai_concierge_sessions").select("id", { count: "exact", head: true }).gte("created_at", since).eq("escalated", true),
-      s.from("ai_concierge_leads").select("id", { count: "exact", head: true }).gte("created_at", since),
-      s.from("ai_concierge_intents").select("id", { count: "exact", head: true }).gte("created_at", since).eq("intent_level", "high"),
-      s.from("ai_concierge_attributions").select("id", { count: "exact", head: true }).gte("created_at", since).eq("conversion_type", "booking_click"),
-      s.from("ai_concierge_attributions").select("id", { count: "exact", head: true }).gte("created_at", since).in("conversion_type", ["assisted_booking", "direct_booking"]),
-      s.from("ai_concierge_feedback").select("id", { count: "exact", head: true }).gte("created_at", since).eq("rating", "helpful"),
-      s.from("ai_concierge_feedback").select("id", { count: "exact", head: true }).gte("created_at", since).eq("rating", "not_helpful"),
-      s.from("ai_concierge_messages").select("confidence").gte("created_at", since).not("confidence", "is", null).limit(2000),
+      sessionIds.length ? s.from("ai_concierge_messages").select("id", { count: "exact", head: true }).in("session_id", sessionIds).gte("created_at", since) : Promise.resolve(zero),
+      sessionIds.length ? s.from("ai_concierge_sessions").select("id", { count: "exact", head: true }).in("id", sessionIds).eq("escalated", true) : Promise.resolve(zero),
+      s.from("ai_concierge_leads").select("id", { count: "exact", head: true }).eq("property_id", propertyId).gte("created_at", since),
+      sessionIds.length ? s.from("ai_concierge_intents").select("id", { count: "exact", head: true }).in("session_id", sessionIds).gte("created_at", since).eq("intent_level", "high") : Promise.resolve(zero),
+      sessionIds.length ? s.from("ai_concierge_attributions").select("id", { count: "exact", head: true }).in("session_id", sessionIds).gte("created_at", since).eq("conversion_type", "booking_click") : Promise.resolve(zero),
+      sessionIds.length ? s.from("ai_concierge_attributions").select("id", { count: "exact", head: true }).in("session_id", sessionIds).gte("created_at", since).in("conversion_type", ["assisted_booking", "direct_booking"]) : Promise.resolve(zero),
+      sessionIds.length ? s.from("ai_concierge_feedback").select("id", { count: "exact", head: true }).in("session_id", sessionIds).gte("created_at", since).eq("rating", "helpful") : Promise.resolve(zero),
+      sessionIds.length ? s.from("ai_concierge_feedback").select("id", { count: "exact", head: true }).in("session_id", sessionIds).gte("created_at", since).eq("rating", "not_helpful") : Promise.resolve(zero),
+      sessionIds.length ? s.from("ai_concierge_messages").select("confidence").in("session_id", sessionIds).gte("created_at", since).not("confidence", "is", null).limit(2000) : Promise.resolve(zero),
     ]);
+    for (const result of [messages, escalations, leads, intentsHigh, attrClicks, attrBookings, feedbackHelpful, feedbackNot, avgConfRow]) {
+      if (result.error) throw new Error(result.error.message);
+    }
 
-    const sessionsCount = sessions.count ?? 0;
+    const sessionsCount = sessionIds.length;
     const messagesCount = messages.count ?? 0;
     const escalationsCount = escalations.count ?? 0;
     const leadsCount = leads.count ?? 0;
@@ -109,9 +148,17 @@ export const getConciergeJourney = createServerFn({ method: "POST" })
     return { session_id: input.session_id };
   })
   .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
     const s = context.supabase;
+    const { data: sessionRow, error: sessionError } = await s
+      .from("ai_concierge_sessions")
+      .select("id, property_id, channel, locale, page_context, guest_id, guest_name, guest_email, guest_phone, message_count, escalated, identity_confidence, last_active_at, created_at")
+      .eq("id", data.session_id)
+      .eq("property_id", propertyId)
+      .maybeSingle();
+    if (sessionError || !sessionRow) throw new Error("Session not found in the active property.");
     const [session, messages, intents, lead, attributions, feedback, outcomes] = await Promise.all([
-      s.from("ai_concierge_sessions").select("*").eq("id", data.session_id).maybeSingle(),
+      Promise.resolve({ data: sessionRow, error: null }),
       s.from("ai_concierge_messages").select("id, role, content, confidence, escalated, created_at").eq("session_id", data.session_id).order("created_at", { ascending: true }),
       s.from("ai_concierge_intents").select("id, intent_level, confidence, keywords, created_at").eq("session_id", data.session_id).order("created_at", { ascending: true }),
       s.from("ai_concierge_leads").select("id, name, email, intent_level, created_at").eq("session_id", data.session_id).maybeSingle(),
@@ -151,14 +198,17 @@ export const classifyConciergeOutcomes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { window?: Window } | undefined) => ({ window: parseWindow(input?.window) }))
   .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, ["owner", "manager", "admin", "marketing"]);
     const since = sinceDays(data.window);
     const s = context.supabase;
 
-    const { data: sessions } = await s
+    const { data: sessions, error: sessionsError } = await s
       .from("ai_concierge_sessions")
       .select("id, escalated, created_at")
+      .eq("property_id", propertyId)
       .gte("created_at", since)
       .limit(500);
+    if (sessionsError) throw new Error(sessionsError.message);
 
     if (!sessions?.length) return { classified: 0 };
 
@@ -170,6 +220,12 @@ export const classifyConciergeOutcomes = createServerFn({ method: "POST" })
       s.from("ai_concierge_attributions").select("session_id, conversion_type").in("session_id", ids),
       s.from("ai_concierge_messages").select("session_id, role, content").in("session_id", ids),
     ]);
+    for (const result of [existing, intents, leads, atts, msgs]) {
+      if (result.error) throw new Error(result.error.message);
+    }
+    for (const result of [existing, intents, leads, atts, msgs]) {
+      if (result.error) throw new Error(result.error.message);
+    }
 
     const done = new Set((existing.data ?? []).map((r: any) => r.session_id));
     const intentBySession = new Map<string, string>();
@@ -234,12 +290,17 @@ export const getConciergeOutcomes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { window?: Window } | undefined) => ({ window: parseWindow(input?.window) }))
   .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
     const since = sinceDays(data.window);
-    const { data: rows } = await context.supabase
+    const sessionIds = await propertySessionIds(context.supabase, propertyId, since);
+    if (sessionIds.length === 0) return [];
+    const { data: rows, error } = await context.supabase
       .from("ai_concierge_outcomes")
       .select("outcome_type")
+      .in("session_id", sessionIds)
       .gte("created_at", since)
       .limit(5000);
+    if (error) throw new Error(error.message);
     const counts = new Map<string, number>();
     for (const r of rows ?? []) counts.set(r.outcome_type as string, (counts.get(r.outcome_type as string) ?? 0) + 1);
     return Array.from(counts.entries())
@@ -252,14 +313,19 @@ export const getKnowledgeGaps = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { window?: Window } | undefined) => ({ window: parseWindow(input?.window) }))
   .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
     const since = sinceDays(data.window);
-    const { data: rows } = await context.supabase
+    const sessionIds = await propertySessionIds(context.supabase, propertyId, since);
+    if (sessionIds.length === 0) return [];
+    const { data: rows, error } = await context.supabase
       .from("ai_concierge_messages")
       .select("session_id, content, confidence, escalated, role, created_at")
+      .in("session_id", sessionIds)
       .gte("created_at", since)
       .eq("role", "assistant")
       .or("confidence.lt.0.5,escalated.eq.true")
       .limit(500);
+    if (error) throw new Error(error.message);
 
     // Group by rough content topic (first 60 chars, normalised)
     const groups = new Map<string, { key: string; count: number; sample: string; escalated: number; avg_conf: number; confs: number[] }>();
@@ -289,6 +355,7 @@ export const getKnowledgeGaps = createServerFn({ method: "POST" })
 export const listConciergeInsights = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("ai_concierge_insights")
       .select("id, topic, category, question_count, escalation_count, sample_questions, impact_score, status, recommended_action, evidence, bucket_date, updated_at")
@@ -308,6 +375,7 @@ export const updateConciergeInsight = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
+    await assertFounderAiAdmin(context.supabase, context.userId);
     const patch: { status?: string; recommended_action?: string | null; updated_at: string } = {
       updated_at: new Date().toISOString(),
     };
