@@ -220,7 +220,7 @@ BEGIN
     r.extra_guest_fee,
     (_check_out - _check_in),
     CASE
-      WHEN q.quote IS NULL OR q.quote->>'ok' = 'false' THEN 0
+      WHEN q.quote IS NULL OR q.quote->>'ok'='false' THEN 0
       ELSE (q.quote->>'total')::numeric
     END,
     COALESCE(s.min_units, 0),
@@ -253,9 +253,9 @@ BEGIN
   ) q ON true
   WHERE r.property_id = _property_id AND r.status = 'active'
   ORDER BY
-    CASE WHEN q.quote IS NULL OR q.quote->>'ok' = 'false' THEN 1 ELSE 0 END,
+    CASE WHEN q.quote IS NULL OR q.quote->>'ok'='false' THEN 1 ELSE 0 END,
     CASE
-      WHEN q.quote IS NULL OR q.quote->>'ok' = 'false' THEN r.base_price
+      WHEN q.quote IS NULL OR q.quote->>'ok'='false' THEN r.base_price
       ELSE (q.quote->>'total')::numeric
     END;
 END;
