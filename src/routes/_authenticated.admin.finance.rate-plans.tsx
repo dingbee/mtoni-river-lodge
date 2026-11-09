@@ -48,6 +48,7 @@ function RatePlans() {
   const [detailsPlan,setDetailsPlan]=useState<Plan|null>(null);
   const [code,setCode]=useState(""); const [name,setName]=useState(""); const [description,setDescription]=useState("");
   const [category,setCategory]=useState("standard_flexible"); const [basis,setBasis]=useState("per_room");
+  const [planCurrency,setPlanCurrency]=useState("");
   const [mealPlan,setMealPlan]=useState("room_only"); const [refundable,setRefundable]=useState(true);
   const [from,setFrom]=useState(""); const [to,setTo]=useState(""); const [parent,setParent]=useState("");
   const [ratePlanDataText,setRatePlanDataText]=useState("{}");
@@ -80,10 +81,10 @@ function RatePlans() {
   const [restrictionReason,setRestrictionReason]=useState("");
   const [restrictionActive,setRestrictionActive]=useState(true);
 
-  const reset=()=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode("");setName("");setDescription("");setCategory("standard_flexible");setBasis("per_room");setMealPlan("room_only");setRefundable(true);setFrom("");setTo("");setParent("");setRatePlanDataText("{}");setInheritancePreview(null);};
-  const startEdit=(p:Plan)=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(p);setCode(p.code);setName(p.name);setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));setInheritancePreview(null);};
+  const reset=()=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode("");setName("");setDescription("");setCategory("standard_flexible");setBasis("per_room");setPlanCurrency("");setMealPlan("room_only");setRefundable(true);setFrom("");setTo("");setParent("");setRatePlanDataText("{}");setInheritancePreview(null);};
+  const startEdit=(p:Plan)=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(p);setCode(p.code);setName(p.name);setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setPlanCurrency(p.currency);setMealPlan(p.meal_plan);setRefundable(p.refundable);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));setInheritancePreview(null);};
   const save=useMutation({
-    mutationFn:()=>saveFn({data:{...(editing?{id:editing.id}:{}),code,name,description:description||null,category,pricing_basis:basis as "per_room"|"per_person"|"occupancy_based",meal_plan:mealPlan as "room_only"|"bed_breakfast"|"half_board"|"full_board"|"all_inclusive"|"custom",refundable,effective_from:from||null,effective_to:to||null,parent_rate_plan_id:parent||null,active:editing?.active??true,cancellation_policy:editing?.cancellation_policy??{},booking_conditions:editing?.booking_conditions??{},rate_plan_data:JSON.parse(ratePlanDataText||"{}")}}),
+    mutationFn:()=>saveFn({data:{...(editing?{id:editing.id}:{}),code,name,description:description||null,category,currency:planCurrency||String(data?.property?.currency??"").toUpperCase(),pricing_basis:basis as "per_room"|"per_person"|"occupancy_based",meal_plan:mealPlan as "room_only"|"bed_breakfast"|"half_board"|"full_board"|"all_inclusive"|"custom",refundable,effective_from:from||null,effective_to:to||null,parent_rate_plan_id:parent||null,active:editing?.active??true,cancellation_policy:editing?.cancellation_policy??{},booking_conditions:editing?.booking_conditions??{},rate_plan_data:JSON.parse(ratePlanDataText||"{}")}}),
     onSuccess:()=>{toast.success("Rate plan saved");reset();qc.invalidateQueries({queryKey:["staynas.rate-plans"]});},
     onError:(e:unknown)=>toast.error((e as Error).message),
   });
@@ -107,7 +108,7 @@ function RatePlans() {
   };
   const inheritanceMutation=useMutation({mutationFn:(id:string)=>resolveInheritanceFn({data:{id}}),onSuccess:(value)=>setInheritancePreview(value && typeof value === "object" ? value as Record<string,unknown> : {result:value}),onError:(e:unknown)=>toast.error((e as Error).message)});
   const roomTypeMutation=useMutation({mutationFn:(v:{rate_plan_id:string;room_type_id:string;active:boolean})=>setRoomTypeFn({data:v}),onSuccess:()=>{qc.invalidateQueries({queryKey:["staynas.rate-plan-room-types"]});toast.success("Room-type assignment updated");},onError:(e:unknown)=>toast.error((e as Error).message)});
-  const duplicate=(p:Plan)=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode(p.code+"-COPY");setName(p.name+" copy");setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));window.scrollTo({top:0,behavior:"smooth"});};
+  const duplicate=(p:Plan)=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode(p.code+"-COPY");setName(p.name+" copy");setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setPlanCurrency(p.currency);setMealPlan(p.meal_plan);setRefundable(p.refundable);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));window.scrollTo({top:0,behavior:"smooth"});};
   const readSeasonalRates=():Record<string,Record<string,unknown>>=>{
     try {
       const parsed=JSON.parse(ratePlanDataText||"{}") as {seasonal_rates?:Record<string,Record<string,unknown>>};
@@ -136,7 +137,7 @@ function RatePlans() {
       const parsed=JSON.parse(ratePlanDataText||"{}") as Record<string,unknown>;
       const seasons=(parsed.seasonal_rates&&typeof parsed.seasonal_rates==="object"?parsed.seasonal_rates:{}) as Record<string,unknown>;
       if(seasons[seasonKey.trim()]){toast.error("A season with this key already exists. Edit the JSON entry or choose another key.");return;}
-      seasons[seasonKey.trim()]={name:seasonName.trim(),description:seasonDescription.trim(),season_type:seasonType,start_date:seasonStart,end_date:seasonEnd,room_type_ids:seasonRoomTypes,currency:String(data?.property?.currency??"").toUpperCase(),nightly_rate:nightlyRate,priority,active:seasonActive};
+      seasons[seasonKey.trim()]={name:seasonName.trim(),description:seasonDescription.trim(),season_type:seasonType,start_date:seasonStart,end_date:seasonEnd,room_type_ids:seasonRoomTypes,currency:String(planCurrency||data?.property?.currency||"").toUpperCase(),nightly_rate:nightlyRate,priority,active:seasonActive};
       parsed.seasonal_rates=seasons;
       setRatePlanDataText(JSON.stringify(parsed,null,2));
       setSeasonKey("");setSeasonName("");setSeasonDescription("");setSeasonStart("");setSeasonEnd("");setSeasonRate("");setSeasonPriority("10");setSeasonRoomTypes([]);setSeasonActive(true);
@@ -169,7 +170,7 @@ function RatePlans() {
       const dates=(parsed.daily_rates&&typeof parsed.daily_rates==="object"?parsed.daily_rates:{}) as Record<string,Record<string,unknown>>;
       const rates={...(dates[dailyDate]??{})};
       if(rates[dailyRoomType]&&typeof rates[dailyRoomType]==="object"){toast.error("A daily rate already exists for this date and room type. Remove it first to replace it.");return;}
-      rates[dailyRoomType]={nightly_rate:amount,currency:String(data?.property?.currency??"").toUpperCase(),active:dailyActive};
+      rates[dailyRoomType]={nightly_rate:amount,currency:String(planCurrency||data?.property?.currency||"").toUpperCase(),active:dailyActive};
       dates[dailyDate]=rates;parsed.daily_rates=dates;
       setRatePlanDataText(JSON.stringify(parsed,null,2));
       setDailyDate("");setDailyRate("");setDailyActive(true);
@@ -313,7 +314,8 @@ function RatePlans() {
         <Input placeholder="Plan code (e.g. FLEX)" value={code} onChange={e=>setCode(e.target.value.toUpperCase())}/>
         <Input placeholder="Rate plan name" value={name} onChange={e=>setName(e.target.value)}/>
         <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={category} onChange={e=>setCategory(e.target.value)}>{CATEGORIES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select>
-        <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={basis} onChange={e=>setBasis(e.target.value)}><option value="per_room">Per room</option><option value="per_person">Per person</option><option value="occupancy_based">Occupancy-based</option></select>
+        <select aria-label="Rate plan transaction currency" className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={planCurrency||String(data?.property?.currency??"").toUpperCase()} onChange={e=>setPlanCurrency(e.target.value)}>{Array.from(new Set([String(data?.property?.currency??"").toUpperCase(),"TZS","USD"].filter(Boolean))).map(currency=><option key={currency} value={currency}>{currency} transaction currency</option>)}</select>
+         <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={basis} onChange={e=>setBasis(e.target.value)}><option value="per_room">Per room</option><option value="per_person">Per person</option><option value="occupancy_based">Occupancy-based</option></select>
         <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={mealPlan} onChange={e=>setMealPlan(e.target.value)}><option value="room_only">Room only</option><option value="bed_breakfast">Bed & Breakfast</option><option value="half_board">Half Board</option><option value="full_board">Full Board</option><option value="all_inclusive">All inclusive</option><option value="custom">Custom</option></select>
         <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={parent} onChange={e=>setParent(e.target.value)}><option value="">No parent — standalone</option>{(data?.plans??[]).filter((p:Plan)=>p.id!==editing?.id).map((p:Plan)=><option key={p.id} value={p.id}>{p.name} ({p.code})</option>)}</select>
         <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Effective from</span><Input type="date" value={from} onChange={e=>setFrom(e.target.value)} aria-label="Effective from"/></label>
@@ -334,7 +336,7 @@ function RatePlans() {
           <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Season ends</span><Input type="date" aria-label="Season end date" value={seasonEnd} onChange={e=>setSeasonEnd(e.target.value)}/></label>
           <Input type="number" placeholder="Nightly rate" value={seasonRate} onChange={e=>setSeasonRate(e.target.value)}/>
           <Input type="number" placeholder="Priority (higher wins)" value={seasonPriority} onChange={e=>setSeasonPriority(e.target.value)}/>
-          <div className="flex items-center gap-2 text-sm"><input type="checkbox" checked={seasonActive} onChange={e=>setSeasonActive(e.target.checked)}/>Active season <Badge variant="outline">{String(data?.property?.currency??"").toUpperCase()}</Badge></div>
+          <div className="flex items-center gap-2 text-sm"><input type="checkbox" checked={seasonActive} onChange={e=>setSeasonActive(e.target.checked)}/>Active season <Badge variant="outline">{String(planCurrency||data?.property?.currency||"").toUpperCase()}</Badge></div>
         </div>
         <div className="space-y-2"><p className="text-xs font-medium">Applicable room types</p><div className="flex flex-wrap gap-4">{assignedPlanRoomTypes.map((rt:{id:string;name:string})=><label key={rt.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={seasonRoomTypes.includes(rt.id)} onChange={e=>setSeasonRoomTypes(current=>e.target.checked?[...current,rt.id]:current.filter(id=>id!==rt.id))}/>{rt.name}</label>)}</div></div>
         <Button type="button" variant="outline" disabled={!editing||!assignedPlanRoomTypes.length} onClick={addSeason}><Plus className="mr-2 h-4 w-4"/>Add season</Button>
@@ -347,7 +349,7 @@ function RatePlans() {
           <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Rate date</span><Input type="date" aria-label="Daily rate date" value={dailyDate} onChange={e=>setDailyDate(e.target.value)}/></label>
           <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={dailyRoomType} onChange={e=>setDailyRoomType(e.target.value)}><option value="">Choose room type</option>{assignedPlanRoomTypes.map((rt:{id:string;name:string})=><option key={rt.id} value={rt.id}>{rt.name}</option>)}</select>
           <Input type="number" min="0.01" step="0.01" placeholder="Nightly rate" value={dailyRate} onChange={e=>setDailyRate(e.target.value)}/>
-          <div className="flex items-center gap-2 text-sm"><input type="checkbox" checked={dailyActive} onChange={e=>setDailyActive(e.target.checked)}/>Active override <Badge variant="outline">{String(data?.property?.currency??"").toUpperCase()}</Badge></div>
+          <div className="flex items-center gap-2 text-sm"><input type="checkbox" checked={dailyActive} onChange={e=>setDailyActive(e.target.checked)}/>Active override <Badge variant="outline">{String(planCurrency||data?.property?.currency||"").toUpperCase()}</Badge></div>
         </div>
         <Button type="button" variant="outline" disabled={!editing||!assignedPlanRoomTypes.length} onClick={addDailyRate}><Plus className="mr-2 h-4 w-4"/>Add daily override</Button>
         {dailyRateEntries.length>0&&<>
@@ -363,7 +365,7 @@ function RatePlans() {
             <div><h4 className="text-sm font-medium">Bulk editor</h4><p className="text-xs text-muted-foreground">Applies only to selected existing exact-date overrides. It does not generate date ranges or recurring entries.</p></div>
             <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
               <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={bulkMode} onChange={e=>setBulkMode(e.target.value as typeof bulkMode)}>
-                <option value="percent">Adjust by percent (%)</option><option value="amount">Adjust by amount ({String(data?.property?.currency??"").toUpperCase()})</option><option value="set">Set exact nightly rate ({String(data?.property?.currency??"").toUpperCase()})</option>
+                <option value="percent">Adjust by percent (%)</option><option value="amount">Adjust by amount ({String(planCurrency||data?.property?.currency||"").toUpperCase()})</option><option value="set">Set exact nightly rate ({String(planCurrency||data?.property?.currency||"").toUpperCase()})</option>
               </select>
               <Input type="number" step="0.01" placeholder={bulkMode==="percent"?"e.g. 10 or -5":"Nightly rate adjustment"} value={bulkValue} onChange={e=>setBulkValue(e.target.value)}/>
               <Button type="button" variant="outline" disabled={!selectedDailyEntries.length||!bulkValue} onClick={applyBulkDailyRate}>Apply rate change</Button>
