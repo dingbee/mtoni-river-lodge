@@ -1,5 +1,5 @@
 export interface BookingSearch {
-  step: 1 | 2 | 3 | 4;
+  step?: 1 | 2 | 3 | 4;
   session?: string;
   room?: string;
   check_in?: string;
