@@ -21,10 +21,12 @@ export type PropertyPesapalCredentials = {
 function parseCredentials(value: unknown): PropertyPesapalCredentials {
   if (!value || typeof value !== "object") throw new Error("Property Pesapal credentials are invalid.");
   const row = value as Record<string, unknown>;
-  if (typeof row.consumer_key !== "string" || typeof row.consumer_secret !== "string") {
+  const consumerKey = row.consumer_key ?? row.consumerKey;
+  const consumerSecret = row.consumer_secret ?? row.consumerSecret;
+  if (typeof consumerKey !== "string" || typeof consumerSecret !== "string") {
     throw new Error("Property Pesapal credentials are incomplete.");
   }
-  return { consumer_key: row.consumer_key, consumer_secret: row.consumer_secret };
+  return { consumer_key: consumerKey, consumer_secret: consumerSecret };
 }
 
 export async function readPropertyPesapalCredentials(
