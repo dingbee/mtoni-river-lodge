@@ -484,7 +484,8 @@ export const addCommercialReconciliationItem=createServerFn({method:"POST"})
       _expected_amount_minor: data.expectedAmountMinor ?? null,
       _observed_amount_minor: data.observedAmountMinor ?? null,
       _expected_currency: data.expectedCurrency ?? null, _observed_currency: data.observedCurrency ?? null,
-      _evidence: data.evidence, _actor_user_id: actor.userId,
+      _evidence: data.evidence, _resolution_status: "unresolved", _resolution_ref: null,
+      _actor_user_id: actor.userId,
     });
     if (error || !itemId) throw new Error("Reconciliation item and opening evidence could not be recorded atomically.");
     const item = { id: itemId, item_type: data.itemType, resolution_status: "unresolved" };
@@ -1017,7 +1018,8 @@ export const reconcileCommercialProviderStatementRun=createServerFn({method:"POS
         _internal_payment_id: item.internalPaymentId, _provider_ref: item.providerRef,
         _expected_amount_minor: item.expectedAmountMinor, _observed_amount_minor: item.observedAmountMinor,
         _expected_currency: item.expectedCurrency, _observed_currency: item.observedCurrency,
-        _evidence: item.evidence, _actor_user_id: actor.userId,
+        _evidence: item.evidence, _resolution_status: item.resolutionStatus,
+        _resolution_ref: item.resolutionRef, _actor_user_id: actor.userId,
       });
       if (insertError) throw new Error("Reconciliation item and exception evidence could not be persisted atomically.");
     }
