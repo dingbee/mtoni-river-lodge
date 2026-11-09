@@ -5,7 +5,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function clean(v: unknown, max = 200): string | null {
   if (typeof v !== "string") return null;
-  const t = v.trim();
+  const t = v.replace(/[\u0000-\u001F\u007F]/g, "").trim();
   return t ? t.slice(0, max) : null;
 }
 
@@ -22,7 +22,7 @@ export async function captureLead(input: ConciergeLeadInput, propertyId: string)
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const token = clean(input.session_token, 80);
-  if (!token) throw new Error("A valid concierge session is required.");
+  if (!token || !/^cnc_[A-Za-z0-9_-]{43}$/.test(token)) throw new Error("A valid concierge session is required.");
 
   const { data: session, error: sessionError } = await supabaseAdmin
     .from("ai_concierge_sessions")
@@ -62,7 +62,7 @@ export async function captureLead(input: ConciergeLeadInput, propertyId: string)
     : [];
   const intent_level = start && email ? "high" : email || phone ? "medium" : "low";
   const idempotencyKey = createHash("sha256")
-    .update([propertyId, session.id, email ?? "", phone ?? "", name ?? ""].join("|"))
+    .update(JSON.stringify({ propertyId, sessionId: session.id, email, phone, name, start, end, adults, children, interests, notes: clean(input.notes, 1000) }))
     .digest("hex");
 
   const lead = {
