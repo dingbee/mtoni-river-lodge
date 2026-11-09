@@ -174,4 +174,7 @@ jobs:
           src/routes/api/integrations.lb01.approval.ts
           src/routes/api/integrations.lb01.manage.ts
           src/routes/api/integrations.lb01.credential-exchange.ts
+          src/components/os/StayNasLexiBiteIntegration.tsx
+          src/routes/_authenticated.admin.integrations.lexibite.tsx
+          src/lib/permissions.ts
           --rule 'prettier/prettier: off'
