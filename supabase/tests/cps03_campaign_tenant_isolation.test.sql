@@ -170,6 +170,25 @@ $test$;
 
 INSERT INTO public.booking_campaigns(id,organisation_id,property_id,slug,name,status)
 VALUES ('60000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','second-campaign','Second Campaign','draft');
+DO $test$
+DECLARE v_schedule jsonb;
+BEGIN
+  v_schedule := public.cps03_set_campaign_schedule(
+    '60000000-0000-4000-8000-000000000002',
+    '20000000-0000-4000-8000-000000000001',
+    '10000000-0000-4000-8000-000000000001',
+    current_date,
+    current_date + 7,
+    '40000000-0000-4000-8000-000000000001'
+  );
+  IF ((v_schedule->>'starts_at')::timestamptz AT TIME ZONE 'Africa/Dar_es_Salaam')::date <> current_date THEN
+    RAISE EXCEPTION 'Campaign start date was not interpreted in the property timezone';
+  END IF;
+  IF ((v_schedule->>'ends_at')::timestamptz AT TIME ZONE 'Africa/Dar_es_Salaam')::date <> current_date + 7 THEN
+    RAISE EXCEPTION 'Campaign end date was not interpreted in the property timezone';
+  END IF;
+END
+$test$;
 INSERT INTO public.campaign_page_content(campaign_id,property_id,version,status,content)
 VALUES ('60000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001',1,'draft','{"headline":"Second Campaign"}');
 INSERT INTO public.campaign_room_selections(campaign_id,property_id,room_id)
