@@ -114,7 +114,7 @@ export async function authenticateLb01ServiceRequest(
 
   const secretBytes = fromBase64Url(parsed.secret);
   if (!secretBytes) throw new Error("Unauthorized LB-01 service request.");
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", secretBytes));
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", toArrayBuffer(secretBytes)));
   if (!constantTimeHexEqual(hex(digest), credential.credential_hash)) {
     throw new Error("Unauthorized LB-01 service request.");
   }
