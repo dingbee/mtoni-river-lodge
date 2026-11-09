@@ -75,6 +75,8 @@ DECLARE
   v_provider uuid;
   v_run_payload jsonb;
   v_replayed_id uuid;
+  v_import jsonb;
+  v_item_count integer;
   v_blocked boolean := false;
 BEGIN
   INSERT INTO public.staynas_organisations(id,slug,name,status)
@@ -106,6 +108,24 @@ BEGIN
     v_provider,'TZS',now()-interval '3 days',now()-interval '2 days','cc07-idempotent-source',NULL
   )->>'id')::uuid IS DISTINCT FROM v_replayed_id THEN
     RAISE EXCEPTION 'Provider-period reconciliation run creation was not idempotent';
+  END IF;
+
+  v_import := public.commercial_import_reconciliation_statement(
+    v_replayed_id,
+    '[{"itemType":"matched","internalPaymentId":null,"providerRef":"cc07-statement-row-1","expectedAmountMinor":10000,"observedAmountMinor":10000,"expectedCurrency":"TZS","observedCurrency":"TZS","evidence":{"test":true},"resolutionStatus":"resolved","resolutionRef":"exact_match"}]'::jsonb,
+    NULL
+  );
+  IF (v_import->>'findingCount')::integer <> 1 OR (v_import->>'replayed')::boolean IS DISTINCT FROM false THEN
+    RAISE EXCEPTION 'First provider statement import was not committed';
+  END IF;
+  v_import := public.commercial_import_reconciliation_statement(
+    v_replayed_id,
+    '[{"itemType":"matched","internalPaymentId":null,"providerRef":"cc07-statement-row-1","expectedAmountMinor":10000,"observedAmountMinor":10000,"expectedCurrency":"TZS","observedCurrency":"TZS","evidence":{"test":true},"resolutionStatus":"resolved","resolutionRef":"exact_match"}]'::jsonb,
+    NULL
+  );
+  SELECT count(*) INTO v_item_count FROM public.commercial_reconciliation_items WHERE run_id=v_replayed_id;
+  IF (v_import->>'replayed')::boolean IS DISTINCT FROM true OR v_item_count <> 1 THEN
+    RAISE EXCEPTION 'Repeated statement import created duplicate reconciliation items';
   END IF;
   v_event := public.commercial_record_reconciliation_item_event(
     v_item,'opened',NULL,'service_principal','provider_status_conflict',
