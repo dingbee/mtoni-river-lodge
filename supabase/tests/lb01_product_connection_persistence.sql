@@ -38,6 +38,7 @@ INSERT INTO public.staynas_property_members(property_id,user_id,role) VALUES
 
 \i supabase/migrations/20261108130000_lb01_product_connection_persistence.sql
 \i supabase/migrations/20261108143000_lb01_service_auth_nonce_ledger.sql
+\i supabase/migrations/20261109100000_lb01_secure_handoff_and_delivery.sql
 
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.test_user_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',true);
