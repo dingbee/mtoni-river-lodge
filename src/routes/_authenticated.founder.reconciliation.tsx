@@ -226,7 +226,7 @@ function FounderReconciliationWorkspace() {
                       <button disabled={busy} onClick={() => void recordEvent(String(item.id), "reopened")} className="rounded border px-2 py-1 text-xs">Reopen exception</button>}
                   </div>
                   {itemEvents.length > 0 && <ul className="mt-2 space-y-1 border-l pl-3 text-xs text-muted-foreground">
-                    {itemEvents.map((event) => <li key={String(event.id)}>{label(event.event_type)} · {date(event.occurred_at)} · {String(event.reason_code)}</li>)}
+                    {itemEvents.map((event) => <li key={String(event.id)}>{label(event.event_type)} · {date(event.occurred_at)} · {String(event.reason_code)} · responsible founder {String(event.actor_user_id ?? "service principal")}</li>)}
                   </ul>}
                 </div>;
               })}
