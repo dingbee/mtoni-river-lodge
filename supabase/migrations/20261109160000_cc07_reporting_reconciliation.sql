@@ -528,12 +528,14 @@ COMMENT ON VIEW public.commercial_revenue_collection_facts IS
 
 
 -- CC-07.03: lifecycle-derived revenue movements. Currency is never converted.
+CREATE UNIQUE INDEX IF NOT EXISTS commercial_accounts_id_organisation_unique
+  ON public.commercial_accounts(id,organisation_id);
 CREATE TABLE IF NOT EXISTS public.commercial_subscription_revenue_movements (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  account_id uuid NOT NULL REFERENCES public.commercial_accounts(id) ON DELETE RESTRICT,
+  account_id uuid NOT NULL,
   organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id) ON DELETE RESTRICT,
-  previous_subscription_id uuid NOT NULL REFERENCES public.commercial_subscriptions(id) ON DELETE RESTRICT,
-  new_subscription_id uuid NOT NULL REFERENCES public.commercial_subscriptions(id) ON DELETE RESTRICT,
+  previous_subscription_id uuid NOT NULL,
+  new_subscription_id uuid NOT NULL,
   movement_type text NOT NULL CHECK (movement_type IN ('expansion','contraction','unchanged')),
   currency text NOT NULL CHECK (currency IN ('TZS','USD')),
   previous_mrr_minor numeric(20,0) NOT NULL CHECK (previous_mrr_minor >= 0),
@@ -550,6 +552,12 @@ CREATE TABLE IF NOT EXISTS public.commercial_subscription_revenue_movements (
   UNIQUE (account_id,idempotency_key),
   UNIQUE (previous_subscription_id),
   UNIQUE (new_subscription_id),
+  FOREIGN KEY (account_id,organisation_id)
+    REFERENCES public.commercial_accounts(id,organisation_id) ON DELETE RESTRICT,
+  FOREIGN KEY (previous_subscription_id,account_id)
+    REFERENCES public.commercial_subscriptions(id,account_id) ON DELETE RESTRICT,
+  FOREIGN KEY (new_subscription_id,account_id)
+    REFERENCES public.commercial_subscriptions(id,account_id) ON DELETE RESTRICT,
   CHECK (new_subscription_id <> previous_subscription_id),
   CHECK (delta_mrr_minor = new_mrr_minor - previous_mrr_minor),
   CHECK (
