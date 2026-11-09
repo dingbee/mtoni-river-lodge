@@ -19,6 +19,22 @@ CREATE TABLE IF NOT EXISTS public.staynas_public_booking_channels (
   UNIQUE(id,property_id)
 );
 
+DO $domain_constraints$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='staynas_property_domains_id_property_uidx') THEN
+    ALTER TABLE public.staynas_property_domains
+      ADD CONSTRAINT staynas_property_domains_id_property_uidx UNIQUE(id,property_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='staynas_public_booking_channels_domain_property_fk') THEN
+    ALTER TABLE public.staynas_public_booking_channels
+      ADD CONSTRAINT staynas_public_booking_channels_domain_property_fk
+      FOREIGN KEY (domain_id,property_id)
+      REFERENCES public.staynas_property_domains(id,property_id)
+      ON DELETE RESTRICT;
+  END IF;
+END;
+$domain_constraints$;
+
 ALTER TABLE public.staynas_public_booking_channels ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.staynas_public_booking_channels FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.staynas_public_booking_channels TO service_role;
