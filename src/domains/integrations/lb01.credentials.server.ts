@@ -148,7 +148,7 @@ export async function authenticateLb01ServiceRequest(
     throw new Error("Unauthorized LB-01 service request.");
   }
 
-  const { data: connection, error: connectionError } = await supabaseAdmin
+  const { data: connection, error: connectionError } = await client
     .from("staynas_product_connections")
     .select("id, integration_tenant_id, integration_property_id, local_organisation_id, local_property_id, remote_tenant_id, remote_property_id, remote_product, status, correlation_id")
     .eq("id", credentialRow.connection_id)
