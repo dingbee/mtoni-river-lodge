@@ -346,6 +346,13 @@ DECLARE
   v_final_sub uuid;
   v_new_invoice uuid := '97000000-0000-4000-8000-000000000008';
   v_writeoff_invoice uuid := '97000000-0000-4000-8000-000000000010';
+  v_customer_provider uuid;
+  v_payment uuid := '97000000-0000-4000-8000-000000000011';
+  v_allocated_payment uuid := '97000000-0000-4000-8000-000000000012';
+  v_reversal uuid;
+  v_allocated_reversal uuid;
+  v_audit_event uuid;
+  v_audit_immutable boolean := false;
   v_usd_org uuid := '97000000-0000-4000-8000-000000000009';
   v_usd_account uuid := '97000000-0000-4000-8000-00000000000a';
   v_tzs_new_sub uuid := '97000000-0000-4000-8000-00000000000b';
