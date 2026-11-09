@@ -47,6 +47,7 @@ function availabilityOutcomeLabel(status: ConciergeAvailabilityOutcome): string 
     property_resolution_failure: "This website is not configured for guest availability.",
     inventory_service_failure: "Room availability could not be verified right now.",
     pricing_service_failure: "Room pricing could not be verified right now.",
+    child_age_breakdown_required: "Please share each child's age so we can calculate the correct rate.",
     temporary_failure: "The availability service is temporarily unavailable.",
   };
   return labels[status];
