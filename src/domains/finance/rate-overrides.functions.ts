@@ -65,7 +65,7 @@ export const createStayNasRateOverride = createServerFn({ method: "POST" })
       if (error || !rows?.length) throw new Error("Override room type has no active rooms in this property.");
       const currencies = Array.from(new Set(rows.map((row: any) => String(row.currency ?? "").toUpperCase())));
       if (currencies.length !== 1) throw new Error("A room-type override cannot span rooms with different transaction currencies.");
-      expectedCurrency = currencies[0];
+      expectedCurrency = String(currencies[0] ?? "");
     } else {
       const { data: plan, error } = await sb.from("staynas_rate_plans")
         .select("currency").eq("id",data.rate_plan_id).eq("property_id",propertyId).maybeSingle();
