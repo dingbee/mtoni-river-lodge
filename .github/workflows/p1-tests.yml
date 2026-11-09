@@ -87,6 +87,11 @@ jobs:
           src/routes/$propertySlug.tsx
           src/domains/finance/rate-plans.functions.ts
           src/domains/finance/rate-overrides.functions.ts
+          src/domains/finance/pricing-adjustments.functions.ts
+          src/lib/payment-finalize.server.ts
+          src/routes/api/public/pesapal.ipn.ts
+          src/routes/_authenticated.admin.settings.payment-providers.tsx
+          src/routes/_authenticated.admin.finance.pricing-adjustments.tsx
           src/domains/marketing/demo-requests.test.ts
       # TanStack Start generates routeTree.gen.ts during the Vite build.
       - name: Generate routes and verify production build
