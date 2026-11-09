@@ -215,3 +215,132 @@ export const getFounderTenantCommercialProfile = createServerFn({ method: "GET" 
       auditEvents,
     }));
   });
+
+const founderNotificationInput = z.object({ notificationId: z.string().uuid() });
+
+async function writeFounderNotificationAudit(admin: any, actor: { userId: string; organisationId: string }, action: string, notificationId: string) {
+  const { error } = await admin.from("commercial_audit_events").insert({
+    request_id: globalThis.crypto.randomUUID(),
+    actor_user_id: actor.userId,
+    actor_organisation_id: actor.organisationId,
+    actor_role: "founder_admin",
+    action,
+    resource_type: "founder_notification",
+    resource_ref: notificationId,
+    outcome: "succeeded",
+    reason_code: null,
+    metadata: {},
+  });
+  if (error) throw new Error("Founder notification audit evidence could not be persisted.");
+}
+
+/** Materialize deduplicated alerts from current commercial records. No tenant-facing notification table is reused. */
+export const syncFounderCommercialNotifications = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const actor = await resolveVerifiedFounderActor(context as { supabase: unknown; userId: string });
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = supabaseAdmin as any;
+    const [organisationsResult, accountsResult, subscriptionsResult, invoicesResult, paymentsResult, reconciliationResult, decisionsResult] = await Promise.all([
+      admin.from("staynas_organisations").select("id,name"),
+      admin.from("commercial_accounts").select("id,organisation_id"),
+      admin.from("commercial_subscriptions").select("id,account_id,plan_code,status,trial_ends_at,current_period_ends_at,currency"),
+      admin.from("commercial_invoice_receivables").select("id,organisation_id,invoice_number,currency,outstanding_minor,due_at,is_overdue,status"),
+      admin.from("commercial_payment_transactions").select("id,organisation_id,provider,amount_minor,currency,status,created_at").eq("status","failed"),
+      admin.from("commercial_reconciliation_runs").select("id,organisation_id,currency,status,source_ref").eq("status","discrepancy"),
+      admin.from("commercial_entitlement_decisions").select("id,organisation_id,feature_code,outcome,reason,decided_at").eq("allowed",false).eq("outcome","commercial_review_required").order("decided_at",{ascending:false}).limit(100),
+    ]);
+    const errors=[organisationsResult,accountsResult,subscriptionsResult,invoicesResult,paymentsResult,reconciliationResult,decisionsResult].filter((result)=>result.error);
+    if(errors.length) throw new Error("Commercial alert source records could not be evaluated.");
+    const organisations=rows(organisationsResult.data);
+    const accounts=rows(accountsResult.data);
+    const subscriptions=rows(subscriptionsResult.data);
+    const now=Date.now();
+    const sevenDays=now+7*24*60*60*1000;
+    const thirtyDays=now+30*24*60*60*1000;
+    const alerts: Row[]=[];
+    const tenantName=(organisationId: unknown)=>String(organisations.find((item)=>item.id===organisationId)?.name??"Customer tenant");
+    const accountOrg=new Map(accounts.map((item)=>[String(item.id),item.organisation_id]));
+    for(const subscription of subscriptions){
+      const organisationId=accountOrg.get(String(subscription.account_id));
+      if(subscription.status==="trialing" && subscription.trial_ends_at){
+        const expiry=Date.parse(String(subscription.trial_ends_at));
+        if(Number.isFinite(expiry)&&expiry>=now&&expiry<=sevenDays){
+          alerts.push({dedupe_key:`trial-expiring:${subscription.id}:${subscription.trial_ends_at}`,organisation_id:organisationId,alert_type:"trial_expiring",severity:"warning",title:"Trial approaching expiry",detail:`${tenantName(organisationId)} trial for ${subscription.plan_code} expires ${new Date(expiry).toISOString()}.`,resource_type:"subscription",resource_ref:String(subscription.id),href:organisationId?`/founder/tenants/${organisationId}`:"/founder",metadata:{planCode:subscription.plan_code,trialEndsAt:subscription.trial_ends_at}});
+        }
+      }
+      if(subscription.status==="active" && subscription.current_period_ends_at){
+        const renewal=Date.parse(String(subscription.current_period_ends_at));
+        if(Number.isFinite(renewal)&&renewal>=now&&renewal<=thirtyDays){
+          alerts.push({dedupe_key:`renewal-approaching:${subscription.id}:${subscription.current_period_ends_at}`,organisation_id:organisationId,alert_type:"renewal_approaching",severity:"info",title:"Subscription renewal approaching",detail:`${tenantName(organisationId)} ${subscription.plan_code} subscription renews ${new Date(renewal).toISOString()}.`,resource_type:"subscription",resource_ref:String(subscription.id),href:organisationId?`/founder/tenants/${organisationId}`:"/founder",metadata:{planCode:subscription.plan_code,renewalAt:subscription.current_period_ends_at}});
+        }
+      }
+    }
+    for(const invoice of rows(invoicesResult.data).filter((item)=>item.is_overdue===true&&numeric(item.outstanding_minor)>0)){
+      alerts.push({dedupe_key:`invoice-overdue:${invoice.id}`,organisation_id:invoice.organisation_id,alert_type:"invoice_overdue",severity:"critical",title:"Invoice overdue",detail:`${tenantName(invoice.organisation_id)} invoice ${invoice.invoice_number} has ${invoice.currency} ${invoice.outstanding_minor} outstanding.`,resource_type:"invoice",resource_ref:String(invoice.id),href:"/founder/billing",metadata:{invoiceNumber:invoice.invoice_number,currency:invoice.currency,outstandingMinor:String(invoice.outstanding_minor),dueAt:invoice.due_at}});
+    }
+    for(const payment of rows(paymentsResult.data)){
+      alerts.push({dedupe_key:`payment-failed:${payment.id}`,organisation_id:payment.organisation_id,alert_type:"payment_failed",severity:"warning",title:"Payment failed",detail:`${tenantName(payment.organisation_id)} payment attempt through ${payment.provider} failed.`,resource_type:"payment",resource_ref:String(payment.id),href:"/founder/billing",metadata:{currency:payment.currency,amountMinor:String(payment.amount_minor),createdAt:payment.created_at}});
+    }
+    for(const run of rows(reconciliationResult.data)){
+      alerts.push({dedupe_key:`reconciliation-exception:${run.id}`,organisation_id:run.organisation_id,alert_type:"reconciliation_exception",severity:"critical",title:"Payment reconciliation exception",detail:`${tenantName(run.organisation_id)} has an unresolved ${run.currency} reconciliation discrepancy (${run.source_ref}).`,resource_type:"reconciliation_run",resource_ref:String(run.id),href:"/founder/billing",metadata:{currency:run.currency,sourceRef:run.source_ref}});
+    }
+    for(const decision of rows(decisionsResult.data)){
+      alerts.push({dedupe_key:`entitlement-exception:${decision.id}`,organisation_id:decision.organisation_id,alert_type:"entitlement_exception",severity:"warning",title:"Entitlement requires commercial review",detail:`${tenantName(decision.organisation_id)} feature ${decision.feature_code} requires founder review: ${decision.reason}.`,resource_type:"entitlement_decision",resource_ref:String(decision.id),href:"/founder/entitlements",metadata:{featureCode:decision.feature_code,outcome:decision.outcome,decidedAt:decision.decided_at}});
+    }
+    if(alerts.length){
+      const {error}=await admin.from("commercial_founder_notifications").upsert(alerts,{onConflict:"dedupe_key",ignoreDuplicates:true});
+      if(error) throw new Error("Founder commercial notifications could not be persisted.");
+    }
+    await writeFounderNotificationAudit(admin,actor,"founder_notifications.synced","platform");
+    return { generated: alerts.length };
+  });
+
+export const listFounderCommercialNotifications = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await resolveVerifiedFounderActor(context as { supabase: unknown; userId: string });
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = supabaseAdmin as any;
+    const {data,error}=await admin.from("commercial_founder_notifications").select("*").order("created_at",{ascending:false}).limit(300);
+    if(error) throw new Error("Founder commercial notifications could not be loaded.");
+    return JSON.parse(JSON.stringify(rows(data)));
+  });
+
+export const acknowledgeFounderCommercialNotification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => founderNotificationInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const actor=await resolveVerifiedFounderActor(context as {supabase:unknown;userId:string});
+    const {supabaseAdmin}=await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin=supabaseAdmin as any;
+    const {data:notification,error}=await admin.from("commercial_founder_notifications").select("id,status").eq("id",data.notificationId).maybeSingle();
+    if(error||!notification) throw new Error("Founder notification was not found.");
+    if(notification.status==="open"){
+      const {error:updateError}=await admin.from("commercial_founder_notifications").update({status:"acknowledged",acknowledged_at:new Date().toISOString(),acknowledged_by:actor.userId}).eq("id",data.notificationId);
+      if(updateError) throw new Error("Founder notification acknowledgement failed.");
+      await writeFounderNotificationAudit(admin,actor,"founder_notification.acknowledged",data.notificationId);
+    }
+    return {id:data.notificationId,status:notification.status==="open"?"acknowledged":notification.status};
+  });
+
+export const resolveFounderCommercialNotification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => founderNotificationInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const actor=await resolveVerifiedFounderActor(context as {supabase:unknown;userId:string});
+    const {supabaseAdmin}=await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin=supabaseAdmin as any;
+    const {data:notification,error}=await admin.from("commercial_founder_notifications").select("id,status").eq("id",data.notificationId).maybeSingle();
+    if(error||!notification) throw new Error("Founder notification was not found.");
+    if(notification.status!=="resolved"){
+      const {error:updateError}=await admin.from("commercial_founder_notifications").update({status:"resolved",resolved_at:new Date().toISOString(),resolved_by:actor.userId}).eq("id",data.notificationId);
+      if(updateError) throw new Error("Founder notification resolution failed.");
+      await writeFounderNotificationAudit(admin,actor,"founder_notification.resolved",data.notificationId);
+    }
+    return {id:data.notificationId,status:"resolved" as const};
+  });
