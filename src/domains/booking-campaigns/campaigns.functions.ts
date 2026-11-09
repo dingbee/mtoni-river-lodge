@@ -425,8 +425,8 @@ export const resolveConfiguredPropertyCampaignSlug = createServerFn({ method: "G
     const { data: propertyId, error: resolverError } = await sb.rpc("staynas_booking_property_id");
     if (resolverError || !propertyId) return null;
     const { data: property, error: propertyError } = await sb.from("staynas_properties")
-      .select("id,slug,status").eq("id", propertyId).maybeSingle();
-    if (propertyError || !property || property.status !== "active") return null;
+      .select("id,slug,status,currency").eq("id", propertyId).maybeSingle();
+    if (propertyError || !property || property.status !== "active" || property.currency === "USD") return null;
     const { data: campaign, error: campaignError } = await sb.from("booking_campaigns")
       .select("id,starts_at,ends_at").eq("property_id", property.id)
       .eq("slug", data.campaignSlug).eq("status", "published").maybeSingle();
