@@ -1,0 +1,36 @@
+name: StayNas DC-04 adapter contracts
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/domains/distribution/adapters/**"
+      - "docs/dc-04-adapter-runtime-contract.md"
+      - ".github/workflows/dc-04-adapter-contracts.yml"
+  push:
+    branches:
+      - feat/dc-04-*
+      - main
+
+jobs:
+  adapter-contracts:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Adapter registry contract tests
+        run: bunx vitest run src/domains/distribution/adapters
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Production build
+        run: bun run build
