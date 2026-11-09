@@ -2,7 +2,7 @@
 // GET /api/public/availability/search?check_in=YYYY-MM-DD&check_out=YYYY-MM-DD[&guests=2]
 
 import { createFileRoute } from "@tanstack/react-router";
-import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
+import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.server";
 
 export const Route = createFileRoute("/api/public/availability/search")({
   server: {
@@ -21,7 +21,8 @@ export const Route = createFileRoute("/api/public/availability/search")({
           return Response.json({ error: "check_out must be after check_in" }, { status: 400 });
         }
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+        const channel = await resolvePublicDirectBookingChannel(supabaseAdmin, request.headers.get("host") ?? url.host);
+        const propertyId = channel.propertyId;
         const { data, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced_with_rate_plan", {
           _check_in: checkIn,
           _check_out: checkOut,
